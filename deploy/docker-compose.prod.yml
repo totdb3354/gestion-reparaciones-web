@@ -1,0 +1,46 @@
+# Copiar a /opt/reparaciones/docker-compose.yml en la VM y sustituir los marcadores (ver deploy/README.md).
+services:
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: CAMBIAR_PASSWORD_ROOT
+      MARIADB_DATABASE: gestion_reparaciones
+      MARIADB_USER: erp
+      MARIADB_PASSWORD: CAMBIAR_PASSWORD_SQL
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    ports:
+      - "127.0.0.1:3306:3306"
+    restart: unless-stopped
+
+  backend:
+    build: ./gestion-reparaciones-servidor
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/gestion_reparaciones
+      SPRING_DATASOURCE_USERNAME: erp
+      SPRING_DATASOURCE_PASSWORD: CAMBIAR_PASSWORD_SQL
+      JWT_SECRET: CAMBIAR_JWT_SECRET
+      JWT_EXPIRATION: "86400000"
+      SERVER_ERROR_INCLUDE_MESSAGE: never
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+
+  nginx:
+    build: ./gestion-reparaciones-web
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./logs-nginx:/var/log/nginx
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data:
