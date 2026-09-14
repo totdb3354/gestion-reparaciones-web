@@ -15,6 +15,14 @@ Cliente web del ERP de reparaciones de Fonestore (React + TypeScript). Sustituye
 ## Contrato de la API
 `npm run api:types` descarga el OpenAPI del servidor y regenera `src/shared/api/schema.d.ts` (ver `scripts/`).
 
+## Smoke e2e (Playwright)
+Necesita la web ya desplegada (no funciona contra un backend simulado). Exporta en la shell las variables de
+`.env.e2e.example` (`E2E_BASE_URL`, `E2E_USER`, `E2E_PASS`, con un usuario supertécnico) y luego:
+```bash
+npm run e2e
+```
+El test crea y borra un cliente de prueba llamado `E2E <timestamp>`.
+
 ## Documentación
 - Spec maestra y de cimientos: repo raíz, `docs/superpowers/specs/2026-09-13-*`.
 - Fichas de paridad por vista: `docs/paridad/`.

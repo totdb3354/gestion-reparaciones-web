@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "check": "npm run lint && npm run typecheck && npm run test",
     "api:types": "node scripts/fetch-openapi.mjs && npm run api:types:offline",
-    "api:types:offline": "openapi-typescript api/openapi.json -o src/shared/api/schema.d.ts"
+    "api:types:offline": "openapi-typescript api/openapi.json -o src/shared/api/schema.d.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.3",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
