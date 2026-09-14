@@ -4,6 +4,7 @@ import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { SessionProvider } from '@/app/session/SessionProvider'
 import { guardarSesion, type Sesion } from '@/app/session/storage'
+import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 
 type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement }
 
@@ -14,12 +15,14 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
   return render(
     <QueryClientProvider client={qc}>
       <SessionProvider>
-        <MemoryRouter initialEntries={[ruta]}>
-          <Routes>
-            <Route path={ruta} element={ui} />
-            {rutas}
-          </Routes>
-        </MemoryRouter>
+        <AlertaProvider>
+          <MemoryRouter initialEntries={[ruta]}>
+            <Routes>
+              <Route path={ruta} element={ui} />
+              {rutas}
+            </Routes>
+          </MemoryRouter>
+        </AlertaProvider>
       </SessionProvider>
     </QueryClientProvider>,
   )

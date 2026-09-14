@@ -8,6 +8,7 @@ import { SessionProvider } from '@/app/session/SessionProvider'
 import { onSesionExpirada } from '@/app/session/expiracion'
 import { borrarSesion } from '@/app/session/storage'
 import { MSG_SESION_EXPIRADA_UI } from '@/app/session/mensajes'
+import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: true, staleTime: 0 } },
@@ -25,7 +26,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <RouterProvider router={router} />
+        <AlertaProvider>
+          <RouterProvider router={router} />
+        </AlertaProvider>
       </SessionProvider>
     </QueryClientProvider>
   </StrictMode>,
