@@ -32,7 +32,7 @@ function MenuCliente({ c, onToggle, onEditar, onBorrar }: { c: Cliente; onToggle
     let vivo = true
     tieneTelefonos(c.idCli)
       .then((tiene) => { if (vivo) setBorrable(!tiene) })
-      .catch((e: unknown) => mostrarError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => { if (vivo) mostrarError(e instanceof Error ? e.message : String(e)) })
     return () => { vivo = false }
   }, [c.idCli, mostrarError])
   return (
@@ -84,9 +84,8 @@ export function ClientesPage() {
           textoVacio="Cliente"
           textoPlural={(n) => `${n} clientes`}
         />
-        <div className="flex-1" />
         {puedeEditar && (
-          <Button className="rounded-3xl bg-azul-noche px-4 text-[12px] font-bold text-white hover:bg-azul-noche-hover" onClick={() => setDialogo({ tipo: 'nuevo' })}>
+          <Button className="ml-auto rounded-3xl bg-azul-noche px-4 text-[12px] font-bold text-white hover:bg-azul-noche-hover" onClick={() => setDialogo({ tipo: 'nuevo' })}>
             Nuevo cliente
           </Button>
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
@@ -16,8 +16,8 @@ type Props = {
 /** Calco de los TextInputDialog de ClientesController. Acepta con Enter; nombre recortado; vacío no hace nada. */
 export function ClienteDialog({ abierto, titulo, etiqueta, valorInicial = '', onAceptar, onCancelar }: Props) {
   const [nombre, setNombre] = useState(valorInicial)
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el campo al reabrir el diálogo con otro valor inicial (patrón "Adjusting state" de React); no hay alternativa sin efecto que no complique el componente
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el campo al reabrir el diálogo con otro valor inicial (patrón "Adjusting state" de React); useLayoutEffect (no useEffect) evita un parpadeo de un frame con el nombre anterior; no hay alternativa sin efecto que no complique el componente
     if (abierto) setNombre(valorInicial)
   }, [abierto, valorInicial])
   function aceptar() {

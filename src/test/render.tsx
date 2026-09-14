@@ -1,17 +1,29 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { SessionProvider } from '@/app/session/SessionProvider'
 import { guardarSesion, type Sesion } from '@/app/session/storage'
+import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
+import { emitirError } from '@/shared/ui/alertas'
 
 type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement }
 
-/** Render con QueryClient (sin reintentos), SessionProvider y MemoryRouter. `rutas` permite añadir <Route>s auxiliares. */
+/** Render con QueryClient (sin reintentos), SessionProvider y MemoryRouter. `rutas` permite añadir <Route>s auxiliares.
+ *  El QueryCache.onError replica el de main.tsx para que los tests observen el mismo comportamiento (diálogo de error
+ *  ante cualquier fallo de consulta que no sea sesión expirada o desconexión). */
 export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas }: Opciones = {}) {
   if (sesion) guardarSesion(sesion)
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    queryCache: new QueryCache({
+      onError(error) {
+        if (error instanceof SesionExpiradaError || error instanceof ConexionError) return
+        emitirError(error instanceof Error ? error.message : String(error))
+      },
+    }),
+  })
   return render(
     <QueryClientProvider client={qc}>
       <SessionProvider>

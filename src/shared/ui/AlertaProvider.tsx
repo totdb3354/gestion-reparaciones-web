@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './dialog'
 import { Button } from './button'
+import { onError } from './alertas'
 
 const Ctx = createContext<{ mostrarError: (msg: string) => void } | null>(null)
 
@@ -8,6 +9,8 @@ const Ctx = createContext<{ mostrarError: (msg: string) => void } | null>(null)
 export function AlertaProvider({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<string | null>(null)
   const mostrarError = useCallback((m: string) => setMsg(m), [])
+  // Suscripción al store externo: permite que QueryCache.onError (fuera de React) abra este mismo diálogo.
+  useEffect(() => onError(mostrarError), [mostrarError])
   const value = useMemo(() => ({ mostrarError }), [mostrarError])
   return (
     <Ctx.Provider value={value}>

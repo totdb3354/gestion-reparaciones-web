@@ -68,6 +68,27 @@ describe('ClientesPage', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Antiguo') })
     expect(await screen.findByRole('menuitem', { name: 'Activar' })).toBeInTheDocument()
   })
+  it('Desactivar envía PATCH con activo=false y updatedAt', async () => {
+    let body: unknown = null
+    server.use(http.patch('*/api/clientes/1/activo', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 204 }) }))
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('WEB')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('WEB') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Desactivar' }))
+    await waitFor(() => expect(body).toEqual({ activo: false, updatedAt: '2026-09-01T10:00:00' }))
+  })
+  it('editar sin cambiar el nombre no llama a la API', async () => {
+    let llamado = false
+    server.use(http.put('*/api/clientes/2', () => { llamado = true; return new HttpResponse(null, { status: 200 }) }))
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('OTRO')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('OTRO') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar' }))
+    const dlg = screen.getByRole('dialog', { name: 'Editar cliente' })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Aceptar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(llamado).toBe(false)
+  })
   it('editar envía nombre y updatedAt; un 409 muestra el aviso y recarga', async () => {
     let body: unknown = null
     server.use(http.put('*/api/clientes/2', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 409 }) }))
@@ -100,5 +121,11 @@ describe('ClientesPage', () => {
     server.use(http.get('*/api/clientes', () => HttpResponse.json([])))
     renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
     expect(await screen.findByText('Sin clientes')).toBeInTheDocument()
+  })
+  it('si falla la carga muestra el error en un diálogo (y no finge una lista vacía)', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.json({ message: 'Sin permisos de prueba' }, { status: 403 })))
+    renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    expect(screen.getByText('No tienes permisos para realizar esta acción.')).toBeInTheDocument()
   })
 })
