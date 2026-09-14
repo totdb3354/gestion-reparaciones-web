@@ -23,5 +23,10 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
+  {
+    // Componentes shadcn: exportan componente + variantes (cva) en el mismo fichero; no aplica fast refresh estricto.
+    files: ['src/shared/ui/**/*.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
   prettier,
 )
