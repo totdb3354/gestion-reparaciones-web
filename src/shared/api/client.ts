@@ -1,7 +1,7 @@
-import createClient, { type ClientOptions, type Middleware } from 'openapi-fetch'
+import createClient, { type Middleware } from 'openapi-fetch'
 import type { components, paths } from './schema'
-import { leerSesion } from '@/app/session/storage'
-import { dispararSesionExpirada } from '@/app/session/expiracion'
+import { leerSesion } from '@/shared/session/storage'
+import { dispararSesionExpirada } from '@/shared/session/expiracion'
 import { ConexionError, MSG_SIN_CONEXION, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
 import { reportarExito, reportarFallo } from './conexion'
 
@@ -44,15 +44,16 @@ const auth: Middleware = {
 }
 
 /** openapi-fetch invoca este fetch en tiempo de ejecución como `fetch(request, requestInitExt)`, aunque
- *  su tipo (`ClientOptions['fetch']`) solo declara un parámetro; tipamos `init` como opcional aquí y
- *  hacemos un cast en el punto de uso para poder recibirlo igualmente. */
+ *  su tipo solo declara un parámetro: con `init` opcional la firma sigue encajando y recibimos el segundo. */
 const fetchConTimeout = async (request: Request, init?: RequestInit): Promise<Response> => {
+  // La señal combina el timeout con la del llamador (TanStack Query al desmontar, AbortController propio):
+  // pasar solo la del timeout descartaría la cancelación y la petición seguiría viva.
+  const timeout = AbortSignal.timeout(TIMEOUT_MS)
   try {
-    return await fetch(request, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) })
+    const combinada = AbortSignal.any([timeout, request.signal, init?.signal].filter((s): s is AbortSignal => !!s))
+    return await fetch(request, { ...init, signal: combinada })
   } catch (e) {
-    // DOMException (Abort/TimeoutError) no hereda de Error según el spec, así que instanceof Error no
-    // basta: hay que comprobar también instanceof DOMException para leer su `.name`.
-    const nombre = e instanceof Error || e instanceof DOMException ? e.name : ''
+    const nombre = e instanceof Error ? e.name : ''
     // Cancelación del llamador (p. ej. TanStack Query al desmontar): no es una caída del servidor.
     if (nombre === 'AbortError') throw e
     // Solo la red (TypeError de fetch) y el timeout se disfrazan de "sin conexión".
@@ -64,6 +65,6 @@ const fetchConTimeout = async (request: Request, init?: RequestInit): Promise<Re
 
 export const api = createClient<paths>({
   baseUrl,
-  fetch: fetchConTimeout as ClientOptions['fetch'],
+  fetch: fetchConTimeout,
 })
 api.use(auth)

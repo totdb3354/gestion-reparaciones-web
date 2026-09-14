@@ -2,10 +2,11 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
-import { renderConProviders } from '@/test/render'
-import { leerSesion } from '@/app/session/storage'
+import { renderConProviders, SESION_TEC } from '@/test/render'
+import { leerSesion } from '@/shared/session/storage'
+import { onSesionExpirada } from '@/shared/session/expiracion'
 import { LoginPage } from './LoginPage'
 
 const respuestaLogin = { idUsu: 7, nombreUsuario: 'fati', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
@@ -47,6 +48,18 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'mala')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(await screen.findByText('Usuario o contraseña incorrectos.')).toBeInTheDocument()
+    expect(leerSesion()).toBeNull()
+  })
+  it('con una sesión vieja guardada, un 401 del login no dispara la expiración de sesión', async () => {
+    const expirada = vi.fn()
+    onSesionExpirada(expirada)
+    server.use(http.post('*/api/auth/login', () => new HttpResponse(null, { status: 401 })))
+    renderConProviders(<LoginPage />, { sesion: SESION_TEC, ruta: '/login', rutas: <Route path="/" element={<p>INICIO</p>} /> })
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'zara')
+    await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'mala')
+    await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
+    expect(await screen.findByText('Usuario o contraseña incorrectos.')).toBeInTheDocument()
+    expect(expirada).not.toHaveBeenCalled()
     expect(leerSesion()).toBeNull()
   })
   it('un fallo de red reintenta una vez y si vuelve a fallar muestra el mensaje de conexión', async () => {

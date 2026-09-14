@@ -1,11 +1,15 @@
-import { HttpResponse, http } from 'msw'
+import { HttpResponse, delay, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
-import { guardarSesion } from '@/app/session/storage'
-import { onSesionExpirada, rearmarSesionExpirada } from '@/app/session/expiracion'
+import { guardarSesion } from '@/shared/session/storage'
+import { onSesionExpirada, rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { estaConectado, reportarExito, reportarFallo } from './conexion'
 import { api } from './client'
 import { ConexionError, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
+
+/** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
+ *  no hereda (y no es el mismo objeto), así que estos dobles imitan al real: un Error con el `name` del corte. */
+const errorDeCorte = (nombre: string) => Object.assign(new Error(nombre), { name: nombre })
 
 describe('cliente API', () => {
   beforeEach(() => {
@@ -65,14 +69,26 @@ describe('cliente API', () => {
     expect(estaConectado()).toBe(true)
   })
   it('el timeout se reporta como sin conexión con el sufijo', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new DOMException('t', 'TimeoutError'))
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(errorDeCorte('TimeoutError'))
     const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ConexionError)
     expect((err as Error).message).toMatch(/\(tiempo de espera agotado\)$/)
     expect(estaConectado()).toBe(false)
   })
+  it('la señal del llamador cancela de verdad la petición y no toca el estado de conexión', async () => {
+    // Sin combinar la señal del llamador (AbortSignal.any) el abort no llegaría al fetch y, con la
+    // respuesta colgada para siempre, esta promesa nunca se resolvería.
+    server.use(http.get('*/api/clientes', async () => { await delay('infinite'); return HttpResponse.json([]) }))
+    const ac = new AbortController()
+    const promesa = api.GET('/api/clientes', { signal: ac.signal })
+    ac.abort()
+    const err: unknown = await promesa.catch((e: unknown) => e)
+    expect((err as Error).name).toBe('AbortError')
+    expect(err).not.toBeInstanceOf(ConexionError)
+    expect(estaConectado()).toBe(true)
+  })
   it('una cancelación del llamador no se disfraza de sin conexión', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new DOMException('c', 'AbortError'))
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(errorDeCorte('AbortError'))
     const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
     expect(err).not.toBeInstanceOf(ConexionError)
     expect((err as Error).name).toBe('AbortError')

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useSession } from '@/app/session/SessionProvider'
-import { esSuperTecnico } from '@/app/session/storage'
+import { esSuperTecnico } from '@/shared/session/storage'
 import type { Cliente } from '@/shared/api/client'
-import { StaleDataError } from '@/shared/api/errors'
+import { mensajeDeError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -32,7 +32,7 @@ function MenuCliente({ c, onToggle, onEditar, onBorrar }: { c: Cliente; onToggle
     let vivo = true
     tieneTelefonos(c.idCli)
       .then((tiene) => { if (vivo) setBorrable(!tiene) })
-      .catch((e: unknown) => { if (vivo) mostrarError(e instanceof Error ? e.message : String(e)) })
+      .catch((e: unknown) => { if (vivo) mostrarError(mensajeDeError(e)) })
     return () => { vivo = false }
   }, [c.idCli, mostrarError])
   return (
@@ -62,13 +62,11 @@ export function ClientesPage() {
     [clientes, seleccion],
   )
 
-  /** Crear y borrar muestran el mensaje recibido (p. ej. el 409 "tiene teléfonos asociados" del servidor). */
-  function tratarError(e: unknown) {
-    mostrarError(e instanceof Error ? e.message : String(e))
-  }
-  /** Editar y activar: cualquier 409 es el aviso de modificado por otro usuario, como en el JavaFX. */
-  function tratarErrorEdicion(e: unknown) {
-    mostrarError(e instanceof StaleDataError ? MSG_MODIFICADO : e instanceof Error ? e.message : String(e))
+  /** Crear y borrar no necesitan nada: el diálogo global del MutationCache muestra el mensaje del servidor
+   *  (p. ej. el 409 "tiene teléfonos asociados"). Editar y activar silencian ese diálogo (meta.silenciarError)
+   *  porque aquí cualquier 409 es el aviso de modificado por otro usuario, como en el JavaFX. */
+  function avisarEdicion(e: unknown) {
+    mostrarError(mensajeDeError(e, { staleData: MSG_MODIFICADO }))
   }
 
   return (
@@ -102,7 +100,7 @@ export function ClientesPage() {
             ? (c) => (
                 <MenuCliente
                   c={c}
-                  onToggle={() => setActivo.mutate({ idCli: c.idCli, activo: !c.activo, updatedAt: c.updatedAt }, { onError: tratarErrorEdicion })}
+                  onToggle={() => setActivo.mutate({ idCli: c.idCli, activo: !c.activo, updatedAt: c.updatedAt }, { onError: avisarEdicion })}
                   onEditar={() => setDialogo({ tipo: 'editar', cliente: c })}
                   onBorrar={() => setDialogo({ tipo: 'borrar', cliente: c })}
                 />
@@ -116,7 +114,7 @@ export function ClientesPage() {
         titulo="Nuevo cliente"
         etiqueta="Nombre del cliente:"
         onCancelar={() => setDialogo(null)}
-        onAceptar={(nombre) => { setDialogo(null); crear.mutate(nombre, { onError: tratarError }) }}
+        onAceptar={(nombre) => { setDialogo(null); crear.mutate(nombre) }}
       />
       <ClienteDialog
         abierto={dialogo?.tipo === 'editar'}
@@ -129,7 +127,7 @@ export function ClientesPage() {
           const c = dialogo.cliente
           setDialogo(null)
           if (nombre === c.nombre) return
-          editar.mutate({ idCli: c.idCli, nombre, updatedAt: c.updatedAt }, { onError: tratarErrorEdicion })
+          editar.mutate({ idCli: c.idCli, nombre, updatedAt: c.updatedAt }, { onError: avisarEdicion })
         }}
       />
       <ConfirmDialog
@@ -142,7 +140,7 @@ export function ClientesPage() {
           if (dialogo?.tipo !== 'borrar') return
           const id = dialogo.cliente.idCli
           setDialogo(null)
-          borrar.mutate(id, { onError: tratarError })
+          borrar.mutate(id)
         }}
       />
     </div>

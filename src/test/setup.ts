@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { reportarExito } from '@/shared/api/conexion'
+import { rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { server } from './server'
 
 // Polyfills que Radix (popover, dropdown, context-menu) necesita y jsdom no trae.
@@ -22,5 +23,8 @@ afterEach(() => {
   server.resetHandlers()
   sessionStorage.clear()
   reportarExito()
+  // El disparo de sesión expirada es global y de una sola vez: sin rearmar, un test lo dejaría gastado
+  // para los siguientes.
+  rearmarSesionExpirada()
 })
 afterAll(() => server.close())

@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useQueryClient } from '@tanstack/react-query'
 import { api, type LoginResponse } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
-import { rearmarSesionExpirada } from './expiracion'
-import { borrarSesion, guardarSesion, leerSesion, type Sesion } from './storage'
+import { rearmarSesionExpirada } from '@/shared/session/expiracion'
+import { borrarSesion, guardarSesion, leerSesion, type Sesion } from '@/shared/session/storage'
 
 export const MSG_CREDENCIALES = 'Usuario o contraseña incorrectos.'
 
@@ -34,6 +34,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
 
   const login = useCallback(async (usuario: string, password: string) => {
+    // Intentar entrar da por muerta la sesión anterior: sin ella un 401 del login no puede confundirse
+    // con "sesión expirada" (dispararSesionExpirada solo actúa si hay sesión guardada).
+    borrarSesion()
     let data: LoginResponse
     try {
       data = await pedirLogin(usuario, password)

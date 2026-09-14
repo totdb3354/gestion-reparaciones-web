@@ -15,4 +15,4 @@ Capturas: `Apuntes/paridad-capturas/shell/{navbar-tecnico,navbar-supertecnico,me
 - [ ] 401 con sesión → `/login` con "Tu sesión ha expirado. Inicia sesión de nuevo." (una sola vez).
 - [ ] Fondo del área de contenido `--color-fondo-vista`.
 - [ ] Refresco al volver a la pestaña (equivale a la recarga al recuperar foco).
-- Diferencias aceptadas: la campana pulsante y las ventanas secundarias (logs, gestionar técnicos) pasan a rutas/modales; el título de ventana es la pestaña del navegador ("FSGR").
+- Diferencias aceptadas: la campana pulsante y las ventanas secundarias (logs, gestionar técnicos) pasan a rutas/modales; el título de ventana es la pestaña del navegador ("FSGR"); el colapso de los 4 botones de navegación en un menú por debajo de 900 px queda para cuando haya más de una vista real (sub-proyecto 1).

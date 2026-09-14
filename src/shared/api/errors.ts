@@ -48,3 +48,10 @@ export function extraerMensaje(body: unknown): string | null {
   }
   return null
 }
+
+/** Mensaje que se muestra al usuario. `staleData` permite sustituir el texto del 409 (bloqueo optimista)
+ *  por el aviso propio de la vista ("... fue modificado por otro usuario"), como hace el JavaFX. */
+export function mensajeDeError(e: unknown, opciones?: { staleData?: string }): string {
+  if (opciones?.staleData !== undefined && e instanceof StaleDataError) return opciones.staleData
+  return e instanceof Error ? e.message : String(e)
+}

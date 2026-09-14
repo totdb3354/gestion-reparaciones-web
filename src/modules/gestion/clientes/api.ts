@@ -28,11 +28,14 @@ export function useCrearCliente() {
     onSettled: recargar,
   })
 }
+/** Editar y activar comparten el bloqueo optimista por updatedAt: su 409 lo traduce la vista, así que
+ *  silencian el diálogo global del MutationCache (ver crearQueryClient) para no mostrarlo dos veces. */
 export function useEditarCliente() {
   const recargar = useRecarga()
   return useMutation({
     mutationFn: (c: Pick<Cliente, 'idCli' | 'nombre' | 'updatedAt'>) =>
       api.PUT('/api/clientes/{idCli}', { params: { path: { idCli: c.idCli } }, body: { nombre: c.nombre, updatedAt: c.updatedAt } }),
+    meta: { silenciarError: true },
     onSettled: recargar,
   })
 }
@@ -41,6 +44,7 @@ export function useSetActivoCliente() {
   return useMutation({
     mutationFn: (c: Pick<Cliente, 'idCli' | 'activo' | 'updatedAt'>) =>
       api.PATCH('/api/clientes/{idCli}/activo', { params: { path: { idCli: c.idCli } }, body: { activo: c.activo, updatedAt: c.updatedAt } }),
+    meta: { silenciarError: true },
     onSettled: recargar,
   })
 }
