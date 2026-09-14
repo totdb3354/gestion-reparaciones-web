@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: #f6f6f6;
+  --foreground: #2c3b54;
+  --card: #ffffff;
+  --card-foreground: #2c3b54;
+  --popover: #ffffff;
+  --popover-foreground: #2c3b54;
+  --primary: #001232;
+  --primary-foreground: #f6f6f6;
+  --secondary: #e8eaf0;
+  --secondary-foreground: #2c3b54;
+  --muted: #f0f2f5;
+  --muted-foreground: #586376;
+  --accent: #e8eaf0;
+  --accent-foreground: #001232;
+  --destructive: #a84040;
+  --border: #d4d8de;
+  --input: #d4d8de;
+  --ring: #3d5070;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: system-ui, 'Segoe UI', sans-serif;
+  }
+}
