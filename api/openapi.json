@@ -1,0 +1,6489 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "OpenAPI definition",
+    "version" : "v0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "paths" : {
+    "/api/valores-dificultad" : {
+      "get" : {
+        "tags" : [ "dificultad-controller" ],
+        "operationId" : "getValores",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ValorDificultad"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "dificultad-controller" ],
+        "operationId" : "actualizarValores",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/ValorDificultad"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/revision-logistica" : {
+      "put" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "actualizarRevisionLogistica",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoRevisionLogisticaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idRep}" : {
+      "put" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "editarReparacion",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionEditarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "eliminar_2",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionMotivoRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idRep}/borrador" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getBorrador",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "guardarBorrador",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionBorradorRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "eliminarBorrador",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/proveedores/{idProv}" : {
+      "put" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "editar",
+        "parameters" : [ {
+          "name" : "idProv",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProveedorEditarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "borrar_1",
+        "parameters" : [ {
+          "name" : "idProv",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/modelos/equivalencias" : {
+      "get" : {
+        "tags" : [ "equivalencia-modelo-controller" ],
+        "operationId" : "getAll_4",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "object",
+                    "additionalProperties" : {
+                      "type" : "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "equivalencia-modelo-controller" ],
+        "operationId" : "guardar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EquivalenciaModeloEquivalenciaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}" : {
+      "put" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "editar_1",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraEditarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "borrar_2",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}" : {
+      "put" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "editar_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroEditarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "borrar_3",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/componentes/{idCom}" : {
+      "put" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "actualizar",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ComponenteActualizarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "eliminar_4",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/colores/equivalencias" : {
+      "get" : {
+        "tags" : [ "color-equivalencia-controller" ],
+        "operationId" : "getAll_10",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "object",
+                    "additionalProperties" : {
+                      "type" : "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "color-equivalencia-controller" ],
+        "operationId" : "guardar_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ColorEquivalenciaEquivalenciaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/clientes/{idCli}" : {
+      "put" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "editar_3",
+        "parameters" : [ {
+          "name" : "idCli",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClienteEditarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "borrar_4",
+        "parameters" : [ {
+          "name" : "idCli",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos" : {
+      "get" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "getUsuariosTecnicos",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Usuario"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "registrarTecnico",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UsuarioRegistrarTecnicoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "getAll",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Telefono"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "insertar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoImeiRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/estado" : {
+      "post" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "accionEstado",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoEstadoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/devoluciones" : {
+      "post" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "devoluciones",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoDevolucionesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EnvioDAOItemDevolucion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos/a-revisar" : {
+      "post" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "aRevisar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoImeisRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TelefonoResultadoARevisarResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tecnicos" : {
+      "get" : {
+        "tags" : [ "tecnico-controller" ],
+        "operationId" : "getAll_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Tecnico"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "tecnico-controller" ],
+        "operationId" : "insertar_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TecnicoNombreRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/solicitudes-stock" : {
+      "get" : {
+        "tags" : [ "solicitud-stock-controller" ],
+        "operationId" : "getSolicitudes_1",
+        "parameters" : [ {
+          "name" : "estado",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SolicitudStock"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "solicitud-stock-controller" ],
+        "operationId" : "insertar_2",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SolicitudStockInsertarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/reparaciones" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAll_2",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Reparacion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "insertar_3",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionInsertarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idRep}/incidencia" : {
+      "post" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "marcarIncidenciaYAsignar",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionIncidenciaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idAsignacion}/filas" : {
+      "post" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "guardarFilaIndividual",
+        "parameters" : [ {
+          "name" : "idAsignacion",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionGuardarFilaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idAsignacion}/agotar-componente" : {
+      "post" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "agotarComponente",
+        "parameters" : [ {
+          "name" : "idAsignacion",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionAgotarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/completa" : {
+      "post" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "insertarCompleta",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionInsertarCompletaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAsignaciones",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "insertarAsignacion",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionAsignacionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparacion-componentes" : {
+      "post" : {
+        "tags" : [ "reparacion-componente-controller" ],
+        "operationId" : "insertar_4",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionComponenteInsertarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/pulidos/asignaciones" : {
+      "get" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "getAsignaciones_1",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "insertarAsignacion_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PulidoAsignacionPulidoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pulidos/asignaciones/completar-lote" : {
+      "post" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "completarLote",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PulidoLoteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/proveedores" : {
+      "get" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "getAll_3",
+        "parameters" : [ {
+          "name" : "tipo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Proveedor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "insertar_5",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProveedorAltaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/lotes/verificar" : {
+      "post" : {
+        "tags" : [ "lote-controller" ],
+        "operationId" : "verificar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoteVerificarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/VerificacionImei"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lotes/importar" : {
+      "post" : {
+        "tags" : [ "lote-controller" ],
+        "operationId" : "importar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ImportacionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportacionRequestRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/glass/asignaciones" : {
+      "get" : {
+        "tags" : [ "glass-controller" ],
+        "operationId" : "getAsignaciones_2",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "glass-controller" ],
+        "operationId" : "insertarAsignacion_2",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GlassGlassAsignacionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/envios" : {
+      "post" : {
+        "tags" : [ "envio-controller" ],
+        "operationId" : "enviar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnvioEnvioRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnvioDAOResultadoLote"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compras" : {
+      "get" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "getAll_7",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CompraComponente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "insertar_6",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraInsertarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/compras-otros" : {
+      "get" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "getAll_8",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CompraOtro"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "insertar_7",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroInsertarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/componentes" : {
+      "get" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "getAll_9",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Componente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "insertar_8",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ComponenteInsertarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/clientes" : {
+      "get" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "getAll_11",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Cliente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "insertar_9",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClienteNombreRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/auth/login" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AuthLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos/{idTec}/incluir-estadisticas" : {
+      "patch" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "incluirEstadisticas",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos/{idTec}/excluir-estadisticas" : {
+      "patch" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "excluirEstadisticas",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos/{idTec}/desactivar" : {
+      "patch" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "desactivarTecnico",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos/{idTec}/activar" : {
+      "patch" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "activarTecnico",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/revision/funcional" : {
+      "patch" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "guardarRevisionFuncional",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoFuncionalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/revision/estetica" : {
+      "patch" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "guardarRevisionEstetica",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoEsteticaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/observacion" : {
+      "patch" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "actualizarObservacion",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoObservacionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/cliente" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "getClienteId",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "actualizarCliente",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoClienteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/atributos" : {
+      "patch" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "actualizarAtributos",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TelefonoAtributosRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/tecnicos/{idTec}/glass" : {
+      "patch" : {
+        "tags" : [ "tecnico-controller" ],
+        "operationId" : "setGlass",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TecnicoGlassRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/solicitudes/{idRc}/limpiar" : {
+      "patch" : {
+        "tags" : [ "solicitud-controller" ],
+        "operationId" : "limpiar",
+        "parameters" : [ {
+          "name" : "idRc",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/solicitudes/{idRc}/estado" : {
+      "patch" : {
+        "tags" : [ "solicitud-controller" ],
+        "operationId" : "actualizarEstado",
+        "parameters" : [ {
+          "name" : "idRc",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/solicitudes-stock/{idSol}/estado" : {
+      "patch" : {
+        "tags" : [ "solicitud-stock-controller" ],
+        "operationId" : "actualizarEstado_1",
+        "parameters" : [ {
+          "name" : "idSol",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idRep}/completar" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "completar",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idRep}" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAsignacionById",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReparacionResumen"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "actualizarAsignacion",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionActualizarAsignacionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idRep}/urgente" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "actualizarUrgente",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionUrgenteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idRep}/por-cerrar" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "actualizarPorCerrar",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionPorCerrarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idRep}/llegada" : {
+      "delete" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "deshacerLlegadaGlass",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "marcarLlegadaGlass",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idRep}/entrega-glass" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "actualizarEntregaGlass",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionEntregaGlassRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idRep}/chasis" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "actualizarChasis",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionChasisRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparacion-componentes/{idRep}/incidencia" : {
+      "delete" : {
+        "tags" : [ "reparacion-componente-controller" ],
+        "operationId" : "borrarIncidencia",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "reparacion-componente-controller" ],
+        "operationId" : "marcarIncidencia",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/pulidos/asignaciones/{idAP}" : {
+      "delete" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "eliminarAsignacion_1",
+        "parameters" : [ {
+          "name" : "idAP",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "actualizarAsignacion_1",
+        "parameters" : [ {
+          "name" : "idAP",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PulidoActualizarPulidoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/proveedores/{idProv}/activo" : {
+      "patch" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "setActivo",
+        "parameters" : [ {
+          "name" : "idProv",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProveedorActivoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/recibir-resto" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "recibirResto",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraRecibirRestoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/desrecibir" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "desrecibir",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/confirmar" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "confirmar",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/confirmar-recibido" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "confirmarRecibido",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/confirmar-parcial" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "confirmarParcial",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraConfirmarParcialRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/confirmar-alterado" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "confirmarAlterado",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/cancelar" : {
+      "patch" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "cancelar",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/recibir-resto" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "recibirResto_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroRecibirRestoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/desrecibir" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "desrecibir_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/confirmar" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "confirmar_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/confirmar-recibido" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "confirmarRecibido_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/confirmar-parcial" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "confirmarParcial_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroConfirmarParcialRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/confirmar-alterado" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "confirmarAlterado_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/{id}/cancelar" : {
+      "patch" : {
+        "tags" : [ "compra-otro-controller" ],
+        "operationId" : "cancelar_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompraOtroUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/componentes/{idCom}/stock" : {
+      "patch" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "actualizarStock",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ComponenteDeltaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/componentes/{idCom}/stock-minimo" : {
+      "patch" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "setStockMinimo",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ComponenteStockMinimoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/componentes/{idCom}/activo" : {
+      "patch" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "setActivo_1",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ComponenteActivoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/clientes/{idCli}/activo" : {
+      "patch" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "setActivo_2",
+        "parameters" : [ {
+          "name" : "idCli",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClienteActivoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/cambiar-password" : {
+      "patch" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "cambiarPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AuthCambiarPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos/{idTec}/tiene-reparaciones" : {
+      "get" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "tieneReparaciones",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tipo-cambio/{divisa}" : {
+      "get" : {
+        "tags" : [ "tipo-cambio-controller" ],
+        "operationId" : "getTasa",
+        "parameters" : [ {
+          "name" : "divisa",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "number",
+                    "format" : "double"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/revision" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "getRevision",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TelefonoRevisionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/movimientos" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "getMovimientos",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MovimientoTelefono"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/modelo" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "getModelo",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}/exists" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "exists",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telefonos/inventario" : {
+      "get" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "getInventario",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TelefonoInventario"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tecnicos/activos" : {
+      "get" : {
+        "tags" : [ "tecnico-controller" ],
+        "operationId" : "getAllActivos",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Tecnico"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/solicitudes" : {
+      "get" : {
+        "tags" : [ "solicitud-controller" ],
+        "operationId" : "getSolicitudes",
+        "parameters" : [ {
+          "name" : "estado",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SolicitudResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/solicitudes/count" : {
+      "get" : {
+        "tags" : [ "solicitud-controller" ],
+        "operationId" : "count",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/solicitudes-stock/count" : {
+      "get" : {
+        "tags" : [ "solicitud-stock-controller" ],
+        "operationId" : "count_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idRep}/referenciadora" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getReferenciadora",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/{idRep}/detalle-edicion" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getDetalleEdicion",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReparacionDAODetalleEdicion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getByImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Reparacion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/ya-reparados" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getIdComsYaReparados",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "excluir",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "uniqueItems" : true,
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/tiene-asignacion" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "existeAsignacionParaTecnico",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "tipo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "R"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/tecnicos-asignados" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getTecnicosConAsignacionActiva",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/incidencia-activa" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getIncidenciaActivaPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "tipo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "R"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "borrarIncidenciaPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "tipo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "R"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/count" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "countByImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/asignaciones-activas" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAsignacionesActivasPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionDAOAsignacionActiva"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/acciones" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAccionesOtro",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "categoria",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "excluir",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/historial" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getHistorial",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/historial/imei/{imei}" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getHistorialPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/estadisticas" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getEstadisticasPorTecnico",
+        "parameters" : [ {
+          "name" : "granularidad",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "desde",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "hasta",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PuntoEstadistica"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/estadisticas/puntos" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getEstadisticasPuntos",
+        "parameters" : [ {
+          "name" : "granularidad",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "desde",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "hasta",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PuntoEstadisticaPuntos"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idAsignacion}/solicitudes" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getSolicitudesPorAsignacion",
+        "parameters" : [ {
+          "name" : "idAsignacion",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FilaReparacion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/imei/{imei}" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAsignacionesPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/completadas-hoy" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getAsignacionesCompletadasHoy",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparacion-componentes/{idRep}" : {
+      "get" : {
+        "tags" : [ "reparacion-componente-controller" ],
+        "operationId" : "getByReparacion",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionComponente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pulidos/historial" : {
+      "get" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "getHistorial_1",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/proveedores/{idProv}/tiene-pedidos" : {
+      "get" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "tienePedidos",
+        "parameters" : [ {
+          "name" : "idProv",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/proveedores/activos" : {
+      "get" : {
+        "tags" : [ "proveedor-controller" ],
+        "operationId" : "getActivos",
+        "parameters" : [ {
+          "name" : "tipo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Proveedor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lotes" : {
+      "get" : {
+        "tags" : [ "lote-controller" ],
+        "operationId" : "getAll_5",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Lote"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logs" : {
+      "get" : {
+        "tags" : [ "log-controller" ],
+        "operationId" : "getAll_6",
+        "parameters" : [ {
+          "name" : "accion",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "desde",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "hasta",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LogActividad"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/glass/historial" : {
+      "get" : {
+        "tags" : [ "glass-controller" ],
+        "operationId" : "getHistorial_2",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReparacionResumen"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compras/en-camino" : {
+      "get" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "getEnCamino",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CompraComponente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compras/cantidad-en-camino/{idCom}" : {
+      "get" : {
+        "tags" : [ "compra-controller" ],
+        "operationId" : "getCantidadEnCamino",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/componentes/stock-bajo" : {
+      "get" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "getStockBajo",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Componente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/componentes/gestionados" : {
+      "get" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "getAllGestionados",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Componente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/componentes/evolucion-stock" : {
+      "get" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "getEvolucionStock",
+        "parameters" : [ {
+          "name" : "granularidad",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "desde",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "hasta",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PuntoStock"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/componentes/chasis" : {
+      "get" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "getChasisPorColor",
+        "parameters" : [ {
+          "name" : "color",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Componente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/componentes/agrupados" : {
+      "get" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "getAgrupadosPorTipo",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "array",
+                    "items" : {
+                      "$ref" : "#/components/schemas/Componente"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clientes/{idCli}/tiene-telefonos" : {
+      "get" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "tieneTelefonos",
+        "parameters" : [ {
+          "name" : "idCli",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValorBooleano"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clientes/activos" : {
+      "get" : {
+        "tags" : [ "cliente-controller" ],
+        "operationId" : "getActivos_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Cliente"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/usuarios/tecnicos/{idTec}" : {
+      "delete" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "eliminarTecnico",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "idUsu",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/telefonos/{imei}" : {
+      "delete" : {
+        "tags" : [ "telefono-controller" ],
+        "operationId" : "eliminar",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/tecnicos/{idTec}" : {
+      "delete" : {
+        "tags" : [ "tecnico-controller" ],
+        "operationId" : "eliminar_1",
+        "parameters" : [ {
+          "name" : "idTec",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/solicitudes-stock/{idSol}" : {
+      "delete" : {
+        "tags" : [ "solicitud-stock-controller" ],
+        "operationId" : "borrar",
+        "parameters" : [ {
+          "name" : "idSol",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparaciones/asignaciones/{idAsig}" : {
+      "delete" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "eliminarAsignacion",
+        "parameters" : [ {
+          "name" : "idAsig",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionMotivoRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/reparacion-componentes/{idRep}/{idCom}" : {
+      "delete" : {
+        "tags" : [ "reparacion-componente-controller" ],
+        "operationId" : "eliminar_3",
+        "parameters" : [ {
+          "name" : "idRep",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/pulidos/historial/{idP}" : {
+      "delete" : {
+        "tags" : [ "pulido-controller" ],
+        "operationId" : "eliminarPulido",
+        "parameters" : [ {
+          "name" : "idP",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PulidoMotivoRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ValorDificultad" : {
+        "type" : "object",
+        "properties" : {
+          "clave" : {
+            "type" : "string"
+          },
+          "puntos" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "TelefonoRevisionLogisticaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "revisado" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ReparacionEditarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idComNuevo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esReutilizadoNuevo" : {
+            "type" : "boolean"
+          },
+          "observacionNueva" : {
+            "type" : "string"
+          },
+          "nNuevas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ReparacionBorradorRequest" : {
+        "type" : "object",
+        "properties" : {
+          "contenido" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ProveedorEditarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "comentario" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EquivalenciaModeloEquivalenciaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "textoExterno" : {
+            "type" : "string"
+          },
+          "modeloInterno" : {
+            "type" : "string"
+          }
+        }
+      },
+      "CompraEditarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioEur" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraOtroEditarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "concepto" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioEur" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ComponenteActualizarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "tipo" : {
+            "type" : "string"
+          },
+          "stock" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stockMinimo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ColorEquivalenciaEquivalenciaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "textoExterno" : {
+            "type" : "string"
+          },
+          "colorOficial" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ClienteEditarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "UsuarioRegistrarTecnicoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "nombreUsuario" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          },
+          "rol" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoImeiRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "clienteExplicito" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "TelefonoEstadoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "accion" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoDevolucionItem" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoDevolucionesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TelefonoDevolucionItem"
+            }
+          }
+        }
+      },
+      "EnvioDAOItemDevolucion" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "resultado" : {
+            "type" : "string"
+          },
+          "envio" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TelefonoImeisRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imeis" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "TelefonoResultadoARevisarResponse" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "resultado" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TecnicoNombreRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SolicitudStockInsertarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descripcion" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ReparacionInsertarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fechaAsig" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fechaFin" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ReparacionIncidenciaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "comentario" : {
+            "type" : "string"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "FilaReparacion" : {
+        "type" : "object",
+        "properties" : {
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reutilizado" : {
+            "type" : "boolean"
+          },
+          "observacion" : {
+            "type" : "string"
+          },
+          "prefijo" : {
+            "type" : "string"
+          },
+          "esSolicitud" : {
+            "type" : "boolean"
+          },
+          "descripcionSolicitud" : {
+            "type" : "string"
+          },
+          "estadoSolicitud" : {
+            "type" : "string"
+          },
+          "enCamino" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionGuardarFilaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "filas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaReparacion"
+            }
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idRepAnterior" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ReparacionAgotarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descripcion" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ReparacionInsertarCompletaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "filas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaReparacion"
+            }
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idRepAnterior" : {
+            "type" : "string"
+          },
+          "idAsignacion" : {
+            "type" : "string"
+          },
+          "categoria" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ReparacionAsignacionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comentario" : {
+            "type" : "string"
+          },
+          "urgente" : {
+            "type" : "boolean"
+          },
+          "esChasis" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionComponenteInsertarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esReutilizado" : {
+            "type" : "boolean"
+          },
+          "esIncidencia" : {
+            "type" : "boolean"
+          },
+          "esResuelto" : {
+            "type" : "boolean"
+          },
+          "incidencia" : {
+            "type" : "string"
+          },
+          "observaciones" : {
+            "type" : "string"
+          },
+          "esSolicitud" : {
+            "type" : "boolean"
+          },
+          "descripcionSolicitud" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PulidoAsignacionPulidoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comentario" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PulidoLoteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ProveedorAltaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "tipo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LoteVerificarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imeis" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "VerificacionImei" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "existe" : {
+            "type" : "boolean"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "trabajosAbiertos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "modelo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ImportacionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "lotes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportacionRequestLoteImport"
+            }
+          }
+        }
+      },
+      "ImportacionRequestLoteImport" : {
+        "type" : "object",
+        "properties" : {
+          "batchNumber" : {
+            "type" : "string"
+          },
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nota" : {
+            "type" : "string"
+          },
+          "telefonos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportacionRequestTelefonoImport"
+            }
+          }
+        }
+      },
+      "ImportacionRequestTelefonoImport" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "storageGb" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "gradoProveedor" : {
+            "type" : "string"
+          },
+          "precioCompra" : {
+            "type" : "number"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioCompraEur" : {
+            "type" : "number"
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ImportacionRequestRespuesta" : {
+        "type" : "object",
+        "properties" : {
+          "lotes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "telefonos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "conflictosOmitidos" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "GlassGlassAsignacionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comentario" : {
+            "type" : "string"
+          },
+          "urgente" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "EnvioEnvioRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "destinoTexto" : {
+            "type" : "string"
+          },
+          "referencia" : {
+            "type" : "string"
+          },
+          "imeis" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "EnvioDAOItemEnvio" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "resultado" : {
+            "type" : "string"
+          },
+          "estado" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EnvioDAOResultadoLote" : {
+        "type" : "object",
+        "properties" : {
+          "idEnvio" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EnvioDAOItemEnvio"
+            }
+          }
+        }
+      },
+      "CompraInsertarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioEur" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "CompraOtroInsertarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "concepto" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioEur" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "ComponenteInsertarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "tipo" : {
+            "type" : "string"
+          },
+          "stock" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stockMinimo" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ClienteNombreRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AuthLoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "usuario" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LoginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "idUsu" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreUsuario" : {
+            "type" : "string"
+          },
+          "rol" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "token" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoFuncionalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "bateriaPct" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pantTactil" : {
+            "type" : "boolean"
+          },
+          "pantQuemada" : {
+            "type" : "boolean"
+          },
+          "pantMal" : {
+            "type" : "boolean"
+          },
+          "camMancha" : {
+            "type" : "boolean"
+          },
+          "camLente" : {
+            "type" : "boolean"
+          },
+          "altSup" : {
+            "type" : "boolean"
+          },
+          "altInf" : {
+            "type" : "boolean"
+          },
+          "mic" : {
+            "type" : "boolean"
+          },
+          "faceId" : {
+            "type" : "boolean"
+          },
+          "ms" : {
+            "type" : "boolean"
+          },
+          "msTexto" : {
+            "type" : "string"
+          },
+          "bloqueoOp" : {
+            "type" : "boolean"
+          },
+          "observacion" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoEsteticaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "grado" : {
+            "type" : "string"
+          },
+          "pant" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoObservacionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "observacion" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TelefonoClienteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TelefonoAtributosRequest" : {
+        "type" : "object",
+        "properties" : {
+          "modelo" : {
+            "type" : "string"
+          },
+          "storageGb" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "gradoProveedor" : {
+            "type" : "string"
+          },
+          "gradoPropio" : {
+            "type" : "string"
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TecnicoGlassRequest" : {
+        "type" : "object",
+        "properties" : {
+          "habilitado" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionActualizarAsignacionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comentarioAsignacion" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ReparacionUrgenteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "urgente" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionPorCerrarRequest" : {
+        "type" : "object",
+        "properties" : {
+          "porCerrar" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionEntregaGlassRequest" : {
+        "type" : "object",
+        "properties" : {
+          "entregado" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionChasisRequest" : {
+        "type" : "object",
+        "properties" : {
+          "esChasis" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PulidoActualizarPulidoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comentario" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ProveedorActivoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "activo" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CompraRecibirRestoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "cantidadExtra" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraUpdatedAtRequest" : {
+        "type" : "object",
+        "properties" : {
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraConfirmarParcialRequest" : {
+        "type" : "object",
+        "properties" : {
+          "cantidadRecibida" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraOtroRecibirRestoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "cantidadExtra" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraOtroUpdatedAtRequest" : {
+        "type" : "object",
+        "properties" : {
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraOtroConfirmarParcialRequest" : {
+        "type" : "object",
+        "properties" : {
+          "cantidadRecibida" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ComponenteDeltaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "delta" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ComponenteStockMinimoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "stockMinimo" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ComponenteActivoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "activo" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ClienteActivoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "activo" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AuthCambiarPasswordRequest" : {
+        "type" : "object",
+        "properties" : {
+          "passwordActual" : {
+            "type" : "string"
+          },
+          "passwordNueva" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Usuario" : {
+        "type" : "object",
+        "properties" : {
+          "idUsu" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreUsuario" : {
+            "type" : "string"
+          },
+          "rol" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "activo" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "Telefono" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "observacion" : {
+            "type" : "string"
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "Revision" : {
+        "type" : "object",
+        "properties" : {
+          "idRevision" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "fechaCreacion" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "estGrado" : {
+            "type" : "string"
+          },
+          "estPant" : {
+            "type" : "string"
+          },
+          "estIdUsu" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "estUsuario" : {
+            "type" : "string"
+          },
+          "estFecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "funBateriaPct" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "funPantTactil" : {
+            "type" : "boolean"
+          },
+          "funPantQuemada" : {
+            "type" : "boolean"
+          },
+          "funPantMal" : {
+            "type" : "boolean"
+          },
+          "funCamMancha" : {
+            "type" : "boolean"
+          },
+          "funCamLente" : {
+            "type" : "boolean"
+          },
+          "funAltSup" : {
+            "type" : "boolean"
+          },
+          "funAltInf" : {
+            "type" : "boolean"
+          },
+          "funMic" : {
+            "type" : "boolean"
+          },
+          "funFaceId" : {
+            "type" : "boolean"
+          },
+          "funMs" : {
+            "type" : "boolean"
+          },
+          "funMsTexto" : {
+            "type" : "string"
+          },
+          "funBloqueoOp" : {
+            "type" : "boolean"
+          },
+          "funObservacion" : {
+            "type" : "string"
+          },
+          "funIdUsu" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "funUsuario" : {
+            "type" : "string"
+          },
+          "funFecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TelefonoRevisionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "existe" : {
+            "type" : "boolean"
+          },
+          "revision" : {
+            "$ref" : "#/components/schemas/Revision"
+          }
+        }
+      },
+      "MovimientoTelefono" : {
+        "type" : "object",
+        "properties" : {
+          "idMov" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "ubicacionOrigen" : {
+            "type" : "string"
+          },
+          "ubicacionDestino" : {
+            "type" : "string"
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "idUsu" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "usuario" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string"
+          },
+          "referencia" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TelefonoInventario" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "storageGb" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "gradoProveedor" : {
+            "type" : "string"
+          },
+          "gradoPropio" : {
+            "type" : "string"
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "estadoEfectivo" : {
+            "type" : "string"
+          },
+          "ubicacion" : {
+            "type" : "string"
+          },
+          "subUbicaciones" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "esDevolucion" : {
+            "type" : "boolean"
+          },
+          "observacion" : {
+            "type" : "string"
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cliente" : {
+            "type" : "string"
+          },
+          "idLote" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "batchNumber" : {
+            "type" : "string"
+          },
+          "proveedor" : {
+            "type" : "string"
+          },
+          "telefonoUpdatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "repHechas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "glassHechas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pulHechos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pulAbiertos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "glassAbiertos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "normalAbiertos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "incAbiertas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "solicitudesPendientes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ultimaActividad" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "revDesde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "estFecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "estUsuario" : {
+            "type" : "string"
+          },
+          "funFecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "funUsuario" : {
+            "type" : "string"
+          },
+          "funBateriaPct" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Tecnico" : {
+        "type" : "object",
+        "properties" : {
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "activo" : {
+            "type" : "boolean"
+          },
+          "esEstadistica" : {
+            "type" : "boolean"
+          },
+          "esGlass" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SolicitudResumen" : {
+        "type" : "object",
+        "properties" : {
+          "idRc" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idRep" : {
+            "type" : "string"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tipoComponente" : {
+            "type" : "string"
+          },
+          "descripcion" : {
+            "type" : "string"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "fechaSolicitud" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "SolicitudStock" : {
+        "type" : "object",
+        "properties" : {
+          "idSol" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tipoComponente" : {
+            "type" : "string"
+          },
+          "idUsu" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreUsuario" : {
+            "type" : "string"
+          },
+          "descripcion" : {
+            "type" : "string"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "Reparacion" : {
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "fechaAsig" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fechaFin" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ReparacionDAODetalleEdicion" : {
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esReutilizado" : {
+            "type" : "boolean"
+          },
+          "observacion" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ReparacionDAOAsignacionActiva" : {
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ReparacionResumen" : {
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "fechaAsig" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fechaFin" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "tipoComponente" : {
+            "type" : "string"
+          },
+          "observaciones" : {
+            "type" : "string"
+          },
+          "esIncidencia" : {
+            "type" : "boolean"
+          },
+          "esResuelto" : {
+            "type" : "boolean"
+          },
+          "esReutilizado" : {
+            "type" : "boolean"
+          },
+          "incidencia" : {
+            "type" : "string"
+          },
+          "idRepAnterior" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esSolicitud" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descripcionSolicitud" : {
+            "type" : "string"
+          },
+          "estadoSolicitud" : {
+            "type" : "string"
+          },
+          "tipoSolicitud" : {
+            "type" : "string"
+          },
+          "stockSolicitud" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enCamino" : {
+            "type" : "boolean"
+          },
+          "tiposSolicitud" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "comentarioAsignacion" : {
+            "type" : "string"
+          },
+          "observacionTelefono" : {
+            "type" : "string"
+          },
+          "urgente" : {
+            "type" : "boolean"
+          },
+          "esChasis" : {
+            "type" : "boolean"
+          },
+          "porCerrar" : {
+            "type" : "boolean"
+          },
+          "tieneAsignaciones" : {
+            "type" : "boolean"
+          },
+          "nombreTecnicoAsigna" : {
+            "type" : "string"
+          },
+          "telefonoUpdatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "cliente" : {
+            "type" : "string"
+          },
+          "entregadoAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entregadoPorNombre" : {
+            "type" : "string"
+          },
+          "entregadoPor" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "glassAbierta" : {
+            "type" : "boolean"
+          },
+          "glassEntregadoAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "glassEntregadoPorNombre" : {
+            "type" : "string"
+          },
+          "glassEntregadoPor" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "glassTecnicoNombre" : {
+            "type" : "string"
+          },
+          "normalAbierta" : {
+            "type" : "boolean"
+          },
+          "normalTecnicoNombre" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PuntoEstadistica" : {
+        "type" : "object",
+        "properties" : {
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "periodo" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PuntoEstadisticaPuntos" : {
+        "type" : "object",
+        "properties" : {
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "periodo" : {
+            "type" : "string"
+          },
+          "puntos" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "puntosNormales" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "puntosGlass" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "puntosPulidos" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "getnNormales" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "getnGlass" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "getnPulidos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "getnSinPiezas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "getnImeis" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "puntosJornada" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "getnImeisJornada" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ReparacionComponente" : {
+        "type" : "object",
+        "properties" : {
+          "idRc" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idRep" : {
+            "type" : "string"
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esReutilizado" : {
+            "type" : "boolean"
+          },
+          "esIncidencia" : {
+            "type" : "boolean"
+          },
+          "esResuelto" : {
+            "type" : "boolean"
+          },
+          "incidencia" : {
+            "type" : "string"
+          },
+          "observaciones" : {
+            "type" : "string"
+          },
+          "esSolicitud" : {
+            "type" : "boolean"
+          },
+          "descripcionSolicitud" : {
+            "type" : "string"
+          },
+          "estadoSolicitud" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Proveedor" : {
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "activo" : {
+            "type" : "boolean"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "comentario" : {
+            "type" : "string"
+          },
+          "tipo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Lote" : {
+        "type" : "object",
+        "properties" : {
+          "idLote" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "batchNumber" : {
+            "type" : "string"
+          },
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "proveedor" : {
+            "type" : "string"
+          },
+          "fechaImport" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "nota" : {
+            "type" : "string"
+          },
+          "numTelefonos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "LogActividad" : {
+        "type" : "object",
+        "properties" : {
+          "idLog" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "nombreUsuario" : {
+            "type" : "string"
+          },
+          "accion" : {
+            "type" : "string"
+          },
+          "detalle" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "CompraComponente" : {
+        "type" : "object",
+        "properties" : {
+          "idCompra" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tipoComponente" : {
+            "type" : "string"
+          },
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreProveedor" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cantidadRecibida" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "fechaPedido" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fechaLlegada" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "precioUnidadPedido" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioEur" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CompraOtro" : {
+        "type" : "object",
+        "properties" : {
+          "idCompraOtro" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreProveedor" : {
+            "type" : "string"
+          },
+          "concepto" : {
+            "type" : "string"
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cantidadRecibida" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "fechaPedido" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fechaLlegada" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "precioUnidadPedido" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "divisa" : {
+            "type" : "string"
+          },
+          "precioEur" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "Componente" : {
+        "type" : "object",
+        "properties" : {
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tipo" : {
+            "type" : "string"
+          },
+          "fechaRegistro" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "stock" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stockMinimo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "activo" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "enCamino" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ultimoPedido" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "idComMaster" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PuntoStock" : {
+        "type" : "object",
+        "properties" : {
+          "periodo" : {
+            "type" : "string"
+          },
+          "tipoComponente" : {
+            "type" : "string"
+          },
+          "stockEstimado" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stockMinimo" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Cliente" : {
+        "type" : "object",
+        "properties" : {
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "activo" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ValorBooleano" : {
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReparacionMotivoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PulidoMotivoRequest" : {
+        "type" : "object",
+        "properties" : {
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  }
+}

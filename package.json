@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "api:types": "node scripts/fetch-openapi.mjs && npm run api:types:offline",
+    "api:types:offline": "openapi-typescript api/openapi.json -o src/shared/api/schema.d.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.3",
@@ -20,6 +22,7 @@
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
     "lucide-react": "1.46.0",
+    "openapi-fetch": "0.17.0",
     "radix-ui": "1.6.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -29,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
@@ -43,6 +47,7 @@
     "globals": "17.12.0",
     "jsdom": "30.0.1",
     "msw": "2.15.0",
+    "openapi-typescript": "7.13.0",
     "prettier": "3.9.6",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.0",
