@@ -1,2 +1,20 @@
 # gestion-reparaciones-web
-ERP de reparaciones Fonestore - cliente web (React + TypeScript). Sustituye al cliente JavaFX.
+
+Cliente web del ERP de reparaciones de Fonestore (React + TypeScript). Sustituye al cliente JavaFX
+(`gestion-reparaciones-cliente`) contra el mismo servidor Spring Boot (`gestion-reparaciones-servidor`).
+
+## Arranque en local
+1. `npm install`
+2. Copia `.env.example` a `.env.local` y pon en `VITE_API_PROXY_TARGET` la URL de la API
+   (VM de producción `https://erp.fonestore.es` o un servidor local `http://localhost:8080`).
+3. `npm run dev` → http://localhost:5173. Las llamadas a `/api` van por proxy a esa URL, sin CORS.
+
+## Calidad
+`npm run check` = lint + typecheck + tests (lo mismo que ejecuta la CI). `npm run test:watch` en desarrollo.
+
+## Contrato de la API
+`npm run api:types` descarga el OpenAPI del servidor y regenera `src/shared/api/schema.d.ts` (ver `scripts/`).
+
+## Documentación
+- Spec maestra y de cimientos: repo raíz, `docs/superpowers/specs/2026-09-13-*`.
+- Fichas de paridad por vista: `docs/paridad/`.
