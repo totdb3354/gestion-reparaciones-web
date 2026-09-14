@@ -22,6 +22,12 @@ describe('storage de sesión', () => {
     sessionStorage.setItem('fsgr.sesion', '{no-json')
     expect(leerSesion()).toBeNull()
   })
+  it('un valor parseable pero incompleto o con tipos incorrectos se trata como sin sesión', () => {
+    sessionStorage.setItem('fsgr.sesion', JSON.stringify({ ...fati, rol: undefined }))
+    expect(leerSesion()).toBeNull()
+    sessionStorage.setItem('fsgr.sesion', JSON.stringify({ ...fati, idUsu: '7' }))
+    expect(leerSesion()).toBeNull()
+  })
   it('helpers de rol calcados de Sesion.java', () => {
     expect(esSuperTecnico(fati)).toBe(true)
     expect(esAdmin(fati)).toBe(false)

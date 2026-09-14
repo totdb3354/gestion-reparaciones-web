@@ -1,16 +1,19 @@
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { guardarSesion } from '@/app/session/storage'
 import { onSesionExpirada, rearmarSesionExpirada } from '@/app/session/expiracion'
-import { estaConectado, reportarExito } from './conexion'
+import { estaConectado, reportarExito, reportarFallo } from './conexion'
 import { api } from './client'
-import { ConexionError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
+import { ConexionError, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
 
 describe('cliente API', () => {
   beforeEach(() => {
     reportarExito()
     rearmarSesionExpirada()
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
   it('añade el bearer de la sesión y devuelve data tipada', async () => {
     guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
@@ -48,6 +51,31 @@ describe('cliente API', () => {
     expect(estaConectado()).toBe(false)
     server.use(http.get('*/api/clientes', () => HttpResponse.json([])))
     await api.GET('/api/clientes')
+    expect(estaConectado()).toBe(true)
+  })
+  it('un 5xx lanza ConexionError y marca desconectado', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    await expect(api.GET('/api/clientes')).rejects.toBeInstanceOf(ConexionError)
+    expect(estaConectado()).toBe(false)
+  })
+  it('un 4xx no toca el estado de conexión (y cura el banner)', async () => {
+    reportarFallo()
+    server.use(http.get('*/api/clientes', () => new HttpResponse(null, { status: 404 })))
+    await expect(api.GET('/api/clientes')).rejects.toBeInstanceOf(NoEncontradoError)
+    expect(estaConectado()).toBe(true)
+  })
+  it('el timeout se reporta como sin conexión con el sufijo', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new DOMException('t', 'TimeoutError'))
+    const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ConexionError)
+    expect((err as Error).message).toMatch(/\(tiempo de espera agotado\)$/)
+    expect(estaConectado()).toBe(false)
+  })
+  it('una cancelación del llamador no se disfraza de sin conexión', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new DOMException('c', 'AbortError'))
+    const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(err).not.toBeInstanceOf(ConexionError)
+    expect((err as Error).name).toBe('AbortError')
     expect(estaConectado()).toBe(true)
   })
 })

@@ -14,6 +14,7 @@ export function leerSesion(): Sesion | null {
     if (!raw) return null
     const s = JSON.parse(raw) as Partial<Sesion>
     if (typeof s.token !== 'string' || typeof s.nombreUsuario !== 'string') return null
+    if (typeof s.idUsu !== 'number' || typeof s.rol !== 'string') return null
     return s as Sesion
   } catch {
     return null
