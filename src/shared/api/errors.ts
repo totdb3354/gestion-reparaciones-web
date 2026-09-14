@@ -55,3 +55,10 @@ export function mensajeDeError(e: unknown, opciones?: { staleData?: string }): s
   if (opciones?.staleData !== undefined && e instanceof StaleDataError) return opciones.staleData
   return e instanceof Error ? e.message : String(e)
 }
+
+/** `true` si el error ya lo gestiona un mecanismo global (401 → redirección a login, 5xx/red → banner de
+ *  conexión) y por tanto ningún `onError` propio de una mutación debe volver a mostrarlo (evita el aviso
+ *  doble: banner + diálogo). */
+export function esErrorGestionadoGlobalmente(e: unknown): boolean {
+  return e instanceof SesionExpiradaError || e instanceof ConexionError
+}

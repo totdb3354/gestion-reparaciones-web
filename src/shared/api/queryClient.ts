@@ -1,11 +1,11 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
-import { ConexionError, SesionExpiradaError, mensajeDeError } from './errors'
+import { esErrorGestionadoGlobalmente, mensajeDeError } from './errors'
 import { emitirError } from '@/shared/ui/alertas'
 
 /** Equivalente al catch de las llamadas del JavaFX: cualquier fallo que no gestione ya otro mecanismo
  *  (401 → redirección a login, 5xx/red → banner de conexión) abre el diálogo de error genérico. */
 function avisar(error: unknown) {
-  if (error instanceof SesionExpiradaError || error instanceof ConexionError) return
+  if (esErrorGestionadoGlobalmente(error)) return
   emitirError(mensajeDeError(error))
 }
 

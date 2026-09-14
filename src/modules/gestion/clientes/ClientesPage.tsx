@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useSession } from '@/app/session/SessionProvider'
 import { esSuperTecnico } from '@/shared/session/storage'
 import type { Cliente } from '@/shared/api/client'
-import { mensajeDeError } from '@/shared/api/errors'
+import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -64,8 +64,11 @@ export function ClientesPage() {
 
   /** Crear y borrar no necesitan nada: el diálogo global del MutationCache muestra el mensaje del servidor
    *  (p. ej. el 409 "tiene teléfonos asociados"). Editar y activar silencian ese diálogo (meta.silenciarError)
-   *  porque aquí cualquier 409 es el aviso de modificado por otro usuario, como en el JavaFX. */
+   *  porque aquí cualquier 409 es el aviso de modificado por otro usuario, como en el JavaFX. Pero un fallo
+   *  de sesión o de conexión ya lo gestiona el mecanismo global (redirección / banner): mostrarlo aquí
+   *  también duplicaría el aviso. */
   function avisarEdicion(e: unknown) {
+    if (esErrorGestionadoGlobalmente(e)) return
     mostrarError(mensajeDeError(e, { staleData: MSG_MODIFICADO }))
   }
 

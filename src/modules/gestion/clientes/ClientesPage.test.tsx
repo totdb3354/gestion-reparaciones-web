@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { estaConectado } from '@/shared/api/conexion'
 import { ClientesPage } from './ClientesPage'
 
 const clientes = [
@@ -104,6 +105,25 @@ describe('ClientesPage', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: 'Aceptar' }))
     expect(await screen.findByText('El cliente fue modificado por otro usuario. Se recargan los datos.')).toBeInTheDocument()
     expect(body).toEqual({ nombre: 'Otros', updatedAt: '2026-09-01T10:00:00' })
+  })
+  it('un fallo de conexión al editar solo activa el banner (sin diálogo)', async () => {
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('OTRO')
+    // El PUT falla y, además, la recarga que dispara `onSettled` también falla (sin conexión real ambas
+    // caerían): así `estaConectado()` no se autocura con un refetch de éxito y sirve de barrera estable.
+    server.use(
+      http.put('*/api/clientes/2', () => HttpResponse.error()),
+      http.get('*/api/clientes', () => HttpResponse.error()),
+    )
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('OTRO') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar' }))
+    const dlg = screen.getByRole('dialog', { name: 'Editar cliente' })
+    const input = within(dlg).getByLabelText('Nombre:')
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Otros')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Aceptar' }))
+    await waitFor(() => expect(estaConectado()).toBe(false))
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
   it('borrar pide confirmación con el texto exacto y llama a DELETE', async () => {
     let borrado = false
