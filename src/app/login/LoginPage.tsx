@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
@@ -6,7 +6,7 @@ import { APP_VERSION } from '@/shared/lib/version'
 import { useSession } from '@/app/session/SessionProvider'
 
 const inputCls =
-  'h-auto rounded-lg border-borde-input bg-white px-3.5 py-3 text-[13px] text-azul-medio placeholder:text-texto-suave'
+  'h-auto rounded-lg border-borde-input bg-white px-3.5 py-3 text-[13px] md:text-[13px] text-azul-medio placeholder:text-texto-suave'
 
 export function LoginPage() {
   const { login } = useSession()
@@ -16,12 +16,14 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [verPassword, setVerPassword] = useState(false)
   // Mensaje pendiente (sesión expirada, dejado por main.tsx antes de recargar) o de una navegación interna.
-  const [error, setError] = useState<string | null>(() => {
-    const pendiente = sessionStorage.getItem('fsgr.mensajeLogin')
-    if (pendiente) sessionStorage.removeItem('fsgr.mensajeLogin')
-    return pendiente ?? (location.state as { mensaje?: string } | null)?.mensaje ?? null
-  })
+  const [error, setError] = useState<string | null>(
+    () => sessionStorage.getItem('fsgr.mensajeLogin') ?? (location.state as { mensaje?: string } | null)?.mensaje ?? null,
+  )
   const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    sessionStorage.removeItem('fsgr.mensajeLogin')
+  }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()

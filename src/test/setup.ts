@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
+import { reportarExito } from '@/shared/api/conexion'
 import { server } from './server'
 
 // Polyfills que Radix (popover, dropdown, context-menu) necesita y jsdom no trae.
@@ -20,5 +21,6 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   sessionStorage.clear()
+  reportarExito()
 })
 afterAll(() => server.close())

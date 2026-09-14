@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, type LoginResponse } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
 import { rearmarSesionExpirada } from './expiracion'
@@ -13,19 +14,27 @@ type Ctx = {
 }
 const SessionContext = createContext<Ctx | null>(null)
 
+/** El schema generado marca los campos como opcionales (ver LoginResponse en client.ts); esto comprueba
+ *  que el servidor los mandó todos, como hace siempre en una respuesta 200 real. */
+function esLoginResponse(x: unknown): x is LoginResponse {
+  if (typeof x !== 'object' || x === null) return false
+  const r = x as Record<string, unknown>
+  return typeof r.token === 'string' && typeof r.idUsu === 'number' && typeof r.nombreUsuario === 'string' && typeof r.rol === 'string'
+}
+
 async function pedirLogin(usuario: string, password: string): Promise<LoginResponse> {
   const { data } = await api.POST('/api/auth/login', { body: { usuario, password } })
   if (!data) throw new ConexionError(0, 'Respuesta vacía del servidor.')
-  // El schema generado marca los campos como opcionales (ver LoginResponse en client.ts); el servidor
-  // siempre los manda todos en una respuesta 200 real.
-  return data as LoginResponse
+  if (!esLoginResponse(data)) throw new ConexionError(0, 'Respuesta de login incompleta.')
+  return data
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Sesion | null>(() => leerSesion())
+  const qc = useQueryClient()
 
   const login = useCallback(async (usuario: string, password: string) => {
-    let data
+    let data: LoginResponse
     try {
       data = await pedirLogin(usuario, password)
     } catch (e) {
@@ -37,16 +46,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         throw traducir(e2)
       }
     }
+    qc.clear()
     const s: Sesion = { idUsu: data.idUsu, nombreUsuario: data.nombreUsuario, rol: data.rol, idTec: data.idTec ?? null, token: data.token }
     guardarSesion(s)
     rearmarSesionExpirada()
     setSesion(s)
-  }, [])
+  }, [qc])
 
   const logout = useCallback(() => {
     borrarSesion()
+    qc.clear()
     setSesion(null)
-  }, [])
+  }, [qc])
 
   const value = useMemo(() => ({ sesion, login, logout }), [sesion, login, logout])
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
@@ -58,6 +69,7 @@ function traducir(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e))
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook colocado con su Provider, patrón del proyecto
 export function useSession(): Ctx {
   const ctx = useContext(SessionContext)
   if (!ctx) throw new Error('useSession fuera de SessionProvider')
