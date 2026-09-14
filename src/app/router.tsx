@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
 import { LoginPage } from './login/LoginPage'
 import { RequireSesion } from './session/RequireSesion'
 import { AppLayout } from './shell/AppLayout'
@@ -16,7 +17,7 @@ export const router = createBrowserRouter([
           { path: '/reparaciones/*', element: <PendienteDeMigrar nombre="Reparaciones" /> },
           { path: '/stock/*', element: <PendienteDeMigrar nombre="Stock" /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
-          { path: '/clientes', element: <PendienteDeMigrar nombre="Clientes" /> },
+          { path: '/clientes', element: <ClientesPage /> },
           { path: '/gestion/tecnicos', element: <PendienteDeMigrar nombre="Gestionar técnicos" /> },
           { path: '/gestion/logs', element: <PendienteDeMigrar nombre="Ver logs" /> },
           { path: '/cuenta/cambiar-password', element: <PendienteDeMigrar nombre="Cambiar contraseña" /> },
