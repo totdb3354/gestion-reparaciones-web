@@ -12,7 +12,7 @@ describe('textoMultiSelect (calco de actualizarTextoFiltro)', () => {
   })
 })
 
-function Demo() {
+function Demo({ textoVacio = 'Cliente' }: { textoVacio?: string }) {
   const [sel, setSel] = useState<Set<string>>(new Set())
   return (
     <MultiSelect
@@ -21,7 +21,7 @@ function Demo() {
       etiqueta={(o) => o.n}
       seleccion={sel}
       onChange={setSel}
-      textoVacio="Cliente"
+      textoVacio={textoVacio}
       textoPlural={(k) => `${k} clientes`}
     />
   )
@@ -37,5 +37,18 @@ describe('MultiSelect', () => {
     expect(screen.getByRole('button', { name: '2 clientes' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('checkbox', { name: 'WEB' }))
     expect(screen.getByRole('button', { name: 'OTRO' })).toBeInTheDocument()
+  })
+
+  it('con varias instancias en la misma página, marcar una opción solo afecta a la instancia clicada', async () => {
+    render(
+      <>
+        <Demo textoVacio="Cliente" />
+        <Demo textoVacio="Proveedor" />
+      </>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Proveedor' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'WEB' }))
+    expect(screen.getByRole('button', { name: 'Cliente' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'WEB' })).toBeInTheDocument()
   })
 })

@@ -16,9 +16,10 @@ type Props<T> = {
 }
 
 export function DataTable<T>({ columns, data, vacio, filaClase, menuFila, getRowId }: Props<T>) {
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table 8 devuelve funciones no memoizables; aviso conocido del React Compiler
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getRowId })
   return (
-    <div className="overflow-x-auto rounded-md bg-white">
+    <div className="overflow-x-auto rounded-md bg-card">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((hg) => (

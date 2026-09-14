@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import { Checkbox } from './checkbox'
 import { cn } from '@/shared/lib/utils'
@@ -22,6 +23,8 @@ type Props<T> = {
 /** Desplegable con checkboxes, calco de MultiSelectDropdown: la etiqueta del botón resume la selección. */
 export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, className }: Props<T>) {
   const texto = textoMultiSelect([...seleccion], textoVacio, textoPlural)
+  // ids únicos aunque haya varios MultiSelect con las mismas claves en la página
+  const idBase = useId()
   function toggle(k: string, marcado: boolean) {
     const s = new Set(seleccion)
     if (marcado) s.add(k)
@@ -31,14 +34,14 @@ export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange,
   return (
     <Popover>
       <PopoverTrigger
-        className={cn('h-8 min-w-36 rounded border border-azul-gris bg-white px-3 text-left text-[12px] text-azul-medio', className)}
+        className={cn('h-8 min-w-36 rounded border border-azul-gris bg-card px-3 text-left text-[12px] text-azul-medio', className)}
       >
         {texto}
       </PopoverTrigger>
       <PopoverContent align="start" className="max-h-72 w-56 overflow-auto p-2">
-        {opciones.map((o) => {
+        {opciones.map((o, i) => {
           const k = clave(o)
-          const id = `ms-${k}`
+          const id = `${idBase}-${i}`
           return (
             <label key={k} htmlFor={id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[12px] hover:bg-pill-bg">
               <Checkbox id={id} checked={seleccion.has(k)} onCheckedChange={(v) => toggle(k, v === true)} aria-label={etiqueta(o)} />
