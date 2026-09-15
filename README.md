@@ -23,6 +23,10 @@ npm run e2e
 ```
 El test crea y borra un cliente de prueba llamado `E2E <timestamp>`.
 
+## Despliegue
+Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guía operativa es privada
+(`Apuntes/despliegue_vdc_produccion.md`, fuera del repo).
+
 ## Documentación
 - Spec maestra y de cimientos: repo raíz, `docs/superpowers/specs/2026-09-13-*`.
 - Fichas de paridad por vista: `docs/paridad/`.
