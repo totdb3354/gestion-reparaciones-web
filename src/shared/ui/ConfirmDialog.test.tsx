@@ -26,7 +26,8 @@ describe('ConfirmDialog (calco de ConfirmDialog.mostrar)', () => {
     const accion = within(dlg).getByRole('button', { name: 'Borrar' })
     const cancelar = within(dlg).getByRole('button', { name: 'Cancelar' })
     expect(accion).toHaveClass('w-full', 'bg-rojo-accion', 'text-crema')
-    expect(cancelar).toHaveClass('w-full', 'border-azul-gris', 'bg-crema', 'text-azul-gris')
+    // shadow-none: el variant outline del Button trae sombra y el botón del JavaFX es plano
+    expect(cancelar).toHaveClass('w-full', 'border-azul-gris', 'bg-crema', 'text-azul-gris', 'shadow-none')
     // el JavaFX apila acción y luego Cancelar: el orden del DOM es el orden visual y el de tabulación
     expect(accion.compareDocumentPosition(cancelar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // clases que sostienen el calco: sin ellas el diálogo vuelve a los valores de DialogContent/DialogFooter

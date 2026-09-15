@@ -14,16 +14,17 @@ const SUBNAV: Record<string, Enlace[]> = {
 
 /** Calco de la columna lateral del JavaFX (`.stock-sidebar`): 200 px blancos bajo la barra, con la
  *  sub-navegación de la sección actual. Siempre visible, aunque la sección no tenga enlaces, para que la
- *  geometría del contenido no cambie de una vista a otra. */
+ *  geometría del contenido no cambie de una vista a otra. Es un landmark de navegación con etiqueta propia,
+ *  para distinguirlo del `<nav>` de la barra superior. */
 export function SubNav() {
   const { pathname } = useLocation()
-  const seccion = pathname.split('/')[1] ?? ''
+  const seccion = pathname.split('/')[1]
   // `Object.hasOwn` y no `SUBNAV[seccion] ?? []`: la sección viene de la URL, y un `/constructor` o un
   // `/__proto__` resolverían a un miembro heredado de Object.prototype (una función, no un array) y harían
   // reventar el `.map`. Con el catch-all del router dentro de AppLayout, esa ruta llega a pintarse.
   const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion] : []
   return (
-    <aside className="w-[200px] shrink-0 bg-white p-2">
+    <nav aria-label="Sub-navegación" className="w-[200px] shrink-0 bg-white p-2">
       {enlaces.map((e) => (
         <NavLink
           key={e.to}
@@ -38,6 +39,6 @@ export function SubNav() {
           {e.label}
         </NavLink>
       ))}
-    </aside>
+    </nav>
   )
 }

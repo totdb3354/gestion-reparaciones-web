@@ -96,6 +96,16 @@ describe('ClientesPage', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Antiguo') })
     expect(await screen.findByRole('menuitem', { name: 'Activar' })).toBeInTheDocument()
   })
+  it('si tiene-telefonos cae sin conexión, el diálogo trae el detalle técnico como en el JavaFX', async () => {
+    // Es una consulta suelta (no pasa por el QueryCache), así que el aviso lo pone el `.catch` de MenuCliente:
+    // sin tratar el ConexionError mostraría el genérico "Sin conexión con el servidor." en vez del detalle.
+    server.use(http.get('*/api/clientes/:id/tiene-telefonos', () => HttpResponse.error()))
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('WEB')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('WEB') })
+    const aviso = await screen.findByText(/^Sin conexión con el servidor: .+/)
+    expect(aviso.closest('[role="dialog"]')).not.toBeNull()
+  })
   it('Desactivar envía PATCH con activo=false y updatedAt', async () => {
     let body: unknown = null
     server.use(http.patch('*/api/clientes/1/activo', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 204 }) }))

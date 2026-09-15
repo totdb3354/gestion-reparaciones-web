@@ -61,7 +61,7 @@ describe('mensajeSinConexion', () => {
     const e = new ConexionError(503, MSG_SIN_CONEXION, 'HTTP 503')
     expect(mensajeSinConexion(e)).toBe('Sin conexión con el servidor: HTTP 503')
   })
-  it('sin detalle usa el mensaje propio del error (los de SessionProvider dicen más que el genérico)', () => {
+  it('sin detalle (caso defensivo) usa el mensaje propio del error, más concreto que el genérico', () => {
     const e = new ConexionError(0, 'Respuesta vacía del servidor.')
     expect(mensajeSinConexion(e)).toBe('Respuesta vacía del servidor.')
   })

@@ -15,20 +15,22 @@ type Props<T> = {
   getRowId?: (row: T) => string
 }
 
+/** Borra el `size: 150` que el feature ColumnSizing inyecta en la definición por defecto: así
+ *  `columnDef.size` es `undefined` en las columnas sin ancho y el valor del consumidor en las que sí lo
+ *  declaran. Fuera del componente para que sea la misma referencia en cada render. */
+const COLUMNA_POR_DEFECTO = { size: undefined } as const
+
 /** Ancho fijo de la columna, solo si la ColumnDef lo declara. `column.columnDef` es la definición ya
  *  resuelta (`{ ...defaultColumnDef, ...columnDef }`) y el feature ColumnSizing mete ahí `size: 150`, así
- *  que sin el `defaultColumn` de abajo esto le pondría 150 px a todas. Sin ancho, la columna reparte lo
+ *  que sin el `COLUMNA_POR_DEFECTO` de arriba esto le pondría 150 px a todas. Sin ancho, la columna reparte lo
  *  que sobra; `getSize()` sigue devolviendo 150 y por eso no se usa. */
 function anchoDe(size: number | undefined) {
   return size === undefined ? undefined : { width: size }
 }
 
 export function DataTable<T>({ columns, data, vacio, filaClase, menuFila, getRowId }: Props<T>) {
-  // `defaultColumn: { size: undefined }` borra el `size: 150` que ColumnSizing inyecta en la definición por
-  // defecto: así `columnDef.size` es `undefined` en las columnas sin ancho y el valor del consumidor en las
-  // que sí lo declaran.
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table 8 devuelve funciones no memoizables; aviso conocido del React Compiler
-  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getRowId, defaultColumn: { size: undefined } })
+  const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getRowId, defaultColumn: COLUMNA_POR_DEFECTO })
   return (
     <div className="overflow-x-auto rounded-md bg-card">
       <Table>

@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useSession } from '@/app/session/SessionProvider'
 import { esSuperTecnico } from '@/shared/session/storage'
 import type { Cliente } from '@/shared/api/client'
-import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
+import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -33,7 +33,13 @@ function MenuCliente({ c, onToggle, onEditar, onBorrar }: { c: Cliente; onToggle
     let vivo = true
     tieneTelefonos(c.idCli)
       .then((tiene) => { if (vivo) setBorrable(!tiene) })
-      .catch((e: unknown) => { if (vivo) mostrarError(mensajeDeError(e)) })
+      // No pasa por el QueryCache (es una consulta suelta), así que el diálogo lo abre esta vista: un corte
+      // de conexión se anuncia con el detalle técnico, como el diálogo del JavaFX, y no con el genérico.
+      .catch((e: unknown) => {
+        if (!vivo) return
+        if (e instanceof ConexionError) { mostrarError(mensajeSinConexion(e)); return }
+        mostrarError(mensajeDeError(e))
+      })
     return () => { vivo = false }
   }, [c.idCli, mostrarError])
   return (

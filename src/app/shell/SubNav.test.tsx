@@ -14,7 +14,7 @@ describe('columna lateral de sub-navegación', () => {
 
   it('en una sección todavía sin enlaces mantiene la columna vacía', () => {
     renderConProviders(<SubNav />, { ruta: '/reparaciones' })
-    const columna = screen.getByRole('complementary')
+    const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
     expect(within(columna).queryAllByRole('link')).toHaveLength(0)
   })
 
@@ -26,13 +26,13 @@ describe('columna lateral de sub-navegación', () => {
     'una sección que se llama como un miembro heredado de Object (%s) deja la columna vacía sin romper',
     (ruta) => {
       renderConProviders(<SubNav />, { ruta })
-      const columna = screen.getByRole('complementary')
+      const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
       expect(within(columna).queryAllByRole('link')).toHaveLength(0)
     },
   )
 
   it('el shell la coloca junto al contenido en todas las vistas', () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/gestion/logs' })
-    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toBeInTheDocument()
   })
 })

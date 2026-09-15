@@ -33,8 +33,9 @@ export const MSG_SIN_CONEXION = `${SIN_CONEXION}.`
 export const MSG_TIMEOUT = 'tiempo de espera agotado'
 
 /** Texto del diálogo del JavaFX cuando una acción del usuario falla por falta de conexión: el detalle técnico
- *  si lo hay y, si no, el `message` del propio error, que puede ser más concreto que el genérico (los
- *  `ConexionError` de `SessionProvider` traen "Respuesta vacía del servidor." y similares, sin detalle). */
+ *  si lo hay. Los `ConexionError` que nacen aquí (`clasificar`) o en el fetch siempre traen `detalle`; el
+ *  resto de la rama es una defensa para cualquier `ConexionError` construido sin él, y entonces vale más su
+ *  `message` (puede ser más concreto que el genérico) que el texto de siempre. */
 export function mensajeSinConexion(error: ConexionError): string {
   if (error.detalle !== undefined) return `${SIN_CONEXION}: ${error.detalle}`
   return error.message.trim() === '' ? MSG_SIN_CONEXION : error.message

@@ -38,7 +38,8 @@ export function ConfirmDialog({ abierto, titulo, descripcion, textoAccion, texto
         <DialogFooter className="flex-col gap-2.5 sm:flex-col">
           {/* h-auto porque el h-9 del Button fijaría la altura y anularía el py-2.5 (padding 10 del JavaFX) */}
           <Button className="h-auto w-full rounded bg-rojo-accion py-2.5 text-[12px] text-crema hover:bg-rojo-accion/90" onClick={onConfirmar}>{textoAccion}</Button>
-          <Button ref={cancelarRef} variant="outline" className="h-auto w-full rounded border-azul-gris bg-crema py-2.5 text-[12px] text-azul-gris hover:bg-crema hover:text-azul-gris" onClick={onCancelar}>{textoCancelar}</Button>
+          {/* shadow-none: el botón del JavaFX es plano y el variant outline del Button trae sombra */}
+          <Button ref={cancelarRef} variant="outline" className="h-auto w-full rounded border-azul-gris bg-crema py-2.5 text-[12px] text-azul-gris shadow-none hover:bg-crema hover:text-azul-gris" onClick={onCancelar}>{textoCancelar}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -9,7 +9,9 @@ test('login, crear, editar, desactivar y borrar un cliente', async ({ page }) =>
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
   await expect(page.getByText('FSGR:')).toBeVisible()
 
-  await page.getByRole('link', { name: 'Clientes' }).click()
+  // Acotado a la barra superior (`<header>` = landmark banner): en /clientes la columna lateral pinta un
+  // segundo enlace "Clientes" y sin acotar el localizador sería ambiguo.
+  await page.getByRole('banner').getByRole('link', { name: 'Clientes' }).click()
   await page.getByRole('button', { name: 'Nuevo cliente' }).click()
   await page.getByLabel('Nombre del cliente:').fill(nombre)
   await page.getByRole('button', { name: 'Aceptar' }).click()
