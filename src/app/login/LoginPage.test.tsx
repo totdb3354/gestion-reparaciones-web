@@ -7,7 +7,15 @@ import { server } from '@/test/server'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { leerSesion } from '@/shared/session/storage'
 import { onSesionExpirada } from '@/shared/session/expiracion'
+import { useSession } from '@/app/session/SessionProvider'
 import { LoginPage } from './LoginPage'
+
+/** Expone en cada render el `sesion` actual del contexto, para comprobar que el estado de React (no solo
+ *  el storage) queda a null tras un login fallido con una sesión previa. */
+function ProbeSesion({ exponer }: { exponer: (sesion: ReturnType<typeof useSession>['sesion']) => void }) {
+  exponer(useSession().sesion)
+  return null
+}
 
 const respuestaLogin = { idUsu: 7, nombreUsuario: 'fati', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
 
@@ -50,17 +58,28 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Usuario o contraseña incorrectos.')).toBeInTheDocument()
     expect(leerSesion()).toBeNull()
   })
-  it('con una sesión vieja guardada, un 401 del login no dispara la expiración de sesión', async () => {
+  it('con una sesión vieja guardada, un 401 del login no dispara la expiración de sesión y limpia el estado', async () => {
     const expirada = vi.fn()
     onSesionExpirada(expirada)
     server.use(http.post('*/api/auth/login', () => new HttpResponse(null, { status: 401 })))
-    renderConProviders(<LoginPage />, { sesion: SESION_TEC, ruta: '/login', rutas: <Route path="/" element={<p>INICIO</p>} /> })
+    let sesionActual: ReturnType<typeof useSession>['sesion'] = undefined as never
+    renderConProviders(
+      <>
+        <LoginPage />
+        <ProbeSesion exponer={(s) => { sesionActual = s }} />
+      </>,
+      { sesion: SESION_TEC, ruta: '/login', rutas: <Route path="/" element={<p>INICIO</p>} /> },
+    )
+    expect(sesionActual).not.toBeNull()
     await userEvent.type(screen.getByPlaceholderText('Usuario'), 'zara')
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'mala')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(await screen.findByText('Usuario o contraseña incorrectos.')).toBeInTheDocument()
     expect(expirada).not.toHaveBeenCalled()
     expect(leerSesion()).toBeNull()
+    // No solo el storage: el contexto de React también debe quedar sin sesión (si no, una ruta protegida
+    // seguiría considerando al usuario autenticado con la sesión vieja hasta el siguiente render externo).
+    expect(sesionActual).toBeNull()
   })
   it('un fallo de red reintenta una vez y si vuelve a fallar muestra el mensaje de conexión', async () => {
     let intentos = 0

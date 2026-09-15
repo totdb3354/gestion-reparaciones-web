@@ -2,6 +2,14 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from './errors'
 import { emitirError } from '@/shared/ui/alertas'
 
+// Tipa `mutation.meta`: sin esto es `Record<string, unknown> | undefined` y `silenciarError` no está
+// comprobado por tsc (un typo como `silenciarErrores` en una mutación compilaría sin avisar).
+declare module '@tanstack/react-query' {
+  interface Register {
+    mutationMeta: { silenciarError?: boolean }
+  }
+}
+
 /** Equivalente al catch de las llamadas del JavaFX: cualquier fallo que no gestione ya otro mecanismo
  *  (401 → redirección a login, 5xx/red → banner de conexión) abre el diálogo de error genérico. */
 function avisar(error: unknown) {

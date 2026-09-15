@@ -35,8 +35,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (usuario: string, password: string) => {
     // Intentar entrar da por muerta la sesión anterior: sin ella un 401 del login no puede confundirse
-    // con "sesión expirada" (dispararSesionExpirada solo actúa si hay sesión guardada).
+    // con "sesión expirada" (dispararSesionExpirada solo actúa si hay sesión guardada). setSesion(null)
+    // mantiene el estado de React sincronizado con el storage ya borrado: sin esto, un login fallido con
+    // una sesión previa dejaba el contexto sirviendo la sesión vieja aunque storage ya estuviera vacío.
     borrarSesion()
+    setSesion(null)
     let data: LoginResponse
     try {
       data = await pedirLogin(usuario, password)

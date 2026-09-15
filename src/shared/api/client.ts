@@ -47,11 +47,12 @@ const auth: Middleware = {
  *  su tipo solo declara un parámetro: con `init` opcional la firma sigue encajando y recibimos el segundo. */
 const fetchConTimeout = async (request: Request, init?: RequestInit): Promise<Response> => {
   // La señal combina el timeout con la del llamador (TanStack Query al desmontar, AbortController propio):
-  // pasar solo la del timeout descartaría la cancelación y la petición seguiría viva.
+  // pasar solo la del timeout descartaría la cancelación y la petición seguiría viva. Ambas se construyen
+  // fuera del try: son creación de señales, no la operación que puede fallar con AbortError/TimeoutError.
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
+  const signal = AbortSignal.any([timeout, request.signal, init?.signal].filter((s): s is AbortSignal => !!s))
   try {
-    const combinada = AbortSignal.any([timeout, request.signal, init?.signal].filter((s): s is AbortSignal => !!s))
-    return await fetch(request, { ...init, signal: combinada })
+    return await fetch(request, { ...init, signal })
   } catch (e) {
     const nombre = e instanceof Error ? e.name : ''
     // Cancelación del llamador (p. ej. TanStack Query al desmontar): no es una caída del servidor.
