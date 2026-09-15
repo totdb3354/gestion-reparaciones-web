@@ -1,0 +1,50 @@
+/* Tokens de color del ERP. Fuente: gestion-reparaciones-cliente utils/Colores.java y styles/app.css.
+   Ningún componente escribe un color a mano: usa estas utilidades (bg-azul-noche, text-crema, ...). */
+@theme {
+  --color-azul-noche: #001232;
+  --color-azul-noche-hover: #0A2040;
+  --color-azul-medio: #2C3B54;
+  --color-azul-gris: #586376;
+  --color-crema: #F6F6F6;
+  --color-amarillo: #F1E356;
+  --color-fondo-vista: #DDE1E7;
+  --color-fondo-login: #EFEFEF;
+  --color-fondo-input: #F3F3F3;
+  --color-nav-switch: #E8EAF0;
+  --color-borde-input: #D4D8DE;
+  --color-gris-borde: #A9A9A9;
+  --color-gris-disabled: #E7E7E7;
+  --color-texto-suave: #A0A8B4;
+  --color-pill-bg: #F0F2F5;
+  --color-pill-borde: #C8CDD5;
+  --color-texto-error: #B03040;
+  --color-texto-accion: #4A6FA5;
+  --color-verde-ok: #4CAF50;
+  --color-rojo-accion: #A84040;
+  --color-rojo-sin-stock: #B03040;
+  --color-fila-edicion-bg: #EBF4FF;
+  --color-fila-edicion-brd: #B3D4F5;
+  --color-fila-reparado-bg: #EBF5EB;
+  --color-fila-reparado-brd: #C5E1C5;
+  --color-fila-reparado-ico: #8AC7AF;
+  --color-fila-recibido-bg: #C8E6C9;
+  --color-fila-recibido-brd: #3A7D44;
+  --color-fila-parcial-bg: #E8E0F7;
+  --color-fila-parcial-brd: #7B5EA7;
+  --color-fila-cancelado-bg: #E0E0E0;
+  --color-fila-cancelado-brd: #9E9E9E;
+  --color-fila-cancelado-text: #9E9E9E;
+  --color-fila-incidencia-bg: #E8C8CE;
+  --color-fila-incidencia-brd: #B83746;
+  --color-fila-solicitud-bg: #FDEBC8;
+  --color-fila-solicitud-brd: #C07800;
+  --color-fila-urgente-brd: #C62828;
+  --color-fila-modificada-bg: #E0F7FA;
+  --color-fila-modificada-brd: #00838F;
+  --color-fila-selected-brd: #3D5070;
+  --color-fila-sep: #C2C8D0;
+  --color-texto-nav-activo: #FAFAFA;
+  --color-banner-bg: #F6C453;
+  --color-banner-text: #5A4500;
+  --spacing-navbar: 64px;
+}

@@ -1,0 +1,158 @@
+import { useEffect, useMemo, useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { useSession } from '@/app/session/SessionProvider'
+import { esSuperTecnico } from '@/shared/session/storage'
+import type { Cliente } from '@/shared/api/client'
+import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
+import { useAlerta } from '@/shared/ui/AlertaProvider'
+import { Button } from '@/shared/ui/button'
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
+import { ContextMenuItem } from '@/shared/ui/context-menu'
+import { DataTable } from '@/shared/ui/DataTable'
+import { MultiSelect } from '@/shared/ui/MultiSelect'
+import { StatusBadge } from '@/shared/ui/StatusBadge'
+import { ClienteDialog } from './ClienteDialog'
+import { tieneTelefonos, useBorrarCliente, useClientes, useCrearCliente, useEditarCliente, useSetActivoCliente } from './api'
+
+const MSG_MODIFICADO = 'El cliente fue modificado por otro usuario. Se recargan los datos.'
+
+// anchos del TableView de ClientesController; lo que sobra queda en blanco (columna de relleno del DataTable)
+const columnas: ColumnDef<Cliente>[] = [
+  { accessorKey: 'nombre', header: 'Nombre', size: 340 },
+  { accessorKey: 'activo', header: 'Estado', size: 130, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
+]
+
+type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; cliente: Cliente } | { tipo: 'borrar'; cliente: Cliente } | null
+
+/** Contenido del menú contextual. Radix solo lo monta al abrirse, así que el useEffect equivale a la consulta
+ *  tiene-telefonos que el JavaFX hace al seleccionar la fila: "Borrar" aparece solo si no tiene teléfonos. */
+function MenuCliente({ c, onToggle, onEditar, onBorrar }: { c: Cliente; onToggle: () => void; onEditar: () => void; onBorrar: () => void }) {
+  const { mostrarError } = useAlerta()
+  const [borrable, setBorrable] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    tieneTelefonos(c.idCli)
+      .then((tiene) => { if (vivo) setBorrable(!tiene) })
+      // No pasa por el QueryCache (es una consulta suelta), así que el diálogo lo abre esta vista: un corte
+      // de conexión se anuncia con el detalle técnico, como el diálogo del JavaFX, y no con el genérico.
+      .catch((e: unknown) => {
+        if (!vivo) return
+        if (e instanceof ConexionError) { mostrarError(mensajeSinConexion(e)); return }
+        mostrarError(mensajeDeError(e))
+      })
+    return () => { vivo = false }
+  }, [c.idCli, mostrarError])
+  return (
+    <>
+      <ContextMenuItem onSelect={onToggle}>{c.activo ? 'Desactivar' : 'Activar'}</ContextMenuItem>
+      <ContextMenuItem onSelect={onEditar}>Editar</ContextMenuItem>
+      {borrable && <ContextMenuItem onSelect={onBorrar}>Borrar</ContextMenuItem>}
+    </>
+  )
+}
+
+export function ClientesPage() {
+  const { sesion } = useSession()
+  const puedeEditar = esSuperTecnico(sesion)
+  const { mostrarError } = useAlerta()
+  const { data: clientes = [] } = useClientes()
+  const crear = useCrearCliente()
+  const editar = useEditarCliente()
+  const setActivo = useSetActivoCliente()
+  const borrar = useBorrarCliente()
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
+  const [dialogo, setDialogo] = useState<Dialogo>(null)
+
+  const activos = useMemo(() => clientes.filter((c) => c.activo), [clientes])
+  const visibles = useMemo(
+    () => (seleccion.size === 0 ? clientes : clientes.filter((c) => seleccion.has(c.nombre))),
+    [clientes, seleccion],
+  )
+
+  /** Crear y borrar no necesitan nada: el diálogo global del MutationCache muestra el mensaje del servidor
+   *  (p. ej. el 409 "tiene teléfonos asociados"). Editar y activar silencian ese diálogo (meta.silenciarError)
+   *  porque aquí cualquier 409 es el aviso de modificado por otro usuario, como en el JavaFX. Pero un fallo
+   *  de sesión o de conexión ya lo gestiona el mecanismo global (redirección / banner): mostrarlo aquí
+   *  también duplicaría el aviso. */
+  function avisarEdicion(e: unknown) {
+    if (esErrorGestionadoGlobalmente(e)) return
+    mostrarError(mensajeDeError(e, { staleData: MSG_MODIFICADO }))
+  }
+
+  return (
+    <div className="p-6">
+      <h1 className="mb-4 text-2xl font-bold text-azul-medio">Clientes</h1>
+      <div className="mb-4 flex flex-wrap items-center gap-10">
+        <MultiSelect
+          opciones={activos}
+          clave={(c) => c.nombre}
+          etiqueta={(c) => c.nombre}
+          seleccion={seleccion}
+          onChange={setSeleccion}
+          textoVacio="Cliente"
+          textoPlural={(n) => `${n} clientes`}
+        />
+        {puedeEditar && (
+          <Button className="h-10 rounded-3xl bg-azul-noche px-5 text-[12px] font-bold text-texto-nav-activo hover:bg-azul-noche-hover" onClick={() => setDialogo({ tipo: 'nuevo' })}>
+            Nuevo cliente
+          </Button>
+        )}
+      </div>
+
+      <DataTable
+        columns={columnas}
+        data={visibles}
+        vacio="Sin clientes"
+        getRowId={(c) => String(c.idCli)}
+        filaClase={(c) => (c.activo ? 'border-l-8 border-l-fila-reparado-brd' : 'border-l-8 border-l-transparent')}
+        menuFila={
+          puedeEditar
+            ? (c) => (
+                <MenuCliente
+                  c={c}
+                  onToggle={() => setActivo.mutate({ idCli: c.idCli, activo: !c.activo, updatedAt: c.updatedAt }, { onError: avisarEdicion })}
+                  onEditar={() => setDialogo({ tipo: 'editar', cliente: c })}
+                  onBorrar={() => setDialogo({ tipo: 'borrar', cliente: c })}
+                />
+              )
+            : undefined
+        }
+      />
+
+      <ClienteDialog
+        abierto={dialogo?.tipo === 'nuevo'}
+        titulo="Nuevo cliente"
+        etiqueta="Nombre del cliente:"
+        onCancelar={() => setDialogo(null)}
+        onAceptar={(nombre) => { setDialogo(null); crear.mutate(nombre) }}
+      />
+      <ClienteDialog
+        abierto={dialogo?.tipo === 'editar'}
+        titulo="Editar cliente"
+        etiqueta="Nombre:"
+        valorInicial={dialogo?.tipo === 'editar' ? dialogo.cliente.nombre : ''}
+        onCancelar={() => setDialogo(null)}
+        onAceptar={(nombre) => {
+          if (dialogo?.tipo !== 'editar') return
+          const c = dialogo.cliente
+          setDialogo(null)
+          if (nombre === c.nombre) return
+          editar.mutate({ idCli: c.idCli, nombre, updatedAt: c.updatedAt }, { onError: avisarEdicion })
+        }}
+      />
+      <ConfirmDialog
+        abierto={dialogo?.tipo === 'borrar'}
+        titulo="Borrar cliente"
+        descripcion={dialogo?.tipo === 'borrar' ? `¿Seguro que quieres borrar el cliente "${dialogo.cliente.nombre}"? Esta acción no se puede deshacer.` : ''}
+        textoAccion="Borrar"
+        onCancelar={() => setDialogo(null)}
+        onConfirmar={() => {
+          if (dialogo?.tipo !== 'borrar') return
+          const id = dialogo.cliente.idCli
+          setDialogo(null)
+          borrar.mutate(id)
+        }}
+      />
+    </div>
+  )
+}
