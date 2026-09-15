@@ -28,7 +28,8 @@ function BotonMutacion({ silenciar = false }: { silenciar?: boolean }) {
 }
 
 /** Vista con una consulta real: la primera carga la provoca navegar hasta ella y "Refrescar" imita el
- *  refresco de fondo (el poller o volver a la pestaña), que ya tiene datos en pantalla. */
+ *  refresco de fondo (el poller, el `refetchOnWindowFocus` al volver a la pestaña o un `refetchInterval`).
+ *  "INTENTOS" expone `errorUpdateCount`, que es el contador en el que se apoya la política del diálogo. */
 function VistaConsulta() {
   const q = useQuery({
     queryKey: ['clientes'],
@@ -39,6 +40,7 @@ function VistaConsulta() {
       <button onClick={() => void q.refetch()}>Refrescar</button>
       {q.isError && <p>FALLO</p>}
       {q.data && <p>DATOS {q.data.length}</p>}
+      <p>INTENTOS {q.errorUpdateCount}</p>
     </>
   )
 }
@@ -88,6 +90,23 @@ describe('crearQueryClient: errores de consultas', () => {
     renderConProviders(<VistaConsulta />)
     expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
     expect(screen.getByText('Sin conexión con el servidor: HTTP 503')).toBeInTheDocument()
+    // Fija empíricamente el contador en el que se apoya la política: en el primer fallo ya vale 1 (TanStack
+    // despacha el estado de error antes de llamar a QueryCache.onError), no 0.
+    expect(screen.getByText('INTENTOS 1')).toBeInTheDocument()
+  })
+
+  it('un refresco automático posterior de una vista sin datos no vuelve a abrir el diálogo', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    renderConProviders(<VistaConsulta />)
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    // El usuario cierra el diálogo y sigue sin conexión: el refetch automático (foco, intervalo) reintenta
+    // sobre una vista que nunca tuvo datos y solo debe dejar el banner, sin volver a interrumpir.
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Refrescar' }))
+    expect(await screen.findByText('INTENTOS 2')).toBeInTheDocument()
+    expect(estaConectado()).toBe(false)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('un refresco de fondo con datos en pantalla solo enciende el banner', async () => {

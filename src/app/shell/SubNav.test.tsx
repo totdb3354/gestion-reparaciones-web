@@ -18,6 +18,19 @@ describe('columna lateral de sub-navegación', () => {
     expect(within(columna).queryAllByRole('link')).toHaveLength(0)
   })
 
+  // El mapa de secciones es un objeto plano: leerlo con `SUBNAV[seccion]` devuelve los miembros heredados de
+  // Object.prototype, así que una ruta como /constructor daría una función en vez de un array y `.map`
+  // reventaría. Es alcanzable: el catch-all `*` del router está dentro de AppLayout, de modo que SubNav se
+  // pinta una vez con la ruta original antes de que el <Navigate> redirija.
+  it.each(['/constructor', '/__proto__', '/toString'])(
+    'una sección que se llama como un miembro heredado de Object (%s) deja la columna vacía sin romper',
+    (ruta) => {
+      renderConProviders(<SubNav />, { ruta })
+      const columna = screen.getByRole('complementary')
+      expect(within(columna).queryAllByRole('link')).toHaveLength(0)
+    },
+  )
+
   it('el shell la coloca junto al contenido en todas las vistas', () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/gestion/logs' })
     expect(screen.getByRole('complementary')).toBeInTheDocument()

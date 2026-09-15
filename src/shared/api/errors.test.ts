@@ -58,9 +58,14 @@ describe('extraerMensaje', () => {
 
 describe('mensajeSinConexion', () => {
   it('compone el texto del diálogo del JavaFX con el detalle', () => {
-    expect(mensajeSinConexion('HTTP 503')).toBe('Sin conexión con el servidor: HTTP 503')
+    const e = new ConexionError(503, MSG_SIN_CONEXION, 'HTTP 503')
+    expect(mensajeSinConexion(e)).toBe('Sin conexión con el servidor: HTTP 503')
   })
-  it('sin detalle se queda en el mensaje genérico', () => {
-    expect(mensajeSinConexion(undefined)).toBe(MSG_SIN_CONEXION)
+  it('sin detalle usa el mensaje propio del error (los de SessionProvider dicen más que el genérico)', () => {
+    const e = new ConexionError(0, 'Respuesta vacía del servidor.')
+    expect(mensajeSinConexion(e)).toBe('Respuesta vacía del servidor.')
+  })
+  it('sin detalle ni mensaje cae en el texto genérico', () => {
+    expect(mensajeSinConexion(new ConexionError(0, ''))).toBe(MSG_SIN_CONEXION)
   })
 })

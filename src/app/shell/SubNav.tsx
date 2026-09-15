@@ -18,7 +18,10 @@ const SUBNAV: Record<string, Enlace[]> = {
 export function SubNav() {
   const { pathname } = useLocation()
   const seccion = pathname.split('/')[1] ?? ''
-  const enlaces = SUBNAV[seccion] ?? []
+  // `Object.hasOwn` y no `SUBNAV[seccion] ?? []`: la sección viene de la URL, y un `/constructor` o un
+  // `/__proto__` resolverían a un miembro heredado de Object.prototype (una función, no un array) y harían
+  // reventar el `.map`. Con el catch-all del router dentro de AppLayout, esa ruta llega a pintarse.
+  const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion] : []
   return (
     <aside className="w-[200px] shrink-0 bg-white p-2">
       {enlaces.map((e) => (

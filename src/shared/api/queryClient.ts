@@ -17,11 +17,11 @@ function avisar(error: unknown) {
   emitirError(mensajeDeError(error))
 }
 
-/** Calco de `enRefresco` del JavaFX: si el servidor se cae mientras el usuario hace algo (una acción o la
- *  carga inicial de una vista), además del banner se abre el diálogo con la causa; en los refrescos de
- *  fondo, con datos ya en pantalla, se queda solo el banner. */
+/** Calco de `enRefresco` del JavaFX: si el servidor se cae mientras el usuario hace algo (una acción o el
+ *  primer intento de carga de una vista), además del banner se abre el diálogo con la causa; en los refrescos
+ *  de fondo —con datos ya en pantalla o reintentando una carga que ya falló— se queda solo el banner. */
 function avisarSinConexion(error: ConexionError) {
-  emitirError(mensajeSinConexion(error.detalle))
+  emitirError(mensajeSinConexion(error))
 }
 
 /** Único QueryClient de la app: producción y tests comparten configuración y política de errores para que
@@ -35,9 +35,13 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
     },
     queryCache: new QueryCache({
       onError(error, query) {
-        // Sin datos previos = primera carga de la vista (la ha pedido el usuario al navegar).
+        // Diálogo solo en el PRIMER fallo de carga de una vista que nunca tuvo datos (calco de `enRefresco`):
+        // sin datos previos = la carga inicial que ha pedido el usuario al navegar, y `errorUpdateCount === 1`
+        // = es su primer fallo (TanStack despacha el estado de error antes de este callback, así que en el
+        // primero ya vale 1). Los reintentos automáticos posteriores —refetch por foco de ventana, por
+        // intervalo o manual— dejan solo el banner, para no repetir el modal mientras el servidor siga caído.
         if (error instanceof ConexionError) {
-          if (query.state.data === undefined) avisarSinConexion(error)
+          if (query.state.data === undefined && query.state.errorUpdateCount === 1) avisarSinConexion(error)
           return
         }
         avisar(error)
