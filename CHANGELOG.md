@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.1.0] - 2026-09-15 — Cimientos
+## [0.1.0] - 2026-09-16 — Cimientos
 
 - Shell (barra superior, columna lateral, menú de usuario, banner de conexión, refresco al volver).
 - Login y sesión (JWT, expiración, guard de rutas).
