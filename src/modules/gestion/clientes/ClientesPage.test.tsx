@@ -106,7 +106,7 @@ describe('ClientesPage', () => {
     expect(await screen.findByText('El cliente fue modificado por otro usuario. Se recargan los datos.')).toBeInTheDocument()
     expect(body).toEqual({ nombre: 'Otros', updatedAt: '2026-09-01T10:00:00' })
   })
-  it('un fallo de conexión al editar solo activa el banner (sin diálogo)', async () => {
+  it('un fallo de conexión al editar activa el banner y avisa con el diálogo global', async () => {
     renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
     await screen.findByText('OTRO')
     // El PUT falla y, además, la recarga que dispara `onSettled` también falla (sin conexión real ambas
@@ -123,7 +123,10 @@ describe('ClientesPage', () => {
     await userEvent.type(input, 'Otros')
     await userEvent.click(within(dlg).getByRole('button', { name: 'Aceptar' }))
     await waitFor(() => expect(estaConectado()).toBe(false))
-    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
+    // El diálogo lo pone el MutationCache (la acción del usuario no se ha guardado), no `avisarEdicion`:
+    // la vista sigue callándose ante los errores que ya gestiona un mecanismo global, así que solo hay uno.
+    const error = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(error).getByText(/^Sin conexión con el servidor: .+/)).toBeInTheDocument()
   })
   it('borrar pide confirmación con el texto exacto y llama a DELETE', async () => {
     let borrado = false

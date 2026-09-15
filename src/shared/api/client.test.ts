@@ -73,7 +73,14 @@ describe('cliente API', () => {
     const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ConexionError)
     expect((err as Error).message).toMatch(/\(tiempo de espera agotado\)$/)
+    expect((err as ConexionError).detalle).toBe('tiempo de espera agotado')
     expect(estaConectado()).toBe(false)
+  })
+  it('un fallo de red guarda el mensaje del fetch como detalle del diálogo', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ConexionError)
+    expect((err as ConexionError).detalle).toBe('Failed to fetch')
   })
   it('la señal del llamador cancela de verdad la petición y no toca el estado de conexión', async () => {
     // Sin combinar la señal del llamador (AbortSignal.any) el abort no llegaría al fetch y, con la

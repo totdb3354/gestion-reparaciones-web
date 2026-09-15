@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders } from '@/test/render'
 import { api } from './client'
-import { estaConectado } from './conexion'
+import { estaConectado, reportarExito } from './conexion'
 
 /** Botón que dispara una mutación real (POST /api/clientes). El aviso al usuario, si toca, lo pone el
  *  MutationCache del QueryClient; el "FALLO" solo marca que la mutación ya terminó (el onError propio
@@ -27,14 +27,40 @@ function BotonMutacion({ silenciar = false }: { silenciar?: boolean }) {
   )
 }
 
+/** Vista con una consulta real: la primera carga la provoca navegar hasta ella y "Refrescar" imita el
+ *  refresco de fondo (el poller o volver a la pestaña), que ya tiene datos en pantalla. */
+function VistaConsulta() {
+  const q = useQuery({
+    queryKey: ['clientes'],
+    queryFn: async () => (await api.GET('/api/clientes')).data ?? [],
+  })
+  return (
+    <>
+      <button onClick={() => void q.refetch()}>Refrescar</button>
+      {q.isError && <p>FALLO</p>}
+      {q.data && <p>DATOS {q.data.length}</p>}
+    </>
+  )
+}
+
 describe('crearQueryClient: errores de mutaciones', () => {
-  it('un fallo de conexión no abre diálogo (solo el banner)', async () => {
+  beforeEach(() => reportarExito())
+
+  it('un fallo de conexión abre el diálogo además del banner (es una acción del usuario)', async () => {
     server.use(http.post('*/api/clientes', () => HttpResponse.error()))
     renderConProviders(<BotonMutacion />)
     await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
-    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    expect(screen.getByText(/^Sin conexión con el servidor: .+/)).toBeInTheDocument()
     expect(estaConectado()).toBe(false)
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('el fallo de conexión avisa aunque la vista silencie sus errores', async () => {
+    server.use(http.post('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    renderConProviders(<BotonMutacion silenciar />)
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    expect(screen.getByText('Sin conexión con el servidor: HTTP 503')).toBeInTheDocument()
   })
 
   it('un 422 abre el diálogo de error con el mensaje del servidor', async () => {
@@ -45,11 +71,33 @@ describe('crearQueryClient: errores de mutaciones', () => {
     expect(screen.getByText('Nombre duplicado')).toBeInTheDocument()
   })
 
-  it('con meta.silenciarError el diálogo global se calla (lo pone la vista)', async () => {
-    server.use(http.post('*/api/clientes', () => HttpResponse.json({ message: 'Nombre duplicado' }, { status: 422 })))
+  it('con meta.silenciarError el diálogo global se calla ante un 409 (lo pone la vista)', async () => {
+    server.use(http.post('*/api/clientes', () => HttpResponse.json({ message: 'Modificado' }, { status: 409 })))
     renderConProviders(<BotonMutacion silenciar />)
     await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
     expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('crearQueryClient: errores de consultas', () => {
+  beforeEach(() => reportarExito())
+
+  it('la carga inicial sin conexión abre el diálogo además del banner', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    renderConProviders(<VistaConsulta />)
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    expect(screen.getByText('Sin conexión con el servidor: HTTP 503')).toBeInTheDocument()
+  })
+
+  it('un refresco de fondo con datos en pantalla solo enciende el banner', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.json([])))
+    renderConProviders(<VistaConsulta />)
+    expect(await screen.findByText('DATOS 0')).toBeInTheDocument()
+    server.use(http.get('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    await userEvent.click(screen.getByRole('button', { name: 'Refrescar' }))
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(estaConectado()).toBe(false)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

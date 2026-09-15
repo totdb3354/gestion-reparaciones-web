@@ -14,13 +14,28 @@ export class NoEncontradoError extends ApiError {}
 export class StaleDataError extends ApiError {}
 /** 422: regla de negocio del servidor; su mensaje se muestra tal cual. */
 export class ReglaNegocioError extends ApiError {}
-/** 5xx, fallo de red o timeout: activa el banner de sin conexión. */
-export class ConexionError extends ApiError {}
+/** 5xx, fallo de red o timeout: activa el banner de sin conexión. `detalle` es la causa técnica
+ *  ("HTTP 503", "Failed to fetch", "tiempo de espera agotado") que el diálogo muestra cuando el fallo
+ *  corta una acción del usuario; el banner sigue usando `message`. */
+export class ConexionError extends ApiError {
+  readonly detalle?: string
+  constructor(status: number, message: string, detalle?: string) {
+    super(status, message)
+    this.detalle = detalle
+  }
+}
 
 export const MSG_SESION_EXPIRADA = 'Sesión expirada. Vuelve a iniciar sesión.'
 export const MSG_SIN_PERMISOS = 'No tienes permisos para realizar esta acción.'
 export const MSG_NO_ENCONTRADO = 'Recurso no encontrado.'
-export const MSG_SIN_CONEXION = 'Sin conexión con el servidor.'
+const SIN_CONEXION = 'Sin conexión con el servidor'
+export const MSG_SIN_CONEXION = `${SIN_CONEXION}.`
+export const MSG_TIMEOUT = 'tiempo de espera agotado'
+
+/** Texto del diálogo del JavaFX cuando una acción del usuario falla por falta de conexión. */
+export function mensajeSinConexion(detalle: string | undefined): string {
+  return detalle === undefined ? MSG_SIN_CONEXION : `${SIN_CONEXION}: ${detalle}`
+}
 
 export function clasificar(status: number, msg: string | null): ApiError {
   switch (status) {
@@ -35,7 +50,7 @@ export function clasificar(status: number, msg: string | null): ApiError {
     case 422:
       return new ReglaNegocioError(422, msg ?? 'El servidor ha rechazado la operación.')
     default:
-      if (status >= 500) return new ConexionError(status, MSG_SIN_CONEXION)
+      if (status >= 500) return new ConexionError(status, MSG_SIN_CONEXION, `HTTP ${status}`)
       return new ApiError(status, msg ?? `Error del servidor (${status}).`)
   }
 }

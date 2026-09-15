@@ -2,7 +2,7 @@ import createClient, { type Middleware } from 'openapi-fetch'
 import type { components, paths } from './schema'
 import { leerSesion } from '@/shared/session/storage'
 import { dispararSesionExpirada } from '@/shared/session/expiracion'
-import { ConexionError, MSG_SIN_CONEXION, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
+import { ConexionError, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
 import { reportarExito, reportarFallo } from './conexion'
 
 /** springdoc no marca los campos de los records como `required`, así que openapi-typescript los genera
@@ -60,7 +60,10 @@ const fetchConTimeout = async (request: Request, init?: RequestInit): Promise<Re
     // Solo la red (TypeError de fetch) y el timeout se disfrazan de "sin conexión".
     if (nombre !== 'TimeoutError' && !(e instanceof TypeError)) throw e
     reportarFallo()
-    throw new ConexionError(0, MSG_SIN_CONEXION + (nombre === 'TimeoutError' ? ' (tiempo de espera agotado)' : ''))
+    // El detalle (causa técnica) lo muestra el diálogo cuando el corte ocurre durante una acción del usuario.
+    const esTimeout = nombre === 'TimeoutError'
+    const detalle = esTimeout ? MSG_TIMEOUT : e instanceof Error ? e.message : String(e)
+    throw new ConexionError(0, MSG_SIN_CONEXION + (esTimeout ? ` (${MSG_TIMEOUT})` : ''), detalle)
   }
 }
 

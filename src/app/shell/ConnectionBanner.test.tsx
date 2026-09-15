@@ -14,4 +14,11 @@ describe('banner de conexión', () => {
     act(() => reportarExito())
     expect(screen.queryByText(/Sin conexión con el servidor/)).not.toBeInTheDocument()
   })
+  it('usa los colores del banner del JavaFX (amarillo con texto oscuro)', () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC })
+    act(() => reportarFallo())
+    const banner = screen.getByRole('status')
+    expect(banner).toHaveClass('bg-banner-bg')
+    expect(banner).toHaveClass('text-banner-text')
+  })
 })

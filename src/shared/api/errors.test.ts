@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ConexionError, NoEncontradoError, PermisoError, ReglaNegocioError, SesionExpiradaError, StaleDataError,
-  clasificar, extraerMensaje,
+  ConexionError, MSG_SIN_CONEXION, NoEncontradoError, PermisoError, ReglaNegocioError, SesionExpiradaError,
+  StaleDataError, clasificar, extraerMensaje, mensajeSinConexion,
 } from './errors'
 
 describe('clasificar (port de ApiClient.clasificar)', () => {
@@ -30,9 +30,13 @@ describe('clasificar (port de ApiClient.clasificar)', () => {
   it('422 sin mensaje usa un texto genérico', () => {
     expect(clasificar(422, null).message).toBe('El servidor ha rechazado la operación.')
   })
-  it('5xx → error de conexión', () => {
+  it('5xx → error de conexión con el detalle HTTP para el diálogo', () => {
     expect(clasificar(500, null)).toBeInstanceOf(ConexionError)
-    expect(clasificar(503, null)).toBeInstanceOf(ConexionError)
+    const e = clasificar(503, null) as ConexionError
+    expect(e).toBeInstanceOf(ConexionError)
+    // El mensaje sigue siendo el del banner; el detalle solo lo usa el diálogo de la acción.
+    expect(e.message).toBe(MSG_SIN_CONEXION)
+    expect(e.detalle).toBe('HTTP 503')
   })
   it('otros códigos → ApiError genérico con el mensaje o el código', () => {
     expect(clasificar(400, 'Body inválido').message).toBe('Body inválido')
@@ -49,5 +53,14 @@ describe('extraerMensaje', () => {
     expect(extraerMensaje(null)).toBeNull()
     expect(extraerMensaje('texto plano')).toBe('texto plano')
     expect(extraerMensaje('')).toBeNull()
+  })
+})
+
+describe('mensajeSinConexion', () => {
+  it('compone el texto del diálogo del JavaFX con el detalle', () => {
+    expect(mensajeSinConexion('HTTP 503')).toBe('Sin conexión con el servidor: HTTP 503')
+  })
+  it('sin detalle se queda en el mensaje genérico', () => {
+    expect(mensajeSinConexion(undefined)).toBe(MSG_SIN_CONEXION)
   })
 })

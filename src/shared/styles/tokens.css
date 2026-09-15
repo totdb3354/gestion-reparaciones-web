@@ -44,5 +44,7 @@
   --color-fila-selected-brd: #3D5070;
   --color-fila-sep: #C2C8D0;
   --color-texto-nav-activo: #FAFAFA;
+  --color-banner-bg: #F6C453;
+  --color-banner-text: #5A4500;
   --spacing-navbar: 64px;
 }
