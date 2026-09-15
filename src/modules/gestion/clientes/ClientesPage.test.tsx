@@ -36,6 +36,31 @@ describe('ClientesPage', () => {
     expect(tabla.queryByText('Antiguo')).not.toBeInTheDocument()
     expect(tabla.getByText('WEB')).toBeInTheDocument()
   })
+  it('coloca el título en su línea y "Nuevo cliente" junto al filtro, como el JavaFX', async () => {
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('WEB')
+    const filtro = screen.getByRole('button', { name: 'Cliente' })
+    const nuevo = screen.getByRole('button', { name: 'Nuevo cliente' })
+    const fila = filtro.parentElement
+    expect(fila).toBe(nuevo.parentElement)
+    expect(fila).not.toContainElement(screen.getByRole('heading', { name: 'Clientes' }))
+    // el botón va pegado al filtro, no empujado al borde derecho de la vista
+    expect(nuevo).not.toHaveClass('ml-auto')
+  })
+  it('da a Nombre y Estado el ancho del TableView y rellena el resto sin ensuciar las filas', async () => {
+    renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
+    await screen.findByText('WEB')
+    expect(screen.getByRole('columnheader', { name: 'Nombre' })).toHaveStyle({ width: '340px' })
+    expect(screen.getByRole('columnheader', { name: 'Estado' })).toHaveStyle({ width: '130px' })
+    expect(screen.getAllByRole('columnheader')).toHaveLength(3)
+    const fila = screen.getByRole('row', { name: /^WEB Activo$/ })
+    const celdas = within(fila).getAllByRole('cell')
+    expect(celdas[0]).toHaveStyle({ width: '340px' })
+    expect(celdas[1]).toHaveStyle({ width: '130px' })
+    // la columna de relleno no aporta texto ni etiqueta: las filas siguen llamándose como sus datos
+    expect(celdas[2]).toBeEmptyDOMElement()
+    expect(celdas[2]).not.toHaveAttribute('aria-label')
+  })
   it('un técnico no ve "Nuevo cliente" ni menú contextual', async () => {
     renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
     await screen.findByText('WEB')
@@ -50,6 +75,8 @@ describe('ClientesPage', () => {
     await screen.findByText('WEB')
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
     const dlg = screen.getByRole('dialog', { name: 'Nuevo cliente' })
+    // "Nombre del cliente:" cabe en una línea, como el TextInputDialog del JavaFX
+    expect(within(dlg).getByText('Nombre del cliente:')).toHaveClass('whitespace-nowrap')
     await userEvent.type(within(dlg).getByLabelText('Nombre del cliente:'), '  Amazon  ')
     await userEvent.click(within(dlg).getByRole('button', { name: 'Aceptar' }))
     await waitFor(() => expect(creado).toEqual({ nombre: 'Amazon' }))

@@ -33,7 +33,7 @@ export function ClienteDialog({ abierto, titulo, etiqueta, valorInicial = '', on
             <DialogTitle>{titulo}</DialogTitle>
           </DialogHeader>
           <div className="my-4 flex items-center gap-3">
-            <Label htmlFor="cliente-nombre">{etiqueta}</Label>
+            <Label htmlFor="cliente-nombre" className="whitespace-nowrap">{etiqueta}</Label>
             <Input id="cliente-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus />
           </div>
           <DialogFooter>

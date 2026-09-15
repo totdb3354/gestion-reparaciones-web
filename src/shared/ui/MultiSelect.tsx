@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import { Checkbox } from './checkbox'
 import { cn } from '@/shared/lib/utils'
@@ -34,11 +35,15 @@ export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange,
   return (
     <Popover>
       <PopoverTrigger
-        className={cn('h-8 min-w-36 rounded border border-azul-gris bg-card px-3 text-left text-[12px] text-azul-medio', className)}
+        className={cn(
+          'flex h-10 min-w-[200px] items-center justify-between rounded-3xl bg-azul-noche px-4 text-[12px] font-bold text-texto-nav-activo hover:bg-azul-noche-hover',
+          className,
+        )}
       >
         {texto}
+        <ChevronDown aria-hidden="true" className="size-4" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="max-h-72 w-56 overflow-auto p-2">
+      <PopoverContent align="start" className="max-h-72 w-56 overflow-auto rounded-lg border border-fila-sep bg-white p-2 shadow-md">
         {opciones.map((o, i) => {
           const k = clave(o)
           const id = `${idBase}-${i}`

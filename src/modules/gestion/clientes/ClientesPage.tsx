@@ -16,9 +16,10 @@ import { tieneTelefonos, useBorrarCliente, useClientes, useCrearCliente, useEdit
 
 const MSG_MODIFICADO = 'El cliente fue modificado por otro usuario. Se recargan los datos.'
 
+// anchos del TableView de ClientesController; lo que sobra queda en blanco (columna de relleno del DataTable)
 const columnas: ColumnDef<Cliente>[] = [
-  { accessorKey: 'nombre', header: 'Nombre' },
-  { accessorKey: 'activo', header: 'Estado', cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
+  { accessorKey: 'nombre', header: 'Nombre', size: 340 },
+  { accessorKey: 'activo', header: 'Estado', size: 130, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
 ]
 
 type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; cliente: Cliente } | { tipo: 'borrar'; cliente: Cliente } | null
@@ -74,8 +75,8 @@ export function ClientesPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-azul-medio">Clientes</h1>
+      <h1 className="mb-4 text-2xl font-bold text-azul-medio">Clientes</h1>
+      <div className="mb-4 flex flex-wrap items-center gap-10">
         <MultiSelect
           opciones={activos}
           clave={(c) => c.nombre}
@@ -86,7 +87,7 @@ export function ClientesPage() {
           textoPlural={(n) => `${n} clientes`}
         />
         {puedeEditar && (
-          <Button className="ml-auto rounded-3xl bg-azul-noche px-4 text-[12px] font-bold text-white hover:bg-azul-noche-hover" onClick={() => setDialogo({ tipo: 'nuevo' })}>
+          <Button className="h-10 rounded-3xl bg-azul-noche px-5 text-[12px] font-bold text-texto-nav-activo hover:bg-azul-noche-hover" onClick={() => setDialogo({ tipo: 'nuevo' })}>
             Nuevo cliente
           </Button>
         )}

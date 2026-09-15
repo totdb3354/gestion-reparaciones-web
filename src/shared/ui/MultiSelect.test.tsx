@@ -39,6 +39,17 @@ describe('MultiSelect', () => {
     expect(screen.getByRole('button', { name: 'OTRO' })).toBeInTheDocument()
   })
 
+  it('es la píldora navy de los filtros del JavaFX, con flecha que no cambia el nombre accesible', async () => {
+    render(<Demo />)
+    const boton = screen.getByRole('button', { name: 'Cliente' })
+    expect(boton).toHaveClass('rounded-3xl', 'bg-azul-noche', 'text-texto-nav-activo', 'font-bold')
+    // la flecha ▾ es decorativa: si contase para el nombre accesible, los tests (y los lectores de
+    // pantalla) verían "Cliente" mezclado con el icono
+    expect(boton.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    await userEvent.click(boton)
+    expect(screen.getByRole('checkbox', { name: 'WEB' }).closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-white')
+  })
+
   it('con varias instancias en la misma página, marcar una opción solo afecta a la instancia clicada', async () => {
     render(
       <>
