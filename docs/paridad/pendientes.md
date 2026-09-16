@@ -18,7 +18,7 @@ Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pend
 - [x] Tablas sin ordenación por clic ni columnas reordenables; fila seleccionada con fondo azul medio y texto blanco; separador inferior `fila-sep`; celdas de 12 px.
 - [x] Menú contextual (clic derecho sobre la fila) con "📋  Copiar celda" en todas las pestañas: copia al portapapeles el texto de la celda pulsada y la resalta brevemente (fondo #E0F7FA que se desvanece). Columnas copiables: Id, IMEI, Modelo, Fecha, Comentario (y en Pulidos también Cliente y Asignado por); el resto no copia nada.
 - [x] Textos vacíos: "No tienes asignaciones pendientes" (Reparaciones y Glass), "No tienes pulidos pendientes" (Pulidos).
-- [x] Errores: 403 y 422 de las acciones con el mensaje del servidor ("Solo puedes marcar tus propias asignaciones", "Solo puedes entregar tus propias asignaciones", "Sin glass abierta para este IMEI", "No hay entrega que deshacer", "Solo quien registró la entrega puede deshacerla", "La entrega ya está registrada", …); resto según la política del shell.
+- [ ] Errores: 403 y 422 de las acciones con el mensaje del servidor ("Solo puedes marcar tus propias asignaciones", "Solo puedes entregar tus propias asignaciones", "Sin glass abierta para este IMEI", "No hay entrega que deshacer", "Solo quien registró la entrega puede deshacerla", "La entrega ya está registrada", …); resto según la política del shell.
 
 ## Pestañas Reparaciones y Glass (PendientesTecnicoView, `setModoGlass` en la segunda)
 
@@ -58,4 +58,3 @@ Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pend
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación de desvanecido.
 - El CSV es una descarga del navegador con nombre `<base>_yyyy-MM-dd_HH-mm.csv`.
 - El CSV del supertécnico del JavaFX escribe 11 valores bajo 10 cabeceras (añade "Reutilizado" a las filas pero no a la cabecera); el CSV de esta ficha exporta las 10 columnas coherentes.
-- Pulidos: "Completar seleccionados" vacía la selección en cuanto se pulsa; el JavaFX la conserva si el guardado falla.

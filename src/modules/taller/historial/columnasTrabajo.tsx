@@ -21,12 +21,14 @@ type Opciones = {
   onIrA: (idRep: string) => void
 }
 
-/** Columnas de una tabla de trabajos (Historial rep/glass y detalle de IMEIs). `size` es el peso y mínimo con el que
- *  aplicarAnchosDetalle estira cada columna (`setPrefWidth(Math.max(w, w * u))`, en los tres ReparacionController y en
- *  AgrupadoController) y `maxSize` el maxWidth del FXML como tope. ReparacionView{SuperTecnico,Tecnico,Admin}.fxml y
- *  AgrupadoView.fxml declaran los mismos topes: Observaciones 200–320, Estado 110–150 (prefWidth 120), Incidencia
- *  200–360; y en AgrupadoView Tipo 90–120 (prefWidth 100). Estado pesa 120: `Math.max(120, 120 * u)` nunca deja que se
- *  pinte su minWidth 110. */
+/** Columnas de una tabla de trabajos (Historial rep/glass y detalle de IMEIs). `size` es el mínimo de cada columna y su
+ *  peso al estirar (ajuste 'estirar' de DataTable), y `maxSize` el maxWidth del FXML como tope. Salvo en "Asignado por",
+ *  ese peso es el de aplicarAnchosDetalle (`setPrefWidth(Math.max(w, w * u))`, en los tres ReparacionController y en
+ *  AgrupadoController). "Asignado por" el JavaFX no la estira: aplicarAnchosDetalle no la toca (se queda en su minWidth
+ *  100) y su escala u divide el ancho de la tabla por la suma de las demás columnas (1370 en el Historial, 1470 en el
+ *  detalle); aquí se estira como las demás. ReparacionView{SuperTecnico,Tecnico,Admin}.fxml y AgrupadoView.fxml declaran
+ *  los mismos topes: Observaciones 200–320, Estado 110–150 (prefWidth 120), Incidencia 200–360; y en AgrupadoView Tipo
+ *  90–120 (prefWidth 100). Estado pesa 120: `Math.max(120, 120 * u)` nunca deja que se pinte su minWidth 110. */
 export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA }: Opciones): ColumnDef<ReparacionResumen>[] {
   const base: ColumnDef<ReparacionResumen>[] = [
     { id: 'id', accessorKey: 'idRep', header: tituloId, size: 110 },

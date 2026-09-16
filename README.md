@@ -21,7 +21,7 @@ Necesita la web ya desplegada (no funciona contra un backend simulado). Exporta 
 ```bash
 npm run e2e
 ```
-El test crea y borra un cliente de prueba llamado `E2E <timestamp>`. `taller.spec.ts` necesita además `TEC_USER`/`TEC_PASS`
+`clientes.spec.ts` crea y borra un cliente de prueba llamado `E2E <timestamp>`. `taller.spec.ts` necesita además `TEC_USER`/`TEC_PASS`
 (un técnico con pendientes) y es de solo lectura: no crea, edita ni borra nada.
 
 ## Despliegue

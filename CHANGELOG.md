@@ -14,7 +14,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - `DataTable` con anchos fijos (`colgroup`), selección, teclado y virtualización.
 - Contrato OpenAPI con `required`/`nullable` explícitos (sin `Required<>` en el cliente).
 - Servidor: `?tecnico=` verificado contra el token y `GET /api/reparaciones/pendientes/contadores`.
-- Diferencias aceptadas: sin columna "Revisión" en IMEIs; "Editar" del historial deshabilitado hasta el formulario de reparación (sub-proyecto 2).
+- Diferencias aceptadas respecto al JavaFX: las recoge la sección "Diferencias aceptadas" de cada ficha de paridad del taller (`docs/paridad/`).
 
 ## [0.1.0] - 2026-09-16 — Cimientos
 
