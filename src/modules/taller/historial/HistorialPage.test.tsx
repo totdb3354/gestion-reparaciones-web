@@ -161,7 +161,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
   })
-  it('"Asignado por" no se copia (docs/paridad/historial.md no la lista entre las columnas copiables; el JavaFX de este historial no tiene ese case en textoDeCelda)', async () => {
+  it('"Asignado por" no se copia, pero el resto de columnas sí (docs/paridad/historial.md no la lista entre las columnas copiables; el JavaFX de este historial no tiene ese case en textoDeCelda)', async () => {
     const escribir = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
     abrir()
@@ -169,6 +169,11 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Técnico M') })
     await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
     expect(escribir).not.toHaveBeenCalled()
+    // Contraparte positiva: sin ella, invertir el ternario de HistorialPage (=== → !==) suprimiría la copia de
+    // TODAS las demás columnas y este archivo seguiría en verde (nada más lo comprueba).
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('358800000000131') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).toHaveBeenCalledWith('358800000000131')
   })
   it('CSV del supertécnico con columna Técnico y nombre historial_reparaciones', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
