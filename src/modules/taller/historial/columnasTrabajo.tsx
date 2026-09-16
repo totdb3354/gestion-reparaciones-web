@@ -21,7 +21,10 @@ type Opciones = {
   onIrA: (idRep: string) => void
 }
 
-/** Columnas de una tabla de trabajos (Historial rep/glass y detalle de IMEIs), con los mínimos del FXML como pesos. */
+/** Columnas de una tabla de trabajos (Historial rep/glass y detalle de IMEIs), con los minWidth del FXML como pesos y sus
+ *  maxWidth como topes al estirar. ReparacionView{SuperTecnico,Tecnico,Admin}.fxml y AgrupadoView.fxml declaran los
+ *  mismos: Observaciones 200–320, Estado 110–150 (prefWidth 120), Incidencia 200–360; y en AgrupadoView Tipo 90–120
+ *  (prefWidth 100, el peso que usa aplicarAnchosDetalle). */
 export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA }: Opciones): ColumnDef<ReparacionResumen>[] {
   const base: ColumnDef<ReparacionResumen>[] = [
     { id: 'id', accessorKey: 'idRep', header: tituloId, size: 110 },
@@ -39,9 +42,9 @@ export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA
         </div>
       ),
     },
-    { id: 'observaciones', header: 'Observaciones', size: 200, cell: ({ row }) => <TextoExpandible titulo="Observaciones" texto={row.original.observaciones} /> },
-    { id: 'estado', header: 'Estado', size: 110, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.esIncidencia} esResuelto={row.original.esResuelto} /> },
-    { id: 'incidencia', header: 'Incidencia', size: 200, cell: ({ row }) => <CeldaIncidencia rep={row.original} /> },
+    { id: 'observaciones', header: 'Observaciones', size: 200, maxSize: 320, cell: ({ row }) => <TextoExpandible titulo="Observaciones" texto={row.original.observaciones} /> },
+    { id: 'estado', header: 'Estado', size: 110, maxSize: 150, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.esIncidencia} esResuelto={row.original.esResuelto} /> },
+    { id: 'incidencia', header: 'Incidencia', size: 200, maxSize: 360, cell: ({ row }) => <CeldaIncidencia rep={row.original} /> },
     {
       id: 'anterior', header: 'Id Rep. Anterior', size: 150,
       cell: ({ row }) => {
@@ -55,7 +58,7 @@ export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA
       },
     },
   ]
-  if (conTipo) base.unshift({ id: 'tipo', header: 'Tipo', size: 100, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} /> })
+  if (conTipo) base.unshift({ id: 'tipo', header: 'Tipo', size: 100, maxSize: 120, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} /> })
   return base
 }
 

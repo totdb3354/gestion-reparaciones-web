@@ -8,7 +8,8 @@ import { FILTROS_IMEIS_VACIOS, filtrosImeis } from '../estado'
 import { OPCIONES_INCIDENCIAS } from '../historial/constantes'
 import type { EstadoIncidencia } from '../lib/filtros'
 
-/** En el maestro solo hay dos casillas: "Incidencia" (alguna abierta) y "Normal"; la de "Cerradas" se oculta. */
+/** En el maestro solo hay dos casillas: "Incidencia" (alguna abierta) y "Normal"; la de "Cerradas" se oculta (y
+ *  ImeisPage la desmarca al entrar, como adaptarFiltrosMaestro). */
 // eslint-disable-next-line react-refresh/only-export-components -- constante compartida por el propio componente, patrón del proyecto
 export const OPCIONES_INCIDENCIAS_MAESTRO: { clave: EstadoIncidencia; etiqueta: string }[] = [
   { clave: 'abiertas', etiqueta: 'Incidencia' },
@@ -24,7 +25,11 @@ export function BarraFiltrosImeis({ modo, opcionesCliente = [] }: Props) {
   const { data: tecnicos = [] } = useTecnicos()
   const maestro = modo === 'maestro'
   const opcionesInc = maestro ? OPCIONES_INCIDENCIAS_MAESTRO : OPCIONES_INCIDENCIAS
+  // ImeisPage quita "cerradas" del store en un efecto: hasta entonces (primer pintado) el maestro no la cuenta.
   const incidencias = maestro ? new Set([...f.incidencias].filter((k) => k !== 'cerradas')) : f.incidencias
+  // actualizarTextoFiltroIncidencias cuenta sus tres casillas: "Todas" solo con las tres marcadas, que en el maestro
+  // (con "Cerradas" desmarcada) nunca se da; con sus dos casillas marcadas dice "2 filtros".
+  const textoTodasInc = maestro ? undefined : 'Todas'
   return (
     <div className="mb-2 flex flex-wrap items-center gap-3">
       {maestro && <FiltroImei valor={f.imei} onChange={(imei) => setF({ ...f, imei })} />}
@@ -36,7 +41,7 @@ export function BarraFiltrosImeis({ modo, opcionesCliente = [] }: Props) {
       )}
       <RangoFechas desde={f.desde} hasta={f.hasta} onChange={(desde, hasta) => setF({ ...f, desde, hasta })} />
       <MultiSelect opciones={opcionesInc} clave={(o) => o.clave} etiqueta={(o) => o.etiqueta} seleccion={incidencias as Set<string>}
-        onChange={(s) => setF({ ...f, incidencias: s as Set<EstadoIncidencia> })} textoVacio="Incidencias" textoPlural={(n) => `${n} filtros`} textoTodas="Todas" className="min-w-[130px]" />
+        onChange={(s) => setF({ ...f, incidencias: s as Set<EstadoIncidencia> })} textoVacio="Incidencias" textoPlural={(n) => `${n} filtros`} textoTodas={textoTodasInc} className="min-w-[130px]" />
       <BotonSecundario onClick={() => setF(FILTROS_IMEIS_VACIOS)}>Limpiar filtros</BotonSecundario>
     </div>
   )

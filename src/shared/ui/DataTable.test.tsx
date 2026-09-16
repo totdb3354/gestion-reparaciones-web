@@ -17,6 +17,25 @@ const COLUMNAS: ColumnDef<Fila, string>[] = [
   { accessorKey: 'nombre', header: 'Nombre', size: 340 },
   { accessorKey: 'nota', header: 'Nota', size: 130 },
 ]
+const DIEZ: Fila[] = Array.from({ length: 10 }, (_, i) => ({ id: String(i), nombre: `F${i}`, nota: 'x' }))
+
+const ALTO_CABECERA = 40
+const ALTO_FILA = 44
+/** jsdom no maqueta: cabecera de 40 px y filas de datos de 44 px colocadas por su data-index justo debajo (su offsetTop es
+ *  relativo a la <table>, que empieza arriba del todo del contenedor), y un contenedor (el padre de la <table>) de `alto`
+ *  px. El scrollTop de jsdom guarda lo que se le asigna, sin acotarlo. Los espías los restaura el afterEach. */
+function simularMaquetacion(alto: number) {
+  const esFila = (el: HTMLElement) => el.tagName === 'TR' && el.dataset.index !== undefined
+  vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+    return esFila(this) ? ALTO_CABECERA + Number(this.dataset.index) * ALTO_FILA : 0
+  })
+  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.tagName === 'THEAD' ? ALTO_CABECERA : esFila(this) ? ALTO_FILA : 0
+  })
+  vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function (this: Element) {
+    return this.firstElementChild?.tagName === 'TABLE' ? alto : 0
+  })
+}
 
 describe('DataTable', () => {
   afterEach(() => {
@@ -126,51 +145,79 @@ describe('DataTable', () => {
     expect(screen.queryByRole('button', { name: 'Nombre' })).not.toBeInTheDocument()
   })
 
-  it('si la selección cambia desde fuera, deja la fila arriba del todo (calco de tabla.scrollTo(i) del enlace "Id Rep. Anterior")', () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
-    const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada={null} onSeleccionar={() => {}} />)
+  it('si la selección cambia desde fuera, desplaza solo el contenedor hasta dejar la fila justo debajo de la cabecera, aunque ya se viera (calco de tabla.scrollTo(i) del enlace "Id Rep. Anterior")', () => {
+    simularMaquetacion(300)
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const tabla = (seleccionada: string | null) => <DataTable columns={COLUMNAS} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={() => {}} />
+    const { rerender } = render(tabla(null))
+    const contenedor = screen.getByRole('table').parentElement!
+    expect(contenedor.scrollTop).toBe(0)
+    // F2 ocupa 128–172 px del contenido y ya se ve entera en los 300 px del contenedor.
+    rerender(tabla('2'))
+    expect(contenedor.scrollTop).toBe(2 * ALTO_FILA)
+    // Ni la página ni otros ancestros se desplazan (scrollIntoView los movería a todos): el TableView solo mueve su lista.
     expect(scrollIntoView).not.toHaveBeenCalled()
-    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'start' })
-    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('row', { name: /^AMAZON c$/ }))
   })
 
   it('con filasContexto, una selección externa deja esas filas por encima, o la primera fila si no hay tantas (restauración del maestro de IMEIs)', () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
-    const diez: Fila[] = Array.from({ length: 10 }, (_, i) => ({ id: String(i), nombre: `F${i}`, nota: 'x' }))
+    simularMaquetacion(300)
     const tabla = (seleccionada: string | null) => (
-      <DataTable columns={COLUMNAS} data={diez} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={() => {}} filasContexto={3} />
+      <DataTable columns={COLUMNAS} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={() => {}} filasContexto={3} />
     )
     const { rerender } = render(tabla(null))
+    const contenedor = screen.getByRole('table').parentElement!
     rerender(tabla('7'))
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'start' })
-    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('row', { name: /^F4 x$/ }))
+    expect(contenedor.scrollTop).toBe(4 * ALTO_FILA) // F4 justo debajo de la cabecera
     rerender(tabla('2'))
-    expect(scrollIntoView).toHaveBeenCalledTimes(2)
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'start' })
-    expect(scrollIntoView.mock.instances[1]).toBe(screen.getByRole('row', { name: /^F0 x$/ }))
+    expect(contenedor.scrollTop).toBe(0) // F0
   })
 
-  it('una selección hecha en la propia tabla (clic, clic derecho) no desplaza; las flechas desplazan lo justo', async () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
+  it('una selección hecha en la propia tabla (clic, clic derecho) no desplaza; las flechas desplazan el contenedor lo justo para ver la fila entera bajo la cabecera', async () => {
+    // Contenedor de 150 px: bajo la cabecera de 40 caben 110, dos filas y media.
+    simularMaquetacion(150)
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
     function TablaConEstado() {
       const [seleccionada, setSeleccionada] = useState<string | null>(null)
-      return <DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={setSeleccionada} filasContexto={3} />
+      return <DataTable columns={COLUMNAS} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={setSeleccionada} filasContexto={3} />
     }
     render(<TablaConEstado />)
-    await userEvent.click(screen.getByText('OTRO'))
-    expect(screen.getByRole('row', { name: /^OTRO b$/ })).toHaveAttribute('aria-selected', 'true')
-    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('AMAZON') })
-    expect(screen.getByRole('row', { name: /^AMAZON c$/ })).toHaveAttribute('aria-selected', 'true')
+    const contenedor = screen.getByRole('table').parentElement!
+    await userEvent.click(screen.getByText('F2'))
+    expect(screen.getByRole('row', { name: /^F2 x$/ })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('F1') })
+    expect(screen.getByRole('row', { name: /^F1 x$/ })).toHaveAttribute('aria-selected', 'true')
+    // F2 (128–172 px) asoma a medias y aun así ni el clic ni el clic derecho desplazan.
+    expect(contenedor.scrollTop).toBe(0)
+    contenedor.focus()
+    await userEvent.keyboard('{ArrowDown}') // F2: su borde inferior (172) justo al final de los 150 px
+    expect(screen.getByRole('row', { name: /^F2 x$/ })).toHaveAttribute('aria-selected', 'true')
+    expect(contenedor.scrollTop).toBe(172 - 150)
+    await userEvent.keyboard('{ArrowDown}') // F3 (172–216)
+    expect(contenedor.scrollTop).toBe(216 - 150)
+    await userEvent.keyboard('{ArrowUp}') // F2 ya se ve entera entre la cabecera (66 + 40) y el final (66 + 150): no se mueve
+    expect(contenedor.scrollTop).toBe(66)
+    await userEvent.keyboard('{ArrowUp}') // F1 (84–128) queda bajo la cabecera: su borde superior justo debajo de ella
+    expect(contenedor.scrollTop).toBe(84 - ALTO_CABECERA)
     expect(scrollIntoView).not.toHaveBeenCalled()
-    screen.getByRole('table').parentElement!.focus()
+  })
+
+  it('la marca de selección interna solo vale para el efecto siguiente: tras una flecha que no cambia la selección, las dos selecciones externas desplazan, también la vuelta a esa fila', async () => {
+    simularMaquetacion(300)
+    const onSeleccionar = vi.fn()
+    const tabla = (seleccionada: string) => <DataTable columns={COLUMNAS} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={onSeleccionar} />
+    const { rerender } = render(tabla('0'))
+    const contenedor = screen.getByRole('table').parentElement!
+    contenedor.focus()
+    // (1) Flecha arriba en la primera fila: la tabla "elige" la fila ya seleccionada, nada cambia y la marca queda puesta.
     await userEvent.keyboard('{ArrowUp}')
-    expect(screen.getByRole('row', { name: /^OTRO b$/ })).toHaveAttribute('aria-selected', 'true')
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'nearest' })
-    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('row', { name: /^OTRO b$/ }))
+    expect(onSeleccionar).toHaveBeenLastCalledWith('0')
+    expect(contenedor.scrollTop).toBe(0)
+    // (2) Selección externa de otra fila.
+    rerender(tabla('5'))
+    expect(contenedor.scrollTop).toBe(5 * ALTO_FILA)
+    // (3) Selección externa de vuelta a la primera fila: no se confunde con la marca que dejó (1).
+    rerender(tabla('0'))
+    expect(contenedor.scrollTop).toBe(0)
   })
 
   it('en modo virtual una selección externa desplaza siempre (aunque la fila ya se vea) y con el contexto pedido', () => {
@@ -192,21 +239,26 @@ describe('DataTable', () => {
   })
 
   it('un refresco de datos con la misma selección no vuelve a desplazar la tabla', () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
-    const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    rerender(<DataTable columns={COLUMNAS} data={[...DATOS]} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="1" onSeleccionar={() => {}} />)
-    expect(scrollIntoView).toHaveBeenCalledTimes(2)
+    simularMaquetacion(300)
+    const tabla = (data: Fila[], seleccionada: string) => <DataTable columns={COLUMNAS} data={data} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={() => {}} />
+    const { rerender } = render(tabla(DIEZ, '3'))
+    const contenedor = screen.getByRole('table').parentElement!
+    expect(contenedor.scrollTop).toBe(3 * ALTO_FILA)
+    contenedor.scrollTop = 0 // el usuario vuelve arriba con la rueda
+    rerender(tabla([...DIEZ], '3'))
+    expect(contenedor.scrollTop).toBe(0)
+    rerender(tabla(DIEZ, '1'))
+    expect(contenedor.scrollTop).toBe(ALTO_FILA)
   })
 
   it('si la selección llega antes que las filas, desplaza cuando aparecen', () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
-    const { rerender } = render(<DataTable columns={COLUMNAS} data={[]} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
-    expect(scrollIntoView).not.toHaveBeenCalled()
-    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    simularMaquetacion(300)
+    const tabla = (data: Fila[]) => <DataTable columns={COLUMNAS} data={data} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />
+    const { rerender } = render(tabla([]))
+    const contenedor = screen.getByRole('table').parentElement!
+    expect(contenedor.scrollTop).toBe(0)
+    rerender(tabla(DIEZ))
+    expect(contenedor.scrollTop).toBe(3 * ALTO_FILA)
   })
 
   it('por encima del umbral solo pinta las filas visibles (virtualización)', () => {

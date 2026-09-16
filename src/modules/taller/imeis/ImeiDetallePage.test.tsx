@@ -52,9 +52,27 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     expect(within(filas[1]).getByText('Reutilizado')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'AP20260913_1' })).not.toBeInTheDocument()
     expect(filas[0]).toHaveClass('border-l-fila-incidencia-brd')
+    // tabla.setFixedCellSize(44), la misma tabla en maestro y detalle
+    expect(filas[0]).toHaveStyle({ height: '44px' })
     expect(ultimoImeiVisto.get()).toBe(A)
     await userEvent.click(screen.getByRole('button', { name: 'Incidencias' }))
     expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-label'))).toEqual(['Abiertas', 'Cerradas', 'Sin incidencia'])
+  })
+  it('etiqueta de Incidencias con las tres casillas del detalle: "Incidencias", la única marcada, "2 filtros" y "Todas"', async () => {
+    abrir()
+    await screen.findByText(`IMEI: ${A}`)
+    const marcar = async (etiqueta: string, boton: string) => {
+      await userEvent.click(screen.getByRole('button', { name: boton }))
+      await userEvent.click(screen.getByRole('checkbox', { name: etiqueta }))
+      await userEvent.keyboard('{Escape}')
+    }
+    await marcar('Cerradas', 'Incidencias')
+    expect(screen.getByRole('button', { name: 'Cerradas' })).toBeInTheDocument()
+    await marcar('Sin incidencia', 'Cerradas')
+    expect(screen.getByRole('button', { name: '2 filtros' })).toBeInTheDocument()
+    await marcar('Abiertas', '2 filtros')
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument()
+    expect(filtrosImeis.get().incidencias).toEqual(new Set(['cerradas', 'sin', 'abiertas']))
   })
   it('filtro de técnico: los suyos primero, los ajenos atenuados y el texto "X de filtrados + Y de otros"', async () => {
     filtrosImeis.set({ ...filtrosImeis.get(), tecnicos: new Set([6]) })

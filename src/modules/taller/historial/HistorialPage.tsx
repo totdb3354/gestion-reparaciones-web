@@ -73,6 +73,8 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         data={visibles}
         vacio=""
         ajuste="estirar"
+        // tablaReparaciones.setFixedCellSize(44) en los tres controllers del Historial (no en Pendientes ni en pulidos)
+        altoFila={44}
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

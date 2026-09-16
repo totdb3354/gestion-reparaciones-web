@@ -57,11 +57,11 @@ export function PulidosPendientesPage() {
   function seleccionarTodo() {
     setSeleccionados((prev) => (data.length > 0 && prev.size === data.length ? new Set() : new Set(data.map((r) => r.idRep))))
   }
+  // Calco de completarSeleccionados: la selección se vacía (y la lista se recarga, useCompletarPulidos) solo si el
+  // guardado va bien; si falla, el diálogo de error y la selección se quedan.
   function completarSeleccionados() {
     if (seleccionados.size === 0) return
-    const ids = [...seleccionados]
-    setSeleccionados(new Set())
-    completar.mutate(ids)
+    completar.mutate([...seleccionados], { onSuccess: () => setSeleccionados(new Set()) })
   }
 
   const columnas = useMemo<ColumnDef<ReparacionResumen>[]>(() => {
@@ -95,7 +95,9 @@ export function PulidosPendientesPage() {
         <FiltroImei valor={filtroImei} onChange={setFiltroImei} />
         <BotonSecundario onClick={() => setFiltroImei('')}>Limpiar filtros</BotonSecundario>
         <BotonSecundario className="ml-6" onClick={seleccionarTodo}>Seleccionar todo</BotonSecundario>
-        <BotonPrimario disabled={seleccionados.size === 0} onClick={completarSeleccionados}>Completar seleccionados</BotonPrimario>
+        {/* Deshabilitado también mientras se guarda: la selección ya no se vacía al pulsar y un segundo clic repetiría el
+            lote (en el JavaFX la llamada bloquea la ventana). */}
+        <BotonPrimario disabled={seleccionados.size === 0 || completar.isPending} onClick={completarSeleccionados}>Completar seleccionados</BotonPrimario>
       </div>
       <DataTable
         columns={columnas}

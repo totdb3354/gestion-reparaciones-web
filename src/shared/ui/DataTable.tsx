@@ -31,9 +31,13 @@ type Props<T> = {
    *  columna declara `maxSize` (el maxWidth del FXML), no pasa de él y lo que cede queda en blanco (`anchosEstirados`). */
   ajuste?: 'fijo' | 'estirar'
   seleccionada?: string | null
+  /** Selección hecha en la propia tabla (clic, clic derecho, flechas).
+   *  La página debe aplicar el id de forma síncrona (p. ej. `onSeleccionar={setSeleccionada}`): la marca que distingue esta
+   *  selección de una impuesta desde fuera solo vale para el primer efecto de desplazamiento que corre después. */
   onSeleccionar?: (id: string | null) => void
   /** Filas que quedan por encima de la seleccionada cuando la selección llega desde fuera y la tabla se desplaza: con 0
-   *  (por defecto) la fila queda arriba del todo, como `tabla.scrollTo(i)`; con 3, como `tabla.scrollTo(Math.max(0, idx - 3))`. */
+   *  (por defecto) la fila queda justo debajo de la cabecera, como `tabla.scrollTo(i)`; con 3, como
+   *  `tabla.scrollTo(Math.max(0, idx - 3))`. */
   filasContexto?: number
   /** Doble clic o Enter sobre la fila seleccionada. */
   onAbrir?: (row: T) => void
@@ -76,6 +80,22 @@ function topeDeColumna(maxSize: number | undefined): number | undefined {
   return maxSize !== undefined && maxSize < Number.MAX_SAFE_INTEGER ? maxSize : undefined
 }
 
+/** Desplaza solo el contenedor de la tabla hasta `fila`, como el VirtualFlow del TableView, que solo mueve su propia
+ *  lista (`scrollIntoView` movería también la página y cualquier otro ancestro con scroll). La cabecera es sticky y tapa
+ *  la parte de arriba del contenedor, así que se descuenta su alto medido. 'arriba' deja la fila justo debajo de la
+ *  cabecera (`scrollTo(i)` → `scrollToTop`); 'cercana' mueve lo justo para que se vea entera (las flechas).
+ *  Un `<tr>` estático tiene la `<table>` como offsetParent y la tabla empieza arriba del todo del contenido del
+ *  contenedor, así que su offsetTop es su posición dentro del scroll (con la cabecera incluida). */
+function desplazarContenedor(contenedor: HTMLElement, fila: HTMLElement, altoCabecera: number, alinear: 'arriba' | 'cercana') {
+  const bajoCabecera = Math.max(0, fila.offsetTop - altoCabecera)
+  if (alinear === 'arriba' || contenedor.scrollTop > bajoCabecera) {
+    contenedor.scrollTop = bajoCabecera
+    return
+  }
+  const alFinal = fila.offsetTop + fila.offsetHeight - contenedor.clientHeight
+  if (contenedor.scrollTop < alFinal) contenedor.scrollTop = alFinal
+}
+
 export function DataTable<T>({
   columns,
   data,
@@ -114,6 +134,7 @@ export function DataTable<T>({
   const filas = table.getRowModel().rows
 
   const contenedorRef = useRef<HTMLDivElement>(null)
+  const cabeceraRef = useRef<HTMLTableSectionElement>(null)
   const filaRefs = useRef(new Map<string, HTMLTableRowElement>())
 
   // Con topes, los porcentajes no bastan (una columna topada deja de crecer y lo que cede queda en blanco): se mide el
@@ -157,9 +178,15 @@ export function DataTable<T>({
     return () => clearTimeout(t)
   }, [resaltada])
 
+  // Flechas: la fila a la que se llega se acerca lo justo para verse entera.
   function desplazarA(indice: number) {
-    if (virtual) virtualizador.scrollToIndex(indice)
-    else filaRefs.current.get(filas[indice].id)?.scrollIntoView({ block: 'nearest' })
+    if (virtual) {
+      virtualizador.scrollToIndex(indice)
+      return
+    }
+    const contenedor = contenedorRef.current
+    const fila = filaRefs.current.get(filas[indice].id)
+    if (contenedor && fila) desplazarContenedor(contenedor, fila, cabeceraRef.current?.offsetHeight ?? 0, 'cercana')
   }
 
   // Última selección hecha en la propia tabla (clic, clic derecho, flechas): esa fila ya está a la vista (las flechas
@@ -173,9 +200,9 @@ export function DataTable<T>({
 
   const desplazadaRef = useRef<string | null>(null)
   // Selección impuesta desde fuera (el enlace "Id Rep. Anterior", o el maestro de IMEIs reseleccionando el IMEI al
-  // volver del detalle): desplazar siempre hasta dejar arriba la fila `filasContexto` posiciones por encima, calco de
-  // tabla.scrollTo(i) (enlace) y de tabla.scrollTo(Math.max(0, idx - 3)) (restaurarSeleccion). El TableView desplaza
-  // aunque la fila ya se vea.
+  // volver del detalle): desplazar siempre el contenedor hasta dejar justo debajo de la cabecera la fila `filasContexto`
+  // posiciones por encima, calco de tabla.scrollTo(i) (enlace) y de tabla.scrollTo(Math.max(0, idx - 3))
+  // (restaurarSeleccion). El TableView desplaza aunque la fila ya se vea.
   // Un refresco de datos (poll) cambia la identidad de `filas` sin cambiar `seleccionada`: no debe volver a
   // desplazar, así que se recuerda en `desplazadaRef` la última selección ya atendida y solo se actúa cuando
   // `seleccionada` cambia (o cuando las filas llegan después de fijarla).
@@ -192,8 +219,13 @@ export function DataTable<T>({
       const idx = filas.findIndex((r) => r.id === seleccionada)
       if (idx < 0) return
       const arriba = Math.max(0, idx - filasContexto)
-      if (virtual) virtualizador.scrollToIndex(arriba, { align: 'start' })
-      else filaRefs.current.get(filas[arriba].id)?.scrollIntoView({ block: 'start' })
+      if (virtual) {
+        virtualizador.scrollToIndex(arriba, { align: 'start' })
+      } else {
+        const contenedor = contenedorRef.current
+        const fila = filaRefs.current.get(filas[arriba].id)
+        if (contenedor && fila) desplazarContenedor(contenedor, fila, cabeceraRef.current?.offsetHeight ?? 0, 'arriba')
+      }
     }
     desplazadaRef.current = seleccionada
   }, [seleccionada, filas, virtual, virtualizador, filasContexto])
@@ -275,8 +307,9 @@ export function DataTable<T>({
       ref={contenedorRef}
       tabIndex={onSeleccionar ? 0 : undefined}
       onKeyDown={onKeyDown}
-      // scroll-pt-10: la cabecera es sticky top-0 (~40 px); sin scroll-padding-top, scrollIntoView (teclado y
-      // selección impuesta desde fuera) alinea la fila justo arriba del scrollport, tapada por la cabecera.
+      // scroll-pt-10: la cabecera es sticky top-0 (~40 px). La selección y las flechas ya desplazan midiendo su alto, pero
+      // los desplazamientos que hace el navegador por su cuenta (el foco al tabular a un botón de una celda, o al volver
+      // a él al cerrar un diálogo) respetan scroll-padding-top y, sin él, dejarían ese control tapado por la cabecera.
       className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50 scroll-pt-10"
       style={{ maxHeight: alturaMax }}
     >
@@ -289,7 +322,7 @@ export function DataTable<T>({
             <col key={c.id} style={{ width: anchosPx ? anchosPx[i] : ajuste === 'estirar' ? `${(anchos[i] / suma) * 100}%` : anchos[i] }} />
           ))}
         </colgroup>
-        <TableHeader className="sticky top-0 z-10 bg-crema">
+        <TableHeader ref={cabeceraRef} className="sticky top-0 z-10 bg-crema">
           {table.getHeaderGroups().map((hg) => (
             <TableRow key={hg.id}>
               {hg.headers.map((h) => {

@@ -20,7 +20,13 @@ export function MenuHistorial({ rep, celda, texto, puedeEditar, acciones }: { re
   const abierta = rep.esIncidencia && !rep.esResuelto
   return (
     <>
-      {editable && <ContextMenuItem disabled title={TOOLTIP_FORMULARIO}>Editar</ContextMenuItem>}
+      {editable && (
+        // El title va en un envoltorio de bloque: el ítem deshabilitado lleva data-[disabled]:pointer-events-none y nunca
+        // recibiría el hover que muestra el tooltip (mismo patrón que "Añadir reparación" en PendientesPage).
+        <span title={TOOLTIP_FORMULARIO} className="block">
+          <ContextMenuItem disabled>Editar</ContextMenuItem>
+        </span>
+      )}
       <ContextMenuItem onSelect={() => acciones.borrar(rep)}>Borrar</ContextMenuItem>
       <ContextMenuSeparator />
       <MenuCopiarCelda texto={texto} celda={celda} />

@@ -8,7 +8,7 @@ import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
-import { reiniciarEstadoTaller, ultimoImeiVisto } from '../estado'
+import { filtrosImeis, reiniciarEstadoTaller, ultimoImeiVisto } from '../estado'
 import { resumen, tecnico } from '../test/fabrica'
 import { ImeiDetallePage } from './ImeiDetallePage'
 import { ImeisPage } from './ImeisPage'
@@ -58,7 +58,22 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect(within(filas[0]).getByText('2026/09/16 09:00')).toBeInTheDocument()
     expect(within(filas[0]).getByText('→ 2026/09/16 09:30')).toBeInTheDocument()
     expect(within(filas[0]).getByText('tapa rayada')).toBeInTheDocument()
+    // tabla.setFixedCellSize(44)
+    expect(filas[0]).toHaveStyle({ height: '44px' })
     expect(screen.queryByText(/Actualizado/)).not.toBeInTheDocument()
+  })
+  it('columnas de ancho fijo, sin estirar (política de redimensionado nula y prefWidth del maestro); filas con cursor de mano y el mismo fondo al pasar', async () => {
+    const { container } = abrir()
+    await screen.findByText(A)
+    // resetarModo: IMEI 180 · Modelo 150 · Fechas 130 · Trabajos 160 · Estado 130; Observación y Cliente sin prefWidth
+    // en AgrupadoView.fxml (80 por defecto, acotado a su minWidth 150).
+    expect(Array.from(container.querySelectorAll('col')).map((c) => c.style.width)).toEqual(['180px', '150px', '130px', '160px', '130px', '150px', '150px'])
+    expect(screen.getByRole('table')).toHaveStyle({ width: '1050px' })
+    expect(screen.getByRole('table')).not.toHaveClass('w-full')
+    const fila = screen.getByRole('row', { name: new RegExp(A) })
+    expect(fila).toHaveClass('cursor-pointer', 'bg-fila-maestro-bg', 'hover:bg-fila-maestro-bg')
+    expect(fila).not.toHaveClass('cursor-default')
+    expect(fila).not.toHaveClass('hover:bg-muted/50')
   })
   it('filtros: IMEI, Técnico, Cliente con "(Sin cliente)", Incidencias con dos casillas, Limpiar', async () => {
     abrir()
@@ -87,6 +102,31 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect(screen.getAllByRole('row')).toHaveLength(2)
     expect(screen.getByRole('row', { name: new RegExp(B) })).toBeInTheDocument()
   })
+  it('Incidencias del maestro: al entrar se desmarca "Cerradas" (adaptarFiltrosMaestro) y con las dos casillas marcadas la etiqueta es "2 filtros", nunca "Todas"', async () => {
+    abrir()
+    await screen.findByText(A)
+    await userEvent.click(screen.getByRole('button', { name: `Ver trabajos de ${A}` }))
+    await screen.findByText(`IMEI: ${A}`)
+    await userEvent.click(screen.getByRole('button', { name: 'Incidencias' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Abiertas' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Cerradas' }))
+    await userEvent.keyboard('{Escape}')
+    expect(filtrosImeis.get().incidencias).toEqual(new Set(['abiertas', 'cerradas']))
+    await userEvent.click(screen.getByRole('button', { name: '← Volver' }))
+    await screen.findByRole('heading', { name: 'Agrupado por IMEI' })
+    await waitFor(() => expect(filtrosImeis.get().incidencias).toEqual(new Set(['abiertas'])))
+    expect(screen.getByRole('button', { name: 'Incidencia' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Incidencia' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Normal' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getByRole('button', { name: '2 filtros' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Todas' })).not.toBeInTheDocument()
+    // Al volver a entrar en un detalle, "Cerradas" sigue desmarcada.
+    await userEvent.click(screen.getByRole('button', { name: `Ver trabajos de ${B}` }))
+    await screen.findByText(`IMEI: ${B}`)
+    await userEvent.click(screen.getByRole('button', { name: '2 filtros' }))
+    expect(screen.getByRole('checkbox', { name: 'Cerradas' })).toHaveAttribute('aria-checked', 'false')
+  })
   it('el icono y el doble clic abren el detalle; al volver, el IMEI queda seleccionado', async () => {
     abrir()
     await screen.findByText(A)
@@ -99,17 +139,32 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.dblClick(screen.getByText(B))
     expect(await screen.findByText(`IMEI: ${B}`)).toBeInTheDocument()
   })
-  it('al volver del detalle desplaza el maestro con tres filas de contexto por encima del IMEI (restaurarSeleccion)', async () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
-    onTestFinished(() => scrollIntoView.mockRestore())
+  it('al volver del detalle desplaza solo la tabla del maestro, con tres filas de contexto por encima del IMEI (restaurarSeleccion)', async () => {
+    // Cinco IMEIs con actividad entre la de B y la de A: A queda en la fila 6 y, con tres de contexto, arriba la fila 3.
+    const intermedios = [1, 2, 3, 4, 5].map((i) =>
+      resumen({ idRep: `R20260914_${i}`, imei: `35000000000000${i}`, modelo: '15', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: `2026-09-14T0${i}:00:00`, fechaFin: `2026-09-14T0${i}:30:00`, cliente: null }),
+    )
+    server.use(http.get('*/api/reparaciones/historial', () => HttpResponse.json([...reps, ...intermedios])))
+    // jsdom no maqueta: cabecera de 40 px y filas de 44 px colocadas por su data-index debajo de ella.
+    const esFila = (el: HTMLElement) => el.tagName === 'TR' && el.dataset.index !== undefined
+    const offsetTop = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return esFila(this) ? 40 + Number(this.dataset.index) * 44 : 0
+    })
+    const offsetHeight = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.tagName === 'THEAD' ? 40 : esFila(this) ? 44 : 0
+    })
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    onTestFinished(() => { offsetTop.mockRestore(); offsetHeight.mockRestore(); scrollIntoView.mockRestore() })
     abrir()
     await screen.findByText(A)
     await userEvent.click(screen.getByRole('button', { name: `Ver trabajos de ${A}` }))
     await userEvent.click(await screen.findByRole('button', { name: '← Volver' }))
-    expect(await screen.findByRole('row', { name: new RegExp(A) })).toHaveAttribute('aria-selected', 'true')
-    // A es la fila 1: con tres filas de contexto queda arriba la fila 0 (B), calco de tabla.scrollTo(Math.max(0, idx - 3)).
-    await waitFor(() => expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'start' }))
-    expect(scrollIntoView.mock.instances.at(-1)).toBe(screen.getByRole('row', { name: new RegExp(B) }))
+    const filaA = await screen.findByRole('row', { name: new RegExp(A) })
+    expect(filaA).toHaveAttribute('aria-selected', 'true')
+    expect(filaA).toHaveAttribute('data-index', '6')
+    // Calco de tabla.scrollTo(Math.max(0, idx - 3)): la fila 3 justo debajo de la cabecera.
+    await waitFor(() => expect(screen.getByRole('table').parentElement!.scrollTop).toBe(3 * 44))
+    expect(scrollIntoView).not.toHaveBeenCalled()
   })
   it('menú del supertécnico: Copiar celda, Editar observación (PATCH con updatedAt) y 409 con su aviso', async () => {
     let body: unknown = null

@@ -54,6 +54,8 @@ export function ImeiDetallePage() {
         data={detalle.filas}
         vacio=""
         ajuste="estirar"
+        // tabla.setFixedCellSize(44), la misma tabla que el maestro
+        altoFila={44}
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

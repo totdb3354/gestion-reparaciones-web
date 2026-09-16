@@ -58,6 +58,11 @@ export function ImeisPage() {
   // Al volver del detalle, el maestro reselecciona ese IMEI (y DataTable desplaza hasta él); el aviso se consume una vez.
   const [seleccionada, setSeleccionada] = useState<string | null>(() => ultimoImeiVisto.get())
   useEffect(() => { ultimoImeiVisto.reset() }, [])
+  // Calco de adaptarFiltrosMaestro (`cbIncidenciasCerradas.setSelected(false)`): al entrar al maestro se desmarca
+  // "Cerradas", que solo existe en el detalle; así tampoco vuelve marcada al abrir otro detalle.
+  useEffect(() => {
+    filtrosImeis.set((f) => (f.incidencias.has('cerradas') ? { ...f, incidencias: new Set([...f.incidencias].filter((k) => k !== 'cerradas')) } : f))
+  }, [])
   const [conObservacion, setConObservacion] = useState<GrupoImei | null>(null)
   const [conCliente, setConCliente] = useState<GrupoImei | null>(null)
   const { data: clientesActivos = [] } = useClientesActivos()
@@ -70,6 +75,9 @@ export function ImeisPage() {
     mostrarError(e instanceof StaleDataError ? MSG_TELEFONO_MODIFICADO : `No se pudo guardar: ${mensajeDeError(e)}`)
   }
 
+  // Anchos fijos, sin estirar: el TableView del maestro no tiene política de redimensionado (`param -> true`) y
+  // resetarModo fija IMEI 180, Modelo 150, Fechas 130, Trabajos 160 y Estado 130. Observación y Cliente no tienen
+  // prefWidth en AgrupadoView.fxml: quedan en su minWidth, 150 (el prefWidth por defecto, 80, acotado a [150, 300]).
   const columnas = useMemo<ColumnDef<GrupoImei>[]>(() => [
     {
       id: 'imei', header: 'IMEI teléfono', size: 180,
@@ -86,8 +94,8 @@ export function ImeisPage() {
     { id: 'fechas', header: 'Fechas', size: 130, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaMasAntigua} fin={row.original.fechaMasReciente} patron={FMT} /> },
     { id: 'trabajos', header: 'Trabajos', size: 160, accessorFn: resumenTipos },
     { id: 'estado', header: 'Estado', size: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },
-    { id: 'observacion', header: 'Observación', size: 200, cell: ({ row }) => <TextoExpandible titulo="Observación" texto={row.original.observacion} /> },
-    { id: 'cliente', header: 'Cliente', size: 200, cell: ({ row }) => <TextoExpandible titulo="Cliente" texto={row.original.cliente} /> },
+    { id: 'observacion', header: 'Observación', size: 150, cell: ({ row }) => <TextoExpandible titulo="Observación" texto={row.original.observacion} /> },
+    { id: 'cliente', header: 'Cliente', size: 150, cell: ({ row }) => <TextoExpandible titulo="Cliente" texto={row.original.cliente} /> },
   ], [abrir])
 
   useRegistrarExportable(() => descargarCsv('agrupado_resumen', CABECERAS_RESUMEN, grupos.map(filaResumen)))
@@ -106,13 +114,15 @@ export function ImeisPage() {
         columns={columnas}
         data={grupos}
         vacio=""
-        ajuste="estirar"
+        // tabla.setFixedCellSize(44), la misma tabla que el detalle
+        altoFila={44}
         getRowId={(g) => g.imei}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
         filasContexto={3}
         onAbrir={(g) => abrir(g.imei)}
-        filaClase={(g) => cn('cursor-pointer border-l-4 bg-fila-maestro-bg', g.incAbiertas > 0 ? 'border-l-fila-incidencia-brd' : 'border-l-azul-medio')}
+        // Las filas del maestro conservan #EEF0F5 al pasar el ratón (el hover de la tabla no lo cambia) y llevan cursor de mano.
+        filaClase={(g) => cn('cursor-pointer border-l-4 bg-fila-maestro-bg hover:bg-fila-maestro-bg', g.incAbiertas > 0 ? 'border-l-fila-incidencia-brd' : 'border-l-azul-medio')}
         menuFila={(g, celda) => (
           <>
             <MenuCopiarCelda texto={textoCeldaGrupo(g, celda.columnaId)} celda={celda} />

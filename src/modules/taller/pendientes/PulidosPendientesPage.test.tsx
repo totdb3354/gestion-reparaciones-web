@@ -57,6 +57,36 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
     await waitFor(() => expect(ids).toEqual({ ids: ['AP20260916_2'] }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled())
   })
+  it('si "Completar seleccionados" falla, muestra el mensaje y conserva la selección sin recargar (el JavaFX solo la vacía tras guardar)', async () => {
+    let peticiones = 0
+    let lecturas = 0
+    let soltar!: () => void
+    const responde = new Promise<void>((resolver) => { soltar = resolver })
+    server.use(
+      http.get('*/api/pulidos/asignaciones', () => { lecturas++; return HttpResponse.json(filas) }),
+      http.post('*/api/pulidos/asignaciones/completar-lote', async () => {
+        peticiones++
+        await responde
+        return HttpResponse.json({ message: 'Solo puedes completar tus propias asignaciones' }, { status: 422 })
+      }),
+    )
+    abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
+    const completar = screen.getByRole('button', { name: 'Completar seleccionados' })
+    await userEvent.click(completar)
+    // Mientras se guarda no se puede volver a pulsar (en el JavaFX la llamada bloquea la ventana).
+    expect(completar).toBeDisabled()
+    await userEvent.click(completar)
+    const lecturasAntes = lecturas
+    soltar()
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('Solo puedes completar tus propias asignaciones')
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-checked'))).toEqual(['true', 'true'])
+    expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeEnabled()
+    expect(peticiones).toBe(1)
+    expect(lecturas).toBe(lecturasAntes)
+  })
   it('recargar sin completar (Actualizado) también vacía la selección', async () => {
     abrir()
     await screen.findByText('AP20260916_1')

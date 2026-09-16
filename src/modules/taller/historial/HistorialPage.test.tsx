@@ -72,6 +72,8 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(screen.getByText('Resuelta')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /R20260915_133/ })).toHaveClass('border-l-fila-incidencia-brd')
     expect(screen.getByRole('row', { name: /R20260910_1/ })).toHaveClass('border-l-fila-reparado-brd')
+    // tablaReparaciones.setFixedCellSize(44)
+    expect(screen.getByRole('row', { name: /R20260915_133/ })).toHaveStyle({ height: '44px' })
   })
   it('el técnico ve "Mis reparaciones" y no tiene filtro de técnico', async () => {
     abrir(SESION_TEC)
@@ -137,6 +139,20 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Borrar' }))
     expect(await screen.findByRole('dialog', { name: 'No se puede borrar' })).toHaveTextContent('Esta reparación está siendo referenciada. La reparación R20260910_1 apunta a esta. Bórrala primero.')
   })
+  it('el tooltip de "Editar" deshabilitado va en un envoltorio que recibe el hover (el ítem deshabilitado lleva pointer-events-none)', async () => {
+    abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('R20260915_133') })
+    const editar = await screen.findByRole('menuitem', { name: 'Editar' })
+    expect(editar).toHaveAttribute('aria-disabled', 'true')
+    expect(editar).toHaveAttribute('data-disabled')
+    const conTooltip = screen.getByTitle('Disponible con el formulario de reparación (siguiente entrega)')
+    expect(conTooltip).not.toBe(editar)
+    expect(editar.parentElement).toBe(conTooltip)
+    // jsdom no aplica el CSS: se comprueba por clase que ni el envoltorio ni sus ancestros anulan los eventos del puntero.
+    expect(conTooltip.closest('[class*="pointer-events-none"]')).toBeNull()
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Editar', 'Borrar', '📋  Copiar celda', 'Cancelar incidencia'])
+  })
   it('"Añadir incidencia": técnicos activos, reparador preseleccionado, botón habilitado con comentario y POST', async () => {
     let body: unknown = null
     server.use(http.post('*/api/reparaciones/R20260916_6/incidencia', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 201 }) }))
@@ -154,6 +170,46 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(boton).toBeEnabled()
     await userEvent.click(boton)
     await waitFor(() => expect(body).toEqual({ comentario: 'sigue sin cargar', imei: '358800000000131', idTec: 5 }))
+  })
+  it('"Añadir incidencia" en un trabajo de un técnico inactivo: sin preselección, botón deshabilitado hasta elegir un activo y POST con el elegido', async () => {
+    // Calco de `tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec()).findFirst().ifPresent(cbTecnico::setValue)`
+    // sobre getAllActivos(): tecnico_n (7) está inactiva, así que no se preselecciona nadie.
+    let body: unknown = null
+    const deTecnicoN = resumen({ idRep: 'R20260914_2', imei: '356789012345678', modelo: '13', nombreTecnico: 'tecnico_n', idTec: 7, fechaAsig: '2026-09-14T09:00:00', fechaFin: '2026-09-14T10:00:00', tipoComponente: 'bati13' })
+    server.use(
+      http.get('*/api/reparaciones/historial', () => HttpResponse.json([deTecnicoN])),
+      http.post('*/api/reparaciones/R20260914_2/incidencia', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 201 }) }),
+    )
+    abrir()
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('R20260914_2') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Añadir incidencia' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Añadir incidencia' })
+    const tecnicoAsignado = within(dlg).getByLabelText('Técnico asignado')
+    expect(within(dlg).getAllByRole('option').map((o) => o.textContent)).toEqual(['Selecciona técnico', 'tecnico_i', 'tecnico_b'])
+    expect(tecnicoAsignado).toHaveDisplayValue('Selecciona técnico')
+    const boton = within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' })
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), 'no carga')
+    expect(boton).toBeDisabled()
+    await userEvent.selectOptions(tecnicoAsignado, 'tecnico_b')
+    expect(boton).toBeEnabled()
+    await userEvent.click(boton)
+    await waitFor(() => expect(body).toEqual({ comentario: 'no carga', imei: '356789012345678', idTec: 6 }))
+  })
+  it('"Añadir incidencia" con los técnicos activos llegando después de abrir: el reparador activo se preselecciona al llegar', async () => {
+    let soltar!: () => void
+    const llegan = new Promise<void>((resolver) => { soltar = resolver })
+    server.use(http.get('*/api/tecnicos/activos', async () => { await llegan; return HttpResponse.json(tecnicos.filter((t) => t.activo)) }))
+    abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Añadir incidencia' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Añadir incidencia' })
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), 'sigue sin cargar')
+    expect(within(dlg).getByLabelText('Técnico asignado')).toHaveDisplayValue('Selecciona técnico')
+    expect(within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' })).toBeDisabled()
+    soltar()
+    await waitFor(() => expect(within(dlg).getByLabelText('Técnico asignado')).toHaveValue('5'))
+    expect(within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' })).toBeEnabled()
   })
   it('el admin y el técnico solo tienen "Copiar celda"', async () => {
     abrir(SESION_ADMIN)

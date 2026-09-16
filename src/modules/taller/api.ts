@@ -144,11 +144,13 @@ export function useBorrarIncidenciaActiva() {
     onSettled: recargar,
   })
 }
+/** Recarga solo si el lote se guarda (calco de completarSeleccionados: `seleccionados.clear(); cargar();` dentro del
+ *  try). Un fallo no recarga, porque la recarga vaciaría la selección que la vista conserva para reintentar. */
 export function useCompletarPulidos() {
   const recargar = useInvalidar(...PENDIENTES_PUL, claveHistorial('PULIDO'))
   return useMutation({
     mutationFn: (ids: string[]) => api.POST('/api/pulidos/asignaciones/completar-lote', { body: { ids } }),
-    onSettled: recargar,
+    onSuccess: recargar,
   })
 }
 export function useBorrarAsignacionPulido() {

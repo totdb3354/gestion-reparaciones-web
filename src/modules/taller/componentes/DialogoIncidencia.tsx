@@ -7,16 +7,22 @@ import { useTecnicos } from '../api'
 
 type Props = { rep: ReparacionResumen | null; onGuardar: (comentario: string, idTec: number) => void; onCerrar: () => void }
 
-/** Calco de abrirDialogoIncidencia: comentario, técnico asignado (activos, preseleccionado el reparador) y botón que
- *  solo se habilita con ambos. */
+/** Calco de abrirDialogoIncidencia: comentario, técnico asignado (activos, preseleccionado el reparador si está entre
+ *  ellos) y botón que solo se habilita con ambos. */
 export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
   const { data: tecnicos = [] } = useTecnicos(true)
   const [comentario, setComentario] = useState('')
-  const [idTec, setIdTec] = useState<string>('')
+  // Lo elegido a mano en el desplegable; null mientras no se toca, y entonces manda la preselección.
+  const [elegido, setElegido] = useState<string | null>(null)
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el formulario al abrir con otra fila
-    if (rep) { setComentario(rep.incidencia ?? ''); setIdTec(String(rep.idTec)) }
+    if (rep) { setComentario(rep.incidencia ?? ''); setElegido(null) }
   }, [rep])
+  // `tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec()).findFirst().ifPresent(cbTecnico::setValue)` sobre los
+  // activos: un reparador inactivo no se preselecciona (quedaría un id invisible que habilitaría el botón). Se deriva en
+  // cada render porque la lista puede llegar con el diálogo ya abierto.
+  const preseleccionado = rep !== null && tecnicos.some((t) => t.idTec === rep.idTec) ? String(rep.idTec) : ''
+  const idTec = elegido ?? preseleccionado
   const listo = comentario.trim() !== '' && idTec !== ''
   return (
     <Dialog open={rep !== null} onOpenChange={(o) => !o && onCerrar()}>
@@ -25,7 +31,7 @@ export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
         <Label htmlFor="incidencia-comentario" className="text-[12px]">Comentario de incidencia</Label>
         <textarea id="incidencia-comentario" value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Describe la incidencia..." rows={4} className="w-full rounded border border-gris-borde bg-superficie p-2 text-[13px]" />
         <Label htmlFor="incidencia-tecnico" className="text-[12px]">Técnico asignado</Label>
-        <select id="incidencia-tecnico" value={idTec} onChange={(e) => setIdTec(e.target.value)} className="h-9 w-full rounded border border-gris-borde bg-superficie px-2 text-[13px]">
+        <select id="incidencia-tecnico" value={idTec} onChange={(e) => setElegido(e.target.value)} className="h-9 w-full rounded border border-gris-borde bg-superficie px-2 text-[13px]">
           <option value="">Selecciona técnico</option>
           {tecnicos.map((t) => <option key={t.idTec} value={String(t.idTec)}>{t.nombre}</option>)}
         </select>
