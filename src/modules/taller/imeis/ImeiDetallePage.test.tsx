@@ -108,6 +108,8 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     expect(base).toBe(`agrupado_${A}`)
     expect(cabeceras).toEqual(['Tipo', 'ID', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
     expect(filasCsv[0]).toEqual(['Reparación', 'R20260910_1', `="${A}"`, 'tecnico_b', '10/09/2026 12:00', '11/09/2026 12:00', 'lcdi16negra', 'No', '', 'no enciende', 'No', ''])
+    // Fila glass: la única con esReutilizado true, ejercita la rama 'Sí' de la columna Reutilizado.
+    expect(filasCsv[1]).toEqual(['Glass', 'G20260912_1', `="${A}"`, 'tecnico_i', '12/09/2026 12:00', '12/09/2026 13:00', 'glassi16', 'Sí', '', 'No', 'No', ''])
     expect(filasCsv[2]).toEqual(['Pulido', 'P20260913_1', `="${A}"`, 'tecnico_i', '13/09/2026 12:00', '13/09/2026 13:00', '', 'No', '', 'No', 'No', ''])
     descargar.mockRestore()
   })

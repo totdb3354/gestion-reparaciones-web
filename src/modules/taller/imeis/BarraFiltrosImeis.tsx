@@ -5,7 +5,7 @@ import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { RangoFechas } from '@/shared/ui/RangoFechas'
 import { useTecnicos } from '../api'
 import { FILTROS_IMEIS_VACIOS, filtrosImeis } from '../estado'
-import { OPCIONES_INCIDENCIAS } from '../historial/HistorialPage'
+import { OPCIONES_INCIDENCIAS } from '../historial/constantes'
 import type { EstadoIncidencia } from '../lib/filtros'
 
 /** En el maestro solo hay dos casillas: "Incidencia" (alguna abierta) y "Normal"; la de "Cerradas" se oculta. */

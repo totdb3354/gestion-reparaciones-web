@@ -21,21 +21,8 @@ import { filtroImeiHistorial, filtrosHistorial } from '../estado'
 import { estadoIncidencia, etiquetaContador, pasaFechas, pasaImeis, pasaIncidencias, pasaPieza, pasaTecnico, type EstadoIncidencia } from '../lib/filtros'
 import { categoriaPieza } from '../lib/piezas'
 import { columnasTrabajo, textoCeldaTrabajo } from './columnasTrabajo'
+import { OPCIONES_INCIDENCIAS, TOGGLES_HISTORIAL } from './constantes'
 import { cabecerasHistorial, filaHistorial } from './csvTrabajos'
-
-// eslint-disable-next-line react-refresh/only-export-components -- reutilizada por PulidosHistorialPage (Task 17), patrón del proyecto
-export const TOGGLES_HISTORIAL = [
-  { to: '/reparaciones/historial', etiqueta: 'Reparaciones' },
-  { to: '/reparaciones/historial/glass', etiqueta: 'Glass' },
-  { to: '/reparaciones/historial/pulidos', etiqueta: 'Pulidos' },
-]
-/** Las tres casillas del Historial y del detalle de IMEIs (el maestro de IMEIs usa otras dos, Task 18). */
-// eslint-disable-next-line react-refresh/only-export-components -- reutilizada por el detalle de IMEIs (Task 18), patrón del proyecto
-export const OPCIONES_INCIDENCIAS: { clave: EstadoIncidencia; etiqueta: string }[] = [
-  { clave: 'abiertas', etiqueta: 'Abiertas' },
-  { clave: 'cerradas', etiqueta: 'Cerradas' },
-  { clave: 'sin', etiqueta: 'Sin incidencia' },
-]
 
 export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
   const { sesion } = useSession()

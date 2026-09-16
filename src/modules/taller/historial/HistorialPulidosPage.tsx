@@ -24,7 +24,7 @@ import { useBorrarPulido, useEditarModeloTelefono, useHistorial, useTecnicos } f
 import { filtroImeiHistorial, filtrosHistorial } from '../estado'
 import { etiquetaContador, pasaFechas, pasaImeis, pasaTecnico } from '../lib/filtros'
 import { MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
-import { TOGGLES_HISTORIAL } from './HistorialPage'
+import { TOGGLES_HISTORIAL } from './constantes'
 
 const FMT = 'yyyy/MM/dd HH:mm' as const
 const OPCIONES_MODELO = MODELOS_ORDENADOS.map((m) => ({ clave: m, etiqueta: traducirModelo(m) }))

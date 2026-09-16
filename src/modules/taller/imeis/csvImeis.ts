@@ -9,7 +9,7 @@ import { traducirModelo } from '../lib/modelos'
 export const CABECERAS_RESUMEN = ['IMEI', 'Modelo', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente']
 export function filaResumen(g: GrupoImei): string[] {
   return [
-    textoForzado(g.imei), g.modelo ? traducirModelo(g.modelo) : '', formatear(g.fechaMasAntigua, 'dd/MM/yyyy'), formatear(g.fechaMasReciente, 'dd/MM/yyyy'),
+    textoForzado(g.imei), traducirModelo(g.modelo), formatear(g.fechaMasAntigua, 'dd/MM/yyyy'), formatear(g.fechaMasReciente, 'dd/MM/yyyy'),
     String(g.countRep), String(g.countGlass), String(g.countPul), String(g.incAbiertas), g.observacion ?? '', g.cliente ?? '',
   ]
 }

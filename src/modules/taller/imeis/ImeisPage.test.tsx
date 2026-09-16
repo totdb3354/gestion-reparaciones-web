@@ -16,7 +16,7 @@ import { ImeisPage } from './ImeisPage'
 const A = '351900000000041', B = '358800000000131'
 const reps = [
   resumen({ idRep: 'R20260916_6', imei: B, modelo: '14', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-16T07:00:00', fechaFin: '2026-09-16T07:30:00', observacionTelefono: 'tapa rayada', cliente: 'WEB', telefonoUpdatedAt: '2026-09-01T00:00:00' }),
-  resumen({ idRep: 'R20260910_1', imei: A, modelo: '16', idTec: 6, nombreTecnico: 'tecnico_b', fechaAsig: '2026-09-10T10:00:00', fechaFin: '2026-09-11T10:00:00', esIncidencia: true, incidencia: 'no enciende', cliente: null }),
+  resumen({ idRep: 'R20260910_1', imei: A, modelo: '16', idTec: 6, nombreTecnico: 'tecnico_b', fechaAsig: '2026-09-10T10:00:00', fechaFin: '2026-09-11T10:00:00', esIncidencia: true, incidencia: 'no enciende', cliente: null, telefonoUpdatedAt: null }),
 ]
 const glass = [resumen({ idRep: 'G20260912_1', imei: A, modelo: '16', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-12T10:00:00', fechaFin: '2026-09-12T11:00:00', cliente: null })]
 const pulidos = [resumen({ idRep: 'P20260913_1', imei: A, modelo: '16', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-13T10:00:00', fechaFin: '2026-09-13T11:00:00', cliente: null })]
@@ -120,6 +120,14 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.click(within(await screen.findByRole('dialog', { name: 'Observación del teléfono' })).getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('El teléfono fue modificado por otro usuario. Se recargan los datos.')
   })
+  it('SUPERTECNICO, grupo sin fila Telefono (telefonoUpdatedAt null): solo Copiar celda', async () => {
+    // Diferencia aceptada (docs/paridad/imeis.md, ImeisPage.tsx): "Editar observación"/"Editar cliente" exigen
+    // updatedAt no nulo (Task 3); el grupo A no tiene fila Telefono (fixture de arriba).
+    abrir()
+    await screen.findByText(A)
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText(A) })
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
+  })
   it('"Editar cliente": "— Sin cliente —" primero, actual resaltado, Seleccionar deshabilitado hasta elegir, PATCH', async () => {
     let body: unknown = null
     server.use(http.patch(`*/api/telefonos/${B}/cliente`, async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 204 }) }))
@@ -135,6 +143,18 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: '— Sin cliente —' }))
     await userEvent.click(within(dlg).getByRole('button', { name: 'Seleccionar' }))
     await waitFor(() => expect(body).toEqual({ idCli: null, updatedAt: '2026-09-01T00:00:00' }))
+  })
+  it('"Editar cliente": elegir un cliente real (no "— Sin cliente —") hace PATCH con su idCli', async () => {
+    let body: unknown = null
+    server.use(http.patch(`*/api/telefonos/${B}/cliente`, async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 204 }) }))
+    abrir()
+    await screen.findByText(A)
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText(B) })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar cliente' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Seleccionar cliente' })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'AMAZON' }))
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Seleccionar' }))
+    await waitFor(() => expect(body).toEqual({ idCli: 1, updatedAt: '2026-09-01T00:00:00' }))
   })
   it('el técnico solo tiene Copiar celda', async () => {
     abrir(SESION_TEC)
@@ -159,6 +179,8 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     const [base, cabeceras, filasCsv] = descargar.mock.calls[0]
     expect(base).toBe('agrupado_resumen')
     expect(cabeceras).toEqual(['IMEI', 'Modelo', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente'])
+    // Fila B: la única con Observación y Cliente no vacíos (la de A los tiene vacíos, ver abajo).
+    expect(filasCsv[0]).toEqual([`="${B}"`, 'iPhone 14', '16/09/2026', '16/09/2026', '1', '0', '0', '0', 'tapa rayada', 'WEB'])
     expect(filasCsv[1]).toEqual([`="${A}"`, 'iPhone 16', '10/09/2026', '13/09/2026', '1', '1', '1', '1', '', ''])
     descargar.mockRestore()
   })

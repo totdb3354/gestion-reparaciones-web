@@ -15,11 +15,10 @@ import { columnasTrabajo, textoCeldaTrabajo } from '../historial/columnasTrabajo
 import { estadoIncidencia } from '../lib/filtros'
 import { traducirModelo } from '../lib/modelos'
 import { esAjeno, filasDetalle, textoTrabajos } from './agrupacion'
-import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
+import { FMT } from './constantes'
+import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
 import { useTrabajos } from './useTrabajos'
-
-const FMT = 'yyyy/MM/dd HH:mm' as const
 
 /** Detalle de un IMEI: calco de AgrupadoController en modo DETALLE (barra "← Volver · IMEI · modelo · N trabajos" y tabla de trabajos con Tipo). */
 export function ImeiDetallePage() {

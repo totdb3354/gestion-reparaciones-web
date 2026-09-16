@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/shared/api/errors'
@@ -25,12 +25,12 @@ import { etiquetaContador } from '../lib/filtros'
 import { resumenTipos, type GrupoImei } from '../lib/grupoImei'
 import { traducirModelo } from '../lib/modelos'
 import { agruparVisibles, opcionesCliente } from './agrupacion'
-import { CABECERAS_RESUMEN, filaResumen } from './csvImeis'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
+import { FMT } from './constantes'
+import { CABECERAS_RESUMEN, filaResumen } from './csvImeis'
 import { useTrabajos } from './useTrabajos'
 
 export const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usuario. Se recargan los datos.'
-const FMT = 'yyyy/MM/dd HH:mm' as const
 const SIN_CLIENTE_CLAVE = ''
 
 function textoCeldaGrupo(g: GrupoImei, columna: string): string | null {
@@ -64,7 +64,7 @@ export function ImeisPage() {
   const editarObservacion = useEditarObservacionTelefono()
   const editarCliente = useEditarClienteTelefono()
 
-  const abrir = (imei: string) => navigate(`/reparaciones/imeis/${imei}`)
+  const abrir = useCallback((imei: string) => navigate(`/reparaciones/imeis/${imei}`), [navigate])
   const alFallar = (e: unknown) => {
     if (esErrorGestionadoGlobalmente(e)) return
     mostrarError(e instanceof StaleDataError ? MSG_TELEFONO_MODIFICADO : `No se pudo guardar: ${mensajeDeError(e)}`)
@@ -76,7 +76,7 @@ export function ImeisPage() {
       cell: ({ row }) => (
         <div className="flex items-center justify-between gap-2">
           <span className="text-[12px] font-bold text-azul-medio">{row.original.imei}</span>
-          <button type="button" aria-label={`Ver trabajos de ${row.original.imei}`} onClick={(e) => { e.stopPropagation(); navigate(`/reparaciones/imeis/${row.original.imei}`) }} className="shrink-0 cursor-pointer">
+          <button type="button" aria-label={`Ver trabajos de ${row.original.imei}`} onClick={(e) => { e.stopPropagation(); abrir(row.original.imei) }} className="shrink-0 cursor-pointer">
             <img src="/Historial.png" alt="" className="h-[25px] w-[25px]" />
           </button>
         </div>
@@ -88,7 +88,7 @@ export function ImeisPage() {
     { id: 'estado', header: 'Estado', size: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },
     { id: 'observacion', header: 'Observación', size: 200, cell: ({ row }) => <TextoExpandible titulo="Observación" texto={row.original.observacion} /> },
     { id: 'cliente', header: 'Cliente', size: 200, cell: ({ row }) => <TextoExpandible titulo="Cliente" texto={row.original.cliente} /> },
-  ], [navigate])
+  ], [abrir])
 
   useRegistrarExportable(() => descargarCsv('agrupado_resumen', CABECERAS_RESUMEN, grupos.map(filaResumen)))
 
