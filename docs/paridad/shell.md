@@ -6,7 +6,7 @@ Capturas: `Apuntes/paridad-capturas/shell/{navbar-tecnico,navbar-supertecnico,me
 - [x] Logo (`logoNavBar.png`, 38 px de alto) clicable → panel inicial del rol (`/reparaciones`).
 - [x] "FSGR:" en negrita 13 px crema + "Gestión de Stock y Reparaciones V.<versión>" normal 13 px crema.
 - [x] Píldora de navegación `--color-nav-switch` radio 24, con 4 botones: Reparaciones, Stock, Estadísticas, Clientes; botón activo navy con texto `#FAFAFA`; 12 px negrita; hover azul medio al 8 %.
-- [ ] Los 4 botones visibles para los 3 roles. (SUPERTECNICO y TECNICO verificados; ADMIN pendiente de comprobar en navegador)
+- [x] Los 4 botones visibles para los 3 roles (SUPERTECNICO y TECNICO verificados con Playwright el 2026-09-15; ADMIN comprobado en el navegador el 2026-09-16: 4 botones, menú con "Gestionar técnicos" y "Ver logs", Clientes en solo lectura).
 - [x] Campana con badge: solo SUPERTECNICO. **No en este sub-proyecto** (llega con Formulario/notificaciones).
 - [x] Botón de usuario: icono `user.png` 28 px + "Hola, <usuario>" 12 px negrita crema; hover blanco al 8 %.
 - [x] Menú de usuario: [ADMIN: "Gestionar técnicos", "Ver logs", separador] "Descargar CSV" (en la web, deshabilitado si la vista no exporta; en el JavaFX está siempre habilitado y no hace nada en vistas sin exportación), "Cambiar contraseña", separador, "Cerrar Sesión".
