@@ -26,13 +26,15 @@ const ALTO_CABECERA = 40
 const ALTO_FILA = 44
 /** jsdom no maqueta: cabecera de 40 px y filas de datos de 44 px colocadas por su data-index justo debajo (su offsetTop es
  *  relativo a la <table>, que empieza arriba del todo del contenedor), y un contenedor (el padre de la <table>) de `alto`
- *  px. El scrollTop de jsdom guarda lo que se le asigna, sin acotarlo. Los espías los restaura el afterEach. */
-function simularMaquetacion(alto: number) {
+ *  px útiles (clientHeight) más `barraHorizontal` px de barra de scroll (offsetHeight, lo que mide el virtualizador).
+ *  El scrollTop de jsdom guarda lo que se le asigna, sin acotarlo. Los espías los restaura el afterEach. */
+function simularMaquetacion(alto: number, barraHorizontal = 0) {
   const esFila = (el: HTMLElement) => el.tagName === 'TR' && el.dataset.index !== undefined
   vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
     return esFila(this) ? ALTO_CABECERA + Number(this.dataset.index) * ALTO_FILA : 0
   })
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+    if (this.firstElementChild?.tagName === 'TABLE') return alto + barraHorizontal
     return this.tagName === 'THEAD' ? ALTO_CABECERA : esFila(this) ? ALTO_FILA : 0
   })
   vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function (this: Element) {
@@ -239,6 +241,52 @@ describe('DataTable', () => {
     expect(scrollTo).toHaveBeenLastCalledWith({ top: 2 * 44, behavior: 'auto' })
     rerender(tabla('300', 3))
     expect(scrollTo).toHaveBeenLastCalledWith({ top: 297 * 44, behavior: 'auto' })
+  })
+
+  describe('flechas en modo virtual (más filas que el umbral)', () => {
+    const QUINIENTAS: Fila[] = Array.from({ length: 500 }, (_, i) => ({ id: String(i), nombre: `F${i}`, nota: 'x' }))
+    function TablaVirtual() {
+      const [seleccionada, setSeleccionada] = useState<string | null>(null)
+      return <DataTable columns={COLUMNAS} data={QUINIENTAS} vacio="" getRowId={(f) => f.id} umbralVirtual={100} seleccionada={seleccionada} onSeleccionar={setSeleccionada} />
+    }
+    /** Contenedor de 150 px útiles con barra de scroll horizontal de 15 px (el Historial necesita 1470 px de ancho), el alto
+     *  de todo su contenido (cabecera y 500 filas) y un scrollTo que, como el del navegador, mueve el scrollTop (jsdom no lo
+     *  implementa). */
+    function montar() {
+      simularMaquetacion(150, 15)
+      render(<TablaVirtual />)
+      const contenedor = screen.getByRole('table').parentElement!
+      Object.defineProperty(contenedor, 'scrollHeight', { configurable: true, value: ALTO_CABECERA + QUINIENTAS.length * ALTO_FILA })
+      Object.assign(contenedor, { scrollTo: ({ top }: ScrollToOptions) => { contenedor.scrollTop = top ?? 0 } })
+      return contenedor
+    }
+    function desplazarConRueda(contenedor: HTMLElement, scrollTop: number) {
+      contenedor.scrollTop = scrollTop
+      fireEvent.scroll(contenedor)
+    }
+
+    it('dejan entera bajo la cabecera la fila a la que llegan, como sin virtualizar (el virtualizador no sabe de la cabecera sticky ni de la barra)', async () => {
+      const contenedor = montar()
+      await userEvent.click(screen.getByText('F1'))
+      contenedor.focus()
+      await userEvent.keyboard('{ArrowDown}') // F2 (128–172): su borde inferior justo al final de los 150 px útiles
+      expect(contenedor.scrollTop).toBe(172 - 150)
+      await userEvent.keyboard('{ArrowDown}') // F3 (172–216)
+      expect(contenedor.scrollTop).toBe(216 - 150)
+      await userEvent.keyboard('{ArrowUp}{ArrowUp}') // F1 (84–128): su borde superior justo debajo de la cabecera
+      expect(contenedor.scrollTop).toBe(84 - ALTO_CABECERA)
+    })
+
+    it('si la fila a la que llegan no está pintada (la selección quedó lejos tras usar la rueda), la acercan igual', async () => {
+      const contenedor = montar()
+      desplazarConRueda(contenedor, 300 * ALTO_FILA)
+      await userEvent.click(screen.getByText('F300'))
+      desplazarConRueda(contenedor, 0)
+      expect(screen.queryByText('F301')).not.toBeInTheDocument()
+      contenedor.focus()
+      await userEvent.keyboard('{ArrowDown}') // F301 (13284–13328), muy por debajo: su borde inferior al final del contenedor
+      expect(contenedor.scrollTop).toBe(ALTO_CABECERA + 302 * ALTO_FILA - 150)
+    })
   })
 
   it('un refresco de datos con la misma selección no vuelve a desplazar la tabla', () => {

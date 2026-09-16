@@ -92,19 +92,28 @@ function nacioDentro(e: SyntheticEvent) {
   return e.currentTarget.contains(e.target as Node)
 }
 
-/** Desplaza solo el contenedor de la tabla hasta `fila`, como el VirtualFlow del TableView, que solo mueve su propia
+/** Posición de una fila dentro del contenido del contenedor de scroll, con la cabecera incluida. */
+type PosicionFila = { arriba: number; alto: number }
+
+/** Un `<tr>` estático tiene la `<table>` como offsetParent y la tabla empieza arriba del todo del contenido del
+ *  contenedor, así que su offsetTop es su posición dentro del scroll (con la cabecera y, en modo virtual, el espaciador
+ *  de arriba incluidos). */
+function posicionDe(fila: HTMLElement): PosicionFila {
+  return { arriba: fila.offsetTop, alto: fila.offsetHeight }
+}
+
+/** Desplaza solo el contenedor de la tabla hasta la fila, como el VirtualFlow del TableView, que solo mueve su propia
  *  lista (`scrollIntoView` movería también la página y cualquier otro ancestro con scroll). La cabecera es sticky y tapa
- *  la parte de arriba del contenedor, así que se descuenta su alto medido. 'arriba' deja la fila justo debajo de la
- *  cabecera (`scrollTo(i)` → `scrollToTop`); 'cercana' mueve lo justo para que se vea entera (las flechas).
- *  Un `<tr>` estático tiene la `<table>` como offsetParent y la tabla empieza arriba del todo del contenido del
- *  contenedor, así que su offsetTop es su posición dentro del scroll (con la cabecera incluida). */
-function desplazarContenedor(contenedor: HTMLElement, fila: HTMLElement, altoCabecera: number, alinear: 'arriba' | 'cercana') {
-  const bajoCabecera = Math.max(0, fila.offsetTop - altoCabecera)
+ *  la parte de arriba del contenedor, así que se descuenta su alto medido; abajo cuenta clientHeight, que ya descuenta la
+ *  barra de scroll horizontal. 'arriba' deja la fila justo debajo de la cabecera (`scrollTo(i)` → `scrollToTop`);
+ *  'cercana' mueve lo justo para que se vea entera (las flechas). */
+function desplazarContenedor(contenedor: HTMLElement, { arriba, alto }: PosicionFila, altoCabecera: number, alinear: 'arriba' | 'cercana') {
+  const bajoCabecera = Math.max(0, arriba - altoCabecera)
   if (alinear === 'arriba' || contenedor.scrollTop > bajoCabecera) {
     contenedor.scrollTop = bajoCabecera
     return
   }
-  const alFinal = fila.offsetTop + fila.offsetHeight - contenedor.clientHeight
+  const alFinal = arriba + alto - contenedor.clientHeight
   if (contenedor.scrollTop < alFinal) contenedor.scrollTop = alFinal
 }
 
@@ -191,15 +200,24 @@ export function DataTable<T>({
     return () => clearTimeout(t)
   }, [resaltada])
 
-  // Flechas: la fila a la que se llega se acerca lo justo para verse entera.
+  // Flechas: la fila a la que se llega se acerca lo justo para verse entera, también en modo virtual. Ahí no sirve
+  // scrollToIndex: no sabe que la cabecera sticky está dentro del contenedor de scroll ni que la barra horizontal le quita
+  // alto, y dejaba la fila tapada bajo el borde inferior. La vecina de una fila visible siempre está pintada (overscan) y
+  // su offsetTop ya da la posición real; si no lo está (la selección quedó lejos tras usar la rueda), la posición sale de
+  // las medidas del virtualizador, que empiezan debajo de la cabecera.
   function desplazarA(indice: number) {
-    if (virtual) {
-      virtualizador.scrollToIndex(indice)
-      return
-    }
     const contenedor = contenedorRef.current
+    if (!contenedor) return
+    const altoCabecera = cabeceraRef.current?.offsetHeight ?? 0
     const fila = filaRefs.current.get(filas[indice].id)
-    if (contenedor && fila) desplazarContenedor(contenedor, fila, cabeceraRef.current?.offsetHeight ?? 0, 'cercana')
+    let posicion: PosicionFila | undefined
+    if (fila) {
+      posicion = posicionDe(fila)
+    } else if (virtual) {
+      const medida = virtualizador.measurementsCache[indice]
+      if (medida) posicion = { arriba: altoCabecera + medida.start, alto: medida.size }
+    }
+    if (posicion) desplazarContenedor(contenedor, posicion, altoCabecera, 'cercana')
   }
 
   // Última selección hecha en la propia tabla (clic, clic derecho, flechas): esa fila ya está a la vista (las flechas
@@ -243,7 +261,7 @@ export function DataTable<T>({
       } else {
         const contenedor = contenedorRef.current
         const fila = filaRefs.current.get(filas[arriba].id)
-        if (contenedor && fila) desplazarContenedor(contenedor, fila, cabeceraRef.current?.offsetHeight ?? 0, 'arriba')
+        if (contenedor && fila) desplazarContenedor(contenedor, posicionDe(fila), cabeceraRef.current?.offsetHeight ?? 0, 'arriba')
       }
       // requestFocus() del TableView: el foco pasa a la tabla (las flechas siguen desde esa fila) sin mover la página.
       if (pedida) contenedorRef.current?.focus({ preventScroll: true })
