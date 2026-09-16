@@ -22,18 +22,16 @@ import { TogglesPendientes } from '../componentes/TogglesPendientes'
 import { filtroImeiPendientes } from '../estado'
 import { etiquetaContador, pasaImeis } from '../lib/filtros'
 import { traducirModelo } from '../lib/modelos'
-import { FMT_PENDIENTES } from './textoCelda'
+import { FMT_PENDIENTES, textoCeldaPendiente } from './textoCelda'
 
+// Solo 'cliente' y 'asignadoPor' son propios de Pulidos (docs/paridad/pendientes.md: "y en Pulidos también Cliente
+// y Asignado por"); textoCeldaPendiente no los copia en Reparaciones/Glass, así que aquí no se puede delegar. El
+// resto de columnas son un calco exacto de textoCeldaPendiente: delegar en vez de duplicar la lógica de copia.
 function textoCelda(rep: ReparacionResumen, columna: string): string | null {
   switch (columna) {
-    case 'id': return rep.idRep
-    case 'imei': return rep.imei
-    case 'modelo': return traducirModelo(rep.modelo)
-    case 'fecha': return formatear(rep.fechaAsig, FMT_PENDIENTES)
-    case 'comentario': return rep.comentarioAsignacion ?? ''
     case 'cliente': return rep.cliente ?? ''
     case 'asignadoPor': return rep.nombreTecnicoAsigna ?? ''
-    default: return null
+    default: return textoCeldaPendiente(rep, columna)
   }
 }
 
@@ -45,7 +43,7 @@ export function PulidosPendientesPage() {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   // calco de cargar(): la selección no sobrevive a una recarga
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setSeleccionados(new Set()), [dataUpdatedAt])
+  useEffect(() => setSeleccionados((prev) => (prev.size ? new Set() : prev)), [dataUpdatedAt])
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
   const completar = useCompletarPulidos()

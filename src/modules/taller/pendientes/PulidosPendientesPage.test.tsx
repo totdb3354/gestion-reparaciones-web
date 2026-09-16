@@ -1,12 +1,20 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { reiniciarEstadoTaller } from '../estado'
 import { resumen } from '../test/fabrica'
 import { PulidosPendientesPage } from './PulidosPendientesPage'
+
+// navigator.clipboard no existe en jsdom por defecto: se define con Object.defineProperty (configurable) para
+// poder restaurar el descriptor original después de cada test, en vez de dejar la mutación de Object.assign.
+const descriptorClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+afterEach(() => {
+  if (descriptorClipboard) Object.defineProperty(navigator, 'clipboard', descriptorClipboard)
+  else Reflect.deleteProperty(navigator, 'clipboard')
+})
 
 const filas = [
   resumen({ idRep: 'AP20260916_1', imei: '351200000000021', modelo: '13', comentarioAsignacion: 'rayado', nombreTecnicoAsigna: 'Técnico F' }),
@@ -39,15 +47,24 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
     abrir()
     await screen.findByText('AP20260916_1')
     await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
-    expect(screen.getAllByRole('checkbox').every((c) => (c as HTMLInputElement).checked || c.getAttribute('aria-checked') === 'true')).toBe(true)
+    expect(screen.getAllByRole('checkbox').every((c) => c.getAttribute('aria-checked') === 'true')).toBe(true)
     const completar = screen.getByRole('button', { name: 'Completar seleccionados' })
     expect(completar).toBeEnabled()
     await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
     expect(completar).toBeDisabled()
-    await userEvent.click(screen.getAllByRole('checkbox')[1])
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_2' }))
     await userEvent.click(completar)
     await waitFor(() => expect(ids).toEqual({ ids: ['AP20260916_2'] }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled())
+  })
+  it('recargar sin completar (Actualizado) también vacía la selección', async () => {
+    abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' }))
+    expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeEnabled()
+    await userEvent.click(screen.getByRole('button', { name: /^Actualizado/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled())
+    expect(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' })).toHaveAttribute('aria-checked', 'false')
   })
   it('la papelera del supertécnico borra la asignación de pulido con su texto', async () => {
     let borrado = false
@@ -61,11 +78,17 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
     await waitFor(() => expect(borrado).toBe(true))
   })
   it('menú solo con Copiar celda; placeholder vacío', async () => {
-    abrir()
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    const { unmount } = abrir()
     await screen.findByText('AP20260916_1')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('AP20260916_1') })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
-    await userEvent.keyboard('{Escape}')
+    // 'id' es uno de los casos que textoCelda delega en textoCeldaPendiente (ver textoCelda.ts): comprueba que la
+    // delegación sigue copiando el valor real de la celda, no solo que el ítem de menú exista.
+    await userEvent.click(screen.getByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).toHaveBeenCalledWith('AP20260916_1')
+    unmount()
     server.use(http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])))
     renderConProviders(<PulidosPendientesPage />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/pulidos' })
     expect(await screen.findByText('No tienes pulidos pendientes')).toBeInTheDocument()
