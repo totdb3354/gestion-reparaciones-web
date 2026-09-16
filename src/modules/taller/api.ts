@@ -7,9 +7,17 @@ import { esAdmin, esSuperTecnico } from '@/shared/session/storage'
 export type TipoLista = 'REPARACION' | 'GLASS' | 'PULIDO'
 
 export const claveHistorial = (tipo: TipoLista) => ['historial', tipo] as const
+/** Prefijo, no la clave real: useAsignaciones le añade el sufijo `tecnico ?? 'propio'`. invalidateQueries
+ *  matchea por prefijo (sirve para invalidar), pero getQueryData/setQueryData (match exacto) no encontrarían
+ *  nada con esta clave sola. */
 export const claveAsignaciones = (tipo: TipoLista) => ['asignaciones', tipo] as const
+/** Prefijo, no la clave real: useContadoresPendientes le añade el sufijo `tecnico ?? 'propio'`. invalidateQueries
+ *  matchea por prefijo (sirve para invalidar), pero getQueryData/setQueryData (match exacto) no encontrarían
+ *  nada con esta clave sola. */
 export const CLAVE_CONTADORES = ['pendientes', 'contadores'] as const
 export const CLAVE_TECNICOS = ['tecnicos'] as const
+// CLAVE_TECNICOS_ACTIVOS extiende CLAVE_TECNICOS (['tecnicos', 'activos']): invalidar CLAVE_TECNICOS también
+// invalida CLAVE_TECNICOS_ACTIVOS, por el mismo matcheo por prefijo de invalidateQueries.
 export const CLAVE_TECNICOS_ACTIVOS = ['tecnicos', 'activos'] as const
 export const CLAVE_CLIENTES_ACTIVOS = ['clientes', 'activos'] as const
 
@@ -124,8 +132,12 @@ export function useBorrarAsignacion() {
     onSettled: recargar,
   })
 }
+/** Borra también el estado de incidencia del historial (no solo Pendientes): borrarIncidenciaPorImei en el
+ *  servidor resetea ES_INCIDENCIA/INCIDENCIA en Reparacion_componente de las filas R%/G% (las de historial,
+ *  ver ReparacionDAO.HISTORIAL_SELECT/GLASS_HISTORIAL_SELECT), que es justo lo que expone esIncidencia/
+ *  esResuelto en /api/{reparaciones,glass}/historial. Por eso invalida HISTORIALES, como useCancelarIncidencia. */
 export function useBorrarIncidenciaActiva() {
-  const recargar = useInvalidar(...PENDIENTES_AMBAS)
+  const recargar = useInvalidar(...HISTORIALES, ...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: ({ imei, tipo }: { imei: string; tipo: 'R' | 'G' }) =>
       api.DELETE('/api/reparaciones/imei/{imei}/incidencia-activa', { params: { path: { imei }, query: { tipo } } }),

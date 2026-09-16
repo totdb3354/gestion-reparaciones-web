@@ -52,11 +52,18 @@ describe('columna lateral de sub-navegación', () => {
     expect(screen.getByRole('link', { name: 'IMEIs' })).toHaveAttribute('href', '/reparaciones/imeis')
     expect(screen.queryByRole('link', { name: 'Asignaciones' })).not.toBeInTheDocument()
   })
-  it('el badge no se pinta a cero y va navy sobre el enlace inactivo', async () => {
+  it('el badge no se pinta a cero', async () => {
     server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })))
     renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/reparaciones/historial' })
     expect(screen.getByRole('link', { name: 'Asignaciones' })).toHaveAttribute('href', '/reparaciones/asignaciones')
     await screen.findByRole('link', { name: 'Pendientes' })
     expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+  it('el badge va navy sobre el enlace inactivo', async () => {
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 5, glass: 2, pulidos: 1 })))
+    renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/reparaciones/historial' })
+    const pendientes = await screen.findByRole('link', { name: /Pendientes/ })
+    expect(pendientes).not.toHaveAttribute('aria-current', 'page')
+    expect(await screen.findByText('8')).toHaveClass('bg-azul-noche', 'text-superficie')
   })
 })

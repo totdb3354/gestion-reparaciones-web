@@ -28,18 +28,36 @@ describe('api del taller', () => {
     await waitFor(() => expect(sup.result.current.isSuccess).toBe(true))
     expect(urls).toEqual(['', '?tecnico=3'])
   })
+  it('los contadores piden sin ?tecnico= para el técnico y con su idTec para el supertécnico', async () => {
+    const urls: string[] = []
+    server.use(
+      http.get('*/api/reparaciones/pendientes/contadores', ({ request }) => {
+        urls.push(new URL(request.url).search)
+        return HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })
+      }),
+    )
+    const tec = renderHook(() => useContadoresPendientes(), { wrapper: envoltorio(SESION_TEC) })
+    await waitFor(() => expect(tec.result.current.isSuccess).toBe(true))
+    const sup = renderHook(() => useContadoresPendientes(), { wrapper: envoltorio(SESION_SUPER) })
+    await waitFor(() => expect(sup.result.current.isSuccess).toBe(true))
+    expect(urls).toEqual(['', '?tecnico=3'])
+  })
   it('una acción de Pendientes invalida la lista y los contadores', async () => {
     let contadores = 0
+    let lista = 0
     server.use(
-      http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
+      http.get('*/api/reparaciones/asignaciones', () => { lista++; return HttpResponse.json([]) }),
       http.get('*/api/reparaciones/pendientes/contadores', () => { contadores++; return HttpResponse.json({ reparaciones: 1, glass: 0, pulidos: 0 }) }),
       http.patch('*/api/reparaciones/asignaciones/A1/por-cerrar', () => new HttpResponse(null, { status: 204 })),
     )
     const wrapper = envoltorio(SESION_TEC)
+    const a = renderHook(() => useAsignaciones('REPARACION'), { wrapper })
+    await waitFor(() => expect(a.result.current.isSuccess).toBe(true))
     const c = renderHook(() => useContadoresPendientes(), { wrapper })
     await waitFor(() => expect(c.result.current.isSuccess).toBe(true))
     const m = renderHook(() => usePorCerrar(), { wrapper })
     await m.result.current.mutateAsync({ idRep: 'A1', porCerrar: true })
     await waitFor(() => expect(contadores).toBe(2))
+    await waitFor(() => expect(lista).toBe(2))
   })
 })
