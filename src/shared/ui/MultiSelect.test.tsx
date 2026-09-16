@@ -62,4 +62,14 @@ describe('MultiSelect', () => {
     expect(screen.getByRole('button', { name: 'Cliente' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'WEB' })).toBeInTheDocument()
   })
+
+  it('con textoTodas y todas marcadas muestra "Todas"; con una marcada muestra su etiqueta, no su clave', async () => {
+    const opciones = [{ id: 1, nombre: 'Técnico A' }, { id: 2, nombre: 'Técnico F' }]
+    const { rerender } = render(<MultiSelect opciones={opciones} clave={(o) => String(o.id)} etiqueta={(o) => o.nombre} seleccion={new Set(['2'])} onChange={() => {}} textoVacio="Técnico" textoPlural={(n) => `${n} técnicos`} textoTodas="Todas" />)
+    expect(screen.getByRole('button', { name: 'Técnico F' })).toBeInTheDocument()
+    rerender(<MultiSelect opciones={opciones} clave={(o) => String(o.id)} etiqueta={(o) => o.nombre} seleccion={new Set(['1', '2'])} onChange={() => {}} textoVacio="Técnico" textoPlural={(n) => `${n} técnicos`} textoTodas="Todas" />)
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument()
+    rerender(<MultiSelect opciones={opciones} clave={(o) => String(o.id)} etiqueta={(o) => o.nombre} seleccion={new Set(['1', '2'])} onChange={() => {}} textoVacio="Técnico" textoPlural={(n) => `${n} técnicos`} />)
+    expect(screen.getByRole('button', { name: '2 técnicos' })).toBeInTheDocument()
+  })
 })
