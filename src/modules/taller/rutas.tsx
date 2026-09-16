@@ -6,6 +6,7 @@ export type EnlaceTaller = { to: string; label: string; badge?: 'pendientes' }
 
 /** Columna lateral de Reparaciones en el orden del JavaFX: TECNICO Pendientes·Historial·IMEIs; SUPERTECNICO
  *  Asignaciones·Pendientes·Historial·IMEIs; ADMIN Asignaciones·Historial·IMEIs. */
+// eslint-disable-next-line react-refresh/only-export-components -- la funcion vive con las rutas que la usan, patron del proyecto
 export function enlacesReparaciones(sesion: Sesion | null): EnlaceTaller[] {
   const enlaces: EnlaceTaller[] = []
   if (esAdminOSuperTecnico(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones' })
