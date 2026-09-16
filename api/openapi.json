@@ -3103,10 +3103,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
+                  "$ref" : "#/components/schemas/ValorTexto"
                 }
               }
             }
@@ -3133,6 +3130,33 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ReparacionDAODetalleEdicion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/pendientes/contadores" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getContadoresPendientes",
+        "parameters" : [ {
+          "name" : "tecnico",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ContadoresPendientes"
                 }
               }
             }
@@ -4307,6 +4331,7 @@
   "components" : {
     "schemas" : {
       "ValorDificultad" : {
+        "required" : [ "clave", "puntos" ],
         "type" : "object",
         "properties" : {
           "clave" : {
@@ -4319,6 +4344,7 @@
         }
       },
       "TelefonoRevisionLogisticaRequest" : {
+        "required" : [ "revisado", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "revisado" : {
@@ -4331,6 +4357,7 @@
         }
       },
       "ReparacionEditarRequest" : {
+        "required" : [ "esReutilizadoNuevo", "idComNuevo", "nNuevas", "observacionNueva", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idComNuevo" : {
@@ -4354,6 +4381,7 @@
         }
       },
       "ReparacionBorradorRequest" : {
+        "required" : [ "contenido" ],
         "type" : "object",
         "properties" : {
           "contenido" : {
@@ -4362,6 +4390,7 @@
         }
       },
       "ProveedorEditarRequest" : {
+        "required" : [ "comentario", "divisa", "nombre" ],
         "type" : "object",
         "properties" : {
           "nombre" : {
@@ -4376,6 +4405,7 @@
         }
       },
       "EquivalenciaModeloEquivalenciaRequest" : {
+        "required" : [ "modeloInterno", "textoExterno" ],
         "type" : "object",
         "properties" : {
           "textoExterno" : {
@@ -4387,6 +4417,7 @@
         }
       },
       "CompraEditarRequest" : {
+        "required" : [ "cantidad", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idProv" : {
@@ -4418,6 +4449,7 @@
         }
       },
       "CompraOtroEditarRequest" : {
+        "required" : [ "cantidad", "concepto", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idProv" : {
@@ -4452,6 +4484,7 @@
         }
       },
       "ComponenteActualizarRequest" : {
+        "required" : [ "stock", "stockMinimo", "tipo", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "tipo" : {
@@ -4472,6 +4505,7 @@
         }
       },
       "ColorEquivalenciaEquivalenciaRequest" : {
+        "required" : [ "colorOficial", "textoExterno" ],
         "type" : "object",
         "properties" : {
           "textoExterno" : {
@@ -4483,6 +4517,7 @@
         }
       },
       "ClienteEditarRequest" : {
+        "required" : [ "nombre", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "nombre" : {
@@ -4495,6 +4530,7 @@
         }
       },
       "UsuarioRegistrarTecnicoRequest" : {
+        "required" : [ "nombreTecnico", "nombreUsuario", "password", "rol" ],
         "type" : "object",
         "properties" : {
           "nombreTecnico" : {
@@ -4512,6 +4548,7 @@
         }
       },
       "TelefonoImeiRequest" : {
+        "required" : [ "clienteExplicito", "idCli", "imei", "modelo" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4522,25 +4559,30 @@
           },
           "idCli" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "clienteExplicito" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         }
       },
       "TelefonoEstadoRequest" : {
+        "required" : [ "accion", "motivo" ],
         "type" : "object",
         "properties" : {
           "accion" : {
             "type" : "string"
           },
           "motivo" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
       "TelefonoDevolucionItem" : {
+        "required" : [ "imei", "motivo" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4552,6 +4594,7 @@
         }
       },
       "TelefonoDevolucionesRequest" : {
+        "required" : [ "items" ],
         "type" : "object",
         "properties" : {
           "items" : {
@@ -4563,6 +4606,7 @@
         }
       },
       "EnvioDAOItemDevolucion" : {
+        "required" : [ "envio", "imei", "resultado" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4578,6 +4622,7 @@
         }
       },
       "TelefonoImeisRequest" : {
+        "required" : [ "imeis" ],
         "type" : "object",
         "properties" : {
           "imeis" : {
@@ -4589,6 +4634,7 @@
         }
       },
       "TelefonoResultadoARevisarResponse" : {
+        "required" : [ "imei", "resultado" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4600,6 +4646,7 @@
         }
       },
       "TecnicoNombreRequest" : {
+        "required" : [ "nombre" ],
         "type" : "object",
         "properties" : {
           "nombre" : {
@@ -4608,6 +4655,7 @@
         }
       },
       "SolicitudStockInsertarRequest" : {
+        "required" : [ "descripcion", "idCom" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -4620,6 +4668,7 @@
         }
       },
       "ReparacionInsertarRequest" : {
+        "required" : [ "fechaAsig", "fechaFin", "idTec", "imei" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4640,6 +4689,7 @@
         }
       },
       "ReparacionIncidenciaRequest" : {
+        "required" : [ "comentario", "idTec", "imei" ],
         "type" : "object",
         "properties" : {
           "comentario" : {
@@ -4655,6 +4705,7 @@
         }
       },
       "FilaReparacion" : {
+        "required" : [ "cantidad", "descripcionSolicitud", "enCamino", "esSolicitud", "estadoSolicitud", "idCom", "observacion", "prefijo", "reutilizado" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -4689,6 +4740,7 @@
         }
       },
       "ReparacionGuardarFilaRequest" : {
+        "required" : [ "filas", "idRepAnterior", "idTec", "imei" ],
         "type" : "object",
         "properties" : {
           "filas" : {
@@ -4710,6 +4762,7 @@
         }
       },
       "ReparacionAgotarRequest" : {
+        "required" : [ "cantidad", "descripcion", "idCom" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -4726,6 +4779,7 @@
         }
       },
       "ReparacionInsertarCompletaRequest" : {
+        "required" : [ "categoria", "filas", "idAsignacion", "idRepAnterior", "idTec", "imei" ],
         "type" : "object",
         "properties" : {
           "filas" : {
@@ -4753,6 +4807,7 @@
         }
       },
       "ReparacionAsignacionRequest" : {
+        "required" : [ "comentario", "esChasis", "idTec", "imei", "urgente" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4763,7 +4818,8 @@
             "format" : "int32"
           },
           "comentario" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "urgente" : {
             "type" : "boolean"
@@ -4774,6 +4830,7 @@
         }
       },
       "ReparacionComponenteInsertarRequest" : {
+        "required" : [ "cantidad", "descripcionSolicitud", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "idCom", "idRep", "incidencia", "observaciones" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -4811,6 +4868,7 @@
         }
       },
       "PulidoAsignacionPulidoRequest" : {
+        "required" : [ "comentario", "idTec", "imei" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4821,11 +4879,13 @@
             "format" : "int32"
           },
           "comentario" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
       "PulidoLoteRequest" : {
+        "required" : [ "ids" ],
         "type" : "object",
         "properties" : {
           "ids" : {
@@ -4837,6 +4897,7 @@
         }
       },
       "ProveedorAltaRequest" : {
+        "required" : [ "divisa", "nombre", "tipo" ],
         "type" : "object",
         "properties" : {
           "nombre" : {
@@ -4851,6 +4912,7 @@
         }
       },
       "LoteVerificarRequest" : {
+        "required" : [ "imeis" ],
         "type" : "object",
         "properties" : {
           "imeis" : {
@@ -4862,6 +4924,7 @@
         }
       },
       "VerificacionImei" : {
+        "required" : [ "estado", "existe", "imei", "modelo", "trabajosAbiertos" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4883,6 +4946,7 @@
         }
       },
       "ImportacionRequest" : {
+        "required" : [ "lotes" ],
         "type" : "object",
         "properties" : {
           "lotes" : {
@@ -4894,6 +4958,7 @@
         }
       },
       "ImportacionRequestLoteImport" : {
+        "required" : [ "batchNumber", "idProv", "nota", "telefonos" ],
         "type" : "object",
         "properties" : {
           "batchNumber" : {
@@ -4915,6 +4980,7 @@
         }
       },
       "ImportacionRequestTelefonoImport" : {
+        "required" : [ "color", "divisa", "esEsim", "gradoProveedor", "imei", "modelo", "precioCompra", "precioCompraEur", "storageGb" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4948,6 +5014,7 @@
         }
       },
       "ImportacionRequestRespuesta" : {
+        "required" : [ "conflictosOmitidos", "lotes", "telefonos" ],
         "type" : "object",
         "properties" : {
           "lotes" : {
@@ -4967,6 +5034,7 @@
         }
       },
       "GlassGlassAsignacionRequest" : {
+        "required" : [ "comentario", "idTec", "imei", "urgente" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -4977,7 +5045,8 @@
             "format" : "int32"
           },
           "comentario" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "urgente" : {
             "type" : "boolean"
@@ -4985,6 +5054,7 @@
         }
       },
       "EnvioEnvioRequest" : {
+        "required" : [ "destinoTexto", "idCli", "imeis", "referencia" ],
         "type" : "object",
         "properties" : {
           "idCli" : {
@@ -5006,6 +5076,7 @@
         }
       },
       "EnvioDAOItemEnvio" : {
+        "required" : [ "estado", "imei", "resultado" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -5020,6 +5091,7 @@
         }
       },
       "EnvioDAOResultadoLote" : {
+        "required" : [ "idEnvio", "items" ],
         "type" : "object",
         "properties" : {
           "idEnvio" : {
@@ -5035,6 +5107,7 @@
         }
       },
       "CompraInsertarRequest" : {
+        "required" : [ "cantidad", "divisa", "esUrgente", "idCom", "idProv", "precioEur", "precioUnidad" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -5066,6 +5139,7 @@
         }
       },
       "CompraOtroInsertarRequest" : {
+        "required" : [ "cantidad", "concepto", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad" ],
         "type" : "object",
         "properties" : {
           "idProv" : {
@@ -5096,6 +5170,7 @@
         }
       },
       "ComponenteInsertarRequest" : {
+        "required" : [ "stock", "stockMinimo", "tipo" ],
         "type" : "object",
         "properties" : {
           "tipo" : {
@@ -5112,6 +5187,7 @@
         }
       },
       "ClienteNombreRequest" : {
+        "required" : [ "nombre" ],
         "type" : "object",
         "properties" : {
           "nombre" : {
@@ -5120,6 +5196,7 @@
         }
       },
       "AuthLoginRequest" : {
+        "required" : [ "password", "usuario" ],
         "type" : "object",
         "properties" : {
           "usuario" : {
@@ -5131,6 +5208,7 @@
         }
       },
       "LoginResponse" : {
+        "required" : [ "idTec", "idUsu", "nombreUsuario", "rol", "token" ],
         "type" : "object",
         "properties" : {
           "idUsu" : {
@@ -5145,7 +5223,8 @@
           },
           "idTec" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "token" : {
             "type" : "string"
@@ -5153,6 +5232,7 @@
         }
       },
       "TelefonoFuncionalRequest" : {
+        "required" : [ "altInf", "altSup", "bateriaPct", "bloqueoOp", "camLente", "camMancha", "faceId", "mic", "ms", "msTexto", "observacion", "pantMal", "pantQuemada", "pantTactil" ],
         "type" : "object",
         "properties" : {
           "bateriaPct" : {
@@ -5201,6 +5281,7 @@
         }
       },
       "TelefonoEsteticaRequest" : {
+        "required" : [ "grado", "pant" ],
         "type" : "object",
         "properties" : {
           "grado" : {
@@ -5212,6 +5293,7 @@
         }
       },
       "TelefonoObservacionRequest" : {
+        "required" : [ "observacion", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "observacion" : {
@@ -5224,11 +5306,13 @@
         }
       },
       "TelefonoClienteRequest" : {
+        "required" : [ "idCli", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCli" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
@@ -5237,6 +5321,7 @@
         }
       },
       "TelefonoAtributosRequest" : {
+        "required" : [ "color", "esEsim", "gradoPropio", "gradoProveedor", "modelo", "storageGb", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "modelo" : {
@@ -5265,6 +5350,7 @@
         }
       },
       "TecnicoGlassRequest" : {
+        "required" : [ "habilitado" ],
         "type" : "object",
         "properties" : {
           "habilitado" : {
@@ -5273,6 +5359,7 @@
         }
       },
       "ReparacionActualizarAsignacionRequest" : {
+        "required" : [ "comentarioAsignacion", "idTec", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idTec" : {
@@ -5280,7 +5367,8 @@
             "format" : "int32"
           },
           "comentarioAsignacion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
@@ -5289,6 +5377,7 @@
         }
       },
       "ReparacionUrgenteRequest" : {
+        "required" : [ "urgente" ],
         "type" : "object",
         "properties" : {
           "urgente" : {
@@ -5297,6 +5386,7 @@
         }
       },
       "ReparacionPorCerrarRequest" : {
+        "required" : [ "porCerrar" ],
         "type" : "object",
         "properties" : {
           "porCerrar" : {
@@ -5305,6 +5395,7 @@
         }
       },
       "ReparacionEntregaGlassRequest" : {
+        "required" : [ "entregado" ],
         "type" : "object",
         "properties" : {
           "entregado" : {
@@ -5313,6 +5404,7 @@
         }
       },
       "ReparacionChasisRequest" : {
+        "required" : [ "esChasis" ],
         "type" : "object",
         "properties" : {
           "esChasis" : {
@@ -5321,6 +5413,7 @@
         }
       },
       "PulidoActualizarPulidoRequest" : {
+        "required" : [ "comentario", "idTec", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idTec" : {
@@ -5328,7 +5421,8 @@
             "format" : "int32"
           },
           "comentario" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
@@ -5337,6 +5431,7 @@
         }
       },
       "ProveedorActivoRequest" : {
+        "required" : [ "activo" ],
         "type" : "object",
         "properties" : {
           "activo" : {
@@ -5345,6 +5440,7 @@
         }
       },
       "CompraRecibirRestoRequest" : {
+        "required" : [ "cantidadExtra", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "cantidadExtra" : {
@@ -5358,6 +5454,7 @@
         }
       },
       "CompraUpdatedAtRequest" : {
+        "required" : [ "updatedAt" ],
         "type" : "object",
         "properties" : {
           "updatedAt" : {
@@ -5367,6 +5464,7 @@
         }
       },
       "CompraConfirmarParcialRequest" : {
+        "required" : [ "cantidadRecibida", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "cantidadRecibida" : {
@@ -5380,6 +5478,7 @@
         }
       },
       "CompraOtroRecibirRestoRequest" : {
+        "required" : [ "cantidadExtra", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "cantidadExtra" : {
@@ -5393,6 +5492,7 @@
         }
       },
       "CompraOtroUpdatedAtRequest" : {
+        "required" : [ "updatedAt" ],
         "type" : "object",
         "properties" : {
           "updatedAt" : {
@@ -5402,6 +5502,7 @@
         }
       },
       "CompraOtroConfirmarParcialRequest" : {
+        "required" : [ "cantidadRecibida", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "cantidadRecibida" : {
@@ -5415,6 +5516,7 @@
         }
       },
       "ComponenteDeltaRequest" : {
+        "required" : [ "delta" ],
         "type" : "object",
         "properties" : {
           "delta" : {
@@ -5424,6 +5526,7 @@
         }
       },
       "ComponenteStockMinimoRequest" : {
+        "required" : [ "stockMinimo" ],
         "type" : "object",
         "properties" : {
           "stockMinimo" : {
@@ -5433,6 +5536,7 @@
         }
       },
       "ComponenteActivoRequest" : {
+        "required" : [ "activo" ],
         "type" : "object",
         "properties" : {
           "activo" : {
@@ -5441,6 +5545,7 @@
         }
       },
       "ClienteActivoRequest" : {
+        "required" : [ "activo", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "activo" : {
@@ -5453,6 +5558,7 @@
         }
       },
       "AuthCambiarPasswordRequest" : {
+        "required" : [ "passwordActual", "passwordNueva" ],
         "type" : "object",
         "properties" : {
           "passwordActual" : {
@@ -5464,6 +5570,7 @@
         }
       },
       "Usuario" : {
+        "required" : [ "activo", "idTec", "idUsu", "nombreTecnico", "nombreUsuario", "rol" ],
         "type" : "object",
         "properties" : {
           "idUsu" : {
@@ -5489,6 +5596,7 @@
         }
       },
       "Telefono" : {
+        "required" : [ "idCli", "imei", "modelo", "observacion", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -5511,6 +5619,7 @@
         }
       },
       "Revision" : {
+        "required" : [ "estFecha", "estGrado", "estIdUsu", "estPant", "estUsuario", "fechaCreacion", "funAltInf", "funAltSup", "funBateriaPct", "funBloqueoOp", "funCamLente", "funCamMancha", "funFaceId", "funFecha", "funIdUsu", "funMic", "funMs", "funMsTexto", "funObservacion", "funPantMal", "funPantQuemada", "funPantTactil", "funUsuario", "idRevision", "imei" ],
         "type" : "object",
         "properties" : {
           "idRevision" : {
@@ -5598,6 +5707,7 @@
         }
       },
       "TelefonoRevisionResponse" : {
+        "required" : [ "existe", "revision" ],
         "type" : "object",
         "properties" : {
           "existe" : {
@@ -5609,6 +5719,7 @@
         }
       },
       "MovimientoTelefono" : {
+        "required" : [ "fecha", "idMov", "idUsu", "imei", "motivo", "referencia", "ubicacionDestino", "ubicacionOrigen", "usuario" ],
         "type" : "object",
         "properties" : {
           "idMov" : {
@@ -5644,6 +5755,7 @@
         }
       },
       "TelefonoInventario" : {
+        "required" : [ "batchNumber", "cliente", "color", "esDevolucion", "esEsim", "estFecha", "estUsuario", "estado", "estadoEfectivo", "funBateriaPct", "funFecha", "funUsuario", "glassAbiertos", "glassHechas", "gradoPropio", "gradoProveedor", "idCli", "idLote", "imei", "incAbiertas", "modelo", "normalAbiertos", "observacion", "proveedor", "pulAbiertos", "pulHechos", "repHechas", "revDesde", "solicitudesPendientes", "storageGb", "subUbicaciones", "telefonoUpdatedAt", "ubicacion", "ultimaActividad" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -5771,6 +5883,7 @@
         }
       },
       "Tecnico" : {
+        "required" : [ "activo", "esEstadistica", "esGlass", "idTec", "nombre" ],
         "type" : "object",
         "properties" : {
           "idTec" : {
@@ -5792,6 +5905,7 @@
         }
       },
       "SolicitudResumen" : {
+        "required" : [ "descripcion", "estado", "fechaSolicitud", "idCom", "idRc", "idRep", "imei", "nombreTecnico", "tipoComponente" ],
         "type" : "object",
         "properties" : {
           "idRc" : {
@@ -5827,6 +5941,7 @@
         }
       },
       "SolicitudStock" : {
+        "required" : [ "descripcion", "estado", "fecha", "idCom", "idSol", "idUsu", "nombreUsuario", "tipoComponente" ],
         "type" : "object",
         "properties" : {
           "idSol" : {
@@ -5860,6 +5975,7 @@
         }
       },
       "Reparacion" : {
+        "required" : [ "fechaAsig", "fechaFin", "idRep", "idTec", "imei", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -5886,7 +6002,18 @@
           }
         }
       },
+      "ValorTexto" : {
+        "required" : [ "value" ],
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
       "ReparacionDAODetalleEdicion" : {
+        "required" : [ "cantidad", "esReutilizado", "idCom", "idTec", "imei", "observacion", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -5916,7 +6043,26 @@
           }
         }
       },
+      "ContadoresPendientes" : {
+        "required" : [ "glass", "pulidos", "reparaciones" ],
+        "type" : "object",
+        "properties" : {
+          "reparaciones" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "glass" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pulidos" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "ReparacionDAOAsignacionActiva" : {
+        "required" : [ "idRep", "idTec", "nombreTecnico" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -5932,6 +6078,7 @@
         }
       },
       "ReparacionResumen" : {
+        "required" : [ "cliente", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -5949,13 +6096,16 @@
           },
           "fechaFin" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "tipoComponente" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "observaciones" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "esIncidencia" : {
             "type" : "boolean"
@@ -5967,10 +6117,12 @@
             "type" : "boolean"
           },
           "incidencia" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "idRepAnterior" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "idTec" : {
             "type" : "integer",
@@ -5981,13 +6133,16 @@
             "format" : "int32"
           },
           "descripcionSolicitud" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "estadoSolicitud" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "tipoSolicitud" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "stockSolicitud" : {
             "type" : "integer",
@@ -5997,20 +6152,25 @@
             "type" : "boolean"
           },
           "tiposSolicitud" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "modelo" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "comentarioAsignacion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "observacionTelefono" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "urgente" : {
             "type" : "boolean"
@@ -6025,52 +6185,64 @@
             "type" : "boolean"
           },
           "nombreTecnicoAsigna" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "telefonoUpdatedAt" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "cliente" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "entregadoAt" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "entregadoPorNombre" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "entregadoPor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "glassAbierta" : {
             "type" : "boolean"
           },
           "glassEntregadoAt" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "glassEntregadoPorNombre" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "glassEntregadoPor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "glassTecnicoNombre" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "normalAbierta" : {
             "type" : "boolean"
           },
           "normalTecnicoNombre" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
       "PuntoEstadistica" : {
+        "required" : [ "cantidad", "nombreTecnico", "periodo" ],
         "type" : "object",
         "properties" : {
           "nombreTecnico" : {
@@ -6086,6 +6258,7 @@
         }
       },
       "PuntoEstadisticaPuntos" : {
+        "required" : [ "getnGlass", "getnImeis", "getnImeisJornada", "getnNormales", "getnPulidos", "getnSinPiezas", "nombreTecnico", "periodo", "puntos", "puntosGlass", "puntosJornada", "puntosNormales", "puntosPulidos" ],
         "type" : "object",
         "properties" : {
           "nombreTecnico" : {
@@ -6141,6 +6314,7 @@
         }
       },
       "ReparacionComponente" : {
+        "required" : [ "descripcionSolicitud", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "idCom", "idRc", "idRep", "incidencia", "observaciones" ],
         "type" : "object",
         "properties" : {
           "idRc" : {
@@ -6181,6 +6355,7 @@
         }
       },
       "Proveedor" : {
+        "required" : [ "activo", "comentario", "divisa", "idProv", "nombre", "tipo" ],
         "type" : "object",
         "properties" : {
           "idProv" : {
@@ -6205,6 +6380,7 @@
         }
       },
       "Lote" : {
+        "required" : [ "batchNumber", "fechaImport", "idLote", "idProv", "nota", "numTelefonos", "proveedor", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idLote" : {
@@ -6239,6 +6415,7 @@
         }
       },
       "LogActividad" : {
+        "required" : [ "accion", "detalle", "fecha", "idLog", "motivo", "nombreUsuario" ],
         "type" : "object",
         "properties" : {
           "idLog" : {
@@ -6264,6 +6441,7 @@
         }
       },
       "CompraComponente" : {
+        "required" : [ "cantidad", "cantidadRecibida", "divisa", "esUrgente", "estado", "fechaLlegada", "fechaPedido", "idCom", "idCompra", "idProv", "nombreProveedor", "precioEur", "precioUnidadPedido", "tipoComponente", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCompra" : {
@@ -6324,6 +6502,7 @@
         }
       },
       "CompraOtro" : {
+        "required" : [ "cantidad", "cantidadRecibida", "concepto", "divisa", "esUrgente", "estado", "fechaLlegada", "fechaPedido", "idCompraOtro", "idProv", "nombreProveedor", "precioEur", "precioUnidadPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCompraOtro" : {
@@ -6380,6 +6559,7 @@
         }
       },
       "Componente" : {
+        "required" : [ "activo", "enCamino", "fechaRegistro", "idCom", "idComMaster", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -6423,6 +6603,7 @@
         }
       },
       "PuntoStock" : {
+        "required" : [ "periodo", "stockEstimado", "stockMinimo", "tipoComponente" ],
         "type" : "object",
         "properties" : {
           "periodo" : {
@@ -6442,6 +6623,7 @@
         }
       },
       "Cliente" : {
+        "required" : [ "activo", "idCli", "nombre", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCli" : {
@@ -6461,6 +6643,7 @@
         }
       },
       "ValorBooleano" : {
+        "required" : [ "value" ],
         "type" : "object",
         "properties" : {
           "value" : {
@@ -6469,18 +6652,22 @@
         }
       },
       "ReparacionMotivoRequest" : {
+        "required" : [ "motivo" ],
         "type" : "object",
         "properties" : {
           "motivo" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
       "PulidoMotivoRequest" : {
+        "required" : [ "motivo" ],
         "type" : "object",
         "properties" : {
           "motivo" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       }

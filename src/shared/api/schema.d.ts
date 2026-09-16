@@ -1476,6 +1476,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reparaciones/pendientes/contadores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getContadoresPendientes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reparaciones/imei/{imei}": {
         parameters: {
             query?: never;
@@ -2089,879 +2105,890 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         ValorDificultad: {
-            clave?: string;
+            clave: string;
             /** Format: double */
-            puntos?: number;
+            puntos: number;
         };
         TelefonoRevisionLogisticaRequest: {
-            revisado?: boolean;
+            revisado: boolean;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ReparacionEditarRequest: {
             /** Format: int32 */
-            idComNuevo?: number;
-            esReutilizadoNuevo?: boolean;
-            observacionNueva?: string;
+            idComNuevo: number;
+            esReutilizadoNuevo: boolean;
+            observacionNueva: string;
             /** Format: int32 */
-            nNuevas?: number;
+            nNuevas: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ReparacionBorradorRequest: {
-            contenido?: string;
+            contenido: string;
         };
         ProveedorEditarRequest: {
-            nombre?: string;
-            divisa?: string;
-            comentario?: string;
+            nombre: string;
+            divisa: string;
+            comentario: string;
         };
         EquivalenciaModeloEquivalenciaRequest: {
-            textoExterno?: string;
-            modeloInterno?: string;
+            textoExterno: string;
+            modeloInterno: string;
         };
         CompraEditarRequest: {
             /** Format: int32 */
-            idProv?: number;
+            idProv: number;
             /** Format: int32 */
-            cantidad?: number;
-            esUrgente?: boolean;
+            cantidad: number;
+            esUrgente: boolean;
             /** Format: double */
-            precioUnidad?: number;
-            divisa?: string;
+            precioUnidad: number;
+            divisa: string;
             /** Format: double */
-            precioEur?: number;
+            precioEur: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraOtroEditarRequest: {
             /** Format: int32 */
-            idProv?: number;
-            concepto?: string;
+            idProv: number;
+            concepto: string;
             /** Format: int32 */
-            cantidad?: number;
-            esUrgente?: boolean;
+            cantidad: number;
+            esUrgente: boolean;
             /** Format: double */
-            precioUnidad?: number;
-            divisa?: string;
+            precioUnidad: number;
+            divisa: string;
             /** Format: double */
-            precioEur?: number;
+            precioEur: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ComponenteActualizarRequest: {
-            tipo?: string;
+            tipo: string;
             /** Format: int32 */
-            stock?: number;
+            stock: number;
             /** Format: int32 */
-            stockMinimo?: number;
+            stockMinimo: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ColorEquivalenciaEquivalenciaRequest: {
-            textoExterno?: string;
-            colorOficial?: string;
+            textoExterno: string;
+            colorOficial: string;
         };
         ClienteEditarRequest: {
-            nombre?: string;
+            nombre: string;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         UsuarioRegistrarTecnicoRequest: {
-            nombreTecnico?: string;
-            nombreUsuario?: string;
-            password?: string;
-            rol?: string;
+            nombreTecnico: string;
+            nombreUsuario: string;
+            password: string;
+            rol: string;
         };
         TelefonoImeiRequest: {
-            imei?: string;
-            modelo?: string;
+            imei: string;
+            modelo: string;
             /** Format: int32 */
-            idCli?: number;
-            clienteExplicito?: boolean;
+            idCli: number | null;
+            clienteExplicito: boolean | null;
         };
         TelefonoEstadoRequest: {
-            accion?: string;
-            motivo?: string;
+            accion: string;
+            motivo: string | null;
         };
         TelefonoDevolucionItem: {
-            imei?: string;
-            motivo?: string;
+            imei: string;
+            motivo: string;
         };
         TelefonoDevolucionesRequest: {
-            items?: components["schemas"]["TelefonoDevolucionItem"][];
+            items: components["schemas"]["TelefonoDevolucionItem"][];
         };
         EnvioDAOItemDevolucion: {
-            imei?: string;
-            resultado?: string;
+            imei: string;
+            resultado: string;
             /** Format: int32 */
-            envio?: number;
+            envio: number;
         };
         TelefonoImeisRequest: {
-            imeis?: string[];
+            imeis: string[];
         };
         TelefonoResultadoARevisarResponse: {
-            imei?: string;
-            resultado?: string;
+            imei: string;
+            resultado: string;
         };
         TecnicoNombreRequest: {
-            nombre?: string;
+            nombre: string;
         };
         SolicitudStockInsertarRequest: {
             /** Format: int32 */
-            idCom?: number;
-            descripcion?: string;
+            idCom: number;
+            descripcion: string;
         };
         ReparacionInsertarRequest: {
-            imei?: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
+            idTec: number;
             /** Format: date-time */
-            fechaAsig?: string;
+            fechaAsig: string;
             /** Format: date-time */
-            fechaFin?: string;
+            fechaFin: string;
         };
         ReparacionIncidenciaRequest: {
-            comentario?: string;
-            imei?: string;
+            comentario: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
+            idTec: number;
         };
         FilaReparacion: {
             /** Format: int32 */
-            idCom?: number;
+            idCom: number;
             /** Format: int32 */
-            cantidad?: number;
-            reutilizado?: boolean;
-            observacion?: string;
-            prefijo?: string;
-            esSolicitud?: boolean;
-            descripcionSolicitud?: string;
-            estadoSolicitud?: string;
-            enCamino?: boolean;
+            cantidad: number;
+            reutilizado: boolean;
+            observacion: string;
+            prefijo: string;
+            esSolicitud: boolean;
+            descripcionSolicitud: string;
+            estadoSolicitud: string;
+            enCamino: boolean;
         };
         ReparacionGuardarFilaRequest: {
-            filas?: components["schemas"]["FilaReparacion"][];
-            imei?: string;
+            filas: components["schemas"]["FilaReparacion"][];
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
-            idRepAnterior?: string;
+            idTec: number;
+            idRepAnterior: string;
         };
         ReparacionAgotarRequest: {
             /** Format: int32 */
-            idCom?: number;
+            idCom: number;
             /** Format: int32 */
-            cantidad?: number;
-            descripcion?: string;
+            cantidad: number;
+            descripcion: string;
         };
         ReparacionInsertarCompletaRequest: {
-            filas?: components["schemas"]["FilaReparacion"][];
-            imei?: string;
+            filas: components["schemas"]["FilaReparacion"][];
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
-            idRepAnterior?: string;
-            idAsignacion?: string;
-            categoria?: string;
+            idTec: number;
+            idRepAnterior: string;
+            idAsignacion: string;
+            categoria: string;
         };
         ReparacionAsignacionRequest: {
-            imei?: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
-            comentario?: string;
-            urgente?: boolean;
-            esChasis?: boolean;
+            idTec: number;
+            comentario: string | null;
+            urgente: boolean;
+            esChasis: boolean;
         };
         ReparacionComponenteInsertarRequest: {
-            idRep?: string;
+            idRep: string;
             /** Format: int32 */
-            idCom?: number;
-            esReutilizado?: boolean;
-            esIncidencia?: boolean;
-            esResuelto?: boolean;
-            incidencia?: string;
-            observaciones?: string;
-            esSolicitud?: boolean;
-            descripcionSolicitud?: string;
+            idCom: number;
+            esReutilizado: boolean;
+            esIncidencia: boolean;
+            esResuelto: boolean;
+            incidencia: string;
+            observaciones: string;
+            esSolicitud: boolean;
+            descripcionSolicitud: string;
             /** Format: int32 */
-            cantidad?: number;
+            cantidad: number;
         };
         PulidoAsignacionPulidoRequest: {
-            imei?: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
-            comentario?: string;
+            idTec: number;
+            comentario: string | null;
         };
         PulidoLoteRequest: {
-            ids?: string[];
+            ids: string[];
         };
         ProveedorAltaRequest: {
-            nombre?: string;
-            divisa?: string;
-            tipo?: string;
+            nombre: string;
+            divisa: string;
+            tipo: string;
         };
         LoteVerificarRequest: {
-            imeis?: string[];
+            imeis: string[];
         };
         VerificacionImei: {
-            imei?: string;
-            existe?: boolean;
-            estado?: string;
+            imei: string;
+            existe: boolean;
+            estado: string;
             /** Format: int32 */
-            trabajosAbiertos?: number;
-            modelo?: string;
+            trabajosAbiertos: number;
+            modelo: string;
         };
         ImportacionRequest: {
-            lotes?: components["schemas"]["ImportacionRequestLoteImport"][];
+            lotes: components["schemas"]["ImportacionRequestLoteImport"][];
         };
         ImportacionRequestLoteImport: {
-            batchNumber?: string;
+            batchNumber: string;
             /** Format: int32 */
-            idProv?: number;
-            nota?: string;
-            telefonos?: components["schemas"]["ImportacionRequestTelefonoImport"][];
+            idProv: number;
+            nota: string;
+            telefonos: components["schemas"]["ImportacionRequestTelefonoImport"][];
         };
         ImportacionRequestTelefonoImport: {
-            imei?: string;
-            modelo?: string;
+            imei: string;
+            modelo: string;
             /** Format: int32 */
-            storageGb?: number;
-            color?: string;
-            gradoProveedor?: string;
-            precioCompra?: number;
-            divisa?: string;
-            precioCompraEur?: number;
-            esEsim?: boolean;
+            storageGb: number;
+            color: string;
+            gradoProveedor: string;
+            precioCompra: number;
+            divisa: string;
+            precioCompraEur: number;
+            esEsim: boolean;
         };
         ImportacionRequestRespuesta: {
             /** Format: int32 */
-            lotes?: number;
+            lotes: number;
             /** Format: int32 */
-            telefonos?: number;
-            conflictosOmitidos?: string[];
+            telefonos: number;
+            conflictosOmitidos: string[];
         };
         GlassGlassAsignacionRequest: {
-            imei?: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
-            comentario?: string;
-            urgente?: boolean;
+            idTec: number;
+            comentario: string | null;
+            urgente: boolean;
         };
         EnvioEnvioRequest: {
             /** Format: int32 */
-            idCli?: number;
-            destinoTexto?: string;
-            referencia?: string;
-            imeis?: string[];
+            idCli: number;
+            destinoTexto: string;
+            referencia: string;
+            imeis: string[];
         };
         EnvioDAOItemEnvio: {
-            imei?: string;
-            resultado?: string;
-            estado?: string;
+            imei: string;
+            resultado: string;
+            estado: string;
         };
         EnvioDAOResultadoLote: {
             /** Format: int32 */
-            idEnvio?: number;
-            items?: components["schemas"]["EnvioDAOItemEnvio"][];
+            idEnvio: number;
+            items: components["schemas"]["EnvioDAOItemEnvio"][];
         };
         CompraInsertarRequest: {
             /** Format: int32 */
-            idCom?: number;
+            idCom: number;
             /** Format: int32 */
-            idProv?: number;
+            idProv: number;
             /** Format: int32 */
-            cantidad?: number;
-            esUrgente?: boolean;
+            cantidad: number;
+            esUrgente: boolean;
             /** Format: double */
-            precioUnidad?: number;
-            divisa?: string;
+            precioUnidad: number;
+            divisa: string;
             /** Format: double */
-            precioEur?: number;
+            precioEur: number;
         };
         CompraOtroInsertarRequest: {
             /** Format: int32 */
-            idProv?: number;
-            concepto?: string;
+            idProv: number;
+            concepto: string;
             /** Format: int32 */
-            cantidad?: number;
-            esUrgente?: boolean;
+            cantidad: number;
+            esUrgente: boolean;
             /** Format: double */
-            precioUnidad?: number;
-            divisa?: string;
+            precioUnidad: number;
+            divisa: string;
             /** Format: double */
-            precioEur?: number;
+            precioEur: number;
         };
         ComponenteInsertarRequest: {
-            tipo?: string;
+            tipo: string;
             /** Format: int32 */
-            stock?: number;
+            stock: number;
             /** Format: int32 */
-            stockMinimo?: number;
+            stockMinimo: number;
         };
         ClienteNombreRequest: {
-            nombre?: string;
+            nombre: string;
         };
         AuthLoginRequest: {
-            usuario?: string;
-            password?: string;
+            usuario: string;
+            password: string;
         };
         LoginResponse: {
             /** Format: int32 */
-            idUsu?: number;
-            nombreUsuario?: string;
-            rol?: string;
+            idUsu: number;
+            nombreUsuario: string;
+            rol: string;
             /** Format: int32 */
-            idTec?: number;
-            token?: string;
+            idTec: number | null;
+            token: string;
         };
         TelefonoFuncionalRequest: {
             /** Format: int32 */
-            bateriaPct?: number;
-            pantTactil?: boolean;
-            pantQuemada?: boolean;
-            pantMal?: boolean;
-            camMancha?: boolean;
-            camLente?: boolean;
-            altSup?: boolean;
-            altInf?: boolean;
-            mic?: boolean;
-            faceId?: boolean;
-            ms?: boolean;
-            msTexto?: string;
-            bloqueoOp?: boolean;
-            observacion?: string;
+            bateriaPct: number;
+            pantTactil: boolean;
+            pantQuemada: boolean;
+            pantMal: boolean;
+            camMancha: boolean;
+            camLente: boolean;
+            altSup: boolean;
+            altInf: boolean;
+            mic: boolean;
+            faceId: boolean;
+            ms: boolean;
+            msTexto: string;
+            bloqueoOp: boolean;
+            observacion: string;
         };
         TelefonoEsteticaRequest: {
-            grado?: string;
-            pant?: string;
+            grado: string;
+            pant: string;
         };
         TelefonoObservacionRequest: {
-            observacion?: string;
+            observacion: string;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         TelefonoClienteRequest: {
             /** Format: int32 */
-            idCli?: number;
+            idCli: number | null;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         TelefonoAtributosRequest: {
-            modelo?: string;
+            modelo: string;
             /** Format: int32 */
-            storageGb?: number;
-            color?: string;
-            gradoProveedor?: string;
-            gradoPropio?: string;
-            esEsim?: boolean;
+            storageGb: number;
+            color: string;
+            gradoProveedor: string;
+            gradoPropio: string;
+            esEsim: boolean;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         TecnicoGlassRequest: {
-            habilitado?: boolean;
+            habilitado: boolean;
         };
         ReparacionActualizarAsignacionRequest: {
             /** Format: int32 */
-            idTec?: number;
-            comentarioAsignacion?: string;
+            idTec: number;
+            comentarioAsignacion: string | null;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ReparacionUrgenteRequest: {
-            urgente?: boolean;
+            urgente: boolean;
         };
         ReparacionPorCerrarRequest: {
-            porCerrar?: boolean;
+            porCerrar: boolean;
         };
         ReparacionEntregaGlassRequest: {
-            entregado?: boolean;
+            entregado: boolean;
         };
         ReparacionChasisRequest: {
-            esChasis?: boolean;
+            esChasis: boolean;
         };
         PulidoActualizarPulidoRequest: {
             /** Format: int32 */
-            idTec?: number;
-            comentario?: string;
+            idTec: number;
+            comentario: string | null;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ProveedorActivoRequest: {
-            activo?: boolean;
+            activo: boolean;
         };
         CompraRecibirRestoRequest: {
             /** Format: int32 */
-            cantidadExtra?: number;
+            cantidadExtra: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraUpdatedAtRequest: {
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraConfirmarParcialRequest: {
             /** Format: int32 */
-            cantidadRecibida?: number;
+            cantidadRecibida: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraOtroRecibirRestoRequest: {
             /** Format: int32 */
-            cantidadExtra?: number;
+            cantidadExtra: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraOtroUpdatedAtRequest: {
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraOtroConfirmarParcialRequest: {
             /** Format: int32 */
-            cantidadRecibida?: number;
+            cantidadRecibida: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ComponenteDeltaRequest: {
             /** Format: int32 */
-            delta?: number;
+            delta: number;
         };
         ComponenteStockMinimoRequest: {
             /** Format: int32 */
-            stockMinimo?: number;
+            stockMinimo: number;
         };
         ComponenteActivoRequest: {
-            activo?: boolean;
+            activo: boolean;
         };
         ClienteActivoRequest: {
-            activo?: boolean;
+            activo: boolean;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         AuthCambiarPasswordRequest: {
-            passwordActual?: string;
-            passwordNueva?: string;
+            passwordActual: string;
+            passwordNueva: string;
         };
         Usuario: {
             /** Format: int32 */
-            idUsu?: number;
-            nombreUsuario?: string;
-            rol?: string;
+            idUsu: number;
+            nombreUsuario: string;
+            rol: string;
             /** Format: int32 */
-            idTec?: number;
-            nombreTecnico?: string;
-            activo?: boolean;
+            idTec: number;
+            nombreTecnico: string;
+            activo: boolean;
         };
         Telefono: {
-            imei?: string;
-            modelo?: string;
-            observacion?: string;
+            imei: string;
+            modelo: string;
+            observacion: string;
             /** Format: int32 */
-            idCli?: number;
+            idCli: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         Revision: {
             /** Format: int32 */
-            idRevision?: number;
-            imei?: string;
+            idRevision: number;
+            imei: string;
             /** Format: date-time */
-            fechaCreacion?: string;
-            estGrado?: string;
-            estPant?: string;
+            fechaCreacion: string;
+            estGrado: string;
+            estPant: string;
             /** Format: int32 */
-            estIdUsu?: number;
-            estUsuario?: string;
+            estIdUsu: number;
+            estUsuario: string;
             /** Format: date-time */
-            estFecha?: string;
+            estFecha: string;
             /** Format: int32 */
-            funBateriaPct?: number;
-            funPantTactil?: boolean;
-            funPantQuemada?: boolean;
-            funPantMal?: boolean;
-            funCamMancha?: boolean;
-            funCamLente?: boolean;
-            funAltSup?: boolean;
-            funAltInf?: boolean;
-            funMic?: boolean;
-            funFaceId?: boolean;
-            funMs?: boolean;
-            funMsTexto?: string;
-            funBloqueoOp?: boolean;
-            funObservacion?: string;
+            funBateriaPct: number;
+            funPantTactil: boolean;
+            funPantQuemada: boolean;
+            funPantMal: boolean;
+            funCamMancha: boolean;
+            funCamLente: boolean;
+            funAltSup: boolean;
+            funAltInf: boolean;
+            funMic: boolean;
+            funFaceId: boolean;
+            funMs: boolean;
+            funMsTexto: string;
+            funBloqueoOp: boolean;
+            funObservacion: string;
             /** Format: int32 */
-            funIdUsu?: number;
-            funUsuario?: string;
+            funIdUsu: number;
+            funUsuario: string;
             /** Format: date-time */
-            funFecha?: string;
+            funFecha: string;
         };
         TelefonoRevisionResponse: {
-            existe?: boolean;
-            revision?: components["schemas"]["Revision"];
+            existe: boolean;
+            revision: components["schemas"]["Revision"];
         };
         MovimientoTelefono: {
             /** Format: int32 */
-            idMov?: number;
-            imei?: string;
-            ubicacionOrigen?: string;
-            ubicacionDestino?: string;
+            idMov: number;
+            imei: string;
+            ubicacionOrigen: string;
+            ubicacionDestino: string;
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
             /** Format: int32 */
-            idUsu?: number;
-            usuario?: string;
-            motivo?: string;
-            referencia?: string;
+            idUsu: number;
+            usuario: string;
+            motivo: string;
+            referencia: string;
         };
         TelefonoInventario: {
-            imei?: string;
-            modelo?: string;
+            imei: string;
+            modelo: string;
             /** Format: int32 */
-            storageGb?: number;
-            color?: string;
-            gradoProveedor?: string;
-            gradoPropio?: string;
-            esEsim?: boolean;
-            estado?: string;
-            estadoEfectivo?: string;
-            ubicacion?: string;
-            subUbicaciones?: string[];
-            esDevolucion?: boolean;
-            observacion?: string;
+            storageGb: number;
+            color: string;
+            gradoProveedor: string;
+            gradoPropio: string;
+            esEsim: boolean;
+            estado: string;
+            estadoEfectivo: string;
+            ubicacion: string;
+            subUbicaciones: string[];
+            esDevolucion: boolean;
+            observacion: string;
             /** Format: int32 */
-            idCli?: number;
-            cliente?: string;
+            idCli: number;
+            cliente: string;
             /** Format: int32 */
-            idLote?: number;
-            batchNumber?: string;
-            proveedor?: string;
+            idLote: number;
+            batchNumber: string;
+            proveedor: string;
             /** Format: date-time */
-            telefonoUpdatedAt?: string;
+            telefonoUpdatedAt: string;
             /** Format: int32 */
-            repHechas?: number;
+            repHechas: number;
             /** Format: int32 */
-            glassHechas?: number;
+            glassHechas: number;
             /** Format: int32 */
-            pulHechos?: number;
+            pulHechos: number;
             /** Format: int32 */
-            pulAbiertos?: number;
+            pulAbiertos: number;
             /** Format: int32 */
-            glassAbiertos?: number;
+            glassAbiertos: number;
             /** Format: int32 */
-            normalAbiertos?: number;
+            normalAbiertos: number;
             /** Format: int32 */
-            incAbiertas?: number;
+            incAbiertas: number;
             /** Format: int32 */
-            solicitudesPendientes?: number;
+            solicitudesPendientes: number;
             /** Format: date-time */
-            ultimaActividad?: string;
+            ultimaActividad: string;
             /** Format: date-time */
-            revDesde?: string;
+            revDesde: string;
             /** Format: date-time */
-            estFecha?: string;
-            estUsuario?: string;
+            estFecha: string;
+            estUsuario: string;
             /** Format: date-time */
-            funFecha?: string;
-            funUsuario?: string;
+            funFecha: string;
+            funUsuario: string;
             /** Format: int32 */
-            funBateriaPct?: number;
+            funBateriaPct: number;
         };
         Tecnico: {
             /** Format: int32 */
-            idTec?: number;
-            nombre?: string;
-            activo?: boolean;
-            esEstadistica?: boolean;
-            esGlass?: boolean;
+            idTec: number;
+            nombre: string;
+            activo: boolean;
+            esEstadistica: boolean;
+            esGlass: boolean;
         };
         SolicitudResumen: {
             /** Format: int32 */
-            idRc?: number;
-            idRep?: string;
-            imei?: string;
-            nombreTecnico?: string;
+            idRc: number;
+            idRep: string;
+            imei: string;
+            nombreTecnico: string;
             /** Format: int32 */
-            idCom?: number;
-            tipoComponente?: string;
-            descripcion?: string;
-            estado?: string;
+            idCom: number;
+            tipoComponente: string;
+            descripcion: string;
+            estado: string;
             /** Format: date-time */
-            fechaSolicitud?: string;
+            fechaSolicitud: string;
         };
         SolicitudStock: {
             /** Format: int32 */
-            idSol?: number;
+            idSol: number;
             /** Format: int32 */
-            idCom?: number;
-            tipoComponente?: string;
+            idCom: number;
+            tipoComponente: string;
             /** Format: int32 */
-            idUsu?: number;
-            nombreUsuario?: string;
-            descripcion?: string;
-            estado?: string;
+            idUsu: number;
+            nombreUsuario: string;
+            descripcion: string;
+            estado: string;
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
         };
         Reparacion: {
-            idRep?: string;
+            idRep: string;
             /** Format: date-time */
-            fechaAsig?: string;
+            fechaAsig: string;
             /** Format: date-time */
-            fechaFin?: string;
-            imei?: string;
+            fechaFin: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
+            idTec: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
+        };
+        ValorTexto: {
+            value: string | null;
         };
         ReparacionDAODetalleEdicion: {
-            imei?: string;
+            imei: string;
             /** Format: int32 */
-            idTec?: number;
+            idTec: number;
             /** Format: int32 */
-            idCom?: number;
-            esReutilizado?: boolean;
-            observacion?: string;
+            idCom: number;
+            esReutilizado: boolean;
+            observacion: string;
             /** Format: int32 */
-            cantidad?: number;
+            cantidad: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
+        };
+        ContadoresPendientes: {
+            /** Format: int32 */
+            reparaciones: number;
+            /** Format: int32 */
+            glass: number;
+            /** Format: int32 */
+            pulidos: number;
         };
         ReparacionDAOAsignacionActiva: {
-            idRep?: string;
-            nombreTecnico?: string;
+            idRep: string;
+            nombreTecnico: string;
             /** Format: int32 */
-            idTec?: number;
+            idTec: number;
         };
         ReparacionResumen: {
-            idRep?: string;
-            imei?: string;
-            nombreTecnico?: string;
+            idRep: string;
+            imei: string;
+            nombreTecnico: string;
             /** Format: date-time */
-            fechaAsig?: string;
+            fechaAsig: string;
             /** Format: date-time */
-            fechaFin?: string;
-            tipoComponente?: string;
-            observaciones?: string;
-            esIncidencia?: boolean;
-            esResuelto?: boolean;
-            esReutilizado?: boolean;
-            incidencia?: string;
-            idRepAnterior?: string;
+            fechaFin: string | null;
+            tipoComponente: string | null;
+            observaciones: string | null;
+            esIncidencia: boolean;
+            esResuelto: boolean;
+            esReutilizado: boolean;
+            incidencia: string | null;
+            idRepAnterior: string | null;
             /** Format: int32 */
-            idTec?: number;
+            idTec: number;
             /** Format: int32 */
-            esSolicitud?: number;
-            descripcionSolicitud?: string;
-            estadoSolicitud?: string;
-            tipoSolicitud?: string;
+            esSolicitud: number;
+            descripcionSolicitud: string | null;
+            estadoSolicitud: string | null;
+            tipoSolicitud: string | null;
             /** Format: int32 */
-            stockSolicitud?: number;
-            enCamino?: boolean;
-            tiposSolicitud?: string;
+            stockSolicitud: number;
+            enCamino: boolean;
+            tiposSolicitud: string | null;
             /** Format: date-time */
-            updatedAt?: string;
-            modelo?: string;
-            comentarioAsignacion?: string;
-            observacionTelefono?: string;
-            urgente?: boolean;
-            esChasis?: boolean;
-            porCerrar?: boolean;
-            tieneAsignaciones?: boolean;
-            nombreTecnicoAsigna?: string;
+            updatedAt: string | null;
+            modelo: string | null;
+            comentarioAsignacion: string | null;
+            observacionTelefono: string | null;
+            urgente: boolean;
+            esChasis: boolean;
+            porCerrar: boolean;
+            tieneAsignaciones: boolean;
+            nombreTecnicoAsigna: string | null;
             /** Format: date-time */
-            telefonoUpdatedAt?: string;
-            cliente?: string;
+            telefonoUpdatedAt: string | null;
+            cliente: string | null;
             /** Format: date-time */
-            entregadoAt?: string;
-            entregadoPorNombre?: string;
+            entregadoAt: string | null;
+            entregadoPorNombre: string | null;
             /** Format: int32 */
-            entregadoPor?: number;
-            glassAbierta?: boolean;
+            entregadoPor: number | null;
+            glassAbierta: boolean;
             /** Format: date-time */
-            glassEntregadoAt?: string;
-            glassEntregadoPorNombre?: string;
+            glassEntregadoAt: string | null;
+            glassEntregadoPorNombre: string | null;
             /** Format: int32 */
-            glassEntregadoPor?: number;
-            glassTecnicoNombre?: string;
-            normalAbierta?: boolean;
-            normalTecnicoNombre?: string;
+            glassEntregadoPor: number | null;
+            glassTecnicoNombre: string | null;
+            normalAbierta: boolean;
+            normalTecnicoNombre: string | null;
         };
         PuntoEstadistica: {
-            nombreTecnico?: string;
-            periodo?: string;
+            nombreTecnico: string;
+            periodo: string;
             /** Format: int32 */
-            cantidad?: number;
+            cantidad: number;
         };
         PuntoEstadisticaPuntos: {
-            nombreTecnico?: string;
-            periodo?: string;
+            nombreTecnico: string;
+            periodo: string;
             /** Format: double */
-            puntos?: number;
+            puntos: number;
             /** Format: double */
-            puntosNormales?: number;
+            puntosNormales: number;
             /** Format: double */
-            puntosGlass?: number;
+            puntosGlass: number;
             /** Format: double */
-            puntosPulidos?: number;
+            puntosPulidos: number;
             /** Format: int32 */
-            getnNormales?: number;
+            getnNormales: number;
             /** Format: int32 */
-            getnGlass?: number;
+            getnGlass: number;
             /** Format: int32 */
-            getnPulidos?: number;
+            getnPulidos: number;
             /** Format: int32 */
-            getnSinPiezas?: number;
+            getnSinPiezas: number;
             /** Format: int32 */
-            getnImeis?: number;
+            getnImeis: number;
             /** Format: double */
-            puntosJornada?: number;
+            puntosJornada: number;
             /** Format: int32 */
-            getnImeisJornada?: number;
+            getnImeisJornada: number;
         };
         ReparacionComponente: {
             /** Format: int32 */
-            idRc?: number;
-            idRep?: string;
+            idRc: number;
+            idRep: string;
             /** Format: int32 */
-            idCom?: number;
-            esReutilizado?: boolean;
-            esIncidencia?: boolean;
-            esResuelto?: boolean;
-            incidencia?: string;
-            observaciones?: string;
-            esSolicitud?: boolean;
-            descripcionSolicitud?: string;
-            estadoSolicitud?: string;
+            idCom: number;
+            esReutilizado: boolean;
+            esIncidencia: boolean;
+            esResuelto: boolean;
+            incidencia: string;
+            observaciones: string;
+            esSolicitud: boolean;
+            descripcionSolicitud: string;
+            estadoSolicitud: string;
         };
         Proveedor: {
             /** Format: int32 */
-            idProv?: number;
-            nombre?: string;
-            activo?: boolean;
-            divisa?: string;
-            comentario?: string;
-            tipo?: string;
+            idProv: number;
+            nombre: string;
+            activo: boolean;
+            divisa: string;
+            comentario: string;
+            tipo: string;
         };
         Lote: {
             /** Format: int32 */
-            idLote?: number;
-            batchNumber?: string;
+            idLote: number;
+            batchNumber: string;
             /** Format: int32 */
-            idProv?: number;
-            proveedor?: string;
+            idProv: number;
+            proveedor: string;
             /** Format: date-time */
-            fechaImport?: string;
-            nota?: string;
+            fechaImport: string;
+            nota: string;
             /** Format: int32 */
-            numTelefonos?: number;
+            numTelefonos: number;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         LogActividad: {
             /** Format: int32 */
-            idLog?: number;
+            idLog: number;
             /** Format: date-time */
-            fecha?: string;
-            nombreUsuario?: string;
-            accion?: string;
-            detalle?: string;
-            motivo?: string;
+            fecha: string;
+            nombreUsuario: string;
+            accion: string;
+            detalle: string;
+            motivo: string;
         };
         CompraComponente: {
             /** Format: int32 */
-            idCompra?: number;
+            idCompra: number;
             /** Format: int32 */
-            idCom?: number;
-            tipoComponente?: string;
+            idCom: number;
+            tipoComponente: string;
             /** Format: int32 */
-            idProv?: number;
-            nombreProveedor?: string;
+            idProv: number;
+            nombreProveedor: string;
             /** Format: int32 */
-            cantidad?: number;
+            cantidad: number;
             /** Format: int32 */
-            cantidadRecibida?: number;
-            esUrgente?: boolean;
+            cantidadRecibida: number;
+            esUrgente: boolean;
             /** Format: date-time */
-            fechaPedido?: string;
+            fechaPedido: string;
             /** Format: date-time */
-            fechaLlegada?: string;
+            fechaLlegada: string;
             /** Format: double */
-            precioUnidadPedido?: number;
-            divisa?: string;
+            precioUnidadPedido: number;
+            divisa: string;
             /** Format: double */
-            precioEur?: number;
-            estado?: string;
+            precioEur: number;
+            estado: string;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         CompraOtro: {
             /** Format: int32 */
-            idCompraOtro?: number;
+            idCompraOtro: number;
             /** Format: int32 */
-            idProv?: number;
-            nombreProveedor?: string;
-            concepto?: string;
+            idProv: number;
+            nombreProveedor: string;
+            concepto: string;
             /** Format: int32 */
-            cantidad?: number;
+            cantidad: number;
             /** Format: int32 */
-            cantidadRecibida?: number;
-            esUrgente?: boolean;
+            cantidadRecibida: number;
+            esUrgente: boolean;
             /** Format: date-time */
-            fechaPedido?: string;
+            fechaPedido: string;
             /** Format: date-time */
-            fechaLlegada?: string;
+            fechaLlegada: string;
             /** Format: double */
-            precioUnidadPedido?: number;
-            divisa?: string;
+            precioUnidadPedido: number;
+            divisa: string;
             /** Format: double */
-            precioEur?: number;
-            estado?: string;
+            precioEur: number;
+            estado: string;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         Componente: {
             /** Format: int32 */
-            idCom?: number;
-            tipo?: string;
+            idCom: number;
+            tipo: string;
             /** Format: date-time */
-            fechaRegistro?: string;
+            fechaRegistro: string;
             /** Format: int32 */
-            stock?: number;
+            stock: number;
             /** Format: int32 */
-            stockMinimo?: number;
-            activo?: boolean;
+            stockMinimo: number;
+            activo: boolean;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
             /** Format: int32 */
-            enCamino?: number;
+            enCamino: number;
             /** Format: date-time */
-            ultimoPedido?: string;
+            ultimoPedido: string;
             /** Format: int32 */
-            idComMaster?: number;
+            idComMaster: number;
         };
         PuntoStock: {
-            periodo?: string;
-            tipoComponente?: string;
+            periodo: string;
+            tipoComponente: string;
             /** Format: int32 */
-            stockEstimado?: number;
+            stockEstimado: number;
             /** Format: int32 */
-            stockMinimo?: number;
+            stockMinimo: number;
         };
         Cliente: {
             /** Format: int32 */
-            idCli?: number;
-            nombre?: string;
-            activo?: boolean;
+            idCli: number;
+            nombre: string;
+            activo: boolean;
             /** Format: date-time */
-            updatedAt?: string;
+            updatedAt: string;
         };
         ValorBooleano: {
-            value?: boolean;
+            value: boolean;
         };
         ReparacionMotivoRequest: {
-            motivo?: string;
+            motivo: string | null;
         };
         PulidoMotivoRequest: {
-            motivo?: string;
+            motivo: string | null;
         };
     };
     responses: never;
@@ -5708,9 +5735,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
+                    "*/*": components["schemas"]["ValorTexto"];
                 };
             };
         };
@@ -5733,6 +5758,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReparacionDAODetalleEdicion"];
+                };
+            };
+        };
+    };
+    getContadoresPendientes: {
+        parameters: {
+            query?: {
+                tecnico?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContadoresPendientes"];
                 };
             };
         };
