@@ -21,7 +21,8 @@ Necesita la web ya desplegada (no funciona contra un backend simulado). Exporta 
 ```bash
 npm run e2e
 ```
-El test crea y borra un cliente de prueba llamado `E2E <timestamp>`.
+El test crea y borra un cliente de prueba llamado `E2E <timestamp>`. `taller.spec.ts` necesita además `TEC_USER`/`TEC_PASS`
+(un técnico con pendientes) y es de solo lectura: no crea, edita ni borra nada.
 
 ## Despliegue
 Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guía operativa es privada
@@ -29,4 +30,5 @@ Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guí
 
 ## Documentación
 - Spec maestra y de cimientos: repo raíz, `docs/superpowers/specs/2026-09-13-*`.
-- Fichas de paridad por vista: `docs/paridad/`.
+- Spec del taller técnico: repo raíz, `docs/superpowers/specs/2026-09-16-web-taller-design.md`.
+- Fichas de paridad por vista: `docs/paridad/` (taller: `docs/paridad/{pendientes,historial,imeis}.md`).
