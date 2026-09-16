@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router'
-import { ExportableProvider } from './exportable'
+import { ExportableProvider } from '@/shared/ui/exportable'
 import { TopBar } from './TopBar'
 import { ConnectionBanner } from './ConnectionBanner'
 import { SubNav } from './SubNav'

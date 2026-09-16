@@ -7,7 +7,7 @@ import { server } from '@/test/server'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { leerSesion } from '@/shared/session/storage'
 import { onSesionExpirada } from '@/shared/session/expiracion'
-import { useSession } from '@/app/session/SessionProvider'
+import { useSession } from '@/shared/session/SessionProvider'
 import { LoginPage } from './LoginPage'
 
 /** Expone en cada render el `sesion` actual del contexto, para comprobar que el estado de React (no solo
@@ -17,7 +17,7 @@ function ProbeSesion({ exponer }: { exponer: (sesion: ReturnType<typeof useSessi
   return null
 }
 
-const respuestaLogin = { idUsu: 7, nombreUsuario: 'fati', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
+const respuestaLogin = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
 
 function montar() {
   return renderConProviders(<LoginPage />, { ruta: '/login', rutas: <Route path="/" element={<p>INICIO</p>} /> })
@@ -44,7 +44,7 @@ describe('LoginPage', () => {
   it('login correcto guarda la sesión y navega a /', async () => {
     server.use(http.post('*/api/auth/login', () => HttpResponse.json(respuestaLogin)))
     montar()
-    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'fati')
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'tecnico_f')
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'secreta{enter}')
     await waitFor(() => expect(screen.getByText('INICIO')).toBeInTheDocument())
     expect(leerSesion()?.token).toBe('jwt-super')
@@ -52,7 +52,7 @@ describe('LoginPage', () => {
   it('401 muestra "Usuario o contraseña incorrectos." y no guarda sesión', async () => {
     server.use(http.post('*/api/auth/login', () => new HttpResponse(null, { status: 401 })))
     montar()
-    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'fati')
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'tecnico_f')
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'mala')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(await screen.findByText('Usuario o contraseña incorrectos.')).toBeInTheDocument()
@@ -71,7 +71,7 @@ describe('LoginPage', () => {
       { sesion: SESION_TEC, ruta: '/login', rutas: <Route path="/" element={<p>INICIO</p>} /> },
     )
     expect(sesionActual).not.toBeNull()
-    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'zara')
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'tecnico_n')
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'mala')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(await screen.findByText('Usuario o contraseña incorrectos.')).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('LoginPage', () => {
     let intentos = 0
     server.use(http.post('*/api/auth/login', () => { intentos++; return HttpResponse.error() }))
     montar()
-    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'fati')
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'tecnico_f')
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'x')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(await screen.findByText(/Sin conexión con el servidor/)).toBeInTheDocument()

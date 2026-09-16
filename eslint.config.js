@@ -58,6 +58,10 @@ export default tseslint.config(
               group: ['@/modules/*', '@/modules/**'],
               message: 'Un módulo no puede importar de otro módulo: mueve lo compartido a src/shared (dentro del módulo usa rutas relativas).',
             },
+            {
+              group: ['@/app/*', '@/app/**'],
+              message: 'Un módulo no puede importar de app: la sesión vive en @/shared/session y el shell compone los módulos, no al revés.',
+            },
           ],
         },
       ],

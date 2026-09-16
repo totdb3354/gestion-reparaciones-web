@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
-import { useSession } from './SessionProvider'
+import { useSession } from '@/shared/session/SessionProvider'
 
 export function RequireSesion() {
   const { sesion } = useSession()

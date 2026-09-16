@@ -14,8 +14,8 @@ type Ctx = {
 }
 const SessionContext = createContext<Ctx | null>(null)
 
-/** El schema generado marca los campos como opcionales (ver LoginResponse en client.ts); esto comprueba
- *  que el servidor los mandó todos, como hace siempre en una respuesta 200 real. */
+/** Guardia en runtime: los tipos se borran al compilar y esto valida un `unknown` que llega del
+ *  servidor (el contrato ya marca todos los campos como required e `idTec` como nullable). */
 function esLoginResponse(x: unknown): x is LoginResponse {
   if (typeof x !== 'object' || x === null) return false
   const r = x as Record<string, unknown>

@@ -9,12 +9,10 @@ export function ExportableProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ exportador, registrar }), [exportador])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
-// eslint-disable-next-line react-refresh/only-export-components -- hook colocado con su Provider, patrón del proyecto
 export function useExportable(): Exportador {
   return useContext(Ctx)?.exportador ?? null
 }
 /** La vista que exporta llama a esto con su función; al desmontarse se desregistra. */
-// eslint-disable-next-line react-refresh/only-export-components -- hook colocado con su Provider, patrón del proyecto
 export function useRegistrarExportable(fn: Exportador) {
   // El setter de useState (registrar) es estable, así que no dispara el efecto en cada render.
   // La fn (a menudo un arrow inline en la vista) se guarda en un ref y se actualiza en cada

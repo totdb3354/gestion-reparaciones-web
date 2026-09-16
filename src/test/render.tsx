@@ -2,7 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { SessionProvider } from '@/app/session/SessionProvider'
+import { SessionProvider } from '@/shared/session/SessionProvider'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { guardarSesion, type Sesion } from '@/shared/session/storage'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
@@ -31,6 +31,6 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
   )
 }
 
-export const SESION_SUPER: Sesion = { idUsu: 7, nombreUsuario: 'fati', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
-export const SESION_TEC: Sesion = { idUsu: 8, nombreUsuario: 'zara', rol: 'TECNICO', idTec: 4, token: 'jwt-tec' }
+export const SESION_SUPER: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
+export const SESION_TEC: Sesion = { idUsu: 8, nombreUsuario: 'tecnico_n', rol: 'TECNICO', idTec: 4, token: 'jwt-tec' }
 export const SESION_ADMIN: Sesion = { idUsu: 1, nombreUsuario: 'admin', rol: 'ADMIN', idTec: null, token: 'jwt-admin' }

@@ -4,7 +4,7 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { Navigate, Route } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { renderConProviders, SESION_TEC } from '@/test/render'
-import { useSession } from './SessionProvider'
+import { useSession } from '@/shared/session/SessionProvider'
 import { RequireSesion } from './RequireSesion'
 
 // La ruta fija de renderConProviders (path={ruta}) coincidiría con "/privado" si la usáramos también
