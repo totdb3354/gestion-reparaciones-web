@@ -6,7 +6,7 @@ import { APP_VERSION } from '@/shared/lib/version'
 import { useSession } from '@/shared/session/SessionProvider'
 
 const inputCls =
-  'h-auto rounded-lg border-borde-input bg-white px-3.5 py-3 text-[13px] md:text-[13px] text-azul-medio placeholder:text-texto-suave'
+  'h-auto rounded-lg border-borde-input bg-superficie px-3.5 py-3 text-[13px] md:text-[13px] text-azul-medio placeholder:text-texto-suave'
 
 export function LoginPage() {
   const { login } = useSession()
