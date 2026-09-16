@@ -90,7 +90,11 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent')}
-        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, 'yyyy/MM/dd')} puedeEditar={puedeEditar} acciones={acciones} />}
+        // "Asignado por" no es copiable en el Historial (docs/paridad/historial.md, "Común a los tres toggles" no
+        // la lista entre las columnas copiables: ReparacionControllerSuperTecnico.textoDeCelda no tiene ese case).
+        // Sí lo es en el Agrupado de IMEIs (Task 18), que reutiliza este mismo textoCeldaTrabajo: se suprime aquí,
+        // en la llamada, en vez de en la función compartida.
+        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, 'yyyy/MM/dd')} puedeEditar={puedeEditar} acciones={acciones} />}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
       {dialogos}

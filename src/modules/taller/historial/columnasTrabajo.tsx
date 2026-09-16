@@ -40,7 +40,7 @@ export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA
       ),
     },
     { id: 'observaciones', header: 'Observaciones', size: 200, cell: ({ row }) => <TextoExpandible titulo="Observaciones" texto={row.original.observaciones} /> },
-    { id: 'estado', header: 'Estado', size: 120, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.esIncidencia} esResuelto={row.original.esResuelto} /> },
+    { id: 'estado', header: 'Estado', size: 110, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.esIncidencia} esResuelto={row.original.esResuelto} /> },
     { id: 'incidencia', header: 'Incidencia', size: 200, cell: ({ row }) => <CeldaIncidencia rep={row.original} /> },
     {
       id: 'anterior', header: 'Id Rep. Anterior', size: 150,

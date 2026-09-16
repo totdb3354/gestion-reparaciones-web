@@ -1,14 +1,14 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { reiniciarEstadoTaller } from '../estado'
-import { resumen, tecnico } from '../test/fabrica'
+import { glass, resumen, tecnico } from '../test/fabrica'
 import { HistorialPage } from './HistorialPage'
 
 const filas = [
@@ -17,6 +17,14 @@ const filas = [
   resumen({ idRep: 'R20260910_1', imei: '351900000000041', modelo: '16', nombreTecnico: 'tecnico_i', idTec: 5, fechaAsig: '2026-09-10T10:00:00', fechaFin: '2026-09-11T10:00:00', tipoComponente: 'lcdi16negra', esIncidencia: true, esResuelto: true, incidencia: 'pantalla', idRepAnterior: 'R20260916_6' }),
 ]
 const tecnicos = [tecnico({ idTec: 5, nombre: 'tecnico_i' }), tecnico({ idTec: 6, nombre: 'tecnico_b' }), tecnico({ idTec: 7, nombre: 'tecnico_n', activo: false })]
+
+// navigator.clipboard no existe en jsdom por defecto: mismo patrón que MenuCopiarCelda.test.tsx / copiar.test.ts
+// (Object.defineProperty configurable, restaurado tras cada test a partir del descriptor original).
+const descriptorClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+afterEach(() => {
+  if (descriptorClipboard) Object.defineProperty(navigator, 'clipboard', descriptorClipboard)
+  else Reflect.deleteProperty(navigator, 'clipboard')
+})
 
 beforeEach(() => {
   reiniciarEstadoTaller()
@@ -34,13 +42,30 @@ const abrir = (sesion = SESION_SUPER) => renderConProviders(<HistorialPage tipo=
 
 describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
   it('título por rol, contador, toggles y columnas estiradas', async () => {
-    abrir()
+    const { container } = abrir()
     expect(await screen.findByRole('heading', { name: 'Historial de reparaciones' })).toBeInTheDocument()
     expect(await screen.findByText('3 reparaciones')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Reparaciones' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Pulidos' })).toHaveAttribute('href', '/reparaciones/historial/pulidos')
     expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Id Reparación', 'IMEI teléfono', 'Modelo', 'Reparador', 'Asignado por', 'Fechas', 'Componente', 'Observaciones', 'Estado', 'Incidencia', 'Id Rep. Anterior'])
     expect(screen.getByRole('table')).toHaveClass('w-full')
+    // Pesos mínimos del FXML (docs/paridad/historial.md): 110·130·100·100·100·110·150·200·110·200·150 (Estado
+    // 110, el minWidth que siguen las demás columnas — no los 120 de prefWidth). En ajuste "estirar" DataTable
+    // los reparte en % sobre la suma (1460), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
+    const anchos = Array.from(container.querySelectorAll('col')).map((c) => c.style.width)
+    expect(anchos).toEqual([
+      expect.stringMatching(/^7\.5342/), // Id Reparación 110
+      expect.stringMatching(/^8\.9041/), // IMEI teléfono 130
+      expect.stringMatching(/^6\.8493/), // Modelo 100
+      expect.stringMatching(/^6\.8493/), // Reparador 100
+      expect.stringMatching(/^6\.8493/), // Asignado por 100
+      expect.stringMatching(/^7\.5342/), // Fechas 110
+      expect.stringMatching(/^10\.2739/), // Componente 150
+      expect.stringMatching(/^13\.6986/), // Observaciones 200
+      expect.stringMatching(/^7\.5342/), // Estado 110
+      expect.stringMatching(/^13\.6986/), // Incidencia 200
+      expect.stringMatching(/^10\.2739/), // Id Rep. Anterior 150
+    ])
     expect(screen.getByText('Reutilizado')).toHaveClass('italic')
     expect(screen.getByText('2026/09/16')).toBeInTheDocument()
     expect(screen.getAllByText('Sin incidencia')).toHaveLength(1)
@@ -136,6 +161,15 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
   })
+  it('"Asignado por" no se copia (docs/paridad/historial.md no la lista entre las columnas copiables; el JavaFX de este historial no tiene ese case en textoDeCelda)', async () => {
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Técnico M') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).not.toHaveBeenCalled()
+  })
   it('CSV del supertécnico con columna Técnico y nombre historial_reparaciones', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
@@ -148,6 +182,33 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(base).toBe('historial_reparaciones')
     expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
     expect(filasCsv[1]).toEqual(['R20260915_133', '="351900000000041"', 'tecnico_b', '15/09/2026 17:00', '15/09/2026 17:00', 'bati16', 'Sí', '', 'no enciende', 'No', ''])
+    descargar.mockRestore()
+  })
+  it('CSV del técnico con nombre mis_reparaciones y sin columna Técnico', async () => {
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    renderConProviders(<HistorialPage tipo="REPARACION" />, { sesion: SESION_TEC, ruta: '/reparaciones/historial', layout: <AppLayout /> })
+    await screen.findByText('R20260915_133')
+    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
+    const [base, cabeceras] = descargar.mock.calls[0]
+    expect(base).toBe('mis_reparaciones')
+    expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
+    descargar.mockRestore()
+  })
+  it('toggle Glass activo, sub-etiqueta "Llegó" del reparador y CSV historial_glass', async () => {
+    server.use(http.get('*/api/glass/historial', () => HttpResponse.json([glass('2026-09-16T09:30:00')])))
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    // Sesión SUPERTECNICO (por defecto): reutiliza el mismo AppLayout+mock de contadores que el resto del
+    // fichero, así que es la más barata para probar aquí el nombre historial_glass; el cálculo de mis_glass
+    // (TECNICO) es el mismo `global ? … : 'mis_' + tipo` ya cubierto por "mis_reparaciones" arriba.
+    renderConProviders(<HistorialPage tipo="GLASS" />, { sesion: SESION_SUPER, ruta: '/reparaciones/historial/glass', layout: <AppLayout /> })
+    await screen.findByText('AG20260828_3')
+    expect(screen.getByRole('link', { name: 'Glass' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Llegó 16/09 11:30')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
+    const [base] = descargar.mock.calls[0]
+    expect(base).toBe('historial_glass')
     descargar.mockRestore()
   })
 })
