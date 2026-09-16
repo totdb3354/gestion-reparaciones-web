@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ContextMenuItem } from './context-menu'
 import { DataTable } from './DataTable'
@@ -18,6 +18,10 @@ const COLUMNAS: ColumnDef<Fila, string>[] = [
 ]
 
 describe('DataTable', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('fija los anchos con un colgroup y sin columna de relleno (ajuste fijo)', () => {
     const { container } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" />)
     const cols = container.querySelectorAll('col')
@@ -92,8 +96,7 @@ describe('DataTable', () => {
   })
 
   it('si la selección cambia desde fuera, desplaza la tabla hasta la fila (restauración al volver de un detalle)', () => {
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
     const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada={null} onSeleccionar={() => {}} />)
     expect(scrollIntoView).not.toHaveBeenCalled()
     rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
@@ -102,8 +105,7 @@ describe('DataTable', () => {
   })
 
   it('un refresco de datos con la misma selección no vuelve a desplazar la tabla', () => {
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
     const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
     rerender(<DataTable columns={COLUMNAS} data={[...DATOS]} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
@@ -113,8 +115,7 @@ describe('DataTable', () => {
   })
 
   it('si la selección llega antes que las filas, desplaza cuando aparecen', () => {
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
     const { rerender } = render(<DataTable columns={COLUMNAS} data={[]} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
     expect(scrollIntoView).not.toHaveBeenCalled()
     rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)

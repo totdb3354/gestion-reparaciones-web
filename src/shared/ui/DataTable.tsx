@@ -7,7 +7,7 @@ import {
   type Row,
   type SortingState,
 } from '@tanstack/react-table'
-import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
+import { measureElement as medirElementoPorDefecto, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './context-menu'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
@@ -96,7 +96,9 @@ export function DataTable<T>({
     // reserva y el alto estimado la virtualización pinta un puñado de filas en vez de ninguna o las 500.
     initialRect: RECT_DE_RESERVA,
     observeElementRect: (v, cb) => observeElementRect(v, (r) => cb(r.height > 0 ? r : RECT_DE_RESERVA)),
-    measureElement: (el) => el.getBoundingClientRect().height || ALTO_FILA_ESTIMADO,
+    // Medición por defecto de la librería (usa la caché y el borderBoxSize del ResizeObserver en navegador real);
+    // en jsdom no hay ResizeObserver ni layout, así que devuelve 0 y cae al alto estimado, igual que antes.
+    measureElement: (el, entry, inst) => medirElementoPorDefecto(el, entry, inst) || ALTO_FILA_ESTIMADO,
   })
 
   const [columnaPulsada, setColumnaPulsada] = useState<string>('')
@@ -209,7 +211,9 @@ export function DataTable<T>({
       ref={contenedorRef}
       tabIndex={onSeleccionar ? 0 : undefined}
       onKeyDown={onKeyDown}
-      className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      // scroll-pt-10: la cabecera es sticky top-0 (~40 px); sin scroll-padding-top, scrollIntoView (teclado y
+      // selección impuesta desde fuera) alinea la fila justo arriba del scrollport, tapada por la cabecera.
+      className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50 scroll-pt-10"
       style={{ maxHeight: alturaMax }}
     >
       <table
