@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { descargarCsv } from '@/shared/lib/csv'
+import type { Patron } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
@@ -33,6 +34,9 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
   const [filtroImei, setFiltroImei] = useStore(filtroImeiHistorial)
   const [filtros, setFiltros] = useStore(filtrosHistorial[tipo])
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
+  // Cada clic en un enlace "Id Rep. Anterior" pide a la tabla desplazarse hasta esa fila y enfocarse, aunque ya estuviera
+  // seleccionada (el JavaFX hace select(i); scrollTo(i); requestFocus() en cada clic).
+  const [peticionDesplazamiento, setPeticionDesplazamiento] = useState(0)
   const { acciones, dialogos } = useAccionesTrabajo({ tituloBorrar: TITULOS_BORRAR.historial, avisoReferencia: 'Esta reparación está siendo referenciada' })
 
   const piezas = useMemo(() => [...new Set(data.map((r) => categoriaPieza(r.tipoComponente)).filter((c) => c !== ''))].sort((a, b) => a.localeCompare(b, 'es')), [data])
@@ -40,7 +44,14 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
     const imeis = imeisValidos(filtroImei)
     return data.filter((r) => pasaImeis(r.imei, imeis) && pasaTecnico(r.idTec, filtros.tecnicos) && pasaPieza(r.tipoComponente, filtros.piezas) && pasaFechas(r, filtros.desde, filtros.hasta) && pasaIncidencias(r, filtros.incidencias))
   }, [data, filtroImei, filtros])
-  const columnas = useMemo(() => columnasTrabajo({ patronFechas: 'yyyy/MM/dd', tituloId: 'Id Reparación', onIrA: setSeleccionada }), [])
+  // FORMATO_FECHA de cada controller, en la celda Fechas y en su "Copiar celda" (también con el toggle Glass, que es la
+  // misma tabla): "yyyy/MM/dd HH:mm" en ReparacionController{SuperTecnico,Admin}, "yyyy/MM/dd" en ReparacionControllerTecnico.
+  const patronFechas: Patron = global ? 'yyyy/MM/dd HH:mm' : 'yyyy/MM/dd'
+  const columnas = useMemo(() => columnasTrabajo({
+    patronFechas,
+    tituloId: 'Id Reparación',
+    onIrA: (idRep) => { setSeleccionada(idRep); setPeticionDesplazamiento((n) => n + 1) },
+  }), [patronFechas])
 
   useRegistrarExportable(() => {
     const base = global ? (tipo === 'GLASS' ? 'historial_glass' : 'historial_reparaciones') : tipo === 'GLASS' ? 'mis_glass' : 'mis_reparaciones'
@@ -78,12 +89,13 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
+        pedirDesplazamiento={peticionDesplazamiento}
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent')}
         // "Asignado por" no es copiable en el Historial (docs/paridad/historial.md, "Común a los tres toggles" no
         // la lista entre las columnas copiables: ReparacionControllerSuperTecnico.textoDeCelda no tiene ese case).
         // Sí lo es en el Agrupado de IMEIs (Task 18), que reutiliza este mismo textoCeldaTrabajo: se suprime aquí,
         // en la llamada, en vez de en la función compartida.
-        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, 'yyyy/MM/dd')} puedeEditar={puedeEditar} acciones={acciones} />}
+        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, patronFechas)} puedeEditar={puedeEditar} acciones={acciones} />}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
       {dialogos}

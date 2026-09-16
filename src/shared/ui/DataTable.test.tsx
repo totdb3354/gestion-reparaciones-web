@@ -251,6 +251,49 @@ describe('DataTable', () => {
     expect(contenedor.scrollTop).toBe(ALTO_FILA)
   })
 
+  it('cada petición de desplazamiento desplaza hasta la selección aunque ya fuera esa y enfoca el contenedor sin mover la página; una selección externa sin petición no enfoca (calco de select(i); scrollTo(i); requestFocus() en cada clic del enlace "Id Rep. Anterior")', () => {
+    simularMaquetacion(300)
+    const enfocar = vi.spyOn(HTMLElement.prototype, 'focus')
+    const tabla = (seleccionada: string | null, peticion: number) => (
+      <DataTable columns={COLUMNAS} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={() => {}} pedirDesplazamiento={peticion} />
+    )
+    const { rerender } = render(tabla(null, 0))
+    const contenedor = screen.getByRole('table').parentElement!
+    // Selección externa sin petición (la restauración del maestro de IMEIs): desplaza, pero la tabla no se lleva el foco.
+    rerender(tabla('2', 0))
+    expect(contenedor.scrollTop).toBe(2 * ALTO_FILA)
+    expect(enfocar).not.toHaveBeenCalled()
+    // Primer clic en un enlace a F5.
+    rerender(tabla('5', 1))
+    expect(contenedor.scrollTop).toBe(5 * ALTO_FILA)
+    expect(contenedor).toHaveFocus()
+    expect(enfocar).toHaveBeenLastCalledWith({ preventScroll: true })
+    // El usuario vuelve arriba con la rueda y el foco pasa a otro sitio; F5 sigue seleccionada.
+    contenedor.scrollTop = 0
+    contenedor.blur()
+    // Segundo clic en el mismo enlace: la selección no cambia y aun así vuelve a desplazar y a enfocar.
+    rerender(tabla('5', 2))
+    expect(contenedor.scrollTop).toBe(5 * ALTO_FILA)
+    expect(contenedor).toHaveFocus()
+    expect(enfocar).toHaveBeenCalledTimes(2)
+  })
+
+  it('una petición de desplazamiento a una fila que no está en la tabla no desplaza ni enfoca, y no queda pendiente para cuando la fila aparezca', () => {
+    simularMaquetacion(300)
+    const tabla = (data: Fila[], seleccionada: string | null, peticion: number) => (
+      <DataTable columns={COLUMNAS} data={data} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={() => {}} pedirDesplazamiento={peticion} />
+    )
+    const { rerender } = render(tabla(DIEZ.slice(0, 5), null, 0))
+    const contenedor = screen.getByRole('table').parentElement!
+    // Enlace a F7, que un filtro deja fuera de la tabla (el JavaFX solo actúa si la encuentra entre los items).
+    rerender(tabla(DIEZ.slice(0, 5), '7', 1))
+    expect(contenedor.scrollTop).toBe(0)
+    expect(contenedor).not.toHaveFocus()
+    // Al quitar el filtro F7 aparece: la tabla no se lleva el foco (el usuario puede estar escribiendo en el filtro).
+    rerender(tabla(DIEZ, '7', 1))
+    expect(contenedor).not.toHaveFocus()
+  })
+
   it('si la selección llega antes que las filas, desplaza cuando aparecen', () => {
     simularMaquetacion(300)
     const tabla = (data: Fila[]) => <DataTable columns={COLUMNAS} data={data} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />

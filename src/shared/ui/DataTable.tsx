@@ -39,6 +39,11 @@ type Props<T> = {
    *  (por defecto) la fila queda justo debajo de la cabecera, como `tabla.scrollTo(i)`; con 3, como
    *  `tabla.scrollTo(Math.max(0, idx - 3))`. */
   filasContexto?: number
+  /** Petición de la página para volver a desplazar hasta `seleccionada` y enfocar la tabla aunque la selección no haya
+   *  cambiado: cada valor nuevo cuenta como una petición (p. ej. un contador que sube en cada clic). Calco de
+   *  `select(i); scrollTo(i); requestFocus()` del enlace "Id Rep. Anterior", que actúa en cada clic aunque esa fila ya
+   *  esté seleccionada. Si la fila no está en la tabla no hace nada, y la petición no queda pendiente. */
+  pedirDesplazamiento?: number
   /** Doble clic o Enter sobre la fila seleccionada. */
   onAbrir?: (row: T) => void
   /** Ordenación por clic en la cabecera; apagada por defecto porque el JavaFX no ordena por clic. */
@@ -107,6 +112,7 @@ export function DataTable<T>({
   seleccionada = null,
   onSeleccionar,
   filasContexto = 0,
+  pedirDesplazamiento,
   onAbrir,
   ordenacion = false,
   alturaMax = 'calc(100dvh - 330px)',
@@ -199,23 +205,29 @@ export function DataTable<T>({
   }
 
   const desplazadaRef = useRef<string | null>(null)
+  const peticionAtendidaRef = useRef(pedirDesplazamiento)
   // Selección impuesta desde fuera (el enlace "Id Rep. Anterior", o el maestro de IMEIs reseleccionando el IMEI al
   // volver del detalle): desplazar siempre el contenedor hasta dejar justo debajo de la cabecera la fila `filasContexto`
   // posiciones por encima, calco de tabla.scrollTo(i) (enlace) y de tabla.scrollTo(Math.max(0, idx - 3))
   // (restaurarSeleccion). El TableView desplaza aunque la fila ya se vea.
   // Un refresco de datos (poll) cambia la identidad de `filas` sin cambiar `seleccionada`: no debe volver a
   // desplazar, así que se recuerda en `desplazadaRef` la última selección ya atendida y solo se actúa cuando
-  // `seleccionada` cambia (o cuando las filas llegan después de fijarla).
+  // `seleccionada` cambia (o cuando las filas llegan después de fijarla), o cuando llega una petición nueva
+  // (`pedirDesplazamiento`), que además enfoca la tabla.
   useEffect(() => {
     // La marca de origen interno solo vale para el primer efecto después del clic o la tecla que la puso.
     const interna = seleccionInternaRef.current !== null && seleccionInternaRef.current === seleccionada
     seleccionInternaRef.current = null
-    if (seleccionada === desplazadaRef.current) return
+    // Cada petición se atiende una sola vez, esté o no su fila en la tabla: si la fila apareciera más tarde (al quitar
+    // un filtro), la tabla no debe quitarle el foco a lo que el usuario esté usando en ese momento.
+    const pedida = pedirDesplazamiento !== peticionAtendidaRef.current
+    peticionAtendidaRef.current = pedirDesplazamiento
+    if (seleccionada === desplazadaRef.current && !pedida) return
     if (seleccionada === null) {
       desplazadaRef.current = null
       return
     }
-    if (!interna) {
+    if (pedida || !interna) {
       const idx = filas.findIndex((r) => r.id === seleccionada)
       if (idx < 0) return
       const arriba = Math.max(0, idx - filasContexto)
@@ -226,9 +238,11 @@ export function DataTable<T>({
         const fila = filaRefs.current.get(filas[arriba].id)
         if (contenedor && fila) desplazarContenedor(contenedor, fila, cabeceraRef.current?.offsetHeight ?? 0, 'arriba')
       }
+      // requestFocus() del TableView: el foco pasa a la tabla (las flechas siguen desde esa fila) sin mover la página.
+      if (pedida) contenedorRef.current?.focus({ preventScroll: true })
     }
     desplazadaRef.current = seleccionada
-  }, [seleccionada, filas, virtual, virtualizador, filasContexto])
+  }, [seleccionada, filas, virtual, virtualizador, filasContexto, pedirDesplazamiento])
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (!onSeleccionar || filas.length === 0) return

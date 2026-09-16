@@ -34,6 +34,8 @@ test('técnico: pendientes, historial, IMEIs y detalle', async ({ page }) => {
   await expect(page.getByText(`IMEI: ${imei}`)).toBeVisible()
 
   await page.getByRole('button', { name: '← Volver' }).click()
+  // El título "Agrupado por IMEI" también se ve en el detalle: la vuelta al maestro se comprueba por la URL.
+  await expect(page).toHaveURL(/\/reparaciones\/imeis$/)
   await expect(page.getByRole('heading', { name: 'Agrupado por IMEI' })).toBeVisible()
   await expect(page.getByRole('row', { name: new RegExp(imei) })).toHaveAttribute('aria-selected', 'true')
 })

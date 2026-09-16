@@ -113,7 +113,8 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.keyboard('{Escape}')
     expect(filtrosImeis.get().incidencias).toEqual(new Set(['abiertas', 'cerradas']))
     await userEvent.click(screen.getByRole('button', { name: '← Volver' }))
-    await screen.findByRole('heading', { name: 'Agrupado por IMEI' })
+    // El título "Agrupado por IMEI" también está en el detalle: la señal de vuelta al maestro es su filtro de IMEI.
+    await screen.findByPlaceholderText('Filtrar por IMEI')
     await waitFor(() => expect(filtrosImeis.get().incidencias).toEqual(new Set(['abiertas'])))
     expect(screen.getByRole('button', { name: 'Incidencia' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Incidencia' }))
@@ -133,7 +134,8 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.click(screen.getByRole('button', { name: `Ver trabajos de ${A}` }))
     expect(await screen.findByText(`IMEI: ${A}`)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '← Volver' }))
-    await screen.findByRole('heading', { name: 'Agrupado por IMEI' })
+    // El título "Agrupado por IMEI" también está en el detalle: la señal de vuelta al maestro es su filtro de IMEI.
+    await screen.findByPlaceholderText('Filtrar por IMEI')
     expect(await screen.findByRole('row', { name: new RegExp(A) })).toHaveAttribute('aria-selected', 'true')
     expect(ultimoImeiVisto.get()).toBeNull()
     await userEvent.dblClick(screen.getByText(B))

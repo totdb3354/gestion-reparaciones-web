@@ -13,11 +13,13 @@ import { traducirModelo } from '../lib/modelos'
 type Opciones = {
   /** Columna "Tipo" delante (detalle de IMEIs) */
   conTipo?: boolean
-  /** Patrón de la columna Fechas: 'yyyy/MM/dd' en el Historial, 'yyyy/MM/dd HH:mm' en el detalle de IMEIs */
+  /** Patrón de la columna Fechas: en el Historial 'yyyy/MM/dd' para TECNICO y 'yyyy/MM/dd HH:mm' para SUPERTECNICO y
+   *  ADMIN; 'yyyy/MM/dd HH:mm' en el detalle de IMEIs */
   patronFechas: Patron
   /** Título de la columna del ID: "Id Reparación" en el Historial, "Id" en el detalle */
   tituloId: string
-  /** Enlace "Id Rep. Anterior": selecciona esa fila */
+  /** Enlace "Id Rep. Anterior", en cada clic: selecciona esa fila (y la página pide a la tabla desplazarse hasta ella y
+   *  enfocarse, `pedirDesplazamiento` de DataTable) */
   onIrA: (idRep: string) => void
 }
 

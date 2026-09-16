@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
@@ -58,6 +58,25 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Incidencias' }))
     expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-label'))).toEqual(['Abiertas', 'Cerradas', 'Sin incidencia'])
   })
+  it('conserva el título "Agrupado por IMEI" del maestro, sin la píldora contador (lblContador se oculta en DETALLE)', async () => {
+    abrir()
+    await screen.findByText('• 3 trabajos')
+    expect(screen.getByRole('heading', { level: 1, name: 'Agrupado por IMEI' })).toHaveClass('text-2xl', 'font-bold', 'text-azul-medio')
+    expect(screen.queryByText(/^\d+ IMEIs?$/)).not.toBeInTheDocument()
+  })
+  it('orden de AgrupadoView en el detalle: título, filtros, la barra "← Volver" justo encima de la tabla y la tabla (crearBarraNavegacion la inserta antes de la tabla)', async () => {
+    abrir()
+    await screen.findByText('• 3 trabajos')
+    const antes = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+    const titulo = screen.getByRole('heading', { name: 'Agrupado por IMEI' })
+    const primerFiltro = screen.getByRole('button', { name: 'Técnico' })
+    const ultimoFiltro = screen.getByRole('button', { name: 'Limpiar filtros' })
+    const volver = screen.getByRole('button', { name: '← Volver' })
+    const tabla = screen.getByRole('table')
+    expect(antes(titulo, primerFiltro)).toBe(true)
+    expect(antes(ultimoFiltro, volver)).toBe(true)
+    expect(antes(volver, tabla)).toBe(true)
+  })
   it('etiqueta de Incidencias con las tres casillas del detalle: "Incidencias", la única marcada, "2 filtros" y "Todas"', async () => {
     abrir()
     await screen.findByText(`IMEI: ${A}`)
@@ -73,6 +92,34 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     await marcar('Abiertas', '2 filtros')
     expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument()
     expect(filtrosImeis.get().incidencias).toEqual(new Set(['cerradas', 'sin', 'abiertas']))
+  })
+  it('el enlace Id Rep. Anterior desplaza la tabla hasta esa fila y la enfoca en cada clic, también si ya estaba seleccionada (select(i); scrollTo(i); requestFocus())', async () => {
+    const otraGlass = resumen({ idRep: 'G20260914_2', imei: A, modelo: '16', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-14T10:00:00', fechaFin: '2026-09-14T11:00:00', idRepAnterior: 'G20260912_1' })
+    server.use(http.get('*/api/glass/historial', () => HttpResponse.json([...glass, otraGlass])))
+    // jsdom no maqueta: cabecera de 40 px y filas de 44 px colocadas por su data-index debajo de ella (como en DataTable.test.tsx).
+    const esFila = (el: HTMLElement) => el.tagName === 'TR' && el.dataset.index !== undefined
+    const offsetTop = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return esFila(this) ? 40 + Number(this.dataset.index) * 44 : 0
+    })
+    const offsetHeight = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.tagName === 'THEAD' ? 40 : esFila(this) ? 44 : 0
+    })
+    onTestFinished(() => { offsetTop.mockRestore(); offsetHeight.mockRestore() })
+    abrir()
+    // Orden cronológico: R20260910_1, G20260912_1 (fila 1), P20260913_1, G20260914_2 (la del enlace).
+    const enlace = await screen.findByRole('button', { name: 'G20260912_1' })
+    const contenedor = screen.getByRole('table').parentElement!
+    await userEvent.click(enlace)
+    expect(screen.getByRole('row', { name: /^Glass G20260912_1 / })).toHaveAttribute('aria-selected', 'true')
+    expect(contenedor.scrollTop).toBe(44)
+    expect(contenedor).toHaveFocus()
+    // El usuario vuelve arriba con la rueda y el foco pasa a otro control; G20260912_1 sigue seleccionada.
+    contenedor.scrollTop = 0
+    screen.getByRole('button', { name: '← Volver' }).focus()
+    await userEvent.click(enlace)
+    expect(screen.getByRole('row', { name: /^Glass G20260912_1 / })).toHaveAttribute('aria-selected', 'true')
+    expect(contenedor.scrollTop).toBe(44)
+    expect(contenedor).toHaveFocus()
   })
   it('filtro de técnico: los suyos primero, los ajenos atenuados y el texto "X de filtrados + Y de otros"', async () => {
     filtrosImeis.set({ ...filtrosImeis.get(), tecnicos: new Set([6]) })

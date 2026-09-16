@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
@@ -68,13 +68,28 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
       expect.stringMatching(/^10\.2040/), // Id Rep. Anterior 150
     ])
     expect(screen.getByText('Reutilizado')).toHaveClass('italic')
-    expect(screen.getByText('2026/09/16')).toBeInTheDocument()
+    expect(screen.getByText('2026/09/16 09:00')).toBeInTheDocument()
     expect(screen.getAllByText('Sin incidencia')).toHaveLength(1)
     expect(screen.getByText('Resuelta')).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /R20260915_133/ })).toHaveClass('border-l-fila-incidencia-brd')
     expect(screen.getByRole('row', { name: /R20260910_1/ })).toHaveClass('border-l-fila-reparado-brd')
     // tablaReparaciones.setFixedCellSize(44)
     expect(screen.getByRole('row', { name: /R20260915_133/ })).toHaveStyle({ height: '44px' })
+  })
+  it.each([
+    { rol: 'SUPERTECNICO', sesion: SESION_SUPER, inicio: '2026/09/10 12:00', fin: '→ 2026/09/11 12:00', copiado: '2026/09/11 12:00' },
+    { rol: 'ADMIN', sesion: SESION_ADMIN, inicio: '2026/09/10 12:00', fin: '→ 2026/09/11 12:00', copiado: '2026/09/11 12:00' },
+    { rol: 'TECNICO', sesion: SESION_TEC, inicio: '2026/09/10', fin: '→ 2026/09/11', copiado: '2026/09/11' },
+  ])('Fechas del $rol en la celda y en "Copiar celda" (la de fin) con el FORMATO_FECHA de su controller: con hora en ReparacionController{SuperTecnico,Admin}, sin hora en ReparacionControllerTecnico', async ({ sesion, inicio, fin, copiado }) => {
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    abrir(sesion)
+    const fila = await screen.findByRole('row', { name: /^R20260910_1 / })
+    expect(within(fila).getByText(inicio)).toBeInTheDocument()
+    expect(within(fila).getByText(fin)).toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: within(fila).getByText(inicio) })
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).toHaveBeenCalledWith(copiado)
   })
   it('el técnico ve "Mis reparaciones" y no tiene filtro de técnico', async () => {
     abrir(SESION_TEC)
@@ -115,6 +130,36 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await screen.findByText('R20260915_133')
     await userEvent.click(screen.getByRole('button', { name: 'R20260916_6' }))
     expect(screen.getByRole('row', { name: /^R20260916_6 / })).toHaveAttribute('aria-selected', 'true')
+  })
+  it('el enlace Id Rep. Anterior desplaza la tabla hasta esa fila y la enfoca en cada clic, también si ya estaba seleccionada (select(i); scrollTo(i); requestFocus())', async () => {
+    server.use(http.get('*/api/reparaciones/historial', () => HttpResponse.json([
+      resumen({ idRep: 'R20260912_3', imei: '351900000000041', modelo: '16', nombreTecnico: 'tecnico_i', idTec: 5, fechaAsig: '2026-09-12T10:00:00', fechaFin: '2026-09-12T11:00:00', idRepAnterior: 'R20260910_1' }),
+      resumen({ idRep: 'R20260911_2', imei: '358800000000131', modelo: '14', nombreTecnico: 'tecnico_i', idTec: 5, fechaAsig: '2026-09-11T10:00:00', fechaFin: '2026-09-11T11:00:00' }),
+      resumen({ idRep: 'R20260910_1', imei: '351900000000041', modelo: '16', nombreTecnico: 'tecnico_b', idTec: 6, fechaAsig: '2026-09-10T10:00:00', fechaFin: '2026-09-10T11:00:00' }),
+    ])))
+    // jsdom no maqueta: cabecera de 40 px y filas de 44 px colocadas por su data-index debajo de ella (como en DataTable.test.tsx).
+    const esFila = (el: HTMLElement) => el.tagName === 'TR' && el.dataset.index !== undefined
+    const offsetTop = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return esFila(this) ? 40 + Number(this.dataset.index) * 44 : 0
+    })
+    const offsetHeight = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.tagName === 'THEAD' ? 40 : esFila(this) ? 44 : 0
+    })
+    onTestFinished(() => { offsetTop.mockRestore(); offsetHeight.mockRestore() })
+    abrir()
+    const enlace = await screen.findByRole('button', { name: 'R20260910_1' })
+    const contenedor = screen.getByRole('table').parentElement!
+    await userEvent.click(enlace)
+    expect(screen.getByRole('row', { name: /^R20260910_1 / })).toHaveAttribute('aria-selected', 'true')
+    expect(contenedor.scrollTop).toBe(2 * 44) // la fila 2 justo debajo de la cabecera
+    expect(contenedor).toHaveFocus()
+    // El usuario vuelve arriba con la rueda y pasa al filtro de IMEI; R20260910_1 sigue seleccionada.
+    contenedor.scrollTop = 0
+    screen.getByPlaceholderText('Filtrar por IMEI').focus()
+    await userEvent.click(enlace)
+    expect(screen.getByRole('row', { name: /^R20260910_1 / })).toHaveAttribute('aria-selected', 'true')
+    expect(contenedor.scrollTop).toBe(2 * 44)
+    expect(contenedor).toHaveFocus()
   })
   it('menú del supertécnico y diálogo "Borrar reparación" con motivo; referenciada avisa y no abre', async () => {
     let borrado: unknown = null
@@ -305,6 +350,8 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await screen.findByText('AG20260828_3')
     expect(screen.getByRole('link', { name: 'Glass' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByText('Llegó 16/09 11:30')).toBeInTheDocument()
+    // El toggle Glass es la misma tabla del controller del rol: fechas con hora para el supertécnico.
+    expect(screen.getByText('2026/09/16 09:02')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [base] = descargar.mock.calls[0]

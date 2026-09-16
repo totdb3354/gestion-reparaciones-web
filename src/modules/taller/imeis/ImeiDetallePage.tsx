@@ -20,7 +20,8 @@ import { FMT } from './constantes'
 import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
 import { useTrabajos } from './useTrabajos'
 
-/** Detalle de un IMEI: calco de AgrupadoController en modo DETALLE (barra "← Volver · IMEI · modelo · N trabajos" y tabla de trabajos con Tipo). */
+/** Detalle de un IMEI: calco de AgrupadoController en modo DETALLE (título "Agrupado por IMEI" sin contador, filtros, barra
+ *  "← Volver · IMEI · modelo · N trabajos" justo encima de la tabla y tabla de trabajos con Tipo). */
 export function ImeiDetallePage() {
   const { imei = '' } = useParams()
   const navigate = useNavigate()
@@ -33,22 +34,33 @@ export function ImeiDetallePage() {
   const detalle = useMemo(() => filasDetalle(trabajos, imei, filtros), [trabajos, imei, filtros])
   const modelo = traducirModelo(trabajos.find((t) => t.imei === imei && t.modelo)?.modelo)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
+  // Cada clic en un enlace "Id Rep. Anterior" pide a la tabla desplazarse hasta esa fila y enfocarse, aunque ya estuviera
+  // seleccionada (AgrupadoController hace select(i); scrollTo(i); requestFocus() en cada clic).
+  const [peticionDesplazamiento, setPeticionDesplazamiento] = useState(0)
   const { acciones, dialogos } = useAccionesTrabajo({ tituloBorrar: TITULOS_BORRAR.trabajo, avisoReferencia: 'Este trabajo está siendo referenciado' })
-  const columnas = useMemo(() => columnasTrabajo({ conTipo: true, patronFechas: FMT, tituloId: 'Id', onIrA: setSeleccionada }), [])
+  const columnas = useMemo(() => columnasTrabajo({
+    conTipo: true,
+    patronFechas: FMT,
+    tituloId: 'Id',
+    onIrA: (idRep) => { setSeleccionada(idRep); setPeticionDesplazamiento((n) => n + 1) },
+  }), [])
   const conFiltroTecnico = filtros.tecnicos.size > 0
 
   useRegistrarExportable(() => descargarCsv(`agrupado_${imei}`, CABECERAS_DETALLE, detalle.filas.map(filaDetalle)))
 
   return (
     <div className="p-10">
-      <div className="mb-2 flex items-center gap-3">
+      {/* El título de AgrupadoView.fxml es fijo (sin fx:id): se queda en el detalle; lblContador se oculta. */}
+      <h1 className="mb-2 text-2xl font-bold text-azul-medio">Agrupado por IMEI</h1>
+      <BarraFiltrosImeis modo="detalle" />
+      {/* crearBarraNavegacion la inserta justo antes de la tabla, debajo de los filtros: HBox(12) con padding 6 0 6 0. */}
+      <div className="flex items-center gap-3 py-1.5">
         <BotonSecundario onClick={() => navigate('/reparaciones/imeis')}>← Volver</BotonSecundario>
         <span aria-hidden="true" className="h-6 w-px bg-fila-sep" />
         <span className="text-[13px] font-bold text-azul-medio">IMEI: {imei}</span>
         {modelo && <span className="text-[12px] text-azul-gris">• {modelo}</span>}
         <span className="text-[12px] text-azul-gris">{textoTrabajos(detalle, conFiltroTecnico)}</span>
       </div>
-      <BarraFiltrosImeis modo="detalle" />
       <DataTable
         columns={columnas}
         data={detalle.filas}
@@ -59,6 +71,7 @@ export function ImeiDetallePage() {
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
+        pedirDesplazamiento={peticionDesplazamiento}
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent', esAjeno(r, filtros) && 'opacity-45')}
         menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} acciones={acciones} />}
       />
