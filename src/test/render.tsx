@@ -7,21 +7,32 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { guardarSesion, type Sesion } from '@/shared/session/storage'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 
-type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement }
+type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; layout?: ReactElement; patron?: string }
 
 /** Render con el QueryClient de producción (única diferencia: sin reintentos), SessionProvider y MemoryRouter.
- *  `rutas` permite añadir <Route>s auxiliares. Al compartir fábrica con main.tsx, los tests observan la misma
- *  política de errores (diálogo ante cualquier fallo que no sea sesión expirada o desconexión). */
-export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas }: Opciones = {}) {
+ *  `rutas` permite añadir <Route>s auxiliares. `layout` monta `ui` como ruta hija de ese elemento (mismo patrón
+ *  sin-path que `router.tsx`: `<Route element={layout}><Route path={patron ?? ruta} element={ui} /></Route>`),
+ *  para los tests que necesitan el layout real (p. ej. `AppLayout` por su `TopBar`/menú de usuario); `patron`
+ *  solo hace falta si la ruta a testear no coincide literalmente con `ruta` (p. ej. un patrón con parámetros).
+ *  Al compartir fábrica con main.tsx, los tests observan la misma política de errores (diálogo ante cualquier
+ *  fallo que no sea sesión expirada o desconexión). */
+export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas, layout, patron }: Opciones = {}) {
   if (sesion) guardarSesion(sesion)
   const qc = crearQueryClient({ retry: false })
+  const rutaUi = layout ? (
+    <Route element={layout}>
+      <Route path={patron ?? ruta} element={ui} />
+    </Route>
+  ) : (
+    <Route path={ruta} element={ui} />
+  )
   return render(
     <QueryClientProvider client={qc}>
       <SessionProvider>
         <AlertaProvider>
           <MemoryRouter initialEntries={[ruta]}>
             <Routes>
-              <Route path={ruta} element={ui} />
+              {rutaUi}
               {rutas}
             </Routes>
           </MemoryRouter>

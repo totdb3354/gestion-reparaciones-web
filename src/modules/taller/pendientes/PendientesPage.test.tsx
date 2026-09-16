@@ -1,7 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { Route } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
@@ -97,28 +96,49 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(screen.getAllByRole('row')).toHaveLength(2)
     expect(campo).toHaveValue('355400000000111, ')
   })
-  it('menú contextual: copiar, por cerrar y "Entregar a" según la fila; PATCH por-cerrar', async () => {
-    let body: unknown = null
-    server.use(http.patch('*/api/reparaciones/asignaciones/A20260916_2/por-cerrar', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 204 }) }))
+  it('menú contextual: copiar, por cerrar y "Entregar a" según la fila; PATCH por-cerrar y entrega-glass', async () => {
+    let bodyPorCerrar: unknown = null
+    let bodyEntrega: unknown = null
+    server.use(
+      http.patch('*/api/reparaciones/asignaciones/A20260916_2/por-cerrar', async ({ request }) => { bodyPorCerrar = await request.json(); return new HttpResponse(null, { status: 204 }) }),
+      http.patch('*/api/reparaciones/asignaciones/A20260916_12/entrega-glass', async ({ request }) => { bodyEntrega = await request.json(); return new HttpResponse(null, { status: 204 }) }),
+    )
     abrir()
     await screen.findByText('A20260915_29')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('A20260916_12') })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda', 'Marcar por cerrar', 'Entregar a Técnico H'])
-    await userEvent.keyboard('{Escape}')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Entregar a Técnico H' }))
+    await waitFor(() => expect(bodyEntrega).toEqual({ entregado: true }))
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('A20260916_2') })
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Quitar por cerrar' }))
-    await waitFor(() => expect(body).toEqual({ porCerrar: false }))
+    await waitFor(() => expect(bodyPorCerrar).toEqual({ porCerrar: false }))
   })
-  it('pestaña Glass: "Marcar que llegó" en la fila bloqueada, botón oculto y placeholder', async () => {
+  it('pestaña Glass: "Marcar que llegó" y "Deshacer llegada" disparan su PATCH/DELETE; botón oculto y placeholder', async () => {
     const bloqueada = { ...glass(null), idRep: 'AG20260916_1', imei: '351111111111111', normalAbierta: true, normalTecnicoNombre: 'Técnico J' }
-    server.use(http.get('*/api/glass/asignaciones', () => HttpResponse.json([bloqueada])), http.patch('*/api/reparaciones/asignaciones/AG20260916_1/llegada', () => new HttpResponse(null, { status: 204 })))
-    renderConProviders(<PendientesPage tipo="GLASS" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
+    // entregadoPor: 4 = idTec de SESION_TEC (con la que se monta esta página): opcionDeshacerLlegada solo ofrece
+    // "Deshacer llegada" a quien firmó la entrega (ver entregaGlass.ts).
+    const entregada = { ...glass('2026-09-16T08:00:00'), idRep: 'AG20260916_2', imei: '352222222222222', entregadoPor: 4 }
+    let llegadaLlamada = false
+    let deshacerLlamada = false
+    server.use(
+      http.get('*/api/glass/asignaciones', () => HttpResponse.json([bloqueada, entregada])),
+      http.patch('*/api/reparaciones/asignaciones/AG20260916_1/llegada', () => { llegadaLlamada = true; return new HttpResponse(null, { status: 204 }) }),
+      http.delete('*/api/reparaciones/asignaciones/AG20260916_2/llegada', () => { deshacerLlamada = true; return new HttpResponse(null, { status: 204 }) }),
+    )
+    const { unmount } = renderConProviders(<PendientesPage tipo="GLASS" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
     await screen.findByText('AG20260916_1')
     expect(screen.getByText('Rep: Técnico J')).toHaveClass('bg-tipo-reparacion-bg')
-    expect(screen.queryByRole('button', { name: 'Añadir glass' })).not.toBeInTheDocument()
+    // "Añadir glass" solo se oculta en la fila bloqueada (normalAbierta y sin entregadoAt); "entregada" sí lo ofrece.
+    expect(within(screen.getByRole('row', { name: /AG20260916_1/ })).queryByRole('button', { name: 'Añadir glass' })).not.toBeInTheDocument()
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('AG20260916_1') })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda', 'Marcar que llegó'])
-    await userEvent.keyboard('{Escape}')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Marcar que llegó' }))
+    await waitFor(() => expect(llegadaLlamada).toBe(true))
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('AG20260916_2') })
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda', 'Deshacer llegada'])
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Deshacer llegada' }))
+    await waitFor(() => expect(deshacerLlamada).toBe(true))
+    unmount()
     server.use(http.get('*/api/glass/asignaciones', () => HttpResponse.json([])))
     renderConProviders(<PendientesPage tipo="GLASS" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
     expect(await screen.findByText('No tienes asignaciones pendientes')).toBeInTheDocument()
@@ -150,21 +170,9 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
   })
   it('"Descargar CSV" exporta las filas visibles con las cabeceras del técnico', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
-    // Adaptación (ver nota del brief): renderConProviders no deja anidar la página bajo un AppLayout real a
-    // través de `ui`/`ruta` — esa combinación ya ocupa la ruta con un <Route> sin hijos, así que un <Route>
-    // idéntico añadido por `rutas` para el mismo `path` pierde el desempate por posición (declarado después) y
-    // nunca llegaría a montarse. Se resuelve dándole a `rutas` una ruta índice bajo ese mismo `path`: en el
-    // cálculo de puntuación de react-router una ruta índice puntúa por encima de una ruta normal con el mismo
-    // path, así que esta rama gana el matching y es la que se monta (comprobado: sin esto, "Hola," no aparece).
-    renderConProviders(<PendientesPage tipo="REPARACION" />, {
-      sesion: SESION_TEC,
-      ruta: '/reparaciones/pendientes',
-      rutas: (
-        <Route path="/reparaciones/pendientes" element={<AppLayout />}>
-          <Route index element={<PendientesPage tipo="REPARACION" />} />
-        </Route>
-      ),
-    })
+    // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
+    // no solo la página: renderConProviders monta PendientesPage como ruta hija de <AppLayout/> (opción `layout`).
+    renderConProviders(<PendientesPage tipo="REPARACION" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes', layout: <AppLayout /> })
     await screen.findByText('A20260915_29')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
@@ -173,6 +181,18 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(base).toBe('mis_pendientes')
     expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Fecha asig.', 'Fecha fin', 'Componente', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
     expect(filasCsv[0]).toEqual(['A20260915_29', '="355400000000111"', '15/09/2026 10:53', '', '', '', 'No', 'No', ''])
+    descargar.mockRestore()
+  })
+  it('"Descargar CSV" del supertécnico añade la columna Técnico', async () => {
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    renderConProviders(<PendientesPage tipo="REPARACION" />, { sesion: SESION_SUPER, ruta: '/reparaciones/pendientes', layout: <AppLayout /> })
+    await screen.findByText('A20260915_29')
+    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
+    expect(descargar).toHaveBeenCalledTimes(1)
+    const [, cabeceras, filasCsv] = descargar.mock.calls[0]
+    expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
+    expect(filasCsv[0]).toEqual(['A20260915_29', '="355400000000111"', 'Técnico A', '15/09/2026 10:53', '', '', '', 'No', 'No', ''])
     descargar.mockRestore()
   })
 })
