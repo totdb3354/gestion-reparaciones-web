@@ -169,8 +169,8 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Técnico M') })
     await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
     expect(escribir).not.toHaveBeenCalled()
-    // Contraparte positiva: sin ella, invertir el ternario de HistorialPage (=== → !==) suprimiría la copia de
-    // TODAS las demás columnas y este archivo seguiría en verde (nada más lo comprueba).
+    // Contraparte positiva: sin esta aserción, nada en este archivo demostraría que el resto de columnas SÍ
+    // se copian (p. ej. un texto={null} en textoCeldaTrabajo para otra columna pasaría inadvertido).
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('358800000000131') })
     await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
     expect(escribir).toHaveBeenCalledWith('358800000000131')
