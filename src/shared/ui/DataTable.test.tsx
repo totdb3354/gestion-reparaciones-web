@@ -1,10 +1,13 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ColumnDef } from '@tanstack/react-table'
+import { AlertaProvider } from './AlertaProvider'
 import { ContextMenuItem } from './context-menu'
-import { anchosEstirados, DataTable } from './DataTable'
+import { anchosEstirados, DataTable, type CeldaPulsada } from './DataTable'
+import { TextoExpandible } from './TextoExpandible'
 
 type Fila = { id: string; nombre: string; nota: string }
 
@@ -312,6 +315,125 @@ describe('DataTable', () => {
     expect(filas).toBeLessThan(100)
     expect(screen.getByText('F0')).toBeInTheDocument()
     expect(screen.queryByText('F499')).not.toBeInTheDocument()
+  })
+})
+
+describe('DataTable — eventos que no nacen en la tabla (portales y controles de las celdas)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  type PropsTabla = {
+    columnas?: ColumnDef<Fila, string>[]
+    inicial?: string | null
+    alSeleccionar?: (id: string | null) => void
+    onAbrir?: (f: Fila) => void
+    menuFila?: (f: Fila, celda: CeldaPulsada) => ReactNode
+  }
+  /** Tabla con la selección en estado, como las páginas (`onSeleccionar={setSeleccionada}`). */
+  function TablaConEstado({ columnas = COLUMNAS, inicial = null, alSeleccionar, onAbrir, menuFila }: PropsTabla) {
+    const [seleccionada, setSeleccionada] = useState<string | null>(inicial)
+    return (
+      <DataTable columns={columnas} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada}
+        onSeleccionar={(id) => { alSeleccionar?.(id); setSeleccionada(id) }} onAbrir={onAbrir} menuFila={menuFila} />
+    )
+  }
+
+  it('con el menú contextual abierto, las flechas se quedan en el menú y no mueven la selección de la tabla', async () => {
+    const alSeleccionar = vi.fn()
+    render(<TablaConEstado alSeleccionar={alSeleccionar} menuFila={() => <><ContextMenuItem>Uno</ContextMenuItem><ContextMenuItem>Dos</ContextMenuItem></>} />)
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('F2') })
+    await screen.findByRole('menu')
+    expect(alSeleccionar).toHaveBeenLastCalledWith('2')
+    alSeleccionar.mockClear()
+    await userEvent.keyboard('{ArrowDown}')
+    expect(screen.getByRole('menuitem', { name: 'Uno' })).toHaveFocus()
+    expect(alSeleccionar).not.toHaveBeenCalled()
+    // hidden: con el menú abierto, Radix marca el resto de la página con aria-hidden.
+    expect(screen.getByRole('row', { name: /^F2 x$/, hidden: true })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('Enter sobre un ítem del menú contextual ejecuta el ítem y no abre la fila seleccionada', async () => {
+    const onAbrir = vi.fn()
+    const accion = vi.fn()
+    render(<TablaConEstado onAbrir={onAbrir} menuFila={() => <ContextMenuItem onSelect={accion}>Acción</ContextMenuItem>} />)
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('F2') })
+    ;(await screen.findByRole('menuitem', { name: 'Acción' })).focus()
+    await userEvent.keyboard('{Enter}')
+    expect(accion).toHaveBeenCalledTimes(1)
+    expect(onAbrir).not.toHaveBeenCalled()
+  })
+
+  it('Enter con el foco en un botón de una celda pulsa ese botón y no abre la fila; las flechas siguen moviendo la selección', async () => {
+    const pulsado = vi.fn()
+    const onAbrir = vi.fn()
+    const columnas: ColumnDef<Fila, string>[] = [
+      ...COLUMNAS,
+      { id: 'ver', header: '', size: 60, cell: ({ row }) => <button type="button" onClick={() => pulsado(row.original.id)}>{`Ver ${row.original.nombre}`}</button> },
+    ]
+    render(<TablaConEstado columnas={columnas} inicial="2" onAbrir={onAbrir} />)
+    screen.getByRole('button', { name: 'Ver F2' }).focus()
+    await userEvent.keyboard('{Enter}')
+    expect(pulsado).toHaveBeenCalledWith('2')
+    expect(onAbrir).not.toHaveBeenCalled()
+    await userEvent.keyboard('{ArrowDown}')
+    expect(screen.getByRole('row', { name: /^F3 x Ver F3$/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('los clics, dobles clics, clics derechos y teclas de un portal pintado desde una celda no seleccionan ni abren la fila', async () => {
+    const alSeleccionar = vi.fn()
+    const onAbrir = vi.fn()
+    const columnas: ColumnDef<Fila, string>[] = [
+      ...COLUMNAS,
+      { id: 'flotante', header: '', size: 60, cell: ({ row }) => row.original.id === '2' && createPortal(<button type="button">flotante</button>, document.body) },
+    ]
+    render(<TablaConEstado columnas={columnas} inicial="5" alSeleccionar={alSeleccionar} onAbrir={onAbrir} />)
+    const flotante = screen.getByRole('button', { name: 'flotante' })
+    await userEvent.click(flotante)
+    await userEvent.dblClick(flotante)
+    await userEvent.pointer({ keys: '[MouseRight]', target: flotante })
+    // fireEvent devuelve false si alguien canceló la acción por defecto de la tecla.
+    const flechaSinCancelar = fireEvent.keyDown(flotante, { key: 'ArrowDown' })
+    const enterSinCancelar = fireEvent.keyDown(flotante, { key: 'Enter' })
+    expect(alSeleccionar).not.toHaveBeenCalled()
+    expect(onAbrir).not.toHaveBeenCalled()
+    expect(flechaSinCancelar).toBe(true)
+    expect(enterSinCancelar).toBe(true)
+    expect(screen.getByRole('row', { name: /^F5 x/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  describe('popup de un TextoExpandible de una celda', () => {
+    const columnas: ColumnDef<Fila, string>[] = [
+      ...COLUMNAS,
+      { id: 'texto', header: 'Texto', size: 150, cell: ({ row }) => <TextoExpandible titulo="Texto completo" texto={`texto de ${row.original.nombre}`} /> },
+    ]
+    async function abrirPopup(props: PropsTabla) {
+      render(<AlertaProvider><TablaConEstado columnas={columnas} menuFila={() => <ContextMenuItem>Acción de la fila</ContextMenuItem>} {...props} /></AlertaProvider>)
+      await userEvent.click(screen.getByRole('button', { name: 'texto de F2' }))
+      return within(await screen.findByRole('dialog', { name: 'Texto completo' })).getByRole('textbox')
+    }
+
+    it('las flechas en su área de texto mueven el cursor (no se cancelan) y no la selección de la tabla', async () => {
+      const alSeleccionar = vi.fn()
+      const area = await abrirPopup({ alSeleccionar })
+      alSeleccionar.mockClear()
+      expect(fireEvent.keyDown(area, { key: 'ArrowDown' })).toBe(true)
+      expect(fireEvent.keyDown(area, { key: 'ArrowUp' })).toBe(true)
+      expect(alSeleccionar).not.toHaveBeenCalled()
+    })
+
+    it('el doble clic en su área de texto (seleccionar una palabra) no abre la fila', async () => {
+      const onAbrir = vi.fn()
+      const area = await abrirPopup({ onAbrir })
+      await userEvent.dblClick(area)
+      expect(onAbrir).not.toHaveBeenCalled()
+    })
+
+    it('el clic derecho en su área de texto deja el menú del navegador y no abre el de la fila', async () => {
+      const area = await abrirPopup({})
+      expect(fireEvent.contextMenu(area)).toBe(true)
+      expect(screen.queryByRole('menuitem', { name: 'Acción de la fila' })).not.toBeInTheDocument()
+    })
   })
 })
 

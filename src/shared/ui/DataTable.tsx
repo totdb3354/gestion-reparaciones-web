@@ -8,7 +8,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { measureElement as medirElementoPorDefecto, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type SyntheticEvent } from 'react'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './context-menu'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { cn } from '@/shared/lib/utils'
@@ -83,6 +83,13 @@ export function anchosEstirados(minimos: number[], maximos: (number | undefined)
 /** Tope de ancho declarado en la columna; el `maxSize` que TanStack pone por defecto (MAX_SAFE_INTEGER) no cuenta. */
 function topeDeColumna(maxSize: number | undefined): number | undefined {
   return maxSize !== undefined && maxSize < Number.MAX_SAFE_INTEGER ? maxSize : undefined
+}
+
+/** React propaga los eventos de lo que se pinta en un portal por el árbol de componentes, no por el DOM: el menú
+ *  contextual de la fila (o un popup abierto desde una celda) haría llegar sus teclas y clics al contenedor y a la fila.
+ *  La tabla solo atiende los que nacen dentro de su propio DOM. */
+function nacioDentro(e: SyntheticEvent) {
+  return e.currentTarget.contains(e.target as Node)
 }
 
 /** Desplaza solo el contenedor de la tabla hasta `fila`, como el VirtualFlow del TableView, que solo mueve su propia
@@ -245,14 +252,16 @@ export function DataTable<T>({
   }, [seleccionada, filas, virtual, virtualizador, filasContexto, pedirDesplazamiento])
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (!onSeleccionar || filas.length === 0) return
+    // Ni las teclas que ya ha gestionado otro (un ítem de menú, una casilla) ni las de un portal (el menú contextual).
+    if (!onSeleccionar || filas.length === 0 || e.defaultPrevented || !nacioDentro(e)) return
     const idx = seleccionada === null ? -1 : filas.findIndex((r) => r.id === seleccionada)
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       const nuevo = e.key === 'ArrowDown' ? Math.min(idx + 1, filas.length - 1) : Math.max(idx - 1, 0)
       seleccionarDesdeTabla(filas[nuevo].id)
       desplazarA(nuevo)
-    } else if (e.key === 'Enter' && idx >= 0 && onAbrir) {
+    } else if (e.key === 'Enter' && e.target === e.currentTarget && idx >= 0 && onAbrir) {
+      // Solo con el foco en la propia tabla: con el foco en un botón de una celda, Enter es de ese botón.
       e.preventDefault()
       onAbrir(filas[idx].original)
     }
@@ -283,9 +292,14 @@ export function DataTable<T>({
           onSeleccionar && 'cursor-default data-[state=selected]:bg-azul-medio data-[state=selected]:text-crema',
           filaClase?.(row.original),
         )}
-        onClick={() => seleccionarDesdeTabla(id)}
-        onDoubleClick={() => onAbrir?.(row.original)}
+        onClick={(e) => {
+          if (nacioDentro(e)) seleccionarDesdeTabla(id)
+        }}
+        onDoubleClick={(e) => {
+          if (nacioDentro(e)) onAbrir?.(row.original)
+        }}
         onContextMenu={(e) => {
+          if (!nacioDentro(e)) return
           setColumnaPulsada((e.target as HTMLElement).closest('td')?.dataset.columna ?? '')
           seleccionarDesdeTabla(id)
         }}
