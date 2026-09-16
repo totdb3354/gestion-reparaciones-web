@@ -5,13 +5,13 @@ import { categoriaPieza } from './piezas'
 export const SIN_CLIENTE = '(Sin cliente)'
 
 export type TipoPendiente = 'solicitud' | 'incidencia' | 'asignacion'
-export function tipoPendiente(rep: ReparacionResumen): TipoPendiente {
-  if (rep.esSolicitud > 0) return 'solicitud'
-  if (rep.esIncidencia) return 'incidencia'
-  return 'asignacion'
-}
+/** Calco de las tres casillas de PendientesTecnicoController: no son excluyentes. Una fila puede ser solicitud e
+ *  incidencia a la vez y entonces la muestran las dos casillas; "Asignaciones" es la única exclusiva (ni una ni otra). */
 export function pasaTipo(rep: ReparacionResumen, marcados: Set<TipoPendiente>): boolean {
-  return marcados.size === 0 || marcados.has(tipoPendiente(rep))
+  if (marcados.size === 0) return true
+  if (marcados.has('solicitud') && rep.esSolicitud > 0) return true
+  if (marcados.has('incidencia') && rep.esIncidencia) return true
+  return marcados.has('asignacion') && rep.esSolicitud === 0 && !rep.esIncidencia
 }
 
 export type EstadoIncidencia = 'abiertas' | 'cerradas' | 'sin'

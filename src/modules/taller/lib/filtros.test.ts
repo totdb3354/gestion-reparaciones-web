@@ -2,17 +2,21 @@ import { describe, expect, it } from 'vitest'
 import { resumen } from '../test/fabrica'
 import {
   SIN_CLIENTE, estadoIncidencia, etiquetaContador, ordenarPendientes, pasaCliente, pasaFechas, pasaImeis, pasaIncidencias,
-  pasaPieza, pasaTecnico, pasaTipo, sufijoToggle, textoBadgeLateral, tipoPendiente,
+  pasaPieza, pasaTecnico, pasaTipo, sufijoToggle, textoBadgeLateral,
 } from './filtros'
 
 describe('filtros del taller', () => {
-  it('tipo de pendiente y filtro Tipo (cualquiera de los marcados)', () => {
-    expect(tipoPendiente(resumen({ esSolicitud: 1 }))).toBe('solicitud')
-    expect(tipoPendiente(resumen({ esIncidencia: true }))).toBe('incidencia')
-    expect(tipoPendiente(resumen())).toBe('asignacion')
+  it('filtro Tipo: las tres casillas se evalúan por separado (calco de las checkboxes del JavaFX)', () => {
     expect(pasaTipo(resumen(), new Set())).toBe(true)
+    expect(pasaTipo(resumen(), new Set(['asignacion']))).toBe(true)
     expect(pasaTipo(resumen(), new Set(['solicitud']))).toBe(false)
     expect(pasaTipo(resumen({ esSolicitud: 1 }), new Set(['solicitud', 'asignacion']))).toBe(true)
+    expect(pasaTipo(resumen({ esIncidencia: true }), new Set(['incidencia']))).toBe(true)
+    // una solicitud con incidencia sale bajo cualquiera de las dos, y nunca bajo "Asignaciones"
+    const ambas = resumen({ esSolicitud: 1, esIncidencia: true })
+    expect(pasaTipo(ambas, new Set(['solicitud']))).toBe(true)
+    expect(pasaTipo(ambas, new Set(['incidencia']))).toBe(true)
+    expect(pasaTipo(ambas, new Set(['asignacion']))).toBe(false)
   })
   it('estado de incidencia y filtro Incidencias', () => {
     expect(estadoIncidencia(resumen({ esIncidencia: true }))).toBe('abiertas')
