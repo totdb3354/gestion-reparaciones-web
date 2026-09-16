@@ -23,7 +23,9 @@ export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
   // cada render porque la lista puede llegar con el diálogo ya abierto.
   const preseleccionado = rep !== null && tecnicos.some((t) => t.idTec === rep.idTec) ? String(rep.idTec) : ''
   const idTec = elegido ?? preseleccionado
-  const listo = comentario.trim() !== '' && idTec !== ''
+  // `validar` exige `cbTecnico.getValue() != null`: el id tiene que seguir entre los activos. Si un refresco de la lista
+  // quita al elegido a mano, el desplegable enseña "Selecciona técnico" y el botón no puede publicar ese id invisible.
+  const listo = comentario.trim() !== '' && tecnicos.some((t) => String(t.idTec) === idTec)
   return (
     <Dialog open={rep !== null} onOpenChange={(o) => !o && onCerrar()}>
       <DialogContent aria-describedby={undefined} className="max-w-[520px] gap-2 bg-fondo-input p-4">

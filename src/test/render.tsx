@@ -15,7 +15,8 @@ type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; l
  *  para los tests que necesitan el layout real (p. ej. `AppLayout` por su `TopBar`/menú de usuario); `patron`
  *  solo hace falta si la ruta a testear no coincide literalmente con `ruta` (p. ej. un patrón con parámetros).
  *  Al compartir fábrica con main.tsx, los tests observan la misma política de errores (diálogo ante cualquier
- *  fallo que no sea sesión expirada o desconexión). */
+ *  fallo que no sea sesión expirada o desconexión). Devuelve también el `queryClient`, para que un test pueda forzar
+ *  la recarga de una consulta (lo que en producción hacen el sondeo o el foco de la ventana). */
 export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas, layout, patron }: Opciones = {}) {
   if (sesion) guardarSesion(sesion)
   const qc = crearQueryClient({ retry: false })
@@ -26,7 +27,7 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
   ) : (
     <Route path={patron ?? ruta} element={ui} />
   )
-  return render(
+  const resultado = render(
     <QueryClientProvider client={qc}>
       <SessionProvider>
         <AlertaProvider>
@@ -40,6 +41,7 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
       </SessionProvider>
     </QueryClientProvider>,
   )
+  return { ...resultado, queryClient: qc }
 }
 
 export const SESION_SUPER: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }

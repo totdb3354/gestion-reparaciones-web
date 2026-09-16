@@ -2,8 +2,10 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { estaConectado } from '@/shared/api/conexion'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { claveAsignaciones } from '../api'
 import { reiniciarEstadoTaller } from '../estado'
 import { resumen } from '../test/fabrica'
 import { PulidosPendientesPage } from './PulidosPendientesPage'
@@ -95,6 +97,34 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
     await userEvent.click(screen.getByRole('button', { name: /^Actualizado/ }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled())
     expect(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' })).toHaveAttribute('aria-checked', 'false')
+  })
+  it('un sondeo que falla también vacía la selección (cargar() la vacía antes de pedir la lista)', async () => {
+    const { queryClient } = abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
+    expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-checked'))).toEqual(['true', 'true'])
+    let fallos = 0
+    server.use(http.get('*/api/pulidos/asignaciones', () => { fallos++; return HttpResponse.text('boom', { status: 503 }) }))
+    // Recarga de fondo, como la del intervalo: con datos en pantalla solo se enciende el banner (sin diálogo).
+    void queryClient.invalidateQueries({ queryKey: claveAsignaciones('PULIDO') })
+    await waitFor(() => expect(estaConectado()).toBe(false))
+    expect(fallos).toBe(1)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled())
+    // Las filas siguen (el fallo conserva los datos), ya desmarcadas.
+    expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'false'])
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('"Actualizado" que falla por conexión muestra el diálogo y también vacía la selección', async () => {
+    abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' }))
+    expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeEnabled()
+    server.use(http.get('*/api/pulidos/asignaciones', () => HttpResponse.text('boom', { status: 503 })))
+    await userEvent.click(screen.getByRole('button', { name: /^Actualizado/ }))
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('Sin conexión con el servidor: HTTP 503')
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' })).toHaveAttribute('aria-checked', 'false'))
+    expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled()
   })
   it('la papelera del supertécnico borra la asignación de pulido con su texto', async () => {
     let borrado = false

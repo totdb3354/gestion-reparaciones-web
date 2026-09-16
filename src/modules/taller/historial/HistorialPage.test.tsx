@@ -7,6 +7,7 @@ import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
+import { CLAVE_TECNICOS_ACTIVOS } from '../api'
 import { reiniciarEstadoTaller } from '../estado'
 import { glass, resumen, tecnico } from '../test/fabrica'
 import { HistorialPage } from './HistorialPage'
@@ -49,22 +50,22 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(screen.getByRole('link', { name: 'Pulidos' })).toHaveAttribute('href', '/reparaciones/historial/pulidos')
     expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Id Reparación', 'IMEI teléfono', 'Modelo', 'Reparador', 'Asignado por', 'Fechas', 'Componente', 'Observaciones', 'Estado', 'Incidencia', 'Id Rep. Anterior'])
     expect(screen.getByRole('table')).toHaveClass('w-full')
-    // Pesos mínimos del FXML (docs/paridad/historial.md): 110·130·100·100·100·110·150·200·110·200·150 (Estado
-    // 110, el minWidth que siguen las demás columnas — no los 120 de prefWidth). En ajuste "estirar" DataTable
-    // los reparte en % sobre la suma (1460), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
+    // Pesos de aplicarAnchosDetalle (`Math.max(w, w * u)`; docs/paridad/historial.md): 110·130·100·100·100·110·150·
+    // 200·120·200·150 (Estado 120: su minWidth 110 del FXML nunca llega a pintarse). En ajuste "estirar" DataTable los
+    // reparte en % sobre la suma (1470), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
     const anchos = Array.from(container.querySelectorAll('col')).map((c) => c.style.width)
     expect(anchos).toEqual([
-      expect.stringMatching(/^7\.5342/), // Id Reparación 110
-      expect.stringMatching(/^8\.9041/), // IMEI teléfono 130
-      expect.stringMatching(/^6\.8493/), // Modelo 100
-      expect.stringMatching(/^6\.8493/), // Reparador 100
-      expect.stringMatching(/^6\.8493/), // Asignado por 100
-      expect.stringMatching(/^7\.5342/), // Fechas 110
-      expect.stringMatching(/^10\.2739/), // Componente 150
-      expect.stringMatching(/^13\.6986/), // Observaciones 200
-      expect.stringMatching(/^7\.5342/), // Estado 110
-      expect.stringMatching(/^13\.6986/), // Incidencia 200
-      expect.stringMatching(/^10\.2739/), // Id Rep. Anterior 150
+      expect.stringMatching(/^7\.4829/), // Id Reparación 110
+      expect.stringMatching(/^8\.8435/), // IMEI teléfono 130
+      expect.stringMatching(/^6\.8027/), // Modelo 100
+      expect.stringMatching(/^6\.8027/), // Reparador 100
+      expect.stringMatching(/^6\.8027/), // Asignado por 100
+      expect.stringMatching(/^7\.4829/), // Fechas 110
+      expect.stringMatching(/^10\.2040/), // Componente 150
+      expect.stringMatching(/^13\.6054/), // Observaciones 200
+      expect.stringMatching(/^8\.1632/), // Estado 120
+      expect.stringMatching(/^13\.6054/), // Incidencia 200
+      expect.stringMatching(/^10\.2040/), // Id Rep. Anterior 150
     ])
     expect(screen.getByText('Reutilizado')).toHaveClass('italic')
     expect(screen.getByText('2026/09/16')).toBeInTheDocument()
@@ -149,6 +150,8 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     const conTooltip = screen.getByTitle('Disponible con el formulario de reparación (siguiente entrega)')
     expect(conTooltip).not.toBe(editar)
     expect(editar.parentElement).toBe(conTooltip)
+    // HTML válido: el ítem es un <div role="menuitem"> (bloque) y no puede ir dentro de un <span> (en línea).
+    expect(conTooltip.tagName).toBe('DIV')
     // jsdom no aplica el CSS: se comprueba por clase que ni el envoltorio ni sus ancestros anulan los eventos del puntero.
     expect(conTooltip.closest('[class*="pointer-events-none"]')).toBeNull()
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Editar', 'Borrar', '📋  Copiar celda', 'Cancelar incidencia'])
@@ -210,6 +213,42 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     soltar()
     await waitFor(() => expect(within(dlg).getByLabelText('Técnico asignado')).toHaveValue('5'))
     expect(within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' })).toBeEnabled()
+  })
+  it('"Añadir incidencia": si un refresco de los técnicos activos quita al elegido a mano, el desplegable vuelve a "Selecciona técnico" y el botón se deshabilita', async () => {
+    const { queryClient } = abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Añadir incidencia' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Añadir incidencia' })
+    const tecnicoAsignado = within(dlg).getByLabelText('Técnico asignado')
+    const boton = within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' })
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), 'sigue sin cargar')
+    await userEvent.selectOptions(tecnicoAsignado, 'tecnico_b')
+    expect(boton).toBeEnabled()
+    // tecnico_b deja de estar activo y la lista se recarga con el diálogo abierto (en producción, al volver a la pestaña):
+    // el id elegido ya no está entre las opciones y no se puede publicar.
+    server.use(http.get('*/api/tecnicos/activos', () => HttpResponse.json(tecnicos.filter((t) => t.activo && t.idTec !== 6))))
+    void queryClient.invalidateQueries({ queryKey: CLAVE_TECNICOS_ACTIVOS })
+    await waitFor(() => expect(within(dlg).queryByRole('option', { name: 'tecnico_b' })).not.toBeInTheDocument())
+    expect(tecnicoAsignado).toHaveDisplayValue('Selecciona técnico')
+    expect(boton).toBeDisabled()
+  })
+  it('"Añadir incidencia": si el refresco quita al reparador preseleccionado, tampoco queda un id oculto', async () => {
+    const { queryClient } = abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Añadir incidencia' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Añadir incidencia' })
+    const tecnicoAsignado = within(dlg).getByLabelText('Técnico asignado')
+    const boton = within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' })
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), 'sigue sin cargar')
+    expect(tecnicoAsignado).toHaveValue('5')
+    expect(boton).toBeEnabled()
+    server.use(http.get('*/api/tecnicos/activos', () => HttpResponse.json(tecnicos.filter((t) => t.activo && t.idTec !== 5))))
+    void queryClient.invalidateQueries({ queryKey: CLAVE_TECNICOS_ACTIVOS })
+    await waitFor(() => expect(within(dlg).queryByRole('option', { name: 'tecnico_i' })).not.toBeInTheDocument())
+    expect(tecnicoAsignado).toHaveDisplayValue('Selecciona técnico')
+    expect(boton).toBeDisabled()
   })
   it('el admin y el técnico solo tienen "Copiar celda"', async () => {
     abrir(SESION_ADMIN)

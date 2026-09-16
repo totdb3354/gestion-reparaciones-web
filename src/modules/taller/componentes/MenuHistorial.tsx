@@ -22,10 +22,11 @@ export function MenuHistorial({ rep, celda, texto, puedeEditar, acciones }: { re
     <>
       {editable && (
         // El title va en un envoltorio de bloque: el ítem deshabilitado lleva data-[disabled]:pointer-events-none y nunca
-        // recibiría el hover que muestra el tooltip (mismo patrón que "Añadir reparación" en PendientesPage).
-        <span title={TOOLTIP_FORMULARIO} className="block">
+        // recibiría el hover que muestra el tooltip (mismo patrón que "Añadir reparación" en PendientesPage). Es un <div>
+        // porque el ítem también lo es: un <span> no puede contener un bloque.
+        <div title={TOOLTIP_FORMULARIO}>
           <ContextMenuItem disabled>Editar</ContextMenuItem>
-        </span>
+        </div>
       )}
       <ContextMenuItem onSelect={() => acciones.borrar(rep)}>Borrar</ContextMenuItem>
       <ContextMenuSeparator />

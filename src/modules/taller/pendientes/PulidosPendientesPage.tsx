@@ -38,12 +38,13 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
 export function PulidosPendientesPage() {
   const { sesion } = useSession()
   const esSuper = esSuperTecnico(sesion)
-  const { data = [], dataUpdatedAt, refetch } = useAsignaciones('PULIDO')
+  const { data = [], dataUpdatedAt, errorUpdatedAt, refetch } = useAsignaciones('PULIDO')
   const [filtroImei, setFiltroImei] = useStore(filtroImeiPendientes)
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
-  // calco de cargar(): la selección no sobrevive a una recarga
+  // Calco de cargar(), que hace `seleccionados.clear()` antes de pedir la lista: la selección no sobrevive a una recarga,
+  // tampoco a una que falla (sondeo o "Actualizado"). Un guardado fallido no recarga, así que la conserva.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setSeleccionados((prev) => (prev.size ? new Set() : prev)), [dataUpdatedAt])
+  useEffect(() => setSeleccionados((prev) => (prev.size ? new Set() : prev)), [dataUpdatedAt, errorUpdatedAt])
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
   const completar = useCompletarPulidos()
