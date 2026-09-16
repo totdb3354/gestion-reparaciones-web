@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
@@ -98,6 +98,18 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect(ultimoImeiVisto.get()).toBeNull()
     await userEvent.dblClick(screen.getByText(B))
     expect(await screen.findByText(`IMEI: ${B}`)).toBeInTheDocument()
+  })
+  it('al volver del detalle desplaza el maestro con tres filas de contexto por encima del IMEI (restaurarSeleccion)', async () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
+    onTestFinished(() => scrollIntoView.mockRestore())
+    abrir()
+    await screen.findByText(A)
+    await userEvent.click(screen.getByRole('button', { name: `Ver trabajos de ${A}` }))
+    await userEvent.click(await screen.findByRole('button', { name: '← Volver' }))
+    expect(await screen.findByRole('row', { name: new RegExp(A) })).toHaveAttribute('aria-selected', 'true')
+    // A es la fila 1: con tres filas de contexto queda arriba la fila 0 (B), calco de tabla.scrollTo(Math.max(0, idx - 3)).
+    await waitFor(() => expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'start' }))
+    expect(scrollIntoView.mock.instances.at(-1)).toBe(screen.getByRole('row', { name: new RegExp(B) }))
   })
   it('menú del supertécnico: Copiar celda, Editar observación (PATCH con updatedAt) y 409 con su aviso', async () => {
     let body: unknown = null

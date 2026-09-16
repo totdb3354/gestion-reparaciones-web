@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useEffectEvent, useLayoutEffect, useState } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog'
@@ -13,7 +13,11 @@ type Props = {
   placeholderBuscar: string
   opciones: OpcionLista[]
   claveActual?: string | null
-  /** Si se da, debajo de la lista se muestra este texto o la etiqueta elegida (SelectorClienteDialog). */
+  /** Abre con `claveActual` ya elegida si está entre las opciones, como el selector "Editar modelo"
+   *  (`select(rep.getModelo())`, "Guardar" habilitado). Sin él, la actual solo se resalta y no hay nada elegido al abrir,
+   *  como en SelectorClienteDialog. */
+  preseleccionarActual?: boolean
+  /** Si se da, debajo de la lista se muestra este texto sin nada elegido o "Seleccionado: <etiqueta>" (SelectorClienteDialog). */
   textoNada?: string
   textoSeleccionar: string
   onSeleccionar: (clave: string) => void
@@ -21,13 +25,19 @@ type Props = {
 }
 
 /** Calco de SelectorClienteDialog y del selector "Editar modelo": buscador que filtra por etiqueta, lista con la opción
- *  actual resaltada y la elegida en navy, botón principal deshabilitado hasta elegir; doble clic elige directamente. */
-export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBuscar, opciones, claveActual = null, textoNada, textoSeleccionar, onSeleccionar, onCancelar }: Props) {
+ *  actual resaltada y la elegida en navy, botón principal deshabilitado sin nada elegido; doble clic elige directamente. */
+export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBuscar, opciones, claveActual = null, preseleccionarActual = false, textoNada, textoSeleccionar, onSeleccionar, onCancelar }: Props) {
   const [busqueda, setBusqueda] = useState('')
   const [seleccion, setSeleccion] = useState<string | null>(null)
+  // useEffectEvent: lee las opciones y la clave actual del momento de abrir sin reiniciar el diálogo cuando la página
+  // vuelve a pintarse con él abierto (las opciones de cliente se recrean en cada render de la página).
+  const reiniciar = useEffectEvent(() => {
+    setBusqueda('')
+    setSeleccion(preseleccionarActual && opciones.some((o) => o.clave === claveActual) ? claveActual : null)
+  })
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el buscador y la selección al reabrir (patrón "Adjusting state", como ClienteDialog)
-    if (abierto) { setBusqueda(''); setSeleccion(null) }
+    if (abierto) reiniciar()
   }, [abierto])
   const filtro = busqueda.trim().toLowerCase()
   const visibles = filtro === '' ? opciones : opciones.filter((o) => o.etiqueta.toLowerCase().includes(filtro))
@@ -57,7 +67,7 @@ export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBusca
             </li>
           ))}
         </ul>
-        {textoNada !== undefined && <p className="text-[12px] text-azul-gris">{elegida ? elegida.etiqueta : textoNada}</p>}
+        {textoNada !== undefined && <p className="text-[12px] text-azul-gris">{elegida ? `Seleccionado: ${elegida.etiqueta}` : textoNada}</p>}
         <Button disabled={seleccion === null} onClick={() => seleccion !== null && onSeleccionar(seleccion)} className="h-auto w-full rounded bg-azul-medio py-2.5 text-[12px] text-crema hover:bg-azul-medio/90">
           {textoSeleccionar}
         </Button>

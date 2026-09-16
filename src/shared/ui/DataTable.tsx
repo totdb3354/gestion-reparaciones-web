@@ -8,7 +8,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { measureElement as medirElementoPorDefecto, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './context-menu'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { cn } from '@/shared/lib/utils'
@@ -27,10 +27,14 @@ type Props<T> = {
   getRowId?: (row: T) => string
   /** 'fijo' (por defecto): cada columna mide su `size` en px y lo que sobra queda en blanco, como el TableView con
    *  columna de relleno. 'estirar': las columnas se reparten el ancho proporcionalmente a `size` (política de
-   *  anchos del Historial, `prefWidth = max(min, min·u)`), con scroll horizontal por debajo de la suma. */
+   *  anchos del Historial, `prefWidth = max(min, min·u)`), con scroll horizontal por debajo de la suma; si alguna
+   *  columna declara `maxSize` (el maxWidth del FXML), no pasa de él y lo que cede queda en blanco (`anchosEstirados`). */
   ajuste?: 'fijo' | 'estirar'
   seleccionada?: string | null
   onSeleccionar?: (id: string | null) => void
+  /** Filas que quedan por encima de la seleccionada cuando la selección llega desde fuera y la tabla se desplaza: con 0
+   *  (por defecto) la fila queda arriba del todo, como `tabla.scrollTo(i)`; con 3, como `tabla.scrollTo(Math.max(0, idx - 3))`. */
+  filasContexto?: number
   /** Doble clic o Enter sobre la fila seleccionada. */
   onAbrir?: (row: T) => void
   /** Ordenación por clic en la cabecera; apagada por defecto porque el JavaFX no ordena por clic. */
@@ -39,6 +43,9 @@ type Props<T> = {
   alturaMax?: string
   /** A partir de cuántas filas se pintan solo las visibles (el TableView virtualiza siempre). */
   umbralVirtual?: number
+  /** Alto de cada fila de datos en px (calco de `setFixedCellSize`); también es el alto que usa la virtualización.
+   *  En una tabla CSS el alto de un `<tr>` es un mínimo: una celda más alta estira la fila en vez de recortarse. */
+  altoFila?: number
 }
 
 /** Borra el `size: 150` que ColumnSizing inyecta por defecto: así `columnDef.size` refleja lo que declaró el consumidor. */
@@ -50,6 +57,25 @@ const MS_RESALTADO = 600
  *  virtualización calcularía una ventana visible de 0 px, sin pintar ninguna fila. */
 const RECT_DE_RESERVA = { width: 1000, height: 600 }
 
+/** Anchos en px del ajuste 'estirar' con topes, calco de aplicarAnchosDetalle del JavaFX: cada columna pide
+ *  max(min, min·u), con u = disponible / Σmin, y se acota a [min, max] por su cuenta (TableColumnBase.doSetWidth →
+ *  boundedSize, donde un tope menor que el mínimo deja el mínimo). Lo que cede una columna topada queda en blanco: no
+ *  se reparte entre las demás. No redondea: los anchos pueden ser fraccionarios, como los double del TableView. */
+export function anchosEstirados(minimos: number[], maximos: (number | undefined)[], disponible: number): number[] {
+  const sumaMinimos = minimos.reduce((a, b) => a + b, 0)
+  const u = sumaMinimos > 0 ? disponible / sumaMinimos : 1
+  return minimos.map((min, i) => {
+    const preferido = Math.max(min, min * u)
+    const tope = maximos[i]
+    return tope === undefined ? preferido : Math.min(preferido, Math.max(min, tope))
+  })
+}
+
+/** Tope de ancho declarado en la columna; el `maxSize` que TanStack pone por defecto (MAX_SAFE_INTEGER) no cuenta. */
+function topeDeColumna(maxSize: number | undefined): number | undefined {
+  return maxSize !== undefined && maxSize < Number.MAX_SAFE_INTEGER ? maxSize : undefined
+}
+
 export function DataTable<T>({
   columns,
   data,
@@ -60,10 +86,12 @@ export function DataTable<T>({
   ajuste = 'fijo',
   seleccionada = null,
   onSeleccionar,
+  filasContexto = 0,
   onAbrir,
   ordenacion = false,
   alturaMax = 'calc(100dvh - 330px)',
   umbralVirtual = 200,
+  altoFila,
 }: Props<T>) {
   const [orden, setOrden] = useState<SortingState>([])
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table 8 devuelve funciones no memoizables; aviso conocido del React Compiler
@@ -81,15 +109,35 @@ export function DataTable<T>({
   const hojas = table.getVisibleLeafColumns()
   const anchos = hojas.map((c) => c.columnDef.size ?? ANCHO_SIN_SIZE)
   const suma = anchos.reduce((a, b) => a + b, 0)
+  const topes = hojas.map((c) => topeDeColumna(c.columnDef.maxSize))
+  const conTopes = ajuste === 'estirar' && topes.some((t) => t !== undefined)
   const filas = table.getRowModel().rows
 
   const contenedorRef = useRef<HTMLDivElement>(null)
   const filaRefs = useRef(new Map<string, HTMLTableRowElement>())
+
+  // Con topes, los porcentajes no bastan (una columna topada deja de crecer y lo que cede queda en blanco): se mide el
+  // ancho útil del contenedor y los anchos se pintan en px. contentRect excluye la barra de scroll vertical, como
+  // clientWidth, pero es fraccionario: redondeado hacia abajo, la tabla nunca pasa del ancho real (clientWidth puede
+  // redondear hacia arriba y sacar una barra de scroll horizontal por medio píxel). Sin medida (jsdom, tabla oculta)
+  // se quedan los porcentajes.
+  const [anchoContenedor, setAnchoContenedor] = useState(0)
+  useLayoutEffect(() => {
+    const contenedor = contenedorRef.current
+    if (!conTopes || !contenedor) return
+    const observador = new ResizeObserver((entradas) => {
+      const ultima = entradas[entradas.length - 1]
+      if (ultima) setAnchoContenedor(Math.floor(ultima.contentRect.width))
+    })
+    observador.observe(contenedor)
+    return () => observador.disconnect()
+  }, [conTopes])
+  const anchosPx = conTopes && anchoContenedor > 0 ? anchosEstirados(anchos, topes, anchoContenedor) : null
   const virtual = filas.length > umbralVirtual
   const virtualizador = useVirtualizer({
     count: filas.length,
     getScrollElement: () => contenedorRef.current,
-    estimateSize: () => ALTO_FILA_ESTIMADO,
+    estimateSize: () => altoFila ?? ALTO_FILA_ESTIMADO,
     overscan: 8,
     enabled: virtual,
     // Sin layout (jsdom, o la tabla aún oculta) el contenedor mide 0 y la fila también: con el rectángulo de
@@ -97,8 +145,8 @@ export function DataTable<T>({
     initialRect: RECT_DE_RESERVA,
     observeElementRect: (v, cb) => observeElementRect(v, (r) => cb(r.height > 0 ? r : RECT_DE_RESERVA)),
     // Medición por defecto de la librería (usa la caché y el borderBoxSize del ResizeObserver en navegador real);
-    // en jsdom no hay ResizeObserver ni layout, así que devuelve 0 y cae al alto estimado, igual que antes.
-    measureElement: (el, entry, inst) => medirElementoPorDefecto(el, entry, inst) || ALTO_FILA_ESTIMADO,
+    // en jsdom no hay ResizeObserver ni layout, así que devuelve 0 y cae al alto estimado (o al alto de fila fijo).
+    measureElement: (el, entry, inst) => medirElementoPorDefecto(el, entry, inst) || (altoFila ?? ALTO_FILA_ESTIMADO),
   })
 
   const [columnaPulsada, setColumnaPulsada] = useState<string>('')
@@ -114,28 +162,41 @@ export function DataTable<T>({
     else filaRefs.current.get(filas[indice].id)?.scrollIntoView({ block: 'nearest' })
   }
 
+  // Última selección hecha en la propia tabla (clic, clic derecho, flechas): esa fila ya está a la vista (las flechas
+  // la acercan con desplazarA), así que el efecto de abajo no desplaza por ella.
+  const seleccionInternaRef = useRef<string | null>(null)
+  function seleccionarDesdeTabla(id: string) {
+    if (!onSeleccionar) return
+    seleccionInternaRef.current = id
+    onSeleccionar(id)
+  }
+
   const desplazadaRef = useRef<string | null>(null)
-  // Selección impuesta desde fuera (p. ej. el maestro de IMEIs reseleccionando el IMEI al volver del detalle, o el
-  // enlace "Id Rep. Anterior"): si la fila no está a la vista, desplazar hasta ella con tres filas de contexto por
-  // encima (calco de tabla.scrollTo(idx - 3)). Con una selección por clic la fila ya está a la vista y no pasa nada.
+  // Selección impuesta desde fuera (el enlace "Id Rep. Anterior", o el maestro de IMEIs reseleccionando el IMEI al
+  // volver del detalle): desplazar siempre hasta dejar arriba la fila `filasContexto` posiciones por encima, calco de
+  // tabla.scrollTo(i) (enlace) y de tabla.scrollTo(Math.max(0, idx - 3)) (restaurarSeleccion). El TableView desplaza
+  // aunque la fila ya se vea.
   // Un refresco de datos (poll) cambia la identidad de `filas` sin cambiar `seleccionada`: no debe volver a
-  // desplazar, así que se recuerda en `desplazadaRef` la última selección ya desplazada y solo se actúa cuando
-  // `seleccionada` cambia desde fuera (o cuando las filas llegan después de fijarla).
+  // desplazar, así que se recuerda en `desplazadaRef` la última selección ya atendida y solo se actúa cuando
+  // `seleccionada` cambia (o cuando las filas llegan después de fijarla).
   useEffect(() => {
+    // La marca de origen interno solo vale para el primer efecto después del clic o la tecla que la puso.
+    const interna = seleccionInternaRef.current !== null && seleccionInternaRef.current === seleccionada
+    seleccionInternaRef.current = null
     if (seleccionada === desplazadaRef.current) return
     if (seleccionada === null) {
       desplazadaRef.current = null
       return
     }
-    const idx = filas.findIndex((r) => r.id === seleccionada)
-    if (idx < 0) return
-    if (virtual) {
-      if (!virtualizador.getVirtualItems().some((v) => v.index === idx)) virtualizador.scrollToIndex(Math.max(0, idx - 3), { align: 'start' })
-    } else {
-      filaRefs.current.get(seleccionada)?.scrollIntoView({ block: 'nearest' })
+    if (!interna) {
+      const idx = filas.findIndex((r) => r.id === seleccionada)
+      if (idx < 0) return
+      const arriba = Math.max(0, idx - filasContexto)
+      if (virtual) virtualizador.scrollToIndex(arriba, { align: 'start' })
+      else filaRefs.current.get(filas[arriba].id)?.scrollIntoView({ block: 'start' })
     }
     desplazadaRef.current = seleccionada
-  }, [seleccionada, filas, virtual, virtualizador])
+  }, [seleccionada, filas, virtual, virtualizador, filasContexto])
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (!onSeleccionar || filas.length === 0) return
@@ -143,7 +204,7 @@ export function DataTable<T>({
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       const nuevo = e.key === 'ArrowDown' ? Math.min(idx + 1, filas.length - 1) : Math.max(idx - 1, 0)
-      onSeleccionar(filas[nuevo].id)
+      seleccionarDesdeTabla(filas[nuevo].id)
       desplazarA(nuevo)
     } else if (e.key === 'Enter' && idx >= 0 && onAbrir) {
       e.preventDefault()
@@ -168,16 +229,19 @@ export function DataTable<T>({
         }}
         data-state={sel ? 'selected' : undefined}
         aria-selected={onSeleccionar ? sel : undefined}
+        style={altoFila === undefined ? undefined : { height: altoFila }}
+        // Las clases de la página van al final para que ganen en tailwind-merge (p. ej. su cursor o su hover); las de
+        // la fila seleccionada llevan la variante data-[state=selected] y no chocan con las suyas.
         className={cn(
           'border-b border-fila-sep',
-          filaClase?.(row.original),
           onSeleccionar && 'cursor-default data-[state=selected]:bg-azul-medio data-[state=selected]:text-crema',
+          filaClase?.(row.original),
         )}
-        onClick={() => onSeleccionar?.(id)}
+        onClick={() => seleccionarDesdeTabla(id)}
         onDoubleClick={() => onAbrir?.(row.original)}
         onContextMenu={(e) => {
           setColumnaPulsada((e.target as HTMLElement).closest('td')?.dataset.columna ?? '')
-          onSeleccionar?.(id)
+          seleccionarDesdeTabla(id)
         }}
       >
         {row.getVisibleCells().map((c) => (
@@ -217,12 +281,12 @@ export function DataTable<T>({
       style={{ maxHeight: alturaMax }}
     >
       <table
-        className={cn('table-fixed caption-bottom text-sm', ajuste === 'estirar' && 'w-full')}
-        style={ajuste === 'estirar' ? { minWidth: suma } : { width: suma }}
+        className={cn('table-fixed caption-bottom text-sm', ajuste === 'estirar' && !anchosPx && 'w-full')}
+        style={anchosPx ? { width: anchosPx.reduce((a, b) => a + b, 0), minWidth: suma } : ajuste === 'estirar' ? { minWidth: suma } : { width: suma }}
       >
         <colgroup>
           {hojas.map((c, i) => (
-            <col key={c.id} style={{ width: ajuste === 'estirar' ? `${(anchos[i] / suma) * 100}%` : anchos[i] }} />
+            <col key={c.id} style={{ width: anchosPx ? anchosPx[i] : ajuste === 'estirar' ? `${(anchos[i] / suma) * 100}%` : anchos[i] }} />
           ))}
         </colgroup>
         <TableHeader className="sticky top-0 z-10 bg-crema">

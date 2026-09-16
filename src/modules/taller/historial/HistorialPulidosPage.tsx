@@ -121,7 +121,7 @@ export function HistorialPulidosPage() {
       <ConfirmDialog abierto={aBorrar !== null} conMotivo titulo={`Borrar pulido ${aBorrar?.idRep ?? ''}`} descripcion={aBorrar ? `Se borrará ${aBorrar.idRep} del historial de pulido. Escribe el motivo.` : ''} textoAccion="Borrar"
         onCancelar={() => setABorrar(null)} onConfirmar={(motivo) => { if (aBorrar && motivo) borrar.mutate({ idP: aBorrar.idRep, motivo }); setABorrar(null) }} />
       <SelectorLista abierto={aEditar !== null} titulo="Editar modelo" etiquetaLista="Selecciona el modelo:" placeholderBuscar="Filtrar modelo…" opciones={OPCIONES_MODELO}
-        claveActual={aEditar?.modelo ?? null} textoSeleccionar="Guardar" onCancelar={() => setAEditar(null)}
+        claveActual={aEditar?.modelo ?? null} preseleccionarActual textoSeleccionar="Guardar" onCancelar={() => setAEditar(null)}
         onSeleccionar={(modelo) => { if (aEditar) editarModelo.mutate({ imei: aEditar.imei, modelo }); setAEditar(null) }} />
     </div>
   )

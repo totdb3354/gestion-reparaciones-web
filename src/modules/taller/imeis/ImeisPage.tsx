@@ -110,6 +110,7 @@ export function ImeisPage() {
         getRowId={(g) => g.imei}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
+        filasContexto={3}
         onAbrir={(g) => abrir(g.imei)}
         filaClase={(g) => cn('cursor-pointer border-l-4 bg-fila-maestro-bg', g.incAbiertas > 0 ? 'border-l-fila-incidencia-brd' : 'border-l-azul-medio')}
         menuFila={(g, celda) => (
