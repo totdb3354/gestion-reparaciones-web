@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { InicioReparaciones, RequiereTecnico } from '@/modules/taller/rutas'
 import { LoginPage } from './login/LoginPage'
 import { RequireSesion } from './session/RequireSesion'
 import { AppLayout } from './shell/AppLayout'
@@ -17,7 +18,21 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/', element: <Navigate to="/reparaciones" replace /> },
-          { path: '/reparaciones/*', element: <PendienteDeMigrar nombre="Reparaciones" /> },
+          { path: '/reparaciones', element: <InicioReparaciones /> },
+          { path: '/reparaciones/asignaciones', element: <PendienteDeMigrar nombre="Asignaciones" /> },
+          {
+            element: <RequiereTecnico />,
+            children: [
+              { path: '/reparaciones/pendientes', element: <PendienteDeMigrar nombre="Pendientes" /> },
+              { path: '/reparaciones/pendientes/glass', element: <PendienteDeMigrar nombre="Pendientes (glass)" /> },
+              { path: '/reparaciones/pendientes/pulidos', element: <PendienteDeMigrar nombre="Pendientes (pulidos)" /> },
+            ],
+          },
+          { path: '/reparaciones/historial', element: <PendienteDeMigrar nombre="Historial" /> },
+          { path: '/reparaciones/historial/glass', element: <PendienteDeMigrar nombre="Historial (glass)" /> },
+          { path: '/reparaciones/historial/pulidos', element: <PendienteDeMigrar nombre="Historial (pulidos)" /> },
+          { path: '/reparaciones/imeis', element: <PendienteDeMigrar nombre="IMEIs" /> },
+          { path: '/reparaciones/imeis/:imei', element: <PendienteDeMigrar nombre="IMEIs (detalle)" /> },
           { path: '/stock/*', element: <PendienteDeMigrar nombre="Stock" /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },

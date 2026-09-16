@@ -1,28 +1,22 @@
 import { NavLink, useLocation } from 'react-router'
+import { enlacesReparaciones, type EnlaceTaller } from '@/modules/taller/rutas'
+import { BadgePendientes } from '@/modules/taller/componentes/BadgePendientes'
 import { cn } from '@/shared/lib/utils'
+import { useSession } from '@/shared/session/SessionProvider'
+import type { Sesion } from '@/shared/session/storage'
 
-type Enlace = { to: string; label: string }
-
-/** Enlaces de la columna por sección (primer segmento de la ruta). Cada sub-proyecto añade los suyos al
- *  migrar su vista; las secciones que aún no están migradas no aparecen aquí y dejan la columna vacía.
- *  reparaciones: [{ to: '/reparaciones', label: 'Reparaciones' }, ...]   // sub-proyectos 1 y 2
- *  stock: [{ to: '/stock/telefonos', label: 'Teléfonos' }, ...]          // sub-proyecto 3
- *  estadisticas: [...]                                                   // sub-proyecto 4 */
-const SUBNAV: Record<string, Enlace[]> = {
-  clientes: [{ to: '/clientes', label: 'Clientes' }],
+/** Enlaces de la columna por sección (primer segmento de la ruta) y rol. Cada sub-proyecto añade los suyos. */
+const SUBNAV: Record<string, (sesion: Sesion | null) => EnlaceTaller[]> = {
+  clientes: () => [{ to: '/clientes', label: 'Clientes' }],
+  reparaciones: enlacesReparaciones,
 }
 
-/** Calco de la columna lateral del JavaFX (`.stock-sidebar`): 200 px blancos bajo la barra, con la
- *  sub-navegación de la sección actual. Siempre visible, aunque la sección no tenga enlaces, para que la
- *  geometría del contenido no cambie de una vista a otra. Es un landmark de navegación con etiqueta propia,
- *  para distinguirlo del `<nav>` de la barra superior. */
 export function SubNav() {
   const { pathname } = useLocation()
+  const { sesion } = useSession()
   const seccion = pathname.split('/')[1]
-  // `Object.hasOwn` y no `SUBNAV[seccion] ?? []`: la sección viene de la URL, y un `/constructor` o un
-  // `/__proto__` resolverían a un miembro heredado de Object.prototype (una función, no un array) y harían
-  // reventar el `.map`. Con el catch-all del router dentro de AppLayout, esa ruta llega a pintarse.
-  const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion] : []
+  // Object.hasOwn: la sección viene de la URL y un /constructor resolvería a un miembro heredado de Object.prototype
+  const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion](sesion) : []
   return (
     <nav aria-label="Sub-navegación" className="w-[200px] shrink-0 bg-superficie p-2">
       {enlaces.map((e) => (
@@ -31,12 +25,17 @@ export function SubNav() {
           to={e.to}
           className={({ isActive }) =>
             cn(
-              'block w-full rounded-3xl px-4 py-2.5 text-left text-[13px] font-bold',
+              'flex w-full items-center rounded-3xl px-4 py-2.5 text-left text-[13px] font-bold',
               isActive ? 'bg-azul-noche text-texto-nav-activo' : 'text-azul-medio hover:bg-azul-medio/8',
             )
           }
         >
-          {e.label}
+          {({ isActive }) => (
+            <>
+              {e.label}
+              {e.badge === 'pendientes' && <BadgePendientes activo={isActive} />}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
