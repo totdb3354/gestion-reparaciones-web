@@ -32,7 +32,7 @@ export function DataTable<T>({ columns, data, vacio, filaClase, menuFila, getRow
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table 8 devuelve funciones no memoizables; aviso conocido del React Compiler
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel(), getRowId, defaultColumn: COLUMNA_POR_DEFECTO })
   return (
-    <div className="overflow-x-auto rounded-md bg-card">
+    <div className="overflow-x-auto rounded-md bg-superficie">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((hg) => (

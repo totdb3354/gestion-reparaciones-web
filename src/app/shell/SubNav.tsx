@@ -24,7 +24,7 @@ export function SubNav() {
   // reventar el `.map`. Con el catch-all del router dentro de AppLayout, esa ruta llega a pintarse.
   const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion] : []
   return (
-    <nav aria-label="Sub-navegación" className="w-[200px] shrink-0 bg-white p-2">
+    <nav aria-label="Sub-navegación" className="w-[200px] shrink-0 bg-superficie p-2">
       {enlaces.map((e) => (
         <NavLink
           key={e.to}

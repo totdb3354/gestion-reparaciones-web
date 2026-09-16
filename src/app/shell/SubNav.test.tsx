@@ -35,4 +35,9 @@ describe('columna lateral de sub-navegación', () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/gestion/logs' })
     expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toBeInTheDocument()
   })
+
+  it('usa el blanco de superficie del sistema de tokens', () => {
+    renderConProviders(<SubNav />, { ruta: '/clientes' })
+    expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toHaveClass('bg-superficie')
+  })
 })

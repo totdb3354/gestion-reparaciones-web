@@ -47,7 +47,7 @@ describe('MultiSelect', () => {
     // pantalla) verían "Cliente" mezclado con el icono
     expect(boton.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     await userEvent.click(boton)
-    expect(screen.getByRole('checkbox', { name: 'WEB' }).closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-white')
+    expect(screen.getByRole('checkbox', { name: 'WEB' }).closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-superficie')
   })
 
   it('con varias instancias en la misma página, marcar una opción solo afecta a la instancia clicada', async () => {

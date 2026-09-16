@@ -43,7 +43,7 @@ export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange,
         {texto}
         <ChevronDown aria-hidden="true" className="size-4" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="max-h-72 w-56 overflow-auto rounded-lg border border-fila-sep bg-white p-2 shadow-md">
+      <PopoverContent align="start" className="max-h-72 w-56 overflow-auto rounded-lg border border-fila-sep bg-superficie p-2 shadow-md">
         {opciones.map((o, i) => {
           const k = clave(o)
           const id = `${idBase}-${i}`
