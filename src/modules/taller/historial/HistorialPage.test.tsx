@@ -1,14 +1,16 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
+import { Route } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
-// eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
+// eslint-disable-next-line no-restricted-imports -- "Descargar CSV" y "Cerrar Sesión" necesitan el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
+// eslint-disable-next-line no-restricted-imports -- el recorrido cerrar sesión → entrar con otro usuario necesita la pantalla de login real.
+import { LoginPage } from '@/app/login/LoginPage'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { CLAVE_TECNICOS_ACTIVOS } from '../api'
-import { reiniciarEstadoTaller } from '../estado'
 import { glass, resumen, tecnico } from '../test/fabrica'
 import { HistorialPage } from './HistorialPage'
 
@@ -28,7 +30,6 @@ afterEach(() => {
 })
 
 beforeEach(() => {
-  reiniciarEstadoTaller()
   server.use(
     http.get('*/api/reparaciones/historial', () => HttpResponse.json(filas)),
     http.get('*/api/glass/historial', () => HttpResponse.json([])),
@@ -90,6 +91,43 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: within(fila).getByText(inicio) })
     await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
     expect(escribir).toHaveBeenCalledWith(copiado)
+  })
+  it('cerrar sesión y entrar con un técnico en la misma pestaña no hereda el filtro de técnico del supertécnico (el JavaFX descarta las vistas al volver al login)', async () => {
+    const trabajo = (idRep: string, imei: string, idTec: number, nombreTecnico: string) =>
+      resumen({ idRep, imei, idTec, nombreTecnico, nombreTecnicoAsigna: 'Técnico C', cliente: 'CLIENTE A', fechaAsig: '2026-01-01T09:00:00', fechaFin: '2026-01-01T10:00:00' })
+    server.use(
+      http.get('*/api/reparaciones/historial', () => HttpResponse.json([
+        trabajo('R20260101_3', '350000000000011', 1, 'Técnico A'),
+        trabajo('R20260101_2', '350000000000029', 2, 'Técnico B'),
+        trabajo('R20260101_1', '350000000000037', 2, 'Técnico B'),
+      ])),
+      http.get('*/api/tecnicos', () => HttpResponse.json([tecnico({ idTec: 1, nombre: 'Técnico A' }), tecnico({ idTec: 2, nombre: 'Técnico B' })])),
+      http.post('*/api/auth/login', () => HttpResponse.json({ idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1' })),
+    )
+    renderConProviders(<HistorialPage tipo="REPARACION" />, {
+      sesion: SESION_SUPER,
+      ruta: '/reparaciones/historial',
+      layout: <AppLayout />,
+      rutas: (
+        <>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<HistorialPage tipo="REPARACION" />} />
+        </>
+      ),
+    })
+    expect(await screen.findByText('3 reparaciones')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Técnico' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Técnico B' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getByText('2 reparaciones')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Cerrar Sesión' }))
+    await userEvent.type(await screen.findByPlaceholderText('Usuario'), 'tecnico1')
+    await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'clave{enter}')
+    // El técnico no ve el filtro de técnico: si el del supertécnico siguiera puesto, la tabla saldría filtrada sin causa visible.
+    expect(await screen.findByRole('heading', { name: 'Mis reparaciones' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Técnico' })).not.toBeInTheDocument()
+    expect(await screen.findByText('3 reparaciones')).toBeInTheDocument()
   })
   it('el técnico ve "Mis reparaciones" y no tiene filtro de técnico', async () => {
     abrir(SESION_TEC)

@@ -4,7 +4,6 @@ import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
-import { reiniciarEstadoTaller } from '../estado'
 import { resumen, tecnico } from '../test/fabrica'
 import { HistorialPulidosPage } from './HistorialPulidosPage'
 
@@ -14,7 +13,6 @@ const filas = [
 ]
 
 beforeEach(() => {
-  reiniciarEstadoTaller()
   server.use(
     http.get('*/api/pulidos/historial', () => HttpResponse.json(filas)),
     http.get('*/api/tecnicos/activos', () => HttpResponse.json([tecnico({ idTec: 5, nombre: 'tecnico_k' }), tecnico({ idTec: 6, nombre: 'tecnico_c' })])),

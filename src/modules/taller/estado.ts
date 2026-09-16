@@ -32,14 +32,4 @@ export const filtrosImeis = crearStore<FiltrosImeis>(imeisVacios())
 /** IMEI del detalle del que se vuelve: el maestro lo reselecciona y desplaza hasta él. */
 export const ultimoImeiVisto = crearStore<string | null>(null)
 
-export function reiniciarEstadoTaller() {
-  filtroImeiPendientes.reset()
-  tipoPendientes.REPARACION.reset()
-  tipoPendientes.GLASS.reset()
-  filtroImeiHistorial.reset()
-  filtrosHistorial.REPARACION.reset()
-  filtrosHistorial.GLASS.reset()
-  filtrosHistorial.PULIDO.reset()
-  filtrosImeis.reset()
-  ultimoImeiVisto.reset()
-}
+// Todos vuelven a su valor inicial al cerrar sesión y al entrar: reiniciarStores, desde SessionProvider.

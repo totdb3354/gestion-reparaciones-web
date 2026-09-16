@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { reportarExito } from '@/shared/api/conexion'
+import { reiniciarStores } from '@/shared/lib/store'
 import { rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { server } from './server'
 
@@ -20,6 +21,9 @@ Element.prototype.scrollIntoView ??= () => {}
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   cleanup()
+  // Los stores de módulo (filtros del taller) sobreviven entre tests de un mismo fichero: se vuelven a su valor inicial
+  // después de desmontar, igual que al cerrar sesión.
+  reiniciarStores()
   server.resetHandlers()
   sessionStorage.clear()
   reportarExito()

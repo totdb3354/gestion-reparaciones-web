@@ -7,7 +7,7 @@ import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
-import { filtrosImeis, reiniciarEstadoTaller, ultimoImeiVisto } from '../estado'
+import { filtrosImeis, ultimoImeiVisto } from '../estado'
 import { resumen, tecnico } from '../test/fabrica'
 import { ImeiDetallePage } from './ImeiDetallePage'
 
@@ -20,7 +20,6 @@ const glass = [resumen({ idRep: 'G20260912_1', imei: A, modelo: '16', idTec: 5, 
 const pulidos = [resumen({ idRep: 'P20260913_1', imei: A, modelo: '16', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-13T10:00:00', fechaFin: '2026-09-13T11:00:00', idRepAnterior: 'AP20260913_1' })]
 
 beforeEach(() => {
-  reiniciarEstadoTaller()
   server.use(
     http.get('*/api/reparaciones/historial', () => HttpResponse.json(reps)),
     http.get('*/api/glass/historial', () => HttpResponse.json(glass)),

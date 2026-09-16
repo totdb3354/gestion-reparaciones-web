@@ -7,7 +7,6 @@ import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
-import { reiniciarEstadoTaller } from '../estado'
 import { glass, normal, resumen } from '../test/fabrica'
 import { PendientesPage } from './PendientesPage'
 
@@ -19,7 +18,6 @@ const filas = [
 ]
 
 beforeEach(() => {
-  reiniciarEstadoTaller()
   server.use(
     http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json(filas)),
     http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),

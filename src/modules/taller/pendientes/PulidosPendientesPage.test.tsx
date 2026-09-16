@@ -6,7 +6,6 @@ import { estaConectado } from '@/shared/api/conexion'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { claveAsignaciones } from '../api'
-import { reiniciarEstadoTaller } from '../estado'
 import { resumen } from '../test/fabrica'
 import { PulidosPendientesPage } from './PulidosPendientesPage'
 
@@ -24,7 +23,6 @@ const filas = [
 ]
 
 beforeEach(() => {
-  reiniciarEstadoTaller()
   server.use(
     http.get('*/api/pulidos/asignaciones', () => HttpResponse.json(filas)),
     http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 2 })),

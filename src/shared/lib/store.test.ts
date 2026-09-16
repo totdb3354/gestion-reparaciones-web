@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { crearStore, useStore } from './store'
+import { crearStore, reiniciarStores, useStore } from './store'
 
 describe('crearStore', () => {
   it('guarda, notifica y reinicia', () => {
@@ -17,6 +17,18 @@ describe('crearStore', () => {
     off()
     s.set('x')
     expect(avisos).toBe(3)
+  })
+  it('reiniciarStores vuelve todos los stores creados a su valor inicial y avisa a sus suscriptores', () => {
+    const texto = crearStore('')
+    const marcados = crearStore<Set<number>>(new Set())
+    let avisos = 0
+    marcados.subscribe(() => avisos++)
+    texto.set('350000000000011')
+    marcados.set(new Set([1, 2]))
+    reiniciarStores()
+    expect(texto.get()).toBe('')
+    expect(marcados.get().size).toBe(0)
+    expect(avisos).toBe(2)
   })
   it('useStore sigue el valor y expone el setter', () => {
     const s = crearStore(new Set<string>())
