@@ -3,26 +3,29 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from './button'
 import { onError } from './alertas'
 
-const Ctx = createContext<{ mostrarError: (msg: string) => void } | null>(null)
+type Aviso = { titulo: string; msg: string }
+const Ctx = createContext<{ mostrarError: (msg: string) => void; mostrarAviso: (titulo: string, msg: string) => void } | null>(null)
 
-/** Equivalente a Alertas.mostrarError: diálogo modal con el mensaje y "Aceptar". */
+/** Equivalente a Alertas.mostrarError: diálogo modal con el mensaje y "Aceptar". mostrarAviso es la variante con
+ *  título propio (p. ej. "No se puede borrar"), usada por useAccionesTrabajo. */
 export function AlertaProvider({ children }: { children: ReactNode }) {
-  const [msg, setMsg] = useState<string | null>(null)
-  const mostrarError = useCallback((m: string) => setMsg(m), [])
+  const [aviso, setAviso] = useState<Aviso | null>(null)
+  const mostrarError = useCallback((m: string) => setAviso({ titulo: 'Error', msg: m }), [])
+  const mostrarAviso = useCallback((titulo: string, msg: string) => setAviso({ titulo, msg }), [])
   // Suscripción al store externo: permite que QueryCache.onError (fuera de React) abra este mismo diálogo.
   useEffect(() => onError(mostrarError), [mostrarError])
-  const value = useMemo(() => ({ mostrarError }), [mostrarError])
+  const value = useMemo(() => ({ mostrarError, mostrarAviso }), [mostrarError, mostrarAviso])
   return (
     <Ctx.Provider value={value}>
       {children}
-      <Dialog open={msg !== null} onOpenChange={(o) => !o && setMsg(null)}>
+      <Dialog open={aviso !== null} onOpenChange={(o) => !o && setAviso(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Error</DialogTitle>
-            <DialogDescription>{msg}</DialogDescription>
+            <DialogTitle>{aviso?.titulo}</DialogTitle>
+            <DialogDescription>{aviso?.msg}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => setMsg(null)}>Aceptar</Button>
+            <Button onClick={() => setAviso(null)}>Aceptar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

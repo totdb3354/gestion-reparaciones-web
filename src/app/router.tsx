@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { HistorialPage } from '@/modules/taller/historial/HistorialPage'
 import { PendientesPage } from '@/modules/taller/pendientes/PendientesPage'
 import { PulidosPendientesPage } from '@/modules/taller/pendientes/PulidosPendientesPage'
 import { InicioReparaciones, RequiereTecnico } from '@/modules/taller/rutas'
@@ -30,8 +31,8 @@ export const router = createBrowserRouter([
               { path: '/reparaciones/pendientes/pulidos', element: <PulidosPendientesPage /> },
             ],
           },
-          { path: '/reparaciones/historial', element: <PendienteDeMigrar nombre="Historial" /> },
-          { path: '/reparaciones/historial/glass', element: <PendienteDeMigrar nombre="Historial (glass)" /> },
+          { path: '/reparaciones/historial', element: <HistorialPage tipo="REPARACION" /> },
+          { path: '/reparaciones/historial/glass', element: <HistorialPage tipo="GLASS" /> },
           { path: '/reparaciones/historial/pulidos', element: <PendienteDeMigrar nombre="Historial (pulidos)" /> },
           { path: '/reparaciones/imeis', element: <PendienteDeMigrar nombre="IMEIs" /> },
           { path: '/reparaciones/imeis/:imei', element: <PendienteDeMigrar nombre="IMEIs (detalle)" /> },
