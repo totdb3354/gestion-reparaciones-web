@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { PendientesPage } from '@/modules/taller/pendientes/PendientesPage'
 import { InicioReparaciones, RequiereTecnico } from '@/modules/taller/rutas'
 import { LoginPage } from './login/LoginPage'
 import { RequireSesion } from './session/RequireSesion'
@@ -23,8 +24,8 @@ export const router = createBrowserRouter([
           {
             element: <RequiereTecnico />,
             children: [
-              { path: '/reparaciones/pendientes', element: <PendienteDeMigrar nombre="Pendientes" /> },
-              { path: '/reparaciones/pendientes/glass', element: <PendienteDeMigrar nombre="Pendientes (glass)" /> },
+              { path: '/reparaciones/pendientes', element: <PendientesPage tipo="REPARACION" /> },
+              { path: '/reparaciones/pendientes/glass', element: <PendientesPage tipo="GLASS" /> },
               { path: '/reparaciones/pendientes/pulidos', element: <PendienteDeMigrar nombre="Pendientes (pulidos)" /> },
             ],
           },
