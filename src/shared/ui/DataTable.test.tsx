@@ -101,6 +101,26 @@ describe('DataTable', () => {
     expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('row', { name: /^AMAZON c$/ }))
   })
 
+  it('un refresco de datos con la misma selección no vuelve a desplazar la tabla', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    rerender(<DataTable columns={COLUMNAS} data={[...DATOS]} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="1" onSeleccionar={() => {}} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
+  })
+
+  it('si la selección llega antes que las filas, desplaza cuando aparecen', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    const { rerender } = render(<DataTable columns={COLUMNAS} data={[]} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id} seleccionada="3" onSeleccionar={() => {}} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+  })
+
   it('por encima del umbral solo pinta las filas visibles (virtualización)', () => {
     const muchas: Fila[] = Array.from({ length: 500 }, (_, i) => ({ id: String(i), nombre: `F${i}`, nota: 'x' }))
     render(<DataTable columns={COLUMNAS} data={muchas} vacio="" getRowId={(f) => f.id} umbralVirtual={100} />)

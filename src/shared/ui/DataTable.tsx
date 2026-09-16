@@ -112,11 +112,19 @@ export function DataTable<T>({
     else filaRefs.current.get(filas[indice].id)?.scrollIntoView({ block: 'nearest' })
   }
 
+  const desplazadaRef = useRef<string | null>(null)
   // Selección impuesta desde fuera (p. ej. el maestro de IMEIs reseleccionando el IMEI al volver del detalle, o el
   // enlace "Id Rep. Anterior"): si la fila no está a la vista, desplazar hasta ella con tres filas de contexto por
   // encima (calco de tabla.scrollTo(idx - 3)). Con una selección por clic la fila ya está a la vista y no pasa nada.
+  // Un refresco de datos (poll) cambia la identidad de `filas` sin cambiar `seleccionada`: no debe volver a
+  // desplazar, así que se recuerda en `desplazadaRef` la última selección ya desplazada y solo se actúa cuando
+  // `seleccionada` cambia desde fuera (o cuando las filas llegan después de fijarla).
   useEffect(() => {
-    if (seleccionada === null) return
+    if (seleccionada === desplazadaRef.current) return
+    if (seleccionada === null) {
+      desplazadaRef.current = null
+      return
+    }
     const idx = filas.findIndex((r) => r.id === seleccionada)
     if (idx < 0) return
     if (virtual) {
@@ -124,6 +132,7 @@ export function DataTable<T>({
     } else {
       filaRefs.current.get(seleccionada)?.scrollIntoView({ block: 'nearest' })
     }
+    desplazadaRef.current = seleccionada
   }, [seleccionada, filas, virtual, virtualizador])
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
