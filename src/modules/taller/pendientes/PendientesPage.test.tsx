@@ -117,7 +117,7 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     const bloqueada = { ...glass(null), idRep: 'AG20260916_1', imei: '351111111111111', normalAbierta: true, normalTecnicoNombre: 'Técnico J' }
     // entregadoPor: 4 = idTec de SESION_TEC (con la que se monta esta página): opcionDeshacerLlegada solo ofrece
     // "Deshacer llegada" a quien firmó la entrega (ver entregaGlass.ts).
-    const entregada = { ...glass('2026-09-16T08:00:00'), idRep: 'AG20260916_2', imei: '352222222222222', entregadoPor: 4 }
+    const entregada = { ...glass('2026-09-16T08:00:00'), idRep: 'AG20260916_2', imei: '352222222222222', entregadoPor: 4, normalAbierta: true }
     let llegadaLlamada = false
     let deshacerLlamada = false
     server.use(
@@ -128,8 +128,10 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     const { unmount } = renderConProviders(<PendientesPage tipo="GLASS" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
     await screen.findByText('AG20260916_1')
     expect(screen.getByText('Rep: Técnico J')).toHaveClass('bg-tipo-reparacion-bg')
-    // "Añadir glass" solo se oculta en la fila bloqueada (normalAbierta y sin entregadoAt); "entregada" sí lo ofrece.
+    // "Añadir glass" se oculta con normalAbierta y sin entregadoAt (bloqueada); "entregada" también tiene normalAbierta,
+    // pero ya tiene entregadoAt registrado, así que el botón vuelve: la glass llegó.
     expect(within(screen.getByRole('row', { name: /AG20260916_1/ })).queryByRole('button', { name: 'Añadir glass' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('row', { name: /AG20260916_2/ })).getByRole('button', { name: 'Añadir glass' })).toBeInTheDocument()
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('AG20260916_1') })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda', 'Marcar que llegó'])
     await userEvent.click(screen.getByRole('menuitem', { name: 'Marcar que llegó' }))
