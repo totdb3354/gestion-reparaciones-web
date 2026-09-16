@@ -27,4 +27,32 @@ describe('SelectorLista (calco de SelectorClienteDialog)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(onCancelar).toHaveBeenCalledTimes(1)
   })
+  it('el doble clic en una opción llama a onSeleccionar directamente con su clave', async () => {
+    const onSeleccionar = vi.fn()
+    render(<SelectorLista abierto titulo="Seleccionar cliente" placeholderBuscar="Buscar cliente..." opciones={OPCIONES} textoSeleccionar="Seleccionar" onSeleccionar={onSeleccionar} onCancelar={() => {}} />)
+    const dlg = screen.getByRole('dialog', { name: 'Seleccionar cliente' })
+    await userEvent.dblClick(within(dlg).getByRole('button', { name: 'CLIENTE A' }))
+    expect(onSeleccionar).toHaveBeenCalledTimes(1)
+    expect(onSeleccionar).toHaveBeenCalledWith('2')
+  })
+  it('cerrar y reabrir reinicia el buscador y la selección', async () => {
+    const onSeleccionar = vi.fn()
+    const { rerender } = render(
+      <SelectorLista abierto titulo="Seleccionar cliente" placeholderBuscar="Buscar cliente..." opciones={OPCIONES} textoSeleccionar="Seleccionar" onSeleccionar={onSeleccionar} onCancelar={() => {}} />,
+    )
+    let dlg = screen.getByRole('dialog', { name: 'Seleccionar cliente' })
+    await userEvent.type(within(dlg).getByPlaceholderText('Buscar cliente...'), 'cliente a')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'CLIENTE A' }))
+    expect(within(dlg).getByRole('button', { name: 'Seleccionar' })).toBeEnabled()
+    rerender(
+      <SelectorLista abierto={false} titulo="Seleccionar cliente" placeholderBuscar="Buscar cliente..." opciones={OPCIONES} textoSeleccionar="Seleccionar" onSeleccionar={onSeleccionar} onCancelar={() => {}} />,
+    )
+    rerender(
+      <SelectorLista abierto titulo="Seleccionar cliente" placeholderBuscar="Buscar cliente..." opciones={OPCIONES} textoSeleccionar="Seleccionar" onSeleccionar={onSeleccionar} onCancelar={() => {}} />,
+    )
+    dlg = screen.getByRole('dialog', { name: 'Seleccionar cliente' })
+    expect(within(dlg).getByPlaceholderText('Buscar cliente...')).toHaveValue('')
+    within(dlg).getAllByRole('option').forEach((o) => expect(o).toHaveAttribute('aria-selected', 'false'))
+    expect(within(dlg).getByRole('button', { name: 'Seleccionar' })).toBeDisabled()
+  })
 })

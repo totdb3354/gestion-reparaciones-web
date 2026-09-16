@@ -1,13 +1,21 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './context-menu'
 import { MenuCopiarCelda } from './MenuCopiarCelda'
+
+// navigator.clipboard no existe en jsdom por defecto: se define con Object.defineProperty (configurable) para
+// poder restaurar el descriptor original después de cada test, en vez de dejar la mutación de Object.assign.
+const descriptorClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+afterEach(() => {
+  if (descriptorClipboard) Object.defineProperty(navigator, 'clipboard', descriptorClipboard)
+  else Reflect.deleteProperty(navigator, 'clipboard')
+})
 
 describe('MenuCopiarCelda', () => {
   it('copia el texto y resalta la celda; con texto vacío no hace nada', async () => {
     const escribir = vi.fn().mockResolvedValue(undefined)
-    Object.assign(navigator, { clipboard: { writeText: escribir } })
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
     const resaltar = vi.fn()
     const { rerender } = render(
       <ContextMenu><ContextMenuTrigger>fila</ContextMenuTrigger><ContextMenuContent><MenuCopiarCelda texto="355400000000111" celda={{ columnaId: 'imei', resaltar }} /></ContextMenuContent></ContextMenu>,

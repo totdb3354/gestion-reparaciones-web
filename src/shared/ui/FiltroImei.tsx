@@ -29,7 +29,14 @@ export function FiltroImei({ valor, onChange, className }: Props) {
       value={valor}
       onChange={(e) => {
         const canonico = canonicalizarImei(e.target.value)
-        if (canonico !== e.target.value) moverCaret.current = true
+        if (canonico === valor) {
+          // la pulsación se ha descartado del todo (p.ej. una letra): aunque canonico difiera del texto
+          // crudo del input, onChange(canonico) no cambia valor y React no vuelve a disparar el efecto, así
+          // que si dejáramos el flag armado saltaría el caret en una edición posterior que sí cambie algo
+          moverCaret.current = false
+        } else if (canonico !== e.target.value) {
+          moverCaret.current = true
+        }
         onChange(canonico)
       }}
       className={cn('h-10 w-[160px] rounded border px-2.5 text-[12px] text-azul-medio outline-none placeholder:text-texto-suave', BORDE[estadoFiltroImei(valor)], className)}
