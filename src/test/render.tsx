@@ -24,7 +24,7 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
       <Route path={patron ?? ruta} element={ui} />
     </Route>
   ) : (
-    <Route path={ruta} element={ui} />
+    <Route path={patron ?? ruta} element={ui} />
   )
   return render(
     <QueryClientProvider client={qc}>

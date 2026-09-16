@@ -58,7 +58,7 @@ export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBusca
           ))}
         </ul>
         {textoNada !== undefined && <p className="text-[12px] text-azul-gris">{elegida ? elegida.etiqueta : textoNada}</p>}
-        <Button disabled={!seleccion} onClick={() => seleccion && onSeleccionar(seleccion)} className="h-auto w-full rounded bg-azul-medio py-2.5 text-[12px] text-crema hover:bg-azul-medio/90">
+        <Button disabled={seleccion === null} onClick={() => seleccion !== null && onSeleccionar(seleccion)} className="h-auto w-full rounded bg-azul-medio py-2.5 text-[12px] text-crema hover:bg-azul-medio/90">
           {textoSeleccionar}
         </Button>
         <Button variant="outline" onClick={onCancelar} className="h-auto w-full rounded border-azul-gris bg-crema py-2.5 text-[12px] text-azul-gris shadow-none hover:bg-crema hover:text-azul-gris">
