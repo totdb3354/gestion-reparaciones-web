@@ -50,6 +50,7 @@ Capturas: `Apuntes/paridad-capturas/taller/{imeis-maestro-tecnico,imeis-maestro-
 - Sin columna "Revisión" ni "Revisión logística" en el CSV: el servidor de producción ya no envía `revisionLogistica` (hoy siempre "—" / "No").
 - "Editar" deshabilitado con tooltip hasta el sub-proyecto 2.
 - El detalle es una ruta: el botón atrás del navegador equivale a "← Volver". Los diálogos son modales con los mismos textos; sin cuenta atrás en los `ConfirmDialog`.
+- En el detalle la columna "Asignado por" se estira con las demás; en el JavaFX se queda en su ancho mínimo de 100 px (`aplicarAnchosDetalle` no la toca y reparte el ancho de la tabla entre las otras columnas), así que, salvo en ventanas muy anchas, la tabla muestra barra de scroll horizontal.
 - El CSV es una descarga del navegador con nombre `<base>_yyyy-MM-dd_HH-mm.csv`.
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación.
 - "Editar observación" y "Editar cliente" solo se ofrecen cuando el teléfono tiene fila (`telefonoUpdatedAt`); el servidor exige esa fecha para guardar, y en el JavaFX guardar fallaba.

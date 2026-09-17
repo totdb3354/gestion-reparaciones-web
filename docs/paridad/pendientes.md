@@ -18,7 +18,7 @@ Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pend
 - [x] Tablas sin ordenación por clic ni columnas reordenables; fila seleccionada con fondo azul medio, texto blanco (también el IMEI; conservan su color las píldoras, "Chasis" y los tipos de la solicitud) y el borde izquierdo transparente; separador inferior `fila-sep`; celdas de 12 px; el texto que no cabe en su columna no invade la vecina: se corta, con "…" en los textos de una línea.
 - [x] Menú contextual (clic derecho sobre la fila) con "📋  Copiar celda" en todas las pestañas: copia al portapapeles el texto de la celda pulsada y la resalta brevemente (fondo #E0F7FA que se desvanece). Columnas copiables: Id, IMEI, Modelo, Fecha, Comentario (y en Pulidos también Cliente y Asignado por); el resto no copia nada.
 - [x] Textos vacíos: "No tienes asignaciones pendientes" (Reparaciones y Glass), "No tienes pulidos pendientes" (Pulidos).
-- [ ] Errores: 403 y 422 de las acciones con el mensaje del servidor ("Solo puedes marcar tus propias asignaciones", "Solo puedes entregar tus propias asignaciones", "Sin glass abierta para este IMEI", "No hay entrega que deshacer", "Solo quien registró la entrega puede deshacerla", "La entrega ya está registrada", …); resto según la política del shell.
+- [x] Errores de las acciones: 403 con el texto genérico "No tienes permisos para realizar esta acción.", como el JavaFX (`ApiClient.clasificar`), aunque el servidor mande su motivo ("Solo puedes marcar tus propias asignaciones", "Solo puedes entregar tus propias asignaciones", "Solo quien registró la entrega puede deshacerla"); 422 con el mensaje del servidor ("Sin glass abierta para este IMEI", "No hay entrega que deshacer", "La entrega ya está registrada", …); resto según la política del shell.
 
 ## Pestañas Reparaciones y Glass (PendientesTecnicoView, `setModoGlass` en la segunda)
 
@@ -54,7 +54,10 @@ Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pend
 
 - "Añadir reparación" / "Añadir glass" deshabilitados con tooltip hasta el sub-proyecto 2 (formulario de reparación).
 - Las pestañas son rutas: el botón atrás del navegador cambia de pestaña.
+- La entrada "Pendientes" de la columna lateral abre siempre la pestaña "Reparaciones"; el JavaFX vuelve a abrir la última pestaña usada.
 - El `ConfirmDialog` de la papelera es un modal con el mismo título, texto y botones (sin cuenta atrás, como en Clientes).
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación de desvanecido.
+- En la pestaña Pulidos el JavaFX copia la celda sin resaltarla (`PulidoTecnicoController`); la web la resalta igual que en Reparaciones y Glass.
+- El tooltip con los tipos de la solicitud cubre en el JavaFX toda la celda Estado (se instala en la caja que apila los badges); en la web, solo el badge de la solicitud y la línea de debajo.
 - El CSV es una descarga del navegador con nombre `<base>_yyyy-MM-dd_HH-mm.csv`.
 - El CSV del supertécnico del JavaFX escribe 11 valores bajo 10 cabeceras (añade "Reutilizado" a las filas pero no a la cabecera); el CSV de esta ficha exporta las 10 columnas coherentes.

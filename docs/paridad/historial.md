@@ -57,6 +57,10 @@ Capturas: `Apuntes/paridad-capturas/taller/{historial-reparaciones-tecnico,histo
 - "Editar" deshabilitado con tooltip hasta el sub-proyecto 2.
 - El SUPERTECNICO entra en Historial en vez de en Asignaciones hasta el sub-proyecto 3.
 - Los toggles son rutas (el botón atrás del navegador cambia de toggle); los diálogos y ventanas son modales con los mismos títulos, etiquetas y botones; sin cuenta atrás en los `ConfirmDialog`.
+- La entrada "Historial" de la columna lateral abre siempre el toggle "Reparaciones"; el JavaFX vuelve a abrir el último toggle usado.
+- Reparaciones y Glass guardan cada uno sus filtros de técnico, pieza, fechas e incidencias; en el JavaFX los dos toggles comparten los mismos controles y lo filtrado en uno sigue aplicado al pasar al otro (el de IMEI se conserva al cambiar de toggle en la web y en el JavaFX).
+- La columna "Asignado por" se estira con las demás; en el JavaFX se queda en su ancho mínimo de 100 px (`aplicarAnchosDetalle` no la toca y reparte el ancho de la tabla entre las otras columnas), así que, salvo en ventanas muy anchas, la tabla muestra barra de scroll horizontal.
 - El selector de fecha es el calendario del navegador con el mismo formato visible.
 - El CSV es una descarga del navegador con nombre `<base>_yyyy-MM-dd_HH-mm.csv`.
+- El ADMIN exporta el Historial de pulidos a CSV (`historial_pulidos`, con la columna "Técnico"); el `exportarCSV` del ADMIN del JavaFX no tiene rama de pulidos y desde ese toggle descarga como `historial_reparaciones` las filas de la tabla de reparaciones/glass que queda oculta.
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación.
