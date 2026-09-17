@@ -270,7 +270,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
   })
   it('"Añadir incidencia" en un trabajo de un técnico inactivo: sin preselección, botón deshabilitado hasta elegir un activo y POST con el elegido', async () => {
     // Calco de `tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec()).findFirst().ifPresent(cbTecnico::setValue)`
-    // sobre getAllActivos(): tecnico_n (7) está inactiva, así que no se preselecciona nadie.
+    // sobre getAllActivos(): tecnico_n (7) está inactivo, así que no se preselecciona nadie.
     let body: unknown = null
     const deTecnicoN = resumen({ idRep: 'R20260914_2', imei: '356789012345678', modelo: '13', nombreTecnico: 'tecnico_n', idTec: 7, fechaAsig: '2026-09-14T09:00:00', fechaFin: '2026-09-14T10:00:00', tipoComponente: 'bati13' })
     server.use(

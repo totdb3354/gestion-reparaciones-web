@@ -13,11 +13,11 @@ describe('barra superior (calco de MainView)', () => {
     for (const b of ['Reparaciones', 'Stock', 'Estadísticas', 'Clientes']) {
       expect(screen.getByRole('link', { name: b })).toBeInTheDocument()
     }
-    expect(screen.getByText('Hola, zara')).toBeInTheDocument()
+    expect(screen.getByText('Hola, tecnico_n')).toBeInTheDocument()
   })
   it('el menú de usuario de un técnico no tiene opciones de admin y "Descargar CSV" va deshabilitado', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC })
-    await userEvent.click(screen.getByRole('button', { name: /Hola, zara/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
     expect(screen.queryByText('Gestionar técnicos')).not.toBeInTheDocument()
     expect(screen.queryByText('Ver logs')).not.toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Descargar CSV' })).toHaveAttribute('aria-disabled', 'true')
@@ -36,7 +36,7 @@ describe('barra superior (calco de MainView)', () => {
   })
   it('Cerrar Sesión borra la sesión y lleva al login', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC, rutas: <Route path="/login" element={<p>LOGIN</p>} /> })
-    await userEvent.click(screen.getByRole('button', { name: /Hola, zara/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Cerrar Sesión' }))
     expect(await screen.findByText('LOGIN')).toBeInTheDocument()
     expect(sessionStorage.getItem('fsgr.sesion')).toBeNull()
