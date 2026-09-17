@@ -3,6 +3,7 @@ import type { ReparacionResumen } from '@/shared/api/client'
 import { formatear, type Patron } from '@/shared/lib/fechas'
 import { BadgeTipo } from '@/shared/ui/BadgeTipo'
 import { CeldaFechas } from '@/shared/ui/CeldaFechas'
+import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { tipoDe } from '@/shared/lib/tipoTrabajo'
 import { CeldaEstadoTrabajo } from '../componentes/CeldaEstadoTrabajo'
@@ -44,7 +45,7 @@ export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA
       cell: ({ row }) => (
         <div className="flex flex-col leading-tight">
           <span>{row.original.tipoComponente ?? ''}</span>
-          {row.original.esReutilizado && <span className="text-[10px] italic text-texto-fecha-inicio">Reutilizado</span>}
+          {row.original.esReutilizado && <span className={`text-[10px] italic text-texto-fecha-inicio ${CREMA_EN_FILA_SELECCIONADA}`}>Reutilizado</span>}
         </div>
       ),
     },

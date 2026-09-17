@@ -7,9 +7,10 @@ export function BadgesEstadoPendiente({ rep, hoy }: { rep: ReparacionResumen; ho
   return (
     <div className="flex flex-col items-start gap-0.5">
       {badgesEstado(rep, hoy).map((b) => (
-        <span key={b.texto} title={b.tooltip} className="flex flex-col items-start">
+        // max-w-full: la sub-etiqueta (los tipos de la solicitud) se corta con "…" dentro del ancho de la celda, como su Label.
+        <span key={b.texto} title={b.tooltip} className="flex max-w-full flex-col items-start">
           <span className={cn(CLASES_PILDORA, b.clases)}>{b.texto}</span>
-          {b.sub && <span className="text-[10px] text-azul-gris">{b.sub}</span>}
+          {b.sub && <span className="max-w-full truncate text-[10px] text-azul-gris">{b.sub}</span>}
         </span>
       ))}
     </div>

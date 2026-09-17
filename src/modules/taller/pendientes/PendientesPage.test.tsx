@@ -54,6 +54,9 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(screen.getByText('Urgente')).toHaveClass('bg-urgente-bg')
     expect(screen.getByText('Solicitud')).toBeInTheDocument()
     expect(screen.getByText('2 piezas')).toBeInTheDocument()
+    // Los tipos de la solicitud bajo el badge se cortan con "…" dentro del ancho de la celda (Label del JavaFX).
+    expect(screen.getByText('2 piezas')).toHaveClass('max-w-full', 'truncate')
+    expect(screen.getByText('2 piezas').parentElement).toHaveClass('max-w-full')
     expect(screen.getByText('Por cerrar')).toBeInTheDocument()
     expect(screen.getByText('Incidencia')).toBeInTheDocument()
     expect(screen.getByText('Chasis')).toBeInTheDocument()

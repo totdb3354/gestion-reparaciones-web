@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ColumnDef } from '@tanstack/react-table'
 import { AlertaProvider } from './AlertaProvider'
 import { ContextMenuItem } from './context-menu'
-import { anchosEstirados, DataTable, type CeldaPulsada } from './DataTable'
+import { anchosEstirados, CREMA_EN_FILA_SELECCIONADA, DataTable, type CeldaPulsada } from './DataTable'
 import { TextoExpandible } from './TextoExpandible'
 
 type Fila = { id: string; nombre: string; nota: string }
@@ -123,6 +123,34 @@ describe('DataTable', () => {
     expect(fila).toHaveClass('cursor-pointer', 'hover:bg-fila-maestro-bg', 'data-[state=selected]:bg-azul-medio', 'data-[state=selected]:text-crema')
     expect(fila).not.toHaveClass('cursor-default')
     expect(fila).not.toHaveClass('hover:bg-muted/50')
+  })
+
+  it('en la fila seleccionada la franja de estado se vuelve transparente, y un texto de celda con color propio pasa a crema con CREMA_EN_FILA_SELECCIONADA (variante del grupo que declara la fila)', () => {
+    const columnas: ColumnDef<Fila, string>[] = [
+      { accessorKey: 'nombre', header: 'Nombre', size: 100 },
+      { id: 'dato', header: 'Dato', size: 100, cell: ({ row }) => <span className={`text-azul-medio ${CREMA_EN_FILA_SELECCIONADA}`}>{`dato ${row.original.nombre}`}</span> },
+    ]
+    render(<DataTable columns={columnas} data={DIEZ} vacio="" getRowId={(f) => f.id} seleccionada="2" onSeleccionar={() => {}} filaClase={() => 'border-l-8 border-l-fila-incidencia-brd'} />)
+    const fila = screen.getByRole('row', { name: /^F2 dato F2$/ })
+    // Calco de aplicarEstilo del JavaFX: la seleccionada pinta transparente el borde izquierdo de 8 px (o de 4 en el maestro).
+    expect(fila).toHaveClass('border-l-8', 'border-l-fila-incidencia-brd', 'data-[state=selected]:border-l-transparent')
+    const grupo = Array.from(fila.classList).find((c) => c.startsWith('group/'))?.slice('group/'.length)
+    expect(grupo).toBeTruthy()
+    expect(CREMA_EN_FILA_SELECCIONADA).toBe(`group-data-[state=selected]/${grupo}:text-crema`)
+  })
+
+  it('las celdas recortan con elipsis en vez de desbordar sobre la columna vecina (las etiquetas del TableView cortan con "…"), sin alto propio y con el padding intacto', () => {
+    render(<DataTable columns={COLUMNAS} data={DIEZ.slice(0, 1)} vacio="" altoFila={44} getRowId={(f) => f.id} seleccionada="0" onSeleccionar={() => {}} />)
+    const celdas = within(screen.getByRole('row', { name: /^F0 x$/ })).getAllByRole('cell')
+    expect(celdas).toHaveLength(2)
+    for (const td of celdas) {
+      expect(td).toHaveClass('overflow-hidden', 'text-ellipsis', 'whitespace-nowrap')
+      // overflow recorta en el borde del padding: en los 8 px de p-2 caben los anillos de foco de los controles (hasta 3 px).
+      expect(td).toHaveClass('p-2')
+      // Sin alto propio: en una tabla el alto de la fila (44 px) es un mínimo y una celda de dos líneas la estira.
+      expect(td.className).not.toMatch(/(^|\s)(max-|min-)?h-/)
+      expect(td.style.height).toBe('')
+    }
   })
 
   it('el menú contextual recibe la columna pulsada y puede resaltar la celda', async () => {

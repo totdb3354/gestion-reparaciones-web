@@ -11,7 +11,7 @@ import { esSuperTecnico } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { CeldaFechas } from '@/shared/ui/CeldaFechas'
 import { ContextMenuItem, ContextMenuSeparator } from '@/shared/ui/context-menu'
-import { DataTable } from '@/shared/ui/DataTable'
+import { CREMA_EN_FILA_SELECCIONADA, DataTable } from '@/shared/ui/DataTable'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { MenuCopiarCelda } from '@/shared/ui/MenuCopiarCelda'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
@@ -83,7 +83,7 @@ export function ImeisPage() {
       id: 'imei', header: 'IMEI teléfono', size: 180,
       cell: ({ row }) => (
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[12px] font-bold text-azul-medio">{row.original.imei}</span>
+          <span className={`text-[12px] font-bold text-azul-medio ${CREMA_EN_FILA_SELECCIONADA}`}>{row.original.imei}</span>
           <button type="button" aria-label={`Ver trabajos de ${row.original.imei}`} onClick={(e) => { e.stopPropagation(); abrir(row.original.imei) }} className="shrink-0 cursor-pointer">
             <img src="/Historial.png" alt="" className="h-[25px] w-[25px]" />
           </button>

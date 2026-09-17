@@ -16,6 +16,12 @@ import { cn } from '@/shared/lib/utils'
 /** Qué columna se pulsó con el botón derecho y cómo resaltarla ("📋 Copiar celda"). */
 export type CeldaPulsada = { columnaId: string; resaltar: () => void }
 
+/** Para los textos de celda con color propio que el JavaFX repinta en blanco al seleccionar la fila (el IMEI, las dos
+ *  fechas, "Reutilizado"): el `text-crema` de la fila no les llega porque fijan su color. Los que el JavaFX deja con el
+ *  suyo (píldoras, "Sin incidencia", el texto de la incidencia, "Llegó…", el enlace "Id Rep. Anterior") no la llevan.
+ *  Es una variante del grupo `fila` que declara cada `<tr>` seleccionable. */
+export const CREMA_EN_FILA_SELECCIONADA = 'group-data-[state=selected]/fila:text-crema'
+
 type Props<T> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: ColumnDef<T, any>[]
@@ -304,10 +310,12 @@ export function DataTable<T>({
         aria-selected={onSeleccionar ? sel : undefined}
         style={altoFila === undefined ? undefined : { height: altoFila }}
         // Las clases de la página van al final para que ganen en tailwind-merge (p. ej. su cursor o su hover); las de
-        // la fila seleccionada llevan la variante data-[state=selected] y no chocan con las suyas.
+        // la fila seleccionada llevan la variante data-[state=selected] y no chocan con las suyas. Seleccionada: fondo azul
+        // medio, texto crema y la franja de estado de la página transparente (aplicarEstilo del JavaFX).
         className={cn(
           'border-b border-fila-sep',
-          onSeleccionar && 'cursor-default data-[state=selected]:bg-azul-medio data-[state=selected]:text-crema',
+          onSeleccionar &&
+            'group/fila cursor-default data-[state=selected]:border-l-transparent data-[state=selected]:bg-azul-medio data-[state=selected]:text-crema',
           filaClase?.(row.original),
         )}
         onClick={(e) => {
@@ -326,7 +334,10 @@ export function DataTable<T>({
           <TableCell
             key={c.id}
             data-columna={c.column.id}
-            className={cn('text-[12px]', resaltada?.fila === id && resaltada.columna === c.column.id && 'bg-fila-modificada-bg')}
+            // Recorta con "…" lo que no cabe, como las etiquetas del TableView, en vez de pintarlo sobre la columna vecina
+            // (tabla table-fixed). El recorte es en el borde del padding, así que los anillos de foco caben, y la celda no
+            // tiene alto propio: el contenido de dos líneas estira la fila en vez de cortarse.
+            className={cn('overflow-hidden text-ellipsis text-[12px]', resaltada?.fila === id && resaltada.columna === c.column.id && 'bg-fila-modificada-bg')}
           >
             {flexRender(c.column.columnDef.cell, c.getContext())}
           </TableCell>

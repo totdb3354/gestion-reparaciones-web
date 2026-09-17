@@ -10,6 +10,7 @@ import { LoginPage } from '@/app/login/LoginPage'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
+import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { CLAVE_TECNICOS_ACTIVOS } from '../api'
 import { glass, resumen, tecnico } from '../test/fabrica'
 import { HistorialPage } from './HistorialPage'
@@ -68,10 +69,20 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
       expect.stringMatching(/^13\.6054/), // Incidencia 200
       expect.stringMatching(/^10\.2040/), // Id Rep. Anterior 150
     ])
-    expect(screen.getByText('Reutilizado')).toHaveClass('italic')
+    // En la fila seleccionada el JavaFX repinta en blanco "Reutilizado" (y las fechas, CeldaFechas.test.tsx); los textos
+    // con color propio sin oyente de selección lo conservan: "Sin incidencia", el texto de la incidencia, las píldoras y
+    // el enlace "Id Rep. Anterior".
+    expect(screen.getByText('Reutilizado')).toHaveClass('italic', CREMA_EN_FILA_SELECCIONADA)
     expect(screen.getByText('2026/09/16 09:00')).toBeInTheDocument()
     expect(screen.getAllByText('Sin incidencia')).toHaveLength(1)
+    expect(screen.getByText('Sin incidencia')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
     expect(screen.getByText('Resuelta')).toBeInTheDocument()
+    expect(screen.getByText('Resuelta')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
+    expect(screen.getByRole('button', { name: 'R20260916_6' })).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
+    // Texto de la incidencia: #000000 abierta, #A9A9A9 resuelta (configurarColIncidencia), con tokens.
+    expect(screen.getByRole('button', { name: 'no enciende' })).toHaveClass('text-texto-incidencia')
+    expect(screen.getByRole('button', { name: 'no enciende' })).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
+    expect(screen.getByRole('button', { name: 'pantalla' })).toHaveClass('text-gris-borde')
     expect(screen.getByRole('row', { name: /R20260915_133/ })).toHaveClass('border-l-fila-incidencia-brd')
     expect(screen.getByRole('row', { name: /R20260910_1/ })).toHaveClass('border-l-fila-reparado-brd')
     // tablaReparaciones.setFixedCellSize(44)
@@ -388,6 +399,8 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await screen.findByText('AG20260828_3')
     expect(screen.getByRole('link', { name: 'Glass' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByText('Llegó 16/09 11:30')).toBeInTheDocument()
+    // CeldaReparador fija #8A94A6 a "Llegó…" sin oyente de selección: sigue gris en la fila seleccionada.
+    expect(screen.getByText('Llegó 16/09 11:30')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
     // El toggle Glass es la misma tabla del controller del rol: fechas con hora para el supertécnico.
     expect(screen.getByText('2026/09/16 09:02')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
