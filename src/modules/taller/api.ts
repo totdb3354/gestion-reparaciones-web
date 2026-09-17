@@ -85,9 +85,20 @@ export async function referenciadora(idRep: string): Promise<string | null> {
   return data?.value ?? null
 }
 
+/** Recarga las consultas afectadas; la promesa se cumple cuando han vuelto a cargar. */
 function useInvalidar(...claves: readonly (readonly unknown[])[]) {
   const qc = useQueryClient()
   return () => Promise.all(claves.map((queryKey) => qc.invalidateQueries({ queryKey })))
+}
+
+/** Para `onSettled`: lanza la recarga y no la devuelve. TanStack espera la promesa que devuelve onSettled antes de llamar a
+ *  los callbacks de cada `mutate` (el onError de la vista), así que "No se pudo guardar…" o el aviso del 409 saldrían
+ *  después de recargar hasta tres historiales completos. Solo useCompletarPulidos espera la recarga, a propósito. */
+function useRecargarSinEsperar(...claves: readonly (readonly unknown[])[]) {
+  const recargar = useInvalidar(...claves)
+  return () => {
+    void recargar()
+  }
 }
 
 const PENDIENTES_REP = [claveAsignaciones('REPARACION'), CLAVE_CONTADORES] as const
@@ -96,7 +107,7 @@ const PENDIENTES_PUL = [claveAsignaciones('PULIDO'), CLAVE_CONTADORES] as const
 const HISTORIALES = [claveHistorial('REPARACION'), claveHistorial('GLASS'), claveHistorial('PULIDO')] as const
 
 export function usePorCerrar() {
-  const recargar = useInvalidar(...PENDIENTES_REP)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_REP)
   return useMutation({
     mutationFn: ({ idRep, porCerrar }: { idRep: string; porCerrar: boolean }) =>
       api.PATCH('/api/reparaciones/asignaciones/{idRep}/por-cerrar', { params: { path: { idRep } }, body: { porCerrar } }),
@@ -104,7 +115,7 @@ export function usePorCerrar() {
   })
 }
 export function useEntregaGlass() {
-  const recargar = useInvalidar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: ({ idRep, entregado }: { idRep: string; entregado: boolean }) =>
       api.PATCH('/api/reparaciones/asignaciones/{idRep}/entrega-glass', { params: { path: { idRep } }, body: { entregado } }),
@@ -112,21 +123,21 @@ export function useEntregaGlass() {
   })
 }
 export function useMarcarLlegada() {
-  const recargar = useInvalidar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: (idRep: string) => api.PATCH('/api/reparaciones/asignaciones/{idRep}/llegada', { params: { path: { idRep } } }),
     onSettled: recargar,
   })
 }
 export function useDeshacerLlegada() {
-  const recargar = useInvalidar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: (idRep: string) => api.DELETE('/api/reparaciones/asignaciones/{idRep}/llegada', { params: { path: { idRep } } }),
     onSettled: recargar,
   })
 }
 export function useBorrarAsignacion() {
-  const recargar = useInvalidar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: (idAsig: string) => api.DELETE('/api/reparaciones/asignaciones/{idAsig}', { params: { path: { idAsig } } }),
     onSettled: recargar,
@@ -137,7 +148,7 @@ export function useBorrarAsignacion() {
  *  ver ReparacionDAO.HISTORIAL_SELECT/GLASS_HISTORIAL_SELECT), que es justo lo que expone esIncidencia/
  *  esResuelto en /api/{reparaciones,glass}/historial. Por eso invalida HISTORIALES, como useCancelarIncidencia. */
 export function useBorrarIncidenciaActiva() {
-  const recargar = useInvalidar(...HISTORIALES, ...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...HISTORIALES, ...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: ({ imei, tipo }: { imei: string; tipo: 'R' | 'G' }) =>
       api.DELETE('/api/reparaciones/imei/{imei}/incidencia-activa', { params: { path: { imei }, query: { tipo } } }),
@@ -154,14 +165,14 @@ export function useCompletarPulidos() {
   })
 }
 export function useBorrarAsignacionPulido() {
-  const recargar = useInvalidar(...PENDIENTES_PUL)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_PUL)
   return useMutation({
     mutationFn: (idAP: string) => api.DELETE('/api/pulidos/asignaciones/{idAP}', { params: { path: { idAP } } }),
     onSettled: recargar,
   })
 }
 export function useBorrarReparacion() {
-  const recargar = useInvalidar(...HISTORIALES)
+  const recargar = useRecargarSinEsperar(...HISTORIALES)
   return useMutation({
     mutationFn: ({ idRep, motivo }: { idRep: string; motivo: string }) =>
       api.DELETE('/api/reparaciones/{idRep}', { params: { path: { idRep } }, body: { motivo } }),
@@ -169,7 +180,7 @@ export function useBorrarReparacion() {
   })
 }
 export function useBorrarPulido() {
-  const recargar = useInvalidar(claveHistorial('PULIDO'))
+  const recargar = useRecargarSinEsperar(claveHistorial('PULIDO'))
   return useMutation({
     mutationFn: ({ idP, motivo }: { idP: string; motivo: string }) =>
       api.DELETE('/api/pulidos/historial/{idP}', { params: { path: { idP } }, body: { motivo } }),
@@ -178,7 +189,7 @@ export function useBorrarPulido() {
 }
 /** La vista muestra "No se pudo guardar: <mensaje>" (calco del JavaFX), de ahí meta.silenciarError. */
 export function useAnadirIncidencia() {
-  const recargar = useInvalidar(...HISTORIALES, ...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...HISTORIALES, ...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: ({ idRep, comentario, imei, idTec }: { idRep: string; comentario: string; imei: string; idTec: number }) =>
       api.POST('/api/reparaciones/{idRep}/incidencia', { params: { path: { idRep } }, body: { comentario, imei, idTec } }),
@@ -187,7 +198,7 @@ export function useAnadirIncidencia() {
   })
 }
 export function useCancelarIncidencia() {
-  const recargar = useInvalidar(...HISTORIALES, ...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...HISTORIALES, ...PENDIENTES_AMBAS)
   return useMutation({
     mutationFn: (idRep: string) => api.DELETE('/api/reparacion-componentes/{idRep}/incidencia', { params: { path: { idRep } } }),
     onSettled: recargar,
@@ -196,7 +207,7 @@ export function useCancelarIncidencia() {
 /** Observación y cliente del teléfono llevan bloqueo optimista: su 409 lo traduce la vista (meta.silenciarError).
  *  `updatedAt` es el `telefonoUpdatedAt` de la fila (no nullable en el contrato: el servidor exige la fila Telefono). */
 export function useEditarObservacionTelefono() {
-  const recargar = useInvalidar(...HISTORIALES)
+  const recargar = useRecargarSinEsperar(...HISTORIALES)
   return useMutation({
     mutationFn: ({ imei, observacion, updatedAt }: { imei: string; observacion: string; updatedAt: string }) =>
       api.PATCH('/api/telefonos/{imei}/observacion', { params: { path: { imei } }, body: { observacion, updatedAt } }),
@@ -205,7 +216,7 @@ export function useEditarObservacionTelefono() {
   })
 }
 export function useEditarClienteTelefono() {
-  const recargar = useInvalidar(...HISTORIALES)
+  const recargar = useRecargarSinEsperar(...HISTORIALES)
   return useMutation({
     mutationFn: ({ imei, idCli, updatedAt }: { imei: string; idCli: number | null; updatedAt: string }) =>
       api.PATCH('/api/telefonos/{imei}/cliente', { params: { path: { imei } }, body: { idCli, updatedAt } }),
@@ -214,7 +225,7 @@ export function useEditarClienteTelefono() {
   })
 }
 export function useEditarModeloTelefono() {
-  const recargar = useInvalidar(...HISTORIALES)
+  const recargar = useRecargarSinEsperar(...HISTORIALES)
   return useMutation({
     mutationFn: ({ imei, modelo }: { imei: string; modelo: string }) =>
       api.POST('/api/telefonos', { body: { imei, modelo, idCli: null, clienteExplicito: null } }),

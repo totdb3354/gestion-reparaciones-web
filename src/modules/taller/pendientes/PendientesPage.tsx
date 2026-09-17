@@ -99,7 +99,8 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
 
   const acciones = {
     porCerrar: (r: ReparacionResumen) => porCerrar.mutate({ idRep: r.idRep, porCerrar: !r.porCerrar }),
-    entrega: (r: ReparacionResumen) => entrega.mutate({ idRep: r.idRep, entregado: r.glassEntregadoAt === null }),
+    // Sin entrega → entregar; con entrega → deshacer. `!` y no `=== null`: una clave ausente (undefined) también es "sin entrega".
+    entrega: (r: ReparacionResumen) => entrega.mutate({ idRep: r.idRep, entregado: !r.glassEntregadoAt }),
     llegada: (r: ReparacionResumen) => llegada.mutate(r.idRep),
     deshacerLlegada: (r: ReparacionResumen) => deshacerLlegada.mutate(r.idRep),
   }

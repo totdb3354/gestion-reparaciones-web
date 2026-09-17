@@ -1,14 +1,15 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { StaleDataError } from '@/shared/api/errors'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
 import { server } from '@/test/server'
 import { SESION_SUPER, SESION_TEC } from '@/test/render'
-import { useAsignaciones, useContadoresPendientes, usePorCerrar } from './api'
+import { useAsignaciones, useContadoresPendientes, useEditarObservacionTelefono, useHistorial, usePorCerrar } from './api'
 
 function envoltorio(sesion: typeof SESION_TEC) {
   guardarSesion(sesion)
@@ -59,5 +60,28 @@ describe('api del taller', () => {
     await m.result.current.mutateAsync({ idRep: 'A1', porCerrar: true })
     await waitFor(() => expect(contadores).toBe(2))
     await waitFor(() => expect(lista).toBe(2))
+  })
+  it('el aviso de un guardado fallido (el onError de mutate) no espera a que se recarguen los historiales', async () => {
+    let peticiones = 0
+    let soltarRecarga!: () => void
+    const recargaRetenida = new Promise<void>((resolver) => { soltarRecarga = resolver })
+    server.use(
+      // La primera carga responde en el acto; la recarga que lanza la mutación se queda colgada hasta el final del test.
+      http.get('*/api/reparaciones/historial', async () => { peticiones++; if (peticiones > 1) await recargaRetenida; return HttpResponse.json([]) }),
+      http.patch('*/api/telefonos/350000000000011/observacion', () => HttpResponse.json({ message: 'modificado' }, { status: 409 })),
+    )
+    const wrapper = envoltorio(SESION_SUPER)
+    const historial = renderHook(() => useHistorial('REPARACION'), { wrapper })
+    await waitFor(() => expect(historial.result.current.isSuccess).toBe(true))
+    const editar = renderHook(() => useEditarObservacionTelefono(), { wrapper })
+    const alFallar = vi.fn()
+    act(() => editar.result.current.mutate({ imei: '350000000000011', observacion: 'nota', updatedAt: '2026-01-01T09:00:00' }, { onError: alFallar }))
+    // La recarga no puede terminar hasta soltarRecarga(): si el aviso llega antes, no la ha esperado.
+    await waitFor(() => expect(alFallar).toHaveBeenCalledTimes(1))
+    expect(alFallar.mock.calls[0][0]).toBeInstanceOf(StaleDataError)
+    // Y la recarga sí se lanzó (si no, el test pasaría sin probar nada).
+    await waitFor(() => expect(peticiones).toBe(2))
+    soltarRecarga()
+    await waitFor(() => expect(historial.result.current.isFetching).toBe(false))
   })
 })

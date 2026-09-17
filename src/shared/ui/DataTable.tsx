@@ -23,7 +23,7 @@ export type CeldaPulsada = { columnaId: string; resaltar: () => void }
 export const CREMA_EN_FILA_SELECCIONADA = 'group-data-[state=selected]/fila:text-crema'
 
 type Props<T> = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cada columna tiene su propio tipo de valor; TanStack Table tipa así las listas mixtas (ColumnDef<TData, any>[]), unknown no admite columnas con accessor tipado
   columns: ColumnDef<T, any>[]
   data: T[]
   vacio: string

@@ -43,7 +43,7 @@ export function PulidosPendientesPage() {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   // Calco de cargar(), que hace `seleccionados.clear()` antes de pedir la lista: la selección no sobrevive a una recarga,
   // tampoco a una que falla (sondeo o "Actualizado"). Un guardado fallido no recarga, así que la conserva.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- la recarga no es un evento de esta vista: llega de TanStack Query (sondeo, foco, "Actualizado") y solo se ve en dataUpdatedAt/errorUpdatedAt, así que no hay un manejador en el que vaciar la selección
   useEffect(() => setSeleccionados((prev) => (prev.size ? new Set() : prev)), [dataUpdatedAt, errorUpdatedAt])
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)

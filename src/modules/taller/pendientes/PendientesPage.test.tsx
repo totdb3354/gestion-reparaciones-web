@@ -114,6 +114,21 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Quitar por cerrar' }))
     await waitFor(() => expect(bodyPorCerrar).toEqual({ porCerrar: false }))
   })
+  it('"Entregar a" entrega también si el servidor no manda la clave glassEntregadoAt (sin entrega → entregar, como `getGlassEntregadoAt() == null`)', async () => {
+    const sinClave: Record<string, unknown> = {
+      ...normal(true, null), idRep: 'A20260101_5', imei: '350000000000045', nombreTecnico: 'Técnico A', nombreTecnicoAsigna: 'Técnico C', cliente: 'CLIENTE A', glassTecnicoNombre: 'Técnico B',
+    }
+    delete sinClave.glassEntregadoAt
+    let body: unknown = null
+    server.use(
+      http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([sinClave])),
+      http.patch('*/api/reparaciones/asignaciones/A20260101_5/entrega-glass', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 204 }) }),
+    )
+    abrir()
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('A20260101_5') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Entregar a Técnico B' }))
+    await waitFor(() => expect(body).toEqual({ entregado: true }))
+  })
   it('pestaña Glass: "Marcar que llegó" y "Deshacer llegada" disparan su PATCH/DELETE; botón oculto y placeholder', async () => {
     const bloqueada = { ...glass(null), idRep: 'AG20260916_1', imei: '351111111111111', normalAbierta: true, normalTecnicoNombre: 'Técnico J' }
     // entregadoPor: 4 = idTec de SESION_TEC (con la que se monta esta página): opcionDeshacerLlegada solo ofrece
