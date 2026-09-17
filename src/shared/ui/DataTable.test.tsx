@@ -86,6 +86,42 @@ describe('DataTable', () => {
     expect(screen.getAllByRole('row').length - 1).toBeLessThan(conAltoEstimado)
   })
 
+  it('en reposo no se vuelve a pintar sola: sin ordenación el estado que recibe TanStack es estable y no reinicia la paginación en cada render', async () => {
+    // Un `sorting: []` nuevo en cada render invalidaba getSortedRowModel, cuyo onChange encola resetPageIndex (un setState con
+    // objeto nuevo): la tabla se repintaba sin parar en reposo y, tras un clic en una fila, el bucle pasaba a síncrono y
+    // congelaba la página (comprobado en Chromium con el build de producción).
+    const pintar = vi.fn()
+    const DOS = DIEZ.slice(0, 2)
+    const columnas: ColumnDef<Fila, string>[] = [...COLUMNAS, { id: 'sonda', header: '', size: 40, cell: () => { pintar(); return null } }]
+    function TablaConEstado() {
+      const [seleccionada, setSeleccionada] = useState<string | null>(null)
+      return <DataTable columns={columnas} data={DOS} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={setSeleccionada} />
+    }
+    render(<TablaConEstado />)
+    // El primer cálculo de las filas solo registra el reinicio automático; hace falta un segundo render (en el navegador, el
+    // ResizeObserver de anchos o la llegada de datos; aquí, un clic que selecciona) para que empiece el bucle.
+    await userEvent.click(screen.getByText('F1'))
+    await act(() => new Promise((resolver) => setTimeout(resolver, 50)))
+    const trasElClic = pintar.mock.calls.length
+    await act(() => new Promise((resolver) => setTimeout(resolver, 200)))
+    expect(pintar.mock.calls.length).toBe(trasElClic)
+  })
+
+  it('tampoco entra en bucle si la página le pasa unos datos nuevos en cada render (la tabla no pagina: nada que reiniciar)', async () => {
+    const pintar = vi.fn()
+    const columnas: ColumnDef<Fila, string>[] = [...COLUMNAS, { id: 'sonda', header: '', size: 40, cell: () => { pintar(); return null } }]
+    function TablaConDatosSinMemo() {
+      const [seleccionada, setSeleccionada] = useState<string | null>(null)
+      return <DataTable columns={columnas} data={DIEZ.filter((f) => f.id !== '9')} vacio="" getRowId={(f) => f.id} seleccionada={seleccionada} onSeleccionar={setSeleccionada} />
+    }
+    render(<TablaConDatosSinMemo />)
+    await userEvent.click(screen.getByText('F1'))
+    await act(() => new Promise((resolver) => setTimeout(resolver, 50)))
+    const trasElClic = pintar.mock.calls.length
+    await act(() => new Promise((resolver) => setTimeout(resolver, 200)))
+    expect(pintar.mock.calls.length).toBe(trasElClic)
+  })
+
   it('el mensaje de vacío ocupa todas las columnas que se pintan', () => {
     render(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" />)
     expect(screen.getByRole('cell', { name: 'Sin filas' })).toHaveAttribute('colspan', '2')

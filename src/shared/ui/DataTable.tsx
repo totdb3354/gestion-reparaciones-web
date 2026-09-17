@@ -65,6 +65,8 @@ type Props<T> = {
 
 /** Borra el `size: 150` que ColumnSizing inyecta por defecto: así `columnDef.size` refleja lo que declaró el consumidor. */
 const COLUMNA_POR_DEFECTO = { size: undefined } as const
+/** Ordenación de una tabla que no ordena: la misma referencia en cada render (ver `autoResetPageIndex` más abajo). */
+const SIN_ORDEN: SortingState = []
 const ANCHO_SIN_SIZE = 150
 const ALTO_FILA_ESTIMADO = 44
 const MS_RESALTADO = 600
@@ -149,8 +151,12 @@ export function DataTable<T>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableSorting: ordenacion,
-    state: { sorting: ordenacion ? orden : [] },
+    state: { sorting: ordenacion ? orden : SIN_ORDEN },
     onSortingChange: setOrden,
+    // La tabla no pagina. Con el reinicio automático, TanStack hace un setState cada vez que recalcula las filas, y bastaba
+    // un valor nuevo en cada render (el `[]` de sorting, o unos datos sin memoizar) para repintar la tabla sin parar; tras
+    // un clic en una fila el bucle pasaba a ser síncrono y congelaba la página.
+    autoResetPageIndex: false,
     getRowId,
     defaultColumn: COLUMNA_POR_DEFECTO,
   })
