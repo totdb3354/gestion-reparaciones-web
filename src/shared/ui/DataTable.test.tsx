@@ -635,6 +635,15 @@ describe('DataTable — ajuste estirar con topes (maxSize de la columna)', () =>
     expect(tabla).toHaveStyle({ width: '500px', minWidth: '400px' })
   })
 
+  it('el ancho del contenedor no depende de la tabla (contain-inline-size): lo medido no vuelve a ensanchar lo que se mide', () => {
+    // Sin contención, la tabla (con los anchos en px medidos del contenedor, más la mitad del borde izquierdo de las filas
+    // que sobresale de una tabla con bordes colapsados) ensanchaba el <main> flexible que la contiene, el contenedor crecía
+    // unos px, el ResizeObserver volvía a medir y la tabla crecía otra vez: en Chromium el Historial se ensanchaba sin fin
+    // y se repintaba unas diez veces por segundo. jsdom no maqueta: aquí solo se puede comprobar la clase.
+    const { container } = render(<DataTable columns={COLUMNAS_CON_TOPE} data={DATOS} vacio="" ajuste="estirar" />)
+    expect(container.querySelector('table')!.parentElement).toHaveClass('overflow-auto', 'contain-inline-size')
+  })
+
   it('mientras el contenedor mide 0 (jsdom, tabla oculta) conserva los porcentajes', () => {
     const { container } = render(<DataTable columns={COLUMNAS_CON_TOPE} data={DATOS} vacio="" ajuste="estirar" />)
     medirContenedor(0)

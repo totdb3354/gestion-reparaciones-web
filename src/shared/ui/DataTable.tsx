@@ -373,7 +373,10 @@ export function DataTable<T>({
       // scroll-pt-10: la cabecera es sticky top-0 (~40 px). La selección y las flechas ya desplazan midiendo su alto, pero
       // los desplazamientos que hace el navegador por su cuenta (el foco al tabular a un botón de una celda, o al volver
       // a él al cerrar un diálogo) respetan scroll-padding-top y, sin él, dejarían ese control tapado por la cabecera.
-      className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50 scroll-pt-10"
+      // contain-inline-size: el ancho del contenedor lo pone la página, nunca la tabla. Sin ello, una tabla ancha ensanchaba
+      // el <main> flexible (la página hacía scroll en vez de la tabla) y, con los anchos medidos del ajuste 'estirar', cada
+      // medida ensanchaba lo medido: el Historial crecía sin fin y se repintaba sin parar.
+      className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50 scroll-pt-10 contain-inline-size"
       style={{ maxHeight: alturaMax }}
     >
       <table
