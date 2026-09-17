@@ -3,10 +3,10 @@ import { useLocation, useNavigate } from 'react-router'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { APP_VERSION } from '@/shared/lib/version'
-import { useSession } from '@/app/session/SessionProvider'
+import { useSession } from '@/shared/session/SessionProvider'
 
 const inputCls =
-  'h-auto rounded-lg border-borde-input bg-white px-3.5 py-3 text-[13px] md:text-[13px] text-azul-medio placeholder:text-texto-suave'
+  'h-auto rounded-lg border-borde-input bg-superficie px-3.5 py-3 text-[13px] md:text-[13px] text-azul-medio placeholder:text-texto-suave'
 
 export function LoginPage() {
   const { login } = useSession()

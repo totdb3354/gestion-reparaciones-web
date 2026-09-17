@@ -40,6 +40,7 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
         // = es su primer fallo (TanStack despacha el estado de error antes de este callback, así que en el
         // primero ya vale 1). Los reintentos automáticos posteriores —refetch por foco de ventana, por
         // intervalo o manual— dejan solo el banner, para no repetir el modal mientras el servidor siga caído.
+        // Contrato completo documentado en shared/api/refresco.ts.
         if (error instanceof ConexionError) {
           if (query.state.data === undefined && query.state.errorUpdateCount === 1) avisarSinConexion(error)
           return

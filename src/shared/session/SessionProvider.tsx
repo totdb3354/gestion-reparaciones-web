@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useQueryClient } from '@tanstack/react-query'
 import { api, type LoginResponse } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
+import { reiniciarStores } from '@/shared/lib/store'
 import { rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { borrarSesion, guardarSesion, leerSesion, type Sesion } from '@/shared/session/storage'
 
@@ -14,8 +15,8 @@ type Ctx = {
 }
 const SessionContext = createContext<Ctx | null>(null)
 
-/** El schema generado marca los campos como opcionales (ver LoginResponse en client.ts); esto comprueba
- *  que el servidor los mandó todos, como hace siempre en una respuesta 200 real. */
+/** Guardia en runtime: los tipos se borran al compilar y esto valida un `unknown` que llega del
+ *  servidor (el contrato ya marca todos los campos como required e `idTec` como nullable). */
 function esLoginResponse(x: unknown): x is LoginResponse {
   if (typeof x !== 'object' || x === null) return false
   const r = x as Record<string, unknown>
@@ -52,7 +53,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         throw traducir(e2)
       }
     }
+    // Nada de la sesión anterior pasa a esta: ni la caché de consultas ni los filtros que sobreviven al cambio de ruta.
     qc.clear()
+    reiniciarStores()
     const s: Sesion = { idUsu: data.idUsu, nombreUsuario: data.nombreUsuario, rol: data.rol, idTec: data.idTec ?? null, token: data.token }
     guardarSesion(s)
     rearmarSesionExpirada()
@@ -62,6 +65,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     borrarSesion()
     qc.clear()
+    reiniciarStores()
     setSesion(null)
   }, [qc])
 

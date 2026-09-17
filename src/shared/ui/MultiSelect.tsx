@@ -4,8 +4,9 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import { Checkbox } from './checkbox'
 import { cn } from '@/shared/lib/utils'
 
-export function textoMultiSelect(seleccion: string[], textoVacio: string, textoPlural: (n: number) => string) {
+export function textoMultiSelect(seleccion: string[], textoVacio: string, textoPlural: (n: number) => string, total?: number, textoTodas?: string) {
   if (seleccion.length === 0) return textoVacio
+  if (textoTodas !== undefined && total !== undefined && total > 1 && seleccion.length === total) return textoTodas
   if (seleccion.length === 1) return seleccion[0]
   return textoPlural(seleccion.length)
 }
@@ -18,12 +19,15 @@ type Props<T> = {
   onChange: (s: Set<string>) => void
   textoVacio: string
   textoPlural: (n: number) => string
+  textoTodas?: string
   className?: string
 }
 
 /** Desplegable con checkboxes, calco de MultiSelectDropdown: la etiqueta del botón resume la selección. */
-export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, className }: Props<T>) {
-  const texto = textoMultiSelect([...seleccion], textoVacio, textoPlural)
+export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, textoTodas, className }: Props<T>) {
+  // La etiqueta de una única selección es el nombre de la opción, no su clave (los técnicos van por id)
+  const nombres = [...seleccion].map((k) => { const o = opciones.find((x) => clave(x) === k); return o ? etiqueta(o) : k })
+  const texto = textoMultiSelect(nombres, textoVacio, textoPlural, opciones.length, textoTodas)
   // ids únicos aunque haya varios MultiSelect con las mismas claves en la página
   const idBase = useId()
   function toggle(k: string, marcado: boolean) {
@@ -43,7 +47,7 @@ export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange,
         {texto}
         <ChevronDown aria-hidden="true" className="size-4" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="max-h-72 w-56 overflow-auto rounded-lg border border-fila-sep bg-white p-2 shadow-md">
+      <PopoverContent align="start" className="max-h-72 w-56 overflow-auto rounded-lg border border-fila-sep bg-superficie p-2 shadow-md">
         {opciones.map((o, i) => {
           const k = clave(o)
           const id = `${idBase}-${i}`

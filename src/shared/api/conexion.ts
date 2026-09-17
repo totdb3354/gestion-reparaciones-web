@@ -22,7 +22,7 @@ export function reportarExito() {
 export function estaConectado() {
   return conectado
 }
-/** 60 s conectado, 5 s mientras el banner está activo (mismos valores que Poller.java). */
+/** 60 s conectado, 5 s mientras el banner está activo (mismos valores que Poller.java); ver refresco.ts. */
 export function intervaloRefresco() {
   return conectado ? 60_000 : 5_000
 }

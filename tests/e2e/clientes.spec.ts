@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test'
+import { credenciales } from './credenciales.ts'
 
 const nombre = `E2E ${Date.now()}`
 
 test('login, crear, editar, desactivar y borrar un cliente', async ({ page }) => {
+  const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await page.goto('/login')
-  await page.getByPlaceholder('Usuario').fill(process.env.E2E_USER!)
-  await page.getByPlaceholder('Contraseña').fill(process.env.E2E_PASS!)
+  await page.getByPlaceholder('Usuario').fill(usuario)
+  await page.getByPlaceholder('Contraseña').fill(clave)
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
   await expect(page.getByText('FSGR:')).toBeVisible()
 

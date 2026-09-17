@@ -52,4 +52,35 @@ describe('ConfirmDialog (calco de ConfirmDialog.mostrar)', () => {
     expect(accion.compareDocumentPosition(cancelar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await waitFor(() => expect(cancelar).toHaveFocus())
   })
+
+  it('con motivo: el botón rojo se habilita al escribir y confirma con el motivo recortado', async () => {
+    const ok = vi.fn()
+    render(<ConfirmDialog abierto conMotivo titulo="Borrar reparación" descripcion="Se borrará R1. Escribe el motivo." textoAccion="Borrar reparación" onConfirmar={ok} onCancelar={vi.fn()} />)
+    const accion = screen.getByRole('button', { name: 'Borrar reparación' })
+    expect(accion).toBeDisabled()
+    const motivo = screen.getByPlaceholderText('Escribe el motivo del borrado...')
+    await waitFor(() => expect(motivo).toHaveFocus())
+    await userEvent.type(motivo, '  error al crear  ')
+    expect(accion).toBeEnabled()
+    await userEvent.click(accion)
+    expect(ok).toHaveBeenCalledWith('error al crear')
+  })
+
+  it('conMotivo: al reabrir, el motivo vuelve a estar vacío y el botón de acción deshabilitado', async () => {
+    const ok = vi.fn()
+    const { rerender } = render(
+      <ConfirmDialog abierto conMotivo titulo="Borrar reparación" descripcion="Se borrará R1. Escribe el motivo." textoAccion="Borrar reparación" onConfirmar={ok} onCancelar={vi.fn()} />,
+    )
+    const motivo = screen.getByPlaceholderText('Escribe el motivo del borrado...')
+    await userEvent.type(motivo, 'un motivo cualquiera')
+    expect(screen.getByRole('button', { name: 'Borrar reparación' })).toBeEnabled()
+    rerender(
+      <ConfirmDialog abierto={false} conMotivo titulo="Borrar reparación" descripcion="Se borrará R1. Escribe el motivo." textoAccion="Borrar reparación" onConfirmar={ok} onCancelar={vi.fn()} />,
+    )
+    rerender(
+      <ConfirmDialog abierto conMotivo titulo="Borrar reparación" descripcion="Se borrará R1. Escribe el motivo." textoAccion="Borrar reparación" onConfirmar={ok} onCancelar={vi.fn()} />,
+    )
+    expect(screen.getByPlaceholderText('Escribe el motivo del borrado...')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Borrar reparación' })).toBeDisabled()
+  })
 })

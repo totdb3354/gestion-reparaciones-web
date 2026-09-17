@@ -24,7 +24,10 @@ export default tseslint.config(
     },
   },
   {
-    // Componentes shadcn: exportan componente + variantes (cva) en el mismo fichero; no aplica fast refresh estricto.
+    // Componentes compartidos que exportan, junto al componente, algo que no lo es: las variantes cva de shadcn (button,
+    // badge), el hook de su provider (useAlerta en AlertaProvider; useExportable y useRegistrarExportable en exportable) y
+    // funciones puras probadas aparte (anchosEstirados en DataTable, textoMultiSelect en MultiSelect). No aplica fast
+    // refresh estricto.
     files: ['src/shared/ui/**/*.{ts,tsx}'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
@@ -57,6 +60,10 @@ export default tseslint.config(
             {
               group: ['@/modules/*', '@/modules/**'],
               message: 'Un módulo no puede importar de otro módulo: mueve lo compartido a src/shared (dentro del módulo usa rutas relativas).',
+            },
+            {
+              group: ['@/app/*', '@/app/**'],
+              message: 'Un módulo no puede importar de app: la sesión vive en @/shared/session y el shell compone los módulos, no al revés.',
             },
           ],
         },

@@ -1,10 +1,11 @@
 import { HttpResponse, delay, http } from 'msw'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { guardarSesion } from '@/shared/session/storage'
 import { onSesionExpirada, rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { estaConectado, reportarExito, reportarFallo } from './conexion'
 import { api } from './client'
+import type { Cliente, ContadoresPendientes, LoginResponse, ReparacionResumen, Tecnico } from './client'
 import { ConexionError, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
 
 /** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
@@ -100,5 +101,17 @@ describe('cliente API', () => {
     expect(err).not.toBeInstanceOf(ConexionError)
     expect((err as Error).name).toBe('AbortError')
     expect(estaConectado()).toBe(true)
+  })
+})
+
+describe('tipos del contrato (required + nullable, spec web-taller §5.3)', () => {
+  it('los campos siempre presentes son obligatorios y los nulos van como T | null', () => {
+    expectTypeOf<Cliente['nombre']>().toEqualTypeOf<string>()
+    expectTypeOf<LoginResponse['idTec']>().toEqualTypeOf<number | null>()
+    expectTypeOf<ReparacionResumen['idRep']>().toEqualTypeOf<string>()
+    expectTypeOf<ReparacionResumen['fechaFin']>().toEqualTypeOf<string | null>()
+    expectTypeOf<ReparacionResumen['glassEntregadoPor']>().toEqualTypeOf<number | null>()
+    expectTypeOf<Tecnico['nombre']>().toEqualTypeOf<string>()
+    expectTypeOf<ContadoresPendientes>().toEqualTypeOf<{ reparaciones: number; glass: number; pulidos: number }>()
   })
 })

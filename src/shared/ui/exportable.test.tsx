@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useLayoutEffect, useState } from 'react'
 import { describe, expect, it } from 'vitest'
-import { ExportableProvider, useExportable, useRegistrarExportable } from './exportable'
+import { ExportableProvider, useExportable, useRegistrarExportable } from '@/shared/ui/exportable'
 
 /** Sonda que solo lee el exportador activo, como hace UserMenu. */
 function Sonda() {

@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
-import { useSession } from '@/app/session/SessionProvider'
+import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin } from '@/shared/session/storage'
-import { useExportable } from './exportable'
+import { useExportable } from '@/shared/ui/exportable'
 
 export function UserMenu() {
   const { sesion, logout } = useSession()

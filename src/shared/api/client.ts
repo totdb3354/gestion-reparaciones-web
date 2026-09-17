@@ -5,14 +5,14 @@ import { dispararSesionExpirada } from '@/shared/session/expiracion'
 import { ConexionError, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
 import { reportarExito, reportarFallo } from './conexion'
 
-/** springdoc no marca los campos de los records como `required`, así que openapi-typescript los genera
- *  opcionales (`idCli?: number`, ...). El servidor siempre manda todos los campos en las respuestas
- *  reales, así que forzamos `Required<>` aquí para no repetir `?.` en toda la app. Excepción: `idTec`
- *  puede ser `null` en tiempo de ejecución (técnico sin asignar) aunque el tipo diga `number`. */
-export type Cliente = Required<components['schemas']['Cliente']>
-/** springdoc no marca `idTec` como `nullable` en el schema, pero el admin no tiene técnico asignado
- *  y el servidor manda `null` en tiempo de ejecución para ese caso. */
-export type LoginResponse = Omit<Required<components['schemas']['LoginResponse']>, 'idTec'> & { idTec: number | null }
+/** Tipos del contrato tal cual los genera openapi-typescript: el servidor marca todas las propiedades como
+ *  required y anota `nullable` en las que pueden venir a null (OpenApiConfig.todasLasPropiedadesRequeridas), así
+ *  que aquí ya no hace falta `Required<>` ni corregir `idTec` a mano. */
+export type Cliente = components['schemas']['Cliente']
+export type LoginResponse = components['schemas']['LoginResponse']
+export type ReparacionResumen = components['schemas']['ReparacionResumen']
+export type Tecnico = components['schemas']['Tecnico']
+export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */

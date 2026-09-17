@@ -6,8 +6,7 @@ export const CLAVE_CLIENTES = ['clientes'] as const
 export function useClientes() {
   return useQuery({
     queryKey: CLAVE_CLIENTES,
-    // El servidor siempre manda los 4 campos (ver Required<> en client.ts); casteamos aquí para no repetir `?.` en la página.
-    queryFn: async () => ((await api.GET('/api/clientes')).data ?? []) as Cliente[],
+    queryFn: async () => (await api.GET('/api/clientes')).data ?? [],
   })
 }
 
