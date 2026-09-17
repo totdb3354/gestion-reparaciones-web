@@ -13,7 +13,17 @@ Cliente web del ERP de reparaciones de Fonestore (React + TypeScript). Sustituye
 `npm run check` = lint + typecheck + tests (lo mismo que ejecuta la CI). `npm run test:watch` en desarrollo.
 
 ## Contrato de la API
-`npm run api:types` descarga el OpenAPI del servidor y regenera `src/shared/api/schema.d.ts` (ver `scripts/`).
+Los tipos de `src/shared/api/schema.d.ts` salen del snapshot `api/openapi.json`, el OpenAPI que genera el servidor. Flujo
+habitual, sin servidor arrancado:
+1. En `gestion-reparaciones-servidor`, en la rama con los cambios de la API: `mvn test` (o solo
+   `mvn test -Dtest=OpenApiContractTest`) deja el contrato en `target/openapi.json`.
+2. Copia ese fichero a `api/openapi.json` de este repo.
+3. `npm run api:types:offline` regenera `src/shared/api/schema.d.ts`; `npm run check` confirma que la web sigue compilando.
+
+El contrato de una rama de la web es el de la rama del servidor de la que salió el snapshot, y ese servidor se despliega
+antes que la web: una web nueva contra un servidor anterior pediría rutas o campos que todavía no existen.
+`npm run api:types` hace lo mismo descargando `/v3/api-docs` de un servidor en marcha (`API_URL`, `API_USER`, `API_PASS`;
+ver `scripts/fetch-openapi.mjs`).
 
 ## Smoke e2e (Playwright)
 Necesita la web ya desplegada (no funciona contra un backend simulado). Exporta en la shell las variables de
