@@ -30,10 +30,11 @@ function BotonMutacion({ silenciar = false }: { silenciar?: boolean }) {
 /** Vista con una consulta real: la primera carga la provoca navegar hasta ella y "Refrescar" imita el
  *  refresco de fondo (el poller, el `refetchOnWindowFocus` al volver a la pestaña o un `refetchInterval`).
  *  "INTENTOS" expone `errorUpdateCount`, que es el contador en el que se apoya la política del diálogo. */
-function VistaConsulta() {
+function VistaConsulta({ silenciar = false }: { silenciar?: boolean }) {
   const q = useQuery({
     queryKey: ['clientes'],
     queryFn: async () => (await api.GET('/api/clientes')).data ?? [],
+    meta: silenciar ? { silenciarError: true } : undefined,
   })
   return (
     <>
@@ -115,6 +116,21 @@ describe('crearQueryClient: errores de consultas', () => {
     expect(await screen.findByText('DATOS 0')).toBeInTheDocument()
     server.use(http.get('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
     await userEvent.click(screen.getByRole('button', { name: 'Refrescar' }))
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(estaConectado()).toBe(false)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('una consulta con meta.silenciarError no emite aviso por un 4xx (lo pone la vista)', async () => {
+    server.use(http.get('*/api/clientes', () => new HttpResponse(null, { status: 403 })))
+    renderConProviders(<VistaConsulta silenciar />)
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('una consulta con meta.silenciarError tampoco abre el diálogo de conexión: basta el banner', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    renderConProviders(<VistaConsulta silenciar />)
     expect(await screen.findByText('FALLO')).toBeInTheDocument()
     expect(estaConectado()).toBe(false)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

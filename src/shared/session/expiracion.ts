@@ -4,8 +4,13 @@ import { leerSesion } from './storage'
 let handler: (() => void) | null = null
 let disparado = false
 
-export function onSesionExpirada(h: () => void) {
+/** Registra el handler (uno solo: el último gana) y devuelve cómo retirarlo. El unsubscribe solo quita `h` si sigue siendo
+ *  el actual: el de un handler ya sustituido no deja a la app sin el nuevo. */
+export function onSesionExpirada(h: () => void): () => void {
   handler = h
+  return () => {
+    if (handler === h) handler = null
+  }
 }
 export function dispararSesionExpirada() {
   if (disparado || !leerSesion() || !handler) return

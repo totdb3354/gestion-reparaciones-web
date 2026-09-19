@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './dialog'
 import { Button } from './button'
 import { copiarAlPortapapeles } from './copiar'
@@ -21,12 +21,30 @@ export function AlertaProvider({ children }: { children: ReactNode }) {
   // El contenido del popup de texto va aparte de si está abierto: así no se vacía durante la animación de cierre.
   const [texto, setTexto] = useState<Texto>({ titulo: '', texto: '' })
   const [textoAbierto, setTextoAbierto] = useState(false)
-  const mostrarError = useCallback((m: string) => setAviso({ titulo: 'Error', msg: m }), [])
-  const mostrarAviso = useCallback((titulo: string, msg: string) => setAviso({ titulo, msg }), [])
+  // El aviso no tiene disparador de Radix (se abre desde código), así que al cerrar Radix no sabe a dónde devolver el foco
+  // y se perdería en <body>. Se guarda el elemento que lo tenía al abrir (solo el primero, si se encadenan avisos) y se
+  // restaura en onCloseAutoFocus, siempre que siga en el documento.
+  const focoPrevio = useRef<HTMLElement | null>(null)
+  const recordarFoco = useCallback(() => {
+    if (focoPrevio.current === null && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+      focoPrevio.current = document.activeElement
+    }
+  }, [])
+  const devolverFoco = useCallback((e: Event) => {
+    const el = focoPrevio.current
+    focoPrevio.current = null
+    if (el !== null && el.isConnected) {
+      e.preventDefault()
+      el.focus()
+    }
+  }, [])
+  const mostrarError = useCallback((m: string) => { recordarFoco(); setAviso({ titulo: 'Error', msg: m }) }, [recordarFoco])
+  const mostrarAviso = useCallback((titulo: string, msg: string) => { recordarFoco(); setAviso({ titulo, msg }) }, [recordarFoco])
   const mostrarTexto = useCallback((titulo: string, t: string) => {
+    recordarFoco()
     setTexto({ titulo, texto: t })
     setTextoAbierto(true)
-  }, [])
+  }, [recordarFoco])
   // Suscripción al store externo: permite que QueryCache.onError (fuera de React) abra este mismo diálogo.
   useEffect(() => onError(mostrarError), [mostrarError])
   const value = useMemo(() => ({ mostrarError, mostrarAviso, mostrarTexto }), [mostrarError, mostrarAviso, mostrarTexto])
@@ -34,10 +52,10 @@ export function AlertaProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={value}>
       {children}
       <Dialog open={aviso !== null} onOpenChange={(o) => !o && setAviso(null)}>
-        <DialogContent>
+        <DialogContent onCloseAutoFocus={devolverFoco}>
           <DialogHeader>
             <DialogTitle>{aviso?.titulo}</DialogTitle>
-            <DialogDescription>{aviso?.msg}</DialogDescription>
+            <DialogDescription className="whitespace-pre-line">{aviso?.msg}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button onClick={() => setAviso(null)}>Aceptar</Button>
@@ -50,7 +68,7 @@ export function AlertaProvider({ children }: { children: ReactNode }) {
           derecho abriría el menú de la fila en vez del del navegador. Además no desaparece si esa fila deja de pintarse
           (virtualización, o un sondeo que la reordena). */}
       <Dialog open={textoAbierto} onOpenChange={setTextoAbierto}>
-        <DialogContent aria-describedby={undefined} className="max-w-[420px] gap-2.5 bg-crema p-5">
+        <DialogContent aria-describedby={undefined} onCloseAutoFocus={devolverFoco} className="max-w-[420px] gap-2.5 bg-crema p-5">
           <DialogHeader>
             <DialogTitle className="text-[14px] font-bold text-azul-medio">{texto.titulo}</DialogTitle>
           </DialogHeader>

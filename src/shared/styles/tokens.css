@@ -66,4 +66,22 @@
   --color-texto-vacio: #A0A0A0;
   --color-texto-incidencia: #000000;
   --color-seleccion-suave: #EAF1FF;
+
+  /* Formulario de reparación (sub-proyecto 2) */
+  --color-form-barra-bg: #C8CDD6;
+  --color-form-cabecera-bg: #BCC2CB;
+  --color-form-cabecera-brd: #A8AEB7;
+  --color-form-fila-brd: #E0E0E0;
+  --color-form-obs-bg: #888888;
+  --color-form-guardada-bg: #F1F8F1;
+  --color-form-agotado-bg: #FFF8E0;
+  --color-form-agotado-text: #7A5C00;
+  --color-ambar: #E8A825;
+  --color-rojo-cancelar: #C94040;
+  --color-form-otros-bg: #F6F7F9;
+  --color-form-zona-bg: #ECEEF1;
+  --color-form-zona-brd: #CFD3DA;
+  --color-aviso-conflicto-bg: #FFF3E0;
+  --color-aviso-conflicto-text: #E65100;
+  --color-aviso-incidencia-text: #CC4444;
 }
