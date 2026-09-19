@@ -664,6 +664,28 @@ function pedirConfirmacionGuardar(estado: EstadoFormulario): EstadoFormulario {
   return { ...estado, guardado: { ...estado.guardado, clics: 1, textoConfirmacion: true } }
 }
 
+/** Filas y acciones guardadas cuyo idRep ya no existe (las borró otro usuario) vuelven a editables: la fila, como recién
+ *  pintada (cantidad 0, sin "Reutilizado", sin observación, "+" según el stock del SKU); la acción conserva su texto. Si no
+ *  cambia nada devuelve el MISMO estado; si cambia, sube `volcados` para que el borrador se reescriba al momento. */
+function desbloquearBorradas(estado: EstadoFormulario, idsExistentes: string[]): EstadoFormulario {
+  const existen = new Set(idsExistentes)
+  let cambio = false
+  const filas = estado.filas.map((fila): FilaEstado => {
+    if (fila.guardada === null || existen.has(fila.guardada.idRep)) return fila
+    cambio = true
+    return {
+      ...fila, guardada: null, cantidad: 0, reutilizado: false, observacion: null, confirmandoGuardar: false, guardando: false,
+      controles: { mas: (componenteDe(fila)?.stock ?? 0) > 0, menos: false, reutilizado: true, sku: true, observacion: true },
+    }
+  })
+  const otros = estado.otros.map((a): OtraAccion => {
+    if (a.guardada === null || existen.has(a.guardada.idRep)) return a
+    cambio = true
+    return { ...a, guardada: null, confirmando: false, guardando: false }
+  })
+  return cambio ? { ...estado, filas, otros, volcados: estado.volcados + 1 } : estado
+}
+
 export function reducir(estado: EstadoFormulario, accion: AccionFormulario): EstadoFormulario {
   switch (accion.tipo) {
     case 'CAMBIAR_MODELO':
@@ -731,6 +753,11 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
       return estado.guardado.enCurso ? { ...estado, guardado: { ...estado.guardado, clics: 0, enCurso: false } } : estado
     case 'GUARDADO_COMPLETADO':
       return { ...estado, borradorDescartado: true }
+    case 'REEMPLAZAR':
+      // Resultado de aplicarBorrador: entra tal cual, sin subir revision (no debe reprogramar el autoguardado).
+      return accion.estado
+    case 'DESBLOQUEAR_BORRADAS':
+      return desbloquearBorradas(estado, accion.idsExistentes)
     default:
       return estado
   }

@@ -285,3 +285,71 @@ describe('estado del formulario (1): filas', () => {
     expect(reducir(e, { tipo: 'SUMAR', prefijo: 'no-existe' })).toBe(e)
   })
 })
+
+describe('acciones del borrador en el reductor (REEMPLAZAR y DESBLOQUEAR_BORRADAS)', () => {
+  const datosBorrador: DatosNuevo = {
+    modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000111', agrupados: agrupados(), solicitudes: [], incidencia: null, modeloTelefono: null,
+  }
+  /** Modelo 13; batería guardada (R20260916_5) con observación; pantalla guardada (R20260916_7) como Reutilizado; una acción
+   *  guardada (R20260916_6) y otra pendiente. */
+  function conGuardadas(): EstadoFormulario {
+    let e = reducir(estadoInicial(datosBorrador), { tipo: 'CAMBIAR_MODELO', modelo: '13' })
+    e = reducir(e, { tipo: 'SUMAR', prefijo: 'bat' })
+    e = reducir(e, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'Batería hinchada' })
+    e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_5', fecha: '16/09 09:15' })
+    e = reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true })
+    e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'lcd', idRep: 'R20260916_7', fecha: '16/09 09:18' })
+    e = reducir(e, { tipo: 'ANADIR_ACCION' })
+    e = reducir(e, { tipo: 'ESCRIBIR_ACCION', id: e.otros[0].id, texto: 'Limpieza del conector de carga' })
+    e = reducir(e, { tipo: 'ACCION_GUARDADA', id: e.otros[0].id, idRep: 'R20260916_6', fecha: '16/09 09:20' })
+    e = reducir(e, { tipo: 'ANADIR_ACCION' })
+    e = reducir(e, { tipo: 'ESCRIBIR_ACCION', id: e.otros[1].id, texto: 'Ajuste de tornillería' })
+    return e
+  }
+  const filaDe = (e: EstadoFormulario, prefijo: string) => e.filas.find((f) => f.prefijo === prefijo)!
+
+  it('REEMPLAZAR devuelve el estado recibido tal cual, sin subir revision', () => {
+    const actual = estadoInicial(datosBorrador)
+    const nuevo = { ...conGuardadas(), borradorRecuperado: true }
+    expect(reducir(actual, { tipo: 'REEMPLAZAR', estado: nuevo })).toBe(nuevo)
+  })
+  it('DESBLOQUEAR_BORRADAS devuelve a editable las filas cuyo id ya no existe y sube volcados', () => {
+    const antes = conGuardadas()
+    const e = reducir(antes, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ['R20260916_7', 'R20260916_6'] })
+    expect(filaDe(e, 'bat')).toMatchObject({ guardada: null, cantidad: 0, reutilizado: false, observacion: null, confirmandoGuardar: false, guardando: false })
+    // bati13 tiene stock 5: "+" habilitado, "-" no (está a 0), y el resto de controles de vuelta
+    expect(filaDe(e, 'bat').controles).toEqual({ mas: true, menos: false, reutilizado: true, sku: true, observacion: true })
+    expect(filaDe(e, 'bat').idCom).toBe(101)
+    expect(filaDe(e, 'lcd').guardada).toEqual({ idRep: 'R20260916_7', fecha: '16/09 09:18' })
+    expect(e.otros[0].guardada).toEqual({ idRep: 'R20260916_6', fecha: '16/09 09:20' })
+    expect(e.volcados).toBe(antes.volcados + 1)
+  })
+  it('DESBLOQUEAR_BORRADAS sobre una acción conserva su texto y la deja pendiente', () => {
+    const antes = conGuardadas()
+    const e = reducir(antes, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ['R20260916_5', 'R20260916_7'] })
+    expect(e.otros[0]).toMatchObject({ texto: 'Limpieza del conector de carga', guardada: null, confirmando: false, guardando: false })
+    expect(e.otros[1]).toEqual(antes.otros[1])
+    expect(filaDe(e, 'bat').guardada).not.toBeNull()
+    expect(e.volcados).toBe(antes.volcados + 1)
+  })
+  it('una fila desbloqueada con el SKU sin stock deja "+" deshabilitado', () => {
+    let e = reducir(estadoInicial(datosBorrador), { tipo: 'CAMBIAR_MODELO', modelo: '14' })
+    e = reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_8', fecha: '16/09 10:00' })
+    e = reducir(e, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: [] })
+    expect(filaDe(e, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
+  })
+  it('si todo sigue existiendo (o no había nada guardado) devuelve el mismo estado y no sube volcados', () => {
+    const antes = conGuardadas()
+    expect(reducir(antes, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ['R20260916_5', 'R20260916_6', 'R20260916_7', 'R20260916_99'] })).toBe(antes)
+    const limpio = estadoInicial(datosBorrador)
+    expect(reducir(limpio, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: [] })).toBe(limpio)
+  })
+  it('una fila o acción recuperada sin id ("?") se desbloquea siempre', () => {
+    let e = reducir(estadoInicial(datosBorrador), { tipo: 'CAMBIAR_MODELO', modelo: '13' })
+    e = reducir(e, { tipo: 'SUMAR', prefijo: 'cam' })
+    e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'cam', idRep: '?', fecha: '' })
+    e = reducir(e, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ['R20260916_5'] })
+    expect(filaDe(e, 'cam').guardada).toBeNull()
+  })
+})
