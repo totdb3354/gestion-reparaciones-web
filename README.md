@@ -32,7 +32,11 @@ Necesita la web ya desplegada (no funciona contra un backend simulado). Exporta 
 npm run e2e
 ```
 `clientes.spec.ts` crea y borra un cliente de prueba llamado `E2E <timestamp>`. `taller.spec.ts` necesita además `TEC_USER`/`TEC_PASS`
-(un técnico con pendientes) y es de solo lectura: no crea, edita ni borra nada.
+(un técnico con pendientes) y es de solo lectura: no crea, edita ni borra nada. `formulario.spec.ts` **escribe**: con `TEC_USER`
+abre una asignación de reparación pendiente, guarda una fila (consume una unidad de stock), registra una solicitud de pieza y
+termina; con `E2E_USER` rechaza y recupera esa solicitud desde la campana y abre "Editar" del Historial sin guardar. Solo se
+ejecuta contra un entorno con usuarios y datos de prueba, con una asignación pendiente recién creada sobre un IMEI de prueba,
+de un modelo que tenga un tipo con stock y otro con el SKU a 0. Sin credenciales en el entorno, los tests se saltan.
 
 ## Despliegue
 Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guía operativa es privada
@@ -41,4 +45,5 @@ Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guí
 ## Documentación
 - Spec maestra y de cimientos: repo raíz, `docs/superpowers/specs/2026-09-13-*`.
 - Spec del taller técnico: repo raíz, `docs/superpowers/specs/2026-09-16-web-taller-design.md`.
-- Fichas de paridad por vista: `docs/paridad/` (taller: `docs/paridad/{pendientes,historial,imeis}.md`).
+- Spec del formulario de reparación y la campana: repo raíz, `docs/superpowers/specs/2026-09-19-web-formulario-design.md`.
+- Fichas de paridad por vista: `docs/paridad/` (taller: `docs/paridad/{pendientes,historial,imeis,formulario,notificaciones}.md`).
