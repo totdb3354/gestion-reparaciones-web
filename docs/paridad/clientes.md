@@ -1,6 +1,6 @@
 # Ficha de paridad — Clientes (ClientesView.fxml / ClientesController, spec 2026-06-23-clientes-design.md)
 
-Capturas: `Apuntes/paridad-capturas/clientes/{lista-supertecnico,lista-tecnico,menu-contextual,nuevo-cliente,editar-cliente,borrar-cliente}.png`.
+Capturas de referencia (documentación privada, fuera del repo): `clientes/{lista-supertecnico,lista-tecnico,menu-contextual,nuevo-cliente,editar-cliente,borrar-cliente}.png`.
 
 - [x] Roles: la ven los tres. Solo SUPERTECNICO escribe (`soloLectura = !esSuperTecnico`): sin "Nuevo cliente" ni menú contextual para TECNICO y ADMIN. El servidor ya protege con `hasRole('SUPERTECNICO')`.
 - [x] Título "Clientes" (24 px negrita azul medio) en la cabecera de la vista.

@@ -1,6 +1,6 @@
 # Ficha de paridad — Shell (MainView.fxml / MainController)
 
-Capturas: `Apuntes/paridad-capturas/shell/{navbar-tecnico,navbar-supertecnico,menu-usuario-admin,banner-conexion}.png`.
+Capturas de referencia (documentación privada, fuera del repo): `shell/{navbar-tecnico,navbar-supertecnico,menu-usuario-admin,banner-conexion}.png`.
 
 - [x] Barra superior navy `--color-azul-noche`, 64 px, padding lateral 20 px.
 - [x] Logo (`logoNavBar.png`, 38 px de alto) clicable → panel inicial del rol (`/reparaciones`).
