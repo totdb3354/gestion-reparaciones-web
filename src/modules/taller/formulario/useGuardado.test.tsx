@@ -91,3 +91,106 @@ describe('useGuardado · guardar fila', () => {
     expect(leer()).toEqual({ confirmando: false, guardando: false, guardada: null })
   })
 })
+
+/** Arnés para la primera acción "otro" y para la zona de guardar (modelo 13: componente otroi13, idCom 161). */
+function ArnesAccion({ onGuardado, antesDeCerrar }: { onGuardado: () => void; antesDeCerrar?: () => Promise<void> }) {
+  const [estado, dispatch] = useReducer(reducir, DATOS, estadoInicial)
+  const { guardarAccion, pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado, antesDeCerrar })
+  const accion = estado.otros[0]
+  return (
+    <div>
+      <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir</button>
+      <button onClick={() => accion && dispatch({ tipo: 'ESCRIBIR_ACCION', id: accion.id, texto: '  Limpieza de conector  ' })}>escribir</button>
+      <button onClick={() => accion && guardarAccion(accion.id)}>guardar acción</button>
+      <button onClick={pulsarGuardar}>terminar</button>
+      <output data-testid="accion">{JSON.stringify(accion ? { confirmando: accion.confirmando, guardando: accion.guardando, guardada: accion.guardada } : null)}</output>
+      <output data-testid="guardado">{JSON.stringify(estado.guardado)}</output>
+    </div>
+  )
+}
+const leerAccion = () => JSON.parse(screen.getByTestId('accion').textContent ?? 'null') as { confirmando: boolean; guardando: boolean; guardada: { idRep: string; fecha: string } | null }
+const leerGuardado = () => JSON.parse(screen.getByTestId('guardado').textContent ?? '{}') as { clics: number; textoConfirmacion: boolean; enCurso: boolean }
+const pulsar = (nombre: string) => userEvent.click(screen.getByRole('button', { name: nombre }))
+
+const FILA_ACCION = { idCom: 161, cantidad: 0, reutilizado: false, observacion: 'Limpieza de conector', prefijo: 'otro', esSolicitud: false, descripcionSolicitud: null, estadoSolicitud: null, enCamino: false }
+
+describe('useGuardado · guardar acción y terminar', () => {
+  it('acción: el primer clic pide confirmación; el segundo hace el POST con la fila "otro" recortada y la marca guardada', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    renderConProviders(<ArnesAccion onGuardado={() => {}} />, { sesion: SESION_TEC })
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('guardar acción')
+    expect(leerAccion().confirmando).toBe(true)
+    expect(escrituras(llamadas)).toEqual([])
+    await pulsar('guardar acción')
+    await waitFor(() => expect(leerAccion().guardada).toEqual({ idRep: 'R20260916_9', fecha: '16/09 09:15' }))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3' } },
+    ])
+  })
+
+  it('acción con error: aviso "No se pudo guardar la acción: <mensaje>" y el siguiente clic vuelve a pedir confirmación', async () => {
+    server.use(...conRegistro().handlers)
+    let intentos = 0
+    server.use(http.post('*/api/reparaciones/:idAsignacion/filas', () => { intentos++; return HttpResponse.json({ message: 'Componente no válido' }, { status: 422 }) }))
+    renderConProviders(<ArnesAccion onGuardado={() => {}} />, { sesion: SESION_TEC })
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('guardar acción')
+    await pulsar('guardar acción')
+    expect(await screen.findByText('No se pudo guardar la acción: Componente no válido')).toBeInTheDocument()
+    expect(intentos).toBe(1)
+    expect(leerAccion().guardando).toBe(false)
+    expect(leerAccion().guardada).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    await pulsar('guardar acción')
+    expect(intentos).toBe(1)
+    await pulsar('guardar acción')
+    await waitFor(() => expect(intentos).toBe(2))
+  })
+
+  it('terminar: primer clic confirma, segundo ejecuta; antesDeCerrar se espera tras completa y antes de onGuardado', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    const orden: string[] = []
+    renderConProviders(<ArnesAccion onGuardado={() => orden.push('guardado')} antesDeCerrar={async () => { orden.push(`antes:${escrituras(llamadas).length}`) }} />, { sesion: SESION_TEC })
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('terminar')
+    expect(leerGuardado()).toEqual({ clics: 1, textoConfirmacion: true, enCurso: false })
+    expect(escrituras(llamadas)).toEqual([])
+    await pulsar('terminar')
+    await waitFor(() => expect(orden).toEqual(['antes:1', 'guardado']))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3', idAsignacion: 'A20260916_1', categoria: null } },
+    ])
+  })
+
+  it('un fallo de antesDeCerrar no impide cerrar', async () => {
+    server.use(...conRegistro().handlers)
+    const onGuardado = vi.fn()
+    renderConProviders(<ArnesAccion onGuardado={onGuardado} antesDeCerrar={() => Promise.reject(new Error('sin borrador'))} />, { sesion: SESION_TEC })
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('terminar')
+    await pulsar('terminar')
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+  })
+
+  it('terminar con corte de conexión: no pone el literal, pero deja el guardado listo para reintentar', async () => {
+    server.use(...conRegistro().handlers)
+    server.use(http.post('*/api/reparaciones/completa', () => new HttpResponse(null, { status: 503 })))
+    const onGuardado = vi.fn()
+    renderConProviders(<ArnesAccion onGuardado={onGuardado} />, { sesion: SESION_TEC })
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('terminar')
+    await pulsar('terminar')
+    expect(await screen.findByText('Sin conexión con el servidor: HTTP 503')).toBeInTheDocument()
+    expect(screen.queryByText(/No se pudo guardar/)).not.toBeInTheDocument()
+    expect(leerGuardado()).toEqual({ clics: 0, textoConfirmacion: true, enCurso: false })
+    expect(onGuardado).not.toHaveBeenCalled()
+  })
+})

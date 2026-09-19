@@ -215,3 +215,219 @@ describe('FormularioReparacion · solicitud de pieza y solicitudes ya guardadas'
     expect(screen.getByTestId('subfila-bat')).toHaveAttribute('data-variante', 'confirmada')
   })
 })
+
+const FILA_BAT = { idCom: 101, cantidad: 1, reutilizado: false, observacion: null, prefijo: 'bat', esSolicitud: false, descripcionSolicitud: null, estadoSolicitud: null, enCamino: false }
+const FILA_LCD_14 = { idCom: 112, cantidad: 1, reutilizado: false, observacion: null, prefijo: 'lcd', esSolicitud: false, descripcionSolicitud: null, estadoSolicitud: null, enCamino: false }
+const FILA_ACCION = { idCom: 161, cantidad: 0, reutilizado: false, observacion: 'Limpieza de conector', prefijo: 'otro', esSolicitud: false, descripcionSolicitud: null, estadoSolicitud: null, enCamino: false }
+const completa = (filas: unknown[]) => ({ metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas, imei: '355400000000111', idTec: 4, idRepAnterior: null, idAsignacion: 'A20260916_1', categoria: null } })
+const agotar = (idCom: number, cantidad: number, descripcion: string | null) => ({ metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/agotar-componente', cuerpo: { idCom, cantidad, descripcion } })
+
+const botonZona = () => within(screen.getByTestId('zona-guardar')).getByRole('button')
+/** Los dos clics de "Terminar asignación". */
+async function terminar() {
+  await userEvent.click(botonZona())
+  await userEvent.click(botonZona())
+}
+async function sumar(prefijo: string, tipo: string, veces = 1) {
+  for (let i = 0; i < veces; i++) await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('button', { name: `Sumar ${tipo}` }))
+}
+/** Abre el diálogo de la sub-fila, escribe la descripción (si la hay) y confirma. */
+async function solicitar(prefijo: string, boton: 'Solicitar pieza' | 'Solicitar y descontar stock', descripcion?: string) {
+  await userEvent.click(within(screen.getByTestId(`subfila-${prefijo}`)).getByRole('button', { name: boton }))
+  const dlg = within(await screen.findByRole('dialog', { name: /^Solicitar pieza — / }))
+  if (descripcion) await userEvent.type(dlg.getByRole('textbox'), descripcion)
+  await userEvent.click(dlg.getByRole('button', { name: /^Confirmar: / }))
+}
+async function escribirAccion(texto: string) {
+  await userEvent.click(screen.getByRole('button', { name: '+ Añadir acción' }))
+  await userEvent.type(within(screen.getByTestId('accion-1')).getByPlaceholderText('Describe la acción'), texto)
+}
+const cerrarAviso = () => userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+
+describe('FormularioReparacion · otras acciones', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 16, 9, 15))
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('"✓ Guardar" en dos clics: POST con { idCom otro, cantidad 0, prefijo "otro", observacion recortada }; la línea queda guardada', async () => {
+    const { llamadas } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await escribirAccion('  Limpieza de conector  ')
+    const linea = within(screen.getByTestId('accion-1'))
+    await userEvent.click(linea.getByRole('button', { name: '✓ Guardar' }))
+    expect(escrituras(llamadas)).toEqual([])
+    await userEvent.click(linea.getByRole('button', { name: '✓ Confirmar' }))
+    expect(await linea.findByText('✓ Guardada 16/09 09:15')).toBeInTheDocument()
+    expect(linea.getByPlaceholderText('Describe la acción')).toBeDisabled()
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: null } },
+    ])
+    expect(screen.getByTestId('otras-acciones-badge')).toHaveTextContent('1')
+  })
+
+  it('error: "No se pudo guardar la acción: <mensaje>" y el botón sigue en "✓ Confirmar", rehabilitado', async () => {
+    abrir()
+    server.use(http.post('*/api/reparaciones/:idAsignacion/filas', () => HttpResponse.json({ message: 'Componente no válido' }, { status: 422 })))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await escribirAccion('Limpieza de conector')
+    const linea = within(screen.getByTestId('accion-1'))
+    await userEvent.click(linea.getByRole('button', { name: '✓ Guardar' }))
+    await userEvent.click(linea.getByRole('button', { name: '✓ Confirmar' }))
+    expect(await screen.findByText('No se pudo guardar la acción: Componente no válido')).toBeInTheDocument()
+    await cerrarAviso()
+    expect(linea.getByRole('button', { name: '✓ Confirmar' })).toBeEnabled()
+    expect(linea.getByPlaceholderText('Describe la acción')).toBeEnabled()
+  })
+})
+
+describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () => {
+  it('zona oculta sin nada activo y visible con fila activa; "Terminar asignación" → "✓  Confirmar terminar" sin vuelta atrás', async () => {
+    const { llamadas } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
+    await sumar('bat', 'Batería')
+    expect(screen.getByTestId('zona-guardar')).toHaveClass('bg-form-zona-bg', 'border-form-zona-brd')
+    expect(botonZona().textContent).toBe('Terminar asignación')
+    expect(botonZona()).toBeEnabled()
+    await userEvent.click(botonZona())
+    expect(botonZona().textContent).toBe('✓  Confirmar terminar')
+    expect(escrituras(llamadas)).toEqual([])
+    // Desactivar la fila oculta la zona entera; al reactivarla el texto no ha vuelto atrás.
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Restar Batería' }))
+    expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
+    await sumar('bat', 'Batería')
+    expect(botonZona().textContent).toBe('✓  Confirmar terminar')
+  })
+
+  it('orden de llamadas: agotar ×N en orden de filas, luego completa con las filas activas y las acciones pendientes; éxito: cierra', async () => {
+    const { llamadas, onCerrar } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    // Se preparan al revés (pantalla antes que chasis) para comprobar que manda el orden de filas.
+    await sumar('lcd', 'Pantalla')
+    await solicitar('lcd', 'Solicitar y descontar stock')
+    await sumar('cha', 'Chasis', 2)
+    await solicitar('cha', 'Solicitar y descontar stock', 'Marco doblado')
+    await sumar('bat', 'Batería')
+    await escribirAccion('Limpieza de conector')
+    await terminar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(escrituras(llamadas)).toEqual([agotar(131, 2, 'Marco doblado'), agotar(111, 1, null), completa([FILA_BAT, FILA_ACCION])])
+  })
+
+  it('solo agotados: no se llama a completa y se cierra (cantidad 0 en la variante sin stock)', async () => {
+    const { llamadas, onCerrar } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 14')
+    await solicitar('bat', 'Solicitar pieza')
+    await terminar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(escrituras(llamadas)).toEqual([agotar(102, 0, null)])
+  })
+
+  it('solo filas guardadas: completa con filas []', async () => {
+    const { llamadas, onCerrar } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await sumar('bat', 'Batería')
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await waitFor(() => expect(screen.getByTestId('fila-bat')).toHaveAttribute('data-estado', 'guardada'))
+    expect(botonZona().textContent).toBe('Terminar asignación')
+    await terminar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(escrituras(llamadas).map((l) => l.ruta)).toEqual(['/api/reparaciones/A20260916_1/filas', '/api/reparaciones/completa'])
+    expect(escrituras(llamadas)[1]).toEqual(completa([]))
+  })
+
+  it('fallo en el 2.º agotado con 409: aviso "No se pudo registrar componente agotado: …", se detiene, y el reintento no repite el 1.º', async () => {
+    const { llamadas, onCerrar } = abrir()
+    const agotados: number[] = []
+    let fallar = true
+    server.use(http.post('*/api/reparaciones/:idAsignacion/agotar-componente', async ({ request }) => {
+      const cuerpo = (await request.json()) as { idCom: number }
+      agotados.push(cuerpo.idCom)
+      if (cuerpo.idCom === 111 && fallar) { fallar = false; return HttpResponse.json({ message: 'Stock insuficiente' }, { status: 409 }) }
+      return new HttpResponse(null, { status: 200 })
+    }))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await sumar('cha', 'Chasis', 2)
+    await solicitar('cha', 'Solicitar y descontar stock')
+    await sumar('lcd', 'Pantalla')
+    await solicitar('lcd', 'Solicitar y descontar stock')
+    await terminar()
+    expect(await screen.findByText('No se pudo registrar componente agotado: Stock insuficiente')).toBeInTheDocument()
+    expect(agotados).toEqual([131, 111])
+    expect(onCerrar).not.toHaveBeenCalled()
+    await cerrarAviso()
+    expect(botonZona().textContent).toBe('✓  Confirmar terminar')
+    await terminar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(agotados).toEqual([131, 111, 111])
+    // Solo había agotados: completa no se llama en ningún intento.
+    expect(escrituras(llamadas)).toEqual([])
+  })
+
+  it('fallo de agotar no 409: "Error al registrar componente agotado: …" y el formulario sigue abierto', async () => {
+    const { onCerrar } = abrir()
+    server.use(http.post('*/api/reparaciones/:idAsignacion/agotar-componente', () => HttpResponse.json({ message: 'Componente inactivo' }, { status: 422 })))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 14')
+    await solicitar('bat', 'Solicitar pieza')
+    await terminar()
+    expect(await screen.findByText('Error al registrar componente agotado: Componente inactivo')).toBeInTheDocument()
+    await cerrarAviso()
+    expect(onCerrar).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: TITULO })).toBeInTheDocument()
+  })
+
+  it('fallo de completa con 409: mensaje en dos líneas; el formulario sigue abierto, hacen falta otros dos clics y el reintento no repite agotados', async () => {
+    const { llamadas, onCerrar } = abrir()
+    let completas = 0
+    let ultimoCuerpo: unknown = null
+    server.use(http.post('*/api/reparaciones/completa', async ({ request }) => {
+      completas++
+      ultimoCuerpo = await request.json()
+      return completas === 1 ? HttpResponse.json({ message: 'La asignación ya fue eliminada o completada' }, { status: 409 }) : new HttpResponse(null, { status: 200 })
+    }))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 14')
+    await solicitar('bat', 'Solicitar pieza')
+    await sumar('lcd', 'Pantalla')
+    await terminar()
+    const aviso = await screen.findByText(/No se pudo guardar: La asignación ya fue eliminada o completada/)
+    expect(aviso.textContent).toBe('No se pudo guardar: La asignación ya fue eliminada o completada\nCierra el formulario y comprueba el estado de la asignación.')
+    expect(aviso).toHaveClass('whitespace-pre-line')
+    await cerrarAviso()
+    expect(onCerrar).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: TITULO })).toBeInTheDocument()
+    // El texto sigue en "✓  Confirmar terminar", pero un solo clic no ejecuta.
+    expect(botonZona().textContent).toBe('✓  Confirmar terminar')
+    await userEvent.click(botonZona())
+    expect(completas).toBe(1)
+    await userEvent.click(botonZona())
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(completas).toBe(2)
+    expect(ultimoCuerpo).toEqual(completa([FILA_LCD_14]).cuerpo)
+    expect(escrituras(llamadas)).toEqual([agotar(102, 0, null)])
+  })
+
+  it('fallo de completa con otro error: una sola línea', async () => {
+    const { onCerrar } = abrir()
+    server.use(http.post('*/api/reparaciones/completa', () => HttpResponse.json({ message: 'Stock insuficiente para lcdi14' }, { status: 422 })))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 14')
+    await sumar('lcd', 'Pantalla')
+    await terminar()
+    const aviso = await screen.findByText(/No se pudo guardar/)
+    expect(aviso.textContent).toBe('No se pudo guardar: Stock insuficiente para lcdi14')
+    await cerrarAviso()
+    expect(onCerrar).not.toHaveBeenCalled()
+  })
+})

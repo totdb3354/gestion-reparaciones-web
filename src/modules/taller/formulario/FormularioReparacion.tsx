@@ -7,8 +7,10 @@ import { useCargaNuevo, useRecargarAlCerrar, type CargaNuevo } from './api'
 import { CabeceraFormulario } from './CabeceraFormulario'
 import { estadoInicial, filasVisibles, reducir, textoConflicto, tituloPestana } from './estado'
 import { FilaComponente } from './FilaComponente'
+import { OtrasAcciones } from './OtrasAcciones'
 import { SubFilaAgotado } from './SubFilaAgotado'
 import { useGuardado } from './useGuardado'
+import { ZonaGuardar } from './ZonaGuardar'
 
 type Props =
   | { modo: 'nuevo' | 'glass'; idAsignacion: string; onCerrar: () => void }
@@ -65,7 +67,8 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
   const [estado, dispatch] = useReducer(reducir, carga.datos, estadoInicial)
   const titulo = tituloPestana(estado)
   const conflicto = textoConflicto(carga.asignacionesActivas, carga.datos.idAsignacion, sesion?.idTec ?? null)
-  // Guardar (fila a fila, o todo) cierra el formulario igual que ✕: la recarga de la lista la hace el desmontaje.
+  // Guardar (fila a fila, acción a acción, o "Terminar asignación") cierra el formulario igual que ✕: la recarga de la lista
+  // la hace el desmontaje.
   const guardado = useGuardado({ estado, dispatch, onGuardado: onCerrar })
 
   // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había.
@@ -97,6 +100,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
             </span>
           ))}
         </div>
+        {/* Filas y OTRAS ACCIONES desplazan juntas; el hueco flexible empuja la zona de guardar al fondo. */}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           {filasVisibles(estado) ? (
             estado.filas.map((fila) => (
@@ -107,7 +111,9 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
           ) : (
             <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
           )}
+          <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
         </div>
+        <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
       </DialogContent>
     </Dialog>
   )
