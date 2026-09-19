@@ -4,7 +4,7 @@ import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConRouter, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { asignacionActiva } from '../test/fabrica'
+import { asignacionActiva, solicitudAsignacion } from '../test/fabrica'
 import { FormularioReparacion } from './FormularioReparacion'
 import { conRegistro, type EscenarioFormulario, type LlamadaRegistrada } from './test/handlers'
 
@@ -189,5 +189,29 @@ describe('FormularioReparacion · filas y "✓ Guardar fila"', () => {
     expect(screen.getByTestId('boton-derecho-bat')).not.toHaveTextContent('Guardada')
     soltar()
     await waitFor(() => expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Guardada 16/09 09:15'))
+  })
+})
+
+describe('FormularioReparacion · solicitud de pieza y solicitudes ya guardadas', () => {
+  it('confirmar no llama al servidor y deja la sub-fila verde con lápiz y sin botón ámbar', async () => {
+    const { llamadas } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 14')
+    await userEvent.click(within(screen.getByTestId('subfila-bat')).getByRole('button', { name: 'Solicitar pieza' }))
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' })).getByRole('button', { name: 'Confirmar: solicitar pieza' }))
+    const sub = screen.getByTestId('subfila-bat')
+    expect(sub).toHaveAttribute('data-variante', 'confirmada')
+    expect(within(sub).getByRole('button', { name: 'Editar descripción de solicitud de Batería' })).toBeEnabled()
+    expect(within(sub).queryByRole('button', { name: 'Solicitar pieza' })).not.toBeInTheDocument()
+    expect(escrituras(llamadas)).toEqual([])
+  })
+
+  it('solicitud pendiente cargada del servidor: modelo deducido y bloqueado, fila con la sub-fila verde', async () => {
+    abrir({ solicitudes: [solicitudAsignacion()] })
+    await screen.findByRole('dialog', { name: TITULO })
+    const combo = screen.getByRole('combobox', { name: 'Filtrar por modelo' })
+    expect(combo).toHaveTextContent('iPhone 14')
+    expect(combo).toBeDisabled()
+    expect(screen.getByTestId('subfila-bat')).toHaveAttribute('data-variante', 'confirmada')
   })
 })

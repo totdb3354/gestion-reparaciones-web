@@ -2,16 +2,17 @@ import { useReducer } from 'react'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import type { SolicitudAsignacion } from '@/shared/api/client'
 import { renderConProviders } from '@/test/render'
-import { agrupados } from '../test/fabrica'
+import { agrupados, solicitudAsignacion } from '../test/fabrica'
 import { estadoInicial, reducir, type AccionFormulario, type DatosNuevo } from './estado'
 import { FilaComponente } from './FilaComponente'
 
-const DATOS: DatosNuevo = { modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000111', agrupados: agrupados(), solicitudes: [], incidencia: null, modeloTelefono: null }
+const datos = (solicitudes: SolicitudAsignacion[]): DatosNuevo => ({ modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000111', agrupados: agrupados(), solicitudes, incidencia: null, modeloTelefono: null })
 
 /** Arnés: el reductor real con las filas pintadas. "Guardar fila" aquí solo pide la confirmación (el POST es de useGuardado). */
-function Arnes({ acciones, alGuardar }: { acciones: AccionFormulario[]; alGuardar: (prefijo: string) => void }) {
-  const [estado, dispatch] = useReducer(reducir, DATOS, (d) => acciones.reduce(reducir, estadoInicial(d)))
+function Arnes({ acciones, solicitudes, alGuardar }: { acciones: AccionFormulario[]; solicitudes: SolicitudAsignacion[]; alGuardar: (prefijo: string) => void }) {
+  const [estado, dispatch] = useReducer(reducir, datos(solicitudes), (d) => acciones.reduce(reducir, estadoInicial(d)))
   return (
     <div>
       {estado.filas.map((fila) => (
@@ -27,9 +28,9 @@ function Arnes({ acciones, alGuardar }: { acciones: AccionFormulario[]; alGuarda
   )
 }
 
-function montar(acciones: AccionFormulario[]) {
+function montar(acciones: AccionFormulario[], solicitudes: SolicitudAsignacion[] = []) {
   const alGuardar = vi.fn()
-  renderConProviders(<Arnes acciones={acciones} alGuardar={alGuardar} />)
+  renderConProviders(<Arnes acciones={acciones} solicitudes={solicitudes} alGuardar={alGuardar} />)
   return { alGuardar }
 }
 const MODELO_13: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '13' }
@@ -187,5 +188,31 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(bat.getByRole('button', { name: 'Restar Batería' })).toBeDisabled()
     expect(bat.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeDisabled()
     expect(bat.getByRole('button', { name: 'Borrar observación de Batería' })).toBeDisabled()
+  })
+
+  it('en camino: botón derecho "⚠ En camino" deshabilitado y Reutilizado deshabilitado', () => {
+    montar([], [solicitudAsignacion({ enCamino: true })])
+    const boton = screen.getByTestId('boton-derecho-bat')
+    expect(boton).toHaveTextContent('⚠ En camino')
+    expect(boton).toBeDisabled()
+    expect(boton).toHaveClass('bg-tipo-reparacion-bg', 'text-tipo-reparacion-text', 'rounded-none')
+    const casilla = within(screen.getByTestId('fila-bat')).getByRole('checkbox', { name: 'Reutilizado Batería' })
+    expect(casilla).toBeDisabled()
+    expect(casilla).not.toBeChecked()
+  })
+
+  it('recibido: "✓ Recibido" deshabilitado en una fila editable; al activarla pasa a "✓ Guardar fila" y ya no vuelve', async () => {
+    // lcdi14 (idCom 112) tiene stock 3: GESTIONADA con stock = recibido.
+    montar([], [solicitudAsignacion({ idCom: 112, estadoSolicitud: 'GESTIONADA' })])
+    const boton = screen.getByTestId('boton-derecho-lcd')
+    expect(boton).toHaveTextContent('✓ Recibido')
+    expect(boton).toBeDisabled()
+    expect(boton).toHaveClass('bg-recibido-bg', 'text-recibido-text')
+    const lcd = within(screen.getByTestId('fila-lcd'))
+    expect(screen.getByTestId('fila-lcd')).toHaveAttribute('data-estado', 'normal')
+    await userEvent.click(lcd.getByRole('button', { name: 'Sumar Pantalla' }))
+    expect(screen.getByTestId('boton-derecho-lcd')).toHaveTextContent('✓ Guardar fila')
+    await userEvent.click(lcd.getByRole('button', { name: 'Restar Pantalla' }))
+    expect(screen.queryByTestId('boton-derecho-lcd')).not.toBeInTheDocument()
   })
 })

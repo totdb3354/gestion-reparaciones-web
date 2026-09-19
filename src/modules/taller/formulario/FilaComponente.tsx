@@ -27,7 +27,8 @@ function estadoDeFila(fila: FilaEstado): EstadoFila {
   return 'normal'
 }
 
-/** Etiqueta deshabilitada del botón derecho ("✓ Guardada …"): 11 px, radio 0, padding 4 10, con sus colores aunque esté disabled. */
+/** Etiqueta deshabilitada del botón derecho ("✓ Guardada …", "⚠ En camino", "✓ Recibido"): 11 px, radio 0, padding 4 10, con sus
+ *  colores aunque esté disabled. */
 const CLASE_ETIQUETA = 'h-[27px] rounded-none px-2.5 py-1 text-[11px]'
 
 function BotonDerechoFila({ boton, prefijo, onGuardarFila }: { boton: BotonDerecho; prefijo: string; onGuardarFila: (prefijo: string) => void }) {
@@ -51,6 +52,19 @@ function BotonDerechoFila({ boton, prefijo, onGuardarFila }: { boton: BotonDerec
           {boton.texto}
         </button>
       )
+    case 'enCamino':
+      return (
+        <button type="button" data-testid={testid} disabled className={cn(CLASE_ETIQUETA, 'bg-tipo-reparacion-bg text-tipo-reparacion-text')}>
+          ⚠ En camino
+        </button>
+      )
+    case 'recibido':
+      return (
+        <button type="button" data-testid={testid} disabled className={cn(CLASE_ETIQUETA, 'bg-recibido-bg text-recibido-text')}>
+          ✓ Recibido
+        </button>
+      )
+    // 'yaReparado' pendiente de la Task 18.
     default:
       return null
   }

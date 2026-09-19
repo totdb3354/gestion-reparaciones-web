@@ -7,6 +7,7 @@ import { useCargaNuevo, useRecargarAlCerrar, type CargaNuevo } from './api'
 import { CabeceraFormulario } from './CabeceraFormulario'
 import { estadoInicial, filasVisibles, reducir, textoConflicto, tituloPestana } from './estado'
 import { FilaComponente } from './FilaComponente'
+import { SubFilaAgotado } from './SubFilaAgotado'
 import { useGuardado } from './useGuardado'
 
 type Props =
@@ -98,7 +99,11 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           {filasVisibles(estado) ? (
-            estado.filas.map((fila) => <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila} />)
+            estado.filas.map((fila) => (
+              <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila}>
+                <SubFilaAgotado estado={estado} fila={fila} dispatch={dispatch} />
+              </FilaComponente>
+            ))
           ) : (
             <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
           )}
