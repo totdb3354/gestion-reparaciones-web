@@ -53,7 +53,8 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
         avisar(error)
       },
     }),
-    // Las mutaciones avisan igual que las consultas. `meta: { silenciarError: true }` deja el aviso en manos
+    // A diferencia de las consultas, aquí `meta: { silenciarError: true }` NO silencia el corte de conexión (ver más
+    // abajo: se avisa siempre). Solo dispensa del diálogo genérico en el resto de errores, dejando el aviso en manos
     // de la vista (p. ej. Clientes, que traduce el 409 a "modificado por otro usuario") sin diálogo doble.
     mutationCache: new MutationCache({
       onError(error, _variables, _context, mutation) {
