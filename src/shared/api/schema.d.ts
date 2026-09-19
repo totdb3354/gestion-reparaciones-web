@@ -3081,7 +3081,9 @@ export interface operations {
     editarReparacion: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 idRep: string;
             };
@@ -3817,7 +3819,9 @@ export interface operations {
     guardarFilaIndividual: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 idAsignacion: string;
             };
@@ -3843,7 +3847,9 @@ export interface operations {
     agotarComponente: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 idAsignacion: string;
             };
@@ -3867,7 +3873,9 @@ export interface operations {
     insertarCompleta: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
