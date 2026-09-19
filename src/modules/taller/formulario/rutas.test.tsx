@@ -1,7 +1,7 @@
 import { act, cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import type { RouteObject } from 'react-router'
+import { Outlet, type RouteObject } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { renderConRouter, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
@@ -125,5 +125,40 @@ describe('rutas del formulario (ficha docs/paridad/formulario.md · Apertura, ru
     const { router } = abrirEn(FORMULARIO)
     expect(await screen.findByText('Recurso no encontrado.')).toBeInTheDocument()
     await waitFor(() => expect(router.state.location.pathname).toBe(LISTA))
+  })
+})
+
+const LISTAS_PENDIENTES = [
+  { path: '/reparaciones/pendientes', element: <><p>LISTA REPARACIONES</p><Outlet /></>, children: [{ path: 'reparar/:idAsignacion', element: <FormularioNuevoRuta glass={false} /> }] },
+  { path: '/reparaciones/pendientes/glass', element: <><p>LISTA GLASS</p><Outlet /></>, children: [{ path: 'reparar/:idAsignacion', element: <FormularioNuevoRuta glass /> }] },
+]
+const idsDeFilas = () => screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))
+
+describe('FormularioNuevoRuta — variante glass', () => {
+  it('la ruta glass abre el formulario de la AG y cerrar vuelve a /reparaciones/pendientes/glass', async () => {
+    server.use(...handlersFormulario({ asignacion: { idRep: 'AG20260916_2', imei: '355400000000222' }, modeloTelefono: '13' }))
+    const { router } = renderConRouter(LISTAS_PENDIENTES, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
+    expect(await screen.findByRole('dialog', { name: 'Nueva reparación — IMEI 355400000000222' })).toBeInTheDocument()
+    expect(idsDeFilas()).toEqual(['fila-g', 'fila-mc'])
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/pendientes/glass'))
+    expect(screen.getByText('LISTA GLASS')).toBeInTheDocument()
+  })
+
+  it('manda el prefijo del id, no la ruta: una AG… bajo la ruta de reparaciones es glass, y una A… bajo la ruta glass es reparación; se vuelve a la lista de la ruta', async () => {
+    server.use(...handlersFormulario({ asignacion: { idRep: 'AG20260916_2', imei: '355400000000222' }, modeloTelefono: '13' }))
+    const primera = renderConRouter(LISTAS_PENDIENTES, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/reparar/AG20260916_2' })
+    await screen.findByTestId('fila-g')
+    expect(idsDeFilas()).toEqual(['fila-g', 'fila-mc'])
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    await waitFor(() => expect(primera.router.state.location.pathname).toBe('/reparaciones/pendientes'))
+    primera.unmount()
+
+    server.use(...handlersFormulario({ asignacion: { idRep: 'A20260916_1' }, modeloTelefono: '13' }))
+    const segunda = renderConRouter(LISTAS_PENDIENTES, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/A20260916_1' })
+    await screen.findByTestId('fila-bat')
+    expect(idsDeFilas()).toEqual(['fila-bat', 'fila-cha', 'fila-lcd', 'fila-cam'])
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    await waitFor(() => expect(segunda.router.state.location.pathname).toBe('/reparaciones/pendientes/glass'))
   })
 })

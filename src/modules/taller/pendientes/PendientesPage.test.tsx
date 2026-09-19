@@ -76,12 +76,23 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(await screen.findByText('FORMULARIO ABIERTO')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Mis asignaciones pendientes' })).toBeInTheDocument()
   })
-  it('"Añadir glass" sigue reservado, con el tooltip del formulario', async () => {
-    server.use(http.get('*/api/glass/asignaciones', () => HttpResponse.json([{ ...glass(null), idRep: 'AG20260916_2', imei: '351111111111112' }])))
-    renderConProviders(<PendientesPage tipo="GLASS" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
-    const boton = await screen.findByRole('button', { name: 'Añadir glass' })
-    expect(boton).toBeDisabled()
-    expect(boton.parentElement).toHaveAttribute('title', 'Disponible con el formulario de reparación (siguiente entrega)')
+  it('"Añadir glass" navega a /reparaciones/pendientes/glass/reparar/<id>, la lista sigue montada y no se pinta si ocultarAnadirGlass', async () => {
+    const bloqueada = { ...glass(null), idRep: 'AG20260916_1', imei: '351111111111111', normalAbierta: true, normalTecnicoNombre: 'Técnico J' }
+    const libre = { ...glass(null), idRep: 'AG20260916_2', imei: '352222222222222' }
+    server.use(http.get('*/api/glass/asignaciones', () => HttpResponse.json([bloqueada, libre])))
+    const { router } = renderConRouter(
+      [{ path: '/reparaciones/pendientes/glass', element: <PendientesPage tipo="GLASS" />, children: [{ path: 'reparar/:idAsignacion', element: <p>FORMULARIO GLASS</p> }] }],
+      { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' },
+    )
+    await screen.findByText('AG20260916_2')
+    expect(within(screen.getByRole('row', { name: /AG20260916_1/ })).queryByRole('button', { name: 'Añadir glass' })).not.toBeInTheDocument()
+    const boton = within(screen.getByRole('row', { name: /AG20260916_2/ })).getByRole('button', { name: 'Añadir glass' })
+    expect(boton).toBeEnabled()
+    expect(boton.parentElement).not.toHaveAttribute('title')
+    await userEvent.click(boton)
+    expect(router.state.location.pathname).toBe('/reparaciones/pendientes/glass/reparar/AG20260916_2')
+    expect(await screen.findByText('FORMULARIO GLASS')).toBeInTheDocument()
+    expect(screen.getByText('AG20260916_2')).toBeInTheDocument()
   })
   it('una asignación con solicitud pendiente conserva la franja naranja, el badge "Solicitud" y el SKU bajo el estado', async () => {
     server.use(http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([

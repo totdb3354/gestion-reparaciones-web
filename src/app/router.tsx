@@ -35,7 +35,11 @@ export const router = createBrowserRouter([
                 element: <PendientesPage tipo="REPARACION" />,
                 children: [{ path: 'reparar/:idAsignacion', element: <FormularioNuevoRuta glass={false} /> }],
               },
-              { path: '/reparaciones/pendientes/glass', element: <PendientesPage tipo="GLASS" /> },
+              {
+                path: '/reparaciones/pendientes/glass',
+                element: <PendientesPage tipo="GLASS" />,
+                children: [{ path: 'reparar/:idAsignacion', element: <FormularioNuevoRuta glass /> }],
+              },
               { path: '/reparaciones/pendientes/pulidos', element: <PulidosPendientesPage /> },
             ],
           },

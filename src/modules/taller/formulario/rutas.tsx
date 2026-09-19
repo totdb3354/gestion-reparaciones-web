@@ -8,5 +8,8 @@ export function FormularioNuevoRuta({ glass }: { glass: boolean }) {
   const { idAsignacion = '' } = useParams()
   const navigate = useNavigate()
   const lista = glass ? '/reparaciones/pendientes/glass' : '/reparaciones/pendientes'
-  return <FormularioReparacion key={idAsignacion} modo={glass ? 'glass' : 'nuevo'} idAsignacion={idAsignacion} onCerrar={() => navigate(lista, { replace: true })} />
+  // Manda el prefijo del id, no la ruta: una AG… abierta bajo /pendientes/reparar/ sigue siendo glass, y al revés.
+  // La prop `glass` (la ruta) solo decide a qué lista se vuelve al cerrar.
+  const modo = idAsignacion.startsWith('AG') ? 'glass' : 'nuevo'
+  return <FormularioReparacion key={idAsignacion} modo={modo} idAsignacion={idAsignacion} onCerrar={() => navigate(lista, { replace: true })} />
 }

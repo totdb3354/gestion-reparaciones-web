@@ -545,3 +545,75 @@ describe('FormularioReparacion — borrador persistente', () => {
     expect(screen.getByTestId('boton-derecho-bat').textContent).toBe('✓ Guardada 16/09 09:15')
   })
 })
+
+function abrirGlass(escenario: EscenarioFormulario = {}) {
+  const registro = conRegistro({ asignacion: { idRep: 'AG20260916_2', imei: '355400000000222' }, modeloTelefono: '13', ...escenario })
+  server.use(...registro.handlers)
+  const onCerrar = vi.fn()
+  const vista = renderConProviders(<FormularioReparacion modo="glass" idAsignacion="AG20260916_2" onCerrar={onCerrar} />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
+  return { ...vista, ...registro, onCerrar }
+}
+
+describe('FormularioReparacion — variante glass', () => {
+  it('solo tiene las filas "Glass" y "Marco" (en el orden del servidor) más OTRAS ACCIONES', async () => {
+    abrirGlass()
+    await screen.findByTestId('fila-g')
+    expect(screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))).toEqual(['fila-g', 'fila-mc'])
+    expect(within(screen.getByTestId('fila-g')).getByText('Glass')).toBeInTheDocument()
+    expect(within(screen.getByTestId('fila-mc')).getByText('Marco')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'SKU de Glass' })).toHaveTextContent('gi13')
+    expect(screen.getByTestId('otras-acciones')).toBeInTheDocument()
+  })
+
+  it('los textos no cambian: título "Nueva reparación — IMEI …", etiqueta IMEI y "Terminar asignación"', async () => {
+    abrirGlass()
+    expect(await screen.findByRole('dialog', { name: 'Nueva reparación — IMEI 355400000000222' })).toBeInTheDocument()
+    expect(document.title).toBe('Nueva reparación — IMEI 355400000000222')
+    expect(screen.getByText('IMEI: 355400000000222')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Glass' }))
+    expect(within(screen.getByTestId('zona-guardar')).getByRole('button').textContent).toBe('Terminar asignación')
+  })
+
+  it('la incidencia se pide con tipo=G y se muestra igual', async () => {
+    let tipo: string | null = null
+    const { handlers } = conRegistro({ asignacion: { idRep: 'AG20260916_2', imei: '355400000000222' }, modeloTelefono: '13' })
+    server.use(...handlers)
+    server.use(http.get('*/api/reparaciones/imei/:imei/incidencia-activa', ({ request }) => {
+      tipo = new URL(request.url).searchParams.get('tipo')
+      return HttpResponse.json({ value: 'G20260910_4' })
+    }))
+    renderConProviders(<FormularioReparacion modo="glass" idAsignacion="AG20260916_2" onCerrar={vi.fn()} />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
+    expect((await screen.findByTestId('banda-incidencia')).textContent).toBe('⚠ Resuelve incidencia: G20260910_4')
+    expect(tipo).toBe('G')
+  })
+
+  it('"✓ Guardar fila" y "Terminar asignación" no llevan categoria (el servidor la deduce del prefijo AG)', async () => {
+    const { llamadas, onCerrar } = abrirGlass()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Glass' }))
+    await userEvent.click(screen.getByTestId('boton-derecho-g'))
+    await userEvent.click(screen.getByTestId('boton-derecho-g'))
+    await waitFor(() => expect(screen.getByTestId('fila-g')).toHaveAttribute('data-estado', 'guardada'))
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Marco' }))
+    const zona = () => within(screen.getByTestId('zona-guardar')).getByRole('button')
+    await userEvent.click(zona())
+    await userEvent.click(zona())
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    const filas = llamadas.find((l) => l.ruta.endsWith('/AG20260916_2/filas'))!
+    expect(filas.cuerpo).not.toHaveProperty('categoria')
+    expect(filas.cuerpo).toMatchObject({ imei: '355400000000222', filas: [{ idCom: 141, cantidad: 1, prefijo: 'g', esSolicitud: false }] })
+    const completa = llamadas.find((l) => l.ruta.endsWith('/completa'))!
+    // El contrato marca todas las propiedades como required: "no se envía" = viaja a null.
+    expect(completa.cuerpo).toMatchObject({ idAsignacion: 'AG20260916_2', categoria: null, imei: '355400000000222', filas: [{ idCom: 151, cantidad: 1, prefijo: 'mc' }] })
+  })
+
+  it('la banda de conflicto agrupa igual y excluye la propia AG', async () => {
+    abrirGlass({
+      activas: [
+        asignacionActiva({ idRep: 'AG20260916_2', nombreTecnico: 'Técnico A', idTec: 4 }),
+        asignacionActiva({ idRep: 'A20260916_7', nombreTecnico: 'Técnico H', idTec: 6 }),
+        asignacionActiva({ idRep: 'AP20260916_3', nombreTecnico: 'Técnico A', idTec: 4 }),
+      ],
+    })
+    expect((await screen.findByTestId('banda-conflicto')).textContent).toBe('⚠ Este IMEI también está asignado a — Reparación: Técnico H · Pulido: Técnico A (tú)')
+  })
+})
