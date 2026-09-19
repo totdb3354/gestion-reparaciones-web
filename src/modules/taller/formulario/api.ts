@@ -74,11 +74,12 @@ export async function cargarEditar(idRep: string): Promise<DatosEditar> {
   return { modo: 'editar', idRep, detalle, agrupados, yaReparados, accionesYaReparadas }
 }
 
-// Una carga por apertura del formulario: no se comparte ni se reutiliza (gcTime 0 + staleTime 0: reabrir vuelve a pedirlo
-// todo, incluso si el recolector de basura de TanStack —un timeout(0)— aún no ha corrido cuando se remonta en el mismo
-// tick), no se refresca sola mientras está abierto (refetchOnWindowFocus/Reconnect/Interval en false; nada dispara un
-// refetch salvo un remontaje) y no avisa por la vía global: la vista muestra el mensaje y vuelve a la lista.
-const OPCIONES_CARGA = { gcTime: 0, staleTime: 0, refetchOnWindowFocus: false, refetchOnReconnect: false, refetchInterval: false, meta: { silenciarError: true } } as const
+// Una carga por apertura del formulario: no se comparte ni se reutiliza (gcTime 0: reabrir vuelve a pedirlo todo, una vez
+// el recolector de basura de TanStack ha retirado la query de la caché), no se refresca sola mientras está abierto
+// (staleTime Infinity + refetchOnWindowFocus/Reconnect/Interval en false: ni un segundo observador montado a la vez —p. ej.
+// una recarga de la vista de debajo en segundo plano— reprograma el reductor con datos recién pedidos) y no avisa por la
+// vía global: la vista muestra el mensaje y vuelve a la lista.
+const OPCIONES_CARGA = { gcTime: 0, staleTime: Infinity, refetchOnWindowFocus: false, refetchOnReconnect: false, refetchInterval: false, meta: { silenciarError: true } } as const
 
 export function useCargaNuevo(idAsignacion: string): UseQueryResult<CargaNuevo> {
   return useQuery({ queryKey: claveCargaNuevo(idAsignacion), queryFn: () => cargarNuevo(idAsignacion), ...OPCIONES_CARGA })

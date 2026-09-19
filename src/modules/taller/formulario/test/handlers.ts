@@ -38,6 +38,8 @@ function construir(escenario: EscenarioFormulario, llamadas: LlamadaRegistrada[]
     // ── Lecturas (las rutas más específicas, antes) ──
     http.get('*/api/componentes/agrupados', () => HttpResponse.json(escenario.agrupados ?? agrupados())),
     http.get('*/api/reparaciones/asignaciones/:idAsignacion/solicitudes', () => HttpResponse.json(escenario.solicitudes ?? [])),
+    // El idRep del escenario (por defecto 'A20260916_1') se pisa con el de la URL: así una sola asignación por defecto sirve
+    // para cualquier id que pida el test (p. ej. 'AG20260916_2' en el escenario glass).
     http.get('*/api/reparaciones/asignaciones/:idRep', ({ params }) => HttpResponse.json({ ...asignacion, idRep: String(params.idRep) })),
     http.get('*/api/reparaciones/imei/:imei/incidencia-activa', () => HttpResponse.json({ value: escenario.incidencia ?? null })),
     http.get('*/api/reparaciones/imei/:imei/asignaciones-activas', () => HttpResponse.json(escenario.activas ?? [])),

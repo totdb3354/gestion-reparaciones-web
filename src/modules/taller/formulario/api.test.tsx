@@ -192,6 +192,9 @@ describe('useCargaNuevo y useCargaEditar', () => {
     const primera = renderHook(() => useCargaNuevo('A20260916_1'), { wrapper })
     await waitFor(() => expect(primera.result.current.isSuccess).toBe(true))
     primera.unmount()
+    // Deja correr el temporizador gcTime:0 (una macrotarea) antes de reabrir: así se ejercita una reapertura real, muchos
+    // ticks después, no un remontaje en el mismo tick en el que la query todavía sigue viva en la caché.
+    await new Promise((r) => setTimeout(r, 0))
     const segunda = renderHook(() => useCargaNuevo('A20260916_1'), { wrapper })
     await waitFor(() => expect(segunda.result.current.isSuccess).toBe(true))
     expect(peticiones).toBe(2)
