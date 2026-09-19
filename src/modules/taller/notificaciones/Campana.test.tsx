@@ -41,7 +41,7 @@ const SIN_STOCK = componente({ idCom: 102, tipo: 'bati14', stock: 0, stockMinimo
 const campana = () => screen.getByTestId('campana')
 const imagen = () => screen.getByTestId('campana-imagen')
 /** Pestaña con la que se ha abierto el panel. */
-const pestanaAbierta = () => screen.getByTestId('panel-notificaciones').dataset.pestana
+const pestanaAbierta = () => screen.getByRole('tab', { selected: true }).textContent?.toLowerCase()
 
 describe('Campana (ficha docs/paridad/notificaciones.md)', () => {
   it('TECNICO y ADMIN no la ven ni ocupa hueco (y no piden nada)', () => {

@@ -1,10 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esSuperTecnico } from '@/shared/session/storage'
-import { hayAlertas } from './alertas'
+import { alertasOrdenadas, hayAlertas } from './alertas'
 import { CLAVE_NOTIF_CONTADOR, useComponentesGestionados, useContadorNotificaciones } from './api'
+import { PanelNotificaciones } from './PanelNotificaciones'
 
 /** 'pendiente' = aún no ha llegado la primera respuesta de componentes; se decide una sola vez por montaje ("inicio de
  *  sesión" = carga de la aplicación con sesión) y, una vez parado, no vuelve a arrancar. */
@@ -33,6 +34,9 @@ function CampanaSupertecnico() {
 
   const total = contador.data ?? 0
   const latiendo = pulso === 'latiendo'
+  // Única suscripción a los componentes gestionados (también usada por el pulso): el panel recibe la lista ya calculada
+  // en vez de sondear la misma clave por su cuenta (así abrirlo no dispara una petición extra).
+  const alertas = alertasOrdenadas(componentes.data ?? [])
   // Calco: la imagen encendida se fuerza mientras late y con el panel abierto, aunque el total sea 0.
   const encendida = total > 0 || latiendo || abierto
 
@@ -43,6 +47,12 @@ function CampanaSupertecnico() {
     // El contador se recalcula al abrir y al cerrar el panel.
     void qc.invalidateQueries({ queryKey: CLAVE_NOTIF_CONTADOR })
   }
+
+  // Cierre desde el panel (clic fuera o Escape): también recalcula el contador.
+  const cerrar = useCallback(() => {
+    setAbierto(false)
+    void qc.invalidateQueries({ queryKey: CLAVE_NOTIF_CONTADOR })
+  }, [qc])
 
   return (
     <>
@@ -68,8 +78,7 @@ function CampanaSupertecnico() {
           )}
         </span>
       </button>
-      {/* El panel real llega con la tarea siguiente; de momento, un contenedor vacío que recuerda la pestaña inicial. */}
-      {abierto && <div data-testid="panel-notificaciones" data-pestana={pestanaInicial} />}
+      {abierto && <PanelNotificaciones pestanaInicial={pestanaInicial} anclaRef={anclaRef} onCerrar={cerrar} alertas={alertas} />}
     </>
   )
 }
