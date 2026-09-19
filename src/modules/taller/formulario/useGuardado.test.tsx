@@ -255,6 +255,77 @@ describe('useGuardado · "Terminar asignación" en curso bloquea guardar fila y 
   })
 })
 
+/** Sostiene el POST de "filas" (guardar fila o guardar acción, mismo endpoint) en vuelo hasta que el test llama a
+ *  `soltar()`, mirror de `completaEnVuelo` en el sentido contrario. */
+function filaEnVuelo(llamadas: LlamadaRegistrada[]) {
+  let soltar: () => void = () => {}
+  const puerta = new Promise<void>((resolve) => { soltar = resolve })
+  server.use(http.post('*/api/reparaciones/:idAsignacion/filas', async ({ request }) => {
+    const cuerpo = await request.json()
+    await puerta
+    llamadas.push({ metodo: request.method, ruta: new URL(request.url).pathname, cuerpo })
+    return HttpResponse.json({ value: 'R20260916_9' }, { status: 201 })
+  }))
+  return () => soltar()
+}
+
+describe('useGuardado · guardar fila o guardar acción en curso bloquea "Terminar asignación"', () => {
+  it('"Terminar asignación" no lanza su propio "completa" mientras una fila se está guardando por separado: viajaría duplicada', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    const soltar = filaEnVuelo(llamadas)
+    renderConProviders(<ArnesAccion onGuardado={() => {}} />, { sesion: SESION_TEC })
+    await pulsar('sumar')
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('guardar fila')
+    await pulsar('guardar fila')
+    // La fila está guardando (POST /filas en vuelo): dos clics sobre "terminar" no deben lanzar "completa" (duplicaría
+    // el descuento de stock en el servidor).
+    await pulsar('terminar')
+    await pulsar('terminar')
+    soltar()
+    await waitFor(() => expect(escrituras(llamadas).some((l) => l.ruta.endsWith('/filas'))).toBe(true))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo: { filas: [FILA_BAT], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3' } },
+    ])
+    // Con la fila ya guardada, dos clics más sobre "terminar" completan sin volver a incluirla.
+    await pulsar('terminar')
+    await pulsar('terminar')
+    await waitFor(() => expect(escrituras(llamadas).some((l) => l.ruta.endsWith('/completa'))).toBe(true))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo: { filas: [FILA_BAT], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3' } },
+      { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3', idAsignacion: 'A20260916_1', categoria: null } },
+    ])
+  })
+
+  it('"Terminar asignación" no lanza su propio "completa" mientras una acción se está guardando por separado', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    const soltar = filaEnVuelo(llamadas)
+    renderConProviders(<ArnesAccion onGuardado={() => {}} />, { sesion: SESION_TEC })
+    await pulsar('sumar')
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('guardar acción')
+    await pulsar('guardar acción')
+    await pulsar('terminar')
+    await pulsar('terminar')
+    soltar()
+    await waitFor(() => expect(escrituras(llamadas).some((l) => l.ruta.endsWith('/filas'))).toBe(true))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3' } },
+    ])
+    await pulsar('terminar')
+    await pulsar('terminar')
+    await waitFor(() => expect(escrituras(llamadas).some((l) => l.ruta.endsWith('/completa'))).toBe(true))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3' } },
+      { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas: [FILA_BAT], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3', idAsignacion: 'A20260916_1', categoria: null } },
+    ])
+  })
+})
+
 const DATOS_EDITAR: DatosEditar = { modo: 'editar', idRep: 'R20260916_5', detalle: detalleEdicion(), agrupados: agrupados(), yaReparados: [], accionesYaReparadas: [] }
 
 /** Arnés mínimo: el reductor real, el hook y botones que despachan lo que en la vista hacen las filas. */

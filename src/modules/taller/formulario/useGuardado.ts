@@ -173,6 +173,10 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     // Cinturón además de estado.guardado.enCurso: protege el intervalo entre el clic y el primer re-render con
     // INICIO_GUARDADO ya reflejado (un doble clic no debe lanzar `terminar`/`guardarCambios` dos veces en paralelo).
     if (enVuelo.current) return
+    // Mientras una fila o una acción se guarda por separado (guardando = true, aún no guardada), viaja dentro de su
+    // propio POST /filas: lanzar `terminar` ahora la incluiría también en `completa` y duplicaría la escritura en el
+    // servidor. En edición no hay guardado por fila, así que esta comprobación no afecta a `guardarCambios`.
+    if (estado.filas.some((f) => f.guardando) || estado.otros.some((a) => a.guardando)) return
     if (estado.modo === 'editar') {
       if (estado.edicion === null) return
       enVuelo.current = true
