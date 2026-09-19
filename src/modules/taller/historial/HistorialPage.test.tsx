@@ -15,6 +15,7 @@ import { CLAVE_TECNICOS_ACTIVOS } from '../api'
 import { FormularioEditarRuta } from '../formulario/rutas'
 import { handlersFormulario } from '../formulario/test/handlers'
 import { borradorEnReposo } from '../formulario/useBorrador'
+import { handlersNotificaciones } from '../notificaciones/test/handlers'
 import { detalleEdicion, glass, resumen, tecnico } from '../test/fabrica'
 import { HistorialPage } from './HistorialPage'
 
@@ -39,6 +40,8 @@ afterEach(() => {
 })
 
 beforeEach(() => {
+  // <AppLayout/> con supertécnico monta la campana de la barra, que pide sus contadores y los componentes gestionados.
+  server.use(...handlersNotificaciones())
   server.use(
     http.get('*/api/reparaciones/historial', () => HttpResponse.json(filas)),
     http.get('*/api/glass/historial', () => HttpResponse.json([])),

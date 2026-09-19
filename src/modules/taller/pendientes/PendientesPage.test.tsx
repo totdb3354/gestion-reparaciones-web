@@ -8,6 +8,7 @@ import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
+import { handlersNotificaciones } from '../notificaciones/test/handlers'
 import { glass, normal, resumen } from '../test/fabrica'
 import { PendientesPage } from './PendientesPage'
 
@@ -19,6 +20,8 @@ const filas = [
 ]
 
 beforeEach(() => {
+  // <AppLayout/> con supertécnico monta la campana de la barra, que pide sus contadores y los componentes gestionados.
+  server.use(...handlersNotificaciones())
   server.use(
     http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json(filas)),
     http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),

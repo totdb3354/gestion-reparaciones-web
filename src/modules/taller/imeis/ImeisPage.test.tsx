@@ -10,6 +10,7 @@ import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/te
 import * as csv from '@/shared/lib/csv'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
+import { handlersNotificaciones } from '../notificaciones/test/handlers'
 import { resumen, tecnico } from '../test/fabrica'
 import { ImeiDetallePage } from './ImeiDetallePage'
 import { ImeisPage } from './ImeisPage'
@@ -23,6 +24,8 @@ const glass = [resumen({ idRep: 'G20260912_1', imei: A, modelo: '16', idTec: 5, 
 const pulidos = [resumen({ idRep: 'P20260913_1', imei: A, modelo: '16', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-13T10:00:00', fechaFin: '2026-09-13T11:00:00', cliente: null })]
 
 beforeEach(() => {
+  // <AppLayout/> con supertécnico monta la campana de la barra, que pide sus contadores y los componentes gestionados.
+  server.use(...handlersNotificaciones())
   server.use(
     http.get('*/api/reparaciones/historial', () => HttpResponse.json(reps)),
     http.get('*/api/glass/historial', () => HttpResponse.json(glass)),

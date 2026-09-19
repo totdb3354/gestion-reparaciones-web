@@ -67,6 +67,22 @@
   --color-texto-incidencia: #000000;
   --color-seleccion-suave: #EAF1FF;
 
+  /* Campana de notificaciones (sub-proyecto 2) */
+  --color-notif-panel-brd: #C4C9D4;
+  --color-notif-segmento-brd: #D0D4DC;
+  --color-notif-tarjeta-alt: #F5F6F8;
+  --color-notif-urgente-text: #D97B00;
+  --color-notif-rechazar-bg: #F5A0A0;
+  --color-notif-rechazar-text: #7A2020;
+  --color-notif-rechazada-bg: #F0F1F3;
+  --color-notif-rechazada-alt: #E9EAEC;
+  --color-notif-avatar-apagado: #EDEEF0;
+  --color-notif-texto-apagado: #B0B5BF;
+  --color-notif-urgente-apagado-text: #C8A060;
+  --color-notif-urgente-apagado-bg: #FFF8ED;
+  --color-notif-sin-stock: #E8504A;
+  --color-notif-stock-bajo: #E8903A;
+
   /* Formulario de reparación (sub-proyecto 2) */
   --color-form-barra-bg: #C8CDD6;
   --color-form-cabecera-bg: #BCC2CB;
