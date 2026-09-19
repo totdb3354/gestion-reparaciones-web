@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Outlet, useNavigate, useParams } from 'react-router'
 import { descargarCsv } from '@/shared/lib/csv'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
@@ -8,7 +8,7 @@ import { esSuperTecnico } from '@/shared/session/storage'
 import { BotonSecundario } from '@/shared/ui/Botones'
 import { DataTable } from '@/shared/ui/DataTable'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
-import { MenuHistorial } from '../componentes/MenuHistorial'
+import { MenuHistorial, type AccionesHistorial } from '../componentes/MenuHistorial'
 import { TITULOS_BORRAR, useAccionesTrabajo } from '../componentes/useAccionesTrabajo'
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
 import { columnasTrabajo, textoCeldaTrabajo } from '../historial/columnasTrabajo'
@@ -38,6 +38,8 @@ export function ImeiDetallePage() {
   // seleccionada (AgrupadoController hace select(i); scrollTo(i); requestFocus() en cada clic).
   const [peticionDesplazamiento, setPeticionDesplazamiento] = useState(0)
   const { acciones, dialogos } = useAccionesTrabajo({ tituloBorrar: TITULOS_BORRAR.trabajo, avisoReferencia: 'Este trabajo está siendo referenciado' })
+  // El :imei de la URL, no el de la reparación: al cerrar se vuelve exactamente a este detalle.
+  const accionesMenu: AccionesHistorial = { ...acciones, editar: (rep) => void navigate(`/reparaciones/imeis/${imei}/editar/${rep.idRep}`) }
   const columnas = useMemo(() => columnasTrabajo({
     conTipo: true,
     patronFechas: FMT,
@@ -73,9 +75,10 @@ export function ImeiDetallePage() {
         onSeleccionar={setSeleccionada}
         pedirDesplazamiento={peticionDesplazamiento}
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent', esAjeno(r, filtros) && 'opacity-45')}
-        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} acciones={acciones} />}
+        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} acciones={accionesMenu} />}
       />
       {dialogos}
+      <Outlet />
     </div>
   )
 }

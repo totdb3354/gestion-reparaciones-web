@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
-import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
-import { enlacesReparaciones, InicioReparaciones, RequiereTecnico } from './rutas'
+import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { enlacesReparaciones, InicioReparaciones, RequiereSupertecnico, RequiereTecnico } from './rutas'
 
 const destinos = (
   <>
@@ -58,5 +58,31 @@ describe('rutas del taller', () => {
     expect(enlacesReparaciones(SESION_SUPER).map((e) => e.label)).toEqual(['Asignaciones', 'Pendientes', 'Historial', 'IMEIs'])
     expect(enlacesReparaciones(SESION_ADMIN).map((e) => e.label)).toEqual(['Asignaciones', 'Historial', 'IMEIs'])
     expect(enlacesReparaciones(SESION_TEC)[0].badge).toBe('pendientes')
+  })
+  it('RequiereSupertecnico: TECNICO y ADMIN por URL reciben el aviso genérico y vuelven a la lista; el supertécnico pasa', async () => {
+    const rutas = [
+      { path: '/reparaciones/historial', element: <><p>HISTORIAL</p><Outlet /></>, children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <p>FORMULARIO</p> }] }] },
+      { path: '/reparaciones/historial/glass', element: <><p>HISTORIAL GLASS</p><Outlet /></>, children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <p>FORMULARIO</p> }] }] },
+      { path: '/reparaciones/imeis/:imei', element: <><p>DETALLE IMEI</p><Outlet /></>, children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <p>FORMULARIO</p> }] }] },
+    ]
+    const tec = renderConRouter(rutas, { sesion: SESION_TEC, ruta: '/reparaciones/historial/editar/R20260916_5' })
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('No tienes permisos para realizar esta acción.')
+    expect(tec.router.state.location.pathname).toBe('/reparaciones/historial')
+    expect(screen.queryByText('FORMULARIO')).not.toBeInTheDocument()
+    tec.unmount()
+
+    const admin = renderConRouter(rutas, { sesion: SESION_ADMIN, ruta: '/reparaciones/imeis/351900000000041/editar/G20260912_1' })
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('No tienes permisos para realizar esta acción.')
+    expect(admin.router.state.location.pathname).toBe('/reparaciones/imeis/351900000000041')
+    admin.unmount()
+
+    const glass = renderConRouter(rutas, { sesion: SESION_TEC, ruta: '/reparaciones/historial/glass/editar/G20260912_1' })
+    await screen.findByRole('dialog', { name: 'Error' })
+    expect(glass.router.state.location.pathname).toBe('/reparaciones/historial/glass')
+    glass.unmount()
+
+    renderConRouter(rutas, { sesion: SESION_SUPER, ruta: '/reparaciones/historial/editar/R20260916_5' })
+    expect(await screen.findByText('FORMULARIO')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
 })

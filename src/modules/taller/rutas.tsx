@@ -1,6 +1,9 @@
-import { Navigate, Outlet } from 'react-router'
+import { useEffect } from 'react'
+import { Navigate, Outlet, useLocation } from 'react-router'
+import { MSG_SIN_PERMISOS } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
-import { esAdmin, esAdminOSuperTecnico, type Sesion } from '@/shared/session/storage'
+import { esAdmin, esAdminOSuperTecnico, esSuperTecnico, type Sesion } from '@/shared/session/storage'
+import { useAlerta } from '@/shared/ui/AlertaProvider'
 
 export type EnlaceTaller = { to: string; label: string; badge?: 'pendientes' }
 
@@ -26,5 +29,19 @@ export function InicioReparaciones() {
 export function RequiereTecnico() {
   const { sesion } = useSession()
   if (esAdmin(sesion) || sesion?.idTec == null) return <Navigate to="/reparaciones/historial" replace />
+  return <Outlet />
+}
+
+/** La edición de una reparación ya hecha es solo del supertécnico (el servidor exige el mismo rol). Quien llegue por URL
+ *  sin serlo recibe el aviso genérico y vuelve a la lista de la que cuelga la ruta: se quita el tramo "/editar/<idRep>". */
+export function RequiereSupertecnico() {
+  const { sesion } = useSession()
+  const { mostrarError } = useAlerta()
+  const { pathname } = useLocation()
+  const permitido = esSuperTecnico(sesion)
+  useEffect(() => {
+    if (!permitido) mostrarError(MSG_SIN_PERMISOS)
+  }, [permitido, mostrarError])
+  if (!permitido) return <Navigate to={pathname.replace(/\/editar\/[^/]+\/?$/, '')} replace />
   return <Outlet />
 }

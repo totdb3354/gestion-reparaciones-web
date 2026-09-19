@@ -1,13 +1,13 @@
-import { act, cleanup, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Outlet, type RouteObject } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { renderConRouter, SESION_TEC } from '@/test/render'
+import { renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { PendientesPage } from '../pendientes/PendientesPage'
-import { resumen } from '../test/fabrica'
-import { FormularioNuevoRuta } from './rutas'
+import { detalleEdicion, resumen } from '../test/fabrica'
+import { FormularioEditarRuta, FormularioNuevoRuta } from './rutas'
 import { handlersFormulario } from './test/handlers'
 import { borradorEnReposo } from './useBorrador'
 
@@ -160,5 +160,99 @@ describe('FormularioNuevoRuta — variante glass', () => {
     expect(idsDeFilas()).toEqual(['fila-bat', 'fila-cha', 'fila-lcd', 'fila-cam'])
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
     await waitFor(() => expect(segunda.router.state.location.pathname).toBe('/reparaciones/pendientes/glass'))
+  })
+})
+
+const LISTAS_EDICION = [
+  { path: '/reparaciones/historial', element: <><p>LISTA HISTORIAL</p><Outlet /></>, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="historial" /> }] },
+  { path: '/reparaciones/historial/glass', element: <><p>LISTA HISTORIAL GLASS</p><Outlet /></>, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="historial-glass" /> }] },
+  { path: '/reparaciones/imeis/:imei', element: <><p>DETALLE IMEI</p><Outlet /></>, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="imei" /> }] },
+]
+const RUTA_EDITAR = '/reparaciones/historial/editar/R20260916_5'
+function abrirRutaEditar(ruta = RUTA_EDITAR) {
+  server.use(...handlersFormulario({ detalle: detalleEdicion() }))
+  return renderConRouter(LISTAS_EDICION, { sesion: SESION_SUPER, ruta })
+}
+const cerrar = () => userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+
+describe('FormularioEditarRuta — cierre y "Salir sin guardar"', () => {
+  it('cada origen vuelve a su lista; el de IMEIs usa el :imei de la URL, no el de la reparación', async () => {
+    const historial = abrirRutaEditar()
+    await screen.findByRole('dialog', { name: 'Editar reparación — R20260916_5' })
+    await cerrar()
+    await waitFor(() => expect(historial.router.state.location.pathname).toBe('/reparaciones/historial'))
+    historial.unmount()
+    const glass = abrirRutaEditar('/reparaciones/historial/glass/editar/R20260916_5')
+    await screen.findByRole('dialog', { name: 'Editar reparación — R20260916_5' })
+    await cerrar()
+    await waitFor(() => expect(glass.router.state.location.pathname).toBe('/reparaciones/historial/glass'))
+    glass.unmount()
+    const imei = abrirRutaEditar('/reparaciones/imeis/359900000000999/editar/R20260916_5')
+    await screen.findByRole('dialog', { name: 'Editar reparación — R20260916_5' })
+    await cerrar()
+    await waitFor(() => expect(imei.router.state.location.pathname).toBe('/reparaciones/imeis/359900000000999'))
+  })
+
+  it('cerrar sin cambios cierra sin preguntar y restaura el title', async () => {
+    const { router } = abrirRutaEditar()
+    await screen.findByTestId('fila-bat')
+    await cerrar()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/historial'))
+    expect(screen.queryByRole('dialog', { name: 'Salir sin guardar' })).not.toBeInTheDocument()
+    expect(document.title).not.toBe('Editar reparación — R20260916_5')
+  })
+
+  it('con cambios abre "Salir sin guardar"; "Cancelar" vuelve al formulario y "Salir sin guardar" cierra', async () => {
+    const { router } = abrirRutaEditar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await cerrar()
+    const dlg = await screen.findByRole('dialog', { name: 'Salir sin guardar' })
+    expect(within(dlg).getByText('Tienes cambios sin guardar que se perderán si cierras el formulario.')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(RUTA_EDITAR)
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog', { name: 'Salir sin guardar' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('2')
+    await cerrar()
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Salir sin guardar' })).getByRole('button', { name: 'Salir sin guardar' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/historial'))
+    expect(screen.queryByTestId('fila-bat')).not.toBeInTheDocument()
+  })
+
+  it('Escape con cambios también pregunta', async () => {
+    abrirRutaEditar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.keyboard('{Escape}')
+    expect(await screen.findByRole('dialog', { name: 'Salir sin guardar' })).toBeInTheDocument()
+  })
+
+  it('Atrás con cambios también abre el diálogo (useBlocker) y la URL no cambia hasta confirmar', async () => {
+    server.use(...handlersFormulario({ detalle: detalleEdicion() }))
+    const { router } = renderConRouter(LISTAS_EDICION, { sesion: SESION_SUPER, ruta: '/reparaciones/historial' })
+    await act(async () => { await router.navigate(RUTA_EDITAR) })
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await act(async () => { await router.navigate(-1) })
+    const dlg = await screen.findByRole('dialog', { name: 'Salir sin guardar' })
+    expect(router.state.location.pathname).toBe(RUTA_EDITAR)
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Salir sin guardar' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/historial'))
+  })
+
+  it('cerrar con cambio inválido no pregunta y el cambio se pierde', async () => {
+    const { router } = abrirRutaEditar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Restar Batería' }))
+    expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
+    await cerrar()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/historial'))
+    expect(screen.queryByRole('dialog', { name: 'Salir sin guardar' })).not.toBeInTheDocument()
+  })
+
+  it('tras "Guardar cambios" con éxito se cierra sin preguntar', async () => {
+    const { router } = abrirRutaEditar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    const zona = () => within(screen.getByTestId('zona-guardar')).getByRole('button')
+    await userEvent.click(zona())
+    await userEvent.click(zona())
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/historial'))
+    expect(screen.queryByRole('dialog', { name: 'Salir sin guardar' })).not.toBeInTheDocument()
   })
 })

@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef, type RefObject } from 'react'
+import { useBlocker } from 'react-router'
+import type { AsignacionActiva } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
-import { useCargaNuevo, useRecargarAlCerrar, type CargaNuevo } from './api'
+import { useCargaEditar, useCargaNuevo, useRecargarAlCerrar } from './api'
 import { CabeceraFormulario } from './CabeceraFormulario'
-import { estadoInicial, filasVisibles, reducir, textoConflicto, tituloPestana } from './estado'
+import { DialogoSalirSinGuardar } from './DialogoSalirSinGuardar'
+import { estadoInicial, filasVisibles, hayCambiosSinGuardar, reducir, textoConflicto, tituloPestana, type DatosEditar, type DatosNuevo } from './estado'
 import { FilaComponente } from './FilaComponente'
 import { OtrasAcciones } from './OtrasAcciones'
 import { SubFilaAgotado } from './SubFilaAgotado'
@@ -16,6 +19,10 @@ import { ZonaGuardar } from './ZonaGuardar'
 type Props =
   | { modo: 'nuevo' | 'glass'; idAsignacion: string; onCerrar: () => void }
   | { modo: 'editar'; idRep: string; onCerrar: () => void }
+
+/** Lo que necesita el formulario ya cargado. `CargaNuevo` (W10) tiene esta misma forma; la edición la compone sin asignaciones
+ *  activas (no hay banda de conflicto) ni borrador. */
+type CargaFormulario = { datos: DatosNuevo | DatosEditar; asignacionesActivas: AsignacionActiva[]; borradorJson: string | null }
 
 /** Cabecera de columnas: mismos anchos que las celdas de cada fila (la observación, 280 fijo). El botón derecho no tiene columna. */
 const COLUMNAS = [
@@ -28,19 +35,20 @@ const COLUMNAS = [
 ] as const
 
 /** El formulario de reparación como diálogo modal sobre la lista. La URL lo gobierna: quien lo monta (formulario/rutas.tsx)
- *  decide a dónde se vuelve en `onCerrar`. El flujo nuevo y el de glass comparten carga (`cargarNuevo` deduce la categoría
- *  del prefijo de la asignación); la edición tiene su propia carga y su propia ruta, y hasta que exista no pinta nada. */
+ *  decide a dónde se vuelve en `onCerrar`. Sin hooks aquí: cada modo tiene su cargador (el flujo nuevo y el de glass comparten
+ *  el suyo: `cargarNuevo` deduce la categoría del prefijo de la asignación). */
 export function FormularioReparacion(props: Props) {
-  if (props.modo === 'editar') return null
+  if (props.modo === 'editar') return <FormularioEditar idRep={props.idRep} onCerrar={props.onCerrar} />
   return <FormularioNuevo idAsignacion={props.idAsignacion} onCerrar={props.onCerrar} />
 }
 
-function FormularioNuevo({ idAsignacion, onCerrar }: { idAsignacion: string; onCerrar: () => void }) {
-  const carga = useCargaNuevo(idAsignacion)
+/** Común a las dos cargas. (1) Al cerrar —✕, Escape, Atrás, "Salir sin guardar" o tras guardar— se recarga la lista de debajo:
+ *  se hace al desmontar, que es lo único que tienen en común todas las salidas. (2) La carga va con meta.silenciarError: el
+ *  aviso lo da esta vista y después vuelve a la lista (403 → mensaje genérico de permisos; 404 o detalle vacío → "Recurso no
+ *  encontrado."); 401 y corte de conexión ya los gestiona el shell: ahí solo se cierra. Las refs evitan depender de la
+ *  identidad de las funciones en cada render. */
+function useCierreDeCarga(falla: boolean, error: unknown, onCerrar: () => void) {
   const { mostrarError } = useAlerta()
-
-  // Al cerrar —✕, Escape, Atrás o tras guardar— se recarga la lista de debajo: se hace al desmontar, que es lo único que
-  // tienen en común las cuatro salidas. La ref evita depender de la identidad de la función en cada render.
   const recargar = useRecargarAlCerrar()
   const recargarRef = useRef(recargar)
   const onCerrarRef = useRef(onCerrar)
@@ -49,36 +57,62 @@ function FormularioNuevo({ idAsignacion, onCerrar }: { idAsignacion: string; onC
     onCerrarRef.current = onCerrar
   })
   useEffect(() => () => recargarRef.current(), [])
-
-  // La carga va con meta.silenciarError: el aviso lo da esta vista y después vuelve a la lista. 401 y corte de conexión ya
-  // los gestiona el shell (redirección a login y banner): ahí solo se cierra.
   useEffect(() => {
-    if (!carga.isError) return
-    if (!esErrorGestionadoGlobalmente(carga.error)) mostrarError(mensajeDeError(carga.error))
+    if (!falla) return
+    if (!esErrorGestionadoGlobalmente(error)) mostrarError(mensajeDeError(error))
     onCerrarRef.current()
-  }, [carga.isError, carga.error, mostrarError])
+  }, [falla, error, mostrarError])
+}
 
+function FormularioNuevo({ idAsignacion, onCerrar }: { idAsignacion: string; onCerrar: () => void }) {
+  const carga = useCargaNuevo(idAsignacion)
+  useCierreDeCarga(carga.isError, carga.error, onCerrar)
   if (!carga.data) return null
   // El reductor se monta solo con la carga terminada: `key` evita reinicializarlo con datos de otra asignación.
   return <FormularioCargado key={idAsignacion} carga={carga.data} onCerrar={onCerrar} />
 }
 
-function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: () => void }) {
+/** Carga de la edición: detalle → agrupados + ya reparados + acciones ya reparadas. Sin banda de conflicto, incidencia,
+ *  solicitudes, borrador ni consulta del modelo del teléfono. Si el detalle llega vacío (la reparación ya no existe) la carga
+ *  rechaza con NoEncontradoError: el formulario no llega a pintarse, sale el aviso y se vuelve a la lista. */
+function FormularioEditar({ idRep, onCerrar }: { idRep: string; onCerrar: () => void }) {
+  const carga = useCargaEditar(idRep)
+  useCierreDeCarga(carga.isError, carga.error, onCerrar)
+  if (!carga.data) return null
+  return <FormularioCargado key={idRep} carga={{ datos: carga.data, asignacionesActivas: [], borradorJson: null }} onCerrar={onCerrar} />
+}
+
+/** Todos los cierres de la edición son navegaciones (✕ y Escape navegan a la lista con replace; Atrás es un POP): un único
+ *  bloqueo las cubre. Bloquea solo si la zona de guardar está visible ("hay cambios") y no se acaba de guardar. Un cambio
+ *  inválido oculta la zona, así que cerrar en ese estado no pregunta y el cambio se pierde (calco de la referencia). Vive en
+ *  un componente aparte que solo se monta en edición: `useBlocker` exige data router y el flujo nuevo no debe depender de él. */
+function GuardiaSalida({ hayCambios, salidaLibre }: { hayCambios: boolean; salidaLibre: RefObject<boolean> }) {
+  const blocker = useBlocker(() => hayCambios && !salidaLibre.current)
+  return <DialogoSalirSinGuardar abierto={blocker.state === 'blocked'} onSalir={() => blocker.proceed?.()} onCancelar={() => blocker.reset?.()} />
+}
+
+function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerrar: () => void }) {
   const { sesion } = useSession()
   const [estado, dispatch] = useReducer(reducir, carga.datos, estadoInicial)
   const titulo = tituloPestana(estado)
-  const conflicto = textoConflicto(carga.asignacionesActivas, carga.datos.idAsignacion, sesion?.idTec ?? null)
-  // Borrador: solo flujo nuevo y Glass (los únicos que llegan hoy a este componente; en edición el hook queda inactivo).
+  // En edición no hay asignación propia ni activas: textoConflicto([], …) da null y la banda no se pinta.
+  const conflicto = textoConflicto(carga.asignacionesActivas, estado.idAsignacion ?? '', sesion?.idTec ?? null)
+  // Borrador: solo flujo nuevo y Glass; en edición el hook queda inactivo y no llama a nada.
   const { volcarAhora, descartar } = useBorrador({ estado, dispatch, borradorJson: carga.borradorJson, activo: estado.modo !== 'editar' })
-  /** ✕ y Escape: nunca pregunta. Vuelca el borrador YA (PUT, o DELETE si está vacío) y cierra sin esperar a la red; si esa
-   *  escritura falla, el volcado del desmontaje la reintenta una vez. Atrás del navegador solo desmonta. */
+  /** ✕ y Escape. Flujo nuevo y Glass: nunca pregunta; vuelca el borrador YA y cierra sin esperar a la red. Edición: `volcarAhora`
+   *  no hace nada y `onCerrar` navega; si hay cambios, GuardiaSalida intercepta esa navegación y abre "Salir sin guardar". */
   const cerrar = useCallback(() => {
     void volcarAhora()
     onCerrar()
   }, [volcarAhora, onCerrar])
-  // Guardar de verdad ("Terminar asignación") no vuelca: BORRA el borrador (antesDeCerrar) y después cierra con el onCerrar
-  // de las props, no con `cerrar`. La recarga de la lista la sigue haciendo el desmontaje de FormularioNuevo.
-  const guardado = useGuardado({ estado, dispatch, onGuardado: onCerrar, antesDeCerrar: descartar })
+  // Tras un guardado con éxito se sale sin preguntar aunque el estado siga diciendo "hay cambios".
+  const salidaLibre = useRef(false)
+  const alGuardar = useCallback(() => {
+    salidaLibre.current = true
+    onCerrar()
+  }, [onCerrar])
+  // Guardar de verdad no vuelca: borra el borrador (antesDeCerrar; en edición no llama a nada) y cierra con el onCerrar de las props.
+  const guardado = useGuardado({ estado, dispatch, onGuardado: alGuardar, antesDeCerrar: descartar })
 
   // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había.
   useEffect(() => {
@@ -123,6 +157,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
           <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
         </div>
         <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
+        {estado.modo === 'editar' && <GuardiaSalida hayCambios={hayCambiosSinGuardar(estado)} salidaLibre={salidaLibre} />}
       </DialogContent>
     </Dialog>
   )

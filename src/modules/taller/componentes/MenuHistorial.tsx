@@ -3,16 +3,17 @@ import { tipoDe } from '@/shared/lib/tipoTrabajo'
 import { ContextMenuItem, ContextMenuSeparator } from '@/shared/ui/context-menu'
 import type { CeldaPulsada } from '@/shared/ui/DataTable'
 import { MenuCopiarCelda } from '@/shared/ui/MenuCopiarCelda'
-import { TOOLTIP_FORMULARIO } from '../lib/textos'
 
 export type AccionesHistorial = {
+  editar: (rep: ReparacionResumen) => void
   borrar: (rep: ReparacionResumen) => void
   anadirIncidencia: (rep: ReparacionResumen) => void
   cancelarIncidencia: (rep: ReparacionResumen) => void
 }
 
-/** Menú contextual del Historial y del detalle de IMEIs: Editar (R/G, deshabilitado hasta el SP2), Borrar, Copiar celda,
- *  Añadir incidencia (si no tiene), Cancelar incidencia (si está abierta). Sin permisos de edición: solo Copiar celda. */
+/** Menú contextual del Historial y del detalle de IMEIs: Editar (solo filas R y G; abre el formulario en modo edición,
+ *  sin confirmación previa), Borrar, Copiar celda, Añadir incidencia (si no tiene), Cancelar incidencia (si está abierta).
+ *  Sin permisos de edición (todo el que no sea supertécnico): solo Copiar celda. */
 export function MenuHistorial({ rep, celda, texto, puedeEditar, acciones }: { rep: ReparacionResumen; celda: CeldaPulsada; texto: string | null; puedeEditar: boolean; acciones: AccionesHistorial }) {
   if (!puedeEditar) return <MenuCopiarCelda texto={texto} celda={celda} />
   const tipo = tipoDe(rep.idRep)
@@ -20,14 +21,7 @@ export function MenuHistorial({ rep, celda, texto, puedeEditar, acciones }: { re
   const abierta = rep.esIncidencia && !rep.esResuelto
   return (
     <>
-      {editable && (
-        // El title va en un envoltorio de bloque: el ítem deshabilitado lleva data-[disabled]:pointer-events-none y nunca
-        // recibiría el hover que muestra el tooltip (mismo patrón que "Añadir reparación" en PendientesPage). Es un <div>
-        // porque el ítem también lo es: un <span> no puede contener un bloque.
-        <div title={TOOLTIP_FORMULARIO}>
-          <ContextMenuItem disabled>Editar</ContextMenuItem>
-        </div>
-      )}
+      {editable && <ContextMenuItem onSelect={() => acciones.editar(rep)}>Editar</ContextMenuItem>}
       <ContextMenuItem onSelect={() => acciones.borrar(rep)}>Borrar</ContextMenuItem>
       <ContextMenuSeparator />
       <MenuCopiarCelda texto={texto} celda={celda} />

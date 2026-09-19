@@ -1,10 +1,10 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { HttpResponse, http } from 'msw'
+import { HttpResponse, http, type RequestHandler } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderConProviders, renderConRouter, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { asignacionActiva, reparacion, solicitudAsignacion } from '../test/fabrica'
+import { agrupados, asignacionActiva, componente, detalleEdicion, reparacion, solicitudAsignacion } from '../test/fabrica'
 import { FormularioReparacion } from './FormularioReparacion'
 import { conRegistro, type EscenarioFormulario, type LlamadaRegistrada } from './test/handlers'
 import { borradorEnReposo } from './useBorrador'
@@ -615,5 +615,139 @@ describe('FormularioReparacion — variante glass', () => {
       ],
     })
     expect((await screen.findByTestId('banda-conflicto')).textContent).toBe('⚠ Este IMEI también está asignado a — Reparación: Técnico H · Pulido: Técnico A (tú)')
+  })
+})
+
+/** `extra`: handlers que deben ganar a los del escenario. Van en una SEGUNDA llamada a `server.use` (en una misma llamada gana
+ *  el primero de la lista; cada llamada nueva se antepone a las anteriores) y ANTES de montar (la carga sale en el primer efecto). */
+function abrirEditar(escenario: EscenarioFormulario = {}, idRep = 'R20260916_5', extra: RequestHandler[] = []) {
+  const registro = conRegistro({ detalle: detalleEdicion(), yaReparados: [111], acciones: ['Limpieza de conector'], ...escenario })
+  server.use(...registro.handlers)
+  if (extra.length > 0) server.use(...extra)
+  const onCerrar = vi.fn()
+  const vista = renderConRouter([{ path: '/editar', element: <FormularioReparacion modo="editar" idRep={idRep} onCerrar={onCerrar} /> }], { sesion: SESION_SUPER, ruta: '/editar' })
+  return { ...vista, ...registro, onCerrar }
+}
+
+describe('FormularioReparacion — modo edición', () => {
+  it('title "Editar reparación — <idRep>", etiqueta "IMEI: …  ·  Editando <idRep>", modelo bloqueado y sin bandas ni borrador', async () => {
+    const { llamadas } = abrirEditar()
+    expect(await screen.findByRole('dialog', { name: 'Editar reparación — R20260916_5' })).toBeInTheDocument()
+    expect(document.title).toBe('Editar reparación — R20260916_5')
+    expect(screen.getByText(/^IMEI:/).textContent).toBe('IMEI: 355400000000111  ·  Editando R20260916_5')
+    expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toHaveTextContent('iPhone 13')
+    expect(screen.queryByTestId('banda-conflicto')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('banda-incidencia')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('banda-borrador')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    await borradorEnReposo()
+    expect(llamadas.filter((l) => l.ruta.endsWith('/borrador'))).toHaveLength(0)
+  })
+
+  it('fila editada en azul con previsión "5 → 4" en rojo; fila ya reparada con "✓  Ya reparado"; acción ya reparada con "✓ Ya reparada"', async () => {
+    abrirEditar()
+    expect(await screen.findByTestId('fila-bat')).toHaveAttribute('data-estado', 'editada')
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    expect(screen.getByTestId('stock-bat').textContent).toBe('5 → 4')
+    expect(screen.getByTestId('stock-bat')).toHaveClass('text-rojo-cancelar')
+    expect(screen.getByTestId('fila-lcd')).toHaveAttribute('data-estado', 'yaReparado')
+    expect(screen.getByTestId('boton-derecho-lcd').textContent).toBe('✓  Ya reparado')
+    expect(within(screen.getByTestId('otras-acciones')).getByText('✓ Ya reparada')).toBeInTheDocument()
+    expect(screen.getByTestId('otras-acciones-badge')).toHaveTextContent('1')
+  })
+
+  it('cambio inválido: contador en rojo y sin zona de guardar; cambio válido: "Guardar cambios"', async () => {
+    abrirEditar()
+    await screen.findByTestId('fila-bat')
+    expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Restar Batería' }))
+    expect(screen.getByTestId('contador-bat')).toHaveClass('text-rojo-cancelar', 'font-bold')
+    expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    expect(botonZona().textContent).toBe('Guardar cambios')
+  })
+
+  it('sin sub-fila de agotado aunque el SKU esté a 0, y sin "✓ Guardar fila" en una fila nueva activa', async () => {
+    abrirEditar({ agrupados: { ...agrupados(), cam: [componente({ idCom: 121, tipo: 'cami13', stock: 0, stockMinimo: 1 })] } })
+    await screen.findByTestId('fila-cam')
+    expect(screen.queryByTestId('subfila-cam')).not.toBeInTheDocument()
+    expect(screen.queryByText('Solicitar pieza')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Chasis' }))
+    expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('subfila-cha')).not.toBeInTheDocument()
+  })
+
+  it('editar acción: "Editando acción <idRep>", línea precargada sin papelera ni "✓ Guardar"; texto vacío oculta la zona', async () => {
+    abrirEditar({ detalle: detalleEdicion({ idCom: 161, cantidad: 0, observacion: 'Cambio de tornillos' }), yaReparados: [], acciones: [] })
+    const campo = await screen.findByDisplayValue('Cambio de tornillos')
+    expect(screen.getByText(/^IMEI:/).textContent).toBe('IMEI: 355400000000111  ·  Editando acción R20260916_5')
+    expect(screen.getAllByTestId(/^fila-/).every((f) => f.getAttribute('data-estado') !== 'editada')).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Quitar acción' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '✓ Guardar' })).not.toBeInTheDocument()
+    await userEvent.type(campo, ' nuevos')
+    expect(botonZona().textContent).toBe('Guardar cambios')
+    await userEvent.clear(campo)
+    expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
+  })
+
+  it('"Guardar cambios" → "✓  Confirmar terminar" → PUT, completa de filas y completa de acciones con el idTec original; cierra', async () => {
+    const { llamadas, onCerrar } = abrirEditar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Cámara' }))
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir acción' }))
+    // "+ Añadir acción" deja el foco en la línea nueva: se escribe directamente.
+    await userEvent.keyboard('Limpieza interna')
+    await userEvent.click(botonZona())
+    expect(botonZona().textContent).toBe('✓  Confirmar terminar')
+    await userEvent.click(botonZona())
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(llamadas.map((l) => `${l.metodo} ${l.ruta}`)).toEqual(['PUT /api/reparaciones/R20260916_5', 'POST /api/reparaciones/completa', 'POST /api/reparaciones/completa'])
+    expect(llamadas[0].cuerpo).toMatchObject({ idComNuevo: 101, nNuevas: 2, esReutilizadoNuevo: false, updatedAt: '2026-09-16T07:02:00' })
+    expect(llamadas[1].cuerpo).toMatchObject({ idTec: 4, idAsignacion: null, idRepAnterior: null, filas: [{ idCom: 121, cantidad: 1 }] })
+    expect(llamadas[2].cuerpo).toMatchObject({ idTec: 4, idAsignacion: null, filas: [{ idCom: 161, cantidad: 0, prefijo: 'otro', observacion: 'Limpieza interna' }] })
+  })
+
+  it('409: aviso de dos líneas y el formulario sigue abierto sin recargar', async () => {
+    let cargasDetalle = 0
+    const { onCerrar } = abrirEditar({}, 'R20260916_5', [
+      http.get('*/api/reparaciones/R20260916_5/detalle-edicion', () => { cargasDetalle++; return HttpResponse.json(detalleEdicion()) }),
+      http.put('*/api/reparaciones/R20260916_5', () => HttpResponse.json({ message: 'El registro fue modificado por otro usuario' }, { status: 409 })),
+    ])
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(botonZona())
+    await userEvent.click(botonZona())
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText(/otro usuario modificó/).textContent).toBe('No se pudo guardar: otro usuario modificó esta reparación.\nCierra y vuelve a abrir el formulario para ver los cambios actuales.')
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByRole('dialog', { name: 'Editar reparación — R20260916_5' })).toBeInTheDocument()
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('2')
+    expect(botonZona().textContent).toBe('✓  Confirmar terminar')
+    expect(cargasDetalle).toBe(1)
+    expect(onCerrar).not.toHaveBeenCalled()
+  })
+
+  it('edición de una G…: solo filas Glass y Marco', async () => {
+    abrirEditar({ detalle: detalleEdicion({ idCom: 141 }), yaReparados: [], acciones: [] }, 'G20260916_3')
+    expect(await screen.findByTestId('fila-g')).toHaveAttribute('data-estado', 'editada')
+    expect(screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))).toEqual(['fila-g', 'fila-mc'])
+  })
+
+  it('fallo de carga (403 del detalle): aviso genérico y cierre', async () => {
+    const { onCerrar } = abrirEditar({}, 'R20260916_5', [http.get('*/api/reparaciones/R20260916_5/detalle-edicion', () => new HttpResponse(null, { status: 403 }))])
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('No tienes permisos para realizar esta acción.')
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+  })
+
+  it('el detalle llega vacío (la reparación ya no existe): el formulario queda sin contenido, aviso del shell y cierre', async () => {
+    // `cargarEditar` convierte un detalle-edicion sin cuerpo en NoEncontradoError (Task 11): se trata como cualquier fallo de carga.
+    const { onCerrar } = abrirEditar({}, 'R20260916_5', [http.get('*/api/reparaciones/R20260916_5/detalle-edicion', () => new HttpResponse(null, { status: 200 }))])
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('Recurso no encontrado.')
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('dialog', { name: /^Editar reparación/ })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('fila-bat')).not.toBeInTheDocument()
   })
 })

@@ -2,8 +2,11 @@ import { useRef, type Dispatch } from 'react'
 import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
-import { useAgotarComponente, useCompleta, useGuardarFila } from './api'
-import { accionPideConfirmacion, cuerpoGuardarAccion, cuerpoGuardarFila, planTerminar, reducir, type AccionFormulario, type EstadoFormulario } from './estado'
+import { useAgotarComponente, useCompleta, useEditarReparacion, useGuardarFila } from './api'
+import {
+  accionPideConfirmacion, cuerpoGuardarAccion, cuerpoGuardarFila, planGuardarCambios, planTerminar, reducir,
+  type AccionFormulario, type EstadoFormulario,
+} from './estado'
 
 type Args = { estado: EstadoFormulario; dispatch: Dispatch<AccionFormulario>; onGuardado: () => void; antesDeCerrar?: () => Promise<void> }
 type Guardado = { pulsarGuardar: () => void; guardarFila: (prefijo: string) => void; guardarAccion: (id: number) => void }
@@ -13,6 +16,9 @@ export function fechaGuardado(d: Date): string {
   const dos = (n: number) => String(n).padStart(2, '0')
   return `${dos(d.getDate())}/${dos(d.getMonth() + 1)} ${dos(d.getHours())}:${dos(d.getMinutes())}`
 }
+
+/** Literal del cliente de referencia para el bloqueo optimista en edición. El formulario NO se recarga: solo avisa. */
+const MSG_409_EDICION = 'No se pudo guardar: otro usuario modificó esta reparación.\nCierra y vuelve a abrir el formulario para ver los cambios actuales.'
 
 /** Orquesta los guardados del formulario: fila a fila, acción a acción y "Terminar asignación". Qué se envía lo deciden los
  *  constructores de estado.ts; aquí se ejecuta, se despacha el resultado y se pone el literal de error de la ficha. Las mutaciones
@@ -25,6 +31,7 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
   const guardarFilaMut = useGuardarFila()
   const agotarMut = useAgotarComponente()
   const completaMut = useCompleta()
+  const editarMut = useEditarReparacion()
   // En flujo nuevo y glass el servidor toma el técnico del token; el contrato exige el campo y se envía el de la sesión.
   const idTecSesion = sesion?.idTec ?? 0
   // Re-entrada en "terminar": el JavaFX llamaba al servidor en el hilo de la interfaz (nunca dos veces a la vez); aquí
@@ -131,17 +138,50 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     onGuardado()
   }
 
+  /** "Guardar cambios", en el orden de la referencia: (0) acción editada, (1) fila editada, (2) filas nuevas, (3) acciones
+   *  nuevas, (4) cerrar. Lo ya hecho no se deshace si un paso posterior falla. Los cuerpos salen de planGuardarCambios:
+   *  las filas y acciones nuevas conservan el técnico ORIGINAL (idTec del detalle) y van sin idAsignacion. */
+  async function guardarCambios(idRep: string) {
+    dispatch({ tipo: 'INICIO_GUARDADO' })
+    const plan = planGuardarCambios(estado)
+    try {
+      if (plan.editarAccion) await editarMut.mutateAsync({ idRep, cuerpo: plan.editarAccion })
+      if (plan.editarFila) await editarMut.mutateAsync({ idRep, cuerpo: plan.editarFila })
+      if (plan.completaFilas) await completaMut.mutateAsync(plan.completaFilas)
+      if (plan.completaAcciones) await completaMut.mutateAsync(plan.completaAcciones)
+    } catch (e) {
+      // clics = 0 y enCurso = false; el texto sigue en "✓  Confirmar terminar" y hacen falta otros dos clics.
+      dispatch({ tipo: 'FALLO_GUARDADO' })
+      avisar(e, e instanceof StaleDataError ? MSG_409_EDICION : `No se pudo guardar: ${mensajeDeError(e)}`)
+      return
+    }
+    dispatch({ tipo: 'GUARDADO_COMPLETADO' })
+    try {
+      await antesDeCerrar?.()
+    } catch {
+      // En edición no hay borrador que descartar; se mantiene la misma tolerancia que en "Terminar asignación".
+    }
+    onGuardado()
+  }
+
   function pulsarGuardar() {
     if (estado.guardado.enCurso) return
     if (estado.guardado.clics === 0) {
       dispatch({ tipo: 'PEDIR_CONFIRMACION_GUARDAR' })
       return
     }
-    // "Guardar cambios" (modo editar) se ejecuta con planGuardarCambios cuando exista la ruta de edición.
-    if (estado.modo === 'editar' || estado.idAsignacion === null) return
     // Cinturón además de estado.guardado.enCurso: protege el intervalo entre el clic y el primer re-render con
-    // INICIO_GUARDADO ya reflejado (un doble clic no debe lanzar `terminar` dos veces en paralelo).
+    // INICIO_GUARDADO ya reflejado (un doble clic no debe lanzar `terminar`/`guardarCambios` dos veces en paralelo).
     if (enVuelo.current) return
+    if (estado.modo === 'editar') {
+      if (estado.edicion === null) return
+      enVuelo.current = true
+      void guardarCambios(estado.edicion.idRep).finally(() => {
+        enVuelo.current = false
+      })
+      return
+    }
+    if (estado.idAsignacion === null) return
     enVuelo.current = true
     void terminar(estado.idAsignacion).finally(() => {
       enVuelo.current = false

@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { SolicitudAsignacion } from '@/shared/api/client'
 import { renderConProviders } from '@/test/render'
-import { agrupados, solicitudAsignacion } from '../test/fabrica'
-import { estadoInicial, reducir, type AccionFormulario, type DatosNuevo } from './estado'
+import { agrupados, componente, detalleEdicion, solicitudAsignacion } from '../test/fabrica'
+import { estadoInicial, reducir, type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
 import { FilaComponente } from './FilaComponente'
 
 const datos = (solicitudes: SolicitudAsignacion[]): DatosNuevo => ({ modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000111', agrupados: agrupados(), solicitudes, incidencia: null, modeloTelefono: null })
@@ -214,5 +214,82 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(screen.getByTestId('boton-derecho-lcd')).toHaveTextContent('✓ Guardar fila')
     await userEvent.click(lcd.getByRole('button', { name: 'Restar Pantalla' }))
     expect(screen.queryByTestId('boton-derecho-lcd')).not.toBeInTheDocument()
+  })
+})
+
+function estadoEditar(parcial: Partial<DatosEditar> = {}): EstadoFormulario {
+  return estadoInicial({ modo: 'editar', idRep: 'R20260916_5', detalle: detalleEdicion(), agrupados: agrupados(), yaReparados: [111], accionesYaReparadas: [], ...parcial })
+}
+function pintarFila(estado: EstadoFormulario, prefijo: string) {
+  const fila = estado.filas.find((f) => f.prefijo === prefijo)!
+  return renderConProviders(<FilaComponente estado={estado} fila={fila} dispatch={vi.fn()} onGuardarFila={vi.fn()} />)
+}
+
+describe('FilaComponente — modo edición', () => {
+  it('fila editada en azul, con SKU, cantidad y previsión "5 → 5" en gris; sin botón derecho', () => {
+    pintarFila(estadoEditar(), 'bat')
+    const fila = screen.getByTestId('fila-bat')
+    expect(fila).toHaveAttribute('data-estado', 'editada')
+    expect(fila).toHaveClass('border-b', 'bg-fila-edicion-bg', 'border-fila-edicion-brd')
+    expect(screen.getByRole('combobox', { name: 'SKU de Batería' })).toHaveTextContent('bati13')
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('1')
+    expect(screen.getByTestId('stock-bat').textContent).toBe('5 → 5')
+    expect(screen.getByTestId('stock-bat')).toHaveClass('font-bold', 'text-azul-gris')
+    expect(screen.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeDisabled()
+    expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
+  })
+
+  it('previsión "5 → 4" en rojo al sumar y "5 → 6" en verde al restar', () => {
+    const mas = reducir(estadoEditar(), { tipo: 'SUMAR', prefijo: 'bat' })
+    const primera = pintarFila(mas, 'bat')
+    expect(screen.getByTestId('stock-bat').textContent).toBe('5 → 4')
+    expect(screen.getByTestId('stock-bat')).toHaveClass('text-rojo-cancelar')
+    primera.unmount()
+    pintarFila(reducir(estadoEditar(), { tipo: 'RESTAR', prefijo: 'bat' }), 'bat')
+    expect(screen.getByTestId('stock-bat').textContent).toBe('5 → 6')
+    expect(screen.getByTestId('stock-bat')).toHaveClass('text-verde-ok')
+  })
+
+  it('cambio inválido (cantidad 0 sin Reutilizado): contador en rojo y negrita', () => {
+    pintarFila(reducir(estadoEditar(), { tipo: 'RESTAR', prefijo: 'bat' }), 'bat')
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+    expect(screen.getByTestId('contador-bat')).toHaveClass('text-rojo-cancelar', 'font-bold')
+  })
+
+  it('fila ya reparada: verde, todo deshabilitado y "✓  Ya reparado" al final', () => {
+    pintarFila(estadoEditar(), 'lcd')
+    const fila = screen.getByTestId('fila-lcd')
+    expect(fila).toHaveAttribute('data-estado', 'yaReparado')
+    expect(fila).toHaveClass('border-b', 'bg-fila-reparado-bg', 'border-fila-reparado-brd')
+    expect(screen.getByTestId('boton-derecho-lcd').textContent).toBe('✓  Ya reparado')
+    expect(screen.getByTestId('boton-derecho-lcd')).toHaveClass('text-[11px]', 'font-bold', 'text-verde-ok')
+    expect(screen.getByRole('button', { name: 'Sumar Pantalla' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Restar Pantalla' })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'SKU de Pantalla' })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'Reutilizado Pantalla' })).toBeDisabled()
+  })
+
+  it('fila nueva activa en edición: fondo normal, sin "✓ Guardar fila"; con el SKU a 0, "+" deshabilitado', () => {
+    const activa = pintarFila(reducir(estadoEditar(), { tipo: 'SUMAR', prefijo: 'cam' }), 'cam')
+    expect(screen.getByTestId('fila-cam')).toHaveAttribute('data-estado', 'normal')
+    expect(screen.getByTestId('contador-cam')).toHaveTextContent('1')
+    expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
+    expect(screen.getByTestId('stock-cam').textContent).toBe('4')
+    activa.unmount()
+    const sinStock = { ...agrupados(), cam: [componente({ idCom: 121, tipo: 'cami13', stock: 0, stockMinimo: 1 })] }
+    pintarFila(estadoEditar({ agrupados: sinStock }), 'cam')
+    expect(screen.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
+  })
+
+  it('fila ya reparada de un tipo sin SKU para el modelo elegido: se pinta yaReparado (verde), no sinSku (gris atenuado)', () => {
+    // Se edita una pantalla del modelo 14 (idCom 112, lcdi14); el chasis "ya reparado" es de OTRO modelo (chai13negro,
+    // idCom 131, el único SKU del grupo 'cha' — no hay ninguno para el modelo 14): sus opciones para ese modelo están
+    // vacías (filaSinSku), pero la fila sigue siendo "ya reparada" y debe pintarse como tal, no como "sin SKU".
+    pintarFila(estadoEditar({ detalle: detalleEdicion({ idCom: 112 }), yaReparados: [131] }), 'cha')
+    const fila = screen.getByTestId('fila-cha')
+    expect(fila).toHaveAttribute('data-estado', 'yaReparado')
+    expect(fila).toHaveClass('bg-fila-reparado-bg', 'border-fila-reparado-brd')
+    expect(fila).not.toHaveClass('opacity-40')
+    expect(screen.getByTestId('boton-derecho-cha').textContent).toBe('✓  Ya reparado')
   })
 })

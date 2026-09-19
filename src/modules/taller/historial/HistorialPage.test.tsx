@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
@@ -8,12 +8,20 @@ import { AppLayout } from '@/app/shell/AppLayout'
 // eslint-disable-next-line no-restricted-imports -- el recorrido cerrar sesión → entrar con otro usuario necesita la pantalla de login real.
 import { LoginPage } from '@/app/login/LoginPage'
 import { server } from '@/test/server'
-import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { CLAVE_TECNICOS_ACTIVOS } from '../api'
-import { glass, resumen, tecnico } from '../test/fabrica'
+import { FormularioEditarRuta } from '../formulario/rutas'
+import { handlersFormulario } from '../formulario/test/handlers'
+import { borradorEnReposo } from '../formulario/useBorrador'
+import { detalleEdicion, glass, resumen, tecnico } from '../test/fabrica'
 import { HistorialPage } from './HistorialPage'
+
+afterEach(async () => {
+  cleanup()
+  await borradorEnReposo()
+})
 
 const filas = [
   resumen({ idRep: 'R20260916_6', imei: '358800000000131', modelo: '14', nombreTecnico: 'tecnico_i', idTec: 5, nombreTecnicoAsigna: 'Técnico M', fechaAsig: '2026-09-16T07:00:00', fechaFin: '2026-09-16T07:00:00', tipoComponente: 'otroi14', observaciones: 'cerrar' }),
@@ -221,7 +229,6 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await screen.findByText('R20260915_133')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('R20260915_133') })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['Editar', 'Borrar', '📋  Copiar celda', 'Cancelar incidencia'])
-    expect(screen.getByRole('menuitem', { name: 'Editar' })).toHaveAttribute('aria-disabled', 'true')
     await userEvent.click(screen.getByRole('menuitem', { name: 'Borrar' }))
     const dlg = await screen.findByRole('dialog', { name: 'Borrar reparación' })
     expect(within(dlg).getByText('Se borrará R20260915_133. Los componentes usados volverán a stock y, si resolvía una incidencia, esta quedará activa de nuevo. Escribe el motivo.')).toBeInTheDocument()
@@ -234,22 +241,45 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Borrar' }))
     expect(await screen.findByRole('dialog', { name: 'No se puede borrar' })).toHaveTextContent('Esta reparación está siendo referenciada. La reparación R20260910_1 apunta a esta. Bórrala primero.')
   })
-  it('el tooltip de "Editar" deshabilitado va en un envoltorio que recibe el hover (el ítem deshabilitado lleva pointer-events-none)', async () => {
-    abrir()
-    await screen.findByText('R20260915_133')
-    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('R20260915_133') })
+  it('"Editar" navega a /reparaciones/historial/editar/<idRep> (y /glass/ en la pestaña Glass), sin confirmación previa y sin tooltip', async () => {
+    const hija = [{ path: 'editar/:idRep', element: <p>FORMULARIO EDITAR</p> }]
+    const rep = renderConRouter([{ path: '/reparaciones/historial', element: <HistorialPage tipo="REPARACION" />, children: hija }], { sesion: SESION_SUPER, ruta: '/reparaciones/historial' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('R20260915_133') })
     const editar = await screen.findByRole('menuitem', { name: 'Editar' })
-    expect(editar).toHaveAttribute('aria-disabled', 'true')
-    expect(editar).toHaveAttribute('data-disabled')
-    const conTooltip = screen.getByTitle('Disponible con el formulario de reparación (siguiente entrega)')
-    expect(conTooltip).not.toBe(editar)
-    expect(editar.parentElement).toBe(conTooltip)
-    // HTML válido: el ítem es un <div role="menuitem"> (bloque) y no puede ir dentro de un <span> (en línea).
-    expect(conTooltip.tagName).toBe('DIV')
-    // jsdom no aplica el CSS: se comprueba por clase que ni el envoltorio ni sus ancestros anulan los eventos del puntero.
-    expect(conTooltip.closest('[class*="pointer-events-none"]')).toBeNull()
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Editar', 'Borrar', '📋  Copiar celda', 'Cancelar incidencia'])
+    expect(editar).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByTitle('Disponible con el formulario de reparación (siguiente entrega)')).not.toBeInTheDocument()
+    await userEvent.click(editar)
+    expect(rep.router.state.location.pathname).toBe('/reparaciones/historial/editar/R20260915_133')
+    expect(await screen.findByText('FORMULARIO EDITAR')).toBeInTheDocument()
+    expect(screen.getByText('R20260915_133')).toBeInTheDocument()
+    rep.unmount()
+
+    server.use(http.get('*/api/glass/historial', () => HttpResponse.json([resumen({ idRep: 'G20260916_3', tipoComponente: 'gi13', fechaFin: '2026-09-16T09:00:00' })])))
+    const gl = renderConRouter([{ path: '/reparaciones/historial/glass', element: <HistorialPage tipo="GLASS" />, children: hija }], { sesion: SESION_SUPER, ruta: '/reparaciones/historial/glass' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('G20260916_3') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar' }))
+    expect(gl.router.state.location.pathname).toBe('/reparaciones/historial/glass/editar/G20260916_3')
   })
+
+  it('"Editar" abre el formulario sobre la tabla y al cerrarlo se recarga el historial', async () => {
+    let cargas = 0
+    server.use(...handlersFormulario({ detalle: detalleEdicion({ imei: '351900000000041' }) }))
+    server.use(http.get('*/api/reparaciones/historial', () => { cargas++; return HttpResponse.json(filas) }))
+    const { router } = renderConRouter(
+      [{ path: '/reparaciones/historial', element: <HistorialPage tipo="REPARACION" />, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="historial" /> }] }],
+      { sesion: SESION_SUPER, ruta: '/reparaciones/historial' },
+    )
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('R20260915_133') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar' }))
+    expect(await screen.findByRole('dialog', { name: 'Editar reparación — R20260915_133' })).toBeInTheDocument()
+    // La tabla sigue montada debajo del diálogo.
+    expect(screen.getAllByText('R20260916_6').length).toBeGreaterThan(0)
+    const antes = cargas
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/historial'))
+    await waitFor(() => expect(cargas).toBeGreaterThan(antes))
+  })
+
   it('"Añadir incidencia": técnicos activos, reparador preseleccionado, botón habilitado con comentario y POST', async () => {
     let body: unknown = null
     server.use(http.post('*/api/reparaciones/R20260916_6/incidencia', async ({ request }) => { body = await request.json(); return new HttpResponse(null, { status: 201 }) }))

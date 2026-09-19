@@ -1,12 +1,12 @@
 import { useReducer } from 'react'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderConProviders, SESION_TEC } from '@/test/render'
+import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { agrupados } from '../test/fabrica'
-import { estadoInicial, reducir, type DatosNuevo } from './estado'
+import { agrupados, detalleEdicion } from '../test/fabrica'
+import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type DatosEditar, type DatosNuevo } from './estado'
 import { conRegistro, type LlamadaRegistrada } from './test/handlers'
 import { fechaGuardado, useGuardado } from './useGuardado'
 
@@ -252,5 +252,103 @@ describe('useGuardado · "Terminar asignación" en curso bloquea guardar fila y 
     expect(escrituras(llamadas)).toEqual([
       { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3', idAsignacion: 'A20260916_1', categoria: null } },
     ])
+  })
+})
+
+const DATOS_EDITAR: DatosEditar = { modo: 'editar', idRep: 'R20260916_5', detalle: detalleEdicion(), agrupados: agrupados(), yaReparados: [], accionesYaReparadas: [] }
+
+/** Arnés mínimo: el reductor real, el hook y botones que despachan lo que en la vista hacen las filas. */
+function ArnesEdicion({ datos, onGuardado }: { datos: DatosEditar; onGuardado: () => void }) {
+  const [estado, dispatch] = useReducer(reducir, datos, estadoInicial)
+  const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado })
+  const ultima = estado.otros[estado.otros.length - 1]
+  return (
+    <>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar bat</button>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'mc' })}>sumar mc</button>
+      <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir acción</button>
+      <button onClick={() => ultima && dispatch({ tipo: 'ESCRIBIR_ACCION', id: ultima.id, texto: 'Limpieza interna' })}>escribir acción</button>
+      {zonaGuardarVisible(estado) && <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>}
+    </>
+  )
+}
+function montarEdicion(datos: DatosEditar = DATOS_EDITAR) {
+  const registro = conRegistro()
+  server.use(...registro.handlers)
+  const onGuardado = vi.fn()
+  renderConProviders(<ArnesEdicion datos={datos} onGuardado={onGuardado} />, { sesion: SESION_SUPER })
+  return { ...registro, onGuardado }
+}
+// `pulsar(nombre)` ya existe en este fichero desde la Task 15 (clic en el botón con ese nombre): se reutiliza, no se redeclara.
+
+describe('useGuardado — "Guardar cambios" (modo edición)', () => {
+  it('"Guardar cambios" → "✓  Confirmar terminar" → PUT y, con filas y acciones nuevas, dos POST completa en ese orden con el idTec original', async () => {
+    const { llamadas, onGuardado } = montarEdicion()
+    await pulsar('sumar bat')
+    await pulsar('sumar cam')
+    await pulsar('añadir acción')
+    await pulsar('escribir acción')
+    expect(screen.getByTestId('guardar').textContent).toBe('Guardar cambios')
+    await userEvent.click(screen.getByTestId('guardar'))
+    expect(screen.getByTestId('guardar').textContent).toBe('✓  Confirmar terminar')
+    expect(llamadas).toHaveLength(0)
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+    // `conRegistro` anota `metodo` en mayúsculas y `ruta` = pathname.
+    expect(llamadas.map((l) => `${l.metodo} ${l.ruta}`)).toEqual([
+      'PUT /api/reparaciones/R20260916_5',
+      'POST /api/reparaciones/completa',
+      'POST /api/reparaciones/completa',
+    ])
+    expect(llamadas[0].cuerpo).toEqual({ idComNuevo: 101, esReutilizadoNuevo: false, observacionNueva: null, nNuevas: 2, updatedAt: '2026-09-16T07:02:00' })
+    // Sesión: supertécnico con idTec 3. El trabajo nuevo va a nombre del técnico ORIGINAL (4), sin asignación ni incidencia.
+    expect(llamadas[1].cuerpo).toMatchObject({ imei: '355400000000111', idTec: 4, idAsignacion: null, idRepAnterior: null, categoria: null, filas: [{ idCom: 121, cantidad: 1, reutilizado: false, prefijo: 'cam', esSolicitud: false }] })
+    expect(llamadas[2].cuerpo).toMatchObject({ imei: '355400000000111', idTec: 4, idAsignacion: null, idRepAnterior: null, categoria: null, filas: [{ idCom: 161, cantidad: 0, prefijo: 'otro', observacion: 'Limpieza interna' }] })
+  })
+
+  it('edición de una G…: completa lleva categoria "G"', async () => {
+    const { llamadas, onGuardado } = montarEdicion({ ...DATOS_EDITAR, idRep: 'G20260916_3', detalle: detalleEdicion({ idCom: 141 }) })
+    await pulsar('sumar mc')
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+    expect(llamadas).toHaveLength(1)
+    expect(llamadas[0].cuerpo).toMatchObject({ categoria: 'G', idTec: 4, idAsignacion: null, filas: [{ idCom: 151, prefijo: 'mc' }] })
+  })
+
+  it('409: aviso literal de dos líneas, no se cierra, y hacen falta otros dos clics con el texto aún en "✓  Confirmar terminar"', async () => {
+    const { llamadas, onGuardado } = montarEdicion()
+    server.use(http.put('*/api/reparaciones/R20260916_5', () => HttpResponse.json({ message: 'El registro fue modificado por otro usuario' }, { status: 409 })))
+    await pulsar('sumar bat')
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText(/otro usuario modificó/).textContent).toBe('No se pudo guardar: otro usuario modificó esta reparación.\nCierra y vuelve a abrir el formulario para ver los cambios actuales.')
+    expect(onGuardado).not.toHaveBeenCalled()
+    expect(llamadas).toHaveLength(0)
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByTestId('guardar').textContent).toBe('✓  Confirmar terminar')
+    server.use(http.put('*/api/reparaciones/R20260916_5', () => new HttpResponse(null, { status: 204 })))
+    await userEvent.click(screen.getByTestId('guardar'))
+    expect(onGuardado).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+  })
+
+  it('otro error: "No se pudo guardar: <mensaje>"; lo ya hecho no se deshace y los pasos siguientes no se ejecutan', async () => {
+    const { llamadas, onGuardado } = montarEdicion()
+    server.use(http.post('*/api/reparaciones/completa', () => HttpResponse.json({ message: 'Stock insuficiente para cami13' }, { status: 422 })))
+    await pulsar('sumar bat')
+    await pulsar('sumar cam')
+    await pulsar('añadir acción')
+    await pulsar('escribir acción')
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText(/No se pudo guardar/).textContent).toBe('No se pudo guardar: Stock insuficiente para cami13')
+    // El PUT (paso 1) llegó al registro; el completa que falló lo atendió el handler de arriba y el de acciones no salió.
+    expect(llamadas.map((l) => `${l.metodo} ${l.ruta}`)).toEqual(['PUT /api/reparaciones/R20260916_5'])
+    expect(onGuardado).not.toHaveBeenCalled()
   })
 })

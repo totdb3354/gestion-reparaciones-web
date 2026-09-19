@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Outlet, useNavigate } from 'react-router'
 import { descargarCsv } from '@/shared/lib/csv'
 import type { Patron } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
@@ -16,7 +17,7 @@ import { PildoraContador } from '@/shared/ui/PildoraContador'
 import { RangoFechas } from '@/shared/ui/RangoFechas'
 import { TogglePill } from '@/shared/ui/TogglePill'
 import { useHistorial, useTecnicos } from '../api'
-import { MenuHistorial } from '../componentes/MenuHistorial'
+import { MenuHistorial, type AccionesHistorial } from '../componentes/MenuHistorial'
 import { TITULOS_BORRAR, useAccionesTrabajo } from '../componentes/useAccionesTrabajo'
 import { filtroImeiHistorial, filtrosHistorial } from '../estado'
 import { estadoIncidencia, etiquetaContador, pasaFechas, pasaImeis, pasaIncidencias, pasaPieza, pasaTecnico, type EstadoIncidencia } from '../lib/filtros'
@@ -38,6 +39,9 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
   // seleccionada (el JavaFX hace select(i); scrollTo(i); requestFocus() en cada clic).
   const [peticionDesplazamiento, setPeticionDesplazamiento] = useState(0)
   const { acciones, dialogos } = useAccionesTrabajo({ tituloBorrar: TITULOS_BORRAR.historial, avisoReferencia: 'Esta reparación está siendo referenciada' })
+  const navigate = useNavigate()
+  const listaBase = tipo === 'GLASS' ? '/reparaciones/historial/glass' : '/reparaciones/historial'
+  const accionesMenu: AccionesHistorial = { ...acciones, editar: (rep) => void navigate(`${listaBase}/editar/${rep.idRep}`) }
 
   const piezas = useMemo(() => [...new Set(data.map((r) => categoriaPieza(r.tipoComponente)).filter((c) => c !== ''))].sort((a, b) => a.localeCompare(b, 'es')), [data])
   const visibles = useMemo(() => {
@@ -95,10 +99,11 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         // la lista entre las columnas copiables: ReparacionControllerSuperTecnico.textoDeCelda no tiene ese case).
         // Sí lo es en el Agrupado de IMEIs (Task 18), que reutiliza este mismo textoCeldaTrabajo: se suprime aquí,
         // en la llamada, en vez de en la función compartida.
-        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, patronFechas)} puedeEditar={puedeEditar} acciones={acciones} />}
+        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, patronFechas)} puedeEditar={puedeEditar} acciones={accionesMenu} />}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
       {dialogos}
+      <Outlet />
     </div>
   )
 }

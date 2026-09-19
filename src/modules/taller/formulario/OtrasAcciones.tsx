@@ -10,6 +10,8 @@ export function OtrasAcciones({ estado, dispatch, onGuardarAccion }: Props) {
   const ultimoCampo = useRef<HTMLInputElement | null>(null)
   const enfocarNueva = useRef(false)
   const total = estado.otros.length
+  // En edición las líneas no tienen "✓ Guardar": las acciones se guardan con "Guardar cambios".
+  const enEdicion = estado.modo === 'editar'
   useEffect(() => {
     if (!enfocarNueva.current) return
     enfocarNueva.current = false
@@ -27,22 +29,24 @@ export function OtrasAcciones({ estado, dispatch, onGuardarAccion }: Props) {
       </div>
       <div className="flex flex-col items-start gap-2 px-3.5 pt-0.5 pb-3">
         <div className="flex max-h-[150px] min-h-[36px] w-full flex-col gap-[5px] overflow-y-auto rounded-[6px] border border-fila-sep bg-superficie p-[5px]">
-          {estado.otros.map((accion, i) => (
-            <div key={accion.id} data-testid={`accion-${i + 1}`} className="flex items-center gap-[5px]">
-              <input
-                ref={i === total - 1 ? ultimoCampo : undefined}
-                aria-label={`Descripción de la acción ${i + 1}`}
-                value={accion.texto}
-                // Mientras se guarda tampoco se escribe: lo enviado y lo que queda en pantalla deben ser lo mismo.
-                disabled={accion.guardada !== null || accion.guardando}
-                onChange={(e) => dispatch({ tipo: 'ESCRIBIR_ACCION', id: accion.id, texto: e.target.value })}
-                placeholder="Describe la acción"
-                className="min-w-0 flex-1 rounded border border-fila-sep bg-superficie px-2 py-1 text-[12px] disabled:opacity-60"
-              />
-              {accion.guardada !== null ? (
-                <span className="shrink-0 px-1 text-[11px] font-bold text-recibido-text">{`✓ Guardada ${accion.guardada.fecha}`}</span>
-              ) : (
-                <>
+          {estado.otros.map((accion, i) => {
+            const yaReparada = accion.origen === 'yaReparada'
+            const bloqueada = accion.guardada !== null || yaReparada
+            return (
+              <div key={accion.id} data-testid={`accion-${i + 1}`} className="flex items-center gap-[5px]">
+                <input
+                  ref={i === total - 1 ? ultimoCampo : undefined}
+                  aria-label={`Descripción de la acción ${i + 1}`}
+                  value={accion.texto}
+                  // Guardada o ya reparada: solo lectura. Mientras se guarda tampoco se escribe. La acción EDITADA sí es editable.
+                  disabled={bloqueada || accion.guardando}
+                  onChange={(e) => dispatch({ tipo: 'ESCRIBIR_ACCION', id: accion.id, texto: e.target.value })}
+                  placeholder="Describe la acción"
+                  className="min-w-0 flex-1 rounded border border-fila-sep bg-superficie px-2 py-1 text-[12px] disabled:opacity-60"
+                />
+                {accion.guardada !== null && <span className="shrink-0 px-1 text-[11px] font-bold text-recibido-text">{`✓ Guardada ${accion.guardada.fecha}`}</span>}
+                {yaReparada && <span className="shrink-0 px-1 text-[11px] font-bold text-recibido-text">✓ Ya reparada</span>}
+                {!bloqueada && !enEdicion && (
                   <button
                     type="button"
                     disabled={accion.texto.trim() === '' || accion.guardando}
@@ -51,13 +55,16 @@ export function OtrasAcciones({ estado, dispatch, onGuardarAccion }: Props) {
                   >
                     {accion.confirmando ? '✓ Confirmar' : '✓ Guardar'}
                   </button>
+                )}
+                {/* La papelera solo existe en las líneas nuevas sin guardar: la acción editada no se puede quitar. */}
+                {!bloqueada && accion.origen === 'nueva' && (
                   <button type="button" aria-label="Quitar acción" onClick={() => dispatch({ tipo: 'QUITAR_ACCION', id: accion.id })} className="shrink-0 cursor-pointer bg-transparent px-1 py-0.5">
                     <img src="/borrar.png" alt="" className="h-[18px] w-[18px]" />
                   </button>
-                </>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            )
+          })}
         </div>
         <button
           type="button"

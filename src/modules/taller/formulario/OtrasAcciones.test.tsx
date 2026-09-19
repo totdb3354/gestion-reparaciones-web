@@ -3,8 +3,8 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { renderConProviders } from '@/test/render'
-import { agrupados } from '../test/fabrica'
-import { estadoInicial, reducir, type DatosNuevo, type EstadoFormulario } from './estado'
+import { agrupados, detalleEdicion } from '../test/fabrica'
+import { estadoInicial, reducir, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
 import { OtrasAcciones } from './OtrasAcciones'
 
 const DATOS: DatosNuevo = { modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000111', agrupados: agrupados(), solicitudes: [], incidencia: null, modeloTelefono: null }
@@ -102,5 +102,43 @@ describe('OtrasAcciones (ficha docs/paridad/formulario.md · Otras acciones)', (
     expect(pendiente.getByRole('button', { name: '✓ Guardar' })).toBeEnabled()
     expect(pendiente.getByRole('button', { name: 'Quitar acción' })).toBeInTheDocument()
     expect(screen.getByTestId('otras-acciones-badge')).toHaveTextContent('2')
+  })
+})
+
+function estadoEdicion(parcial: Partial<DatosEditar> = {}): EstadoFormulario {
+  return estadoInicial({ modo: 'editar', idRep: 'R20260916_5', detalle: detalleEdicion(), agrupados: agrupados(), yaReparados: [], accionesYaReparadas: ['Limpieza de conector'], ...parcial })
+}
+const pintarAcciones = (estado: EstadoFormulario) => renderConProviders(<OtrasAcciones estado={estado} dispatch={vi.fn()} onGuardarAccion={vi.fn()} />)
+const lineaDe = (valor: string) => screen.getByDisplayValue(valor).closest('[data-testid^="accion-"]') as HTMLElement
+
+describe('OtrasAcciones — modo edición', () => {
+  it('acción ya reparada: campo deshabilitado, "✓ Ya reparada", sin papelera ni "✓ Guardar", y cuenta en el badge', () => {
+    pintarAcciones(estadoEdicion())
+    const linea = lineaDe('Limpieza de conector')
+    expect(within(linea).getByRole('textbox')).toBeDisabled()
+    expect(within(linea).getByText('✓ Ya reparada')).toHaveClass('text-[11px]', 'font-bold', 'text-recibido-text')
+    expect(within(linea).queryByRole('button', { name: 'Quitar acción' })).not.toBeInTheDocument()
+    expect(within(linea).queryByRole('button', { name: '✓ Guardar' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('otras-acciones-badge')).toHaveTextContent('1')
+  })
+
+  it('editar una acción "otro": línea precargada y editable, sin papelera ni "✓ Guardar"; ninguna fila está en edición', () => {
+    const estado = estadoEdicion({ detalle: detalleEdicion({ idCom: 161, cantidad: 0, observacion: 'Cambio de tornillos' }), accionesYaReparadas: [] })
+    expect(estado.filas.some((f) => f.rol === 'editada')).toBe(false)
+    pintarAcciones(estado)
+    const linea = lineaDe('Cambio de tornillos')
+    expect(within(linea).getByRole('textbox')).toBeEnabled()
+    expect(within(linea).queryByRole('button', { name: 'Quitar acción' })).not.toBeInTheDocument()
+    expect(within(linea).queryByRole('button', { name: '✓ Guardar' })).not.toBeInTheDocument()
+  })
+
+  it('acción nueva en edición: con papelera y sin "✓ Guardar" (se guarda con "Guardar cambios")', () => {
+    let estado = reducir(estadoEdicion({ accionesYaReparadas: [] }), { tipo: 'ANADIR_ACCION' })
+    estado = reducir(estado, { tipo: 'ESCRIBIR_ACCION', id: estado.otros[estado.otros.length - 1].id, texto: 'Limpieza interna' })
+    pintarAcciones(estado)
+    const linea = lineaDe('Limpieza interna')
+    expect(within(linea).getByRole('button', { name: 'Quitar acción' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '✓ Guardar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '✓ Confirmar' })).not.toBeInTheDocument()
   })
 })

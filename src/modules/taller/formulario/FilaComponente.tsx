@@ -4,7 +4,10 @@ import { Checkbox } from '@/shared/ui/checkbox'
 import { ComboNavy } from '@/shared/ui/ComboNavy'
 import { claseStock } from '../lib/piezas'
 import { DialogoObservacionFila } from './DialogoObservacionFila'
-import { botonDerecho, filaSinSku, stockDe, type AccionFormulario, type BotonDerecho, type EstadoFormulario, type FilaEstado } from './estado'
+import {
+  botonDerecho, filaEditadaInvalida, filaSinSku, previsionStock, stockDe,
+  type AccionFormulario, type BotonDerecho, type EstadoFormulario, type FilaEstado, type PrevisionStock,
+} from './estado'
 
 type Props = { estado: EstadoFormulario; fila: FilaEstado; dispatch: Dispatch<AccionFormulario>; onGuardarFila: (prefijo: string) => void; children?: ReactNode }
 
@@ -19,17 +22,22 @@ const CLASES_ESTADO: Record<EstadoFila, string> = {
   yaReparado: 'bg-fila-reparado-bg border-fila-reparado-brd',
 }
 
+/** El orden reconcilia con `botonDerecho` (estado.ts): una fila "ya reparada" se pinta así aunque su tipo no tenga SKU
+ *  para el modelo elegido (opciones vacías) — la reparación es de OTRO modelo del mismo tipo, no de este. */
 function estadoDeFila(fila: FilaEstado): EstadoFila {
+  if (fila.rol === 'yaReparado') return 'yaReparado'
   if (fila.guardada !== null) return 'guardada'
   if (filaSinSku(fila)) return 'sinSku'
   if (fila.rol === 'editada') return 'editada'
-  if (fila.rol === 'yaReparado') return 'yaReparado'
   return 'normal'
 }
 
 /** Etiqueta deshabilitada del botón derecho ("✓ Guardada …", "⚠ En camino", "✓ Recibido"): 11 px, radio 0, padding 4 10, con sus
  *  colores aunque esté disabled. */
 const CLASE_ETIQUETA = 'h-[27px] rounded-none px-2.5 py-1 text-[11px]'
+
+/** Previsión de stock de la fila editada ("5 → 4"): rojo si baja, verde si sube, gris si queda igual. */
+const COLOR_TENDENCIA: Record<PrevisionStock['tendencia'], string> = { baja: 'text-rojo-cancelar', sube: 'text-verde-ok', igual: 'text-azul-gris' }
 
 function BotonDerechoFila({ boton, prefijo, onGuardarFila }: { boton: BotonDerecho; prefijo: string; onGuardarFila: (prefijo: string) => void }) {
   const testid = `boton-derecho-${prefijo}`
@@ -64,8 +72,10 @@ function BotonDerechoFila({ boton, prefijo, onGuardarFila }: { boton: BotonDerec
           ✓ Recibido
         </button>
       )
-    // 'yaReparado' pendiente de la Task 18.
-    default:
+    case 'yaReparado':
+      // whitespace-pre conserva los dos espacios del literal; entre llaves para que el formateador no los toque.
+      return <span data-testid={testid} className="px-2.5 text-[11px] font-bold whitespace-pre text-verde-ok">{'✓  Ya reparado'}</span>
+    case 'ninguno':
       return null
   }
 }
@@ -79,13 +89,16 @@ export function FilaComponente({ estado, fila, dispatch, onGuardarFila, children
   const estadoFila = estadoDeFila(fila)
   const inerte = estadoFila === 'sinSku' || estadoFila === 'guardada'
   const stock = stockDe(fila)
+  // Edición: un cambio que deja la fila editada a 0 sin "Reutilizado" no se puede guardar → contador en rojo y negrita.
+  const invalida = fila.rol === 'editada' && filaEditadaInvalida(estado)
+  const prevision = previsionStock(estado, fila)
   const clasesMasMenos = 'h-[18px] w-[35px] cursor-pointer rounded-none bg-gris-borde p-0 text-[14px] leading-none font-bold text-gris-disabled disabled:cursor-default disabled:opacity-40'
 
   return (
     <div data-testid={`fila-${prefijo}`} data-estado={estadoFila} className={cn('border-b', CLASES_ESTADO[estadoFila])}>
       <div className="flex min-h-[37px] items-center">
         <div className="flex w-[70px] shrink-0 items-center">
-          <span data-testid={`contador-${prefijo}`} className={cn('w-[34px] text-center font-[family-name:Inter,system-ui,sans-serif] text-[20px] font-normal', fila.cantidad > 0 ? 'text-texto-incidencia' : 'text-gris-borde')}>
+          <span data-testid={`contador-${prefijo}`} className={cn('w-[34px] text-center font-[family-name:Inter,system-ui,sans-serif] text-[20px] font-normal', invalida ? 'font-bold text-rojo-cancelar' : fila.cantidad > 0 ? 'text-texto-incidencia' : 'text-gris-borde')}>
             {fila.cantidad}
           </span>
           <div className="flex w-[35px] flex-col">
@@ -107,7 +120,9 @@ export function FilaComponente({ estado, fila, dispatch, onGuardarFila, children
             disabled={inerte || !fila.controles.sku}
           />
         </div>
-        <span data-testid={`stock-${prefijo}`} className="w-[70px] shrink-0 px-2.5 text-center text-[12px]">{stock ?? '—'}</span>
+        <span data-testid={`stock-${prefijo}`} className={cn('w-[70px] shrink-0 px-2.5 text-center text-[12px]', prevision !== null && ['font-bold', COLOR_TENDENCIA[prevision.tendencia]])}>
+          {prevision !== null ? prevision.texto : (stock ?? '—')}
+        </span>
         <label className="flex w-[110px] shrink-0 items-center gap-1.5 px-2.5 text-[12px]">
           <Checkbox
             aria-label={`Reutilizado ${tipo}`}

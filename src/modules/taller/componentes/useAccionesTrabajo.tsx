@@ -23,7 +23,7 @@ type Opciones = {
 /** Acciones del menú de un trabajo del historial y sus diálogos, compartidas por HistorialPage e ImeiDetallePage:
  *  borrar (comprobación de referencia → aviso "No se puede borrar", o ConfirmDialog con motivo → DELETE),
  *  añadir incidencia (DialogoIncidencia → POST; "No se pudo guardar: <msg>" si falla) y cancelar incidencia (ConfirmDialog → DELETE). */
-export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones): { acciones: AccionesHistorial; dialogos: ReactNode } {
+export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones): { acciones: Omit<AccionesHistorial, 'editar'>; dialogos: ReactNode } {
   const { mostrarError, mostrarAviso } = useAlerta()
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
   const [aCancelar, setACancelar] = useState<ReparacionResumen | null>(null)
@@ -45,7 +45,7 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
     }
   }
 
-  const acciones: AccionesHistorial = { borrar: (r) => void pedirBorrado(r), anadirIncidencia: setConIncidencia, cancelarIncidencia: setACancelar }
+  const acciones: Omit<AccionesHistorial, 'editar'> = { borrar: (r) => void pedirBorrado(r), anadirIncidencia: setConIncidencia, cancelarIncidencia: setACancelar }
   const dialogos = (
     <>
       <ConfirmDialog abierto={aBorrar !== null} conMotivo titulo={tituloBorrar} descripcion={aBorrar ? descripcionBorrado(aBorrar.idRep) : ''} textoAccion={tituloBorrar}
