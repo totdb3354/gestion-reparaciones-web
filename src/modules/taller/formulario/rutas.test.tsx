@@ -187,10 +187,10 @@ describe('FormularioEditarRuta — cierre y "Salir sin guardar"', () => {
     await cerrar()
     await waitFor(() => expect(glass.router.state.location.pathname).toBe('/reparaciones/historial/glass'))
     glass.unmount()
-    const imei = abrirRutaEditar('/reparaciones/imeis/359900000000999/editar/R20260916_5')
+    const imei = abrirRutaEditar('/reparaciones/imeis/355400000000999/editar/R20260916_5')
     await screen.findByRole('dialog', { name: 'Editar reparación — R20260916_5' })
     await cerrar()
-    await waitFor(() => expect(imei.router.state.location.pathname).toBe('/reparaciones/imeis/359900000000999'))
+    await waitFor(() => expect(imei.router.state.location.pathname).toBe('/reparaciones/imeis/355400000000999'))
   })
 
   it('cerrar sin cambios cierra sin preguntar y restaura el title', async () => {
