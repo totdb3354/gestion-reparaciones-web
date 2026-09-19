@@ -94,39 +94,45 @@ export function useCargaEditar(idRep: string): UseQueryResult<DatosEditar> {
 // conexión lo avisa igualmente el mecanismo global. NINGUNA invalida nada: mientras el formulario está abierto la lista de
 // debajo no se toca; se recarga al cerrar (useRecargarAlCerrar).
 
-/** "✓ Guardar fila" y "✓ Guardar" de una acción. Devuelve el idRep generado ('?' si el servidor no lo da). */
-export function useGuardarFila(): UseMutationResult<string, unknown, { idAsignacion: string; cuerpo: GuardarFilaRequest }> {
-  return useMutation<string, unknown, { idAsignacion: string; cuerpo: GuardarFilaRequest }>({
-    mutationFn: async ({ idAsignacion, cuerpo }) => {
-      const { data } = await api.POST('/api/reparaciones/{idAsignacion}/filas', { params: { path: { idAsignacion } }, body: cuerpo })
+/** "✓ Guardar fila" y "✓ Guardar" de una acción. Devuelve el idRep generado ('?' si el servidor no lo da). `clave` es la
+ *  clave de idempotencia de la operación (reintentos seguros): el servidor devuelve el resultado de la primera ejecución
+ *  en vez de repetirla si se reenvía la misma. */
+export function useGuardarFila(): UseMutationResult<string, unknown, { idAsignacion: string; cuerpo: GuardarFilaRequest; clave: string }> {
+  return useMutation<string, unknown, { idAsignacion: string; cuerpo: GuardarFilaRequest; clave: string }>({
+    mutationFn: async ({ idAsignacion, cuerpo, clave }) => {
+      const { data } = await api.POST('/api/reparaciones/{idAsignacion}/filas', {
+        params: { path: { idAsignacion }, header: { 'Idempotency-Key': clave } }, body: cuerpo,
+      })
       return data?.value ?? '?'
     },
     meta: { silenciarError: true },
   })
 }
 
-export function useAgotarComponente(): UseMutationResult<void, unknown, { idAsignacion: string; cuerpo: AgotarRequest }> {
-  return useMutation<void, unknown, { idAsignacion: string; cuerpo: AgotarRequest }>({
-    mutationFn: async ({ idAsignacion, cuerpo }) => {
-      await api.POST('/api/reparaciones/{idAsignacion}/agotar-componente', { params: { path: { idAsignacion } }, body: cuerpo })
+export function useAgotarComponente(): UseMutationResult<void, unknown, { idAsignacion: string; cuerpo: AgotarRequest; clave: string }> {
+  return useMutation<void, unknown, { idAsignacion: string; cuerpo: AgotarRequest; clave: string }>({
+    mutationFn: async ({ idAsignacion, cuerpo, clave }) => {
+      await api.POST('/api/reparaciones/{idAsignacion}/agotar-componente', {
+        params: { path: { idAsignacion }, header: { 'Idempotency-Key': clave } }, body: cuerpo,
+      })
     },
     meta: { silenciarError: true },
   })
 }
 
-export function useCompleta(): UseMutationResult<void, unknown, InsertarCompletaRequest> {
-  return useMutation<void, unknown, InsertarCompletaRequest>({
-    mutationFn: async (cuerpo) => {
-      await api.POST('/api/reparaciones/completa', { body: cuerpo })
+export function useCompleta(): UseMutationResult<void, unknown, { cuerpo: InsertarCompletaRequest; clave: string }> {
+  return useMutation<void, unknown, { cuerpo: InsertarCompletaRequest; clave: string }>({
+    mutationFn: async ({ cuerpo, clave }) => {
+      await api.POST('/api/reparaciones/completa', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })
     },
     meta: { silenciarError: true },
   })
 }
 
-export function useEditarReparacion(): UseMutationResult<void, unknown, { idRep: string; cuerpo: EditarReparacionRequest }> {
-  return useMutation<void, unknown, { idRep: string; cuerpo: EditarReparacionRequest }>({
-    mutationFn: async ({ idRep, cuerpo }) => {
-      await api.PUT('/api/reparaciones/{idRep}', { params: { path: { idRep } }, body: cuerpo })
+export function useEditarReparacion(): UseMutationResult<void, unknown, { idRep: string; cuerpo: EditarReparacionRequest; clave: string }> {
+  return useMutation<void, unknown, { idRep: string; cuerpo: EditarReparacionRequest; clave: string }>({
+    mutationFn: async ({ idRep, cuerpo, clave }) => {
+      await api.PUT('/api/reparaciones/{idRep}', { params: { path: { idRep }, header: { 'Idempotency-Key': clave } }, body: cuerpo })
     },
     meta: { silenciarError: true },
   })

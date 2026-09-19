@@ -90,6 +90,17 @@ describe('useGuardado · guardar fila', () => {
     expect(screen.queryByText(/No se pudo guardar la fila/)).not.toBeInTheDocument()
     expect(leer()).toEqual({ confirmando: false, guardando: false, guardada: null })
   })
+
+  it('409 "la operación ya se está procesando" (reintento con la misma clave en curso) rehabilita la fila', async () => {
+    server.use(...conRegistro().handlers)
+    server.use(http.post('*/api/reparaciones/:idAsignacion/filas', () => HttpResponse.json({ message: 'La operación ya se está procesando' }, { status: 409 })))
+    renderConProviders(<ArnesFila />, { sesion: SESION_TEC })
+    await userEvent.click(screen.getByRole('button', { name: 'sumar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'guardar fila' }))
+    await userEvent.click(screen.getByRole('button', { name: 'guardar fila' }))
+    expect(await screen.findByText('No se pudo guardar la fila: La operación ya se está procesando')).toBeInTheDocument()
+    expect(leer()).toEqual({ confirmando: false, guardando: false, guardada: null })
+  })
 })
 
 /** Arnés para la primera acción "otro", la fila de batería y la zona de guardar (modelo 13: componente otroi13, idCom 161;
@@ -421,5 +432,198 @@ describe('useGuardado — "Guardar cambios" (modo edición)', () => {
     // El PUT (paso 1) llegó al registro; el completa que falló lo atendió el handler de arriba y el de acciones no salió.
     expect(llamadas.map((l) => `${l.metodo} ${l.ruta}`)).toEqual(['PUT /api/reparaciones/R20260916_5'])
     expect(onGuardado).not.toHaveBeenCalled()
+  })
+})
+
+// ── Claves de idempotencia: reintentos seguros ──────────────────────────────────────────────────────────────────────
+
+/** Arnés con dos filas independientes (bati13 idCom 101, cami13 idCom 121): sirve para comprobar que cada una guarda con
+ *  su propia clave, sin que se mezclen entre sí. */
+function ArnesFilas() {
+  const [estado, dispatch] = useReducer(reducir, DATOS, estadoInicial)
+  const { guardarFila } = useGuardado({ estado, dispatch, onGuardado: () => {} })
+  const bat = estado.filas.find((f) => f.prefijo === 'bat')
+  const cam = estado.filas.find((f) => f.prefijo === 'cam')
+  return (
+    <div>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar bat</button>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={() => guardarFila('bat')}>guardar bat</button>
+      <button onClick={() => guardarFila('cam')}>guardar cam</button>
+      <output data-testid="bat">{JSON.stringify({ guardando: bat?.guardando, guardada: bat?.guardada })}</output>
+      <output data-testid="cam">{JSON.stringify({ guardando: cam?.guardando, guardada: cam?.guardada })}</output>
+    </div>
+  )
+}
+
+describe('useGuardado · claves de idempotencia · guardar fila', () => {
+  it('el reintento con el mismo cuerpo reutiliza la clave; si el cuerpo cambia, clave nueva; otra fila usa otra clave', async () => {
+    const cabeceras: (string | null)[] = []
+    server.use(...conRegistro().handlers)
+    let intentos = 0
+    server.use(
+      http.post('*/api/reparaciones/:idAsignacion/filas', async ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        intentos++
+        if (intentos <= 2) return HttpResponse.json({ message: 'boom' }, { status: 500 })
+        return HttpResponse.json({ value: 'R20260916_9' }, { status: 201 })
+      }),
+    )
+    renderConProviders(<ArnesFilas />, { sesion: SESION_TEC })
+    // Primer intento: falla (500 → ConexionError). El literal propio de la fila no se añade (lo gestiona el
+    // mecanismo global), pero SÍ abre su diálogo de "Sin conexión": hay que cerrarlo para poder seguir interactuando.
+    await pulsar('sumar bat')
+    await pulsar('guardar bat')
+    await pulsar('guardar bat')
+    await waitFor(() => expect(cabeceras).toHaveLength(1))
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar' }))
+    // Reintento sin cambios: misma clave.
+    await pulsar('guardar bat')
+    await pulsar('guardar bat')
+    await waitFor(() => expect(cabeceras).toHaveLength(2))
+    expect(cabeceras[1]).toBe(cabeceras[0])
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar' }))
+    // El cuerpo cambia (otra unidad) antes de reintentar: clave nueva.
+    await pulsar('sumar bat')
+    await pulsar('guardar bat')
+    await pulsar('guardar bat')
+    await waitFor(() => expect(cabeceras).toHaveLength(3))
+    expect(cabeceras[2]).not.toBe(cabeceras[1])
+    // Guardado correcto (tercer intento del servidor). Otra fila (cam) usa otra clave.
+    await waitFor(() => expect(JSON.parse(screen.getByTestId('bat').textContent ?? '{}').guardada).not.toBeNull())
+    await pulsar('sumar cam')
+    await pulsar('guardar cam')
+    await pulsar('guardar cam')
+    await waitFor(() => expect(cabeceras).toHaveLength(4))
+    expect(cabeceras[3]).not.toBe(cabeceras[2])
+  })
+})
+
+/** Arnés de "Terminar asignación" con dos filas que ya tienen su agotado local confirmado (sin registrar: "Confirmar
+ *  agotado" solo procede en `sinStock` o `límite`, así que primero hay que sumar hasta el stock: 1 para lcdi13, 2 para
+ *  chai13negro) y una tercera fila activa normal (cam): sin ella `planTerminar` no envía "completa" (solo agotados =
+ *  asignación queda abierta). */
+function ArnesTerminarDosAgotados({ onGuardado }: { onGuardado: () => void }) {
+  const [estado, dispatch] = useReducer(reducir, DATOS, estadoInicial)
+  const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado })
+  const agotarLcd = () => {
+    dispatch({ tipo: 'SUMAR', prefijo: 'lcd' })
+    dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'Sin stock' })
+  }
+  const agotarCha = () => {
+    dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
+    dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
+    dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'cha', descripcion: 'Sin stock' })
+  }
+  return (
+    <div>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={agotarLcd}>agotar lcd</button>
+      <button onClick={agotarCha}>agotar cha</button>
+      <button onClick={pulsarGuardar}>terminar</button>
+    </div>
+  )
+}
+
+describe('useGuardado · claves de idempotencia · terminar', () => {
+  it('con dos agotados, si "completa" falla y se reintenta, los agotados no se reenvían y las dos peticiones "completa" comparten clave', async () => {
+    const cabecerasCompleta: (string | null)[] = []
+    const llamadasAgotar: string[] = []
+    server.use(...conRegistro().handlers)
+    server.use(
+      http.post('*/api/reparaciones/:idAsignacion/agotar-componente', ({ request }) => {
+        llamadasAgotar.push(new URL(request.url).pathname)
+        return new HttpResponse(null, { status: 201 })
+      }),
+    )
+    let fallaCompleta = true
+    server.use(
+      http.post('*/api/reparaciones/completa', ({ request }) => {
+        cabecerasCompleta.push(request.headers.get('Idempotency-Key'))
+        if (fallaCompleta) {
+          fallaCompleta = false
+          return HttpResponse.json({ message: 'boom' }, { status: 500 })
+        }
+        return new HttpResponse(null, { status: 201 })
+      }),
+    )
+    const onGuardado = vi.fn()
+    renderConProviders(<ArnesTerminarDosAgotados onGuardado={onGuardado} />, { sesion: SESION_TEC })
+    await pulsar('sumar cam')
+    await pulsar('agotar lcd')
+    await pulsar('agotar cha')
+    await pulsar('terminar')
+    await pulsar('terminar')
+    await waitFor(() => expect(cabecerasCompleta).toHaveLength(1))
+    expect(llamadasAgotar).toHaveLength(2)
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar' }))
+    // Reintento: FALLO_GUARDADO deja clics en 0, hacen falta otros dos clics.
+    await pulsar('terminar')
+    await pulsar('terminar')
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+    expect(llamadasAgotar).toHaveLength(2) // los agotados, ya registrados localmente, no se reenvían
+    expect(cabecerasCompleta).toHaveLength(2)
+    expect(cabecerasCompleta[1]).toBe(cabecerasCompleta[0])
+  })
+})
+
+describe('useGuardado · claves de idempotencia · guardar cambios (edición)', () => {
+  it('con filas y acciones nuevas, si el paso de las acciones falla y se reintenta, el paso de las filas se reenvía con su misma clave y el de las acciones con la suya', async () => {
+    const cabeceras: (string | null)[] = []
+    // `montarEdicion` registra sus propios handlers por defecto con `server.use`: el de "completa" que captura las
+    // cabeceras se registra DESPUÉS (gana el último `server.use`), no antes.
+    const { onGuardado } = montarEdicion()
+    let intentos = 0
+    server.use(
+      http.post('*/api/reparaciones/completa', ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        intentos++
+        if (intentos === 2) return HttpResponse.json({ message: 'boom' }, { status: 500 })
+        return new HttpResponse(null, { status: 201 })
+      }),
+    )
+    await pulsar('sumar cam')
+    await pulsar('añadir acción')
+    await pulsar('escribir acción')
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(cabeceras).toHaveLength(2))
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar' }))
+    // El paso de las acciones (2.º) falló: FALLO_GUARDADO deja clics en 0.
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+    expect(cabeceras).toHaveLength(4)
+    expect(cabeceras[2]).toBe(cabeceras[0]) // paso "filas nuevas" reenviado con la misma clave
+    expect(cabeceras[3]).toBe(cabeceras[1]) // paso "acciones nuevas" reintentado con su propia clave
+    expect(cabeceras[0]).not.toBe(cabeceras[1])
+  })
+
+  it('con una fila editada, el PUT reintentado tras un fallo lleva la misma clave', async () => {
+    const cabeceras: (string | null)[] = []
+    server.use(...conRegistro().handlers)
+    let falla = true
+    server.use(
+      http.put('*/api/reparaciones/:idRep', ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        if (falla) {
+          falla = false
+          return HttpResponse.json({ message: 'boom' }, { status: 500 })
+        }
+        return new HttpResponse(null, { status: 200 })
+      }),
+    )
+    const onGuardado = vi.fn()
+    renderConProviders(<ArnesEdicion datos={DATOS_EDITAR} onGuardado={onGuardado} />, { sesion: SESION_SUPER })
+    await pulsar('sumar bat')
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(cabeceras).toHaveLength(1))
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar' }))
+    await userEvent.click(screen.getByTestId('guardar'))
+    await userEvent.click(screen.getByTestId('guardar'))
+    await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
+    expect(cabeceras).toHaveLength(2)
+    expect(cabeceras[1]).toBe(cabeceras[0])
   })
 })

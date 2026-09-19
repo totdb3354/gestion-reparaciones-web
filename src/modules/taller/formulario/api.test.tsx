@@ -210,14 +210,16 @@ describe('mutaciones del formulario', () => {
     server.use(...handlers)
     const cuerpo = { filas: [fila], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3' }
     const m = renderHook(() => useGuardarFila(), { wrapper })
-    await expect(m.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo })).resolves.toBe('R20260916_9')
+    await expect(m.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo, clave: 'clave-fila-1' })).resolves.toBe('R20260916_9')
     expect(llamadas).toEqual([{ metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/filas', cuerpo }])
   })
   it('useGuardarFila devuelve "?" si el servidor no da id', async () => {
     const { wrapper } = envoltorio(SESION_TEC)
     server.use(http.post('*/api/reparaciones/:idAsignacion/filas', () => HttpResponse.json({ value: null }, { status: 201 })))
     const m = renderHook(() => useGuardarFila(), { wrapper })
-    await expect(m.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { filas: [fila], imei: '355400000000111', idTec: 4, idRepAnterior: null } })).resolves.toBe('?')
+    await expect(
+      m.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { filas: [fila], imei: '355400000000111', idTec: 4, idRepAnterior: null }, clave: 'clave-fila-2' }),
+    ).resolves.toBe('?')
   })
   it('useCompleta, useAgotarComponente y useEditarReparacion envían el cuerpo tal cual, en el orden en que se llaman', async () => {
     const { wrapper } = envoltorio(SESION_SUPER)
@@ -229,9 +231,9 @@ describe('mutaciones del formulario', () => {
     const a = renderHook(() => useAgotarComponente(), { wrapper })
     const c = renderHook(() => useCompleta(), { wrapper })
     const e = renderHook(() => useEditarReparacion(), { wrapper })
-    await a.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: agotar })
-    await c.result.current.mutateAsync(completa)
-    await e.result.current.mutateAsync({ idRep: 'R20260916_5', cuerpo: editar })
+    await a.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: agotar, clave: 'clave-agotar' })
+    await c.result.current.mutateAsync({ cuerpo: completa, clave: 'clave-completa' })
+    await e.result.current.mutateAsync({ idRep: 'R20260916_5', cuerpo: editar, clave: 'clave-editar' })
     expect(llamadas).toEqual([
       { metodo: 'POST', ruta: '/api/reparaciones/A20260916_1/agotar-componente', cuerpo: agotar },
       { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: completa },
@@ -252,16 +254,54 @@ describe('mutaciones del formulario', () => {
     const c = renderHook(() => useCompleta(), { wrapper })
     const e = renderHook(() => useEditarReparacion(), { wrapper })
     const errores = await Promise.all([
-      g.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { filas: [fila], imei: '355400000000111', idTec: 4, idRepAnterior: null } }).catch((x: unknown) => x),
-      a.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { idCom: 121, cantidad: 0, descripcion: null } }).catch((x: unknown) => x),
-      c.result.current.mutateAsync({ filas: [], imei: '355400000000111', idTec: 4, idRepAnterior: null, idAsignacion: 'A20260916_1', categoria: null }).catch((x: unknown) => x),
-      e.result.current.mutateAsync({ idRep: 'R20260916_5', cuerpo: { idComNuevo: 101, esReutilizadoNuevo: false, observacionNueva: null, nNuevas: 1, updatedAt: '2026-09-16T07:02:00' } }).catch((x: unknown) => x),
+      g.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { filas: [fila], imei: '355400000000111', idTec: 4, idRepAnterior: null }, clave: 'clave-fila' }).catch((x: unknown) => x),
+      a.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { idCom: 121, cantidad: 0, descripcion: null }, clave: 'clave-agotar' }).catch((x: unknown) => x),
+      c.result.current
+        .mutateAsync({ cuerpo: { filas: [], imei: '355400000000111', idTec: 4, idRepAnterior: null, idAsignacion: 'A20260916_1', categoria: null }, clave: 'clave-completa' })
+        .catch((x: unknown) => x),
+      e.result.current
+        .mutateAsync({ idRep: 'R20260916_5', cuerpo: { idComNuevo: 101, esReutilizadoNuevo: false, observacionNueva: null, nNuevas: 1, updatedAt: '2026-09-16T07:02:00' }, clave: 'clave-editar' })
+        .catch((x: unknown) => x),
     ])
     for (const err of errores) {
       expect(err).toBeInstanceOf(StaleDataError)
       expect((err as Error).message).toBe('La asignación ya fue completada')
     }
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('las cuatro mutaciones envían la cabecera Idempotency-Key con la clave recibida', async () => {
+    const { wrapper } = envoltorio(SESION_TEC)
+    server.use(...conRegistro().handlers)
+    const cabeceras: (string | null)[] = []
+    server.use(
+      http.post('*/api/reparaciones/completa', ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        return new HttpResponse(null, { status: 201 })
+      }),
+      http.post('*/api/reparaciones/:idAsignacion/filas', ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        return HttpResponse.json({ value: 'R20260916_9' }, { status: 201 })
+      }),
+      http.post('*/api/reparaciones/:idAsignacion/agotar-componente', ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        return new HttpResponse(null, { status: 201 })
+      }),
+      http.put('*/api/reparaciones/:idRep', ({ request }) => {
+        cabeceras.push(request.headers.get('Idempotency-Key'))
+        return new HttpResponse(null, { status: 200 })
+      }),
+    )
+    const g = renderHook(() => useGuardarFila(), { wrapper })
+    const a = renderHook(() => useAgotarComponente(), { wrapper })
+    const c = renderHook(() => useCompleta(), { wrapper })
+    const e = renderHook(() => useEditarReparacion(), { wrapper })
+    await g.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { filas: [fila], imei: '355400000000111', idTec: 4, idRepAnterior: null }, clave: 'clave-fila' })
+    await a.result.current.mutateAsync({ idAsignacion: 'A20260916_1', cuerpo: { idCom: 121, cantidad: 4, descripcion: null }, clave: 'clave-agotar' })
+    await c.result.current.mutateAsync({ cuerpo: { filas: [], imei: '355400000000111', idTec: 4, idRepAnterior: null, idAsignacion: 'A20260916_1', categoria: null }, clave: 'clave-completa' })
+    await e.result.current.mutateAsync({
+      idRep: 'R20260916_5', cuerpo: { idComNuevo: 101, esReutilizadoNuevo: false, observacionNueva: null, nNuevas: 1, updatedAt: '2026-09-16T07:02:00' }, clave: 'clave-editar',
+    })
+    expect(cabeceras).toEqual(['clave-fila', 'clave-agotar', 'clave-completa', 'clave-editar'])
   })
 })
 

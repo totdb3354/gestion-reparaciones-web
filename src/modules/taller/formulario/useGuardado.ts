@@ -3,6 +3,7 @@ import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { useAgotarComponente, useCompleta, useEditarReparacion, useGuardarFila } from './api'
+import { crearClavesIdempotencia } from './clavesIdempotencia'
 import {
   accionPideConfirmacion, cuerpoGuardarAccion, cuerpoGuardarFila, planGuardarCambios, planTerminar, reducir,
   type AccionFormulario, type EstadoFormulario,
@@ -37,6 +38,8 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
   // Re-entrada en "terminar": el JavaFX llamaba al servidor en el hilo de la interfaz (nunca dos veces a la vez); aquí
   // un doble clic muy rápido podría invocar `terminar` dos veces antes de que `INICIO_GUARDADO` se refleje en `estado`.
   const enVuelo = useRef(false)
+  // Una instancia por formulario abierto: sobrevive a los renders (no se recrea) y vive lo que dure el formulario.
+  const claves = useRef(crearClavesIdempotencia()).current
 
   function avisar(e: unknown, literal: string) {
     if (!esErrorGestionadoGlobalmente(e)) mostrarError(literal)
@@ -44,8 +47,12 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
 
   async function ejecutarGuardarFila(idAsignacion: string, prefijo: string) {
     dispatch({ tipo: 'INICIO_GUARDAR_FILA', prefijo })
+    const cuerpo = cuerpoGuardarFila(estado, prefijo, idTecSesion)
+    const operacion = `fila:${prefijo}`
+    const clave = claves.para(operacion, cuerpo)
     try {
-      const idRep = await guardarFilaMut.mutateAsync({ idAsignacion, cuerpo: cuerpoGuardarFila(estado, prefijo, idTecSesion) })
+      const idRep = await guardarFilaMut.mutateAsync({ idAsignacion, cuerpo, clave })
+      claves.hecha(operacion)
       dispatch({ tipo: 'FILA_GUARDADA', prefijo, idRep, fecha: fechaGuardado(new Date()) })
     } catch (e) {
       dispatch({ tipo: 'FALLO_GUARDAR_FILA', prefijo })
@@ -70,8 +77,11 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     const cuerpo = cuerpoGuardarAccion(estado, id, idTecSesion)
     if (cuerpo === null) return
     dispatch({ tipo: 'INICIO_GUARDAR_ACCION', id })
+    const operacion = `accion:${id}`
+    const clave = claves.para(operacion, cuerpo)
     try {
-      const idRep = await guardarFilaMut.mutateAsync({ idAsignacion, cuerpo })
+      const idRep = await guardarFilaMut.mutateAsync({ idAsignacion, cuerpo, clave })
+      claves.hecha(operacion)
       dispatch({ tipo: 'ACCION_GUARDADA', id, idRep, fecha: fechaGuardado(new Date()) })
     } catch (e) {
       dispatch({ tipo: 'FALLO_GUARDAR_ACCION', id })
@@ -104,8 +114,11 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     for (;;) {
       const agotado = planTerminar(actual, idTecSesion).agotados[0]
       if (agotado === undefined) break
+      const operacionAgotado = `agotar:${agotado.prefijo}`
+      const claveAgotado = claves.para(operacionAgotado, agotado.cuerpo)
       try {
-        await agotarMut.mutateAsync({ idAsignacion, cuerpo: agotado.cuerpo })
+        await agotarMut.mutateAsync({ idAsignacion, cuerpo: agotado.cuerpo, clave: claveAgotado })
+        claves.hecha(operacionAgotado)
       } catch (e) {
         dispatch({ tipo: 'FALLO_GUARDADO' })
         const inicio = e instanceof StaleDataError ? 'No se pudo registrar componente agotado' : 'Error al registrar componente agotado'
@@ -120,8 +133,10 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     }
     const completa = planTerminar(actual, idTecSesion).completa
     if (completa !== null) {
+      const claveCompleta = claves.para('completa', completa)
       try {
-        await completaMut.mutateAsync(completa)
+        await completaMut.mutateAsync({ cuerpo: completa, clave: claveCompleta })
+        claves.hecha('completa')
       } catch (e) {
         dispatch({ tipo: 'FALLO_GUARDADO' })
         const base = `No se pudo guardar: ${mensajeDeError(e)}`
@@ -140,21 +155,29 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
 
   /** "Guardar cambios", en el orden de la referencia: (0) acción editada, (1) fila editada, (2) filas nuevas, (3) acciones
    *  nuevas, (4) cerrar. Lo ya hecho no se deshace si un paso posterior falla. Los cuerpos salen de planGuardarCambios:
-   *  las filas y acciones nuevas conservan el técnico ORIGINAL (idTec del detalle) y van sin idAsignacion. */
+   *  las filas y acciones nuevas conservan el técnico ORIGINAL (idTec del detalle) y van sin idAsignacion.
+   *  `claves.hecha` de los cuatro pasos se retrasa hasta que la llamada ENTERA sale bien: el plan se recalcula desde
+   *  cero en cada intento y, si un paso posterior falla, el reintento reenvía TODOS los pasos del plan (no hay marca de
+   *  "paso ya hecho" fuera de las claves) — así que un paso que ya tuvo éxito debe conservar su clave para el reenvío;
+   *  olvidarla en el momento del éxito le daría una clave nueva y duplicaría su escritura en el servidor. */
   async function guardarCambios(idRep: string) {
     dispatch({ tipo: 'INICIO_GUARDADO' })
     const plan = planGuardarCambios(estado)
     try {
-      if (plan.editarAccion) await editarMut.mutateAsync({ idRep, cuerpo: plan.editarAccion })
-      if (plan.editarFila) await editarMut.mutateAsync({ idRep, cuerpo: plan.editarFila })
-      if (plan.completaFilas) await completaMut.mutateAsync(plan.completaFilas)
-      if (plan.completaAcciones) await completaMut.mutateAsync(plan.completaAcciones)
+      if (plan.editarAccion) await editarMut.mutateAsync({ idRep, cuerpo: plan.editarAccion, clave: claves.para('editarAccion', plan.editarAccion) })
+      if (plan.editarFila) await editarMut.mutateAsync({ idRep, cuerpo: plan.editarFila, clave: claves.para('editarFila', plan.editarFila) })
+      if (plan.completaFilas) await completaMut.mutateAsync({ cuerpo: plan.completaFilas, clave: claves.para('completaFilas', plan.completaFilas) })
+      if (plan.completaAcciones) await completaMut.mutateAsync({ cuerpo: plan.completaAcciones, clave: claves.para('completaAcciones', plan.completaAcciones) })
     } catch (e) {
       // clics = 0 y enCurso = false; el texto sigue en "✓  Confirmar terminar" y hacen falta otros dos clics.
       dispatch({ tipo: 'FALLO_GUARDADO' })
       avisar(e, e instanceof StaleDataError ? MSG_409_EDICION : `No se pudo guardar: ${mensajeDeError(e)}`)
       return
     }
+    if (plan.editarAccion) claves.hecha('editarAccion')
+    if (plan.editarFila) claves.hecha('editarFila')
+    if (plan.completaFilas) claves.hecha('completaFilas')
+    if (plan.completaAcciones) claves.hecha('completaAcciones')
     dispatch({ tipo: 'GUARDADO_COMPLETADO' })
     try {
       await antesDeCerrar?.()
