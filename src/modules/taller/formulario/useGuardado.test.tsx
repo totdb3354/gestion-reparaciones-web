@@ -92,17 +92,22 @@ describe('useGuardado · guardar fila', () => {
   })
 })
 
-/** Arnés para la primera acción "otro" y para la zona de guardar (modelo 13: componente otroi13, idCom 161). */
+/** Arnés para la primera acción "otro", la fila de batería y la zona de guardar (modelo 13: componente otroi13, idCom 161;
+ *  bati13, idCom 101). */
 function ArnesAccion({ onGuardado, antesDeCerrar }: { onGuardado: () => void; antesDeCerrar?: () => Promise<void> }) {
   const [estado, dispatch] = useReducer(reducir, DATOS, estadoInicial)
-  const { guardarAccion, pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado, antesDeCerrar })
+  const { guardarAccion, guardarFila, pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado, antesDeCerrar })
   const accion = estado.otros[0]
+  const bat = estado.filas.find((f) => f.prefijo === 'bat')
   return (
     <div>
+      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar</button>
+      <button onClick={() => guardarFila('bat')}>guardar fila</button>
       <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir</button>
       <button onClick={() => accion && dispatch({ tipo: 'ESCRIBIR_ACCION', id: accion.id, texto: '  Limpieza de conector  ' })}>escribir</button>
       <button onClick={() => accion && guardarAccion(accion.id)}>guardar acción</button>
       <button onClick={pulsarGuardar}>terminar</button>
+      <output data-testid="bat">{JSON.stringify({ confirmando: bat?.confirmandoGuardar, guardando: bat?.guardando, guardada: bat?.guardada })}</output>
       <output data-testid="accion">{JSON.stringify(accion ? { confirmando: accion.confirmando, guardando: accion.guardando, guardada: accion.guardada } : null)}</output>
       <output data-testid="guardado">{JSON.stringify(estado.guardado)}</output>
     </div>
@@ -192,5 +197,60 @@ describe('useGuardado · guardar acción y terminar', () => {
     expect(screen.queryByText(/No se pudo guardar/)).not.toBeInTheDocument()
     expect(leerGuardado()).toEqual({ clics: 0, textoConfirmacion: true, enCurso: false })
     expect(onGuardado).not.toHaveBeenCalled()
+  })
+})
+
+const FILA_BAT = { idCom: 101, cantidad: 1, reutilizado: false, observacion: null, prefijo: 'bat', esSolicitud: false, descripcionSolicitud: null, estadoSolicitud: null, enCamino: false }
+
+/** Sostiene el POST de "completa" abierto hasta que el test llama a `soltar()`, y anota la llamada en `llamadas` al
+ *  resolverse (igual que hace `conRegistro`, pero este handler la sustituye por delante: gana el registrado en último lugar). */
+function completaEnVuelo(llamadas: LlamadaRegistrada[]) {
+  let soltar: () => void = () => {}
+  const puerta = new Promise<void>((resolve) => { soltar = resolve })
+  server.use(http.post('*/api/reparaciones/completa', async ({ request }) => {
+    const cuerpo = await request.json()
+    await puerta
+    llamadas.push({ metodo: request.method, ruta: new URL(request.url).pathname, cuerpo })
+    return new HttpResponse(null, { status: 201 })
+  }))
+  return () => soltar()
+}
+
+describe('useGuardado · "Terminar asignación" en curso bloquea guardar fila y guardar acción por separado', () => {
+  it('"✓ Guardar fila" no añade su propio POST /filas mientras "completa" está en vuelo: la fila ya viaja dentro', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    const soltar = completaEnVuelo(llamadas)
+    renderConProviders(<ArnesAccion onGuardado={() => {}} />, { sesion: SESION_TEC })
+    await pulsar('sumar')
+    await pulsar('terminar')
+    await pulsar('terminar')
+    // "completa" está en vuelo (guardado.enCurso = true): dos clics sobre "✓ Guardar fila" de esa misma fila no deben
+    // añadir un POST /filas aparte (duplicaría el descuento de stock en el servidor).
+    await pulsar('guardar fila')
+    await pulsar('guardar fila')
+    soltar()
+    await waitFor(() => expect(escrituras(llamadas).some((l) => l.ruta.endsWith('/completa'))).toBe(true))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas: [FILA_BAT], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3', idAsignacion: 'A20260916_1', categoria: null } },
+    ])
+  })
+
+  it('"✓ Guardar" de una acción no añade su propio POST /filas mientras "completa" está en vuelo', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    const soltar = completaEnVuelo(llamadas)
+    renderConProviders(<ArnesAccion onGuardado={() => {}} />, { sesion: SESION_TEC })
+    await pulsar('añadir')
+    await pulsar('escribir')
+    await pulsar('terminar')
+    await pulsar('terminar')
+    await pulsar('guardar acción')
+    await pulsar('guardar acción')
+    soltar()
+    await waitFor(() => expect(escrituras(llamadas).some((l) => l.ruta.endsWith('/completa'))).toBe(true))
+    expect(escrituras(llamadas)).toEqual([
+      { metodo: 'POST', ruta: '/api/reparaciones/completa', cuerpo: { filas: [FILA_ACCION], imei: '355400000000111', idTec: 4, idRepAnterior: 'R20260910_3', idAsignacion: 'A20260916_1', categoria: null } },
+    ])
   })
 })

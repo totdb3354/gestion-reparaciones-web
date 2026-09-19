@@ -1,4 +1,4 @@
-import type { Dispatch } from 'react'
+import { useRef, type Dispatch } from 'react'
 import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
@@ -27,6 +27,9 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
   const completaMut = useCompleta()
   // En flujo nuevo y glass el servidor toma el técnico del token; el contrato exige el campo y se envía el de la sesión.
   const idTecSesion = sesion?.idTec ?? 0
+  // Re-entrada en "terminar": el JavaFX llamaba al servidor en el hilo de la interfaz (nunca dos veces a la vez); aquí
+  // un doble clic muy rápido podría invocar `terminar` dos veces antes de que `INICIO_GUARDADO` se refleje en `estado`.
+  const enVuelo = useRef(false)
 
   function avisar(e: unknown, literal: string) {
     if (!esErrorGestionadoGlobalmente(e)) mostrarError(literal)
@@ -44,6 +47,9 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
   }
 
   function guardarFila(prefijo: string) {
+    // Mientras "Terminar asignación" está en curso, la fila activa ya viaja dentro de su `completa`: guardarla aparte
+    // aquí duplicaría la escritura en el servidor (el JavaFX no podía solaparlas: llamaba en el hilo de la interfaz).
+    if (estado.guardado.enCurso) return
     const fila = estado.filas.find((f) => f.prefijo === prefijo)
     if (!fila || fila.guardando || fila.guardada !== null || estado.idAsignacion === null) return
     if (!fila.confirmandoGuardar) {
@@ -67,6 +73,8 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
   }
 
   function guardarAccion(id: number) {
+    // Mismo motivo que en guardarFila: la acción pendiente ya viaja dentro del `completa` de "Terminar asignación".
+    if (estado.guardado.enCurso) return
     const accion = estado.otros.find((a) => a.id === id)
     if (!accion || accion.guardando || accion.guardada !== null || estado.idAsignacion === null) return
     // Lo decide el estado: primer clic, o primer clic tras un fallo (el texto sigue en "✓ Confirmar" pero `pideOtroClic`
@@ -131,7 +139,13 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     }
     // "Guardar cambios" (modo editar) se ejecuta con planGuardarCambios cuando exista la ruta de edición.
     if (estado.modo === 'editar' || estado.idAsignacion === null) return
-    void terminar(estado.idAsignacion)
+    // Cinturón además de estado.guardado.enCurso: protege el intervalo entre el clic y el primer re-render con
+    // INICIO_GUARDADO ya reflejado (un doble clic no debe lanzar `terminar` dos veces en paralelo).
+    if (enVuelo.current) return
+    enVuelo.current = true
+    void terminar(estado.idAsignacion).finally(() => {
+      enVuelo.current = false
+    })
   }
 
   return { pulsarGuardar, guardarFila, guardarAccion }
