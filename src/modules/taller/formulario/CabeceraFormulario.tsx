@@ -38,6 +38,12 @@ export function CabeceraFormulario({ estado, conflicto, dispatch, onCerrar }: Pr
           {`⚠ Resuelve incidencia: ${estado.incidencia}`}
         </div>
       )}
+      {estado.borradorRecuperado && (
+        // #E3F2FD / #1565C0: mismos hexadecimales que los tokens tipo-reparacion-* (decisión 5 del plan: se reutilizan).
+        <div data-testid="banda-borrador" className="w-full bg-tipo-reparacion-bg px-4 py-1 text-[11px] font-bold text-tipo-reparacion-text">
+          ✓ Borrador recuperado
+        </div>
+      )}
     </>
   )
 }

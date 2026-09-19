@@ -1,12 +1,20 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderConRouter, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { asignacionActiva, solicitudAsignacion } from '../test/fabrica'
+import { asignacionActiva, reparacion, solicitudAsignacion } from '../test/fabrica'
 import { FormularioReparacion } from './FormularioReparacion'
 import { conRegistro, type EscenarioFormulario, type LlamadaRegistrada } from './test/handlers'
+import { borradorEnReposo } from './useBorrador'
+
+// Red de seguridad: se desmonta AQUÍ (con los handlers de MSW todavía activos) y se espera el volcado del desmontaje.
+// Este afterEach corre antes que el de src/test/setup.ts (los hooks "after" van en orden inverso al de registro).
+afterEach(async () => {
+  cleanup()
+  await borradorEnReposo()
+})
 
 const TITULO = 'Nueva reparación — IMEI 355400000000111'
 
@@ -429,5 +437,109 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     expect(aviso.textContent).toBe('No se pudo guardar: Stock insuficiente para lcdi14')
     await cerrarAviso()
     expect(onCerrar).not.toHaveBeenCalled()
+  })
+})
+
+const BORRADOR_BAT_2 = JSON.stringify({
+  modelo: '13',
+  filas: [{ prefijo: 'bat', idCom: 101, cantidad: 2, reutilizado: false, solicitudNueva: false, agotadoConfirmado: false, guardada: false }],
+  otros: [],
+})
+const BORRADOR_BAT_GUARDADA = JSON.stringify({
+  modelo: '13',
+  filas: [{ prefijo: 'bat', idCom: 101, cantidad: 1, reutilizado: false, solicitudNueva: false, agotadoConfirmado: false, guardada: true, idRepGenerado: 'R20260916_5', fechaGuardado: '16/09 09:15' }],
+  otros: [],
+})
+
+function abrirNuevo(escenario: EscenarioFormulario = {}) {
+  const registro = conRegistro({ modeloTelefono: '13', ...escenario })
+  server.use(...registro.handlers)
+  const onCerrar = vi.fn()
+  const vista = renderConProviders(<FormularioReparacion modo="nuevo" idAsignacion="A20260916_1" onCerrar={onCerrar} />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/reparar/A20260916_1' })
+  return { ...vista, ...registro, onCerrar }
+}
+/** `conRegistro` anota `metodo` en mayúsculas (`request.method`), `ruta` = pathname y `cuerpo` = JSON recibido (null en un DELETE). */
+const delBorrador = (llamadas: LlamadaRegistrada[]) => llamadas.filter((l) => l.ruta.endsWith('/borrador'))
+const contenidoDe = (l: LlamadaRegistrada) => JSON.parse((l.cuerpo as { contenido: string }).contenido) as { filas: Record<string, unknown>[]; otros: Record<string, unknown>[] }
+// `botonZona()` ya existe en este fichero desde la Task 15 (el botón de data-testid="zona-guardar"): se reutiliza, no se redeclara.
+
+describe('FormularioReparacion — borrador persistente', () => {
+  it('F5 o acceso directo recupera el borrador: banda "✓ Borrador recuperado" bajo los avisos y la fila con su cantidad', async () => {
+    abrirNuevo({ borrador: BORRADOR_BAT_2, incidencia: 'R20260910_1' })
+    const banda = await screen.findByTestId('banda-borrador')
+    expect(banda.textContent).toBe('✓ Borrador recuperado')
+    expect(banda).toHaveClass('bg-tipo-reparacion-bg', 'text-tipo-reparacion-text', 'text-[11px]', 'font-bold', 'w-full')
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('2')
+    // Justo debajo de la banda de incidencia.
+    expect(screen.getByTestId('banda-incidencia').compareDocumentPosition(banda) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('sin borrador, o con un borrador ilegible, no hay banda ni aviso', async () => {
+    const { unmount } = abrirNuevo({ borrador: null })
+    await screen.findByTestId('fila-bat')
+    expect(screen.queryByTestId('banda-borrador')).not.toBeInTheDocument()
+    unmount()
+    abrirNuevo({ borrador: '{esto no es json' })
+    await screen.findByTestId('fila-bat')
+    expect(screen.queryByTestId('banda-borrador')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+  })
+
+  it('✕ vuelca el borrador en ese momento (PUT) y cierra sin preguntar', async () => {
+    const { llamadas, onCerrar } = abrirNuevo()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    expect(onCerrar).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
+    expect(delBorrador(llamadas)[0]).toMatchObject({ metodo: 'PUT', ruta: '/api/reparaciones/A20260916_1/borrador' })
+    expect(contenidoDe(delBorrador(llamadas)[0]).filas).toEqual([expect.objectContaining({ prefijo: 'bat', idCom: 101, cantidad: 1 })])
+  })
+
+  it('✕ con el formulario vacío borra el borrador (DELETE)', async () => {
+    const { llamadas } = abrirNuevo()
+    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar formulario' }))
+    await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
+    expect(delBorrador(llamadas)[0]).toMatchObject({ metodo: 'DELETE', ruta: '/api/reparaciones/A20260916_1/borrador', cuerpo: null })
+  })
+
+  it('guardar una fila vuelca el borrador al momento, sin esperar los 2 s', async () => {
+    const { llamadas } = abrirNuevo()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    // waitFor espera 1 s como mucho: si el volcado dependiera del retardo de 2 s, no llegaría.
+    await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
+    expect(contenidoDe(delBorrador(llamadas)[0]).filas).toEqual([expect.objectContaining({ prefijo: 'bat', guardada: true, idRepGenerado: 'R20260916_9' })])
+  })
+
+  it('"Terminar asignación": el DELETE del borrador va después de completa y antes de cerrar, y al desmontar no se reescribe', async () => {
+    const { llamadas, onCerrar, unmount } = abrirNuevo()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(botonZona())
+    await userEvent.click(botonZona())
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    const orden = llamadas.map((l) => `${l.metodo} ${l.ruta}`)
+    const iCompleta = orden.indexOf('POST /api/reparaciones/completa')
+    expect(iCompleta).toBeGreaterThanOrEqual(0)
+    expect(orden.indexOf('DELETE /api/reparaciones/A20260916_1/borrador')).toBeGreaterThan(iCompleta)
+    unmount()
+    await borradorEnReposo()
+    // Lo último que se hizo con el borrador fue borrarlo: el desmontaje no lo reescribe.
+    expect(delBorrador(llamadas).at(-1)?.metodo).toBe('DELETE')
+  })
+
+  it('fila guardada que otro borró vuelve a editable y el borrador se reescribe; si sigue existiendo, queda bloqueada', async () => {
+    const primera = abrirNuevo({ borrador: BORRADOR_BAT_GUARDADA, reparacionesImei: [] })
+    await waitFor(() => expect(screen.getByTestId('fila-bat')).toHaveAttribute('data-estado', 'normal'))
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+    // El borrador queda vacío tras el desbloqueo → DELETE inmediato.
+    await waitFor(() => expect(delBorrador(primera.llamadas)).toHaveLength(1))
+    expect(delBorrador(primera.llamadas)[0].metodo).toBe('DELETE')
+    primera.unmount()
+    await borradorEnReposo()
+    abrirNuevo({ borrador: BORRADOR_BAT_GUARDADA, reparacionesImei: [reparacion({ idRep: 'R20260916_5' })] })
+    await waitFor(() => expect(screen.getByTestId('fila-bat')).toHaveAttribute('data-estado', 'guardada'))
+    expect(screen.getByTestId('boton-derecho-bat').textContent).toBe('✓ Guardada 16/09 09:15')
   })
 })

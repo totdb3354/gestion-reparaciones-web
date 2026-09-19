@@ -1,14 +1,22 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import type { RouteObject } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { renderConRouter, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { PendientesPage } from '../pendientes/PendientesPage'
 import { resumen } from '../test/fabrica'
 import { FormularioNuevoRuta } from './rutas'
 import { handlersFormulario } from './test/handlers'
+import { borradorEnReposo } from './useBorrador'
+
+// El formulario vuelca su borrador al desmontar: se desmonta aquí, con los handlers de MSW aún activos, y se espera.
+// Este afterEach corre antes que el de src/test/setup.ts (los hooks "after" van en orden inverso al de registro).
+afterEach(async () => {
+  cleanup()
+  await borradorEnReposo()
+})
 
 const TITULO = 'Nueva reparación — IMEI 355400000000111'
 const LISTA = '/reparaciones/pendientes'

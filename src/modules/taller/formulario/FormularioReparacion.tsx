@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
@@ -9,6 +9,7 @@ import { estadoInicial, filasVisibles, reducir, textoConflicto, tituloPestana } 
 import { FilaComponente } from './FilaComponente'
 import { OtrasAcciones } from './OtrasAcciones'
 import { SubFilaAgotado } from './SubFilaAgotado'
+import { useBorrador } from './useBorrador'
 import { useGuardado } from './useGuardado'
 import { ZonaGuardar } from './ZonaGuardar'
 
@@ -67,9 +68,17 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
   const [estado, dispatch] = useReducer(reducir, carga.datos, estadoInicial)
   const titulo = tituloPestana(estado)
   const conflicto = textoConflicto(carga.asignacionesActivas, carga.datos.idAsignacion, sesion?.idTec ?? null)
-  // Guardar (fila a fila, acción a acción, o "Terminar asignación") cierra el formulario igual que ✕: la recarga de la lista
-  // la hace el desmontaje.
-  const guardado = useGuardado({ estado, dispatch, onGuardado: onCerrar })
+  // Borrador: solo flujo nuevo y Glass (los únicos que llegan hoy a este componente; en edición el hook queda inactivo).
+  const { volcarAhora, descartar } = useBorrador({ estado, dispatch, borradorJson: carga.borradorJson, activo: estado.modo !== 'editar' })
+  /** ✕ y Escape: nunca pregunta. Vuelca el borrador YA (PUT, o DELETE si está vacío) y cierra sin esperar a la red; si esa
+   *  escritura falla, el volcado del desmontaje la reintenta una vez. Atrás del navegador solo desmonta. */
+  const cerrar = useCallback(() => {
+    void volcarAhora()
+    onCerrar()
+  }, [volcarAhora, onCerrar])
+  // Guardar de verdad ("Terminar asignación") no vuelca: BORRA el borrador (antesDeCerrar) y después cierra con el onCerrar
+  // de las props, no con `cerrar`. La recarga de la lista la sigue haciendo el desmontaje de FormularioNuevo.
+  const guardado = useGuardado({ estado, dispatch, onGuardado: onCerrar, antesDeCerrar: descartar })
 
   // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había.
   useEffect(() => {
@@ -81,7 +90,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
   }, [titulo])
 
   return (
-    <Dialog open onOpenChange={(abierto) => { if (!abierto) onCerrar() }}>
+    <Dialog open onOpenChange={(abierto) => { if (!abierto) cerrar() }}>
       {/* max-w-none y sm:max-w-none anulan el max-w y el sm:max-w-lg de DialogContent (tailwind-merge no descarta la variante
           con modificador si no se repite). Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕. */}
       <DialogContent
@@ -92,7 +101,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
         className="flex h-[calc(100vh-48px)] min-h-[700px] w-[calc(100vw-48px)] max-w-none min-w-[960px] flex-col gap-0 overflow-hidden rounded-none border-0 bg-fondo-vista p-0 sm:max-w-none"
       >
         <DialogTitle className="sr-only">{titulo}</DialogTitle>
-        <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={onCerrar} />
+        <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />
         <div className="flex border-b border-form-cabecera-brd bg-form-cabecera-bg">
           {COLUMNAS.map((c) => (
             <span key={c.texto} className={`${c.clase} shrink-0 px-2.5 py-1.5 text-[12px] text-azul-gris`}>
