@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
 import { useCargaNuevo, useRecargarAlCerrar, type CargaNuevo } from './api'
 import { CabeceraFormulario } from './CabeceraFormulario'
 import { estadoInicial, filasVisibles, reducir, textoConflicto, tituloPestana } from './estado'
+import { FilaComponente } from './FilaComponente'
+import { useGuardado } from './useGuardado'
 
 type Props =
   | { modo: 'nuevo' | 'glass'; idAsignacion: string; onCerrar: () => void }
@@ -62,6 +64,8 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
   const [estado, dispatch] = useReducer(reducir, carga.datos, estadoInicial)
   const titulo = tituloPestana(estado)
   const conflicto = textoConflicto(carga.asignacionesActivas, carga.datos.idAsignacion, sesion?.idTec ?? null)
+  // Guardar (fila a fila, o todo) cierra el formulario igual que ✕: la recarga de la lista la hace el desmontaje.
+  const guardado = useGuardado({ estado, dispatch, onGuardado: onCerrar })
 
   // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había.
   useEffect(() => {
@@ -94,11 +98,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaNuevo; onCerrar: (
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           {filasVisibles(estado) ? (
-            estado.filas.map((fila) => (
-              <div key={fila.prefijo} data-testid={`fila-${fila.prefijo}`} className="flex min-h-[37px] items-center border-b border-form-fila-brd bg-fondo-input px-2.5 text-[12px]">
-                {fila.nombre}
-              </div>
-            ))
+            estado.filas.map((fila) => <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila} />)
           ) : (
             <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
           )}

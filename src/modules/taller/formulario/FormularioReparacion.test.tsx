@@ -1,21 +1,28 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { HttpResponse, http } from 'msw'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConRouter, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { asignacionActiva } from '../test/fabrica'
 import { FormularioReparacion } from './FormularioReparacion'
-import { handlersFormulario, type EscenarioFormulario } from './test/handlers'
+import { conRegistro, type EscenarioFormulario, type LlamadaRegistrada } from './test/handlers'
 
 const TITULO = 'Nueva reparación — IMEI 355400000000111'
 
 /** Monta el formulario de la asignación A20260916_1 (IMEI 355400000000111, del técnico de SESION_TEC) sobre un data router. */
 function abrir(escenario: EscenarioFormulario = {}) {
   const onCerrar = vi.fn()
-  server.use(...handlersFormulario(escenario))
+  const { handlers, llamadas } = conRegistro(escenario)
+  server.use(...handlers)
   const r = renderConRouter([{ path: '/', element: <FormularioReparacion modo="nuevo" idAsignacion="A20260916_1" onCerrar={onCerrar} /> }], { sesion: SESION_TEC, ruta: '/' })
-  return { ...r, onCerrar }
+  return { ...r, onCerrar, llamadas }
 }
+
+/** Escrituras del formulario en orden, sin las del borrador. `conRegistro` anota `metodo` en mayúsculas (`request.method`), `ruta` =
+ *  pathname (`/api/reparaciones/...`) y `cuerpo` = JSON recibido (null si no hay): se comparan tal cual. */
+const escrituras = (llamadas: LlamadaRegistrada[]) =>
+  llamadas.filter((l) => !l.ruta.endsWith('/borrador'))
 
 async function elegirModelo(nombre: string) {
   await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
@@ -102,5 +109,85 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: TITULO })).toBeInTheDocument()
     expect(onCerrar).not.toHaveBeenCalled()
+  })
+})
+
+describe('FormularioReparacion · filas y "✓ Guardar fila"', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 16, 9, 15))
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('"✓ Guardar fila" → "✓ Confirmar" → POST con el cuerpo exacto; éxito: fila verde con "✓ Guardada dd/MM HH:mm" y controles deshabilitados', async () => {
+    const { llamadas } = abrir({ incidencia: 'R20260910_3' })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    const bat = within(screen.getByTestId('fila-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Confirmar')
+    expect(escrituras(llamadas)).toEqual([])
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await waitFor(() => expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Guardada 16/09 09:15'))
+    expect(screen.getByTestId('fila-bat')).toHaveAttribute('data-estado', 'guardada')
+    expect(bat.getByRole('button', { name: 'Sumar Batería' })).toBeDisabled()
+    expect(bat.getByRole('combobox', { name: 'SKU de Batería' })).toBeDisabled()
+    expect(escrituras(llamadas)).toEqual([
+      {
+        metodo: 'POST',
+        ruta: '/api/reparaciones/A20260916_1/filas',
+        cuerpo: {
+          filas: [{ idCom: 101, cantidad: 1, reutilizado: false, observacion: null, prefijo: 'bat', esSolicitud: false, descripcionSolicitud: null, estadoSolicitud: null, enCamino: false }],
+          imei: '355400000000111',
+          idTec: 4,
+          idRepAnterior: 'R20260910_3',
+        },
+      },
+    ])
+  })
+
+  it('cambiar algo tras el primer clic vuelve a "✓ Guardar fila" y no se llama al servidor', async () => {
+    const { llamadas } = abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    const bat = within(screen.getByTestId('fila-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Guardar fila')
+    expect(escrituras(llamadas)).toEqual([])
+  })
+
+  it('error 409: aviso "No se pudo guardar la fila: <mensaje del servidor>" y la fila sigue editable', async () => {
+    abrir()
+    server.use(http.post('*/api/reparaciones/:idAsignacion/filas', () => HttpResponse.json({ message: 'La asignación ya fue eliminada o completada' }, { status: 409 })))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    expect(await screen.findByText('No se pudo guardar la fila: La asignación ya fue eliminada o completada')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByTestId('fila-bat')).toHaveAttribute('data-estado', 'normal')
+    expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Guardar fila')
+    expect(screen.getByTestId('boton-derecho-bat')).toBeEnabled()
+    expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Sumar Batería' })).toBeEnabled()
+  })
+
+  it('mientras guarda el botón está deshabilitado', async () => {
+    abrir()
+    let soltar: () => void = () => {}
+    const puerta = new Promise<void>((resolve) => { soltar = resolve })
+    server.use(http.post('*/api/reparaciones/:idAsignacion/filas', async () => { await puerta; return HttpResponse.json({ value: 'R20260916_9' }) }))
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await userEvent.click(screen.getByTestId('boton-derecho-bat'))
+    await waitFor(() => expect(screen.getByTestId('boton-derecho-bat')).toBeDisabled())
+    expect(screen.getByTestId('boton-derecho-bat')).not.toHaveTextContent('Guardada')
+    soltar()
+    await waitFor(() => expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Guardada 16/09 09:15'))
   })
 })
