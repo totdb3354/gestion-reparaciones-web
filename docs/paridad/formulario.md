@@ -173,13 +173,13 @@ En flujo nuevo y Glass (llamadas con `idAsignacion`) el técnico de cada escritu
 | `GET /api/reparaciones/imei/{imei}` | → reparaciones del IMEI (se usa `idRep`) | Solo si el borrador trae algo guardado |
 | `PUT /api/reparaciones/{idAsignacion}/borrador` | `{contenido: "<json>"}` | Autoguardado a los 2 s y volcados inmediatos |
 | `DELETE /api/reparaciones/{idAsignacion}/borrador` | — | Borrador vacío; tras terminar |
-| `POST /api/reparaciones/{idAsignacion}/filas` | `{filas: [fila], imei, idRepAnterior?}` → `{value: <idRep>}` | "✓ Guardar fila" y "✓ Guardar" de acción. Asignación propia; si no, 403 |
-| `POST /api/reparaciones/{idAsignacion}/agotar-componente` | `{idCom, cantidad, descripcion?}` | Terminar: una por fila con agotado nuevo, antes de `completa`. Asignación propia; si no, 403 |
-| `POST /api/reparaciones/completa` | Terminar: `{filas, imei, idRepAnterior?, idAsignacion}`. Edición: `{filas, imei, idTec: <técnico original>, categoria?}` | Terminar (con `idAsignacion`: técnico del token y asignación propia; si no, 403); filas y acciones nuevas en edición (sin `idAsignacion`: solo SUPERTECNICO, se conserva el `idTec` enviado) |
+| `POST /api/reparaciones/{idAsignacion}/filas` | `{filas: [fila], imei, idRepAnterior?}` → `{value: <idRep>}`, cabecera `Idempotency-Key` | "✓ Guardar fila" y "✓ Guardar" de acción. Asignación propia; si no, 403 |
+| `POST /api/reparaciones/{idAsignacion}/agotar-componente` | `{idCom, cantidad, descripcion?}`, cabecera `Idempotency-Key` | Terminar: una por fila con agotado nuevo, antes de `completa`. Asignación propia; si no, 403 |
+| `POST /api/reparaciones/completa` | Terminar: `{filas, imei, idRepAnterior?, idAsignacion}`. Edición: `{filas, imei, idTec: <técnico original>, categoria?}`, cabecera `Idempotency-Key` | Terminar (con `idAsignacion`: técnico del token y asignación propia; si no, 403); filas y acciones nuevas en edición (sin `idAsignacion`: solo SUPERTECNICO, se conserva el `idTec` enviado) |
 | `GET /api/reparaciones/{idRep}/detalle-edicion` | → `{imei, idTec, idCom, esReutilizado, observacion, cantidad, updatedAt}` | Al abrir en edición |
 | `GET /api/reparaciones/imei/{imei}/ya-reparados?excluir={idRep}` | → `[idCom]` | Al abrir en edición |
 | `GET /api/reparaciones/imei/{imei}/acciones?categoria=R\|G&excluir={idRep}` | → `[descripción]` | Al abrir en edición (fallo silencioso) |
-| `PUT /api/reparaciones/{idRep}` | `{idComNuevo, esReutilizadoNuevo, observacionNueva?, nNuevas, updatedAt}` | "Guardar cambios". Solo SUPERTECNICO; 409 si `updatedAt` no coincide |
+| `PUT /api/reparaciones/{idRep}` | `{idComNuevo, esReutilizadoNuevo, observacionNueva?, nNuevas, updatedAt}`, cabecera `Idempotency-Key` | "Guardar cambios". Solo SUPERTECNICO; 409 si `updatedAt` no coincide |
 
 ## Diferencias aceptadas
 
@@ -200,6 +200,7 @@ En flujo nuevo y Glass (llamadas con `idAsignacion`) el técnico de cada escritu
 - Papelera de la observación en una fila guardada: el JavaFX no la deshabilitaba. En la web queda deshabilitada con el resto de la fila.
 - Reintento de "Terminar asignación" tras un fallo parcial: el JavaFX volvía a enviar los agotados ya registrados. La web recuerda los registrados en ese intento y no los reenvía.
 - "✓ Recibido" y cambio a un modelo sin SKU para ese tipo: en el JavaFX el botón derecho quedaba visible en la fila atenuada. En la web se oculta.
+- Reintentos seguros: cada guardado (fila, acción, agotado, terminar y cada paso de "Guardar cambios") viaja con una clave de idempotencia que se reutiliza al reintentar la misma petición; el servidor devuelve el resultado de la primera ejecución en vez de repetirla. En el JavaFX, reintentar tras una respuesta perdida o un fallo a medias podía registrar el trabajo dos veces.
 
 ## Comportamientos del JavaFX calcados a propósito
 
