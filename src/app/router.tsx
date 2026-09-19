@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { FormularioNuevoRuta } from '@/modules/taller/formulario/rutas'
 import { HistorialPage } from '@/modules/taller/historial/HistorialPage'
 import { HistorialPulidosPage } from '@/modules/taller/historial/HistorialPulidosPage'
 import { ImeiDetallePage } from '@/modules/taller/imeis/ImeiDetallePage'
@@ -29,7 +30,11 @@ export const router = createBrowserRouter([
           {
             element: <RequiereTecnico />,
             children: [
-              { path: '/reparaciones/pendientes', element: <PendientesPage tipo="REPARACION" /> },
+              {
+                path: '/reparaciones/pendientes',
+                element: <PendientesPage tipo="REPARACION" />,
+                children: [{ path: 'reparar/:idAsignacion', element: <FormularioNuevoRuta glass={false} /> }],
+              },
               { path: '/reparaciones/pendientes/glass', element: <PendientesPage tipo="GLASS" /> },
               { path: '/reparaciones/pendientes/pulidos', element: <PulidosPendientesPage /> },
             ],

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Outlet, useNavigate } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { descargarCsv, textoForzado } from '@/shared/lib/csv'
@@ -37,14 +38,19 @@ const OPCIONES_TIPO: { clave: TipoPendiente; etiqueta: string }[] = [
   { clave: 'asignacion', etiqueta: 'Asignaciones' },
 ]
 
-/** "Añadir reparación" / "Añadir glass" deshabilitado hasta el sub-proyecto 2; en glass bloqueada no se pinta. */
+/** "Añadir reparación" abre el formulario de esa asignación como ruta hija (se pinta sobre esta lista). "Añadir glass" sigue
+ *  reservado, con su tooltip, hasta que exista la ruta de glass; en una glass bloqueada no se pinta. */
 function BotonAnadir({ rep, glass }: { rep: ReparacionResumen; glass: boolean }) {
+  const navigate = useNavigate()
   if (glass && ocultarAnadirGlass(rep)) return null
-  return (
-    <span title={TOOLTIP_FORMULARIO} className="inline-block">
-      <BotonPrimario disabled className="pointer-events-none">{glass ? 'Añadir glass' : 'Añadir reparación'}</BotonPrimario>
-    </span>
-  )
+  if (glass) {
+    return (
+      <span title={TOOLTIP_FORMULARIO} className="inline-block">
+        <BotonPrimario disabled className="pointer-events-none">Añadir glass</BotonPrimario>
+      </span>
+    )
+  }
+  return <BotonPrimario onClick={() => navigate(`/reparaciones/pendientes/reparar/${rep.idRep}`)}>Añadir reparación</BotonPrimario>
 }
 
 export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
@@ -154,6 +160,8 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         onCancelar={() => setABorrar(null)}
         onConfirmar={confirmarBorrado}
       />
+      {/* El formulario de reparación es una ruta hija: se pinta aquí, como diálogo modal sobre la lista. */}
+      <Outlet />
     </div>
   )
 }
