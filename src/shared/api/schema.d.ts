@@ -2118,7 +2118,7 @@ export interface components {
             /** Format: int32 */
             idComNuevo: number;
             esReutilizadoNuevo: boolean;
-            observacionNueva: string;
+            observacionNueva: string | null;
             /** Format: int32 */
             nNuevas: number;
             /** Format: date-time */
@@ -2226,7 +2226,7 @@ export interface components {
         SolicitudStockInsertarRequest: {
             /** Format: int32 */
             idCom: number;
-            descripcion: string;
+            descripcion: string | null;
         };
         ReparacionInsertarRequest: {
             imei: string;
@@ -2249,11 +2249,11 @@ export interface components {
             /** Format: int32 */
             cantidad: number;
             reutilizado: boolean;
-            observacion: string;
-            prefijo: string;
+            observacion: string | null;
+            prefijo: string | null;
             esSolicitud: boolean;
-            descripcionSolicitud: string;
-            estadoSolicitud: string;
+            descripcionSolicitud: string | null;
+            estadoSolicitud: string | null;
             enCamino: boolean;
         };
         ReparacionGuardarFilaRequest: {
@@ -2261,23 +2261,26 @@ export interface components {
             imei: string;
             /** Format: int32 */
             idTec: number;
-            idRepAnterior: string;
+            idRepAnterior: string | null;
+        };
+        ValorTexto: {
+            value: string | null;
         };
         ReparacionAgotarRequest: {
             /** Format: int32 */
             idCom: number;
             /** Format: int32 */
             cantidad: number;
-            descripcion: string;
+            descripcion: string | null;
         };
         ReparacionInsertarCompletaRequest: {
             filas: components["schemas"]["FilaReparacion"][];
             imei: string;
             /** Format: int32 */
             idTec: number;
-            idRepAnterior: string;
-            idAsignacion: string;
-            categoria: string;
+            idRepAnterior: string | null;
+            idAsignacion: string | null;
+            categoria: string | null;
         };
         ReparacionAsignacionRequest: {
             imei: string;
@@ -2474,6 +2477,12 @@ export interface components {
         };
         TecnicoGlassRequest: {
             habilitado: boolean;
+        };
+        SolicitudEstadoRequest: {
+            estado: string;
+        };
+        SolicitudStockEstadoRequest: {
+            estado: string;
         };
         ReparacionActualizarAsignacionRequest: {
             /** Format: int32 */
@@ -2696,11 +2705,15 @@ export interface components {
             nombreTecnico: string;
             /** Format: int32 */
             idCom: number;
-            tipoComponente: string;
-            descripcion: string;
+            tipoComponente: string | null;
+            descripcion: string | null;
             estado: string;
             /** Format: date-time */
             fechaSolicitud: string;
+        };
+        ValorEntero: {
+            /** Format: int32 */
+            value: number;
         };
         SolicitudStock: {
             /** Format: int32 */
@@ -2711,7 +2724,7 @@ export interface components {
             /** Format: int32 */
             idUsu: number;
             nombreUsuario: string;
-            descripcion: string;
+            descripcion: string | null;
             estado: string;
             /** Format: date-time */
             fecha: string;
@@ -2721,15 +2734,12 @@ export interface components {
             /** Format: date-time */
             fechaAsig: string;
             /** Format: date-time */
-            fechaFin: string;
+            fechaFin: string | null;
             imei: string;
             /** Format: int32 */
             idTec: number;
             /** Format: date-time */
             updatedAt: string;
-        };
-        ValorTexto: {
-            value: string | null;
         };
         ReparacionDAODetalleEdicion: {
             imei: string;
@@ -2738,11 +2748,14 @@ export interface components {
             /** Format: int32 */
             idCom: number;
             esReutilizado: boolean;
-            observacion: string;
+            observacion: string | null;
             /** Format: int32 */
             cantidad: number;
             /** Format: date-time */
             updatedAt: string;
+        };
+        ContenidoBorrador: {
+            contenido: string | null;
         };
         ContadoresPendientes: {
             /** Format: int32 */
@@ -2961,9 +2974,9 @@ export interface components {
             /** Format: int32 */
             enCamino: number;
             /** Format: date-time */
-            ultimoPedido: string;
+            ultimoPedido: string | null;
             /** Format: int32 */
-            idComMaster: number;
+            idComMaster: number | null;
         };
         PuntoStock: {
             periodo: string;
@@ -3130,9 +3143,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: string;
-                    };
+                    "*/*": components["schemas"]["ContenidoBorrador"];
                 };
             };
         };
@@ -3824,9 +3835,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: string;
-                    };
+                    "*/*": components["schemas"]["ValorTexto"];
                 };
             };
         };
@@ -4659,9 +4668,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: string;
-                };
+                "application/json": components["schemas"]["SolicitudEstadoRequest"];
             };
         };
         responses: {
@@ -4685,9 +4692,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: string;
-                };
+                "application/json": components["schemas"]["SolicitudStockEstadoRequest"];
             };
         };
         responses: {
@@ -5581,9 +5586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: string;
-                    };
+                    "*/*": components["schemas"]["ValorTexto"];
                 };
             };
         };
@@ -5689,9 +5692,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
+                    "*/*": components["schemas"]["ValorEntero"];
                 };
             };
         };
@@ -5711,9 +5712,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
+                    "*/*": components["schemas"]["ValorEntero"];
                 };
             };
         };
@@ -5898,9 +5897,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
+                    "*/*": components["schemas"]["ValorTexto"];
                 };
             };
         };

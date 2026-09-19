@@ -5,7 +5,12 @@ import { guardarSesion } from '@/shared/session/storage'
 import { onSesionExpirada, rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { estaConectado, reportarExito, reportarFallo } from './conexion'
 import { api } from './client'
-import type { Cliente, ContadoresPendientes, LoginResponse, ReparacionResumen, Tecnico } from './client'
+import type {
+  AgotarRequest, AsignacionActiva, Cliente, Componente, ComponentesAgrupados, ContadoresPendientes, DetalleEdicion,
+  EditarReparacionRequest, FilaReparacion, GuardarFilaRequest, InsertarCompletaRequest, LoginResponse, Reparacion,
+  ReparacionResumen, SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico,
+} from './client'
+import type { paths } from './schema'
 import { ConexionError, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
 
 /** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
@@ -113,5 +118,52 @@ describe('tipos del contrato (required + nullable, spec web-taller §5.3)', () =
     expectTypeOf<ReparacionResumen['glassEntregadoPor']>().toEqualTypeOf<number | null>()
     expectTypeOf<Tecnico['nombre']>().toEqualTypeOf<string>()
     expectTypeOf<ContadoresPendientes>().toEqualTypeOf<{ reparaciones: number; glass: number; pulidos: number }>()
+  })
+})
+
+describe('tipos del contrato del formulario y de la campana (spec web-formulario §5.5)', () => {
+  it('lo que puede venir a null va como T | null y lo demás es obligatorio', () => {
+    expectTypeOf<FilaReparacion['observacion']>().toEqualTypeOf<string | null>()
+    expectTypeOf<FilaReparacion['prefijo']>().toEqualTypeOf<string | null>()
+    expectTypeOf<FilaReparacion['descripcionSolicitud']>().toEqualTypeOf<string | null>()
+    expectTypeOf<FilaReparacion['estadoSolicitud']>().toEqualTypeOf<string | null>()
+    expectTypeOf<FilaReparacion['idCom']>().toEqualTypeOf<number>()
+    expectTypeOf<SolicitudAsignacion>().toEqualTypeOf<FilaReparacion>()
+    expectTypeOf<Componente['idComMaster']>().toEqualTypeOf<number | null>()
+    expectTypeOf<Componente['ultimoPedido']>().toEqualTypeOf<string | null>()
+    expectTypeOf<Componente['stock']>().toEqualTypeOf<number>()
+    expectTypeOf<ComponentesAgrupados>().toEqualTypeOf<Record<string, Componente[]>>()
+    expectTypeOf<Reparacion['fechaFin']>().toEqualTypeOf<string | null>()
+    expectTypeOf<DetalleEdicion['updatedAt']>().toEqualTypeOf<string>()
+    expectTypeOf<DetalleEdicion['observacion']>().toEqualTypeOf<string | null>()
+    expectTypeOf<AsignacionActiva['idTec']>().toEqualTypeOf<number>()
+    expectTypeOf<SolicitudResumen['descripcion']>().toEqualTypeOf<string | null>()
+    expectTypeOf<SolicitudStock['descripcion']>().toEqualTypeOf<string | null>()
+  })
+  it('los cuerpos de las escrituras del formulario: idTec obligatorio y los opcionales como null', () => {
+    expectTypeOf<InsertarCompletaRequest['idAsignacion']>().toEqualTypeOf<string | null>()
+    expectTypeOf<InsertarCompletaRequest['idRepAnterior']>().toEqualTypeOf<string | null>()
+    expectTypeOf<InsertarCompletaRequest['categoria']>().toEqualTypeOf<string | null>()
+    expectTypeOf<InsertarCompletaRequest['idTec']>().toEqualTypeOf<number>()
+    expectTypeOf<InsertarCompletaRequest['filas']>().toEqualTypeOf<FilaReparacion[]>()
+    expectTypeOf<GuardarFilaRequest['idRepAnterior']>().toEqualTypeOf<string | null>()
+    expectTypeOf<GuardarFilaRequest['idTec']>().toEqualTypeOf<number>()
+    expectTypeOf<AgotarRequest['descripcion']>().toEqualTypeOf<string | null>()
+    expectTypeOf<EditarReparacionRequest['observacionNueva']>().toEqualTypeOf<string | null>()
+    expectTypeOf<EditarReparacionRequest['nNuevas']>().toEqualTypeOf<number>()
+  })
+  it('las respuestas que eran mapas sueltos llegan tipadas', () => {
+    type ContarUrgentes = paths['/api/solicitudes/count']['get']['responses'][200]['content']['*/*']
+    type ContarPreventivas = paths['/api/solicitudes-stock/count']['get']['responses'][200]['content']['*/*']
+    type Borrador = paths['/api/reparaciones/{idRep}/borrador']['get']['responses'][200]['content']['*/*']
+    type Incidencia = paths['/api/reparaciones/imei/{imei}/incidencia-activa']['get']['responses'][200]['content']['*/*']
+    type Modelo = paths['/api/telefonos/{imei}/modelo']['get']['responses'][200]['content']['*/*']
+    expectTypeOf<ContarUrgentes['value']>().toEqualTypeOf<number>()
+    expectTypeOf<ContarPreventivas['value']>().toEqualTypeOf<number>()
+    expectTypeOf<Borrador['contenido']>().toEqualTypeOf<string | null>()
+    expectTypeOf<Incidencia['value']>().toEqualTypeOf<string | null>()
+    expectTypeOf<Modelo['value']>().toEqualTypeOf<string | null>()
+    type Creada = paths['/api/reparaciones/{idAsignacion}/filas']['post']['responses'][201]['content']['*/*']
+    expectTypeOf<Creada['value']>().toEqualTypeOf<string | null>()
   })
 })
