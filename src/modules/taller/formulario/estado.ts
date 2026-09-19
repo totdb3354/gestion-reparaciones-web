@@ -1,5 +1,5 @@
 import type { AsignacionActiva, Componente, ComponentesAgrupados, DetalleEdicion, SolicitudAsignacion } from '@/shared/api/client'
-import { extraerModelo, modelosDisponibles } from '../lib/modelos'
+import { MODELOS_ORDENADOS, extraerModelo, modelosDisponibles } from '../lib/modelos'
 import { PREFIJO_OTRO, nombreTipo, prefijosDeFila } from '../lib/piezas'
 
 /** Estado del formulario de reparación: fichero PURO (sin React, sin fetch, sin Date). Los componentes solo pintan lo que
@@ -234,6 +234,75 @@ function estadoBase(d: DatosBase): EstadoFormulario {
   }
 }
 
+// ───────────────────────────── Solicitudes ya guardadas ─────────────────────────────
+
+const RECHAZADA = 'RECHAZADA'
+const GESTIONADA = 'GESTIONADA'
+
+function textoONull(texto: string | null | undefined): string | null {
+  const recortado = (texto ?? '').trim()
+  return recortado === '' ? null : recortado
+}
+
+/** Aplica una solicitud NO rechazada a su fila y selecciona su SKU (aunque el filtro de modelo lo hubiera dejado fuera).
+ *  Orden de evaluación: recibido (GESTIONADA con stock) → en camino → pendiente (también GESTIONADA sin stock). */
+function aplicarSolicitud(fila: FilaEstado, sol: SolicitudAsignacion): FilaEstado {
+  const c = fila.skus.find((s) => s.idCom === sol.idCom)
+  if (c === undefined) return fila
+  const opciones = fila.opciones.some((o) => o.idCom === c.idCom) ? fila.opciones : [...fila.opciones, c]
+  const normal: FilaEstado = {
+    ...fila,
+    opciones,
+    idCom: c.idCom,
+    cantidad: 0,
+    reutilizado: false,
+    solicitud: null,
+    recibidoPendienteUso: false,
+    controles: controlesIniciales(c),
+  }
+  if (sol.estadoSolicitud === GESTIONADA && c.stock > 0) return { ...normal, recibidoPendienteUso: true }
+  return {
+    ...normal,
+    solicitud: { estado: sol.enCamino ? 'enCamino' : 'pendiente', descripcion: textoONull(sol.descripcionSolicitud) },
+    // Con solicitud guardada "Añadir observación" sigue activo; "Reutilizado", solo si no está en camino.
+    controles: { mas: false, menos: false, reutilizado: !sol.enCamino, sku: false, observacion: true },
+  }
+}
+
+function aplicarSolicitudes(filas: FilaEstado[], solicitudes: SolicitudAsignacion[]): FilaEstado[] {
+  return solicitudes.reduce(
+    (acc, sol) => acc.map((f) => (f.skus.some((s) => s.idCom === sol.idCom) ? aplicarSolicitud(f, sol) : f)),
+    filas,
+  )
+}
+
+/** Una rechazada no deja marca: solo preselecciona su SKU si está entre las opciones del modelo. */
+function preseleccionarRechazada(fila: FilaEstado, idCom: number): FilaEstado {
+  const c = fila.opciones.find((o) => o.idCom === idCom)
+  if (c === undefined || fila.solicitud !== null) return fila
+  return { ...fila, idCom: c.idCom, controles: controlesIniciales(c) }
+}
+
+/** Primer modelo deducible del SKU de alguna solicitud (de cualquier estado, también rechazadas). */
+function modeloDeSolicitudes(filas: FilaEstado[], solicitudes: SolicitudAsignacion[]): string | null {
+  for (const sol of solicitudes) {
+    for (const fila of filas) {
+      const c = fila.skus.find((s) => s.idCom === sol.idCom)
+      const modelo = c ? extraerModelo(c.tipo, fila.prefijo) : null
+      if (modelo !== null) return modelo
+    }
+  }
+  return null
+}
+
+/** El combo debe poder mostrar el modelo fijado aunque ningún SKU activo lo aporte: se inserta en su sitio del catálogo. */
+function conModeloEnLista(modelos: string[], modelo: string | null): string[] {
+  if (modelo === null || modelos.includes(modelo)) return modelos
+  return MODELOS_ORDENADOS.filter((m) => m === modelo || modelos.includes(m))
+}
+
+/** Orden del modelo: el de las solicitudes → el del teléfono (que bloquea el combo). Fijar el modelo resetea las filas,
+ *  así que las solicitudes se aplican DESPUÉS de fijarlo (las tres pasadas de la referencia: aplicar, fijar, reaplicar). */
 function inicialNuevo(datos: DatosNuevo): EstadoFormulario {
   const base = estadoBase({
     modo: datos.modo,
@@ -244,9 +313,24 @@ function inicialNuevo(datos: DatosNuevo): EstadoFormulario {
     agrupados: datos.agrupados,
     glass: datos.modo === 'glass',
   })
-  const telefono = datos.modeloTelefono !== null && base.modelos.includes(datos.modeloTelefono) ? datos.modeloTelefono : null
-  if (telefono === null) return base
-  return { ...base, modelo: telefono, modeloBloqueado: true, filas: base.filas.map((f) => filaLimpia(f, telefono)) }
+  const vivas = datos.solicitudes.filter((s) => s.estadoSolicitud !== RECHAZADA)
+  const rechazadas = datos.solicitudes.filter((s) => s.estadoSolicitud === RECHAZADA)
+  const deSolicitud = modeloDeSolicitudes(base.filas, datos.solicitudes)
+  const telefono =
+    deSolicitud === null && datos.modeloTelefono !== null && base.modelos.includes(datos.modeloTelefono) ? datos.modeloTelefono : null
+  const modelo = deSolicitud ?? telefono
+  const filtradas = modelo === null ? base.filas : base.filas.map((f) => filaLimpia(f, modelo))
+  const conSolicitudes = aplicarSolicitudes(filtradas, vivas)
+  const filas = rechazadas.reduce((acc, sol) => acc.map((f) => preseleccionarRechazada(f, sol.idCom)), conSolicitudes)
+  return {
+    ...base,
+    modelo,
+    modelos: conModeloEnLista(base.modelos, modelo),
+    // Solo bloquean el combo el modelo del teléfono y las solicitudes activas (pendiente o en camino).
+    modeloBloqueado: telefono !== null || filas.some((f) => f.solicitud !== null),
+    tieneSolicitudesIniciales: datos.solicitudes.length > 0,
+    filas,
+  }
 }
 
 function inicialEditar(datos: DatosEditar): EstadoFormulario {
@@ -385,6 +469,126 @@ function cambiarModelo(estado: EstadoFormulario, modelo: string | null): EstadoF
   return { ...estado, modelo, filas, revision: estado.revision + 1 }
 }
 
+// ───────────────────────────── Reductor: guardar fila y agotado local ─────────────────────────────
+
+/** Como cambiarFila, pero para pasos que NO son cambios de datos (confirmaciones, envíos en vuelo): no toca revision. */
+function sustituirFila(estado: EstadoFormulario, prefijo: string, cambio: (fila: FilaEstado) => FilaEstado | null): EstadoFormulario {
+  const indice = estado.filas.findIndex((f) => f.prefijo === prefijo)
+  if (indice < 0) return estado
+  const nueva = cambio(estado.filas[indice])
+  if (nueva === null) return estado
+  return { ...estado, filas: estado.filas.map((f, i) => (i === indice ? nueva : f)) }
+}
+
+function pedirConfirmacionFila(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
+  return sustituirFila(estado, prefijo, (fila) => {
+    const boton = botonDerecho(estado, fila)
+    if (boton.tipo !== 'guardarFila' || boton.deshabilitado || fila.confirmandoGuardar) return null
+    return { ...fila, confirmandoGuardar: true }
+  })
+}
+
+function inicioGuardarFila(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
+  return sustituirFila(estado, prefijo, (fila) => (fila.confirmandoGuardar && !fila.guardando ? { ...fila, guardando: true } : null))
+}
+
+function filaGuardada(estado: EstadoFormulario, prefijo: string, guardada: Guardada): EstadoFormulario {
+  const siguiente = sustituirFila(estado, prefijo, (fila) =>
+    fila.guardada !== null
+      ? null
+      : { ...fila, guardada, guardando: false, confirmandoGuardar: false, recibidoPendienteUso: false, controles: CONTROLES_APAGADOS },
+  )
+  return siguiente === estado ? estado : { ...siguiente, volcados: estado.volcados + 1 }
+}
+
+function falloGuardarFila(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
+  return sustituirFila(estado, prefijo, (fila) => (fila.guardando ? { ...fila, guardando: false, confirmandoGuardar: false } : null))
+}
+
+/** Confirmar es LOCAL: bloquea la fila, borra su observación y deja el contador en lo que se enviará a agotar-componente
+ *  (0 en "sin stock", el stock en "límite"). Solo procede si la sub-fila ofrece alguna de las dos variantes. */
+function confirmarAgotado(estado: EstadoFormulario, prefijo: string, descripcion: string): EstadoFormulario {
+  return cambiarFila(estado, prefijo, (fila) => {
+    const variante = subFila(estado, fila)
+    if (fila.guardando || (variante.tipo !== 'sinStock' && variante.tipo !== 'limite')) return null
+    return {
+      ...fila,
+      cantidad: variante.tipo === 'limite' ? variante.stock : 0,
+      observacion: null,
+      agotado: { descripcion: textoONull(descripcion), registrado: false },
+      controles: CONTROLES_APAGADOS,
+    }
+  })
+}
+
+/** Un agotado ya registrado en el servidor no se edita ni se cancela desde aquí. */
+function editarDescripcionAgotado(estado: EstadoFormulario, prefijo: string, descripcion: string): EstadoFormulario {
+  return sustituirFila(estado, prefijo, (fila) =>
+    fila.agotado === null || fila.agotado.registrado ? null : { ...fila, agotado: { ...fila.agotado, descripcion: textoONull(descripcion) } },
+  )
+}
+
+function cancelarAgotado(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
+  return cambiarFila(estado, prefijo, (fila) => {
+    if (fila.agotado === null || fila.agotado.registrado) return null
+    const stock = stockDe(fila) ?? 0
+    return {
+      ...fila,
+      agotado: null,
+      cantidad: 0,
+      controles: { mas: !fila.reutilizado && stock > 0, menos: false, reutilizado: true, sku: true, observacion: true },
+    }
+  })
+}
+
+function agotadoRegistrado(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
+  return sustituirFila(estado, prefijo, (fila) =>
+    fila.agotado === null || fila.agotado.registrado ? null : { ...fila, agotado: { ...fila.agotado, registrado: true } },
+  )
+}
+
+// ───────────────────────────── Reductor: otras acciones ─────────────────────────────
+
+/** `cuenta` = es un cambio de datos (sube revision). */
+function cambiarAccion(estado: EstadoFormulario, id: number, cuenta: boolean, cambio: (accion: OtraAccion) => OtraAccion | null): EstadoFormulario {
+  const actual = estado.otros.find((a) => a.id === id)
+  const nueva = actual ? cambio(actual) : null
+  if (nueva === null) return estado
+  return { ...estado, otros: estado.otros.map((a) => (a.id === id ? nueva : a)), revision: estado.revision + (cuenta ? 1 : 0) }
+}
+
+/** Línea que el usuario puede tocar: ni guardada, ni "✓ Ya reparada", ni con su guardado en vuelo. */
+function accionEditable(a: OtraAccion): boolean {
+  return a.guardada === null && a.origen !== 'yaReparada' && !a.guardando
+}
+
+function anadirAccion(estado: EstadoFormulario): EstadoFormulario {
+  if (!anadirAccionHabilitado(estado)) return estado
+  const linea: OtraAccion = { id: estado.siguienteIdAccion, texto: '', origen: 'nueva', guardada: null, confirmando: false, guardando: false }
+  return { ...estado, otros: [...estado.otros, linea], siguienteIdAccion: estado.siguienteIdAccion + 1, revision: estado.revision + 1 }
+}
+
+function quitarAccion(estado: EstadoFormulario, id: number): EstadoFormulario {
+  const linea = estado.otros.find((a) => a.id === id)
+  if (linea === undefined || linea.origen !== 'nueva' || !accionEditable(linea)) return estado
+  return { ...estado, otros: estado.otros.filter((a) => a.id !== id), revision: estado.revision + 1 }
+}
+
+function pedirConfirmacionAccion(estado: EstadoFormulario, id: number): EstadoFormulario {
+  if (estado.modo === 'editar' || idComOtro(estado) === null) return estado
+  return cambiarAccion(estado, id, false, (a) => {
+    if (a.origen !== 'nueva' || !accionEditable(a) || a.texto.trim() === '' || !accionPideConfirmacion(a)) return null
+    return { ...a, confirmando: true, pideOtroClic: false }
+  })
+}
+
+// ───────────────────────────── Reductor: zona de guardar ─────────────────────────────
+
+function pedirConfirmacionGuardar(estado: EstadoFormulario): EstadoFormulario {
+  if (!zonaGuardarVisible(estado) || estado.guardado.enCurso || estado.guardado.clics === 1) return estado
+  return { ...estado, guardado: { ...estado.guardado, clics: 1, textoConfirmacion: true } }
+}
+
 export function reducir(estado: EstadoFormulario, accion: AccionFormulario): EstadoFormulario {
   switch (accion.tipo) {
     case 'CAMBIAR_MODELO':
@@ -401,6 +605,57 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
       return cambiarFila(estado, accion.prefijo, (f) => ponerObservacion(f, accion.texto))
     case 'BORRAR_OBSERVACION':
       return cambiarFila(estado, accion.prefijo, borrarObservacion)
+    case 'PEDIR_CONFIRMACION_FILA':
+      return pedirConfirmacionFila(estado, accion.prefijo)
+    case 'INICIO_GUARDAR_FILA':
+      return inicioGuardarFila(estado, accion.prefijo)
+    case 'FILA_GUARDADA':
+      return filaGuardada(estado, accion.prefijo, { idRep: accion.idRep, fecha: accion.fecha })
+    case 'FALLO_GUARDAR_FILA':
+      return falloGuardarFila(estado, accion.prefijo)
+    case 'CONFIRMAR_AGOTADO':
+      return confirmarAgotado(estado, accion.prefijo, accion.descripcion)
+    case 'EDITAR_DESCRIPCION_AGOTADO':
+      return editarDescripcionAgotado(estado, accion.prefijo, accion.descripcion)
+    case 'CANCELAR_AGOTADO':
+      return cancelarAgotado(estado, accion.prefijo)
+    case 'AGOTADO_REGISTRADO':
+      return agotadoRegistrado(estado, accion.prefijo)
+    case 'ANADIR_ACCION':
+      return anadirAccion(estado)
+    case 'ESCRIBIR_ACCION':
+      return cambiarAccion(estado, accion.id, true, (a) =>
+        !accionEditable(a) || a.texto === accion.texto ? null : { ...a, texto: accion.texto, confirmando: false, pideOtroClic: false },
+      )
+    case 'QUITAR_ACCION':
+      return quitarAccion(estado, accion.id)
+    case 'PEDIR_CONFIRMACION_ACCION':
+      return pedirConfirmacionAccion(estado, accion.id)
+    case 'INICIO_GUARDAR_ACCION':
+      return cambiarAccion(estado, accion.id, false, (a) =>
+        a.confirmando && !accionPideConfirmacion(a) && accionEditable(a) ? { ...a, guardando: true } : null,
+      )
+    case 'ACCION_GUARDADA': {
+      const guardada: Guardada = { idRep: accion.idRep, fecha: accion.fecha }
+      const siguiente = cambiarAccion(estado, accion.id, false, (a) =>
+        a.guardada !== null ? null : { ...a, texto: a.texto.trim(), guardada, confirmando: false, guardando: false, pideOtroClic: false },
+      )
+      return siguiente === estado ? estado : { ...siguiente, volcados: estado.volcados + 1 }
+    }
+    case 'FALLO_GUARDAR_ACCION':
+      // El texto sigue en "✓ Confirmar" (confirmando = true), pero el siguiente clic vuelve a pedir confirmación.
+      return cambiarAccion(estado, accion.id, false, (a) =>
+        a.guardando ? { ...a, guardando: false, confirmando: true, pideOtroClic: true } : null,
+      )
+    case 'PEDIR_CONFIRMACION_GUARDAR':
+      return pedirConfirmacionGuardar(estado)
+    case 'INICIO_GUARDADO':
+      return estado.guardado.clics === 1 && !estado.guardado.enCurso ? { ...estado, guardado: { ...estado.guardado, enCurso: true } } : estado
+    case 'FALLO_GUARDADO':
+      // El texto "✓  Confirmar terminar" no vuelve atrás, pero hacen falta otros dos clics.
+      return estado.guardado.enCurso ? { ...estado, guardado: { ...estado.guardado, clics: 0, enCurso: false } } : estado
+    case 'GUARDADO_COMPLETADO':
+      return { ...estado, borradorDescartado: true }
     default:
       return estado
   }
@@ -436,4 +691,105 @@ export function textoConflicto(activas: AsignacionActiva[], idAsignacionPropia: 
     return nombres.length === 0 ? null : `${categoria}: ${nombres.join(', ')}`
   }).filter((g): g is string => g !== null)
   return `⚠ Este IMEI también está asignado a — ${grupos.join(' · ')}`
+}
+
+// ───────────────────────────── Selectores: botón derecho y sub-fila ─────────────────────────────
+
+export type BotonDerecho =
+  | { tipo: 'ninguno' }
+  | { tipo: 'guardarFila'; texto: '✓ Guardar fila' | '✓ Confirmar'; deshabilitado: boolean }
+  | { tipo: 'guardada'; texto: string } // '✓ Guardada dd/MM HH:mm'
+  | { tipo: 'enCamino' } // '⚠ En camino'
+  | { tipo: 'recibido' } // '✓ Recibido'
+  | { tipo: 'yaReparado' } // '✓  Ya reparado'
+
+export function botonDerecho(e: EstadoFormulario, fila: FilaEstado): BotonDerecho {
+  if (fila.guardada !== null) return { tipo: 'guardada', texto: `✓ Guardada ${fila.guardada.fecha}` }
+  // Una fila sin SKU para el modelo no enseña nada, tampoco un "✓ Recibido" anterior.
+  if (filaSinSku(fila)) return { tipo: 'ninguno' }
+  if (fila.solicitud !== null) return fila.solicitud.estado === 'enCamino' ? { tipo: 'enCamino' } : { tipo: 'ninguno' }
+  if (fila.agotado !== null || e.modo === 'editar') return { tipo: 'ninguno' }
+  if (filaActiva(fila)) {
+    return { tipo: 'guardarFila', texto: fila.confirmandoGuardar ? '✓ Confirmar' : '✓ Guardar fila', deshabilitado: fila.guardando }
+  }
+  return fila.recibidoPendienteUso ? { tipo: 'recibido' } : { tipo: 'ninguno' }
+}
+
+export type SubFila =
+  | { tipo: 'oculta' }
+  | { tipo: 'sinStock' } // texto y botón "Solicitar pieza"
+  | { tipo: 'limite'; stock: number } // texto y botón "Solicitar y descontar stock"
+  | { tipo: 'confirmada'; texto: string; lapizHabilitado: boolean } // lapizHabilitado = solicitud local
+
+export const TEXTO_SIN_STOCK = '⚠  Sin stock disponible. Solicita la pieza para que el admin gestione el pedido.'
+export const TEXTO_LIMITE = '⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.'
+const TEXTO_SOLICITUD_PENDIENTE = '✓  Solicitud de reposición pendiente'
+
+function conDescripcion(texto: string, descripcion: string | null): string {
+  return descripcion === null ? texto : `${texto} — ${descripcion}`
+}
+
+/** Siempre 'oculta' en modo editar y en una fila guardada. En la variante límite y en su etiqueta confirmada, N es el
+ *  STOCK del SKU, no el contador. El lápiz solo funciona sobre la solicitud local aún sin registrar. */
+export function subFila(e: EstadoFormulario, fila: FilaEstado): SubFila {
+  if (e.modo === 'editar' || fila.guardada !== null || filaSinSku(fila)) return { tipo: 'oculta' }
+  if (fila.solicitud !== null) {
+    return { tipo: 'confirmada', texto: conDescripcion(TEXTO_SOLICITUD_PENDIENTE, fila.solicitud.descripcion), lapizHabilitado: false }
+  }
+  const stock = stockDe(fila) ?? 0
+  if (fila.agotado !== null) {
+    const texto = stock > 0 ? `✓  ${stock} uds. se descontarán al guardar — solicitud pendiente` : TEXTO_SOLICITUD_PENDIENTE
+    return { tipo: 'confirmada', texto: conDescripcion(texto, fila.agotado.descripcion), lapizHabilitado: !fila.agotado.registrado }
+  }
+  if (stock === 0) return { tipo: 'sinStock' }
+  if (!fila.reutilizado && fila.cantidad >= stock) return { tipo: 'limite', stock }
+  return { tipo: 'oculta' }
+}
+
+// ───────────────────────────── Selectores: otras acciones y zona de guardar ─────────────────────────────
+
+/** Componente 'otro' cuyo SKU da el modelo elegido (no se mira 'activo'): el idCom de todas las acciones. */
+export function idComOtro(e: EstadoFormulario): number | null {
+  if (e.modelo === null) return null
+  const c = e.componentesOtro.find((o) => extraerModelo(o.tipo, PREFIJO_OTRO) === e.modelo)
+  return c ? c.idCom : null
+}
+
+export function otrasAccionesVisible(e: EstadoFormulario): boolean {
+  return idComOtro(e) !== null
+}
+
+/** Badge: líneas guardadas, "✓ Ya reparada" o con texto. */
+export function contadorAcciones(e: EstadoFormulario): number {
+  return e.otros.filter((a) => a.guardada !== null || a.origen === 'yaReparada' || a.texto.trim() !== '').length
+}
+
+export function anadirAccionHabilitado(e: EstadoFormulario): boolean {
+  return otrasAccionesVisible(e) && !e.otros.some((a) => a.guardada === null && a.origen !== 'yaReparada' && a.texto.trim() === '')
+}
+
+/** true = el siguiente clic en "✓ Guardar" / "✓ Confirmar" de la línea debe PEDIR confirmación (no guardar todavía). */
+export function accionPideConfirmacion(a: OtraAccion): boolean {
+  return !a.confirmando || a.pideOtroClic === true
+}
+
+/** Acciones nuevas con texto que se enviarán al guardar (solo cuentan si el modelo tiene componente 'otro'). */
+function accionesPendientes(e: EstadoFormulario): OtraAccion[] {
+  if (idComOtro(e) === null) return []
+  return e.otros.filter((a) => a.origen === 'nueva' && a.guardada === null && a.texto.trim() !== '')
+}
+
+/** Se muestra u oculta la zona ENTERA. Una solicitud cargada del servidor no la muestra por sí sola. */
+export function zonaGuardarVisible(e: EstadoFormulario): boolean {
+  if (e.modo === 'editar') return false
+  return (
+    e.filas.some((f) => f.guardada !== null || filaActiva(f)) ||
+    e.otros.some((a) => a.guardada !== null) ||
+    accionesPendientes(e).length > 0
+  )
+}
+
+export function textoBotonGuardar(e: EstadoFormulario): string {
+  if (e.guardado.textoConfirmacion) return '✓  Confirmar terminar'
+  return e.modo === 'editar' ? 'Guardar cambios' : 'Terminar asignación'
 }
