@@ -1,4 +1,7 @@
-import type { AsignacionActiva, Componente, ComponentesAgrupados, DetalleEdicion, SolicitudAsignacion } from '@/shared/api/client'
+import type {
+  AgotarRequest, AsignacionActiva, Componente, ComponentesAgrupados, DetalleEdicion, EditarReparacionRequest, FilaReparacion,
+  GuardarFilaRequest, InsertarCompletaRequest, SolicitudAsignacion,
+} from '@/shared/api/client'
 import { MODELOS_ORDENADOS, extraerModelo, modelosDisponibles } from '../lib/modelos'
 import { PREFIJO_OTRO, nombreTipo, prefijosDeFila } from '../lib/piezas'
 
@@ -333,9 +336,50 @@ function inicialNuevo(datos: DatosNuevo): EstadoFormulario {
   }
 }
 
+/** Busca un componente en el catálogo completo (también inactivos y el grupo 'otro'): la reparación editada puede ser de un SKU
+ *  que ya no está activo y no por eso se pierde su fila. */
+function buscarComponente(agrupados: ComponentesAgrupados, idCom: number): { prefijo: string; componente: Componente } | null {
+  for (const prefijo of Object.keys(agrupados)) {
+    const componente = agrupados[prefijo].find((c) => c.idCom === idCom)
+    if (componente) return { prefijo, componente }
+  }
+  return null
+}
+
+/** Fila en edición: SKU, cantidad, "Reutilizado" y observación originales. "+" apagado con stock ≤ 0; si era reutilizada,
+ *  "+" y "-" apagados; si no y cantidad > 0, "Reutilizado" apagado. */
+function filaEditada(base: BaseFila, c: Componente, modelo: string | null, detalle: DetalleEdicion): FilaEstado {
+  const skus = base.skus.some((s) => s.idCom === c.idCom) ? base.skus : [...base.skus, c]
+  const limpia = filaLimpia({ prefijo: base.prefijo, nombre: base.nombre, skus }, modelo)
+  const opciones = limpia.opciones.some((o) => o.idCom === c.idCom) ? limpia.opciones : [...limpia.opciones, c]
+  const cantidad = Math.max(0, detalle.cantidad)
+  const reutilizado = detalle.esReutilizado
+  const observacion = textoONull(detalle.observacion)
+  return {
+    ...limpia,
+    skus,
+    opciones,
+    idCom: c.idCom,
+    cantidad,
+    reutilizado,
+    observacion,
+    controles: {
+      mas: !reutilizado && c.stock > 0,
+      menos: !reutilizado && cantidad > 0,
+      reutilizado: reutilizado || cantidad === 0,
+      sku: true,
+      observacion: true,
+    },
+    rol: 'editada',
+    original: { idCom: c.idCom, cantidad, reutilizado, observacion },
+  }
+}
+
+/** Modo edición: el modelo es el del SKU editado (pieza o acción 'otro…') y el combo queda siempre bloqueado. Las filas de
+ *  otros tipos con algún SKU (de cualquier modelo, activo o no) ya reparado en el IMEI salen como 'yaReparado'. */
 function inicialEditar(datos: DatosEditar): EstadoFormulario {
   const glass = datos.idRep.startsWith('G')
-  return estadoBase({
+  const base = estadoBase({
     modo: 'editar',
     categoria: glass ? 'G' : 'R',
     idAsignacion: null,
@@ -344,6 +388,37 @@ function inicialEditar(datos: DatosEditar): EstadoFormulario {
     agrupados: datos.agrupados,
     glass,
   })
+  const hallado = buscarComponente(datos.agrupados, datos.detalle.idCom)
+  const esAccion = hallado !== null && hallado.prefijo === PREFIJO_OTRO
+  const modelo = hallado === null ? null : extraerModelo(hallado.componente.tipo, hallado.prefijo)
+  const filas = base.filas.map((fila): FilaEstado => {
+    if (hallado !== null && !esAccion && fila.prefijo === hallado.prefijo) return filaEditada(fila, hallado.componente, modelo, datos.detalle)
+    const limpia = filaLimpia(fila, modelo)
+    const yaReparado = (datos.agrupados[fila.prefijo] ?? []).some((c) => datos.yaReparados.includes(c.idCom))
+    return yaReparado ? { ...limpia, rol: 'yaReparado', controles: CONTROLES_APAGADOS } : limpia
+  })
+  const linea = (id: number, texto: string, origen: OrigenAccion): OtraAccion => ({
+    id, texto, origen, guardada: null, confirmando: false, guardando: false,
+  })
+  const otros = datos.accionesYaReparadas.map((texto, i) => linea(i + 1, texto, 'yaReparada'))
+  if (esAccion) otros.push(linea(otros.length + 1, datos.detalle.observacion ?? '', 'editada'))
+  return {
+    ...base,
+    modelo,
+    modeloBloqueado: true,
+    modelos: conModeloEnLista(base.modelos, modelo),
+    filas,
+    otros,
+    siguienteIdAccion: otros.length + 1,
+    edicion: {
+      idRep: datos.idRep,
+      tipo: esAccion ? 'accion' : 'pieza',
+      idTecOriginal: datos.detalle.idTec,
+      updatedAt: datos.detalle.updatedAt,
+      textoAccionOriginal: esAccion ? (datos.detalle.observacion ?? '').trim() : null,
+      idComAccion: esAccion ? datos.detalle.idCom : null,
+    },
+  }
 }
 
 export function estadoInicial(datos: DatosNuevo | DatosEditar): EstadoFormulario {
@@ -664,12 +739,13 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
 // ───────────────────────────── Selectores de cabecera ─────────────────────────────
 
 export function etiquetaImei(e: EstadoFormulario): string {
-  return `IMEI: ${e.imei}`
+  if (e.edicion === null) return `IMEI: ${e.imei}`
+  return `IMEI: ${e.imei}  ·  Editando ${e.edicion.tipo === 'accion' ? 'acción ' : ''}${e.edicion.idRep}`
 }
 
 /** Título de la pestaña del navegador y nombre accesible del diálogo. */
 export function tituloPestana(e: EstadoFormulario): string {
-  return `Nueva reparación — IMEI ${e.imei}`
+  return e.edicion === null ? `Nueva reparación — IMEI ${e.imei}` : `Editar reparación — ${e.edicion.idRep}`
 }
 
 const CATEGORIAS_CONFLICTO = ['Reparación', 'Glass', 'Pulido'] as const
@@ -704,6 +780,7 @@ export type BotonDerecho =
   | { tipo: 'yaReparado' } // '✓  Ya reparado'
 
 export function botonDerecho(e: EstadoFormulario, fila: FilaEstado): BotonDerecho {
+  if (fila.rol === 'yaReparado') return { tipo: 'yaReparado' }
   if (fila.guardada !== null) return { tipo: 'guardada', texto: `✓ Guardada ${fila.guardada.fecha}` }
   // Una fila sin SKU para el modelo no enseña nada, tampoco un "✓ Recibido" anterior.
   if (filaSinSku(fila)) return { tipo: 'ninguno' }
@@ -781,7 +858,7 @@ function accionesPendientes(e: EstadoFormulario): OtraAccion[] {
 
 /** Se muestra u oculta la zona ENTERA. Una solicitud cargada del servidor no la muestra por sí sola. */
 export function zonaGuardarVisible(e: EstadoFormulario): boolean {
-  if (e.modo === 'editar') return false
+  if (e.modo === 'editar') return zonaVisibleEnEdicion(e)
   return (
     e.filas.some((f) => f.guardada !== null || filaActiva(f)) ||
     e.otros.some((a) => a.guardada !== null) ||
@@ -792,4 +869,202 @@ export function zonaGuardarVisible(e: EstadoFormulario): boolean {
 export function textoBotonGuardar(e: EstadoFormulario): string {
   if (e.guardado.textoConfirmacion) return '✓  Confirmar terminar'
   return e.modo === 'editar' ? 'Guardar cambios' : 'Terminar asignación'
+}
+
+// ───────────────────────────── Selectores: modo edición ─────────────────────────────
+
+function filaEnEdicion(e: EstadoFormulario): FilaEstado | null {
+  return e.filas.find((f) => f.rol === 'editada') ?? null
+}
+
+function accionEnEdicion(e: EstadoFormulario): OtraAccion | null {
+  return e.otros.find((a) => a.origen === 'editada') ?? null
+}
+
+/** Hay cambio si varía cantidad, SKU, "Reutilizado" u observación respecto al original. */
+export function hayCambioEnFilaEditada(e: EstadoFormulario): boolean {
+  const fila = filaEnEdicion(e)
+  if (fila === null || fila.original === null) return false
+  const o = fila.original
+  return fila.cantidad !== o.cantidad || fila.idCom !== o.idCom || fila.reutilizado !== o.reutilizado || fila.observacion !== o.observacion
+}
+
+/** Cambio sin uso (cantidad 0 y sin "Reutilizado"): contador en rojo y zona de guardar oculta. */
+export function filaEditadaInvalida(e: EstadoFormulario): boolean {
+  const fila = filaEnEdicion(e)
+  return fila !== null && hayCambioEnFilaEditada(e) && fila.cantidad === 0 && !fila.reutilizado
+}
+
+/** La acción editada con el texto vacío invalida todo el guardado. */
+export function accionEditadaInvalida(e: EstadoFormulario): boolean {
+  const accion = accionEnEdicion(e)
+  return accion !== null && accion.texto.trim() === ''
+}
+
+function hayCambioEnAccionEditada(e: EstadoFormulario): boolean {
+  const accion = accionEnEdicion(e)
+  if (accion === null || e.edicion === null) return false
+  const texto = accion.texto.trim()
+  return texto !== '' && texto !== e.edicion.textoAccionOriginal
+}
+
+/** Filas que no son la editada ni están ya reparadas y que se han activado: se guardan como reparaciones nuevas. */
+function filasNuevasEnEdicion(e: EstadoFormulario): FilaEstado[] {
+  return e.filas.filter((f) => f.rol === 'normal' && !filaSinSku(f) && filaActiva(f))
+}
+
+function zonaVisibleEnEdicion(e: EstadoFormulario): boolean {
+  if (filaEditadaInvalida(e) || accionEditadaInvalida(e)) return false
+  return (
+    hayCambioEnFilaEditada(e) || hayCambioEnAccionEditada(e) || filasNuevasEnEdicion(e).length > 0 || accionesPendientes(e).length > 0
+  )
+}
+
+/** Solo en edición se pregunta al cerrar; un cambio inválido oculta la zona y por eso se pierde sin preguntar. */
+export function hayCambiosSinGuardar(e: EstadoFormulario): boolean {
+  return e.modo === 'editar' && zonaGuardarVisible(e)
+}
+
+export type PrevisionStock = { texto: string; tendencia: 'baja' | 'sube' | 'igual' }
+
+/** "<stock> → <previsto>" de la fila editada: previsto = stock + devuelto − descontado. Devuelto = la cantidad original si el
+ *  SKU sigue siendo el original y no era reutilizada; descontado = 0 con "Reutilizado", si no la cantidad. */
+export function previsionStock(e: EstadoFormulario, fila: FilaEstado): PrevisionStock | null {
+  const stock = stockDe(fila)
+  if (e.modo !== 'editar' || fila.rol !== 'editada' || fila.original === null || stock === null) return null
+  const devuelto = fila.idCom === fila.original.idCom && !fila.original.reutilizado ? fila.original.cantidad : 0
+  const descontado = fila.reutilizado ? 0 : fila.cantidad
+  const previsto = stock + devuelto - descontado
+  return { texto: `${stock} → ${previsto}`, tendencia: previsto < stock ? 'baja' : previsto > stock ? 'sube' : 'igual' }
+}
+
+// ───────────────────────────── Cuerpos de las llamadas ─────────────────────────────
+// Los campos sin valor viajan como null (el contrato marca todas las propiedades como required).
+
+export function filaDeCuerpo(fila: FilaEstado): FilaReparacion {
+  if (fila.idCom === null) throw new Error(`La fila ${fila.prefijo} no tiene SKU: no se puede enviar`)
+  return {
+    idCom: fila.idCom,
+    cantidad: fila.cantidad,
+    reutilizado: fila.reutilizado,
+    observacion: fila.observacion,
+    prefijo: fila.prefijo,
+    esSolicitud: false,
+    descripcionSolicitud: null,
+    estadoSolicitud: null,
+    enCamino: false,
+  }
+}
+
+export function filaDeAccion(idCom: number, texto: string): FilaReparacion {
+  return {
+    idCom,
+    cantidad: 0,
+    reutilizado: false,
+    observacion: texto.trim(),
+    prefijo: PREFIJO_OTRO,
+    esSolicitud: false,
+    descripcionSolicitud: null,
+    estadoSolicitud: null,
+    enCamino: false,
+  }
+}
+
+/** Una fila de cuerpo por cada acción nueva con texto (ninguna si el modelo no tiene componente 'otro'). */
+function filasDeAcciones(e: EstadoFormulario): FilaReparacion[] {
+  const idCom = idComOtro(e)
+  return idCom === null ? [] : accionesPendientes(e).map((a) => filaDeAccion(idCom, a.texto))
+}
+
+/** "✓ Guardar fila": una sola fila, con el técnico de la sesión (el servidor toma el del token) y la incidencia si la hay. */
+export function cuerpoGuardarFila(e: EstadoFormulario, prefijo: string, idTecSesion: number): GuardarFilaRequest {
+  const fila = e.filas.find((f) => f.prefijo === prefijo)
+  if (fila === undefined) throw new Error(`No existe la fila ${prefijo}`)
+  return { filas: [filaDeCuerpo(fila)], imei: e.imei, idTec: idTecSesion, idRepAnterior: e.incidencia }
+}
+
+/** "✓ Guardar" de una acción; null si el modelo no tiene componente 'otro', la línea no existe o no tiene texto. */
+export function cuerpoGuardarAccion(e: EstadoFormulario, id: number, idTecSesion: number): GuardarFilaRequest | null {
+  const idCom = idComOtro(e)
+  const accion = e.otros.find((a) => a.id === id)
+  if (idCom === null || accion === undefined || accion.texto.trim() === '') return null
+  return { filas: [filaDeAccion(idCom, accion.texto)], imei: e.imei, idTec: idTecSesion, idRepAnterior: e.incidencia }
+}
+
+export type PlanTerminar = {
+  agotados: { prefijo: string; cuerpo: AgotarRequest }[] // solo los NO registrados, en orden de filas
+  completa: InsertarCompletaRequest | null // null = sin filas que enviar y hubo agotado nuevo (registrado o no)
+}
+
+/** "Terminar asignación": primero un agotar-componente por cada agotado local aún sin registrar (un reintento no repite los
+ *  ya registrados); después `completa` con las filas no guardadas activas (también las de solicitud cargada con
+ *  "Reutilizado") y las acciones pendientes. Con `filas` vacía se envía igualmente (cierra la asignación), salvo que hubiera
+ *  algún agotado nuevo: entonces la asignación queda abierta con su solicitud y `completa` no se llama. Sin `categoria`. */
+export function planTerminar(e: EstadoFormulario, idTecSesion: number): PlanTerminar {
+  const conAgotado = e.filas.filter((f) => f.guardada === null && f.agotado !== null)
+  const agotados = conAgotado.flatMap((f) =>
+    f.agotado === null || f.agotado.registrado || f.idCom === null
+      ? []
+      : [{ prefijo: f.prefijo, cuerpo: { idCom: f.idCom, cantidad: f.cantidad, descripcion: f.agotado.descripcion } }],
+  )
+  const filas = [
+    ...e.filas.filter((f) => f.guardada === null && f.agotado === null && !filaSinSku(f) && filaActiva(f)).map(filaDeCuerpo),
+    ...filasDeAcciones(e),
+  ]
+  if (filas.length === 0 && conAgotado.length > 0) return { agotados, completa: null }
+  return {
+    agotados,
+    completa: { filas, imei: e.imei, idTec: idTecSesion, idRepAnterior: e.incidencia, idAsignacion: e.idAsignacion, categoria: null },
+  }
+}
+
+export type PlanGuardarCambios = {
+  editarAccion: EditarReparacionRequest | null // paso 0
+  editarFila: EditarReparacionRequest | null // paso 1
+  completaFilas: InsertarCompletaRequest | null // paso 2
+  completaAcciones: InsertarCompletaRequest | null // paso 3
+}
+
+/** "Guardar cambios", en orden. Las filas y acciones nuevas conservan el técnico ORIGINAL de la reparación editada y van
+ *  sin idAsignacion ni idRepAnterior; `categoria` es 'G' solo si se edita una G…. */
+export function planGuardarCambios(e: EstadoFormulario): PlanGuardarCambios {
+  const edicion = e.edicion
+  if (e.modo !== 'editar' || edicion === null) return { editarAccion: null, editarFila: null, completaFilas: null, completaAcciones: null }
+  const completa = (filas: FilaReparacion[]): InsertarCompletaRequest | null =>
+    filas.length === 0
+      ? null
+      : {
+          filas,
+          imei: e.imei,
+          idTec: edicion.idTecOriginal,
+          idRepAnterior: null,
+          idAsignacion: null,
+          categoria: edicion.idRep.startsWith('G') ? 'G' : null,
+        }
+  const accion = accionEnEdicion(e)
+  const fila = filaEnEdicion(e)
+  return {
+    editarAccion:
+      accion !== null && edicion.idComAccion !== null && hayCambioEnAccionEditada(e)
+        ? {
+            idComNuevo: edicion.idComAccion,
+            esReutilizadoNuevo: false,
+            observacionNueva: accion.texto.trim(),
+            nNuevas: 0,
+            updatedAt: edicion.updatedAt,
+          }
+        : null,
+    editarFila:
+      fila !== null && fila.idCom !== null && hayCambioEnFilaEditada(e)
+        ? {
+            idComNuevo: fila.idCom,
+            esReutilizadoNuevo: fila.reutilizado,
+            observacionNueva: fila.observacion,
+            nNuevas: fila.cantidad,
+            updatedAt: edicion.updatedAt,
+          }
+        : null,
+    completaFilas: completa(filasNuevasEnEdicion(e).map(filaDeCuerpo)),
+    completaAcciones: completa(filasDeAcciones(e)),
+  }
 }
