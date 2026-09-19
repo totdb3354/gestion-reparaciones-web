@@ -41,6 +41,9 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null)
   const revisionInicial = useRef(estado.revision)
   const volcadosVistos = useRef(estado.volcados)
+  // Copia INMUTABLE de `volcados` al abrir (a diferencia de `volcadosVistos`, que el efecto 3 va actualizando): con ella el
+  // desmontaje sabe si algo cambió DESDE que se abrió el formulario, sin importar si ya se procesó ese cambio.
+  const volcadosInicial = useRef(estado.volcados)
 
   const cancelar = useCallback(() => {
     if (temporizador.current !== null) {
@@ -50,10 +53,18 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
   }, [])
 
   const escribir = useCallback(
-    (): Promise<void> =>
+    (opciones?: { soloSiHayCambios?: boolean }): Promise<void> =>
       encolar(async () => {
         const { estado: e, listo: aplicadoYa, activo: enUso } = vivo.current
         if (!enUso || !aplicadoYa || descartado.current || e.borradorDescartado || e.idAsignacion === null) return
+        // Solo el desmontaje pide esto: con React StrictMode (montar → desmontar → montar en desarrollo) el desmontaje
+        // simulado llega ya con `listo` true cuando no había borrador que recuperar (recuperado === null), y sin este
+        // filtro volcaría un DELETE nada más abrir el formulario, sin que el usuario haya tocado nada. ✕/Escape siguen
+        // llamando a `volcarAhora()` sin esta opción: su volcado es incondicional (borra si el formulario está vacío).
+        if (opciones?.soloSiHayCambios) {
+          const huboCambios = escrito.current !== undefined || e.revision !== revisionInicial.current || e.volcados !== volcadosInicial.current
+          if (!huboCambios) return
+        }
         const contenido = serializar(e)
         // Mismo contenido que la última escritura buena (✕ y, acto seguido, el desmontaje): no se repite.
         if (escrito.current !== undefined && contenido === escrito.current) return
@@ -75,6 +86,11 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
     const base = vivo.current.estado
     dispatch({ tipo: 'REEMPLAZAR', estado: aplicarBorrador(base, recuperado) })
     if (!tieneGuardadas(recuperado)) return
+    // El GET se lanza una sola vez, aquí, en el primer commit; solo su RESOLUCIÓN es asíncrona. Si tarda y llega durante
+    // "Terminar asignación" (estado.guardado.enCurso true), despachar DESBLOQUEAR_BORRADAS es inofensivo: las filas/acciones
+    // que reinicia estaban `guardada` en el momento del clic, así que planTerminar ya las excluyó de `completa`, y el
+    // reinicio (cantidad 0, sin "Reutilizado", sin observación) coincide con lo que (no) se envió. El volcado que dispara
+    // (sube `volcados`) queda encolado ANTES que el DELETE de `descartar` (misma cola serie de módulo), así que no lo pisa.
     idsReparacionesDelImei(base.imei).then(
       (ids) => dispatch({ tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ids }),
       () => {
@@ -103,13 +119,15 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
     void escribir()
   }, [activo, listo, estado.volcados, cancelar, escribir])
 
-  // 4) Volcado al desmontar (Atrás del navegador, cambio de ruta). Solo se registra con `listo`: el desmontaje simulado
-  //    de StrictMode, que ocurre antes de aplicar el borrador recuperado, no escribe nada.
+  // 4) Volcado al desmontar (Atrás del navegador, cambio de ruta). Solo se registra con `listo`: si había un borrador que
+  //    recuperar, el desmontaje simulado de StrictMode (que ocurre ANTES de aplicarlo) no llega a registrar cleanup. Pero
+  //    sin borrador que recuperar `listo` es true desde el primer render, así que ese mismo desmontaje simulado SÍ registra
+  //    cleanup: `soloSiHayCambios` evita que escriba (un DELETE) sobre un formulario recién abierto sin tocar.
   useEffect(() => {
     if (!activo || !listo) return
     return () => {
       cancelar()
-      void escribir()
+      void escribir({ soloSiHayCambios: true })
     }
   }, [activo, listo, cancelar, escribir])
 

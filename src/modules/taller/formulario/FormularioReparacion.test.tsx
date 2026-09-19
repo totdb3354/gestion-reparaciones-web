@@ -533,6 +533,8 @@ describe('FormularioReparacion — borrador persistente', () => {
     const primera = abrirNuevo({ borrador: BORRADOR_BAT_GUARDADA, reparacionesImei: [] })
     await waitFor(() => expect(screen.getByTestId('fila-bat')).toHaveAttribute('data-estado', 'normal'))
     expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+    // La banda no desaparece mientras el formulario siga abierto, aunque el desbloqueo deje el borrador vacío.
+    expect(screen.getByTestId('banda-borrador')).toBeInTheDocument()
     // El borrador queda vacío tras el desbloqueo → DELETE inmediato.
     await waitFor(() => expect(delBorrador(primera.llamadas)).toHaveLength(1))
     expect(delBorrador(primera.llamadas)[0].metodo).toBe('DELETE')

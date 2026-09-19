@@ -1,5 +1,5 @@
 import { StrictMode, useReducer } from 'react'
-import { act, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { agrupados, BORRADOR_JAVAFX, detalleEdicion } from '../test/fabrica'
 import { estadoInicial, reducir, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
@@ -57,8 +57,13 @@ beforeEach(() => {
   api.borrarBorrador.mockReset().mockResolvedValue(undefined)
   api.idsReparacionesDelImei.mockReset().mockResolvedValue([])
 })
-afterEach(() => {
+afterEach(async () => {
+  // Timers reales primero: si un test deja el hook montado, `cleanup()` dispara aquí su volcado de desmontaje (efecto 4),
+  // y esa escritura (aunque `soloSiHayCambios` la descarte casi siempre) no debe quedar colgada de un reloj falso. Se
+  // espera la cola para que no se cuele en los mocks (ya reseteados) del test siguiente.
   vi.useRealTimers()
+  cleanup()
+  await borradorEnReposo()
 })
 
 describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', () => {
@@ -131,6 +136,29 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
     expect(api.borrarBorrador).not.toHaveBeenCalled()
     expect(api.guardarBorrador).not.toHaveBeenCalled()
     expect(fila(result.current.estado, 'bat').cantidad).toBe(2)
+  })
+
+  it('StrictMode sin borrador: el montaje doble (desmontaje simulado nada más abrir, sin tocar nada) no borra nada', async () => {
+    const { result } = montar(null, { estricto: true })
+    expect(result.current.borrador.listo).toBe(true)
+    await asentar()
+    expect(api.guardarBorrador).not.toHaveBeenCalled()
+    expect(api.borrarBorrador).not.toHaveBeenCalled()
+  })
+
+  it('StrictMode sin borrador: un cambio real sigue autoguardando a los 2 s', async () => {
+    const { result } = montar(null, { estricto: true })
+    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    await avanzar(RETARDO_BORRADOR_MS)
+    expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
+  })
+
+  it('StrictMode sin borrador: un desmontaje real tras un cambio sigue volcando', async () => {
+    const { result, unmount } = montar(null, { estricto: true })
+    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    unmount()
+    await asentar()
+    expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
   })
 
   it('borrador ilegible: formulario limpio, sin banda y sin error', async () => {
