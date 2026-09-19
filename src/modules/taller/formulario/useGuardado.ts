@@ -1,4 +1,4 @@
-import { useRef, type Dispatch } from 'react'
+import { useRef, useState, type Dispatch } from 'react'
 import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
@@ -38,8 +38,9 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
   // Re-entrada en "terminar": el JavaFX llamaba al servidor en el hilo de la interfaz (nunca dos veces a la vez); aquí
   // un doble clic muy rápido podría invocar `terminar` dos veces antes de que `INICIO_GUARDADO` se refleje en `estado`.
   const enVuelo = useRef(false)
-  // Una instancia por formulario abierto: sobrevive a los renders (no se recrea) y vive lo que dure el formulario.
-  const claves = useRef(crearClavesIdempotencia()).current
+  // Una instancia por formulario abierto: el inicializador perezoso solo se evalúa una vez, en el primer render
+  // (no se recrea en cada render como pasaría pasándole `crearClavesIdempotencia()` directamente).
+  const [claves] = useState(() => crearClavesIdempotencia())
 
   function avisar(e: unknown, literal: string) {
     if (!esErrorGestionadoGlobalmente(e)) mostrarError(literal)
@@ -47,10 +48,10 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
 
   async function ejecutarGuardarFila(idAsignacion: string, prefijo: string) {
     dispatch({ tipo: 'INICIO_GUARDAR_FILA', prefijo })
-    const cuerpo = cuerpoGuardarFila(estado, prefijo, idTecSesion)
-    const operacion = `fila:${prefijo}`
-    const clave = claves.para(operacion, cuerpo)
     try {
+      const cuerpo = cuerpoGuardarFila(estado, prefijo, idTecSesion)
+      const operacion = `fila:${prefijo}`
+      const clave = claves.para(operacion, cuerpo)
       const idRep = await guardarFilaMut.mutateAsync({ idAsignacion, cuerpo, clave })
       claves.hecha(operacion)
       dispatch({ tipo: 'FILA_GUARDADA', prefijo, idRep, fecha: fechaGuardado(new Date()) })
@@ -77,9 +78,9 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
     const cuerpo = cuerpoGuardarAccion(estado, id, idTecSesion)
     if (cuerpo === null) return
     dispatch({ tipo: 'INICIO_GUARDAR_ACCION', id })
-    const operacion = `accion:${id}`
-    const clave = claves.para(operacion, cuerpo)
     try {
+      const operacion = `accion:${id}`
+      const clave = claves.para(operacion, cuerpo)
       const idRep = await guardarFilaMut.mutateAsync({ idAsignacion, cuerpo, clave })
       claves.hecha(operacion)
       dispatch({ tipo: 'ACCION_GUARDADA', id, idRep, fecha: fechaGuardado(new Date()) })

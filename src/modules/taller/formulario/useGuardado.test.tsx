@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { agrupados, detalleEdicion } from '../test/fabrica'
-import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type DatosEditar, type DatosNuevo } from './estado'
+import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
 import { conRegistro, type LlamadaRegistrada } from './test/handlers'
 import { fechaGuardado, useGuardado } from './useGuardado'
 
@@ -99,6 +99,37 @@ describe('useGuardado · guardar fila', () => {
     await userEvent.click(screen.getByRole('button', { name: 'guardar fila' }))
     await userEvent.click(screen.getByRole('button', { name: 'guardar fila' }))
     expect(await screen.findByText('No se pudo guardar la fila: La operación ya se está procesando')).toBeInTheDocument()
+    expect(leer()).toEqual({ confirmando: false, guardando: false, guardada: null })
+  })
+})
+
+/** Estado inicial con la fila de batería forzada a `confirmandoGuardar: true` e `idCom: null`: la UI real nunca deja
+ *  llegar aquí (el botón está deshabilitado para una fila sin SKU — `filaSinSku`), pero el hook no repite esa
+ *  comprobación, así que fuerza el guardado saltándose la UI para comprobar que un throw de `cuerpoGuardarFila`
+ *  (vía `filaDeCuerpo`) no deja la fila colgada en `guardando: true`. */
+function estadoFilaSinSkuForzada(datos: DatosNuevo): EstadoFormulario {
+  const estado = estadoInicial(datos)
+  return { ...estado, filas: estado.filas.map((f) => (f.prefijo === 'bat' ? { ...f, idCom: null, confirmandoGuardar: true } : f)) }
+}
+
+function ArnesFilaSinSku() {
+  const [estado, dispatch] = useReducer(reducir, DATOS, estadoFilaSinSkuForzada)
+  const { guardarFila } = useGuardado({ estado, dispatch, onGuardado: () => {} })
+  const bat = estado.filas.find((f) => f.prefijo === 'bat')
+  return (
+    <div>
+      <button onClick={() => guardarFila('bat')}>guardar fila</button>
+      <output data-testid="bat">{JSON.stringify({ confirmando: bat?.confirmandoGuardar, guardando: bat?.guardando, guardada: bat?.guardada })}</output>
+    </div>
+  )
+}
+
+describe('useGuardado · robustez', () => {
+  it('una fila sin SKU forzada al guardado (cuerpoGuardarFila lanza) no queda colgada en guardando=true: termina en FALLO_GUARDAR_FILA con el aviso', async () => {
+    server.use(...conRegistro().handlers)
+    renderConProviders(<ArnesFilaSinSku />, { sesion: SESION_TEC })
+    await userEvent.click(screen.getByRole('button', { name: 'guardar fila' }))
+    expect(await screen.findByText('No se pudo guardar la fila: La fila bat no tiene SKU: no se puede enviar')).toBeInTheDocument()
     expect(leer()).toEqual({ confirmando: false, guardando: false, guardada: null })
   })
 })
