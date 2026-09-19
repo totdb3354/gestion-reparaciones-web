@@ -107,15 +107,62 @@ describe('Campana (ficha docs/paridad/notificaciones.md)', () => {
     expect(campana()).toHaveAttribute('data-pulso', 'false')
     expect(campana().querySelector('.campana-pulso')).toBeNull()
     expect(pestanaAbierta()).toBe('alertas')
+    // Abrir también recarga las alertas de stock: +1 sobre la carga inicial (carga=1, apertura=2).
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(2))
 
     await userEvent.click(campana())
     expect(screen.queryByTestId('panel-notificaciones')).not.toBeInTheDocument()
-    await act(async () => { await queryClient.invalidateQueries({ queryKey: CLAVE_NOTIF_COMPONENTES }) })
+    // Cerrar no recarga las alertas: sigue en 2.
     expect(cuantas(gets, '/api/componentes/gestionados')).toBe(2)
+    await act(async () => { await queryClient.invalidateQueries({ queryKey: CLAVE_NOTIF_COMPONENTES }) })
+    // Antes de que abrir recargara las alertas, aquí se esperaba 2 (carga inicial + esta invalidación manual); ahora la
+    // apertura ya sumó una recarga propia, así que la manual la deja en 3.
+    expect(cuantas(gets, '/api/componentes/gestionados')).toBe(3)
     expect(campana()).toHaveAttribute('data-pulso', 'false')
     // La segunda apertura ya no es la del pulso
     await userEvent.click(campana())
     expect(pestanaAbierta()).toBe('solicitudes')
+  })
+  it('abrir el panel recarga también las alertas de stock, mostrando la lista nueva', async () => {
+    const gets = espiarGets()
+    server.use(...handlersNotificaciones({ gestionados: [SIN_STOCK] }))
+    renderConProviders(<Campana />, { sesion: SESION_SUPER })
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(1))
+    const OTRA = componente({ idCom: 205, tipo: 'lcdi15', stock: 0, stockMinimo: 1 })
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json([OTRA])))
+
+    await userEvent.click(campana())
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(2))
+    expect(pestanaAbierta()).toBe('alertas')
+    expect(await screen.findByTestId('tarjeta-alerta-205')).toBeInTheDocument()
+    expect(screen.queryByTestId('tarjeta-alerta-102')).not.toBeInTheDocument()
+  })
+  it('cerrar el panel no recarga las alertas de stock', async () => {
+    const gets = espiarGets()
+    server.use(...handlersNotificaciones())
+    const { queryClient } = renderConProviders(<Campana />, { sesion: SESION_SUPER })
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(1))
+    await userEvent.click(campana())
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(2))
+    await userEvent.click(campana())
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(cuantas(gets, '/api/componentes/gestionados')).toBe(2)
+  })
+  it('abrir el panel con alertas nuevas no arranca el pulso si al cargar no había ninguna', async () => {
+    const gets = espiarGets()
+    server.use(...handlersNotificaciones())
+    renderConProviders(<Campana />, { sesion: SESION_SUPER })
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(1))
+    expect(campana()).toHaveAttribute('data-pulso', 'false')
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json([SIN_STOCK])))
+
+    await userEvent.click(campana())
+    await waitFor(() => expect(cuantas(gets, '/api/componentes/gestionados')).toBe(2))
+    expect(pestanaAbierta()).toBe('solicitudes')
+    await userEvent.click(screen.getByRole('tab', { name: 'Alertas' }))
+    expect(await screen.findByTestId('tarjeta-alerta-102')).toBeInTheDocument()
+    expect(campana()).toHaveAttribute('data-pulso', 'false')
+    expect(campana().querySelector('.campana-pulso')).toBeNull()
   })
   it('sin alertas al cargar no late nunca, aunque aparezcan después; abre en Solicitudes', async () => {
     const gets = espiarGets()

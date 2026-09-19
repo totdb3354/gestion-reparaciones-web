@@ -4,7 +4,7 @@ import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esSuperTecnico } from '@/shared/session/storage'
 import { alertasOrdenadas, hayAlertas } from './alertas'
-import { CLAVE_NOTIF_CONTADOR, useComponentesGestionados, useContadorNotificaciones } from './api'
+import { CLAVE_NOTIF_COMPONENTES, CLAVE_NOTIF_CONTADOR, useComponentesGestionados, useContadorNotificaciones } from './api'
 import { PanelNotificaciones } from './PanelNotificaciones'
 
 /** 'pendiente' = aún no ha llegado la primera respuesta de componentes; se decide una sola vez por montaje ("inicio de
@@ -41,11 +41,15 @@ function CampanaSupertecnico() {
   const encendida = total > 0 || latiendo || abierto
 
   function alternar() {
-    if (!abierto) setPestanaInicial(latiendo ? 'alertas' : 'solicitudes')
+    const abre = !abierto
+    if (abre) setPestanaInicial(latiendo ? 'alertas' : 'solicitudes')
     setPulso('parado')
-    setAbierto(!abierto)
+    setAbierto(abre)
     // El contador se recalcula al abrir y al cerrar el panel.
     void qc.invalidateQueries({ queryKey: CLAVE_NOTIF_CONTADOR })
+    // Las alertas de stock también se recargan al ABRIR (no al cerrar), como en el cliente de referencia: el pulso ya
+    // quedó decidido por la primera respuesta y no se reactiva aunque esta recarga traiga alertas.
+    if (abre) void qc.invalidateQueries({ queryKey: CLAVE_NOTIF_COMPONENTES })
   }
 
   // Cierre desde el panel (clic fuera o Escape): también recalcula el contador.

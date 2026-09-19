@@ -60,7 +60,7 @@ Capturas: `Apuntes/paridad-capturas/formulario/{campana-on-badge-pulso,notif-ale
 
 - [ ] Con el panel abierto: recarga de solicitudes, contadores y alertas cada 60 s (5 s con el banner de conexión activo); los fallos de conexión de ese sondeo no muestran error.
 - [ ] Las tarjetas de solicitudes no se redibujan si no cambia el conjunto de identificadores y su grupo (pendiente/rechazada, urgente/preventiva): un cambio de descripción, técnico o fecha no repinta mientras el panel siga abierto; así no parpadea ni pierde el desplazamiento. Las alertas se repintan siempre.
-- [ ] Recarga también al volver el foco a la ventana y tras cada acción de tarjeta (solicitudes y alertas); tras "Rechazar todo", solo solicitudes.
+- [ ] Recarga también al abrir el panel (alertas), al volver el foco a la ventana y tras cada acción de tarjeta (solicitudes y alertas); tras "Rechazar todo", solo solicitudes.
 
 ## Diferencias aceptadas
 
