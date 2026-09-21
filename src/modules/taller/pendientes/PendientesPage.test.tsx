@@ -1,12 +1,14 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
+import type { RouteObject } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
-import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
+import { handlersNotificaciones } from '../notificaciones/test/handlers'
 import { glass, normal, resumen } from '../test/fabrica'
 import { PendientesPage } from './PendientesPage'
 
@@ -18,6 +20,8 @@ const filas = [
 ]
 
 beforeEach(() => {
+  // <AppLayout/> con supertécnico monta la campana de la barra, que pide sus contadores y los componentes gestionados.
+  server.use(...handlersNotificaciones())
   server.use(
     http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json(filas)),
     http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
@@ -62,12 +66,46 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(screen.getByText('Chasis')).toBeInTheDocument()
     expect(screen.getByText('Glass: Técnico H')).toHaveClass('bg-tipo-glass-bg')
   })
-  it('el botón "Añadir reparación" está deshabilitado con el tooltip del formulario', async () => {
-    abrir()
+  it('el botón "Añadir reparación" abre la ruta del formulario de su asignación y la lista sigue montada', async () => {
+    const rutas: RouteObject[] = [
+      { path: '/reparaciones/pendientes', element: <PendientesPage tipo="REPARACION" />, children: [{ path: 'reparar/:idAsignacion', element: <p>FORMULARIO ABIERTO</p> }] },
+    ]
+    const { router } = renderConRouter(rutas, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes' })
     const botones = await screen.findAllByRole('button', { name: 'Añadir reparación' })
     expect(botones).toHaveLength(4)
-    expect(botones[0]).toBeDisabled()
-    expect(botones[0].parentElement).toHaveAttribute('title', 'Disponible con el formulario de reparación (siguiente entrega)')
+    expect(botones[0]).toBeEnabled()
+    await userEvent.click(botones[0])
+    expect(router.state.location.pathname).toBe('/reparaciones/pendientes/reparar/A20260915_29')
+    expect(await screen.findByText('FORMULARIO ABIERTO')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mis asignaciones pendientes' })).toBeInTheDocument()
+  })
+  it('"Añadir glass" navega a /reparaciones/pendientes/glass/reparar/<id>, la lista sigue montada y no se pinta si ocultarAnadirGlass', async () => {
+    const bloqueada = { ...glass(null), idRep: 'AG20260916_1', imei: '351111111111111', normalAbierta: true, normalTecnicoNombre: 'Técnico J' }
+    const libre = { ...glass(null), idRep: 'AG20260916_2', imei: '352222222222222' }
+    server.use(http.get('*/api/glass/asignaciones', () => HttpResponse.json([bloqueada, libre])))
+    const { router } = renderConRouter(
+      [{ path: '/reparaciones/pendientes/glass', element: <PendientesPage tipo="GLASS" />, children: [{ path: 'reparar/:idAsignacion', element: <p>FORMULARIO GLASS</p> }] }],
+      { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' },
+    )
+    await screen.findByText('AG20260916_2')
+    expect(within(screen.getByRole('row', { name: /AG20260916_1/ })).queryByRole('button', { name: 'Añadir glass' })).not.toBeInTheDocument()
+    const boton = within(screen.getByRole('row', { name: /AG20260916_2/ })).getByRole('button', { name: 'Añadir glass' })
+    expect(boton).toBeEnabled()
+    expect(boton.parentElement).not.toHaveAttribute('title')
+    await userEvent.click(boton)
+    expect(router.state.location.pathname).toBe('/reparaciones/pendientes/glass/reparar/AG20260916_2')
+    expect(await screen.findByText('FORMULARIO GLASS')).toBeInTheDocument()
+    expect(screen.getByText('AG20260916_2')).toBeInTheDocument()
+  })
+  it('una asignación con solicitud pendiente conserva la franja naranja, el badge "Solicitud" y el SKU bajo el estado', async () => {
+    server.use(http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([
+      resumen({ idRep: 'A20260916_7', imei: '355400000000222', esSolicitud: 1, estadoSolicitud: 'PENDIENTE', tipoSolicitud: 'bati14', tiposSolicitud: 'bati14' }),
+    ])))
+    abrir()
+    const fila = await screen.findByRole('row', { name: /A20260916_7 / })
+    expect(fila).toHaveClass('border-l-8', 'border-l-fila-solicitud-brd')
+    expect(within(fila).getByText('Solicitud')).toHaveClass('bg-fila-solicitud-bg', 'text-fila-solicitud-brd')
+    expect(within(fila).getByText('bati14')).toBeInTheDocument()
   })
   it('filtro Tipo: casillas, etiqueta "Todas"/"N filtros" y filtrado', async () => {
     abrir()

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Outlet, useNavigate } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { descargarCsv, textoForzado } from '@/shared/lib/csv'
@@ -26,7 +27,6 @@ import { filtroImeiPendientes, tipoPendientes } from '../estado'
 import { ocultarAnadirGlass } from '../lib/entregaGlass'
 import { etiquetaContador, ordenarPendientes, pasaImeis, pasaTipo, type TipoPendiente } from '../lib/filtros'
 import { traducirModelo } from '../lib/modelos'
-import { TOOLTIP_FORMULARIO } from '../lib/textos'
 import { MenuPendiente } from './MenuPendiente'
 import { FMT_PENDIENTES } from './textoCelda'
 
@@ -37,14 +37,13 @@ const OPCIONES_TIPO: { clave: TipoPendiente; etiqueta: string }[] = [
   { clave: 'asignacion', etiqueta: 'Asignaciones' },
 ]
 
-/** "Añadir reparación" / "Añadir glass" deshabilitado hasta el sub-proyecto 2; en glass bloqueada no se pinta. */
+/** "Añadir reparación" / "Añadir glass": abre el formulario de esa asignación como ruta hija (diálogo sobre la lista),
+ *  directamente y sin confirmación previa. En una glass bloqueada (ocultarAnadirGlass) no se pinta. */
 function BotonAnadir({ rep, glass }: { rep: ReparacionResumen; glass: boolean }) {
+  const navigate = useNavigate()
   if (glass && ocultarAnadirGlass(rep)) return null
-  return (
-    <span title={TOOLTIP_FORMULARIO} className="inline-block">
-      <BotonPrimario disabled className="pointer-events-none">{glass ? 'Añadir glass' : 'Añadir reparación'}</BotonPrimario>
-    </span>
-  )
+  const lista = glass ? '/reparaciones/pendientes/glass' : '/reparaciones/pendientes'
+  return <BotonPrimario onClick={() => navigate(`${lista}/reparar/${rep.idRep}`)}>{glass ? 'Añadir glass' : 'Añadir reparación'}</BotonPrimario>
 }
 
 export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
@@ -154,6 +153,8 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         onCancelar={() => setABorrar(null)}
         onConfirmar={confirmarBorrado}
       />
+      {/* El formulario de reparación es una ruta hija: se pinta aquí, como diálogo modal sobre la lista. */}
+      <Outlet />
     </div>
   )
 }

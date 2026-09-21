@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router'
+import { Campana } from '@/modules/taller/notificaciones/Campana'
 import { APP_VERSION } from '@/shared/lib/version'
 import { cn } from '@/shared/lib/utils'
 import { UserMenu } from './UserMenu'
@@ -36,7 +37,7 @@ export function TopBar() {
         ))}
       </nav>
       <div className="flex-1" />
-      {/* Campana de solicitudes (solo SUPERTECNICO): llega con el sub-proyecto 2 */}
+      <Campana />
       <UserMenu />
     </header>
   )

@@ -2,7 +2,9 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { Route } from 'react-router'
+import { handlersNotificaciones } from '@/modules/taller/notificaciones/test/handlers'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { server } from '@/test/server'
 import { AppLayout } from './AppLayout'
 
 describe('barra superior (calco de MainView)', () => {
@@ -30,9 +32,23 @@ describe('barra superior (calco de MainView)', () => {
     expect(screen.getByRole('menuitem', { name: 'Gestionar técnicos' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Ver logs' })).toBeInTheDocument()
   })
-  it('la campana no se muestra en este sub-proyecto (ni al supertécnico)', () => {
+  it('TopBar: la campana va a la izquierda del usuario, solo para el supertécnico', async () => {
+    server.use(...handlersNotificaciones())
     renderConProviders(<AppLayout />, { sesion: SESION_SUPER })
-    expect(screen.queryByRole('button', { name: /solicitudes/i })).not.toBeInTheDocument()
+    const campana = await screen.findByRole('button', { name: 'Notificaciones' })
+    const usuario = screen.getByRole('button', { name: /Hola, tecnico_f/ })
+    expect(campana.compareDocumentPosition(usuario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(campana.parentElement).toBe(usuario.parentElement)
+    // Separación de 10 px: el gap de la barra
+    expect(campana.parentElement).toHaveClass('gap-2.5')
+  })
+  it('técnico y admin no tienen campana', () => {
+    for (const sesion of [SESION_TEC, SESION_ADMIN]) {
+      const { unmount } = renderConProviders(<AppLayout />, { sesion })
+      expect(screen.queryByRole('button', { name: 'Notificaciones' })).not.toBeInTheDocument()
+      unmount()
+      sessionStorage.clear()
+    }
   })
   it('Cerrar Sesión borra la sesión y lleva al login', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC, rutas: <Route path="/login" element={<p>LOGIN</p>} /> })

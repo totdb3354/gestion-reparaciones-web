@@ -92,6 +92,13 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -154,10 +161,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "string"
-                  }
+                  "$ref" : "#/components/schemas/ContenidoBorrador"
                 }
               }
             }
@@ -891,6 +895,13 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -908,10 +919,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "string"
-                  }
+                  "$ref" : "#/components/schemas/ValorTexto"
                 }
               }
             }
@@ -927,6 +935,13 @@
           "name" : "idAsignacion",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -952,6 +967,14 @@
       "post" : {
         "tags" : [ "reparacion-controller" ],
         "operationId" : "insertarCompleta",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1833,10 +1856,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "type" : "object",
-                "additionalProperties" : {
-                  "type" : "string"
-                }
+                "$ref" : "#/components/schemas/SolicitudEstadoRequest"
               }
             }
           },
@@ -1866,10 +1886,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "type" : "object",
-                "additionalProperties" : {
-                  "type" : "string"
-                }
+                "$ref" : "#/components/schemas/SolicitudStockEstadoRequest"
               }
             }
           },
@@ -2932,10 +2949,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "string"
-                  }
+                  "$ref" : "#/components/schemas/ValorTexto"
                 }
               }
             }
@@ -3053,10 +3067,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
+                  "$ref" : "#/components/schemas/ValorEntero"
                 }
               }
             }
@@ -3074,10 +3085,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
+                  "$ref" : "#/components/schemas/ValorEntero"
                 }
               }
             }
@@ -3332,10 +3340,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
+                  "$ref" : "#/components/schemas/ValorTexto"
                 }
               }
             }
@@ -4368,7 +4373,8 @@
             "type" : "boolean"
           },
           "observacionNueva" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "nNuevas" : {
             "type" : "integer",
@@ -4663,7 +4669,8 @@
             "format" : "int32"
           },
           "descripcion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
@@ -4720,19 +4727,23 @@
             "type" : "boolean"
           },
           "observacion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "prefijo" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "esSolicitud" : {
             "type" : "boolean"
           },
           "descripcionSolicitud" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "estadoSolicitud" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "enCamino" : {
             "type" : "boolean"
@@ -4757,7 +4768,18 @@
             "format" : "int32"
           },
           "idRepAnterior" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "ValorTexto" : {
+        "required" : [ "value" ],
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
@@ -4774,7 +4796,8 @@
             "format" : "int32"
           },
           "descripcion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
@@ -4796,13 +4819,16 @@
             "format" : "int32"
           },
           "idRepAnterior" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "idAsignacion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "categoria" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
@@ -5355,6 +5381,24 @@
         "properties" : {
           "habilitado" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "SolicitudEstadoRequest" : {
+        "required" : [ "estado" ],
+        "type" : "object",
+        "properties" : {
+          "estado" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SolicitudStockEstadoRequest" : {
+        "required" : [ "estado" ],
+        "type" : "object",
+        "properties" : {
+          "estado" : {
+            "type" : "string"
           }
         }
       },
@@ -5926,10 +5970,12 @@
             "format" : "int32"
           },
           "tipoComponente" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "descripcion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "estado" : {
             "type" : "string"
@@ -5937,6 +5983,16 @@
           "fechaSolicitud" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "ValorEntero" : {
+        "required" : [ "value" ],
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -5963,7 +6019,8 @@
             "type" : "string"
           },
           "descripcion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "estado" : {
             "type" : "string"
@@ -5987,7 +6044,8 @@
           },
           "fechaFin" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "imei" : {
             "type" : "string"
@@ -5999,16 +6057,6 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
-          }
-        }
-      },
-      "ValorTexto" : {
-        "required" : [ "value" ],
-        "type" : "object",
-        "properties" : {
-          "value" : {
-            "type" : "string",
-            "nullable" : true
           }
         }
       },
@@ -6031,7 +6079,8 @@
             "type" : "boolean"
           },
           "observacion" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "cantidad" : {
             "type" : "integer",
@@ -6040,6 +6089,16 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "ContenidoBorrador" : {
+        "required" : [ "contenido" ],
+        "type" : "object",
+        "properties" : {
+          "contenido" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
@@ -6594,11 +6653,13 @@
           },
           "ultimoPedido" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "idComMaster" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           }
         }
       },

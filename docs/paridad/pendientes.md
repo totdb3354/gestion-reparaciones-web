@@ -2,7 +2,7 @@
 
 Referencia: línea hotfix 0.16.2 del cliente JavaFX (la que usa la tienda; idéntica a `hotfix/0.16.3` en estas vistas). Specs de origen: separar-glass (2026-06-30), badge-pendientes-cap99-pulidos (2026-07-01), paridad-pulido (2026-07-02), por-cerrar-carga (2026-07-08), entrega-glass (2026-08-28). Spec de este sub-proyecto: raíz `docs/superpowers/specs/2026-09-16-web-taller-design.md`.
 
-Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pendientes-filtro-tipo,pendientes-menu-contextual,pendientes-menu-contextual-con-glass,pendientes-filtro-imei-valido,pendientes-filtro-imei-incompleto,pendientes-glass-tecnico,pendientes-pulidos-tecnico,pendientes-reparaciones-supertecnico}.png`.
+Capturas de referencia (documentación privada, fuera del repo): `taller/{pendientes-reparaciones-tecnico,pendientes-filtro-tipo,pendientes-menu-contextual,pendientes-menu-contextual-con-glass,pendientes-filtro-imei-valido,pendientes-filtro-imei-incompleto,pendientes-glass-tecnico,pendientes-pulidos-tecnico,pendientes-reparaciones-supertecnico}.png`.
 
 ## Común a las tres pestañas
 
@@ -30,7 +30,8 @@ Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pend
 - [x] Fecha asignación `yyyy/MM/dd HH:mm` en hora de Madrid.
 - [x] Comentario = `comentarioAsignacion` (vacío si nulo). Cliente (vacío si nulo). Asignado por = `nombreTecnicoAsigna` o "—".
 - [x] Estado: badges apilados (radio 10, 11 px negrita, padding 2 10), de arriba abajo: "Urgente" (#FDDEDE / #C62828) si `urgente`; "Por cerrar" (#E0F2F1 / #00796B) si `porCerrar`; entrega en índigo (#E8EAF6 / #3949AB): "→ <técnico de glass>" en filas de reparación con `glassEntregadoAt` (tooltip "Entregado a <glass> por <quien>, dd/MM HH:mm"), "Llegó HH:mm" si es hoy o "Llegó dd/MM" si no en filas de glass con `entregadoAt` (tooltip "Bajado por <quien>, dd/MM HH:mm"); después uno solo: "Incidencia" (`fila-incidencia-bg` / `fila-incidencia-brd`) si `esIncidencia`; si no y `esSolicitud > 0`: "Recibido" (#E8F5E9 / #2E7D32) si `estadoSolicitud = GESTIONADA` y `stockSolicitud > 0`, "En camino" (#E3F2FD / #1565C0) si `enCamino`, si no "Solicitud" (`fila-solicitud-bg` / `fila-solicitud-brd`), con debajo "N piezas" (10 px #586376) si `esSolicitud > 1` o los tipos (`tiposSolicitud`) si es una, y tooltip con los tipos; si no, "Normal" (#E8EAF0 / #586376) salvo que sea urgente (entonces sin "Normal").
-- [x] Botón "Añadir reparación" / "Añadir glass" (`btn-primary`: navy, radio 24, 12 px negrita) en cada fila. **Deshabilitado en este sub-proyecto** con tooltip "Disponible con el formulario de reparación (siguiente entrega)". En la pestaña Glass el botón se oculta mientras la fila tenga `normalAbierta` y no tenga `entregadoAt` ("sin teléfono no hay glass").
+- [x] Botón "Añadir reparación" / "Añadir glass" (`btn-primary`: navy, radio 24, 12 px negrita) en cada fila. En la pestaña Glass el botón se oculta mientras la fila tenga `normalAbierta` y no tenga `entregadoAt` ("sin teléfono no hay glass").
+- [x] (sub-proyecto 2) El botón abre el formulario de reparación de esa asignación: navega a `/reparaciones/pendientes/reparar/<idAsignacion>` (en la pestaña Glass, `/reparaciones/pendientes/glass/reparar/<idAsignacion>`), que pinta el formulario como diálogo sobre la lista (ficha `formulario.md`). Al cerrarlo, con o sin guardar, se recargan las tres pestañas y el badge, como el `alCerrar` del JavaFX.
 - [x] Papelera (imagen `borrar.png`, 25 px, cursor de mano; solo SUPERTECNICO): `ConfirmDialog` "Borrar asignación <id>" / "El técnico dejará de verla en su lista de pendientes." (si `esIncidencia`: "El técnico dejará de verla en su lista de pendientes y la incidencia se marcará como no activa en la tabla principal.") / botón "Borrar asignación" y "Cancelar". Confirmar: si `esIncidencia` → `DELETE /api/reparaciones/imei/{imei}/incidencia-activa?tipo=R|G` (G en la pestaña Glass); si no → `DELETE /api/reparaciones/asignaciones/{id}`. Recarga lista y contadores.
 - [x] Filas: borde izquierdo de 8 px `fila-solicitud-brd` si `esSolicitud > 0`, `fila-incidencia-brd` si `esIncidencia`, transparente si no y en la seleccionada.
 - [x] Orden: urgentes primero, después las que tienen cliente, después el resto; estable dentro de cada grupo sobre el orden del servidor (fecha de asignación ascendente).
@@ -52,7 +53,6 @@ Capturas: `Apuntes/paridad-capturas/taller/{pendientes-reparaciones-tecnico,pend
 
 ## Diferencias aceptadas
 
-- "Añadir reparación" / "Añadir glass" deshabilitados con tooltip hasta el sub-proyecto 2 (formulario de reparación).
 - Las pestañas son rutas: el botón atrás del navegador cambia de pestaña.
 - La entrada "Pendientes" de la columna lateral abre siempre la pestaña "Reparaciones"; el JavaFX vuelve a abrir la última pestaña usada.
 - El `ConfirmDialog` de la papelera es un modal con el mismo título, texto y botones (sin cuenta atrás, como en Clientes).

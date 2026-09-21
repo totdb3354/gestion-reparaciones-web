@@ -2,10 +2,11 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from './errors'
 import { emitirError } from '@/shared/ui/alertas'
 
-// Tipa `mutation.meta`: sin esto es `Record<string, unknown> | undefined` y `silenciarError` no está
-// comprobado por tsc (un typo como `silenciarErrores` en una mutación compilaría sin avisar).
+// Tipa `meta` de consultas y mutaciones: sin esto es `Record<string, unknown> | undefined` y `silenciarError` no está
+// comprobado por tsc (un typo como `silenciarErrores` compilaría sin avisar).
 declare module '@tanstack/react-query' {
   interface Register {
+    queryMeta: { silenciarError?: boolean }
     mutationMeta: { silenciarError?: boolean }
   }
 }
@@ -35,6 +36,10 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
     },
     queryCache: new QueryCache({
       onError(error, query) {
+        // `meta: { silenciarError: true }`: la consulta no avisa de NADA por esta vía. O bien el aviso lo pone la vista con su
+        // propio literal (cargas del formulario), o bien es un sondeo de fondo (campana). Tampoco del corte de conexión: el
+        // banner ya lo cuenta (lo enciende el cliente HTTP, no este callback).
+        if (query.meta?.silenciarError === true) return
         // Diálogo solo en el PRIMER fallo de carga de una vista que nunca tuvo datos (calco de `enRefresco`):
         // sin datos previos = la carga inicial que ha pedido el usuario al navegar, y `errorUpdateCount === 1`
         // = es su primer fallo (TanStack despacha el estado de error antes de este callback, así que en el
@@ -48,7 +53,8 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
         avisar(error)
       },
     }),
-    // Las mutaciones avisan igual que las consultas. `meta: { silenciarError: true }` deja el aviso en manos
+    // A diferencia de las consultas, aquí `meta: { silenciarError: true }` NO silencia el corte de conexión (ver más
+    // abajo: se avisa siempre). Solo dispensa del diálogo genérico en el resto de errores, dejando el aviso en manos
     // de la vista (p. ej. Clientes, que traduce el 409 a "modificado por otro usuario") sin diálogo doble.
     mutationCache: new MutationCache({
       onError(error, _variables, _context, mutation) {

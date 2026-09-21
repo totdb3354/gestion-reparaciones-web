@@ -60,3 +60,28 @@
     font-family: system-ui, 'Segoe UI', sans-serif;
   }
 }
+
+/* Pulso de alertas de la campana (calco del ScaleTransition + DropShadow del JavaFX): escala 1 → 1,25 → 1 y halo
+   amarillo de 0 → 40 px → 0, ciclo de 1,2 s, lineal, sin fin. La lógica (cuándo late) vive en Campana.tsx. */
+@keyframes pulso-campana {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--color-amarillo);
+  }
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 40px 0 var(--color-amarillo);
+  }
+}
+.campana-pulso {
+  border-radius: 9999px;
+  animation: pulso-campana 1.2s linear infinite;
+}
+/* Con "reducir movimiento" no hay animación, pero sí un halo fijo: el estado (data-pulso) no cambia. */
+@media (prefers-reduced-motion: reduce) {
+  .campana-pulso {
+    animation: none;
+    box-shadow: 0 0 12px 0 var(--color-amarillo);
+  }
+}

@@ -5,9 +5,10 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
-import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
+import { handlersNotificaciones } from '../notificaciones/test/handlers'
 import { resumen, tecnico } from '../test/fabrica'
 import { ImeiDetallePage } from './ImeiDetallePage'
 
@@ -20,6 +21,8 @@ const glass = [resumen({ idRep: 'G20260912_1', imei: A, modelo: '16', idTec: 5, 
 const pulidos = [resumen({ idRep: 'P20260913_1', imei: A, modelo: '16', idTec: 5, nombreTecnico: 'tecnico_i', fechaAsig: '2026-09-13T10:00:00', fechaFin: '2026-09-13T11:00:00', idRepAnterior: 'AP20260913_1' })]
 
 beforeEach(() => {
+  // <AppLayout/> con supertécnico monta la campana de la barra, que pide sus contadores y los componentes gestionados.
+  server.use(...handlersNotificaciones())
   server.use(
     http.get('*/api/reparaciones/historial', () => HttpResponse.json(reps)),
     http.get('*/api/glass/historial', () => HttpResponse.json(glass)),
@@ -130,6 +133,22 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     expect(filas[0]).not.toHaveClass('opacity-45')
     expect(filas[1]).toHaveClass('opacity-45')
   })
+  it('"Editar" navega a /reparaciones/imeis/<imei>/editar/<idRep>; solo lo tienen las filas R y G', async () => {
+    const { router } = renderConRouter(
+      [{ path: '/reparaciones/imeis/:imei', element: <ImeiDetallePage />, children: [{ path: 'editar/:idRep', element: <p>FORMULARIO EDITAR</p> }] }],
+      { sesion: SESION_SUPER, ruta: `/reparaciones/imeis/${A}` },
+    )
+    await screen.findByText('P20260913_1')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('P20260913_1') })
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).not.toContain('Editar')
+    await userEvent.keyboard('{Escape}')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('G20260912_1') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar' }))
+    expect(router.state.location.pathname).toBe(`/reparaciones/imeis/${A}/editar/G20260912_1`)
+    expect(await screen.findByText('FORMULARIO EDITAR')).toBeInTheDocument()
+    expect(screen.getByText(`IMEI: ${A}`)).toBeInTheDocument()
+  })
+
   it('"Borrar" del supertécnico usa el título "Borrar trabajo" y el aviso "Este trabajo está siendo referenciado"', async () => {
     let body: unknown = null
     server.use(

@@ -14,6 +14,23 @@ export type ReparacionResumen = components['schemas']['ReparacionResumen']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
+/** Formulario de reparación y campana (sub-proyecto 2). `ComponentesAgrupados` es la respuesta de
+ *  GET /api/componentes/agrupados: prefijo del tipo → sus componentes, en el orden de claves del servidor. */
+export type Componente = components['schemas']['Componente']
+export type ComponentesAgrupados = Record<string, Componente[]>
+export type FilaReparacion = components['schemas']['FilaReparacion']
+/** Lo que devuelve GET …/asignaciones/{idAsignacion}/solicitudes: mismo esquema que una fila. */
+export type SolicitudAsignacion = FilaReparacion
+export type Reparacion = components['schemas']['Reparacion']
+export type DetalleEdicion = components['schemas']['ReparacionDAODetalleEdicion']
+export type AsignacionActiva = components['schemas']['ReparacionDAOAsignacionActiva']
+export type SolicitudResumen = components['schemas']['SolicitudResumen']
+export type SolicitudStock = components['schemas']['SolicitudStock']
+export type GuardarFilaRequest = components['schemas']['ReparacionGuardarFilaRequest']
+export type InsertarCompletaRequest = components['schemas']['ReparacionInsertarCompletaRequest']
+export type AgotarRequest = components['schemas']['ReparacionAgotarRequest']
+export type EditarReparacionRequest = components['schemas']['ReparacionEditarRequest']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''

@@ -1,7 +1,7 @@
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter, type RouteObject } from 'react-router'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { guardarSesion, type Sesion } from '@/shared/session/storage'
@@ -42,6 +42,29 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
     </QueryClientProvider>,
   )
   return { ...resultado, queryClient: qc }
+}
+
+/** Igual que renderConProviders (mismo QueryClient de producción sin reintentos, SessionProvider y AlertaProvider) pero con
+ *  un data router en memoria (createMemoryRouter + RouterProvider): hace falta para lo que exige data router, como
+ *  useBlocker, y para probar rutas hijas con <Outlet />. Devuelve el `router` para navegar desde el test
+ *  (`await act(() => router.navigate(-1))`). */
+export function renderConRouter(
+  rutas: RouteObject[],
+  { sesion = null, ruta = '/' }: { sesion?: Sesion | null; ruta?: string } = {},
+): ReturnType<typeof render> & { queryClient: QueryClient; router: ReturnType<typeof createMemoryRouter> } {
+  if (sesion) guardarSesion(sesion)
+  const qc = crearQueryClient({ retry: false })
+  const router = createMemoryRouter(rutas, { initialEntries: [ruta] })
+  const resultado = render(
+    <QueryClientProvider client={qc}>
+      <SessionProvider>
+        <AlertaProvider>
+          <RouterProvider router={router} />
+        </AlertaProvider>
+      </SessionProvider>
+    </QueryClientProvider>,
+  )
+  return { ...resultado, queryClient: qc, router }
 }
 
 export const SESION_SUPER: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
