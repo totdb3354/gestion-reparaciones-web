@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.3.0] - <fecha del tag> — Formulario de reparación y campana
+## [0.3.0] - 2026-09-21 — Formulario de reparación y campana
 
 - Formulario de reparación como diálogo gobernado por la URL, en tres modos: nueva reparación y glass desde Pendientes ("Añadir reparación" / "Añadir glass") y edición desde Historial e IMEIs ("Editar", solo supertécnico).
 - Filas por tipo de componente con filtro por modelo, SKU coloreado por stock, cantidad, "Reutilizado" y observación; "✓ Guardar fila" en dos clics.
