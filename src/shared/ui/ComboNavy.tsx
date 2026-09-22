@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
@@ -40,6 +40,20 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
     setAbierto(siguiente)
     onOpenChange?.(siguiente)
   }
+  // Simetría del aviso: si la celda se desmonta con la lista abierta (la fila sale del sondeo, un cambio de ruta,
+  // o `disabled` que pasa a `true` estando abierta), `cambiarAbierto` ya no vuelve a llamarse y quien escucha
+  // `onOpenChange` se queda con el `true` sin su `false`. Para quien lo usa para congelar algo mientras el
+  // desplegable está abierto (D4), eso lo deja congelado para siempre. Refs para no rearmar el efecto en cada
+  // render: solo debe correr al desmontar, con el `abierto` y el `onOpenChange` vigentes en ese momento.
+  const abiertoRef = useRef(abierto)
+  const onOpenChangeRef = useRef(onOpenChange)
+  // Sin deps: se sincronizan tras CADA render (nunca durante), para que el efecto de desmontaje de abajo, que solo
+  // debe correr una vez, lea siempre el valor vigente sin tener que rearmarse en cada cambio.
+  useEffect(() => {
+    abiertoRef.current = abierto
+    onOpenChangeRef.current = onOpenChange
+  })
+  useEffect(() => () => { if (abiertoRef.current) onOpenChangeRef.current?.(false) }, [])
   return (
     <Popover open={abierto} onOpenChange={cambiarAbierto}>
       <PopoverTrigger

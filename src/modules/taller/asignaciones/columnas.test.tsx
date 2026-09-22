@@ -241,3 +241,154 @@ describe('crearColumnas: reasignar desde la celda (D2)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
+
+// ── La guarda del deshacer: no manda una escritura condenada ni pisa el cambio de otro ──────────────────────────
+
+/** Como servidorDeUnaFila, pero el primer GET (montaje) responde al instante y cualquier GET posterior se queda
+ *  retenido hasta `liberarGet()`. Sirve para que, al pulsar "Deshacer", la caché SIGA sin confirmar la reasignación
+ *  (el camino rápido no vale) y se ejercite de verdad la espera de `filaParaDeshacer`. */
+function servidorDeUnaFilaConGetRetenido() {
+  const estado = { fila: FILA }
+  const cuerpos: CuerpoReasignar[] = []
+  let primeraHecha = false
+  let liberar = () => {}
+  const puerta = new Promise<void>((resolve) => { liberar = resolve })
+  server.use(
+    http.get('*/api/reparaciones/asignaciones', async () => {
+      if (primeraHecha) await puerta
+      primeraHecha = true
+      return HttpResponse.json([estado.fila])
+    }),
+    http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
+    http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),
+    http.patch('*/api/reparaciones/asignaciones/:idRep', async ({ request }) => {
+      const cuerpo = (await request.json()) as CuerpoReasignar
+      cuerpos.push(cuerpo)
+      if (cuerpo.updatedAt !== estado.fila.updatedAt) return new HttpResponse(null, { status: 409 })
+      const nombre = TECNICOS.find((t) => t.idTec === cuerpo.idTec)?.nombre ?? ''
+      estado.fila = { ...estado.fila, idTec: cuerpo.idTec, nombreTecnico: nombre, updatedAt: UPDATED_AT_TRAS_ESCRIBIR }
+      return new HttpResponse(null, { status: 200 })
+    }),
+  )
+  return { estado, cuerpos, liberarGet: () => liberar() }
+}
+
+/** Tras reasignar, la fila desaparece del listado (p. ej. se cerró): la caché nunca vuelve a traerla. */
+function servidorDeUnaFilaQueDesapareceTrasEscribir() {
+  const estado: { fila: ReparacionResumen | null } = { fila: FILA }
+  const cuerpos: CuerpoReasignar[] = []
+  server.use(
+    http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json(estado.fila ? [estado.fila] : [])),
+    http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
+    http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),
+    http.patch('*/api/reparaciones/asignaciones/:idRep', async ({ request }) => {
+      const cuerpo = (await request.json()) as CuerpoReasignar
+      cuerpos.push(cuerpo)
+      if (!estado.fila || cuerpo.updatedAt !== estado.fila.updatedAt) return new HttpResponse(null, { status: 409 })
+      estado.fila = null
+      return new HttpResponse(null, { status: 200 })
+    }),
+  )
+  return { cuerpos }
+}
+
+/** Tras reasignar, cualquier GET posterior falla (servidor caído): la caché se queda con el dato de antes de
+ *  reasignar y `refetchQueries` (retry: false) resuelve igual, sin lanzar. */
+function servidorDeUnaFilaConGetQueCaeTrasEscribir() {
+  const estado = { fila: FILA }
+  const cuerpos: CuerpoReasignar[] = []
+  let primeraHecha = false
+  server.use(
+    http.get('*/api/reparaciones/asignaciones', () => {
+      if (primeraHecha) return new HttpResponse(null, { status: 500 })
+      primeraHecha = true
+      return HttpResponse.json([estado.fila])
+    }),
+    http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
+    http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),
+    http.patch('*/api/reparaciones/asignaciones/:idRep', async ({ request }) => {
+      const cuerpo = (await request.json()) as CuerpoReasignar
+      cuerpos.push(cuerpo)
+      if (cuerpo.updatedAt !== estado.fila.updatedAt) return new HttpResponse(null, { status: 409 })
+      const nombre = TECNICOS.find((t) => t.idTec === cuerpo.idTec)?.nombre ?? ''
+      estado.fila = { ...estado.fila, idTec: cuerpo.idTec, nombreTecnico: nombre, updatedAt: UPDATED_AT_TRAS_ESCRIBIR }
+      return new HttpResponse(null, { status: 200 })
+    }),
+  )
+  return { cuerpos }
+}
+
+/** En cuanto llega MI reasignación (a Técnico H), otro supertécnico mueve la misma fila a un tercer técnico
+ *  (idTec 9), dentro de los 8 s del aviso: exactamente lo que Deshacer no debe pisar. */
+function servidorDeUnaFilaQueOtroPisaDespues() {
+  const estado = { fila: FILA }
+  const cuerpos: CuerpoReasignar[] = []
+  server.use(
+    http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([estado.fila])),
+    http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
+    http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),
+    http.patch('*/api/reparaciones/asignaciones/:idRep', async ({ request }) => {
+      const cuerpo = (await request.json()) as CuerpoReasignar
+      cuerpos.push(cuerpo)
+      if (cuerpo.updatedAt !== estado.fila.updatedAt) return new HttpResponse(null, { status: 409 })
+      estado.fila = { ...estado.fila, idTec: cuerpo.idTec, nombreTecnico: 'Técnico H', updatedAt: UPDATED_AT_TRAS_ESCRIBIR }
+      if (cuerpo.idTec === 6) {
+        estado.fila = { ...estado.fila, idTec: 9, nombreTecnico: 'Técnico Otro', updatedAt: '2026-09-16T07:06:00' }
+      }
+      return new HttpResponse(null, { status: 200 })
+    }),
+  )
+  return { estado, cuerpos }
+}
+
+describe('crearColumnas: la guarda del deshacer no manda una escritura condenada ni pisa un cambio ajeno', () => {
+  it('la caché sin confirmar aún: Deshacer espera la recarga antes de escribir (no el camino rápido)', async () => {
+    const { cuerpos, liberarGet } = servidorDeUnaFilaConGetRetenido()
+    await reasignarATecnicoH()
+    await screen.findByText('A20260916_1 reasignada a Técnico H')
+    await userEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
+    // El GET posterior a reasignar está retenido: la caché sigue sin confirmar el cambio y la vuelta atrás
+    // todavía no ha podido salir. Sin la espera de filaParaDeshacer, este PATCH ya habría salido.
+    await new Promise((r) => setTimeout(r, 30))
+    expect(cuerpos).toHaveLength(1)
+    liberarGet()
+    await vi.waitFor(() => expect(cuerpos).toHaveLength(2))
+    expect(cuerpos[1]).toEqual({ idTec: 4, comentarioAsignacion: 'no tocar', updatedAt: UPDATED_AT_TRAS_ESCRIBIR })
+  })
+
+  it('la fila sale del listado tras reasignar: Deshacer no manda la fila capturada (409 garantizado) y avisa', async () => {
+    const { cuerpos } = servidorDeUnaFilaQueDesapareceTrasEscribir()
+    await reasignarATecnicoH()
+    await screen.findByText('A20260916_1 reasignada a Técnico H')
+    await userEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText('Error')).toBeInTheDocument()
+    expect(within(dialogo).getByText(/no se ha confirmado el cambio en el servidor/)).toBeInTheDocument()
+    // Ningún segundo PATCH: ni con la fila capturada (updatedAt caducado) ni con ninguna otra.
+    expect(cuerpos).toHaveLength(1)
+  })
+
+  it('la recarga falla (servidor caído): Deshacer no manda el updatedAt caducado y avisa', async () => {
+    const { cuerpos } = servidorDeUnaFilaConGetQueCaeTrasEscribir()
+    await reasignarATecnicoH()
+    await screen.findByText('A20260916_1 reasignada a Técnico H')
+    await userEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText('Error')).toBeInTheDocument()
+    expect(cuerpos).toHaveLength(1)
+  })
+
+  it('otro supertécnico mueve la fila dentro de los 8 s: Deshacer no la pisa y avisa (no basta con que sea "fresca")', async () => {
+    const { estado, cuerpos } = servidorDeUnaFilaQueOtroPisaDespues()
+    await reasignarATecnicoH()
+    await screen.findByText('A20260916_1 reasignada a Técnico H')
+    // El otro supertécnico ya movió la fila a Técnico Otro (idTec 9) en el propio PATCH de arriba.
+    await vi.waitFor(() => expect(estado.fila.idTec).toBe(9))
+    await userEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText('Error')).toBeInTheDocument()
+    // No hay segundo PATCH: no se manda una reversión con la fila de otro técnico.
+    expect(cuerpos).toHaveLength(1)
+    expect(estado.fila.idTec).toBe(9)
+  })
+})

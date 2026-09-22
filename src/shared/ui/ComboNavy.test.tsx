@@ -81,6 +81,20 @@ describe('ComboNavy (combo navy de selección única)', () => {
     await userEvent.keyboard('{Escape}')
     expect(abierto.mock.calls).toEqual([[true], [false], [true], [false]])
   })
+  it('desmontar con la lista abierta emite el false que falta (si no, quien congela el sondeo por D4 se queda pegado)', async () => {
+    const abierto = vi.fn()
+    const { unmount } = render(<Demo alAbrir={abierto} />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
+    expect(abierto.mock.calls).toEqual([[true]])
+    unmount()
+    expect(abierto.mock.calls).toEqual([[true], [false]])
+  })
+  it('desmontar con la lista cerrada no emite nada de más', () => {
+    const abierto = vi.fn()
+    const { unmount } = render(<Demo alAbrir={abierto} />)
+    unmount()
+    expect(abierto).not.toHaveBeenCalled()
+  })
   it('sin onOpenChange el combo se comporta igual (la prop es opcional)', async () => {
     render(<Demo />)
     await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
