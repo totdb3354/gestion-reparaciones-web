@@ -1,6 +1,6 @@
 import type {
-  AsignacionActiva, Componente, ComponentesAgrupados, DetalleEdicion, Reparacion, ReparacionResumen, SolicitudAsignacion, SolicitudResumen,
-  SolicitudStock, Tecnico,
+  AsignacionActiva, Componente, ComponentesAgrupados, DesgloseCarga, DetalleEdicion, FilaCarga, Reparacion, ReparacionResumen,
+  SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico,
 } from '@/shared/api/client'
 
 /** Fila completa con valores por defecto; cada test sobrescribe lo que le importa. */
@@ -128,3 +128,15 @@ export const BORRADOR_JAVAFX: string = JSON.stringify({
     { descripcion: 'Ajuste de tornillería', guardada: false },
   ],
 })
+
+// ── Carga de técnicos (sub-proyecto 3a) ──────────────────────────────────────────────────────────────────────────────
+
+/** Tramo del desglose (hecho o pendiente) con todo a cero; cada test sube solo lo que quiere ver en el tooltip. */
+export function desglose(parcial: Partial<DesgloseCarga> = {}): DesgloseCarga {
+  return { normales: 0, chasis: 0, porCerrar: 0, glass: 0, enEsperaPieza: 0, ...parcial }
+}
+
+/** Fila de carga de un técnico: por defecto, un técnico sin nada asignado en un día con jornada. */
+export function filaCarga(parcial: Partial<FilaCarga> = {}): FilaCarga {
+  return { idTec: 1, nombre: 'Técnico A', pctHecho: 0, pctPendiente: 0, hecho: desglose(), pendiente: desglose(), sinJornada: false, ...parcial }
+}

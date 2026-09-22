@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MultiSelect, textoMultiSelect } from './MultiSelect'
 
 describe('textoMultiSelect (calco de actualizarTextoFiltro)', () => {
@@ -61,6 +61,18 @@ describe('MultiSelect', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: 'WEB' }))
     expect(screen.getByRole('button', { name: 'Cliente' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'WEB' })).toBeInTheDocument()
+  })
+
+  it('avisa con onOpenChange al abrir y al cerrar', async () => {
+    const abierta = vi.fn()
+    render(
+      <MultiSelect opciones={[{ n: 'WEB' }]} clave={(o) => o.n} etiqueta={(o) => o.n} seleccion={new Set()} onChange={() => {}}
+        textoVacio="Cliente" textoPlural={(k) => `${k} clientes`} onOpenChange={abierta} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Cliente' }))
+    expect(abierta).toHaveBeenLastCalledWith(true)
+    await userEvent.keyboard('{Escape}')
+    expect(abierta).toHaveBeenLastCalledWith(false)
   })
 
   it('con textoTodas y todas marcadas muestra "Todas"; con una marcada muestra su etiqueta, no su clave', async () => {

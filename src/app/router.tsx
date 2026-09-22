@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { AsignacionesPage } from '@/modules/taller/asignaciones/AsignacionesPage'
 import { FormularioEditarRuta, FormularioNuevoRuta } from '@/modules/taller/formulario/rutas'
 import { HistorialPage } from '@/modules/taller/historial/HistorialPage'
 import { HistorialPulidosPage } from '@/modules/taller/historial/HistorialPulidosPage'
@@ -7,7 +8,7 @@ import { ImeiDetallePage } from '@/modules/taller/imeis/ImeiDetallePage'
 import { ImeisPage } from '@/modules/taller/imeis/ImeisPage'
 import { PendientesPage } from '@/modules/taller/pendientes/PendientesPage'
 import { PulidosPendientesPage } from '@/modules/taller/pendientes/PulidosPendientesPage'
-import { InicioReparaciones, RequiereSupertecnico, RequiereTecnico } from '@/modules/taller/rutas'
+import { InicioReparaciones, RequiereSupertecnico, RequiereSupertecnicoOAdmin, RequiereTecnico } from '@/modules/taller/rutas'
 import { LoginPage } from './login/LoginPage'
 import { RequireSesion } from './session/RequireSesion'
 import { AppLayout } from './shell/AppLayout'
@@ -26,7 +27,10 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <Navigate to="/reparaciones" replace /> },
           { path: '/reparaciones', element: <InicioReparaciones /> },
-          { path: '/reparaciones/asignaciones', element: <PendienteDeMigrar nombre="Asignaciones" /> },
+          {
+            element: <RequiereSupertecnicoOAdmin />,
+            children: [{ path: '/reparaciones/asignaciones', element: <AsignacionesPage /> }],
+          },
           {
             element: <RequiereTecnico />,
             children: [

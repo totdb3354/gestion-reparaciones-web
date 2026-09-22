@@ -20,11 +20,15 @@ type Props<T> = {
   textoVacio: string
   textoPlural: (n: number) => string
   textoTodas?: string
+  /** Aviso de apertura/cierre para quien necesite congelar algo mientras el desplegable está abierto (p. ej. el
+   *  refresco periódico de una tabla, que al recargar movería las filas bajo el cursor). Opcional: sin ella el
+   *  Popover se comporta igual que siempre. */
+  onOpenChange?: (abierta: boolean) => void
   className?: string
 }
 
 /** Desplegable con checkboxes, calco de MultiSelectDropdown: la etiqueta del botón resume la selección. */
-export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, textoTodas, className }: Props<T>) {
+export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, textoTodas, onOpenChange, className }: Props<T>) {
   // La etiqueta de una única selección es el nombre de la opción, no su clave (los técnicos van por id)
   const nombres = [...seleccion].map((k) => { const o = opciones.find((x) => clave(x) === k); return o ? etiqueta(o) : k })
   const texto = textoMultiSelect(nombres, textoVacio, textoPlural, opciones.length, textoTodas)
@@ -37,7 +41,7 @@ export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange,
     onChange(s)
   }
   return (
-    <Popover>
+    <Popover onOpenChange={onOpenChange}>
       <PopoverTrigger
         className={cn(
           'flex h-10 min-w-[200px] items-center justify-between rounded-3xl bg-azul-noche px-4 text-[12px] font-bold text-texto-nav-activo hover:bg-azul-noche-hover',

@@ -6,7 +6,7 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
-import { enlacesReparaciones, InicioReparaciones, RequiereSupertecnico, RequiereTecnico } from './rutas'
+import { enlacesReparaciones, InicioReparaciones, RequiereSupertecnico, RequiereSupertecnicoOAdmin, RequiereTecnico } from './rutas'
 
 const destinos = (
   <>
@@ -83,6 +83,26 @@ describe('rutas del taller', () => {
 
     renderConRouter(rutas, { sesion: SESION_SUPER, ruta: '/reparaciones/historial/editar/R20260916_5' })
     expect(await screen.findByText('FORMULARIO')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
+  })
+  it('RequiereSupertecnicoOAdmin: pasan supertécnico y admin; el TECNICO por URL recibe el aviso y sale a /reparaciones', async () => {
+    const rutas = [
+      { element: <RequiereSupertecnicoOAdmin />, children: [{ path: '/reparaciones/asignaciones', element: <p>ASIGNACIONES</p> }] },
+      { path: '/reparaciones', element: <p>INICIO POR ROL</p> },
+    ]
+    const tec = renderConRouter(rutas, { sesion: SESION_TEC, ruta: '/reparaciones/asignaciones' })
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('No tienes permisos para realizar esta acción.')
+    expect(tec.router.state.location.pathname).toBe('/reparaciones')
+    expect(screen.queryByText('ASIGNACIONES')).not.toBeInTheDocument()
+    tec.unmount()
+
+    const superTec = renderConRouter(rutas, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones' })
+    expect(await screen.findByText('ASIGNACIONES')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
+    superTec.unmount()
+
+    renderConRouter(rutas, { sesion: SESION_ADMIN, ruta: '/reparaciones/asignaciones' })
+    expect(await screen.findByText('ASIGNACIONES')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
 })

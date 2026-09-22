@@ -87,6 +87,23 @@ export function tooltipGlassPendiente(rep: Rep): string | null {
   return etiquetaGlassPendiente(rep) === null ? null : `Glass abierta de ${nombre(rep!.glassTecnicoNombre)} — entrega sin registrar`
 }
 
+/**
+ * El "N asignados" de la vista Asignaciones sobra cuando una píldora ya cuenta quién es el segundo: fila normal con
+ * glass abierta (verde si pendiente, índigo si entregada) o fila de glass con la normal abierta (azul), siempre con
+ * exactamente 2 asignados. Con 3+ el contador vuelve a aportar y convive con la píldora.
+ */
+export function ocultarContadorAsignados(rep: Rep, n: number): boolean {
+  if (!rep || n !== 2) return false
+  switch (tipoDe(rep.idRep)) {
+    case 'REPARACION':
+      return rep.glassAbierta
+    case 'GLASS':
+      return rep.normalAbierta
+    default:
+      return false
+  }
+}
+
 /** Píldora bajo el IMEI de la glass mientras la reparación normal siga abierta (se mantiene tras "Llegó"). */
 export function etiquetaRepAbierta(rep: Rep): string | null {
   if (!rep || tipoDe(rep.idRep) !== 'GLASS' || !rep.normalAbierta) return null

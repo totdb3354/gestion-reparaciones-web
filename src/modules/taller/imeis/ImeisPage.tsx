@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/shared/api/errors'
+import { esErrorGestionadoGlobalmente, mensajeDeError, MSG_TELEFONO_MODIFICADO, StaleDataError } from '@/shared/api/errors'
 import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { useStore } from '@/shared/lib/store'
@@ -30,7 +30,6 @@ import { FMT } from './constantes'
 import { CABECERAS_RESUMEN, filaResumen } from './csvImeis'
 import { useTrabajos } from './useTrabajos'
 
-export const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usuario. Se recargan los datos.'
 const SIN_CLIENTE_CLAVE = ''
 
 function textoCeldaGrupo(g: GrupoImei, columna: string): string | null {

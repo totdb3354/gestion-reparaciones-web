@@ -2,14 +2,14 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { ComboNavy, type OpcionCombo } from './ComboNavy'
+import { ComboNavy, siguienteAbiertoOMismo, type OpcionCombo } from './ComboNavy'
 
 const MODELOS: OpcionCombo[] = [{ valor: '13', etiqueta: 'iPhone 13' }, { valor: '13promax', etiqueta: 'iPhone 13 Pro Max' }, { valor: '14', etiqueta: 'iPhone 14' }]
 const SKUS: OpcionCombo[] = [{ valor: '101', etiqueta: 'bati13' }, { valor: '102', etiqueta: 'bati14', clase: 'text-rojo-sin-stock' }, { valor: '103', etiqueta: 'bati13promax', clase: 'text-fila-solicitud-brd' }]
 
-function Demo({ inicial = null, alCambiar, opciones = MODELOS }: { inicial?: string | null; alCambiar?: (v: string) => void; opciones?: OpcionCombo[] }) {
+function Demo({ inicial = null, alCambiar, alAbrir, opciones = MODELOS }: { inicial?: string | null; alCambiar?: (v: string) => void; alAbrir?: (a: boolean) => void; opciones?: OpcionCombo[] }) {
   const [valor, setValor] = useState<string | null>(inicial)
-  return <ComboNavy valor={valor} opciones={opciones} onChange={(v) => { setValor(v); alCambiar?.(v) }} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />
+  return <ComboNavy valor={valor} opciones={opciones} onChange={(v) => { setValor(v); alCambiar?.(v) }} onOpenChange={alAbrir} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />
 }
 
 describe('ComboNavy (combo navy de selección única)', () => {
@@ -67,8 +67,62 @@ describe('ComboNavy (combo navy de selección única)', () => {
     expect(lista).toHaveStyle({ maxHeight: '64px' })
     expect(lista.closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-superficie', 'rounded-lg')
   })
+  it('avisa con onOpenChange al abrir, al elegir una opción y al cerrar sin elegir', async () => {
+    // El aviso lo necesita quien congela algo mientras el desplegable está abierto (el sondeo de una tabla, que al
+    // recargar movería la fila bajo el cursor). Elegir una opción cierra el combo a mano, así que también avisa.
+    const abierto = vi.fn()
+    render(<Demo alAbrir={abierto} />)
+    const combo = screen.getByRole('combobox', { name: 'Filtrar por modelo' })
+    await userEvent.click(combo)
+    expect(abierto.mock.calls).toEqual([[true]])
+    await userEvent.click(within(screen.getByRole('listbox')).getByRole('button', { name: 'iPhone 14' }))
+    expect(abierto.mock.calls).toEqual([[true], [false]])
+    await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
+    await userEvent.keyboard('{Escape}')
+    expect(abierto.mock.calls).toEqual([[true], [false], [true], [false]])
+  })
+  it('desmontar con la lista abierta emite el false que falta (si no, quien congela el sondeo por D4 se queda pegado)', async () => {
+    const abierto = vi.fn()
+    const { unmount } = render(<Demo alAbrir={abierto} />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
+    expect(abierto.mock.calls).toEqual([[true]])
+    unmount()
+    expect(abierto.mock.calls).toEqual([[true], [false]])
+  })
+  it('desmontar con la lista cerrada no emite nada de más', () => {
+    const abierto = vi.fn()
+    const { unmount } = render(<Demo alAbrir={abierto} />)
+    unmount()
+    expect(abierto).not.toHaveBeenCalled()
+  })
+  it('sin onOpenChange el combo se comporta igual (la prop es opcional)', async () => {
+    render(<Demo />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
   it('un valor que no está entre las opciones se muestra como vacío', () => {
     render(<ComboNavy valor="99" opciones={MODELOS} onChange={() => {}} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />)
     expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toHaveTextContent('— Selecciona modelo —')
+  })
+})
+
+describe('siguienteAbiertoOMismo (el guardia de cambiarAbierto)', () => {
+  // Task 16 va a contar interacciones abiertas con onOpenChange: un `false` de más deja el contador en negativo,
+  // el espejo del `true` sin su `false` que ya se arregló (ver el comentario de abiertoRef en ComboNavy).
+  it('no hay cambio real que emitir si se pide lo mismo que ya está (abierto o cerrado)', () => {
+    expect(siguienteAbiertoOMismo(false, false, false)).toBeNull()
+    expect(siguienteAbiertoOMismo(true, false, true)).toBeNull()
+  })
+  it('camino (a): "abrir" estando disabled y ya cerrado no emite un false fantasma (no hubo apertura)', () => {
+    expect(siguienteAbiertoOMismo(true, true, false)).toBeNull()
+  })
+  it('abrir de verdad, cerrar de verdad y "abrir" con disabled estando ya abierto sí son cambios reales', () => {
+    expect(siguienteAbiertoOMismo(true, false, false)).toBe(true)
+    expect(siguienteAbiertoOMismo(false, false, true)).toBe(false)
+    // disabled pasa a true con la lista abierta: no lo dispara la UI (el trigger deshabilitado no reabre), pero el
+    // guardia por sí solo sigue viendo "cerrar" como cambio real si algo llegase a pedirlo.
+    expect(siguienteAbiertoOMismo(true, true, true)).toBe(false)
   })
 })
