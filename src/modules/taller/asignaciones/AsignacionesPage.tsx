@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
+import { useSession } from '@/shared/session/SessionProvider'
+import { esAdmin } from '@/shared/session/storage'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
@@ -24,14 +26,17 @@ import { useInteraccionesAbiertas } from './useInteraccionesAbiertas'
 const TOPE_CONTADOR = 999
 /** El modal "Asignar trabajos" es el sub-proyecto 3b; hasta entonces el botón existe en su sitio pero no abre nada. */
 const TOOLTIP_ASIGNAR = 'Disponible en el siguiente sub-proyecto'
-/** El modo solo lectura del ADMIN es la Task 17; hasta entonces la vista es siempre la del supertécnico. */
-const SOLO_LECTURA = false
 
 /**
  * Vista de asignaciones pendientes del supertécnico (spec 3a): las tres categorías en una sola tabla, sin ordenación
  * por columna (D5). La lista llega ya ordenada por `useAsignacionesTodas`, así que aquí solo se filtra.
  */
 export function AsignacionesPage() {
+  // La ruta la abren SUPERTECNICO y ADMIN (D6), y el ADMIN entra en solo lectura: sin "Asignar", sin papelera, sin
+  // reasignar y sin tocar los técnicos de glass (spec §12). Es la capa visible, nada más: las escrituras que la
+  // vista usa ya exigen el rol en el servidor, así que ocultar los controles es comodidad, no la protección.
+  const { sesion } = useSession()
+  const soloLectura = esAdmin(sesion)
   // D4: mientras haya un menú, un desplegable, un editor o una de las dos ventanas abiertos, el sondeo se
   // congela. `marcar` es estable entre renders (useInteraccionesAbiertas lo memoiza sin dependencias), y eso es lo
   // que exigen BarraFiltros, MenuAsignacion, useEditores y el efecto del borrado: lo llevan en las dependencias de
@@ -77,8 +82,8 @@ export function AsignacionesPage() {
   // `ejecutar` es el mismo que recibe el menú contextual: un único aviso para toda la vista, venga la escritura de
   // la celda de técnico o del menú.
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, ejecutar, onInteraccion: marcar, onBorrar: setABorrar, hoy }),
-    [tecnicos, ejecutar, marcar, hoy],
+    () => crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion: marcar, onBorrar: setABorrar, hoy }),
+    [soloLectura, tecnicos, ejecutar, marcar, hoy],
   )
 
   return (
@@ -97,14 +102,17 @@ export function AsignacionesPage() {
           `onInteraccion` es el aviso de desplegable abierto, que congela el sondeo mientras esté desplegado. */}
       <BarraFiltros valor={filtros} onCambio={setFiltros} tecnicos={tecnicos} clientes={clientes} onInteraccion={marcar} />
       {/* El "Asignar" del FlowPane del JavaFX va en su propia fila: con los cinco filtros delante, en una sola
-          quedaría cortado en cuanto la ventana se estrecha. */}
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        {/* El tooltip va en el envoltorio: un botón deshabilitado no recibe el hover (mismo patrón que los botones
-            reservados para Almacén del panel de notificaciones). */}
-        <span title={TOOLTIP_ASIGNAR} className="inline-block">
-          <BotonPrimario disabled className="pointer-events-none">Asignar</BotonPrimario>
-        </span>
-      </div>
+          quedaría cortado en cuanto la ventana se estrecha. Para el ADMIN no existe (spec §12): la fila entera
+          desaparece, no se queda un botón muerto. */}
+      {!soloLectura && (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          {/* El tooltip va en el envoltorio: un botón deshabilitado no recibe el hover (mismo patrón que los botones
+              reservados para Almacén del panel de notificaciones). */}
+          <span title={TOOLTIP_ASIGNAR} className="inline-block">
+            <BotonPrimario disabled className="pointer-events-none">Asignar</BotonPrimario>
+          </span>
+        </div>
+      )}
       <DataTable
         columns={columnas}
         data={visibles}
@@ -117,7 +125,7 @@ export function AsignacionesPage() {
           <MenuAsignacion
             fila={fila}
             celda={celda}
-            soloLectura={SOLO_LECTURA}
+            soloLectura={soloLectura}
             ejecutar={ejecutar}
             onEditarComentario={editarComentario}
             onEditarModelo={editarModelo}
@@ -156,10 +164,10 @@ export function AsignacionesPage() {
         onInteraccion={marcar}
       />
       {/* Quién entra en la glass automática: al aceptar solo se mandan los cambios, y si alguno falla el diálogo
-          se queda abierto con el aviso. Para el ADMIN los checks van deshabilitados (Task 17 enciende SOLO_LECTURA). */}
+          se queda abierto con el aviso. Para el ADMIN los checks van deshabilitados y solo queda "Cerrar". */}
       <TecnicosGlassDialog
         abierto={glassAbierto}
-        soloLectura={SOLO_LECTURA}
+        soloLectura={soloLectura}
         onCerrar={() => setGlassAbierto(false)}
         onInteraccion={marcar}
       />
