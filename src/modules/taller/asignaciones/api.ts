@@ -26,10 +26,21 @@ async function pedirTodas(): Promise<ReparacionResumen[]> {
  * Lista unificada de las tres categorías, ya en orden de prioridad (urgentes → con cliente → resto).
  * `activo = false` congela el sondeo mientras hay un menú, un desplegable o un diálogo abiertos (spec 3a,
  * D4): si no, la recarga mueve la fila bajo el cursor y la acción se pierde.
+ *
+ * `refetchOnWindowFocus` va atado al MISMO interruptor que el intervalo, y no basta con apagar el intervalo: el
+ * QueryClient de la app trae `refetchOnWindowFocus: true` y `staleTime: 0` por defecto (política global, no se
+ * toca), así que un alt-tab de ida y vuelta con un editor, la confirmación de borrado o una ventana abiertos
+ * recargaría y reordenaría la tabla de fondo — justo el daño que D4 evita. Al cerrar lo que hubiera, el foco
+ * vuelve a recargar como en el resto de la app.
  */
 export function useAsignacionesTodas({ activo = true }: { activo?: boolean } = {}) {
   const intervalo = useIntervaloRefresco(activo)
-  return useQuery({ queryKey: CLAVE_ASIGNACIONES_TODAS, queryFn: pedirTodas, refetchInterval: intervalo })
+  return useQuery({
+    queryKey: CLAVE_ASIGNACIONES_TODAS,
+    queryFn: pedirTodas,
+    refetchInterval: intervalo,
+    refetchOnWindowFocus: activo,
+  })
 }
 
 /** Solo se pide con la ventana de carga abierta: no tiene sentido sondearla de fondo.

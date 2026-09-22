@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { focusManager } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
@@ -28,6 +29,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  // El foco de ventana es estado GLOBAL de TanStack: sin esto el test que lo fuerza dejaría a los demás con la
+  // ventana marcada como enfocada a mano en vez de con el detector real del navegador.
+  focusManager.setFocused(undefined)
 })
 
 const abrir = () => renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones' })
@@ -216,6 +220,34 @@ describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4
     await usuario.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     await avanzar(INTERVALO_CONECTADO_MS)
+    await waitFor(() => expect(cargas.n).toBe(2))
+  })
+
+  /**
+   * La otra puerta de entrada de una recarga de fondo, aparte del intervalo: el foco de ventana. El QueryClient de
+   * la app trae `refetchOnWindowFocus: true` y `staleTime: 0` (política global de shared/api/queryClient, que no se
+   * toca), así que congelar solo el intervalo dejaba a un alt-tab recargando y reordenando la tabla con el menú
+   * abierto. El reloj solo avanza 100 ms en cada tramo: muy por debajo del intervalo, así que lo único que puede
+   * disparar una carga aquí es el foco.
+   */
+  it('volver a la ventana no recarga con algo abierto, y sí al cerrarlo', async () => {
+    const cargas = contarCargas()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(cargas.n).toBe(1)
+
+    await abrirMenuContextual()
+    act(() => { focusManager.setFocused(false) })
+    act(() => { focusManager.setFocused(true) })
+    await avanzar(100)
+    expect(cargas.n).toBe(1)
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('menuitem')).not.toBeInTheDocument())
+    act(() => { focusManager.setFocused(false) })
+    act(() => { focusManager.setFocused(true) })
+    await avanzar(100)
     await waitFor(() => expect(cargas.n).toBe(2))
   })
 })
