@@ -57,10 +57,7 @@ describe('MenuAsignacion', () => {
   })
 
   it('en glass no sale chasis', async () => {
-    const items = await textos({ fila: glass })
-    expect(items).toContain('Marcar urgente')
-    expect(items).not.toContain('Marcar chasis')
-    expect(items).not.toContain('Quitar chasis')
+    expect(await textos({ fila: glass })).toEqual([TEXTO_COPIAR_CELDA, 'Editar comentario', 'Editar cliente', 'Marcar urgente'])
   })
 
   it('en pulido sale editar modelo y no salen urgente ni chasis', async () => {
@@ -116,5 +113,27 @@ describe('MenuAsignacion', () => {
     expect(onInteraccion.mock.calls).toEqual([[true]])
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
     await vi.waitFor(() => expect(onInteraccion.mock.calls).toEqual([[true], [false]]))
+  })
+
+  it('elegir un ítem del menú también avisa del cierre', async () => {
+    // El camino más frecuente: el usuario no pulsa Escape, elige un ítem. Radix desmonta el contenido al
+    // seleccionar, así que el mismo cleanup del efecto (ver §5 del informe) debe avisar igual.
+    const onInteraccion = vi.fn()
+    await abrirMenu({ fila: reparacion, onInteraccion })
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar comentario' }))
+    await vi.waitFor(() => expect(onInteraccion.mock.calls).toEqual([[true], [false]]))
+  })
+
+  it('que la fila desaparezca con el menú abierto también avisa del cierre', async () => {
+    // Spec §17: la mitigación de que el sondeo se quede congelado para siempre es que el contador de
+    // interacciones se libera también al desmontar. Esto es exactamente ese camino: la fila (y con ella el
+    // ContextMenu que DataTable monta por fila) desaparece del sondeo mientras el menú sigue abierto.
+    const onInteraccion = vi.fn()
+    const resultado = renderConProviders(<Banco fila={reparacion} onInteraccion={onInteraccion} />, { sesion: SESION_SUPER })
+    fireEvent.contextMenu(screen.getByText('Fila'))
+    await screen.findAllByRole('menuitem')
+    expect(onInteraccion.mock.calls).toEqual([[true]])
+    resultado.unmount()
+    expect(onInteraccion.mock.calls).toEqual([[true], [false]])
   })
 })

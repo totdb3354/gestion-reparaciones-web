@@ -97,6 +97,33 @@ describe('useAccionConDeshacer', () => {
     expect(primera.deshacer).not.toHaveBeenCalled()
   })
 
+  it('si dos acciones resuelven en orden inverso, gana la que se lanzó después', async () => {
+    // A es lenta y se lanza primero; B es rápida y se lanza después. B debe pintar su aviso y A, al
+    // resolver tarde, no debe poder pisarlo: gana quien se lanzó al final, no quien contesta antes.
+    let resolverA: () => void = () => {}
+    const a = accion({ texto: 'A00000000_1 marcada como urgente', hacer: () => new Promise<void>((res) => { resolverA = res }) })
+    const b = accion({ texto: 'A00000000_2 marcada como chasis' })
+    function DosAcciones() {
+      const { ejecutar, aviso } = useAccionConDeshacer()
+      return (
+        <>
+          <button onClick={() => ejecutar(a)}>A</button>
+          <button onClick={() => ejecutar(b)}>B</button>
+          {aviso}
+        </>
+      )
+    }
+    render(<DosAcciones />)
+    fireEvent.click(screen.getByText('A'))
+    fireEvent.click(screen.getByText('B'))
+    expect(await screen.findByText(b.texto)).toBeInTheDocument()
+    await act(async () => {
+      resolverA()
+    })
+    expect(screen.getByText(b.texto)).toBeInTheDocument()
+    expect(screen.queryByText(a.texto)).not.toBeInTheDocument()
+  })
+
   it('si la acción inversa falla el aviso se cierra igual', async () => {
     const a = accion({ deshacer: vi.fn().mockRejectedValue(new Error('fallo')) })
     render(<Banco accion={a} />)
