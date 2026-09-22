@@ -1,8 +1,9 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
+import { TEXTO_COPIAR_CELDA } from '@/shared/ui/MenuCopiarCelda'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { resumen, tecnico } from '../test/fabrica'
 import { AsignacionesPage } from './AsignacionesPage'
@@ -72,6 +73,17 @@ describe('AsignacionesPage', () => {
     expect(await screen.findByText('1 asignación')).toBeInTheDocument()
     expect(screen.getByText('A20260916_1')).toBeInTheDocument()
     expect(screen.queryByText('AG20260916_2')).not.toBeInTheDocument()
+  })
+
+  it('el clic derecho selecciona la fila y abre su menú contextual', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    const fila = screen.getAllByRole('row').find((f) => within(f).queryByText('A20260916_1'))!
+    fireEvent.contextMenu(within(fila).getByText('A20260916_1'))
+    // El menú se abre sobre la fila pulsada y, como en el JavaFX, la deja seleccionada: así la acción no cae en otra.
+    const items = (await screen.findAllByRole('menuitem')).map((i) => i.textContent)
+    expect(items).toEqual([TEXTO_COPIAR_CELDA, 'Editar comentario', 'Editar cliente', 'Marcar urgente', 'Marcar chasis'])
+    expect(fila).toHaveAttribute('aria-selected', 'true')
   })
 
   it('Limpiar filtros devuelve todas las filas', async () => {

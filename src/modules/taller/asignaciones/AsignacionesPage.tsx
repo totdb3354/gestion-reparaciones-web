@@ -11,11 +11,20 @@ import { useAsignacionesTodas } from './api'
 import { BarraFiltros } from './BarraFiltros'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
+import { MenuAsignacion } from './MenuAsignacion'
+import { useAccionConDeshacer } from './useAccionConDeshacer'
 
 /** Tope del contador, calco de actualizarContador() del JavaFX ("999+ asignaciones"). */
 const TOPE_CONTADOR = 999
 /** El modal "Asignar trabajos" es el sub-proyecto 3b; hasta entonces el botón existe en su sitio pero no abre nada. */
 const TOOLTIP_ASIGNAR = 'Disponible en el siguiente sub-proyecto'
+/** El modo solo lectura del ADMIN es la Task 17; hasta entonces la vista es siempre la del supertécnico. */
+const SOLO_LECTURA = false
+/** El aviso de interacción (D4) lo consume la Task 16, que congelará el sondeo; aquí solo se emite. Constante de
+ *  módulo, no una función nueva en cada render: MenuAsignacion la usa como dependencia de su efecto. */
+const SIN_CONSUMIDOR = () => {}
+/** Los tres editores son la Task 12; el menú ya trae los ítems que los abrirán. */
+const SIN_EDITOR = () => {}
 
 /**
  * Vista de asignaciones pendientes del supertécnico (spec 3a): las tres categorías en una sola tabla, sin ordenación
@@ -23,6 +32,9 @@ const TOOLTIP_ASIGNAR = 'Disponible en el siguiente sub-proyecto'
  */
 export function AsignacionesPage() {
   const { data = [], dataUpdatedAt, refetch } = useAsignacionesTodas()
+  // Urgente y chasis se escriben al instante, como en el JavaFX, pero con unos segundos para deshacerlo (D2). El hook
+  // vive aquí y no en el menú: el menú se desmonta al cerrarse y se llevaría el aviso por delante.
+  const { ejecutar, aviso } = useAccionConDeshacer()
   // Los técnicos del desplegable de la celda son los activos, como el `getAllActivos()` del combo del JavaFX.
   const { data: tecnicos = [] } = useTecnicos(true)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
@@ -38,7 +50,7 @@ export function AsignacionesPage() {
   const clientes = useMemo(() => opcionesCliente(data), [data])
 
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura: false, tecnicos, onReasignar: () => {}, onBorrar: () => {}, hoy }),
+    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, onReasignar: () => {}, onBorrar: () => {}, hoy }),
     [tecnicos, hoy],
   )
 
@@ -50,7 +62,7 @@ export function AsignacionesPage() {
       </div>
       {/* Filtrado en memoria sobre lo ya cargado (spec 3a, D7): ningún control vuelve al servidor.
           `onInteraccion` es el aviso de desplegable abierto que congelará el sondeo; lo conecta la Task 16. */}
-      <BarraFiltros valor={filtros} onCambio={setFiltros} tecnicos={tecnicos} clientes={clientes} onInteraccion={() => {}} />
+      <BarraFiltros valor={filtros} onCambio={setFiltros} tecnicos={tecnicos} clientes={clientes} onInteraccion={SIN_CONSUMIDOR} />
       {/* El "Asignar" del FlowPane del JavaFX va en su propia fila: con los cinco filtros delante, en una sola
           quedaría cortado en cuanto la ventana se estrecha. */}
       <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -68,8 +80,21 @@ export function AsignacionesPage() {
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
         filaClase={claseFilaAsignacion}
+        menuFila={(fila, celda) => (
+          <MenuAsignacion
+            fila={fila}
+            celda={celda}
+            soloLectura={SOLO_LECTURA}
+            ejecutar={ejecutar}
+            onEditarComentario={SIN_EDITOR}
+            onEditarModelo={SIN_EDITOR}
+            onEditarCliente={SIN_EDITOR}
+            onInteraccion={SIN_CONSUMIDOR}
+          />
+        )}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
+      {aviso}
     </div>
   )
 }
