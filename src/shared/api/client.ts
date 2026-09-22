@@ -31,6 +31,11 @@ export type InsertarCompletaRequest = components['schemas']['ReparacionInsertarC
 export type AgotarRequest = components['schemas']['ReparacionAgotarRequest']
 export type EditarReparacionRequest = components['schemas']['ReparacionEditarRequest']
 
+/** Carga diaria por técnico (sub-proyecto 3a): los dos alcances en una respuesta. */
+export type CargaTecnicosRespuesta = components['schemas']['CargaTecnicosRespuesta']
+export type FilaCarga = components['schemas']['CargaTecnicosRespuestaFilaCarga']
+export type DesgloseCarga = components['schemas']['CargaTecnicosRespuestaDesgloseDto']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''

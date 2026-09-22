@@ -1684,6 +1684,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reparaciones/carga-tecnicos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCargaTecnicos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reparaciones/asignaciones/{idAsignacion}/solicitudes": {
         parameters: {
             query?: never;
@@ -2856,6 +2872,34 @@ export interface components {
             puntosJornada: number;
             /** Format: int32 */
             getnImeisJornada: number;
+        };
+        CargaTecnicosRespuesta: {
+            pedidos: components["schemas"]["CargaTecnicosRespuestaFilaCarga"][];
+            total: components["schemas"]["CargaTecnicosRespuestaFilaCarga"][];
+        };
+        CargaTecnicosRespuestaDesgloseDto: {
+            /** Format: int32 */
+            normales: number;
+            /** Format: int32 */
+            chasis: number;
+            /** Format: int32 */
+            porCerrar: number;
+            /** Format: int32 */
+            glass: number;
+            /** Format: int32 */
+            enEsperaPieza: number;
+        };
+        CargaTecnicosRespuestaFilaCarga: {
+            /** Format: int32 */
+            idTec: number;
+            nombre: string;
+            /** Format: double */
+            pctHecho: number;
+            /** Format: double */
+            pctPendiente: number;
+            hecho: components["schemas"]["CargaTecnicosRespuestaDesgloseDto"];
+            pendiente: components["schemas"]["CargaTecnicosRespuestaDesgloseDto"];
+            sinJornada: boolean;
         };
         ReparacionComponente: {
             /** Format: int32 */
@@ -6091,6 +6135,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PuntoEstadisticaPuntos"][];
+                };
+            };
+        };
+    };
+    getCargaTecnicos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CargaTecnicosRespuesta"];
                 };
             };
         };

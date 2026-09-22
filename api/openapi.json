@@ -3623,6 +3623,24 @@
         }
       }
     },
+    "/api/reparaciones/carga-tecnicos" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getCargaTecnicos",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CargaTecnicosRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reparaciones/asignaciones/{idAsignacion}/solicitudes" : {
       "get" : {
         "tags" : [ "reparacion-controller" ],
@@ -6369,6 +6387,80 @@
           "getnImeisJornada" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }
+      },
+      "CargaTecnicosRespuesta" : {
+        "required" : [ "pedidos", "total" ],
+        "type" : "object",
+        "properties" : {
+          "pedidos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CargaTecnicosRespuestaFilaCarga"
+            }
+          },
+          "total" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CargaTecnicosRespuestaFilaCarga"
+            }
+          }
+        }
+      },
+      "CargaTecnicosRespuestaDesgloseDto" : {
+        "required" : [ "chasis", "enEsperaPieza", "glass", "normales", "porCerrar" ],
+        "type" : "object",
+        "properties" : {
+          "normales" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "chasis" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "porCerrar" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "glass" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enEsperaPieza" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "CargaTecnicosRespuestaFilaCarga" : {
+        "required" : [ "hecho", "idTec", "nombre", "pctHecho", "pctPendiente", "pendiente", "sinJornada" ],
+        "type" : "object",
+        "properties" : {
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "pctHecho" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "pctPendiente" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "hecho" : {
+            "$ref" : "#/components/schemas/CargaTecnicosRespuestaDesgloseDto"
+          },
+          "pendiente" : {
+            "$ref" : "#/components/schemas/CargaTecnicosRespuestaDesgloseDto"
+          },
+          "sinJornada" : {
+            "type" : "boolean"
           }
         }
       },
