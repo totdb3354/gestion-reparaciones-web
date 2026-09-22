@@ -16,6 +16,7 @@ import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { useEditores } from './editores/useEditores'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
+import { TecnicosGlassDialog } from './TecnicosGlassDialog'
 import { useAccionConDeshacer } from './useAccionConDeshacer'
 
 /** Tope del contador, calco de actualizarContador() del JavaFX ("999+ asignaciones"). */
@@ -53,6 +54,8 @@ export function AsignacionesPage() {
   // La ventana de carga del JavaFX: su consulta es independiente de la de la tabla, así que si falla una la otra
   // sigue en pie (spec §14). Solo se pide con la ventana abierta.
   const [cargaAbierta, setCargaAbierta] = useState(false)
+  // El diálogo de técnicos de glass: se lleva la consulta de técnicos dentro, que es la misma que ya usa la vista.
+  const [glassAbierto, setGlassAbierto] = useState(false)
   const borrarAsignacion = useBorrarAsignacion()
   useEffect(() => {
     if (!aBorrar) return
@@ -93,6 +96,8 @@ export function AsignacionesPage() {
         <span title={TOOLTIP_ASIGNAR} className="inline-block">
           <BotonPrimario disabled className="pointer-events-none">Asignar</BotonPrimario>
         </span>
+        {/* Orden del FXML: "Técnicos de glass" antes que "Carga técnicos". */}
+        <BotonSecundario onClick={() => setGlassAbierto(true)}>Técnicos de glass</BotonSecundario>
         <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
       </div>
       <DataTable
@@ -143,6 +148,14 @@ export function AsignacionesPage() {
         abierto={cargaAbierta}
         onCerrar={() => setCargaAbierta(false)}
         onFiltrarPorTecnico={(idTec) => setFiltros((f) => ({ ...f, tecnicos: [idTec] }))}
+        onInteraccion={SIN_CONSUMIDOR}
+      />
+      {/* Quién entra en la glass automática: al aceptar solo se mandan los cambios, y si alguno falla el diálogo
+          se queda abierto con el aviso. Para el ADMIN los checks van deshabilitados (Task 17 enciende SOLO_LECTURA). */}
+      <TecnicosGlassDialog
+        abierto={glassAbierto}
+        soloLectura={SOLO_LECTURA}
+        onCerrar={() => setGlassAbierto(false)}
         onInteraccion={SIN_CONSUMIDOR}
       />
       {aviso}

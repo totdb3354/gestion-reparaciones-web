@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type CargaTecnicosRespuesta, type ReparacionResumen } from '@/shared/api/client'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
+import { CLAVE_TECNICOS } from '../api'
 import { ordenarPendientes } from '../lib/filtros'
 import { tipoDe } from './filtros'
+import type { CambioGlass } from './tecnicosGlass'
 
 export const CLAVE_ASIGNACIONES_TODAS = ['asignaciones', 'todas'] as const
 export const CLAVE_CARGA_TECNICOS = ['carga-tecnicos'] as const
@@ -180,5 +182,31 @@ export function useBorrarAsignacion() {
   return useMutation({
     mutationFn: ({ fila }: { fila: ReparacionResumen }) => borrarSegunTipo(fila),
     onSettled: recargar,
+  })
+}
+
+/**
+ * Marcar o desmarcar a un técnico como "de glass" (a quién se le asigna la glass automáticamente). Una llamada
+ * por técnico: el contrato no tiene un endpoint que acepte la lista entera, y el JavaFX también va de uno en uno.
+ *
+ * El cuerpo se llama `habilitado`, NO `esGlass`: `esGlass` es el campo del técnico que se lee y `habilitado` el
+ * que se escribe (TecnicoGlassRequest del contrato). Son nombres distintos para el mismo dato, y confundirlos
+ * manda un cuerpo que el servidor ignora en silencio.
+ *
+ * `silenciarError`: el diálogo pinta el fallo en su propio hueco y NO se cierra, para que el usuario reintente;
+ * sin esto la política global del QueryClient apilaría además su diálogo encima y se verían dos avisos del mismo
+ * fallo (mismo motivo que en `useCargaTecnicos`). El corte de conexión sí lo sigue avisando la política global.
+ *
+ * Recarga la lista de técnicos porque es la fuente de verdad de los checks: tras un fallo parcial (unas
+ * peticiones bien y otras mal) es lo único que distingue lo que de verdad quedó guardado de lo que no.
+ */
+export function useMarcarTecnicoGlass() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idTec, habilitado }: CambioGlass) =>
+      api.PATCH('/api/tecnicos/{idTec}/glass', { params: { path: { idTec } }, body: { habilitado } }),
+    meta: { silenciarError: true },
+    // CLAVE_TECNICOS es prefijo de CLAVE_TECNICOS_ACTIVOS, así que invalidar aquí recarga las dos listas.
+    onSettled: () => { void qc.invalidateQueries({ queryKey: CLAVE_TECNICOS }) },
   })
 }
