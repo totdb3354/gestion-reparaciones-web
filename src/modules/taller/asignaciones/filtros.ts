@@ -1,11 +1,15 @@
 import type { ReparacionResumen } from '@/shared/api/client'
 import { SIN_CLIENTE, pasaCliente, pasaImeis, pasaTecnico, pasaTipo, type TipoPendiente } from '../lib/filtros'
 import { imeisValidos } from '@/shared/lib/filtroImei'
+import { tipoDe, type TipoTrabajo } from '@/shared/lib/tipoTrabajo'
 
 // Re-exportado por comodidad de los consumidores (Tasks 6-9); la definición sigue viviendo en lib/filtros.
 export { SIN_CLIENTE }
 
-export type TipoTrabajo = 'REPARACION' | 'GLASS' | 'PULIDO'
+// Re-exportadas por comodidad de los consumidores (Task 6 importa tipoDe desde aquí); la definición
+// sigue viviendo en shared/lib/tipoTrabajo (ya en producción en Historial y en el detalle de IMEIs).
+export { tipoDe, type TipoTrabajo }
+
 export type EstadoAsignacion = 'SOLICITUD' | 'INCIDENCIA' | 'ASIGNACION'
 
 export type EstadoFiltros = {
@@ -17,13 +21,6 @@ export type EstadoFiltros = {
 }
 
 export const FILTROS_VACIOS: EstadoFiltros = { imei: '', tecnicos: [], clientes: [], tipos: [], estados: [] }
-
-/** El tipo sale del prefijo del id, no de un campo (calco del cliente). */
-export function tipoDe(idRep: string): TipoTrabajo {
-  if (idRep.startsWith('AP') || idRep.startsWith('P')) return 'PULIDO'
-  if (idRep.startsWith('AG') || idRep.startsWith('G')) return 'GLASS'
-  return 'REPARACION'
-}
 
 // Traduce EstadoAsignacion (API pública de este módulo, en mayúsculas) a TipoPendiente
 // (el vocabulario de pasaTipo en lib/filtros, en minúsculas). 'ASIGNACION' no tiene

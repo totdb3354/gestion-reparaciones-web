@@ -1,20 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { FILTROS_VACIOS, SIN_CLIENTE, aplicarFiltros, tipoDe } from './filtros'
+import { FILTROS_VACIOS, SIN_CLIENTE, aplicarFiltros } from './filtros'
 
 const fila = (p: Partial<ReparacionResumen>) =>
   ({ idRep: 'A1', imei: '000000000000001', idTec: 1, cliente: null, esSolicitud: 0, esIncidencia: false, ...p }) as unknown as ReparacionResumen
 
 const ids = (fs: ReparacionResumen[]) => fs.map((f) => f.idRep)
 
-describe('tipoDe', () => {
-  it('deriva el tipo del prefijo del id', () => {
-    expect(tipoDe('A20260922_1')).toBe('REPARACION')
-    expect(tipoDe('AG20260922_1')).toBe('GLASS')
-    expect(tipoDe('AP20260922_1')).toBe('PULIDO')
-  })
-})
-
+// tipoDe se reexporta desde ./filtros pero se define y se prueba en shared/lib/tipoTrabajo.test.ts;
+// no se duplica esa suite aquí.
 describe('aplicarFiltros', () => {
   const filas = [
     fila({ idRep: 'A1', imei: '000000000000001', idTec: 1, cliente: 'CLI_A' }),
