@@ -83,6 +83,11 @@ describe('crearColumnas: contenido de las celdas', () => {
     expect(screen.getByText('Técnico F')).toBeInTheDocument()
   })
 
+  it('sin asignador, "Asignado por" pinta "—" (calco del cAsignadoPor del JavaFX)', () => {
+    pintar([resumen({ nombreTecnicoAsigna: null })], opciones({ soloLectura: true }))
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
   it('el comentario abre el popup de lectura al pulsarlo', async () => {
     pintar([resumen({ comentarioAsignacion: 'Revisar el conector' })], opciones({ soloLectura: true }))
     await userEvent.click(screen.getByRole('button', { name: 'Revisar el conector' }))

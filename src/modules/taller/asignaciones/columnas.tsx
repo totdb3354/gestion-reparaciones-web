@@ -13,7 +13,9 @@ import { traducirModelo } from '../lib/modelos'
 
 /** Patrón de la columna "Fecha asignación" (calco de la celda del cliente y de "Copiar celda", contrato §6). */
 const FMT_FECHA: Patron = 'yyyy/MM/dd HH:mm'
-/** Ancho del desplegable dentro de la celda Técnico (prefWidth 110 del FXML menos el padding de la celda). */
+/** Ancho del desplegable de la celda Técnico. NO es un calco: el ComboBox del JavaFX no declara ancho, solo
+ *  `setMaxWidth(Double.MAX_VALUE)` (llena la celda), y ComboNavy exige un ancho numérico. 96 = el prefWidth 110 de la
+ *  columna menos el padding de la celda. Elección de la web: la paridad contra las capturas no lo cubre. */
 const ANCHO_COMBO = 96
 /** visibleRowCount del ComboBox de la celda Técnico. */
 const FILAS_COMBO = 8
@@ -80,7 +82,8 @@ export function crearColumnas({ soloLectura, tecnicos, onReasignar, onBorrar }: 
     { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_FECHA) },
     { id: 'comentario', header: 'Comentario', size: 160, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
     { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
-    { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '' },
+    // '—' sin asignador, calco del cAsignadoPor del JavaFX y de lo que ya pintan el Historial y Pendientes del técnico.
+    { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
     { id: 'estado', header: 'Estado', size: 100, cell: ({ row }) => <BadgesEstadoPendiente rep={row.original} hoy={hoy} /> },
   ]
   // La papelera no existe para el ADMIN (spec §12): la columna entera desaparece, no queda una celda vacía.
