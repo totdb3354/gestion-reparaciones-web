@@ -20,6 +20,8 @@ beforeEach(() => {
     http.get('*/api/glass/asignaciones', () => HttpResponse.json([glass])),
     http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([pulido])),
     http.get('*/api/tecnicos/activos', () => HttpResponse.json([tecnico({ idTec: 4, nombre: 'Técnico A' })])),
+    // El editor de cliente del menú contextual (Task 12) carga el catálogo de clientes activos con la vista.
+    http.get('*/api/clientes/activos', () => HttpResponse.json([{ idCli: 1, nombre: 'CLIENTE A', activo: true, updatedAt: '2026-09-01T00:00:00' }])),
   )
 })
 

@@ -10,6 +10,7 @@ import { etiquetaContador } from '../lib/filtros'
 import { useAsignacionesTodas } from './api'
 import { BarraFiltros } from './BarraFiltros'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
+import { useEditores } from './editores/useEditores'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
 import { useAccionConDeshacer } from './useAccionConDeshacer'
@@ -23,8 +24,6 @@ const SOLO_LECTURA = false
 /** El aviso de interacción (D4) lo consume la Task 16, que congelará el sondeo; aquí solo se emite. Constante de
  *  módulo, no una función nueva en cada render: MenuAsignacion la usa como dependencia de su efecto. */
 const SIN_CONSUMIDOR = () => {}
-/** Los tres editores son la Task 12; el menú ya trae los ítems que los abrirán. */
-const SIN_EDITOR = () => {}
 
 /**
  * Vista de asignaciones pendientes del supertécnico (spec 3a): las tres categorías en una sola tabla, sin ordenación
@@ -35,6 +34,9 @@ export function AsignacionesPage() {
   // Urgente y chasis se escriben al instante, como en el JavaFX, pero con unos segundos para deshacerlo (D2). El hook
   // vive aquí y no en el menú: el menú se desmonta al cerrarse y se llevaría el aviso por delante.
   const { ejecutar, aviso } = useAccionConDeshacer()
+  // Los tres editores del menú contextual, con sus diálogos: viven aquí por el mismo motivo que el aviso de
+  // deshacer, porque el menú se desmonta al elegir el ítem y se llevaría el diálogo por delante.
+  const { editarComentario, editarModelo, editarCliente, dialogos } = useEditores({ onInteraccion: SIN_CONSUMIDOR })
   // Los técnicos del desplegable de la celda son los activos, como el `getAllActivos()` del combo del JavaFX.
   const { data: tecnicos = [] } = useTecnicos(true)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
@@ -88,15 +90,16 @@ export function AsignacionesPage() {
             celda={celda}
             soloLectura={SOLO_LECTURA}
             ejecutar={ejecutar}
-            onEditarComentario={SIN_EDITOR}
-            onEditarModelo={SIN_EDITOR}
-            onEditarCliente={SIN_EDITOR}
+            onEditarComentario={editarComentario}
+            onEditarModelo={editarModelo}
+            onEditarCliente={editarCliente}
             onInteraccion={SIN_CONSUMIDOR}
           />
         )}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
       {aviso}
+      {dialogos}
     </div>
   )
 }
