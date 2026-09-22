@@ -29,9 +29,9 @@ De presentación, heredadas de los sub-proyectos anteriores y comunes a toda la 
 - Las dos ventanas de la cabecera y los tres editores son **diálogos modales dentro de la página**, no ventanas del sistema: no se pueden mover ni redimensionar (las del JavaFX también son modales, pero sí se redimensionan).
 - Mientras el modal "Asignar trabajos" no exista (sub-proyecto 3b), el botón "Asignar" está **deshabilitado y con tooltip**, en su sitio, igual que se hizo en el sub-proyecto 2 con las acciones que terminaban en Almacén.
 
-### Decisión de redacción pendiente del usuario
+### El aviso de urgente nombra el teléfono, no la fila
 
-El texto del aviso de deshacer dice "`<idRep>` marcada como urgente", nombrando **una** fila, pero el servidor propaga el urgente al teléfono entero: marcar urgente una `A…` marca también su `AG…` hermana (el deshacer sí revierte las dos). El usuario ve cambiar dos filas y el mensaje habla de una. Opciones: dejarlo así, o redactarlo por teléfono ("el IMEI …001 pasa a urgente"). **Aparcada a propósito para decidirla al revisar esta ficha.**
+El servidor propaga el urgente a todas las asignaciones abiertas del IMEI: marcar urgente una `A…` marca también su `AG…` hermana, y el deshacer revierte las dos. Por eso el aviso dice "IMEI `<imei>` marcado como urgente" / "IMEI `<imei>` ya no es urgente": el usuario ve cambiar dos filas y el texto tiene que explicarlo. El chasis **no** se propaga (el servidor actualiza solo esa fila), así que su aviso sigue nombrando la fila. Decidido con el usuario al revisar esta ficha.
 
 ## Ruta, rol y refresco
 
@@ -109,7 +109,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] "Copiar celda" copia al portapapeles el texto de la celda sobre la que se abrió el menú y la resalta brevemente. Columnas copiables: Id, IMEI, Modelo, Fecha y Comentario; el resto no copia nada (calco exacto de `textoDeCelda`).
 - [x] Urgente y chasis **escriben al pulsar, sin diálogo de confirmación**, como el JavaFX, y la lista se recarga después (D2 añade el aviso, no cambia el gesto).
 - [x] Urgente: `PATCH /api/reparaciones/asignaciones/{idRep}/urgente`; chasis: `PATCH /api/reparaciones/asignaciones/{idRep}/chasis`. Las dos escrituras exigen SUPERTECNICO en el servidor.
-- [x] Tras cada escritura sale el aviso "`<idRep>` marcada como urgente" / "ya no es urgente" (y sus equivalentes de chasis) con el botón "Deshacer" durante 8 s; "Deshacer" manda la misma escritura con el valor contrario.
+- [x] Tras cada escritura sale el aviso "IMEI `<imei>` marcado como urgente" / "ya no es urgente" (y "`<idRep>` marcada como chasis" / "ya no es chasis") con el botón "Deshacer" durante 8 s; "Deshacer" manda la misma escritura con el valor contrario.
 - [x] Solo hay un aviso a la vez y gana **la última acción lanzada**, no la que resuelva antes; si la escritura falla no sale aviso (no hay nada que deshacer) y el error lo cuenta el manejador global.
 - [x] El aviso es una región `role="status"` presente siempre en el DOM, para que el lector de pantalla lo anuncie sin robar el foco de la tabla.
 - [x] Abrir y cerrar el menú (también al elegir un ítem, y también si la fila desaparece con el menú abierto) avisa de la interacción y congela/reanuda el sondeo.

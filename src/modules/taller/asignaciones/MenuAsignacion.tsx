@@ -49,10 +49,12 @@ export function MenuAsignacion({ fila, celda, soloLectura, ejecutar, onEditarCom
 
   function alternarUrgente() {
     const nuevo = !fila.urgente
-    // El servidor propaga el urgente de una A… a su AG… hermana; la inversa deshace las dos, porque es la misma
-    // escritura con el valor contrario.
+    // El servidor propaga el urgente a todas las asignaciones abiertas del IMEI (una A… y su AG… hermana cambian a la
+    // vez), así que el aviso nombra el teléfono y no la fila: el usuario ve cambiar dos filas y el texto debe decir
+    // por qué. La inversa deshace las dos, porque es la misma escritura con el valor contrario. El chasis no se
+    // propaga (el servidor actualiza solo esa fila) y por eso su aviso sí nombra la fila.
     ejecutar({
-      texto: nuevo ? `${fila.idRep} marcada como urgente` : `${fila.idRep} ya no es urgente`,
+      texto: nuevo ? `IMEI ${fila.imei} marcado como urgente` : `IMEI ${fila.imei} ya no es urgente`,
       hacer: () => urgente.mutateAsync({ idRep: fila.idRep, urgente: nuevo }),
       deshacer: () => urgente.mutateAsync({ idRep: fila.idRep, urgente: !nuevo }),
     })

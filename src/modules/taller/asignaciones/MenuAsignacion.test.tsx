@@ -85,7 +85,8 @@ describe('MenuAsignacion', () => {
     )
     await abrirMenu({ fila: reparacion })
     fireEvent.click(screen.getByRole('menuitem', { name: 'Marcar urgente' }))
-    expect(await screen.findByText('A20260916_1 marcada como urgente')).toBeInTheDocument()
+    // Nombra el teléfono, no la fila: el servidor propaga el urgente a todas las asignaciones abiertas del IMEI.
+    expect(await screen.findByText('IMEI 000000000000001 marcado como urgente')).toBeInTheDocument()
     expect(cuerpos).toEqual([{ urgente: true }])
     // "Deshacer" repite la misma escritura con el valor contrario.
     fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
