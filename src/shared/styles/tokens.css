@@ -100,4 +100,18 @@
   --color-aviso-conflicto-bg: #FFF3E0;
   --color-aviso-conflicto-text: #E65100;
   --color-aviso-incidencia-text: #CC4444;
+
+  /* Carga de técnicos (sub-proyecto 3a). Fuente: colorNivelVivo/colorNivelTexto de
+     PendientesSuperTecnicoController. El nivel tiñe la barra con el tono vivo y la cifra con el oscuro;
+     el verde de lo hecho reutiliza verde-ok (barra) y recibido-text (cifra). */
+  --color-carga-alta: #E53935;
+  --color-carga-media: #F9A825;
+  --color-carga-baja: #1565C0;
+  --color-carga-alta-texto: #C62828;
+  --color-carga-media-texto: #B26A00;
+  --color-carga-baja-texto: #0D47A1;
+  --color-carga-pista: #E8EAF0;
+  /* Punto de identidad del alcance activo: violeta Pedidos / azul Total, fijos (no dependen del nivel). */
+  --color-carga-pedidos: #7B1FA2;
+  --color-carga-total: #1565C0;
 }

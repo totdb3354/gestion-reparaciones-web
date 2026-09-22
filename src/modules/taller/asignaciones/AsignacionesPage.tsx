@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
-import { BotonPrimario } from '@/shared/ui/Botones'
+import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
@@ -11,6 +11,7 @@ import { opcionesCliente } from '../imeis/agrupacion'
 import { etiquetaContador } from '../lib/filtros'
 import { useAsignacionesTodas, useBorrarAsignacion } from './api'
 import { BarraFiltros } from './BarraFiltros'
+import { CargaTecnicosDialog } from './CargaTecnicosDialog'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { useEditores } from './editores/useEditores'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
@@ -49,6 +50,9 @@ export function AsignacionesPage() {
   // `useBorrarAsignacion` (./api), aquí solo se le pasa la fila. El diálogo también cuenta para D4: mientras esté
   // abierto el sondeo debe congelarse, o la recarga movería la fila bajo el cursor y confirmaría sobre otra.
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
+  // La ventana de carga del JavaFX: su consulta es independiente de la de la tabla, así que si falla una la otra
+  // sigue en pie (spec §14). Solo se pide con la ventana abierta.
+  const [cargaAbierta, setCargaAbierta] = useState(false)
   const borrarAsignacion = useBorrarAsignacion()
   useEffect(() => {
     if (!aBorrar) return
@@ -89,6 +93,7 @@ export function AsignacionesPage() {
         <span title={TOOLTIP_ASIGNAR} className="inline-block">
           <BotonPrimario disabled className="pointer-events-none">Asignar</BotonPrimario>
         </span>
+        <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
       </div>
       <DataTable
         columns={columnas}
@@ -131,6 +136,14 @@ export function AsignacionesPage() {
           setABorrar(null)
           borrarAsignacion.mutate({ fila })
         }}
+      />
+      {/* Pulsar una fila cierra la ventana y deja el filtro de técnico puesto en ese técnico EN SOLITARIO (calco
+          del JavaFX: `idsTecFiltro.clear()` antes de añadirlo); el resto de filtros se queda como estaba. */}
+      <CargaTecnicosDialog
+        abierto={cargaAbierta}
+        onCerrar={() => setCargaAbierta(false)}
+        onFiltrarPorTecnico={(idTec) => setFiltros((f) => ({ ...f, tecnicos: [idTec] }))}
+        onInteraccion={SIN_CONSUMIDOR}
       />
       {aviso}
       {dialogos}
