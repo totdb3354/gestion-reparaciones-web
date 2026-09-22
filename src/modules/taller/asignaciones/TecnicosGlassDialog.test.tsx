@@ -145,6 +145,27 @@ describe('TecnicosGlassDialog', () => {
     expect(interaccion).toHaveBeenCalledWith(false)
   })
 
+  // El caso real (dentro de AsignacionesPage, ver más abajo) no desmonta el diálogo al cerrarlo: se queda montado
+  // y es `abierto` el que pasa a `false`. `unmount()` no ejercita ese camino: pasaría igual si el efecto tuviera
+  // `[]` por dependencias en vez de `[abierto]` (solo dejaría de avisar `false` al desmontar el árbol entero, que
+  // en la app real no ocurre nunca mientras la vista de asignaciones siga montada).
+  it('avisa `false` al cerrarse sin desmontar (abierto: true a false), no solo al desmontar', async () => {
+    servirTecnicos(TECNICOS)
+    const espia = vi.fn()
+    let cerrarSinDesmontar = () => {}
+    function Host() {
+      const [abierto, setAbierto] = useState(true)
+      cerrarSinDesmontar = () => setAbierto(false)
+      return <TecnicosGlassDialog abierto={abierto} soloLectura={false} onCerrar={cerrar} onInteraccion={espia} />
+    }
+    renderConProviders(<Host />, { sesion: SESION_SUPER })
+    expect(await screen.findByRole('checkbox', { name: 'Técnico A' })).toBeInTheDocument()
+    expect(espia).toHaveBeenCalledWith(true)
+    espia.mockClear()
+    act(() => cerrarSinDesmontar())
+    expect(espia).toHaveBeenCalledWith(false)
+  })
+
   it('un onInteraccion nuevo en cada render no repite el aviso', async () => {
     servirTecnicos(TECNICOS)
     const espia = vi.fn()
@@ -170,6 +191,33 @@ describe('TecnicosGlassDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(cerrar).toHaveBeenCalled()
     expect(enviados).toEqual([])
+  })
+
+  // Fallo silencioso: "Aceptar" ya bloqueaba mientras guardaba, pero "Cancelar" y el cierre por Escape/overlay/X
+  // (todos pasan por `onOpenChange`) no. Si el usuario cerraba con PATCHes en vuelo y alguno fallaba, `setError`
+  // pintaba en un diálogo ya desmontado y la política global está silenciada (`meta: silenciarError` en
+  // `useMarcarTecnicoGlass`): el fallo no se veía por ningún sitio y el usuario creía que se había guardado.
+  it('mientras guarda, ni Cancelar ni Escape cierran el diálogo (evita el fallo silencioso)', async () => {
+    let liberar: () => void = () => {}
+    const retenido = new Promise<void>((resolve) => { liberar = resolve })
+    abrir()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Técnico B' }))
+    server.use(
+      http.patch('*/api/tecnicos/:idTec/glass', async () => { await retenido; return new HttpResponse(null, { status: 403 }) }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    // El PATCH sigue retenido: "guardando" está activo y los dos botones de cierre están bloqueados.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled())
+    // Clic sobre un botón disabled no dispara su onClick (comportamiento nativo del navegador, que jsdom respeta).
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(cerrar).not.toHaveBeenCalled()
+    // Escape pasa por el mismo `onOpenChange` que el overlay y la X de la esquina.
+    await userEvent.keyboard('{Escape}')
+    expect(cerrar).not.toHaveBeenCalled()
+    liberar()
+    // Al terminar de guardar (con fallo), el diálogo sigue abierto por la vía normal: el error se ve.
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar')
+    expect(cerrar).not.toHaveBeenCalled()
   })
 })
 

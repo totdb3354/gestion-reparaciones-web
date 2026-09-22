@@ -199,6 +199,13 @@ export function useBorrarAsignacion() {
  *
  * Recarga la lista de técnicos porque es la fuente de verdad de los checks: tras un fallo parcial (unas
  * peticiones bien y otras mal) es lo único que distingue lo que de verdad quedó guardado de lo que no.
+ *
+ * `onSettled` DEVUELVE la promesa de `invalidateQueries` (no `void`): TanStack no resuelve `mutateAsync` hasta
+ * que la promesa de `onSettled` se cumple, así que devolverla es lo que hace que el refetch haya aterrizado
+ * ANTES de que quien llamó a `mutateAsync` siga adelante. A diferencia de `useRecargar` (taller/asignaciones,
+ * las mutaciones de la tabla), aquí sí interesa esperar: `TecnicosGlassDialog.aceptar` necesita que la caché de
+ * `useTecnicos` esté ya al día en el momento en que descarta `marcados` tras un fallo parcial, o repintaría un
+ * instante desde la caché vieja.
  */
 export function useMarcarTecnicoGlass() {
   const qc = useQueryClient()
@@ -207,6 +214,6 @@ export function useMarcarTecnicoGlass() {
       api.PATCH('/api/tecnicos/{idTec}/glass', { params: { path: { idTec } }, body: { habilitado } }),
     meta: { silenciarError: true },
     // CLAVE_TECNICOS es prefijo de CLAVE_TECNICOS_ACTIVOS, así que invalidar aquí recarga las dos listas.
-    onSettled: () => { void qc.invalidateQueries({ queryKey: CLAVE_TECNICOS }) },
+    onSettled: () => qc.invalidateQueries({ queryKey: CLAVE_TECNICOS }),
   })
 }

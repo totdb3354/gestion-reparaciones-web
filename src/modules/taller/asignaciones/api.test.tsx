@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { server } from '@/test/server'
+import { CLAVE_TECNICOS_ACTIVOS, useTecnicos } from '../api'
+import { tecnico } from '../test/fabrica'
 import {
   CLAVE_ASIGNACIONES_TODAS,
   useAsignacionesTodas,
@@ -13,6 +15,7 @@ import {
   useCargaTecnicos,
   useChasis,
   useEditarComentario,
+  useMarcarTecnicoGlass,
   useReasignar,
   useUrgente,
 } from './api'
@@ -241,5 +244,34 @@ describe('las escrituras recargan la vista', () => {
     await urgente.result.current.mutateAsync({ fila: fila({ idRep: 'A1' }), idTec: 9 })
     await waitFor(() => expect(buscadas).toHaveLength(6))
     await waitFor(() => expect(cargas).toBe(2))
+  })
+})
+
+describe('useMarcarTecnicoGlass', () => {
+  /** Sin `waitFor` a propósito: si `onSettled` no esperase la invalidación (el bug: `void
+   *  qc.invalidateQueries(...)` en vez de devolver la promesa), `mutateAsync` resolvería en un tick anterior al
+   *  del GET de refetch, y esta lectura de la caché, hecha justo al volver del `await`, pillaría el valor de
+   *  ANTES de guardar. Un `waitFor` aquí ocultaría el fallo (acabaría convergiendo igual), que es justo lo que le
+   *  pasaba al test del diálogo que ya cubre este camino por UI. */
+  it('al resolver mutateAsync, la caché de técnicos ya trae la respuesta recargada, no la de antes de guardar', async () => {
+    let servidor = [tecnico({ idTec: 1, esGlass: false })]
+    server.use(
+      http.get('*/api/tecnicos/activos', () => HttpResponse.json(servidor)),
+      http.patch('*/api/tecnicos/:idTec/glass', async ({ params, request }) => {
+        const idTec = Number(params.idTec)
+        const { habilitado } = (await request.json()) as { habilitado: boolean }
+        servidor = servidor.map((t) => (t.idTec === idTec ? { ...t, esGlass: habilitado } : t))
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const { qc, Wrapper } = envoltorioConQc()
+    const lista = renderHook(() => useTecnicos(true), { wrapper: Wrapper })
+    await waitFor(() => expect(lista.result.current.isSuccess).toBe(true))
+
+    const marcar = renderHook(() => useMarcarTecnicoGlass(), { wrapper: Wrapper })
+    await marcar.result.current.mutateAsync({ idTec: 1, habilitado: true })
+
+    const enCache = qc.getQueryData<{ idTec: number; esGlass: boolean }[]>(CLAVE_TECNICOS_ACTIVOS)
+    expect(enCache?.find((t) => t.idTec === 1)?.esGlass).toBe(true)
   })
 })

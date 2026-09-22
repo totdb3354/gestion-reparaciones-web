@@ -136,7 +136,9 @@ describe('CargaTecnicosDialog', () => {
     // del <ul>. Con `gap`, el hueco pertenece al <ul> (y dispara `group/carga`) pero a ninguna fila, así que el
     // cursor ahí atenuaba TODAS las filas sin resaltar ninguna; en el JavaFX el hueco no atenúa nada.
     expect(ul.className).toContain('group/carga')
-    expect(ul.className).not.toMatch(/(^|\s)gap-/)
+    // `space-y-` es margen entre hermanos (no `gap`), pero reintroduce la MISMA zona muerta que `gap` prohíbe
+    // aquí arriba: sin esto, un `space-y-2.5` en el <ul> pasaría el test y volvería a atenuar todas las filas.
+    expect(ul.className).not.toMatch(/(^|\s)(gap|space-y)-/)
     for (const fila of filas()) expect(fila.className).toMatch(/(^|\s)py-/)
   })
 

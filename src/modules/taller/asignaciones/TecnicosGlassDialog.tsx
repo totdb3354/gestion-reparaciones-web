@@ -79,14 +79,21 @@ export function TecnicosGlassDialog({ abierto, soloLectura, onCerrar, onInteracc
       onCerrar()
       return
     }
-    // Se descarta lo tocado para que los checks vuelvan a la lista del servidor, que `onSettled` ya está
-    // recargando: lo que se guardó se ve guardado y lo que no, sin guardar.
+    // Se descarta lo tocado para que los checks vuelvan a la lista del servidor. En este punto ya ha aterrizado
+    // de verdad (no solo se ha disparado): `useMarcarTecnicoGlass` devuelve la promesa de la invalidación en su
+    // `onSettled`, así que cada `mutateAsync` no resuelve hasta que el refetch de `useTecnicos` está en la
+    // caché, y el `await Promise.allSettled(...)` de más arriba no sigue hasta que TODOS lo están. Lo que se
+    // guardó se ve guardado y lo que no, sin guardar; sin ese await se vería el instante con la caché vieja.
     setMarcados({})
     setError(`No se pudo guardar: ${mensajeDeError(fallo.reason)}`)
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={(o) => !o && onCerrar()}>
+    // `!guardando` también aquí: sin él, Escape, el overlay y la X del diálogo cierran igual que si no hubiera
+    // guardado en curso, y un PATCH que falle después de cerrado ya no tiene dónde pintar el error (el diálogo
+    // global está silenciado a propósito, ver `useMarcarTecnicoGlass`). Es el mismo cierre que ya bloqueaba
+    // "Aceptar"; aquí cubre las otras tres puertas de salida.
+    <Dialog open={abierto} onOpenChange={(o) => !o && !guardando && onCerrar()}>
       <DialogContent className="max-w-[420px] gap-3 bg-superficie p-4">
         <DialogHeader>
           <DialogTitle className="text-[14px] font-bold text-azul-medio">Técnicos de glass</DialogTitle>
@@ -116,7 +123,9 @@ export function TecnicosGlassDialog({ abierto, soloLectura, onCerrar, onInteracc
             <BotonSecundario onClick={onCerrar}>Cerrar</BotonSecundario>
           ) : (
             <>
-              <BotonSecundario onClick={onCerrar}>Cancelar</BotonSecundario>
+              {/* Igual que "Aceptar": mientras hay PATCHes en vuelo, "Cancelar" tampoco puede cerrar (mismo motivo
+                  que el `onOpenChange` de arriba: un fallo tras el cierre no se vería por ningún sitio). */}
+              <BotonSecundario disabled={guardando} onClick={onCerrar}>Cancelar</BotonSecundario>
               {/* `guardando` es local y no `marcar.isPending`: con varias mutaciones a la vez sobre el mismo hook,
                   `isPending` sigue a la última y dejaría el botón pulsable con otras aún en vuelo. */}
               <BotonPrimario disabled={guardando} onClick={() => void aceptar()}>Aceptar</BotonPrimario>
