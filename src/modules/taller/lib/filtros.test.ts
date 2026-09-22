@@ -55,6 +55,15 @@ describe('filtros del taller', () => {
     ]
     expect(ordenarPendientes(lista).map((r) => r.idRep)).toEqual(['A2', 'A5', 'A3', 'A1', 'A4'])
   })
+  it('orden de pendientes: el cliente vacío cuenta como sin cliente', () => {
+    const lista = [resumen({ idRep: 'A1', cliente: '' }), resumen({ idRep: 'A2', cliente: 'WEB' })]
+    expect(ordenarPendientes(lista).map((r) => r.idRep)).toEqual(['A2', 'A1'])
+  })
+  it('orden de pendientes: no muta la lista recibida', () => {
+    const lista = [resumen({ idRep: 'A1', cliente: null }), resumen({ idRep: 'A2', urgente: true, cliente: null })]
+    ordenarPendientes(lista)
+    expect(lista.map((r) => r.idRep)).toEqual(['A1', 'A2'])
+  })
   it('contadores y sufijos', () => {
     expect(etiquetaContador(1, 'pendiente', 'pendientes', 999)).toBe('1 pendiente')
     expect(etiquetaContador(10, 'pendiente', 'pendientes', 999)).toBe('10 pendientes')
