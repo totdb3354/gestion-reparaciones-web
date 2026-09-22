@@ -1,8 +1,9 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
+import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import { TEXTO_COPIAR_CELDA } from '@/shared/ui/MenuCopiarCelda'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { resumen, tecnico } from '../test/fabrica'
@@ -25,7 +26,32 @@ beforeEach(() => {
   )
 })
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 const abrir = () => renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones' })
+
+/** Cuenta las cargas de la lista: el sondeo pide las tres categorías a la vez, así que con contar una basta. */
+function contarCargas() {
+  const cargas = { n: 0 }
+  server.use(
+    http.get('*/api/reparaciones/asignaciones', () => {
+      cargas.n += 1
+      return HttpResponse.json([reparacion])
+    }),
+  )
+  return cargas
+}
+
+const avanzar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
+
+/** Clic derecho sobre la primera fila: monta MenuAsignacion, que es lo que avisa de que hay un menú abierto. */
+async function abrirMenuContextual() {
+  const fila = screen.getAllByRole('row').find((f) => within(f).queryByText('A20260916_1'))!
+  fireEvent.contextMenu(within(fila).getByText('A20260916_1'))
+  await screen.findAllByRole('menuitem')
+}
 
 describe('AsignacionesPage', () => {
   it('muestra el título y el contador filtrado', async () => {
@@ -95,5 +121,79 @@ describe('AsignacionesPage', () => {
     await screen.findByText('1 asignación')
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
     expect(await screen.findByText('3 asignaciones')).toBeInTheDocument()
+  })
+})
+
+/**
+ * D4 de punta a punta, que es lo único que demuestra que la congelación sirve: los tests del contador solo dicen
+ * que el número sube y baja. Aquí se cuentan las peticiones reales del sondeo con el reloj falso, con la vista
+ * entera montada y abriendo lo que abre el usuario.
+ *
+ * `shouldAdvanceTime`: el reloj falso corre también con el tiempo real, o las promesas de msw (y las esperas de
+ * Testing Library) se quedarían colgadas dentro de un reloj parado.
+ */
+describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4)', () => {
+  it('el menú contextual congela el sondeo, y cerrarlo lo reanuda', async () => {
+    const cargas = contarCargas()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(cargas.n).toBe(1)
+
+    // Punto de partida: sin nada abierto el sondeo recarga solo a los 60 s.
+    await avanzar(INTERVALO_CONECTADO_MS)
+    await waitFor(() => expect(cargas.n).toBe(2))
+
+    await abrirMenuContextual()
+    // Dos intervalos enteros con el menú abierto: ni una recarga. Sin esto la fila se movería bajo el cursor y el
+    // ítem del menú caería sobre otra.
+    await avanzar(INTERVALO_CONECTADO_MS * 2)
+    expect(cargas.n).toBe(2)
+
+    // Cerrar el menú lo DESMONTA (Radix solo monta el contenido abierto), así que quien libera el contador es la
+    // limpieza del efecto: es la mitigación de la spec §17 ("el contador se libera también al desmontar").
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('menuitem')).not.toBeInTheDocument())
+    await avanzar(INTERVALO_CONECTADO_MS)
+    await waitFor(() => expect(cargas.n).toBe(3))
+  })
+
+  it('un desplegable de filtro congela el sondeo, y cerrarlo lo reanuda', async () => {
+    const cargas = contarCargas()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(cargas.n).toBe(1)
+
+    await usuario.click(screen.getByRole('button', { name: 'Tipo' }))
+    await avanzar(INTERVALO_CONECTADO_MS * 2)
+    expect(cargas.n).toBe(1)
+
+    await usuario.keyboard('{Escape}')
+    await avanzar(INTERVALO_CONECTADO_MS)
+    await waitFor(() => expect(cargas.n).toBe(2))
+  })
+
+  // El tercer tipo de consumidor: las dos ventanas de la cabecera, que avisan por ref en vez de por dependencia
+  // del efecto. Se prueba la de carga; la de glass usa exactamente el mismo mecanismo.
+  it('la ventana de carga de técnicos congela el sondeo, y cerrarla lo reanuda', async () => {
+    const cargas = contarCargas()
+    server.use(http.get('*/api/reparaciones/carga-tecnicos', () => HttpResponse.json({ pedidos: [], total: [] })))
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(cargas.n).toBe(1)
+
+    await usuario.click(screen.getByRole('button', { name: 'Carga técnicos' }))
+    await screen.findByRole('dialog')
+    await avanzar(INTERVALO_CONECTADO_MS * 2)
+    expect(cargas.n).toBe(1)
+
+    await usuario.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await avanzar(INTERVALO_CONECTADO_MS)
+    await waitFor(() => expect(cargas.n).toBe(2))
   })
 })

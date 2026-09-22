@@ -18,6 +18,7 @@ import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
 import { TecnicosGlassDialog } from './TecnicosGlassDialog'
 import { useAccionConDeshacer } from './useAccionConDeshacer'
+import { useInteraccionesAbiertas } from './useInteraccionesAbiertas'
 
 /** Tope del contador, calco de actualizarContador() del JavaFX ("999+ asignaciones"). */
 const TOPE_CONTADOR = 999
@@ -25,24 +26,25 @@ const TOPE_CONTADOR = 999
 const TOOLTIP_ASIGNAR = 'Disponible en el siguiente sub-proyecto'
 /** El modo solo lectura del ADMIN es la Task 17; hasta entonces la vista es siempre la del supertécnico. */
 const SOLO_LECTURA = false
-/** El aviso de interacción (D4) lo consume la Task 16, que congelará el sondeo; aquí solo se emite. Constante de
- *  módulo, no una función nueva en cada render: MenuAsignacion la usa como dependencia de su efecto. La anotación de
- *  tipo (en vez de un parámetro `abierto` sin usar) es lo que permite invocarla con un booleano desde el efecto del
- *  borrado sin que el linter la marque como argumento sin usar. */
-const SIN_CONSUMIDOR: (abierto: boolean) => void = () => {}
 
 /**
  * Vista de asignaciones pendientes del supertécnico (spec 3a): las tres categorías en una sola tabla, sin ordenación
  * por columna (D5). La lista llega ya ordenada por `useAsignacionesTodas`, así que aquí solo se filtra.
  */
 export function AsignacionesPage() {
-  const { data = [], dataUpdatedAt, refetch } = useAsignacionesTodas()
+  // D4: mientras haya un menú, un desplegable, un editor o una de las dos ventanas abiertos, el sondeo se
+  // congela. `marcar` es estable entre renders (useInteraccionesAbiertas lo memoiza sin dependencias), y eso es lo
+  // que exigen BarraFiltros, MenuAsignacion, useEditores y el efecto del borrado: lo llevan en las dependencias de
+  // su efecto, y con una identidad nueva por render el aviso parpadearía false→true y descongelaría el sondeo a
+  // ratos, justo mientras el usuario interactúa.
+  const { hayAlguna, marcar } = useInteraccionesAbiertas()
+  const { data = [], dataUpdatedAt, refetch } = useAsignacionesTodas({ activo: !hayAlguna })
   // Urgente y chasis se escriben al instante, como en el JavaFX, pero con unos segundos para deshacerlo (D2). El hook
   // vive aquí y no en el menú: el menú se desmonta al cerrarse y se llevaría el aviso por delante.
   const { ejecutar, aviso } = useAccionConDeshacer()
   // Los tres editores del menú contextual, con sus diálogos: viven aquí por el mismo motivo que el aviso de
   // deshacer, porque el menú se desmonta al elegir el ítem y se llevaría el diálogo por delante.
-  const { editarComentario, editarModelo, editarCliente, dialogos } = useEditores({ onInteraccion: SIN_CONSUMIDOR })
+  const { editarComentario, editarModelo, editarCliente, dialogos } = useEditores({ onInteraccion: marcar })
   // Los técnicos del desplegable de la celda son los activos, como el `getAllActivos()` del combo del JavaFX.
   const { data: tecnicos = [] } = useTecnicos(true)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
@@ -59,9 +61,9 @@ export function AsignacionesPage() {
   const borrarAsignacion = useBorrarAsignacion()
   useEffect(() => {
     if (!aBorrar) return
-    SIN_CONSUMIDOR(true)
-    return () => SIN_CONSUMIDOR(false)
-  }, [aBorrar])
+    marcar(true)
+    return () => marcar(false)
+  }, [aBorrar, marcar])
   // Se recalcula en cada render (como en PendientesPage): si se congelase en un useMemo sin depender de nada, los
   // badges de entrega de glass se quedarían diciendo "Llegó HH:mm" pasada la medianoche con la pestaña abierta.
   const hoy = hoyMadrid()
@@ -75,8 +77,8 @@ export function AsignacionesPage() {
   // `ejecutar` es el mismo que recibe el menú contextual: un único aviso para toda la vista, venga la escritura de
   // la celda de técnico o del menú.
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, ejecutar, onInteraccion: SIN_CONSUMIDOR, onBorrar: setABorrar, hoy }),
-    [tecnicos, ejecutar, hoy],
+    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, ejecutar, onInteraccion: marcar, onBorrar: setABorrar, hoy }),
+    [tecnicos, ejecutar, marcar, hoy],
   )
 
   return (
@@ -92,8 +94,8 @@ export function AsignacionesPage() {
         <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
       </div>
       {/* Filtrado en memoria sobre lo ya cargado (spec 3a, D7): ningún control vuelve al servidor.
-          `onInteraccion` es el aviso de desplegable abierto que congelará el sondeo; lo conecta la Task 16. */}
-      <BarraFiltros valor={filtros} onCambio={setFiltros} tecnicos={tecnicos} clientes={clientes} onInteraccion={SIN_CONSUMIDOR} />
+          `onInteraccion` es el aviso de desplegable abierto, que congela el sondeo mientras esté desplegado. */}
+      <BarraFiltros valor={filtros} onCambio={setFiltros} tecnicos={tecnicos} clientes={clientes} onInteraccion={marcar} />
       {/* El "Asignar" del FlowPane del JavaFX va en su propia fila: con los cinco filtros delante, en una sola
           quedaría cortado en cuanto la ventana se estrecha. */}
       <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -120,7 +122,7 @@ export function AsignacionesPage() {
             onEditarComentario={editarComentario}
             onEditarModelo={editarModelo}
             onEditarCliente={editarCliente}
-            onInteraccion={SIN_CONSUMIDOR}
+            onInteraccion={marcar}
           />
         )}
       />
@@ -151,7 +153,7 @@ export function AsignacionesPage() {
         abierto={cargaAbierta}
         onCerrar={() => setCargaAbierta(false)}
         onFiltrarPorTecnico={(idTec) => setFiltros((f) => ({ ...f, tecnicos: [idTec] }))}
-        onInteraccion={SIN_CONSUMIDOR}
+        onInteraccion={marcar}
       />
       {/* Quién entra en la glass automática: al aceptar solo se mandan los cambios, y si alguno falla el diálogo
           se queda abierto con el aviso. Para el ADMIN los checks van deshabilitados (Task 17 enciende SOLO_LECTURA). */}
@@ -159,7 +161,7 @@ export function AsignacionesPage() {
         abierto={glassAbierto}
         soloLectura={SOLO_LECTURA}
         onCerrar={() => setGlassAbierto(false)}
-        onInteraccion={SIN_CONSUMIDOR}
+        onInteraccion={marcar}
       />
       {aviso}
       {dialogos}
