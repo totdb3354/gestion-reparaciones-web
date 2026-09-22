@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { hoyMadrid } from '@/shared/lib/fechas'
 import { BotonPrimario } from '@/shared/ui/Botones'
 import { DataTable } from '@/shared/ui/DataTable'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
@@ -23,13 +24,16 @@ export function AsignacionesPage() {
   // Los técnicos del desplegable de la celda son los activos, como el `getAllActivos()` del combo del JavaFX.
   const { data: tecnicos = [] } = useTecnicos(true)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
+  // Se recalcula en cada render (como en PendientesPage): si se congelase en un useMemo sin depender de nada, los
+  // badges de entrega de glass se quedarían diciendo "Llegó HH:mm" pasada la medianoche con la pestaña abierta.
+  const hoy = hoyMadrid()
 
   // El contador de la cabecera cuenta las filas ya filtradas (spec §9); el badge del lateral sigue siendo el total.
   const visibles = useMemo(() => aplicarFiltros(data, FILTROS_VACIOS), [data])
 
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura: false, tecnicos, onReasignar: () => {}, onBorrar: () => {} }),
-    [tecnicos],
+    () => crearColumnas({ soloLectura: false, tecnicos, onReasignar: () => {}, onBorrar: () => {}, hoy }),
+    [tecnicos, hoy],
   )
 
   return (

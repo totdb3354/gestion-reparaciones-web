@@ -1,24 +1,15 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen, Tecnico } from '@/shared/api/client'
-import { formatear, hoyMadrid, type Patron } from '@/shared/lib/fechas'
+import { FMT_FECHA_ASIGNACION, formatear } from '@/shared/lib/fechas'
 import { cn } from '@/shared/lib/utils'
 import { BadgeTipo } from '@/shared/ui/BadgeTipo'
-import { ComboNavy } from '@/shared/ui/ComboNavy'
 import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { BadgesEstadoPendiente } from '../componentes/BadgesEstadoPendiente'
 import { BotonPapelera } from '../componentes/BotonPapelera'
 import { CeldaImeiPendiente } from '../componentes/CeldaImeiPendiente'
 import { CeldaReparador } from '../componentes/CeldaReparador'
+import { CeldaTecnico } from '../componentes/CeldaTecnico'
 import { traducirModelo } from '../lib/modelos'
-
-/** Patrón de la columna "Fecha asignación" (calco de la celda del cliente y de "Copiar celda", contrato §6). */
-const FMT_FECHA: Patron = 'yyyy/MM/dd HH:mm'
-/** Ancho del desplegable de la celda Técnico. NO es un calco: el ComboBox del JavaFX no declara ancho, solo
- *  `setMaxWidth(Double.MAX_VALUE)` (llena la celda), y ComboNavy exige un ancho numérico. 96 = el prefWidth 110 de la
- *  columna menos el padding de la celda. Elección de la web: la paridad contra las capturas no lo cubre. */
-const ANCHO_COMBO = 96
-/** visibleRowCount del ComboBox de la celda Técnico. */
-const FILAS_COMBO = 8
 
 export type OpcionesColumnas = {
   /** ADMIN (spec §12): el desplegable de técnico se muestra como texto plano y la papelera desaparece. */
@@ -26,6 +17,9 @@ export type OpcionesColumnas = {
   tecnicos: Tecnico[]
   onReasignar: (idRep: string, idTec: number) => void
   onBorrar: (fila: ReparacionResumen) => void
+  /** "Hoy" en Madrid, del render de la página (no de la construcción de las columnas): si se recalculase aquí dentro
+   *  se quedaría congelado al abrir la pestaña, y los badges "Llegó HH:mm"/"Llegó dd/MM" no cambiarían a medianoche. */
+  hoy: string
 }
 
 /**
@@ -39,34 +33,12 @@ export function claseFilaAsignacion(fila: ReparacionResumen): string {
 }
 
 /**
- * Celda Técnico: el desplegable dentro de la celda del cTecnico del JavaFX (combo de 8 filas, 11 px, que reasigna al
- * elegir y no hace nada si se elige el que ya estaba). Aquí solo se avisa por `onReasignar`: quién escribe, el aviso
- * con "Deshacer" (D2) y la congelación del sondeo mientras está abierto (D4) los cablea la página.
- */
-function CeldaTecnico({ fila, tecnicos, onReasignar }: { fila: ReparacionResumen; tecnicos: Tecnico[]; onReasignar: (idRep: string, idTec: number) => void }) {
-  return (
-    <ComboNavy
-      valor={String(fila.idTec)}
-      opciones={tecnicos.map((t) => ({ valor: String(t.idTec), etiqueta: t.nombre }))}
-      onChange={(valor) => onReasignar(fila.idRep, Number(valor))}
-      textoVacio={fila.nombreTecnico ?? ''}
-      ancho={ANCHO_COMBO}
-      tamanoTexto={11}
-      visibles={FILAS_COMBO}
-      aria-label={`Técnico de ${fila.idRep}`}
-    />
-  )
-}
-
-/**
  * Las once columnas de la tabla unificada de asignaciones (spec §7), en su orden fijo. `size` es el prefWidth de cada
  * TableColumn de PendientesSuperTecnicoView.fxml. Todas llevan `enableSorting: false` (D5): el orden urgente → con
  * cliente → resto es funcional, y ordenar por otra columna entierra lo urgente sin avisar (el JavaFX apaga el
  * `sortable` de todas por lo mismo).
  */
-export function crearColumnas({ soloLectura, tecnicos, onReasignar, onBorrar }: OpcionesColumnas): ColumnDef<ReparacionResumen>[] {
-  // Un único "hoy" para todos los badges de entrega de la tabla, como hace la página de Pendientes.
-  const hoy = hoyMadrid()
+export function crearColumnas({ soloLectura, tecnicos, onReasignar, onBorrar, hoy }: OpcionesColumnas): ColumnDef<ReparacionResumen>[] {
   const columnas: ColumnDef<ReparacionResumen>[] = [
     { id: 'id', header: 'Id Asignación', size: 90, accessorKey: 'idRep' },
     { id: 'tipo', header: 'Tipo', size: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
@@ -79,7 +51,7 @@ export function crearColumnas({ soloLectura, tecnicos, onReasignar, onBorrar }: 
     { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
     // Texto plano, sin color propio: el cFecha del JavaFX solo tiene cellValueFactory, así que hereda el color de la
     // fila (y con ella el crema de la seleccionada) y no necesita CREMA_EN_FILA_SELECCIONADA.
-    { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_FECHA) },
+    { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_FECHA_ASIGNACION) },
     { id: 'comentario', header: 'Comentario', size: 160, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
     { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
     // '—' sin asignador, calco del cAsignadoPor del JavaFX y de lo que ya pintan el Historial y Pendientes del técnico.

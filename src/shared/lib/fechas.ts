@@ -3,6 +3,10 @@ const ZONA = 'Europe/Madrid'
 
 export type Patron = 'yyyy/MM/dd HH:mm' | 'yyyy/MM/dd' | 'dd/MM HH:mm' | 'dd/MM' | 'HH:mm' | 'dd/MM/yyyy' | 'dd/MM/yyyy HH:mm'
 
+/** Patrón de "Fecha asignación" (Pendientes, Asignaciones): una sola constante para que la fecha que se pinta y la
+ *  que copia "Copiar celda" no puedan divergir. */
+export const FMT_FECHA_ASIGNACION: Patron = 'yyyy/MM/dd HH:mm'
+
 const FMT = new Intl.DateTimeFormat('es-ES', {
   timeZone: ZONA,
   year: 'numeric',

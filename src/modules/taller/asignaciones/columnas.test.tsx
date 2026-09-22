@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 import { DataTable } from '@/shared/ui/DataTable'
-import { resumen, tecnico } from '../test/fabrica'
+import { glass, resumen, tecnico } from '../test/fabrica'
 import { claseFilaAsignacion, crearColumnas, type OpcionesColumnas } from './columnas'
 
 const TECNICOS = [tecnico({ idTec: 4, nombre: 'Técnico A' }), tecnico({ idTec: 6, nombre: 'Técnico H' })]
@@ -14,6 +14,7 @@ const opciones = (p: Partial<OpcionesColumnas> = {}): OpcionesColumnas => ({
   tecnicos: TECNICOS,
   onReasignar: vi.fn(),
   onBorrar: vi.fn(),
+  hoy: '2026-09-16',
   ...p,
 })
 
@@ -52,6 +53,19 @@ describe('crearColumnas: las once columnas de la tabla de asignaciones', () => {
   it('en solo lectura la papelera no existe (ADMIN, spec §12)', () => {
     const cols = crearColumnas(opciones({ soloLectura: true }))
     expect(cols.map((c) => [c.id, c.header, c.size])).toEqual(DIEZ_PRIMERAS)
+  })
+})
+
+describe('crearColumnas: "hoy" lo calcula la página, no la construcción de las columnas', () => {
+  it('el badge de entrega de la misma fila cambia de forma según el "hoy" recibido (D3: no se congela a medianoche)', () => {
+    const fila = glass('2026-09-16T07:02:00')
+
+    const { unmount } = pintar([fila], opciones({ soloLectura: true, hoy: '2026-09-16' }))
+    expect(screen.getByText('Llegó 09:02')).toBeInTheDocument()
+    unmount()
+
+    pintar([fila], opciones({ soloLectura: true, hoy: '2026-09-17' }))
+    expect(screen.getByText('Llegó 16/09')).toBeInTheDocument()
   })
 })
 
