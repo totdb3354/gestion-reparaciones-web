@@ -125,6 +125,9 @@ describe('editores de la vista de asignaciones', () => {
       body = await request.json()
       return new HttpResponse(null, { status: 204 })
     }))
+    // telefonoUpdatedAt distinto de updatedAt a propósito: si la implementación mandara el de la asignación
+    // (el trampolín que señala la hoja de contrato §5), este valor lo delataría.
+    const pulido = resumen({ idRep: 'AP20260916_3', imei: '000000000000003', modelo: '14', cliente: 'CLIENTE A', telefonoUpdatedAt: '2026-09-16T09:30:00' })
     await abrirEditor('Editar cliente', { fila: pulido })
     const dlg = await screen.findByRole('dialog', { name: 'Seleccionar cliente' })
     expect(within(dlg).getAllByRole('option').map((o) => o.textContent)).toEqual(['— Sin cliente —', 'CLIENTE A', 'CLIENTE B'])
@@ -133,7 +136,7 @@ describe('editores de la vista de asignaciones', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: '— Sin cliente —' }))
     await userEvent.click(within(dlg).getByRole('button', { name: 'Seleccionar' }))
     // updatedAt es el del TELÉFONO, no el de la asignación (hoja de contrato §5).
-    await waitFor(() => expect(body).toEqual({ idCli: null, updatedAt: '2026-09-16T07:02:00' }))
+    await waitFor(() => expect(body).toEqual({ idCli: null, updatedAt: '2026-09-16T09:30:00' }))
   })
 
   it('los tres editores avisan de su apertura y de su cierre', async () => {
@@ -150,6 +153,59 @@ describe('editores de la vista de asignaciones', () => {
       await screen.findByRole('dialog', { name: titulo })
       expect(onInteraccion.mock.calls).toEqual([[true]])
       await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+      await waitFor(() => expect(onInteraccion.mock.calls).toEqual([[true], [false]]))
+      unmount()
+    }
+  })
+
+  it('guardar en los tres editores también avisa del cierre', async () => {
+    // Mismo riesgo que Cancelar (D4/spec §17), pero por el otro camino: guardar hace setState(null) junto a una
+    // mutación, y si el aviso se perdiera ahí el sondeo se quedaría congelado para siempre tras cada edición real.
+    server.use(
+      http.patch('*/api/reparaciones/asignaciones/AP20260916_3', () => new HttpResponse(null, { status: 204 })),
+      http.post('*/api/telefonos', () => new HttpResponse(null, { status: 204 })),
+      http.patch('*/api/telefonos/000000000000003/cliente', () => new HttpResponse(null, { status: 204 })),
+    )
+    const casos = [
+      ['Editar comentario', 'Comentario de asignación', async (dlg: HTMLElement) => {
+        await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+      }],
+      ['Editar modelo', 'Editar modelo', async (dlg: HTMLElement) => {
+        await userEvent.click(within(dlg).getByRole('button', { name: 'iPhone 15' }))
+        await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+      }],
+      ['Editar cliente', 'Seleccionar cliente', async (dlg: HTMLElement) => {
+        await userEvent.click(within(dlg).getByRole('button', { name: '— Sin cliente —' }))
+        await userEvent.click(within(dlg).getByRole('button', { name: 'Seleccionar' }))
+      }],
+    ] as const
+    for (const [item, titulo, guardar] of casos) {
+      const onInteraccion = vi.fn()
+      const { unmount } = renderConProviders(<Banco fila={pulido} onInteraccion={onInteraccion} />, { sesion: SESION_SUPER })
+      fireEvent.contextMenu(screen.getByText('Fila'))
+      await userEvent.click(await screen.findByRole('menuitem', { name: item }))
+      const dlg = await screen.findByRole('dialog', { name: titulo })
+      expect(onInteraccion.mock.calls).toEqual([[true]])
+      await guardar(dlg)
+      await waitFor(() => expect(onInteraccion.mock.calls).toEqual([[true], [false]]))
+      unmount()
+    }
+  })
+
+  it('Escape en los tres editores también avisa del cierre', async () => {
+    // Tercer camino de cierre (D4/spec §17): el Dialog de Radix lo traduce a onOpenChange(false), no a un clic.
+    for (const [item, titulo] of [
+      ['Editar comentario', 'Comentario de asignación'],
+      ['Editar modelo', 'Editar modelo'],
+      ['Editar cliente', 'Seleccionar cliente'],
+    ] as const) {
+      const onInteraccion = vi.fn()
+      const { unmount } = renderConProviders(<Banco fila={pulido} onInteraccion={onInteraccion} />, { sesion: SESION_SUPER })
+      fireEvent.contextMenu(screen.getByText('Fila'))
+      await userEvent.click(await screen.findByRole('menuitem', { name: item }))
+      await screen.findByRole('dialog', { name: titulo })
+      expect(onInteraccion.mock.calls).toEqual([[true]])
+      await userEvent.keyboard('{Escape}')
       await waitFor(() => expect(onInteraccion.mock.calls).toEqual([[true], [false]]))
       unmount()
     }

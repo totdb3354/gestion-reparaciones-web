@@ -28,6 +28,8 @@ export class ConexionError extends ApiError {
 export const MSG_SESION_EXPIRADA = 'Sesión expirada. Vuelve a iniciar sesión.'
 export const MSG_SIN_PERMISOS = 'No tienes permisos para realizar esta acción.'
 export const MSG_NO_ENCONTRADO = 'Recurso no encontrado.'
+/** Mismo texto para el 409 del teléfono en ImeisPage y en los editores de la vista de asignaciones (calco del JavaFX). */
+export const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usuario. Se recargan los datos.'
 const SIN_CONEXION = 'Sin conexión con el servidor'
 export const MSG_SIN_CONEXION = `${SIN_CONEXION}.`
 export const MSG_TIMEOUT = 'tiempo de espera agotado'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/shared/api/errors'
+import { esErrorGestionadoGlobalmente, mensajeDeError, MSG_TELEFONO_MODIFICADO, StaleDataError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { SelectorLista } from '@/shared/ui/SelectorLista'
 import { useClientesActivos, useEditarClienteTelefono, useEditarModeloTelefono } from '../../api'
@@ -9,9 +9,6 @@ import { MODELOS_ORDENADOS, traducirModelo } from '../../lib/modelos'
 import { CLAVE_ASIGNACIONES_TODAS, useEditarComentario } from '../api'
 import { EditorComentario } from './EditorComentario'
 
-/** Mismo texto que el maestro de IMEIs para el 409 del teléfono (calco del JavaFX). No se importa de ImeisPage:
- *  arrastraría la página entera del maestro al trozo de esta vista. */
-const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usuario. Se recargan los datos.'
 /** La lista de modelos es fija: se construye una vez, no en cada render. */
 const OPCIONES_MODELO = MODELOS_ORDENADOS.map((m) => ({ clave: m, etiqueta: traducirModelo(m) }))
 const SIN_CLIENTE_CLAVE = ''
@@ -100,12 +97,14 @@ export function useEditores({ onInteraccion }: { onInteraccion: (abierto: boolea
         onCancelar={() => setConCliente(null)}
         onSeleccionar={(clave) => {
           const fila = conCliente
-          if (!fila) return
+          // `telefonoUpdatedAt` (el del teléfono), no el de la asignación. Sin él no hay bloqueo optimista que mandar:
+          // el PATCH iría con un updatedAt vacío y el servidor lo convertiría en NPE (500), que el cliente clasifica
+          // como error de conexión y muestra el banner "Sin conexión con el servidor" en vez de un aviso de guardado
+          // (mismo caso que ImeisPage; ver `alFallar` allí).
+          if (!fila?.telefonoUpdatedAt) return
           setConCliente(null)
-          // `telefonoUpdatedAt` (el del teléfono), no el de la asignación. Si faltara, el servidor rechaza el cambio
-          // y la vista avisa: mejor eso que inventar una fecha que pisaría el cambio de otro (como en api.ts).
           guardarCliente.mutate(
-            { imei: fila.imei, idCli: clave === SIN_CLIENTE_CLAVE ? null : Number(clave), updatedAt: fila.telefonoUpdatedAt ?? '' },
+            { imei: fila.imei, idCli: clave === SIN_CLIENTE_CLAVE ? null : Number(clave), updatedAt: fila.telefonoUpdatedAt },
             { onError: alFallarTelefono, onSettled: recargarLista },
           )
         }}
