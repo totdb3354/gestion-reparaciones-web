@@ -166,12 +166,21 @@ describe('CargaTecnicosDialog dentro de la vista', () => {
     server.use(http.get('*/api/reparaciones/carga-tecnicos', () => new HttpResponse(null, { status: 500 })))
     await abrirVista()
     expect(await screen.findByText('No se pudo cargar la carga de técnicos.')).toBeInTheDocument()
-    // OJO: el 500 es ConexionError, así que la política global del QueryClient abre además su diálogo encima. Para
-    // dejar el aviso solo aquí haría falta `meta: { silenciarError: true }` en `useCargaTecnicos` (./api, fuera del
-    // alcance de esta tarea); queda anotado en el informe.
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
     // Son dos consultas independientes (spec §14): la de la tabla no se entera.
     expect(screen.getByText('A20260916_1')).toBeInTheDocument()
     expect(screen.getByText('AG20260916_2')).toBeInTheDocument()
+  })
+
+  it('el mensaje se queda dentro de la ventana: no se apila el diálogo de error global', async () => {
+    server.use(http.get('*/api/reparaciones/carga-tecnicos', () => new HttpResponse(null, { status: 500 })))
+    await abrirVista()
+    expect(await screen.findByText('No se pudo cargar la carga de técnicos.')).toBeInTheDocument()
+    // El 500 es un ConexionError y la política global del QueryClient abriría su propio diálogo encima ("Sin
+    // conexión con el servidor: HTTP 500"): dos avisos del mismo fallo, y el de arriba tapando la ventana. El
+    // `meta: { silenciarError: true }` de `useCargaTecnicos` lo impide, porque el literal lo pone la ventana.
+    expect(screen.queryByText(/HTTP 500/)).not.toBeInTheDocument()
+    // El único diálogo abierto sigue siendo la ventana de carga (el global la dejaría oculta bajo el suyo).
+    expect(screen.getByRole('dialog')).toHaveTextContent('Carga de técnicos')
   })
 })

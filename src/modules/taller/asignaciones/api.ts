@@ -30,13 +30,18 @@ export function useAsignacionesTodas({ activo = true }: { activo?: boolean } = {
   return useQuery({ queryKey: CLAVE_ASIGNACIONES_TODAS, queryFn: pedirTodas, refetchInterval: intervalo })
 }
 
-/** Solo se pide con la ventana de carga abierta: no tiene sentido sondearla de fondo. */
+/** Solo se pide con la ventana de carga abierta: no tiene sentido sondearla de fondo.
+ *
+ *  `silenciarError`: el aviso lo pone la ventana con su propio literal, en el hueco de la lista (spec §14, "la
+ *  ventana se abre con un mensaje en vez de la lista, y la tabla no se ve afectada"). Sin esto, la política global
+ *  del QueryClient apilaría además su diálogo encima de la ventana y el usuario vería dos avisos del mismo fallo. */
 export function useCargaTecnicos(habilitada: boolean) {
   return useQuery({
     queryKey: CLAVE_CARGA_TECNICOS,
     queryFn: async (): Promise<CargaTecnicosRespuesta> =>
       (await api.GET('/api/reparaciones/carga-tecnicos')).data ?? { pedidos: [], total: [] },
     enabled: habilitada,
+    meta: { silenciarError: true },
   })
 }
 
