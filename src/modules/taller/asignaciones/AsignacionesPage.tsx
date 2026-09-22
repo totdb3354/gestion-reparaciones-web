@@ -81,15 +81,14 @@ export function AsignacionesPage() {
 
   return (
     <div className="p-10">
-      <div className="mb-3 flex items-center gap-3">
+      {/* Calco del único HBox del FXML, que lleva la fila entera: título · pastilla del contador · hueco elástico
+          (el `Region HBox.hgrow="ALWAYS"`, aquí el `ml-auto` del primer botón) · "Técnicos de glass" · "Carga
+          técnicos". El `spacing="12"` del HBox es el `gap-3`. `flex-wrap` para que en pantallas estrechas los
+          botones bajen en vez de comerse el título. */}
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-azul-medio">Asignaciones pendientes</h1>
         <PildoraContador texto={etiquetaContador(visibles.length, 'asignación', 'asignaciones', TOPE_CONTADOR)} />
-      </div>
-      {/* Los dos botones de ventana van arriba a la derecha, en su propia fila POR ENCIMA de la barra de filtros
-          (captura asig-lista: los dos a la misma altura, sobre los filtros), no en la fila de "Asignar". El orden
-          entre ellos es el del FXML: "Técnicos de glass" antes que "Carga técnicos". */}
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
-        <BotonSecundario onClick={() => setGlassAbierto(true)}>Técnicos de glass</BotonSecundario>
+        <BotonSecundario className="ml-auto" onClick={() => setGlassAbierto(true)}>Técnicos de glass</BotonSecundario>
         <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
       </div>
       {/* Filtrado en memoria sobre lo ya cargado (spec 3a, D7): ningún control vuelve al servidor.
