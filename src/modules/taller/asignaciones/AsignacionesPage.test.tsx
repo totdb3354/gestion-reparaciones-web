@@ -251,3 +251,57 @@ describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4
     await waitFor(() => expect(cargas.n).toBe(2))
   })
 })
+
+/**
+ * Paridad asig-lista: el TableView del JavaFX (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN) estira las columnas hasta
+ * el borde y el Id se lee entero. La tabla va en el ajuste 'estirar' de DataTable, como el Historial; la papelera lleva
+ * tope, así que DataTable mide el contenedor y pinta en px. jsdom no mide: ResizeObserver controlable desde el test.
+ */
+describe('AsignacionesPage · la tabla ocupa todo el ancho (paridad asig-lista)', () => {
+  const observadores: { cb: ResizeObserverCallback; observados: Element[] }[] = []
+  class ResizeObserverFalso {
+    private readonly o: { cb: ResizeObserverCallback; observados: Element[] }
+    constructor(cb: ResizeObserverCallback) {
+      this.o = { cb, observados: [] }
+      observadores.push(this.o)
+    }
+    observe(el: Element) { this.o.observados.push(el) }
+    unobserve() {}
+    disconnect() {}
+  }
+  function medirContenedor(ancho: number) {
+    act(() => {
+      for (const o of observadores) o.cb(o.observados.map((target) => ({ target, contentRect: { width: ancho } }) as unknown as ResizeObserverEntry), {} as ResizeObserver)
+    })
+  }
+  beforeEach(() => {
+    observadores.length = 0
+    vi.stubGlobal('ResizeObserver', ResizeObserverFalso)
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sin medida (antes del primer layout) la tabla va a w-full con los anchos en porcentaje', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(screen.getByRole('table')).toHaveClass('w-full')
+    const anchos = Array.from(document.querySelectorAll('col')).map((c) => c.style.width)
+    expect(anchos.every((a) => a.endsWith('%'))).toBe(true)
+  })
+
+  it('medida, llena el contenedor: el Id no baja de 120 px, la papelera se queda en 45 y Comentario es la más ancha', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    // Contenedor de la captura (1920 px de pantalla menos lateral y márgenes). Suma de pesos 1305 → u ≈ 1,257.
+    medirContenedor(1640)
+    const px = Array.from(document.querySelectorAll('col')).map((c) => parseFloat(c.style.width))
+    const [id, , , , , , comentario, cliente, , , papelera] = px
+    expect(id).toBeGreaterThanOrEqual(120)
+    expect(papelera).toBe(45)
+    expect(comentario).toBe(Math.max(...px))
+    expect(cliente).toBeGreaterThan(px[2]) // más que Técnico
+    // Todo el ancho menos lo que la papelera no crece (45·(u−1) ≈ 11,6 px en blanco, como el hueco del JavaFX).
+    expect(px.reduce((a, b) => a + b, 0)).toBeGreaterThan(1625)
+  })
+})
