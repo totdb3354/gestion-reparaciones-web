@@ -7,7 +7,6 @@ import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { BadgesEstadoPendiente } from '../componentes/BadgesEstadoPendiente'
 import { BotonPapelera } from '../componentes/BotonPapelera'
 import { CeldaImeiPendiente } from '../componentes/CeldaImeiPendiente'
-import { CeldaReparador } from '../componentes/CeldaReparador'
 import { traducirModelo } from '../lib/modelos'
 import { CeldaTecnicoConectada } from './CeldaTecnicoConectada'
 import type { AccionReversible } from './useAccionConDeshacer'
@@ -26,6 +25,9 @@ export type OpcionesColumnas = {
   /** "Hoy" en Madrid, del render de la página (no de la construcción de las columnas): si se recalculase aquí dentro
    *  se quedaría congelado al abrir la pestaña, y los badges "Llegó HH:mm"/"Llegó dd/MM" no cambiarían a medianoche. */
   hoy: string
+  /** IMEI → técnicos distintos con asignación pendiente (`contarTecnicosPorImei`), para la tercera línea "N
+   *  asignados" de la celda IMEI. Se calcula en la página sobre la lista completa, no sobre la filtrada. */
+  asignadosPorImei: Map<string, number>
 }
 
 /**
@@ -44,20 +46,25 @@ export function claseFilaAsignacion(fila: ReparacionResumen): string {
  * cliente → resto es funcional, y ordenar por otra columna entierra lo urgente sin avisar (el JavaFX apaga el
  * `sortable` de todas por lo mismo).
  */
-export function crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion, onBorrar, hoy }: OpcionesColumnas): ColumnDef<ReparacionResumen>[] {
+export function crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion, onBorrar, hoy, asignadosPorImei }: OpcionesColumnas): ColumnDef<ReparacionResumen>[] {
   const columnas: ColumnDef<ReparacionResumen>[] = [
     { id: 'id', header: 'Id Asignación', size: 90, accessorKey: 'idRep' },
     { id: 'tipo', header: 'Tipo', size: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
     {
       id: 'tecnico', header: 'Técnico', size: 110,
+      // En solo lectura, el nombre y nada más: el `setText(getNombreTecnico())` del cellFactory del JavaFX cuando
+      // `soloLectura`. Nada de la celda de reparador del Historial, que en una glass entregada cuelga además un
+      // "Llegó dd/MM HH:mm" que esta columna no tiene (la llegada ya la cuenta el badge de la columna Estado).
       cell: ({ row }) =>
         soloLectura ? (
-          <CeldaReparador rep={row.original} />
+          <span>{row.original.nombreTecnico}</span>
         ) : (
           <CeldaTecnicoConectada fila={row.original} tecnicos={tecnicos} ejecutar={ejecutar} onInteraccion={onInteraccion} />
         ),
     },
-    { id: 'imei', header: 'IMEI', size: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
+    // `?? 1` es el getOrDefault(imei, 1) del JavaFX: sin entrada en el mapa (IMEI nulo, o fila recién llegada) se
+    // cuenta un solo técnico y no hay tercera línea.
+    { id: 'imei', header: 'IMEI', size: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} asignados={asignadosPorImei.get(row.original.imei) ?? 1} /> },
     { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
     // Texto plano, sin color propio: el cFecha del JavaFX solo tiene cellValueFactory, así que hereda el color de la
     // fila (y con ella el crema de la seleccionada) y no necesita CREMA_EN_FILA_SELECCIONADA.

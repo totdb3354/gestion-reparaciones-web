@@ -77,6 +77,19 @@ describe('AsignacionesPage · el ADMIN entra en solo lectura', () => {
     expect(within(fila).queryByRole('combobox')).not.toBeInTheDocument()
   })
 
+  it('la celda de técnico es solo el nombre: sin el subtexto "Llegó …" que el JavaFX no tiene', async () => {
+    // En el JavaFX la columna Técnico en solo lectura es texto plano (PendientesSuperTecnicoController:254-259).
+    // La web reutilizaba la celda de reparador del Historial, que en una glass entregada cuelga "Llegó dd/MM HH:mm".
+    server.use(http.get('*/api/glass/asignaciones', () => HttpResponse.json([{ ...glass, entregadoAt: '2026-09-16T07:02:00', entregadoPorNombre: 'Técnico A' }])))
+    abrir(SESION_ADMIN)
+    await screen.findByText('AG20260916_2')
+    const fila = filaDe('AG20260916_2')
+    expect(within(fila).getByText('Técnico B')).toBeInTheDocument()
+    // El subtexto lleva siempre día y hora; el badge de entrega de la columna Estado, que sí se queda, no.
+    expect(within(fila).queryByText('Llegó 16/09 09:02')).not.toBeInTheDocument()
+    expect(within(fila).getByText(/^Llegó/)).toBeInTheDocument()
+  })
+
   it('los checks de "Técnicos de glass" están deshabilitados y solo hay botón de cerrar', async () => {
     abrir(SESION_ADMIN)
     await screen.findByText('A20260916_1')

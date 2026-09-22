@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { DataTable } from '@/shared/ui/DataTable'
+import { CREMA_EN_FILA_SELECCIONADA, DataTable } from '@/shared/ui/DataTable'
 import { glass, resumen, tecnico } from '../test/fabrica'
 import { useAsignacionesTodas } from './api'
 import { claseFilaAsignacion, crearColumnas, type OpcionesColumnas } from './columnas'
@@ -20,6 +20,7 @@ const opciones = (p: Partial<OpcionesColumnas> = {}): OpcionesColumnas => ({
   onInteraccion: vi.fn(),
   onBorrar: vi.fn(),
   hoy: '2026-09-16',
+  asignadosPorImei: new Map(),
   ...p,
 })
 
@@ -122,12 +123,65 @@ describe('crearColumnas: contenido de las celdas', () => {
   })
 })
 
+/**
+ * Tercera línea de la celda IMEI (spec indicador-asignados 2026-06-29; PendientesSuperTecnicoController:319-322):
+ * el conteo llega ya calculado desde la página, y la celda decide si lo pinta. La regla fina —con exactamente 2 la
+ * píldora ya cuenta al segundo, con 3+ el contador convive con ella— es `ocultarContadorAsignados`.
+ */
+describe('crearColumnas: la tercera línea "N asignados" de la celda IMEI', () => {
+  const conteo = (imei: string, n: number) => new Map([[imei, n]])
+  const IMEI = '000000000000001'
+
+  it('con dos técnicos y sin píldora que lo cuente, pinta "2 asignados"', () => {
+    pintar([resumen({ imei: IMEI })], opciones({ soloLectura: true, asignadosPorImei: conteo(IMEI, 2) }))
+    expect(screen.getByText('2 asignados')).toBeInTheDocument()
+  })
+
+  it('con un solo técnico, o sin el IMEI en el conteo, no hay tercera línea', () => {
+    const { unmount } = pintar([resumen({ imei: IMEI })], opciones({ soloLectura: true, asignadosPorImei: conteo(IMEI, 1) }))
+    expect(screen.queryByText(/asignados$/)).not.toBeInTheDocument()
+    unmount()
+    // Sin entrada en el mapa se cuenta 1, como el getOrDefault(imei, 1) del JavaFX.
+    pintar([resumen({ imei: IMEI })], opciones({ soloLectura: true, asignadosPorImei: new Map() }))
+    expect(screen.queryByText(/asignados$/)).not.toBeInTheDocument()
+  })
+
+  it('con exactamente 2 y la píldora "Glass: X" delante, el contador se calla', () => {
+    const fila = resumen({ imei: IMEI, glassAbierta: true, glassTecnicoNombre: 'Técnico H' })
+    pintar([fila], opciones({ soloLectura: true, asignadosPorImei: conteo(IMEI, 2) }))
+    expect(screen.getByText('Glass: Técnico H')).toBeInTheDocument()
+    expect(screen.queryByText('2 asignados')).not.toBeInTheDocument()
+  })
+
+  it('con 3 el contador vuelve y convive con la píldora', () => {
+    const fila = resumen({ imei: IMEI, glassAbierta: true, glassTecnicoNombre: 'Técnico H' })
+    pintar([fila], opciones({ soloLectura: true, asignadosPorImei: conteo(IMEI, 3) }))
+    expect(screen.getByText('Glass: Técnico H')).toBeInTheDocument()
+    expect(screen.getByText('3 asignados')).toBeInTheDocument()
+  })
+
+  it('es la sub-etiqueta gris en cursiva del JavaFX, y pasa a crema en la fila seleccionada', () => {
+    pintar([resumen({ imei: IMEI })], opciones({ soloLectura: true, asignadosPorImei: conteo(IMEI, 2) }))
+    expect(screen.getByText('2 asignados')).toHaveClass('text-[10px]', 'italic', 'text-texto-fecha-inicio', CREMA_EN_FILA_SELECCIONADA)
+  })
+})
+
 describe('crearColumnas: columna Técnico y papelera', () => {
   it('en solo lectura el técnico es texto plano, sin desplegable', () => {
     pintar([resumen({ idTec: 4, nombreTecnico: 'Técnico A' })], opciones({ soloLectura: true }))
     expect(screen.getByText('Técnico A')).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Borrar asignación' })).not.toBeInTheDocument()
+  })
+
+  it('en solo lectura el técnico es SOLO el nombre: la fila de glass entregada no cuelga "Llegó dd/MM HH:mm"', () => {
+    // La columna Técnico del ADMIN es texto plano en el JavaFX (PendientesSuperTecnicoController:254-259). El
+    // subtexto de entrega es de la celda de reparador del Historial y aquí sobraba.
+    pintar([glass('2026-09-16T07:02:00')], opciones({ soloLectura: true }))
+    expect(screen.getByText('Técnico A')).toBeInTheDocument()
+    expect(screen.queryByText('Llegó 16/09 09:02')).not.toBeInTheDocument()
+    // El badge de entrega de la columna Estado no se toca: sigue contando la llegada.
+    expect(screen.getByText('Llegó 09:02')).toBeInTheDocument()
   })
 
   it('editable: el desplegable muestra el técnico actual y lista los técnicos activos', async () => {

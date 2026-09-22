@@ -33,11 +33,6 @@ De presentación, heredadas de los sub-proyectos anteriores y comunes a toda la 
 
 El texto del aviso de deshacer dice "`<idRep>` marcada como urgente", nombrando **una** fila, pero el servidor propaga el urgente al teléfono entero: marcar urgente una `A…` marca también su `AG…` hermana (el deshacer sí revierte las dos). El usuario ve cambiar dos filas y el mensaje habla de una. Opciones: dejarlo así, o redactarlo por teléfono ("el IMEI …001 pasa a urgente"). **Aparcada a propósito para decidirla al revisar esta ficha.**
 
-### Diferencias nuevas detectadas al marcar la ficha (sin decidir)
-
-- **El IMEI no muestra la tercera línea "N asignados".** En el JavaFX, la celda IMEI de esta vista apila IMEI · píldora `Glass:`/`Rep:` · "N asignados" (10 px, cursiva, gris) cuando el IMEI tiene dos o más técnicos distintos y la píldora no cuenta ya al segundo (la regla fina de `ocultarContadorAsignados`: con exactamente 2 se oculta, con 3 o más convive con la píldora). La web no lo pinta: el conteo de técnicos por IMEI no llegó a implementarse, aunque la spec lo nombra dos veces. La casilla correspondiente queda **sin marcar**.
-- **En solo lectura, la celda Técnico añade un subtexto que el JavaFX no tiene.** La web reutiliza la celda de reparador del Historial, que en una fila de glass con entrega registrada pinta debajo del nombre "Llegó dd/MM HH:mm"; el JavaFX en solo lectura pinta el nombre y nada más. La casilla correspondiente queda **sin marcar**.
-
 ## Ruta, rol y refresco
 
 - [x] `/reparaciones/asignaciones` deja de ser un placeholder y muestra la vista real, dentro de una guarda que admite **SUPERTECNICO y ADMIN** (D6). El TECNICO que llegue por URL recibe el aviso genérico de permisos y sale a `/reparaciones`, que ya reparte por rol.
@@ -74,7 +69,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Tipo: píldora del tipo — "Reparación" (#E3F2FD / #1565C0), "Glass" (#E0F2F1 / #00796B), "Pulido" (#EDE7F6 / #5E35B1) — y debajo la palabra "Chasis" (10 px, #8A94A6) solo en reparaciones con chasis (`asig-tipo-glass`, `asig-tipo-pulido`, `asig-fila-urgente-chasis`).
 - [x] Técnico: **desplegable dentro de la celda** (8 filas visibles, 11 px) con los técnicos activos y el de la fila seleccionado; elegir otro reasigna al instante (D2). Elegir el que ya estaba no escribe nada.
 - [x] IMEI (12 px) con la mini-píldora debajo: "Glass: `<técnico>`" en filas de reparación con glass abierta y sin entregar, "Rep: `<técnico>`" en filas de glass con reparación abierta (se mantiene tras el "Llegó"); cada una con su tooltip. Son las de la lógica de entrega de glass, ya en la web desde el sub-proyecto 1 (`asig-tipo-glass`, `entrega-glass-accion`).
-- [ ] IMEI: tercera línea "N asignados" (10 px, cursiva, gris) cuando el IMEI tiene dos o más técnicos distintos y la píldora no cuenta ya al segundo. **No implementado**: ver «Diferencias nuevas detectadas al marcar la ficha».
+- [x] IMEI: tercera línea "N asignados" (10 px, cursiva, gris, crema en la fila seleccionada) cuando el IMEI tiene dos o más técnicos distintos y la píldora no cuenta ya al segundo: con exactamente 2 se oculta —la píldora `Glass:`/`Rep:` (o el badge índigo de entrega) ya dice quién es el otro— y con 3 o más vuelve y convive con ella. El conteo son técnicos distintos por IMEI sobre la lista **completa**, no sobre la filtrada, como el `cargar()` del JavaFX. Es exclusivo de esta vista: la spec del indicador (2026-06-29 §3) deja "Mis pendientes" del técnico fuera a propósito, y su celda del JavaFX apila solo dos líneas.
 - [x] Modelo: nombre traducido del código del modelo (vacío si no hay).
 - [x] Fecha asignación: `yyyy/MM/dd HH:mm`, en hora de Madrid, texto plano que hereda el color de la fila.
 - [x] Comentario: el comentario de la asignación (vacío si es nulo); pulsar sobre el texto abre el popup de lectura.
@@ -187,7 +182,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Desaparece el botón "Asignar" —con su fila entera, no queda un botón muerto— (`asig-admin`).
 - [x] Desaparece la **columna** de la papelera: diez cabeceras en vez de once, no una celda vacía.
 - [x] El menú contextual se queda en **"Copiar celda"** y nada más (`asig-admin-menu`).
-- [ ] La celda Técnico se muestra como **texto plano**, sin desplegable: el ADMIN no reasigna. El texto plano está, pero con un subtexto de más que el JavaFX no tiene: ver «Diferencias nuevas detectadas al marcar la ficha».
+- [x] La celda Técnico se muestra como **texto plano**, sin desplegable y sin ningún subtexto: el nombre y nada más, como el `setText(getNombreTecnico())` del JavaFX en solo lectura. La llegada de una glass entregada la sigue contando el badge de la columna Estado.
 - [x] Las casillas de "Técnicos de glass" salen deshabilitadas y el único botón es "Cerrar" (sin "Aceptar" ni "Cancelar").
 - [x] Los cinco filtros, "Limpiar filtros" y la ventana de carga funcionan con normalidad para el ADMIN.
 - [x] Esto es la capa visible, no la protección: reasignar, urgente, chasis, el comentario, el borrado y los técnicos de glass exigen ya **SUPERTECNICO** en el servidor, y la carga de técnicos exige SUPERTECNICO o ADMIN.

@@ -15,6 +15,7 @@ import { useAsignacionesTodas, useBorrarAsignacion } from './api'
 import { BarraFiltros } from './BarraFiltros'
 import { CargaTecnicosDialog } from './CargaTecnicosDialog'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
+import { contarTecnicosPorImei } from './conteoTecnicos'
 import { useEditores } from './editores/useEditores'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
@@ -78,12 +79,16 @@ export function AsignacionesPage() {
   // Los clientes del desplegable son los presentes en lo cargado, no un catálogo: se repueblan en cada carga
   // (calco de cargarClientes() del JavaFX). Reutiliza el helper del maestro de IMEIs, que ya hace eso mismo.
   const clientes = useMemo(() => opcionesCliente(data), [data])
+  // El "N asignados" de la celda IMEI: técnicos distintos por IMEI sobre la lista COMPLETA, no sobre `visibles`.
+  // En el JavaFX se calcula en cargar(), antes de filtrar, así que filtrar la tabla no baja el contador de las
+  // filas que quedan a la vista: el teléfono lo siguen teniendo dos técnicos aunque solo se vea uno.
+  const asignadosPorImei = useMemo(() => contarTecnicosPorImei(data), [data])
 
   // `ejecutar` es el mismo que recibe el menú contextual: un único aviso para toda la vista, venga la escritura de
   // la celda de técnico o del menú.
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion: marcar, onBorrar: setABorrar, hoy }),
-    [soloLectura, tecnicos, ejecutar, marcar, hoy],
+    () => crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion: marcar, onBorrar: setABorrar, hoy, asignadosPorImei }),
+    [soloLectura, tecnicos, ejecutar, marcar, hoy, asignadosPorImei],
   )
 
   return (

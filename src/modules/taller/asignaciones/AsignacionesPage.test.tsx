@@ -114,6 +114,28 @@ describe('AsignacionesPage', () => {
     expect(fila).toHaveAttribute('aria-selected', 'true')
   })
 
+  it('el "N asignados" del IMEI sale del conteo de la lista completa, no de la filtrada', async () => {
+    // Calco del JavaFX: `conteoTecnicosPorImei = contarTecnicosPorImei(asignaciones)` se calcula en cargar(), sobre
+    // lo descargado y antes de filtrar. Aquí el mismo IMEI lo tienen dos técnicos en dos categorías distintas, así
+    // que filtrar por Tipo deja una sola fila a la vista y el contador debe seguir diciendo 2.
+    const IMEI = '000000000000009'
+    server.use(
+      http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([resumen({ idRep: 'A20260916_4', imei: IMEI, idTec: 4 })])),
+      http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
+      http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([resumen({ idRep: 'AP20260916_5', imei: IMEI, idTec: 6 })])),
+    )
+    abrir()
+    await screen.findByText('A20260916_4')
+    expect(screen.getAllByText('2 asignados')).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tipo' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Pulido' }))
+    await userEvent.keyboard('{Escape}')
+    expect(await screen.findByText('1 asignación')).toBeInTheDocument()
+    expect(screen.queryByText('A20260916_4')).not.toBeInTheDocument()
+    expect(screen.getAllByText('2 asignados')).toHaveLength(1)
+  })
+
   it('Limpiar filtros devuelve todas las filas', async () => {
     abrir()
     await screen.findByText('A20260916_1')
