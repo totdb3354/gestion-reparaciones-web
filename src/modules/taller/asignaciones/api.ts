@@ -7,13 +7,16 @@ import { tipoDe } from './filtros'
 export const CLAVE_ASIGNACIONES_TODAS = ['asignaciones', 'todas'] as const
 export const CLAVE_CARGA_TECNICOS = ['carga-tecnicos'] as const
 
-/** Las tres categorías, SIN ?tecnico=: la vista del supertécnico es la lista completa. */
+/** Las tres categorías, SIN ?tecnico=: la vista del supertécnico es la lista completa. Toda llamada que llega
+ *  aquí es una respuesta real del servidor, así que de paso vacía `filasOptimistas`: lo que hubiera pintado por
+ *  optimismo queda superado, confirmado o corregido por esta carga (ver el comentario de `filasOptimistas`). */
 async function pedirTodas(): Promise<ReparacionResumen[]> {
   const [rep, glass, pul] = await Promise.all([
     api.GET('/api/reparaciones/asignaciones'),
     api.GET('/api/glass/asignaciones'),
     api.GET('/api/pulidos/asignaciones'),
   ])
+  filasOptimistas.clear()
   return ordenarPendientes([...(rep.data ?? []), ...(glass.data ?? []), ...(pul.data ?? [])])
 }
 
@@ -73,12 +76,48 @@ function guardarAsignacion(fila: ReparacionResumen, idTec: number, comentario: s
   })
 }
 
-/** Reasignar a otro técnico. El comentario viaja tal cual está en la fila ('' si no hay, como el JavaFX). */
+/**
+ * Filas con una reasignación pintada en la caché por optimismo pero aún SIN confirmar por una respuesta real del
+ * servidor. Vive fuera de la caché de TanStack a propósito: la guarda del deshacer (`CeldaTecnicoConectada`,
+ * `filaParaDeshacer`) necesita distinguir "el servidor ya dijo que sí" de "lo hemos pintado nosotros mismos, puede
+ * que la escritura ni siquiera haya salido todavía", y la caché de la lista, una vez pintada, ya no lleva esa
+ * distinción encima. Se vacía entera en cuanto aterriza una respuesta real de `pedirTodas` (éxito o no, da igual
+ * qué mutación la disparó): una carga real de la lista es, por definición, la verdad del servidor para cada fila
+ * que trae, así que cualquier optimismo pendiente queda superado, confirmado o corregido por ella.
+ */
+const filasOptimistas = new Map<string, number>()
+
+/** `true` si esta fila tiene una reasignación pintada por optimismo que ninguna respuesta real ha confirmado
+ *  todavía. Exportada solo para que la guarda del deshacer la consulte; nadie más debería necesitarla. */
+export function tieneReasignacionOptimistaSinConfirmar(idRep: string): boolean {
+  return filasOptimistas.has(idRep)
+}
+
+/** Reasignar a otro técnico. El comentario viaja tal cual está en la fila ('' si no hay, como el JavaFX).
+ *
+ * Pintado optimista (paridad con el ComboBox del JavaFX, D2, "reasigna al instante"): el combo de la celda va
+ * controlado por `fila.idTec`, así que sin esto el usuario vería la celda volver al técnico anterior hasta que
+ * aterrizase la recarga de `onSettled`. `onMutate` pinta el `idTec` nuevo en la caché de la lista y lo marca en
+ * `filasOptimistas`; `onError` deshace las dos cosas. `onSettled` (la recarga) sigue siendo la fuente de verdad:
+ * no se toca, y es ella —vía `pedirTodas`— la que vacía `filasOptimistas` al traer una respuesta real. */
 export function useReasignar() {
   const recargar = useRecargar()
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ fila, idTec }: { fila: ReparacionResumen; idTec: number }) =>
       guardarAsignacion(fila, idTec, fila.comentarioAsignacion ?? ''),
+    onMutate: async ({ fila, idTec }) => {
+      await qc.cancelQueries({ queryKey: CLAVE_ASIGNACIONES_TODAS })
+      const previa = qc.getQueryData<ReparacionResumen[]>(CLAVE_ASIGNACIONES_TODAS)
+      qc.setQueryData<ReparacionResumen[]>(CLAVE_ASIGNACIONES_TODAS, (actuales) =>
+        actuales?.map((f) => (f.idRep === fila.idRep ? { ...f, idTec } : f)))
+      filasOptimistas.set(fila.idRep, idTec)
+      return { previa, idRep: fila.idRep }
+    },
+    onError: (_error, _variables, contexto) => {
+      if (contexto?.previa) qc.setQueryData(CLAVE_ASIGNACIONES_TODAS, contexto.previa)
+      if (contexto) filasOptimistas.delete(contexto.idRep)
+    },
     onSettled: recargar,
   })
 }

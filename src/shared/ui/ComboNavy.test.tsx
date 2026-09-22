@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { ComboNavy, type OpcionCombo } from './ComboNavy'
+import { ComboNavy, siguienteAbiertoOMismo, type OpcionCombo } from './ComboNavy'
 
 const MODELOS: OpcionCombo[] = [{ valor: '13', etiqueta: 'iPhone 13' }, { valor: '13promax', etiqueta: 'iPhone 13 Pro Max' }, { valor: '14', etiqueta: 'iPhone 14' }]
 const SKUS: OpcionCombo[] = [{ valor: '101', etiqueta: 'bati13' }, { valor: '102', etiqueta: 'bati14', clase: 'text-rojo-sin-stock' }, { valor: '103', etiqueta: 'bati13promax', clase: 'text-fila-solicitud-brd' }]
@@ -105,5 +105,24 @@ describe('ComboNavy (combo navy de selección única)', () => {
   it('un valor que no está entre las opciones se muestra como vacío', () => {
     render(<ComboNavy valor="99" opciones={MODELOS} onChange={() => {}} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />)
     expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toHaveTextContent('— Selecciona modelo —')
+  })
+})
+
+describe('siguienteAbiertoOMismo (el guardia de cambiarAbierto)', () => {
+  // Task 16 va a contar interacciones abiertas con onOpenChange: un `false` de más deja el contador en negativo,
+  // el espejo del `true` sin su `false` que ya se arregló (ver el comentario de abiertoRef en ComboNavy).
+  it('no hay cambio real que emitir si se pide lo mismo que ya está (abierto o cerrado)', () => {
+    expect(siguienteAbiertoOMismo(false, false, false)).toBeNull()
+    expect(siguienteAbiertoOMismo(true, false, true)).toBeNull()
+  })
+  it('camino (a): "abrir" estando disabled y ya cerrado no emite un false fantasma (no hubo apertura)', () => {
+    expect(siguienteAbiertoOMismo(true, true, false)).toBeNull()
+  })
+  it('abrir de verdad, cerrar de verdad y "abrir" con disabled estando ya abierto sí son cambios reales', () => {
+    expect(siguienteAbiertoOMismo(true, false, false)).toBe(true)
+    expect(siguienteAbiertoOMismo(false, false, true)).toBe(false)
+    // disabled pasa a true con la lista abierta: no lo dispara la UI (el trigger deshabilitado no reabre), pero el
+    // guardia por sí solo sigue viendo "cerrar" como cambio real si algo llegase a pedirlo.
+    expect(siguienteAbiertoOMismo(true, true, true)).toBe(false)
   })
 })

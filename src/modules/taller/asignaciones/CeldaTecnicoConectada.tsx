@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { ReparacionResumen, Tecnico } from '@/shared/api/client'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { CeldaTecnico } from '../componentes/CeldaTecnico'
-import { CLAVE_ASIGNACIONES_TODAS, useReasignar } from './api'
+import { CLAVE_ASIGNACIONES_TODAS, tieneReasignacionOptimistaSinConfirmar, useReasignar } from './api'
 import type { AccionReversible } from './useAccionConDeshacer'
 
 /**
@@ -31,20 +31,27 @@ export function CeldaTecnicoConectada({ fila, tecnicos, ejecutar, onInteraccion 
    * ON UPDATE CURRENT_TIMESTAMP en Reparacion), así que deshacer con ella daría 409 "Dato modificado por otro
    * usuario" siempre: un "Deshacer" que falla cada vez es peor que no tenerlo.
    *
-   * `onSettled` de la mutación ya invalida la lista; si la recarga aún no ha llegado —la caché sigue sin
-   * `idTec === idTecNuevo`— se espera UNA recarga (`refetchQueries` trae `cancelRefetch: true` por defecto: sin
-   * eso se engancharía a un GET lanzado ANTES del PATCH y devolvería datos rancios igual). Si tras esperar la
-   * caché sigue sin confirmar mi escritura —la fila no está (lista sin montar, o ha salido del listado), el
-   * refetch ha fallado (servidor caído: `retry: false` en queryClient.ts, así que `refetchQueries` resuelve
-   * igual sin lanzar) o OTRO supertécnico ha movido la fila dentro de los 8 s del aviso— no se manda una
-   * escritura condenada al 409, ni se pisa el cambio ajeno: se devuelve `undefined` y quien llama avisa en vez
-   * de deshacer.
+   * `useReasignar` pinta el `idTec` nuevo en esta misma caché por optimismo, ANTES de que el servidor conteste
+   * (D2, "reasigna al instante"): por eso `idTec === idTecNuevo` en la caché ya NO basta para decir "confirmada
+   * por el servidor", o esta guarda daría por buena una escritura que a lo mejor ni ha salido todavía —justo la
+   * protección que se acaba de añadir. `tieneReasignacionOptimistaSinConfirmar` es la distinción: se marca al
+   * pintar por optimismo y solo se borra cuando aterriza una respuesta REAL de la lista (`pedirTodas`), así que
+   * "confirmada" exige las dos cosas, `idTec === idTecNuevo` Y que esa marca ya no esté.
+   *
+   * `onSettled` de la mutación ya invalida la lista; si la recarga aún no ha llegado —la caché no está
+   * confirmada— se espera UNA recarga (`refetchQueries` trae `cancelRefetch: true` por defecto: sin eso se
+   * engancharía a un GET lanzado ANTES del PATCH y devolvería datos rancios igual). Si tras esperar la caché
+   * sigue sin confirmar mi escritura —la fila no está (lista sin montar, o ha salido del listado), el refetch ha
+   * fallado (servidor caído: `retry: false` en queryClient.ts, así que `refetchQueries` resuelve igual sin
+   * lanzar) o OTRO supertécnico ha movido la fila dentro de los 8 s del aviso— no se manda una escritura
+   * condenada al 409, ni se pisa el cambio ajeno: se devuelve `undefined` y quien llama avisa en vez de
+   * deshacer.
    */
   async function filaParaDeshacer(idTecNuevo: number): Promise<ReparacionResumen | undefined> {
     const enCache = () => qc.getQueryData<ReparacionResumen[]>(CLAVE_ASIGNACIONES_TODAS)?.find((f) => f.idRep === fila.idRep)
-    if (enCache()?.idTec !== idTecNuevo) await qc.refetchQueries({ queryKey: CLAVE_ASIGNACIONES_TODAS })
-    const confirmada = enCache()
-    return confirmada?.idTec === idTecNuevo ? confirmada : undefined
+    const confirmadaPorServidor = () => enCache()?.idTec === idTecNuevo && !tieneReasignacionOptimistaSinConfirmar(fila.idRep)
+    if (!confirmadaPorServidor()) await qc.refetchQueries({ queryKey: CLAVE_ASIGNACIONES_TODAS })
+    return confirmadaPorServidor() ? enCache() : undefined
   }
 
   function alElegir(idTecNuevo: number) {

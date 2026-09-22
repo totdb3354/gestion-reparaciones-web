@@ -7,6 +7,7 @@ import type { ReparacionResumen } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { server } from '@/test/server'
 import {
+  CLAVE_ASIGNACIONES_TODAS,
   useAsignacionesTodas,
   useBorrarAsignacion,
   useCargaTecnicos,
@@ -19,6 +20,13 @@ import {
 function envoltorio() {
   const qc = crearQueryClient({ retry: false })
   return ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+}
+
+/** Como envoltorio(), pero devuelve también el queryClient: hace falta para leer la caché directamente (el pintado
+ *  optimista de useReasignar, antes de que conteste el servidor). */
+function envoltorioConQc() {
+  const qc = crearQueryClient({ retry: false })
+  return { qc, Wrapper: ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider> }
 }
 
 const fila = (p: Partial<ReparacionResumen>) =>
@@ -129,6 +137,39 @@ describe('useReasignar', () => {
     const f = fila({ idRep: 'A1', comentarioAsignacion: 'pantalla pedida', updatedAt: '2026-09-21T08:30:00' })
     await result.current.mutateAsync({ fila: f, idTec: 9 })
     expect(peticiones[0].cuerpo).toEqual({ idTec: 9, comentarioAsignacion: 'pantalla pedida', updatedAt: '2026-09-21T08:30:00' })
+  })
+
+  // Paridad con el ComboBox del JavaFX (D2, "reasigna al instante"): el combo va controlado por `fila.idTec`, así que
+  // sin pintado optimista el usuario vería la celda volver al técnico anterior hasta que aterrizase la recarga.
+  it('pinta el técnico nuevo en la caché de la lista al lanzar la mutación, antes de que conteste el servidor', async () => {
+    servirListas([fila({ idRep: 'A1', idTec: 4 })], [], [])
+    let liberar: () => void = () => {}
+    const retenido = new Promise<void>((resolve) => { liberar = resolve })
+    server.use(http.patch('*/api/reparaciones/asignaciones/:idRep', async () => { await retenido; return new HttpResponse(null, { status: 204 }) }))
+    const { qc, Wrapper } = envoltorioConQc()
+    const lista = renderHook(() => useAsignacionesTodas(), { wrapper: Wrapper })
+    await waitFor(() => expect(lista.result.current.isSuccess).toBe(true))
+    const reasignar = renderHook(() => useReasignar(), { wrapper: Wrapper })
+    const enVuelo = reasignar.result.current.mutateAsync({ fila: fila({ idRep: 'A1', idTec: 4 }), idTec: 9 })
+    // El PATCH sigue retenido (sin contestar): si esto pasa, es porque la caché se pintó al lanzar, no al recargar.
+    await waitFor(() => {
+      const enCache = qc.getQueryData<ReparacionResumen[]>(CLAVE_ASIGNACIONES_TODAS)?.find((f) => f.idRep === 'A1')
+      expect(enCache?.idTec).toBe(9)
+    })
+    liberar()
+    await enVuelo
+  })
+
+  it('si la mutación falla, revierte la caché al técnico de antes', async () => {
+    servirListas([fila({ idRep: 'A1', idTec: 4 })], [], [])
+    server.use(http.patch('*/api/reparaciones/asignaciones/:idRep', () => new HttpResponse(null, { status: 500 })))
+    const { qc, Wrapper } = envoltorioConQc()
+    const lista = renderHook(() => useAsignacionesTodas(), { wrapper: Wrapper })
+    await waitFor(() => expect(lista.result.current.isSuccess).toBe(true))
+    const reasignar = renderHook(() => useReasignar(), { wrapper: Wrapper })
+    await expect(reasignar.result.current.mutateAsync({ fila: fila({ idRep: 'A1', idTec: 4 }), idTec: 9 })).rejects.toBeTruthy()
+    const enCache = qc.getQueryData<ReparacionResumen[]>(CLAVE_ASIGNACIONES_TODAS)?.find((f) => f.idRep === 'A1')
+    expect(enCache?.idTec).toBe(4)
   })
 })
 
