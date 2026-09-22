@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ReparacionResumen } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { BotonPrimario } from '@/shared/ui/Botones'
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
 import { useTecnicos } from '../api'
 import { opcionesCliente } from '../imeis/agrupacion'
 import { etiquetaContador } from '../lib/filtros'
-import { useAsignacionesTodas } from './api'
+import { useAsignacionesTodas, useBorrarAsignacion } from './api'
 import { BarraFiltros } from './BarraFiltros'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { useEditores } from './editores/useEditores'
@@ -22,8 +24,10 @@ const TOOLTIP_ASIGNAR = 'Disponible en el siguiente sub-proyecto'
 /** El modo solo lectura del ADMIN es la Task 17; hasta entonces la vista es siempre la del supertécnico. */
 const SOLO_LECTURA = false
 /** El aviso de interacción (D4) lo consume la Task 16, que congelará el sondeo; aquí solo se emite. Constante de
- *  módulo, no una función nueva en cada render: MenuAsignacion la usa como dependencia de su efecto. */
-const SIN_CONSUMIDOR = () => {}
+ *  módulo, no una función nueva en cada render: MenuAsignacion la usa como dependencia de su efecto. La anotación de
+ *  tipo (en vez de un parámetro `abierto` sin usar) es lo que permite invocarla con un booleano desde el efecto del
+ *  borrado sin que el linter la marque como argumento sin usar. */
+const SIN_CONSUMIDOR: (abierto: boolean) => void = () => {}
 
 /**
  * Vista de asignaciones pendientes del supertécnico (spec 3a): las tres categorías en una sola tabla, sin ordenación
@@ -41,6 +45,16 @@ export function AsignacionesPage() {
   const { data: tecnicos = [] } = useTecnicos(true)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   const [filtros, setFiltros] = useState<EstadoFiltros>(FILTROS_VACIOS)
+  // La papelera de la última columna (calco de PendientesPage): la rama de tres endpoints según el tipo vive en
+  // `useBorrarAsignacion` (./api), aquí solo se le pasa la fila. El diálogo también cuenta para D4: mientras esté
+  // abierto el sondeo debe congelarse, o la recarga movería la fila bajo el cursor y confirmaría sobre otra.
+  const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
+  const borrarAsignacion = useBorrarAsignacion()
+  useEffect(() => {
+    if (!aBorrar) return
+    SIN_CONSUMIDOR(true)
+    return () => SIN_CONSUMIDOR(false)
+  }, [aBorrar])
   // Se recalcula en cada render (como en PendientesPage): si se congelase en un useMemo sin depender de nada, los
   // badges de entrega de glass se quedarían diciendo "Llegó HH:mm" pasada la medianoche con la pestaña abierta.
   const hoy = hoyMadrid()
@@ -54,7 +68,7 @@ export function AsignacionesPage() {
   // `ejecutar` es el mismo que recibe el menú contextual: un único aviso para toda la vista, venga la escritura de
   // la celda de técnico o del menú.
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, ejecutar, onInteraccion: SIN_CONSUMIDOR, onBorrar: () => {}, hoy }),
+    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, ejecutar, onInteraccion: SIN_CONSUMIDOR, onBorrar: setABorrar, hoy }),
     [tecnicos, ejecutar, hoy],
   )
 
@@ -98,6 +112,26 @@ export function AsignacionesPage() {
         )}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
+      {/* Calco literal de ConfirmDialog.mostrar (PendientesSuperTecnicoController:596-600): sin motivo, a diferencia
+          del borrado con justificación de useAccionesTrabajo. La rama de qué endpoint usar vive en
+          `useBorrarAsignacion`, no aquí. */}
+      <ConfirmDialog
+        abierto={aBorrar !== null}
+        titulo={`Borrar asignación ${aBorrar?.idRep ?? ''}`}
+        descripcion={
+          aBorrar?.esIncidencia
+            ? 'El técnico dejará de verla en su lista de pendientes y la incidencia se marcará como no activa en la tabla principal.'
+            : 'El técnico dejará de verla en su lista de pendientes.'
+        }
+        textoAccion="Borrar asignación"
+        onCancelar={() => setABorrar(null)}
+        onConfirmar={() => {
+          const fila = aBorrar
+          if (!fila) return
+          setABorrar(null)
+          borrarAsignacion.mutate({ fila })
+        }}
+      />
       {aviso}
       {dialogos}
     </div>
