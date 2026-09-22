@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { mensajeDeError } from '@/shared/api/errors'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { Checkbox } from '@/shared/ui/checkbox'
@@ -41,11 +41,19 @@ export function TecnicosGlassDialog({ abierto, soloLectura, onCerrar, onInteracc
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
 
+  // `onInteraccion` va por ref y NO en las dependencias del efecto: con el consumidor real (Task 16) un padre que
+  // lo pasara como flecha en línea cambiaría su identidad en cada render, el efecto se rearmaría y el aviso
+  // parpadearía (false→true por render), descongelando el sondeo a ratos. Con la ref sale UNA vez al abrir y una
+  // al cerrar, pase lo que pase con la identidad de la función.
+  const avisar = useRef(onInteraccion)
+  useLayoutEffect(() => {
+    avisar.current = onInteraccion
+  })
   useEffect(() => {
     if (!abierto) return
-    onInteraccion(true)
-    return () => onInteraccion(false)
-  }, [abierto, onInteraccion])
+    avisar.current(true)
+    return () => avisar.current(false)
+  }, [abierto])
 
   useLayoutEffect(() => {
     if (!abierto) return

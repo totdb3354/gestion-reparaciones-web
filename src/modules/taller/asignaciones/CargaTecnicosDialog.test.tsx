@@ -1,5 +1,6 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CargaTecnicosRespuesta } from '@/shared/api/client'
@@ -66,15 +67,18 @@ function abrir(respuesta: CargaTecnicosRespuesta = RESPUESTA) {
 }
 
 /** Las filas de la ventana, en el orden en que están pintadas. Se busca dentro de la lista de la ventana y no en
- *  toda la pantalla: con la vista montada detrás, los nombres de técnico también salen en la tabla. */
-const filas = () => within(screen.getByRole('list')).getAllByRole('listitem')
+ *  toda la pantalla: con la vista montada detrás, los nombres de técnico también salen en la tabla. Por nombre
+ *  accesible y no por `getByRole('list')` a secas: la vista monta más diálogos y el rol solo sería ambiguo. */
+const lista = () => screen.getByRole('list', { name: 'Carga por técnico' })
+const esperarLista = () => screen.findByRole('list', { name: 'Carga por técnico' })
+const filas = () => within(lista()).getAllByRole('listitem')
 const nombres = () => filas().map((f) => within(f).getByText(/^Técnico /).textContent)
 const filaDe = (nombre: string) => within(filas().find((f) => within(f).queryByText(nombre))!).getByRole('button')
 
 describe('CargaTecnicosDialog', () => {
   it('arranca en Pedidos', async () => {
     abrir()
-    expect(await screen.findByRole('list')).toBeInTheDocument()
+    expect(await esperarLista()).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pedidos' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Total' })).toHaveAttribute('aria-pressed', 'false')
     // 95% solo existe en el alcance Pedidos; el vacío se cuenta como "de cliente", no como "sin carga" a secas.
@@ -86,7 +90,9 @@ describe('CargaTecnicosDialog', () => {
     abrir()
     expect(await screen.findByText('95%')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Total' }))
-    expect(screen.getByText('72%')).toBeInTheDocument()
+    // `findByText` y no `getByText`: el contador se incrementa dentro del handler de msw, varios ticks después del
+    // clic, así que contar en el mismo tick daría por bueno un refetch espurio que aún no ha llegado al handler.
+    expect(await screen.findByText('72%')).toBeInTheDocument()
     expect(screen.queryByText('95%')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Total' })).toHaveAttribute('aria-pressed', 'true')
     // La respuesta ya traía los dos alcances: cambiar de alcance no puede costar un viaje al servidor (D3).
@@ -95,7 +101,7 @@ describe('CargaTecnicosDialog', () => {
 
   it('las filas salen ordenadas de mayor a menor carga', async () => {
     abrir()
-    expect(await screen.findByRole('list')).toBeInTheDocument()
+    expect(await esperarLista()).toBeInTheDocument()
     expect(nombres()).toEqual(['Técnico B', 'Técnico A', 'Técnico C'])
     await userEvent.click(screen.getByRole('button', { name: 'Total' }))
     expect(nombres()).toEqual(['Técnico C', 'Técnico A', 'Técnico B'])
@@ -103,7 +109,7 @@ describe('CargaTecnicosDialog', () => {
 
   it('sin jornada las cifras son un guion', async () => {
     abrir(FIN_DE_SEMANA)
-    expect(await screen.findByRole('list')).toBeInTheDocument()
+    expect(await esperarLista()).toBeInTheDocument()
     expect(screen.getAllByText('—')).toHaveLength(2)
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
     // Empatadas a cero, el desempate por nombre deja un orden estable entre refrescos.
@@ -112,7 +118,7 @@ describe('CargaTecnicosDialog', () => {
 
   it('el tooltip lleva el desglose y omite los ceros', async () => {
     abrir()
-    expect(await screen.findByRole('list')).toBeInTheDocument()
+    expect(await esperarLista()).toBeInTheDocument()
     expect(filaDe('Técnico A')).toHaveAttribute(
       'title',
       'Pendiente: 3 normales · 1 chasis · 2 en espera de pieza — Hecho hoy: 1 normales\nClick: ver sus asignaciones',
@@ -122,9 +128,40 @@ describe('CargaTecnicosDialog', () => {
     expect(filaDe('Técnico A')).toHaveAttribute('title', expect.stringContaining('Pendiente: 1 por cerrar — Hecho hoy: 1 glass'))
   })
 
+  it('el fundido lo dispara cada fila: la lista no deja hueco que no sea de nadie', async () => {
+    abrir()
+    const ul = await esperarLista()
+    // jsdom no calcula CSS, así que el `group-hover` no se puede ejercitar moviendo el ratón. Lo que sí se puede
+    // fijar es la condición que lo hace correcto: la separación entre filas es padding de cada <li>, no un `gap`
+    // del <ul>. Con `gap`, el hueco pertenece al <ul> (y dispara `group/carga`) pero a ninguna fila, así que el
+    // cursor ahí atenuaba TODAS las filas sin resaltar ninguna; en el JavaFX el hueco no atenúa nada.
+    expect(ul.className).toContain('group/carga')
+    expect(ul.className).not.toMatch(/(^|\s)gap-/)
+    for (const fila of filas()) expect(fila.className).toMatch(/(^|\s)py-/)
+  })
+
+  it('un onInteraccion nuevo en cada render no repite el aviso', async () => {
+    servirCarga(RESPUESTA)
+    const espia = vi.fn()
+    let forzarRender = () => {}
+    function Host() {
+      const [, setN] = useState(0)
+      forzarRender = () => setN((v) => v + 1)
+      // Flecha en línea A PROPÓSITO: es lo que pasará si la Task 16 conecta el consumidor real sin useCallback.
+      return <CargaTecnicosDialog abierto onCerrar={cerrar} onFiltrarPorTecnico={filtrar} onInteraccion={(a) => espia(a)} />
+    }
+    renderConProviders(<Host />, { sesion: SESION_SUPER })
+    expect(await esperarLista()).toBeInTheDocument()
+    // Un solo aviso pese a los re-renders de la carga: si `onInteraccion` estuviera en las dependencias del
+    // efecto, cada render lo rearmaría y el sondeo se descongelaría a ratos (false→true) en vez de quedarse quieto.
+    expect(espia.mock.calls).toEqual([[true]])
+    act(() => forzarRender())
+    expect(espia.mock.calls).toEqual([[true]])
+  })
+
   it('pulsar una fila cierra la ventana y llama a onFiltrarPorTecnico', async () => {
     abrir()
-    expect(await screen.findByRole('list')).toBeInTheDocument()
+    expect(await esperarLista()).toBeInTheDocument()
     await userEvent.click(filaDe('Técnico B'))
     expect(filtrar).toHaveBeenCalledWith(2)
     expect(cerrar).toHaveBeenCalled()
@@ -153,7 +190,7 @@ describe('CargaTecnicosDialog dentro de la vista', () => {
   it('pulsar una fila deja la tabla filtrada por ese técnico', async () => {
     servirCarga(RESPUESTA)
     await abrirVista()
-    expect(await screen.findByRole('list')).toBeInTheDocument()
+    expect(await esperarLista()).toBeInTheDocument()
     await userEvent.click(filaDe('Técnico B'))
     // La ventana se cierra y la tabla se queda con las filas de ese técnico (el filtro de técnico, en solitario).
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()

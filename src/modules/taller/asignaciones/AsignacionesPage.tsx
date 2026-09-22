@@ -85,6 +85,13 @@ export function AsignacionesPage() {
         <h1 className="text-2xl font-bold text-azul-medio">Asignaciones pendientes</h1>
         <PildoraContador texto={etiquetaContador(visibles.length, 'asignación', 'asignaciones', TOPE_CONTADOR)} />
       </div>
+      {/* Los dos botones de ventana van arriba a la derecha, en su propia fila POR ENCIMA de la barra de filtros
+          (captura asig-lista: los dos a la misma altura, sobre los filtros), no en la fila de "Asignar". El orden
+          entre ellos es el del FXML: "Técnicos de glass" antes que "Carga técnicos". */}
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+        <BotonSecundario onClick={() => setGlassAbierto(true)}>Técnicos de glass</BotonSecundario>
+        <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
+      </div>
       {/* Filtrado en memoria sobre lo ya cargado (spec 3a, D7): ningún control vuelve al servidor.
           `onInteraccion` es el aviso de desplegable abierto que congelará el sondeo; lo conecta la Task 16. */}
       <BarraFiltros valor={filtros} onCambio={setFiltros} tecnicos={tecnicos} clientes={clientes} onInteraccion={SIN_CONSUMIDOR} />
@@ -96,9 +103,6 @@ export function AsignacionesPage() {
         <span title={TOOLTIP_ASIGNAR} className="inline-block">
           <BotonPrimario disabled className="pointer-events-none">Asignar</BotonPrimario>
         </span>
-        {/* Orden del FXML: "Técnicos de glass" antes que "Carga técnicos". */}
-        <BotonSecundario onClick={() => setGlassAbierto(true)}>Técnicos de glass</BotonSecundario>
-        <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
       </div>
       <DataTable
         columns={columnas}

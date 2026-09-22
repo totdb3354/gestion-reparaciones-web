@@ -1,5 +1,6 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Tecnico } from '@/shared/api/client'
@@ -142,6 +143,25 @@ describe('TecnicosGlassDialog', () => {
     expect(interaccion).toHaveBeenCalledWith(true)
     unmount()
     expect(interaccion).toHaveBeenCalledWith(false)
+  })
+
+  it('un onInteraccion nuevo en cada render no repite el aviso', async () => {
+    servirTecnicos(TECNICOS)
+    const espia = vi.fn()
+    let forzarRender = () => {}
+    function Host() {
+      const [, setN] = useState(0)
+      forzarRender = () => setN((v) => v + 1)
+      // Flecha en línea A PROPÓSITO: es lo que pasará si la Task 16 conecta el consumidor real sin useCallback.
+      return <TecnicosGlassDialog abierto soloLectura={false} onCerrar={cerrar} onInteraccion={(a) => espia(a)} />
+    }
+    renderConProviders(<Host />, { sesion: SESION_SUPER })
+    expect(await screen.findByRole('checkbox', { name: 'Técnico A' })).toBeInTheDocument()
+    // Un solo aviso pese a los re-renders de la carga: si `onInteraccion` estuviera en las dependencias del
+    // efecto, cada render lo rearmaría y el sondeo se descongelaría a ratos (false→true) en vez de quedarse quieto.
+    expect(espia.mock.calls).toEqual([[true]])
+    act(() => forzarRender())
+    expect(espia.mock.calls).toEqual([[true]])
   })
 
   it('Cancelar cierra sin mandar nada', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { FilaCarga } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { BotonSecundario } from '@/shared/ui/Botones'
@@ -19,6 +19,8 @@ type Props = {
 }
 
 const MSG_ERROR = 'No se pudo cargar la carga de técnicos.'
+/** Nombre accesible de la lista: la vista tiene más de un diálogo y `getByRole('list')` a secas es ambiguo. */
+const ETIQUETA_LISTA = 'Carga por técnico'
 /** Segunda línea del tooltip: la fila es pulsable y no hay otra pista visual que lo diga. */
 const PISTA_CLICK = 'Click: ver sus asignaciones'
 
@@ -41,11 +43,19 @@ export function CargaTecnicosDialog({ abierto, onCerrar, onFiltrarPorTecnico, on
   // Solo consulta con la ventana abierta: no tiene sentido sondear la carga de fondo.
   const { data, isPending, isError } = useCargaTecnicos(abierto)
 
+  // `onInteraccion` va por ref y NO en las dependencias del efecto: con el consumidor real (Task 16) un padre que
+  // lo pasara como flecha en línea cambiaría su identidad en cada render, el efecto se rearmaría y el aviso
+  // parpadearía (false→true por render), descongelando el sondeo a ratos. Con la ref sale UNA vez al abrir y una
+  // al cerrar, pase lo que pase con la identidad de la función.
+  const avisar = useRef(onInteraccion)
+  useLayoutEffect(() => {
+    avisar.current = onInteraccion
+  })
   useEffect(() => {
     if (!abierto) return
-    onInteraccion(true)
-    return () => onInteraccion(false)
-  }, [abierto, onInteraccion])
+    avisar.current(true)
+    return () => avisar.current(false)
+  }, [abierto])
 
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- cada apertura arranca en Pedidos, como la ventana nueva del JavaFX (patrón de SelectorLista)
@@ -87,9 +97,14 @@ export function CargaTecnicosDialog({ abierto, onCerrar, onFiltrarPorTecnico, on
           ) : (
             // group/carga: al pasar el ratón por la lista, todas las filas se atenúan y la de debajo del cursor
             // recupera la opacidad. Es el fundido del JavaFX resuelto en CSS, sin animación en JS.
-            <ul className="group/carga flex flex-col gap-2.5">
+            //
+            // La separación entre filas es padding de cada <li>, NO un `gap` del <ul>: con `gap` el hueco entre
+            // filas pertenece al <ul> pero a ninguna fila, así que el cursor ahí atenuaba las filas SIN resaltar
+            // ninguna. En el JavaFX el fundido lo dispara cada fila (setOnMouseEntered) y el hueco no atenúa nada;
+            // con el padding, todo punto del <ul> cae dentro de alguna fila y no queda zona muerta.
+            <ul aria-label={ETIQUETA_LISTA} className="group/carga flex flex-col">
               {filas.map((f) => (
-                <li key={f.idTec} className="transition-opacity duration-150 group-hover/carga:opacity-35 hover:opacity-100!">
+                <li key={f.idTec} className="py-[5px] transition-opacity duration-150 group-hover/carga:opacity-35 hover:opacity-100!">
                   <FilaTecnico
                     fila={f}
                     alcance={alcance}
