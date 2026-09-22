@@ -8,14 +8,20 @@ import { BadgesEstadoPendiente } from '../componentes/BadgesEstadoPendiente'
 import { BotonPapelera } from '../componentes/BotonPapelera'
 import { CeldaImeiPendiente } from '../componentes/CeldaImeiPendiente'
 import { CeldaReparador } from '../componentes/CeldaReparador'
-import { CeldaTecnico } from '../componentes/CeldaTecnico'
 import { traducirModelo } from '../lib/modelos'
+import { CeldaTecnicoConectada } from './CeldaTecnicoConectada'
+import type { AccionReversible } from './useAccionConDeshacer'
 
 export type OpcionesColumnas = {
   /** ADMIN (spec §12): el desplegable de técnico se muestra como texto plano y la papelera desaparece. */
   soloLectura: boolean
   tecnicos: Tecnico[]
-  onReasignar: (idRep: string, idTec: number) => void
+  /** El aviso con "Deshacer" (D2). Es el de la página: uno solo para toda la vista, o habría dos avisos
+   *  independientes peleándose por el mismo rincón de la pantalla. */
+  ejecutar: (accion: AccionReversible) => void
+  /** Aviso de desplegable abierto/cerrado (D4): con uno abierto el sondeo se congela, o la recarga mueve la fila
+   *  bajo el cursor. Lo consume la Task 16; debe ser estable entre renders. */
+  onInteraccion: (abierto: boolean) => void
   onBorrar: (fila: ReparacionResumen) => void
   /** "Hoy" en Madrid, del render de la página (no de la construcción de las columnas): si se recalculase aquí dentro
    *  se quedaría congelado al abrir la pestaña, y los badges "Llegó HH:mm"/"Llegó dd/MM" no cambiarían a medianoche. */
@@ -38,14 +44,18 @@ export function claseFilaAsignacion(fila: ReparacionResumen): string {
  * cliente → resto es funcional, y ordenar por otra columna entierra lo urgente sin avisar (el JavaFX apaga el
  * `sortable` de todas por lo mismo).
  */
-export function crearColumnas({ soloLectura, tecnicos, onReasignar, onBorrar, hoy }: OpcionesColumnas): ColumnDef<ReparacionResumen>[] {
+export function crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion, onBorrar, hoy }: OpcionesColumnas): ColumnDef<ReparacionResumen>[] {
   const columnas: ColumnDef<ReparacionResumen>[] = [
     { id: 'id', header: 'Id Asignación', size: 90, accessorKey: 'idRep' },
     { id: 'tipo', header: 'Tipo', size: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
     {
       id: 'tecnico', header: 'Técnico', size: 110,
       cell: ({ row }) =>
-        soloLectura ? <CeldaReparador rep={row.original} /> : <CeldaTecnico fila={row.original} tecnicos={tecnicos} onReasignar={onReasignar} />,
+        soloLectura ? (
+          <CeldaReparador rep={row.original} />
+        ) : (
+          <CeldaTecnicoConectada fila={row.original} tecnicos={tecnicos} ejecutar={ejecutar} onInteraccion={onInteraccion} />
+        ),
     },
     { id: 'imei', header: 'IMEI', size: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
     { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },

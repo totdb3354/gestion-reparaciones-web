@@ -49,9 +49,11 @@ export function AsignacionesPage() {
   // (calco de cargarClientes() del JavaFX). Reutiliza el helper del maestro de IMEIs, que ya hace eso mismo.
   const clientes = useMemo(() => opcionesCliente(data), [data])
 
+  // `ejecutar` es el mismo que recibe el menú contextual: un único aviso para toda la vista, venga la escritura de
+  // la celda de técnico o del menú.
   const columnas = useMemo(
-    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, onReasignar: () => {}, onBorrar: () => {}, hoy }),
-    [tecnicos, hoy],
+    () => crearColumnas({ soloLectura: SOLO_LECTURA, tecnicos, ejecutar, onInteraccion: SIN_CONSUMIDOR, onBorrar: () => {}, hoy }),
+    [tecnicos, ejecutar, hoy],
   )
 
   return (

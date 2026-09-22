@@ -15,6 +15,10 @@ type Props = {
   /** Filas visibles de la lista antes de desplazar (8 en el combo de SKU). */
   visibles?: number
   disabled?: boolean
+  /** Aviso de apertura/cierre para quien necesite congelar algo mientras el desplegable está abierto (p. ej. el
+   *  refresco periódico de una tabla, que al recargar movería la fila bajo el cursor). Opcional: sin ella el combo
+   *  se comporta igual que siempre. */
+  onOpenChange?: (abierta: boolean) => void
   'aria-label': string
 }
 
@@ -25,12 +29,19 @@ const CLASE_TEXTO: Record<11 | 12, string> = { 11: 'text-[11px]', 12: 'text-[12p
 /** Combo navy de selección única (modelo y SKU del formulario): píldora navy con la etiqueta de la opción elegida y lista
  *  blanca con la opción activa en navy. `clase` colorea el texto de una opción (SKU por stock) en la lista y en el botón. El
  *  color no se mezcla con `cn`: se elige una clase u otra, para no depender de cómo resuelva tailwind-merge dos `text-*`. */
-export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamanoTexto = 12, visibles, disabled = false, 'aria-label': etiquetaAccesible }: Props) {
+export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamanoTexto = 12, visibles, disabled = false, onOpenChange, 'aria-label': etiquetaAccesible }: Props) {
   const [abierto, setAbierto] = useState(false)
   const actual = opciones.find((o) => o.valor === valor) ?? null
   const tamano = CLASE_TEXTO[tamanoTexto]
+  // El aviso no puede colgar del onOpenChange del Popover: la lista va controlada y elegir una opción la cierra a
+  // mano, sin pasar por Radix. Aquí pasan los dos caminos, así que es el único sitio donde `abierto` cambia.
+  const cambiarAbierto = (abrir: boolean) => {
+    const siguiente = abrir && !disabled
+    setAbierto(siguiente)
+    onOpenChange?.(siguiente)
+  }
   return (
-    <Popover open={abierto} onOpenChange={(o) => setAbierto(o && !disabled)}>
+    <Popover open={abierto} onOpenChange={cambiarAbierto}>
       <PopoverTrigger
         role="combobox"
         aria-haspopup="listbox"
@@ -60,7 +71,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
                 <button
                   type="button"
                   onClick={() => {
-                    setAbierto(false)
+                    cambiarAbierto(false)
                     if (!activa) onChange(o.valor)
                   }}
                   className={cn(

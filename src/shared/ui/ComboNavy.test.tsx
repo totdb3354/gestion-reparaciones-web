@@ -7,9 +7,9 @@ import { ComboNavy, type OpcionCombo } from './ComboNavy'
 const MODELOS: OpcionCombo[] = [{ valor: '13', etiqueta: 'iPhone 13' }, { valor: '13promax', etiqueta: 'iPhone 13 Pro Max' }, { valor: '14', etiqueta: 'iPhone 14' }]
 const SKUS: OpcionCombo[] = [{ valor: '101', etiqueta: 'bati13' }, { valor: '102', etiqueta: 'bati14', clase: 'text-rojo-sin-stock' }, { valor: '103', etiqueta: 'bati13promax', clase: 'text-fila-solicitud-brd' }]
 
-function Demo({ inicial = null, alCambiar, opciones = MODELOS }: { inicial?: string | null; alCambiar?: (v: string) => void; opciones?: OpcionCombo[] }) {
+function Demo({ inicial = null, alCambiar, alAbrir, opciones = MODELOS }: { inicial?: string | null; alCambiar?: (v: string) => void; alAbrir?: (a: boolean) => void; opciones?: OpcionCombo[] }) {
   const [valor, setValor] = useState<string | null>(inicial)
-  return <ComboNavy valor={valor} opciones={opciones} onChange={(v) => { setValor(v); alCambiar?.(v) }} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />
+  return <ComboNavy valor={valor} opciones={opciones} onChange={(v) => { setValor(v); alCambiar?.(v) }} onOpenChange={alAbrir} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />
 }
 
 describe('ComboNavy (combo navy de selección única)', () => {
@@ -66,6 +66,27 @@ describe('ComboNavy (combo navy de selección única)', () => {
     const lista = screen.getByRole('listbox', { name: 'SKU de Batería' })
     expect(lista).toHaveStyle({ maxHeight: '64px' })
     expect(lista.closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-superficie', 'rounded-lg')
+  })
+  it('avisa con onOpenChange al abrir, al elegir una opción y al cerrar sin elegir', async () => {
+    // El aviso lo necesita quien congela algo mientras el desplegable está abierto (el sondeo de una tabla, que al
+    // recargar movería la fila bajo el cursor). Elegir una opción cierra el combo a mano, así que también avisa.
+    const abierto = vi.fn()
+    render(<Demo alAbrir={abierto} />)
+    const combo = screen.getByRole('combobox', { name: 'Filtrar por modelo' })
+    await userEvent.click(combo)
+    expect(abierto.mock.calls).toEqual([[true]])
+    await userEvent.click(within(screen.getByRole('listbox')).getByRole('button', { name: 'iPhone 14' }))
+    expect(abierto.mock.calls).toEqual([[true], [false]])
+    await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
+    await userEvent.keyboard('{Escape}')
+    expect(abierto.mock.calls).toEqual([[true], [false], [true], [false]])
+  })
+  it('sin onOpenChange el combo se comporta igual (la prop es opcional)', async () => {
+    render(<Demo />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Filtrar por modelo' }))
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   })
   it('un valor que no está entre las opciones se muestra como vacío', () => {
     render(<ComboNavy valor="99" opciones={MODELOS} onChange={() => {}} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />)

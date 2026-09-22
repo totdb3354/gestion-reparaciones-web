@@ -10,15 +10,22 @@ const FILAS_COMBO = 8
 
 /**
  * Celda Técnico: el desplegable dentro de la celda del cTecnico del JavaFX (combo de 8 filas, 11 px, que reasigna al
- * elegir y no hace nada si se elige el que ya estaba). Aquí solo se avisa por `onReasignar`: quién escribe, el aviso
- * con "Deshacer" (D2) y la congelación del sondeo mientras está abierto (D4) los cablea la página.
+ * elegir y no hace nada si se elige el que ya estaba). Aquí solo se avisa por `onReasignar` y por `onOpenChange`:
+ * quién escribe, el aviso con "Deshacer" (D2) y la congelación del sondeo mientras está abierto (D4) los cablea la
+ * vista, que es la que conoce sus endpoints.
  */
-export function CeldaTecnico({ fila, tecnicos, onReasignar }: { fila: ReparacionResumen; tecnicos: Tecnico[]; onReasignar: (idRep: string, idTec: number) => void }) {
+export function CeldaTecnico({ fila, tecnicos, onReasignar, onOpenChange }: {
+  fila: ReparacionResumen
+  tecnicos: Tecnico[]
+  onReasignar: (idTec: number) => void
+  onOpenChange?: (abierta: boolean) => void
+}) {
   return (
     <ComboNavy
       valor={String(fila.idTec)}
       opciones={tecnicos.map((t) => ({ valor: String(t.idTec), etiqueta: t.nombre }))}
-      onChange={(valor) => onReasignar(fila.idRep, Number(valor))}
+      onChange={(valor) => onReasignar(Number(valor))}
+      onOpenChange={onOpenChange}
       textoVacio={fila.nombreTecnico ?? ''}
       ancho={ANCHO_COMBO}
       tamanoTexto={11}
