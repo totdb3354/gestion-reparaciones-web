@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
@@ -58,5 +59,27 @@ describe('AsignacionesPage', () => {
     const cabeceras = screen.getAllByRole('columnheader')
     expect(cabeceras).toHaveLength(11)
     for (const c of cabeceras) expect(within(c).queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('el contador y la tabla usan la lista filtrada, y un IMEI incompleto no filtra', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    const campo = screen.getByRole('textbox', { name: 'Filtrar por IMEI' })
+    // Tecleando a medias la tabla no se toca: el filtro solo cuenta con los IMEIs de 15 dígitos.
+    await userEvent.type(campo, '00000')
+    expect(screen.getByText('3 asignaciones')).toBeInTheDocument()
+    await userEvent.type(campo, '0000000001')
+    expect(await screen.findByText('1 asignación')).toBeInTheDocument()
+    expect(screen.getByText('A20260916_1')).toBeInTheDocument()
+    expect(screen.queryByText('AG20260916_2')).not.toBeInTheDocument()
+  })
+
+  it('Limpiar filtros devuelve todas las filas', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filtrar por IMEI' }), '000000000000001')
+    await screen.findByText('1 asignación')
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(await screen.findByText('3 asignaciones')).toBeInTheDocument()
   })
 })
