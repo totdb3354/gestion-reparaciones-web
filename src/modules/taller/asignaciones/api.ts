@@ -43,6 +43,27 @@ export function useAsignacionesTodas({ activo = true }: { activo?: boolean } = {
   })
 }
 
+/**
+ * Total del badge del lateral (BadgeAsignaciones): la MISMA consulta que la vista (clave y queryFn), leída con `select`
+ * como número de filas. No hay contador en el servidor para esto y el JavaFX tampoco lo pide aparte: cuenta la tabla
+ * unificada ya cargada. Compartir la clave evita duplicar peticiones con la vista abierta.
+ *
+ * `sondea`: fuera de Asignaciones el badge mantiene fresco el total con el intervalo general (el Poller del JavaFX
+ * recarga la tabla de asignaciones aunque su panel no esté visible) y con el foco. Dentro, `sondea = false`: este
+ * observador no pone intervalo ni recarga al volver el foco, porque TanStack atiende a cualquier observador de la
+ * clave y rompería el congelado D4 de la vista (menú, desplegable o diálogo abiertos).
+ */
+export function useTotalAsignaciones({ sondea }: { sondea: boolean }) {
+  const intervalo = useIntervaloRefresco(sondea)
+  return useQuery({
+    queryKey: CLAVE_ASIGNACIONES_TODAS,
+    queryFn: pedirTodas,
+    select: (filas) => filas.length,
+    refetchInterval: intervalo,
+    refetchOnWindowFocus: sondea,
+  })
+}
+
 /** Solo se pide con la ventana de carga abierta: no tiene sentido sondearla de fondo.
  *
  *  `silenciarError`: el aviso lo pone la ventana con su propio literal, en el hueco de la lista (spec §14, "la

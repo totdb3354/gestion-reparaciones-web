@@ -122,6 +122,7 @@ export function AsignacionesPage() {
         columns={columnas}
         data={visibles}
         vacio="No hay asignaciones pendientes"
+        ajuste="estirar"
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

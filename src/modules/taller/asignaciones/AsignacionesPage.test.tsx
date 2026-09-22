@@ -3,10 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { focusManager } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+// eslint-disable-next-line no-restricted-imports -- el badge del lateral vive en el SubNav del AppLayout real; ver su uso más abajo.
+import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import { TEXTO_COPIAR_CELDA } from '@/shared/ui/MenuCopiarCelda'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
+import { handlersNotificaciones } from '../notificaciones/test/handlers'
 import { resumen, tecnico } from '../test/fabrica'
 import { AsignacionesPage } from './AsignacionesPage'
 
@@ -249,5 +252,99 @@ describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4
     act(() => { focusManager.setFocused(true) })
     await avanzar(100)
     await waitFor(() => expect(cargas.n).toBe(2))
+  })
+})
+
+/**
+ * Paridad asig-lista: el TableView del JavaFX (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN) estira las columnas hasta
+ * el borde y el Id se lee entero. La tabla va en el ajuste 'estirar' de DataTable, como el Historial; la papelera lleva
+ * tope, así que DataTable mide el contenedor y pinta en px. jsdom no mide: ResizeObserver controlable desde el test.
+ */
+describe('AsignacionesPage · la tabla ocupa todo el ancho (paridad asig-lista)', () => {
+  const observadores: { cb: ResizeObserverCallback; observados: Element[] }[] = []
+  class ResizeObserverFalso {
+    private readonly o: { cb: ResizeObserverCallback; observados: Element[] }
+    constructor(cb: ResizeObserverCallback) {
+      this.o = { cb, observados: [] }
+      observadores.push(this.o)
+    }
+    observe(el: Element) { this.o.observados.push(el) }
+    unobserve() {}
+    disconnect() {}
+  }
+  function medirContenedor(ancho: number) {
+    act(() => {
+      for (const o of observadores) o.cb(o.observados.map((target) => ({ target, contentRect: { width: ancho } }) as unknown as ResizeObserverEntry), {} as ResizeObserver)
+    })
+  }
+  beforeEach(() => {
+    observadores.length = 0
+    vi.stubGlobal('ResizeObserver', ResizeObserverFalso)
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sin medida (antes del primer layout) la tabla va a w-full con los anchos en porcentaje', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(screen.getByRole('table')).toHaveClass('w-full')
+    const anchos = Array.from(document.querySelectorAll('col')).map((c) => c.style.width)
+    expect(anchos.every((a) => a.endsWith('%'))).toBe(true)
+  })
+
+  it('medida, llena el contenedor: el Id no baja de 120 px, la papelera se queda en 45 y Comentario es la más ancha', async () => {
+    abrir()
+    await screen.findByText('A20260916_1')
+    // Contenedor de la captura (1920 px de pantalla menos lateral y márgenes). Suma de pesos 1305 → u ≈ 1,257.
+    medirContenedor(1640)
+    const px = Array.from(document.querySelectorAll('col')).map((c) => parseFloat(c.style.width))
+    const [id, , , , , , comentario, cliente, , , papelera] = px
+    expect(id).toBeGreaterThanOrEqual(120)
+    expect(papelera).toBe(45)
+    expect(comentario).toBe(Math.max(...px))
+    expect(cliente).toBeGreaterThan(px[2]) // más que Técnico
+    // Todo el ancho menos lo que la papelera no crece (45·(u−1) ≈ 11,6 px en blanco, como el hueco del JavaFX).
+    expect(px.reduce((a, b) => a + b, 0)).toBeGreaterThan(1625)
+  })
+})
+
+/**
+ * El badge del lateral (total de asignaciones, calco de lblBadgeAsignaciones) lee la MISMA consulta que la vista: con
+ * la vista abierta no añade peticiones, y como no sondea por su cuenta sobre su propio enlace, no rompe el congelado.
+ */
+describe('AsignacionesPage · con el lateral montado (badge de Asignaciones)', () => {
+  beforeEach(() => {
+    // AppLayout con supertécnico monta la campana de la barra y el badge de Pendientes del lateral.
+    server.use(...handlersNotificaciones())
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })))
+  })
+
+  const abrirConLateral = () => renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones', layout: <AppLayout /> })
+
+  it('el badge muestra el total sin filtros y comparte la carga de la vista (una sola petición por lista)', async () => {
+    const cargas = contarCargas()
+    const usuario = userEvent.setup()
+    abrirConLateral()
+    await screen.findByText('A20260916_1')
+    const enlace = screen.getByRole('link', { name: /Asignaciones/ })
+    expect(await within(enlace).findByText('3')).toBeInTheDocument()
+    expect(cargas.n).toBe(1)
+    // Filtrar cambia el contador de la cabecera, no el badge (spec §9).
+    await usuario.type(screen.getByPlaceholderText('Filtrar por IMEI'), '000000000000003')
+    await waitFor(() => expect(screen.queryByText('A20260916_1')).not.toBeInTheDocument())
+    expect(within(enlace).getByText('3')).toBeInTheDocument()
+  })
+
+  it('con el menú contextual abierto el sondeo sigue congelado aunque el lateral esté montado', async () => {
+    const cargas = contarCargas()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    abrirConLateral()
+    await screen.findByText('A20260916_1')
+    await within(screen.getByRole('link', { name: /Asignaciones/ })).findByText('3')
+    expect(cargas.n).toBe(1)
+    await abrirMenuContextual()
+    await avanzar(INTERVALO_CONECTADO_MS * 2)
+    expect(cargas.n).toBe(1)
   })
 })

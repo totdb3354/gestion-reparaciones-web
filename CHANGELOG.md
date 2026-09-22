@@ -4,6 +4,23 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.4.0] - 2026-09-22 — Asignaciones del supertécnico
+
+- Vista "Asignaciones pendientes" del supertécnico en `/reparaciones/asignaciones`: una sola tabla con reparación, glass y pulido, en orden fijo (urgente, con cliente, resto) y sin orden por columna, que ocupa todo el ancho.
+- Once columnas con el técnico editable en la celda, la píldora de enlace cruzado y el contador "N asignados" bajo el IMEI, y la columna Estado con sus badges apilados; franja de color por solicitud o incidencia.
+- Cinco filtros en memoria (IMEI múltiple, técnico, cliente con "(Sin cliente)", tipo y estado combinado con O) y "Limpiar filtros".
+- Menú contextual por categoría: copiar celda, editar comentario, modelo (pulido) y cliente, y marcar o quitar urgente y chasis.
+- Reasignar, urgente y chasis escriben al instante, como en el cliente de escritorio, con un aviso "Deshacer" de 8 s; el aviso de urgente nombra el IMEI porque el servidor lo propaga al teléfono entero.
+- Borrado con confirmación y sin motivo, con su texto propio para las incidencias.
+- Ventana "Carga de técnicos" con los alcances Pedidos y Total, barras de total y de hecho, desglose y filtro por técnico al pulsar una fila; diálogo "Técnicos de glass".
+- El refresco periódico se congela mientras hay un menú, desplegable o diálogo abiertos, también ante el foco de la ventana.
+- Contador del total de asignaciones en la columna lateral del supertécnico.
+- Modo solo lectura del ADMIN: sin "Asignar", sin papelera, técnico como texto y menú reducido a "Copiar celda".
+- El botón "Asignar" queda visible y deshabilitado hasta el modal de asignación (siguiente entrega).
+- Compartidos: `ComboNavy` y `MultiSelect` avisan de apertura y cierre; literal `MSG_TELEFONO_MODIFICADO` y patrón de fecha de asignación únicos.
+- Servidor: la carga diaria por técnico pasa del cliente al servidor (`GET /api/reparaciones/carga-tecnicos`, los dos alcances en una respuesta, día resuelto en Europe/Madrid, rol supertécnico o ADMIN).
+- Diferencias aceptadas y comportamientos calcados: `docs/paridad/asignaciones.md`.
+
 ## [0.3.0] - 2026-09-21 — Formulario de reparación y campana
 
 - Formulario de reparación como diálogo gobernado por la URL, en tres modos: nueva reparación y glass desde Pendientes ("Añadir reparación" / "Añadir glass") y edición desde Historial e IMEIs ("Editar", solo supertécnico).

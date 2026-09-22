@@ -31,16 +31,18 @@ function pintar(filas: ReparacionResumen[], o: OpcionesColumnas) {
   )
 }
 
-/** [id, cabecera, size]: los prefWidth de PendientesSuperTecnicoView.fxml, en el orden de la spec §7. */
+/** [id, cabecera, size]: los prefWidth de PendientesSuperTecnicoView.fxml, en el orden de la spec §7, salvo tres pesos
+ *  del ajuste 'estirar': el Id sube a 120 para que el identificador más largo (glass/pulido) no se corte, y Comentario y
+ *  Cliente, las columnas de texto libre, pesan más para llevarse el grueso del espacio sobrante. */
 const DIEZ_PRIMERAS = [
-  ['id', 'Id Asignación', 90],
+  ['id', 'Id Asignación', 120],
   ['tipo', 'Tipo', 90],
   ['tecnico', 'Técnico', 110],
   ['imei', 'IMEI', 130],
   ['modelo', 'Modelo', 120],
   ['fecha', 'Fecha asignación', 130],
-  ['comentario', 'Comentario', 160],
-  ['cliente', 'Cliente', 110],
+  ['comentario', 'Comentario', 200],
+  ['cliente', 'Cliente', 140],
   ['asignadoPor', 'Asignado por', 120],
   ['estado', 'Estado', 100],
 ]
@@ -49,6 +51,11 @@ describe('crearColumnas: las once columnas de la tabla de asignaciones', () => {
   it('el orden, las cabeceras y los anchos del FXML, con la papelera al final', () => {
     const cols = crearColumnas(opciones())
     expect(cols.map((c) => [c.id, c.header, c.size])).toEqual([...DIEZ_PRIMERAS, ['borrar', '', 45]])
+  })
+
+  it('la papelera no crece al estirar (tope = su ancho) y ninguna otra columna lleva tope', () => {
+    const cols = crearColumnas(opciones())
+    expect(cols.filter((c) => c.maxSize !== undefined).map((c) => [c.id, c.maxSize])).toEqual([['borrar', 45]])
   })
 
   it('ninguna columna ordena (D5: el orden de prioridad es funcional)', () => {

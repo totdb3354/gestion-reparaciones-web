@@ -58,6 +58,9 @@ describe('rutas del taller', () => {
     expect(enlacesReparaciones(SESION_SUPER).map((e) => e.label)).toEqual(['Asignaciones', 'Pendientes', 'Historial', 'IMEIs'])
     expect(enlacesReparaciones(SESION_ADMIN).map((e) => e.label)).toEqual(['Asignaciones', 'Historial', 'IMEIs'])
     expect(enlacesReparaciones(SESION_TEC)[0].badge).toBe('pendientes')
+    // El badge de Asignaciones es solo del supertécnico: para el ADMIN desaparece (spec 3a §12).
+    expect(enlacesReparaciones(SESION_SUPER)[0].badge).toBe('asignaciones')
+    expect(enlacesReparaciones(SESION_ADMIN)[0].badge).toBeUndefined()
   })
   it('RequiereSupertecnico: TECNICO y ADMIN por URL reciben el aviso genérico y vuelven a la lista; el supertécnico pasa', async () => {
     const rutas = [

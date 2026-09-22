@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router'
 import { enlacesReparaciones, type EnlaceTaller } from '@/modules/taller/rutas'
+import { BadgeAsignaciones } from '@/modules/taller/asignaciones/BadgeAsignaciones'
 import { BadgePendientes } from '@/modules/taller/componentes/BadgePendientes'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
@@ -34,6 +35,7 @@ export function SubNav() {
             <>
               {e.label}
               {e.badge === 'pendientes' && <BadgePendientes activo={isActive} />}
+              {e.badge === 'asignaciones' && <BadgeAsignaciones activo={isActive} />}
             </>
           )}
         </NavLink>

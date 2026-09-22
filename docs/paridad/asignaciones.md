@@ -36,7 +36,8 @@ El servidor propaga el urgente a todas las asignaciones abiertas del IMEI: marca
 ## Ruta, rol y refresco
 
 - [x] `/reparaciones/asignaciones` deja de ser un placeholder y muestra la vista real, dentro de una guarda que admite **SUPERTECNICO y ADMIN** (D6). El TECNICO que llegue por URL recibe el aviso genérico de permisos y sale a `/reparaciones`, que ya reparte por rol.
-- [x] Entrada "Asignaciones" en la columna lateral de Reparaciones, primera, solo para SUPERTECNICO y ADMIN; el TECNICO no la ve. Sin badge (el badge del lateral es el de Pendientes).
+- [x] Entrada "Asignaciones" en la columna lateral de Reparaciones, primera, solo para SUPERTECNICO y ADMIN; el TECNICO no la ve.
+- [x] Badge del lateral en "Asignaciones" con el **total** de asignaciones pendientes (reparación + glass + pulido, sin filtros; calco de `lblBadgeAsignaciones` = `getTotalItems()`), con el tope "99+" y oculto a cero, como el de Pendientes; **oculto para el ADMIN** (§12). Sale de la misma consulta que la tabla, así que con la vista abierta no añade peticiones ni rompe el congelado del sondeo; en el resto de vistas del taller se refresca con el intervalo general, como el poller del JavaFX (`asig-lista`).
 - [x] Refresco periódico con el intervalo del resto de la web (60 s; 5 s con el banner de conexión activo) y al volver a la pestaña, como el poller y la recarga al recuperar el foco del JavaFX.
 - [x] (D4) Un contador de interacciones abiertas suspende el sondeo mientras haya un menú contextual, un desplegable de filtro, el desplegable de técnico de una celda, un editor, el diálogo de borrado o una de las dos ventanas de la cabecera; se reanuda al cerrarse la última. El contador se libera también al desmontar y nunca baja de cero.
 - [x] Etiqueta "Actualizado HH:mm" abajo a la derecha (10 px, gris, hora local del equipo), clicable para recargar y con subrayado al pasar por encima, como el `lblUltimaActualizacion` del supertécnico. Si esa recarga manual falla por conexión se muestra el diálogo.
@@ -64,7 +65,8 @@ El servidor propaga el urgente a todas las asignaciones abiertas del IMEI: marca
 
 Anchos en píxeles, los `prefWidth` del FXML.
 
-- [x] Orden y cabeceras: Id Asignación 90 · Tipo 90 · Técnico 110 · IMEI 130 · Modelo 120 · Fecha asignación 130 · Comentario 160 · Cliente 110 · Asignado por 120 · Estado 100 · columna sin título con la papelera 45.
+- [x] Orden y cabeceras: Id Asignación · Tipo · Técnico · IMEI · Modelo · Fecha asignación · Comentario · Cliente · Asignado por · Estado · columna sin título con la papelera. Pesos (y mínimos) 120 · 90 · 110 · 130 · 120 · 130 · 200 · 140 · 120 · 100 · 45: los prefWidth del FXML salvo el Id, Comentario y Cliente (ver la casilla siguiente).
+- [x] La tabla ocupa **todo el ancho** y el identificador se lee **entero**, como el `CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN` del JavaFX: ajuste "estirar" de la tabla (el del Historial), con el Id a 120 para que no se corte, Comentario y Cliente con más peso para llevarse el sobrante, y la papelera topada a 45 para que no crezca; lo que cede queda en blanco a la derecha, como el hueco del JavaFX (`asig-lista`).
 - [x] Id Asignación: el identificador tal cual.
 - [x] Tipo: píldora del tipo — "Reparación" (#E3F2FD / #1565C0), "Glass" (#E0F2F1 / #00796B), "Pulido" (#EDE7F6 / #5E35B1) — y debajo la palabra "Chasis" (10 px, #8A94A6) solo en reparaciones con chasis (`asig-tipo-glass`, `asig-tipo-pulido`, `asig-fila-urgente-chasis`).
 - [x] Técnico: **desplegable dentro de la celda** (8 filas visibles, 11 px) con los técnicos activos y el de la fila seleccionado; elegir otro reasigna al instante (D2). Elegir el que ya estaba no escribe nada.
