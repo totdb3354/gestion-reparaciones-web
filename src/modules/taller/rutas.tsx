@@ -5,14 +5,16 @@ import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin, esAdminOSuperTecnico, esSuperTecnico, type Sesion } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 
-export type EnlaceTaller = { to: string; label: string; badge?: 'pendientes' }
+export type EnlaceTaller = { to: string; label: string; badge?: 'pendientes' | 'asignaciones' }
 
 /** Columna lateral de Reparaciones en el orden del JavaFX: TECNICO Pendientes·Historial·IMEIs; SUPERTECNICO
  *  Asignaciones·Pendientes·Historial·IMEIs; ADMIN Asignaciones·Historial·IMEIs. */
 // eslint-disable-next-line react-refresh/only-export-components -- la función vive con las rutas que la usan, patrón del proyecto
 export function enlacesReparaciones(sesion: Sesion | null): EnlaceTaller[] {
   const enlaces: EnlaceTaller[] = []
-  if (esAdminOSuperTecnico(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones' })
+  // El badge de Asignaciones (total de la tabla unificada) es solo del supertécnico: para el ADMIN desaparece (spec 3a §12).
+  if (esSuperTecnico(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones', badge: 'asignaciones' })
+  else if (esAdmin(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones' })
   if (!esAdmin(sesion) && sesion?.idTec != null) enlaces.push({ to: '/reparaciones/pendientes', label: 'Pendientes', badge: 'pendientes' })
   enlaces.push({ to: '/reparaciones/historial', label: 'Historial' }, { to: '/reparaciones/imeis', label: 'IMEIs' })
   return enlaces
