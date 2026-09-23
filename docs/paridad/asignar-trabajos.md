@@ -46,7 +46,7 @@ Aceptada como desviación de implementación: el toggle de colas, las pastillas 
 - [ ] Repetido en la cola activa: "Ese IMEI ya está en la cola (Reparación)." / "(Glass)".
 - [ ] El mismo IMEI puede estar a la vez en Reparación y en Glass.
 - [ ] Pegado: se trocea en bloques de 15; si no cuadra, "Algún IMEI del pegado está corrupto. Revisa que todos los IMEIs son válidos."
-- [ ] Pegado correcto: "N IMEIs añadidos." o "N IMEIs añadidos. · M ya estaban en la lista." si había repetidos.
+- [ ] Pegado correcto: "N IMEIs añadidos." o "N IMEIs añadidos · M ya estaban en la lista." si había repetidos.
 - [ ] Pegado en Reparación y Glass no carga el detalle (calco, D6).
 - [ ] En Pulido el pegado sí selecciona la última fila añadida.
 
