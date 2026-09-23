@@ -36,7 +36,12 @@ npm run e2e
 abre una asignación de reparación pendiente, guarda una fila (consume una unidad de stock), registra una solicitud de pieza y
 termina; con `E2E_USER` rechaza y recupera esa solicitud desde la campana y abre "Editar" del Historial sin guardar. Solo se
 ejecuta contra un entorno con usuarios y datos de prueba, con una asignación pendiente recién creada sobre un IMEI de prueba,
-de un modelo que tenga un tipo con stock y otro con el SKU a 0. Sin credenciales en el entorno, los tests se saltan.
+de un modelo que tenga un tipo con stock y otro con el SKU a 0.
+`asignar.spec.ts` también **escribe** en el entorno de destino: con `E2E_USER` abre el modal "Asignar trabajos", crea UNA
+asignación de Reparación del IMEI `E2E_IMEI_PRUEBA` al técnico `E2E_TEC_PRUEBA` y la borra al terminar (solo borra el id que
+devuelve el propio guardado; si el guardado no crea exactamente esa asignación, falla sin borrar nada). Usa siempre un IMEI
+sintético de prueba sin asignación de Reparación abierta para ese técnico y un técnico de prueba, nunca datos reales. Sin
+credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso de `asignar.spec.ts`) en el entorno, los tests se saltan.
 
 ## Despliegue
 Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guía operativa es privada y vive fuera del repo.
