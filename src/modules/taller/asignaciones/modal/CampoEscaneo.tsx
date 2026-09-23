@@ -1,13 +1,22 @@
 import { useState } from 'react'
 
-type Props = { etiqueta: string; onImei: (imei: string) => boolean; onPegado: (texto: string) => void; autoFocus?: boolean }
+type Props = {
+  etiqueta: string
+  onImei: (imei: string) => boolean
+  onPegado: (texto: string) => void
+  autoFocus?: boolean
+  /** Se llama en cada cambio con 15 dígitos o menos, antes de entregar: así un repetido vuelve a pintar su
+   *  mensaje después de limpiarlo (el mensaje bajo el campo se borra en cuanto se teclea, calco del JavaFX). */
+  onTeclear?: () => void
+}
 
 /** Campo de escaneo del modal: solo dígitos; a los 15 se entrega solo (el lector de códigos es un teclado); más de 15
  *  es un pegado. Un IMEI incompleto + Enter no hace nada y se queda en el campo (calco del código, D6). */
-export function CampoEscaneo({ etiqueta, onImei, onPegado, autoFocus }: Props) {
+export function CampoEscaneo({ etiqueta, onImei, onPegado, autoFocus, onTeclear }: Props) {
   const [texto, setTexto] = useState('')
   const entregar = (digitos: string) => {
     if (digitos.length > 15) { onPegado(digitos); setTexto(''); return }
+    onTeclear?.()
     if (digitos.length === 15) { setTexto(onImei(digitos) ? '' : digitos); return }
     setTexto(digitos)
   }

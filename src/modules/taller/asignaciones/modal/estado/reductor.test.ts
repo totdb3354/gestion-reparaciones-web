@@ -25,4 +25,9 @@ describe('reducir', () => {
   it('cerrar el aviso de predicción', () => {
     expect(reducir(estado({ avisoPrediccion: true }), { tipo: 'CERRAR_AVISO_PREDICCION' }).avisoPrediccion).toBe(false)
   })
+  it('limpiar el mensaje del panel', () => {
+    const s = estado({ mensajeScan: { texto: 'x', tono: 'error' }, mensajePulido: { texto: 'y', tono: 'ok' } })
+    expect(reducir(s, { tipo: 'LIMPIAR_MENSAJE', panel: 'rico' }).mensajeScan).toBeNull()
+    expect(reducir(s, { tipo: 'LIMPIAR_MENSAJE', panel: 'pulido' }).mensajePulido).toBeNull()
+  })
 })

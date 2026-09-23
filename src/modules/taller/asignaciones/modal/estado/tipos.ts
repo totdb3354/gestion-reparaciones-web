@@ -99,6 +99,7 @@ export type Accion =
   | { tipo: 'PREDICCION_RESUELTA'; seq: number; token: number; idTec: number | null }
   | { tipo: 'PREDICCION_FALLIDA'; seq: number; token: number }
   | { tipo: 'CERRAR_AVISO_PREDICCION' }
+  | { tipo: 'LIMPIAR_MENSAJE'; panel: 'rico' | 'pulido' }
   | { tipo: 'PULIDO_TEC_ARRIBA'; idTec: number | null }
   | { tipo: 'PULIDO_ESCANEAR'; imei: string }
   | { tipo: 'PULIDO_PEGAR'; texto: string }

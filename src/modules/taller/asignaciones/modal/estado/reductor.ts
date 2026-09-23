@@ -26,6 +26,7 @@ export function reducir(s: EstadoModal, a: Accion): EstadoModal {
     case 'PREDICCION_RESUELTA': return prediccionResuelta(s, a.seq, a.token, a.idTec)
     case 'PREDICCION_FALLIDA': return prediccionFallida(s, a.seq, a.token)
     case 'CERRAR_AVISO_PREDICCION': return { ...s, avisoPrediccion: false }
+    case 'LIMPIAR_MENSAJE': return a.panel === 'rico' ? { ...s, mensajeScan: null } : { ...s, mensajePulido: null }
     case 'PULIDO_TEC_ARRIBA': return pulidoTecArriba(s, a.idTec)
     case 'PULIDO_ESCANEAR': return pulidoEscanear(s, a.imei)
     case 'PULIDO_PEGAR': return pulidoPegar(s, a.texto)

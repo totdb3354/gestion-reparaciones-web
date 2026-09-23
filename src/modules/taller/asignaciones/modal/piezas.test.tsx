@@ -38,6 +38,25 @@ describe('CampoEscaneo', () => {
     expect(onPegado).toHaveBeenCalledWith(`${IMEI}222222222222222`)
     expect(screen.getByRole('textbox')).toHaveValue('')
   })
+  it('onTeclear se llama en cada cambio con 15 dígitos o menos, antes de entregar', async () => {
+    const llamadas: string[] = []
+    const onImei = vi.fn(() => { llamadas.push('entregar'); return true })
+    const onTeclear = vi.fn(() => llamadas.push('teclear'))
+    render(<CampoEscaneo etiqueta="x" onImei={onImei} onPegado={vi.fn()} onTeclear={onTeclear} />)
+    await userEvent.type(screen.getByRole('textbox'), IMEI.slice(0, 3))
+    expect(onTeclear).toHaveBeenCalledTimes(3)
+    await userEvent.type(screen.getByRole('textbox'), IMEI.slice(3))
+    expect(onImei).toHaveBeenCalledWith(IMEI)
+    // en el cambio que entrega los 15 dígitos, onTeclear se llama justo antes que onImei
+    expect(llamadas.slice(-2)).toEqual(['teclear', 'entregar'])
+  })
+  it('un pegado (>15) no llama a onTeclear', async () => {
+    const onTeclear = vi.fn()
+    render(<CampoEscaneo etiqueta="x" onImei={vi.fn(() => true)} onPegado={vi.fn()} onTeclear={onTeclear} />)
+    await userEvent.click(screen.getByRole('textbox'))
+    await userEvent.paste(`${IMEI}222222222222222`)
+    expect(onTeclear).not.toHaveBeenCalled()
+  })
 })
 
 describe('FilaCola', () => {
