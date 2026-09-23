@@ -6,7 +6,7 @@ describe('reducir', () => {
   it('encadena un flujo corto', () => {
     let s = reducir(estado(), { tipo: 'ESCANEAR', imei: IMEI_1 })
     s = reducir(s, { tipo: 'LOOKUP_RESUELTO', seq: 1, modelo: '12', idCliBd: null })
-    s = reducir(s, { tipo: 'MARCAR_TECNICO', idTec: 3, marcado: true })
+    s = reducir(s, { tipo: 'MARCAR_TECNICO', idTec: 3, marcado: true, orden: [3] })
     s = reducir(s, { tipo: 'MARCAR_LLEVA_GLASS', valor: true })
     s = reducir(s, { tipo: 'ASIGNAR' })
     expect(s.rep[0].asignada).toBe(true)

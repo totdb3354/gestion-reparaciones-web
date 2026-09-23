@@ -44,10 +44,13 @@ export function resumenBarra(s: EstadoModal): { texto: string; n: number; guarda
   const sinModelo = todas.filter((e) => !e.asignada && !e.modelo).length
   const nPul = s.pulido.length
   const pulSinTec = s.pulido.filter((f) => f.idTec == null).length
+  // Una verde sin modelo (p.ej. tras borrarlo) solo se puede guardar si le queda el modelo vivo del IMEI de
+  // respaldo (construirLote lo usa); si tampoco hay modelo vivo, el servidor rechazaría el lote entero (fix A).
+  const verdeSinModeloNiVivo = todas.some((e) => e.asignada && !e.modelo && !s.modeloPorImei[e.imei])
   const texto = `${verdes} configurados · ${rojas} pendientes` + (nPul > 0 ? ` · ${nPul} pulido` : '')
     + (sinModelo > 0 ? ` · ${sinModelo} sin modelo` : '')
   const n = verdes + nPul
-  return { texto, n, guardarHabilitado: rojas === 0 && pulSinTec === 0 && n > 0 }
+  return { texto, n, guardarHabilitado: rojas === 0 && pulSinTec === 0 && !verdeSinModeloNiVivo && n > 0 }
 }
 
 export const entradaActual = (s: EstadoModal): Entrada | undefined => buscar(s, s.actual)

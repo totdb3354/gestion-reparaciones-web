@@ -122,17 +122,32 @@ describe('modelo', () => {
 describe('técnicos pegajosos', () => {
   it('marcar memoriza en la cola y en la roja; en la verde solo en el borrador', () => {
     const roja = estado({ rep: [entrada({ seq: 1, imei: IMEI_1 })], actual: 1 })
-    const r = marcarTecnico(roja, 3, true)
+    const r = marcarTecnico(roja, 3, true, [])
     expect(r.defTecnicos.REPARACION).toEqual([3])
     expect(r.rep[0].tecnicos).toEqual([3])
     const verde = estado({ rep: [entrada({ seq: 1, imei: IMEI_1, asignada: true, tecnicos: [5] })], actual: 1, borrador: { tecnicos: [5], comentario: '', esChasis: false } })
-    const v = marcarTecnico(verde, 3, true)
+    const v = marcarTecnico(verde, 3, true, [])
     expect(v.rep[0].tecnicos).toEqual([5])
     expect(v.borrador.tecnicos).toEqual([5, 3])
   })
   it('un ocupado no se puede marcar', () => {
     const s = estado({ tabla: [filaTabla({ idRep: 'A1', imei: IMEI_1, idTec: 3 })], rep: [entrada({ seq: 1, imei: IMEI_1 })], actual: 1 })
-    expect(marcarTecnico(s, 3, true).borrador.tecnicos).toEqual([])
+    expect(marcarTecnico(s, 3, true, []).borrador.tecnicos).toEqual([])
+  })
+  it('el orden final es el de la lista mostrada, no el del clic (fix B)', () => {
+    const s = estado({ rep: [entrada({ seq: 1, imei: IMEI_1 })], actual: 1 })
+    const orden = [10, 20]   // A=10 antes que B=20 en la lista del modal
+    const trasClicB = marcarTecnico(s, 20, true, orden)      // se marca primero B
+    const trasClicA = marcarTecnico(trasClicB, 10, true, orden)   // luego A
+    expect(trasClicA.borrador.tecnicos).toEqual([10, 20])
+    expect(trasClicA.rep[0].tecnicos).toEqual([10, 20])
+  })
+  it('un id que no está en la lista de orden va al final, de forma estable', () => {
+    const s = estado({ rep: [entrada({ seq: 1, imei: IMEI_1 })], actual: 1 })
+    const orden = [10]
+    const r1 = marcarTecnico(s, 99, true, orden)   // 99 no está en `orden`
+    const r2 = marcarTecnico(r1, 10, true, orden)
+    expect(r2.borrador.tecnicos).toEqual([10, 99])
   })
 })
 

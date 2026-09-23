@@ -17,7 +17,7 @@ export function reducir(s: EstadoModal, a: Accion): EstadoModal {
     case 'LOOKUP_RESUELTO': return lookupResuelto(s, a.seq, a.modelo, a.idCliBd)
     case 'DECIDIR_MODELO': return decidirModelo(s, a.modelo)
     case 'BORRAR_MODELO': return borrarModelo(s)
-    case 'MARCAR_TECNICO': return marcarTecnico(s, a.idTec, a.marcado)
+    case 'MARCAR_TECNICO': return marcarTecnico(s, a.idTec, a.marcado, a.orden)
     case 'ELEGIR_CLIENTE': return elegirCliente(s, a.ref)
     case 'CAMBIAR_COMENTARIO': return cambiarComentario(s, a.texto)
     case 'CAMBIAR_CHASIS': return cambiarChasis(s, a.valor)

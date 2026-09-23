@@ -12,13 +12,21 @@ export function construirLote(s: EstadoModal): PeticionLote {
   }
   const verdes = [...s.rep, ...s.glass].filter((e) => e.asignada)
   for (const e of verdes) anotar(e.imei, e.modelo, e.idCli, e.sinCliente)
-  for (const f of s.pulido) anotar(f.imei, null, f.idCli, f.sinCliente)
+  const pulidoConTecnico = s.pulido.filter((f) => f.idTec != null)   // sin técnico no produce asignación (calco JavaFX, fix C)
+  for (const f of pulidoConTecnico) anotar(f.imei, null, f.idCli, f.sinCliente)
+  // Una verde R/G sin modelo (p.ej. tras borrarlo) no puede viajar con modelo null: el servidor rechaza el lote
+  // entero. Se usa el modelo vivo del IMEI de respaldo; si tampoco lo hay, Guardar ya está deshabilitado (fix A).
+  for (const e of verdes) {
+    const t = telefonos.get(e.imei)
+    const vivo = s.modeloPorImei[e.imei]
+    if (t && !t.modelo && vivo) telefonos.set(e.imei, { ...t, modelo: vivo })
+  }
   const asignaciones: AsignacionDelLote[] = [
     ...verdes.flatMap((e) => e.tecnicos.map((idTec): AsignacionDelLote => ({
       imei: e.imei, categoria: e.tipo === 'GLASS' ? 'G' : 'R', idTec,
       comentario: e.comentario.trim() || null, esChasis: e.tipo === 'REPARACION' && e.esChasis,
     }))),
-    ...s.pulido.filter((f) => f.idTec != null).map((f): AsignacionDelLote => ({
+    ...pulidoConTecnico.map((f): AsignacionDelLote => ({
       imei: f.imei, categoria: 'P', idTec: f.idTec!, comentario: f.comentario.trim() || null, esChasis: false,
     })),
   ]

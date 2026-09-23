@@ -30,4 +30,21 @@ describe('construirLote', () => {
     })
     expect(construirLote(s).telefonos).toEqual([{ imei: IMEI_1, modelo: '12', idCli: null, clienteExplicito: false }])
   })
+  it('modelo borrado en una verde R/G: usa el modelo vivo del IMEI en vez de mandar null (fix A)', () => {
+    const s = estado({
+      rep: [entrada({ seq: 1, imei: IMEI_1, asignada: true, modelo: null, tecnicos: [3] })],
+      modeloPorImei: { [IMEI_1]: '12' },
+    })
+    expect(construirLote(s).telefonos).toEqual([{ imei: IMEI_1, modelo: '12', idCli: null, clienteExplicito: false }])
+  })
+  it('una fila de pulido sin técnico no aporta teléfono ni asignación, como el JavaFX (fix C)', () => {
+    const s = estado({
+      pulido: [{ seq: 1, imei: IMEI_1, idTec: null, comentario: '', idCli: null, sinCliente: false },
+        { seq: 2, imei: IMEI_2, idTec: 7, comentario: '', idCli: null, sinCliente: false }],
+    })
+    expect(construirLote(s)).toEqual({
+      telefonos: [{ imei: IMEI_2, modelo: null, idCli: null, clienteExplicito: false }],
+      asignaciones: [{ imei: IMEI_2, categoria: 'P', idTec: 7, comentario: null, esChasis: false }],
+    })
+  })
 })

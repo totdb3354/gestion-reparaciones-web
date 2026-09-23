@@ -115,11 +115,21 @@ export function borrarModelo(s: EstadoModal): EstadoModal {
   return s.actual == null ? s : actualizar(s, s.actual, (x) => ({ ...x, modelo: null }))
 }
 
-/** Clic en un técnico: memoriza los pegajosos de la cola; en una roja también sus técnicos; en una verde solo el borrador. */
-export function marcarTecnico(s: EstadoModal, idTec: number, marcado: boolean): EstadoModal {
+/** Ordena `ids` según su posición en `orden` (la lista de técnicos tal como se muestra); los que no
+ *  aparecen en `orden` van al final, en su orden relativo de llegada (sort estable). */
+function ordenarComoLista(ids: number[], orden: number[]): number[] {
+  const pos = new Map(orden.map((id, i) => [id, i]))
+  return [...ids].sort((a, b) => (pos.get(a) ?? Infinity) - (pos.get(b) ?? Infinity))
+}
+
+/** Clic en un técnico: memoriza los pegajosos de la cola; en una roja también sus técnicos; en una verde solo el
+ *  borrador. `orden` es la lista de técnicos tal como se muestra en el modal: el resultado se guarda en ESE orden,
+ *  no en el orden de clic (calco de memorizarTecnicos del JavaFX, que recorre la lista y añade los marcados). */
+export function marcarTecnico(s: EstadoModal, idTec: number, marcado: boolean, orden: number[]): EstadoModal {
   const e = buscar(s, s.actual)
   if (!e || tecnicosOcupados(s.tabla, e.imei, e.tipo).has(idTec)) return s
-  const tecnicos = marcado ? [...new Set([...s.borrador.tecnicos, idTec])] : s.borrador.tecnicos.filter((t) => t !== idTec)
+  const siguiente = marcado ? [...new Set([...s.borrador.tecnicos, idTec])] : s.borrador.tecnicos.filter((t) => t !== idTec)
+  const tecnicos = ordenarComoLista(siguiente, orden)
   const r = { ...s, borrador: { ...s.borrador, tecnicos }, defTecnicos: { ...s.defTecnicos, [e.tipo]: tecnicos } }
   return e.asignada ? r : actualizar(r, e.seq, (x) => ({ ...x, tecnicos }))
 }

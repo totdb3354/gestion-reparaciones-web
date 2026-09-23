@@ -90,7 +90,7 @@ export type Accion =
   | { tipo: 'LOOKUP_RESUELTO'; seq: number; modelo: string | null; idCliBd: number | null }
   | { tipo: 'DECIDIR_MODELO'; modelo: string }
   | { tipo: 'BORRAR_MODELO' }
-  | { tipo: 'MARCAR_TECNICO'; idTec: number; marcado: boolean }
+  | { tipo: 'MARCAR_TECNICO'; idTec: number; marcado: boolean; orden: number[] }
   | { tipo: 'ELEGIR_CLIENTE'; ref: RefCliente }
   | { tipo: 'CAMBIAR_COMENTARIO'; texto: string }
   | { tipo: 'CAMBIAR_CHASIS'; valor: boolean }

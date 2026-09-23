@@ -72,6 +72,16 @@ describe('derivados', () => {
     expect(resumenBarra(s).guardarHabilitado).toBe(false)
   })
 
+  it('Guardar se bloquea si una verde R/G no tiene modelo ni modelo vivo del IMEI (fix A)', () => {
+    const sinModeloNiVivo = estado({ rep: [entrada({ seq: 1, imei: IMEI_1, asignada: true, modelo: null, tecnicos: [3] })] })
+    expect(resumenBarra(sinModeloNiVivo).guardarHabilitado).toBe(false)
+    const conVivo = estado({
+      rep: [entrada({ seq: 1, imei: IMEI_1, asignada: true, modelo: null, tecnicos: [3] })],
+      modeloPorImei: { [IMEI_1]: '12' },
+    })
+    expect(resumenBarra(conVivo).guardarHabilitado).toBe(true)
+  })
+
   it('Asignar exige modelo y un técnico marcado que no esté ocupado', () => {
     const base = estado({ tabla, rep: [entrada({ seq: 1, imei: IMEI_1, modelo: '12' })], actual: 1 })
     expect(asignarHabilitado({ ...base, borrador: { tecnicos: [], comentario: '', esChasis: false } })).toBe(false)
