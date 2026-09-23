@@ -64,18 +64,45 @@ test('el supertécnico asigna un trabajo desde el modal y lo borra', async ({ pa
   await expect(modal.getByRole('combobox', { name: 'Modelo de iPhone' })).not.toHaveValue('')
   await modal.getByRole('checkbox', { name: new RegExp(tecnico!) }).click()
   await modal.getByRole('button', { name: 'Asignar →' }).click()
+
+  // El guardado con éxito invalida CLAVE_ASIGNACIONES_TODAS (modal/api.ts:61-62), que dispara `pedirTodas`
+  // (api.ts:15-23): tres GET en paralelo, uno por categoría. La fila nueva es una Reparación, así que basta con
+  // esperar esa: /api/reparaciones/asignaciones (api.ts:17). Se registra ANTES del click porque `waitForResponse`
+  // solo atrapa respuestas posteriores al registro; sin esto, el snapshot de la fila tras cerrar el modal podía
+  // llegar antes de que aterrizase el refetch (falso negativo, y basura en producción si `finally` no encontraba
+  // la fila y no la borraba).
+  const recargaAsignaciones = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/reparaciones/asignaciones' && r.ok())
   await modal.getByRole('button', { name: 'Guardar (1)' }).click()
   await expect(modal).toBeHidden()
+  await recargaAsignaciones
 
   // Limpieza: solo la fila que ha creado ESTE test. El filtro de IMEI sigue puesto (BarraFiltros vive en la página,
-  // el modal no lo toca), así que basta con volver a mirar qué id de Reparación es nuevo. Si no hay exactamente una
-  // fila nueva identificada así, no se borra nada (mejor dejar basura de test que borrar una fila ajena).
+  // el modal no lo toca), así que basta con volver a mirar qué id de Reparación es nuevo. `waitForResponse` ya
+  // asegura que la respuesta aterrizó, pero el repintado de React puede ir un instante detrás: `toPass` sondea
+  // hasta que aparece exactamente una fila nueva en vez de mirar una única vez. Si no aparece, no se borra nada
+  // (mejor dejar basura de test que borrar una fila ajena).
   try {
+    await expect(async () => {
+      const nuevas = await filasNuevasDeReparacion(page, tecnico!, idsPrevios)
+      expect(nuevas, `Se esperaba exactamente 1 fila nueva de Reparación para IMEI ${imei} / técnico ${tecnico}; hay ${nuevas.length}`).toHaveLength(1)
+    }).toPass({ timeout: 10_000 })
     const nuevas = await filasNuevasDeReparacion(page, tecnico!, idsPrevios)
-    expect(nuevas, `Se esperaba exactamente 1 fila nueva de Reparación para IMEI ${imei} / técnico ${tecnico}; hay ${nuevas.length}`).toHaveLength(1)
     await expect(nuevas[0]).toBeVisible()
   } finally {
-    const nuevas = await filasNuevasDeReparacion(page, tecnico!, idsPrevios)
+    // Mismo sondeo que arriba pero sin propagar el fallo: un refetch lento no debe abortar la limpieza, y si tras
+    // el plazo sigue sin haber exactamente una fila nueva, se deja como está (nunca se borra por debajo de 1 o por
+    // encima de 1 candidata).
+    let nuevas = await filasNuevasDeReparacion(page, tecnico!, idsPrevios)
+    if (nuevas.length !== 1) {
+      try {
+        await expect(async () => {
+          nuevas = await filasNuevasDeReparacion(page, tecnico!, idsPrevios)
+          expect(nuevas).toHaveLength(1)
+        }).toPass({ timeout: 5_000 })
+      } catch {
+        nuevas = await filasNuevasDeReparacion(page, tecnico!, idsPrevios)
+      }
+    }
     if (nuevas.length === 1) {
       const fila = nuevas[0]
       // BotonPapelera.tsx: aria-label por defecto "Borrar asignación" (mismo texto que el botón de confirmación,
