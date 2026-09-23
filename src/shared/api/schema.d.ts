@@ -484,6 +484,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/glass/prediccion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["predecir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/glass/asignaciones": {
         parameters: {
             query?: never;
@@ -590,6 +606,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/asignaciones/lote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["guardarLote"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2374,6 +2406,25 @@ export interface components {
             telefonos: number;
             conflictosOmitidos: string[];
         };
+        GlassPrediccionRequest: {
+            imei: string;
+            conCliente: boolean;
+            verdes: components["schemas"]["GlassVerdeRequest"][];
+        };
+        GlassVerdeRequest: {
+            imei: string;
+            /** Format: int32 */
+            idTec: number;
+            /** @enum {string} */
+            tipo: "REPARACION" | "GLASS" | "PULIDO";
+            esChasis: boolean;
+            conCliente: boolean;
+        };
+        PrediccionGlassRespuesta: {
+            /** Format: int32 */
+            idTec: number | null;
+            nombre: string | null;
+        };
         GlassGlassAsignacionRequest: {
             imei: string;
             /** Format: int32 */
@@ -2447,6 +2498,43 @@ export interface components {
             /** Format: int32 */
             idTec: number | null;
             token: string;
+        };
+        LoteAsignacionesAsignacionDelLote: {
+            imei: string;
+            categoria: string;
+            /** Format: int32 */
+            idTec: number;
+            comentario: string | null;
+            esChasis: boolean;
+        };
+        LoteAsignacionesPeticion: {
+            telefonos: components["schemas"]["LoteAsignacionesTelefonoDelLote"][];
+            asignaciones: components["schemas"]["LoteAsignacionesAsignacionDelLote"][];
+        };
+        LoteAsignacionesTelefonoDelLote: {
+            imei: string;
+            modelo: string | null;
+            /** Format: int32 */
+            idCli: number | null;
+            clienteExplicito: boolean;
+        };
+        LoteAsignacionesConflicto: {
+            imei: string;
+            /** Format: int32 */
+            idTec: number;
+            nombreTecnico: string;
+            categoria: string;
+        };
+        LoteAsignacionesCreada: {
+            idRep: string;
+            imei: string;
+            /** Format: int32 */
+            idTec: number;
+            categoria: string;
+        };
+        LoteAsignacionesRespuesta: {
+            creadas: components["schemas"]["LoteAsignacionesCreada"][];
+            conflictos: components["schemas"]["LoteAsignacionesConflicto"][];
         };
         TelefonoFuncionalRequest: {
             /** Format: int32 */
@@ -4170,6 +4258,30 @@ export interface operations {
             };
         };
     };
+    predecir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GlassPrediccionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrediccionGlassRespuesta"];
+                };
+            };
+        };
+    };
     getAsignaciones_2: {
         parameters: {
             query?: {
@@ -4438,6 +4550,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    guardarLote: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoteAsignacionesPeticion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoteAsignacionesRespuesta"];
+                };
             };
         };
     };
