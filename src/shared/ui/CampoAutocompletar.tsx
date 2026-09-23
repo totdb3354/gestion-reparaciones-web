@@ -27,11 +27,15 @@ export function CampoAutocompletar({ valor, opciones, onElegir, onTextoCambiado,
   // estado cuando cambia una prop", comparando contra la última `elegida` vista y ajustando durante el propio
   // render en vez de en un efecto tras el commit. Cubre tanto el `elegir()` de aquí abajo (que ya deja `texto`
   // igual a la nueva etiqueta, así que esto no lo pisa) como un cambio de `valor` que llegue desde fuera del campo
-  // (el padre resetea el modal, una predicción lo rellena, etc.), que es el caso que un efecto también cubriría.
+  // (una predicción o un lookup lo rellenan, etc.), que es el caso que un efecto también cubriría.
+  // Solo se resincroniza hacia una etiqueta NO vacía: si `valor` pasa a null/'' es porque el usuario está escribiendo
+  // encima (DetalleEntrada borra el modelo desde `onTextoCambiado`, BORRAR_MODELO) y el JavaFX conserva lo tecleado
+  // mientras quita el modelo; pisarlo con '' vaciaría el campo a cada tecla. Los resets a "sin entrada" no pasan por
+  // aquí: los padres remontan el campo con `key` (seq de la entrada).
   const [elegidaPrevia, setElegidaPrevia] = useState(elegida)
   if (elegida !== elegidaPrevia) {
     setElegidaPrevia(elegida)
-    setTexto(elegida)
+    if (elegida !== '') setTexto(elegida)
   }
 
   const filtradas = useMemo(() => {

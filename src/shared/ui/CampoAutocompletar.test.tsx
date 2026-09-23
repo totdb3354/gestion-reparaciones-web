@@ -29,6 +29,14 @@ function EnvoltorioExterno({ inicial = null as string | null }) {
   </>
 }
 
+/** Envoltorio del caso de DetalleEntrada: al escribir sobre un modelo ya elegido, el padre lo borra (BORRAR_MODELO)
+ *  desde `onTextoCambiado`, así que `valor` pasa a null mientras el usuario teclea. */
+function EnvoltorioQueBorra({ inicial = null as string | null }) {
+  const [valor, setValor] = useState<string | null>(inicial)
+  return <CampoAutocompletar aria-label="Modelo" placeholder="Escribe modelo..." valor={valor} opciones={OPCIONES}
+    onElegir={setValor} onTextoCambiado={() => setValor(null)} />
+}
+
 describe('CampoAutocompletar', () => {
   it('filtra por "contiene" y elige con clic', async () => {
     const onElegir = vi.fn()
@@ -83,5 +91,13 @@ describe('CampoAutocompletar', () => {
     expect(campo).toHaveValue('iPhone 14')
     await userEvent.click(screen.getByRole('button', { name: 'elegir desde fuera' }))
     expect(campo).toHaveValue('iPhone 14 Pro Max')
+  })
+  it('escribir sobre lo elegido conserva el texto aunque el padre borre el valor en onTextoCambiado', async () => {
+    render(<EnvoltorioQueBorra inicial="15" />)
+    const campo = screen.getByRole('combobox')
+    await userEvent.type(campo, 'x')
+    expect(campo).toHaveValue('iPhone 15x')
+    await userEvent.type(campo, 'y')
+    expect(campo).toHaveValue('iPhone 15xy')
   })
 })
