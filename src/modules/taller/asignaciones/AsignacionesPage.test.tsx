@@ -67,11 +67,7 @@ describe('AsignacionesPage', () => {
     // findByText: el título es estático y sale en el primer render, antes de que resuelvan los GET de los que
     // depende el contador (mismo motivo que en PendientesPage.test.tsx).
     expect(await screen.findByText('3 asignaciones')).toBeInTheDocument()
-    // El modal "Asignar trabajos" es el sub-proyecto 3b: el botón está en su sitio, deshabilitado y con el tooltip
-    // en el envoltorio, que es quien recibe el hover.
-    const asignar = screen.getByRole('button', { name: 'Asignar' })
-    expect(asignar).toBeDisabled()
-    expect(asignar.parentElement).toHaveAttribute('title', 'Disponible en el siguiente sub-proyecto')
+    expect(screen.getByRole('button', { name: 'Asignar' })).toBeEnabled()
     expect(await screen.findByText(/^Actualizado /)).toBeInTheDocument()
   })
 
@@ -222,6 +218,31 @@ describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4
 
     await usuario.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await avanzar(INTERVALO_CONECTADO_MS)
+    await waitFor(() => expect(cargas.n).toBe(2))
+  })
+
+  it('el botón Asignar abre el modal y congela el refresco', async () => {
+    // Los mismos handlers que el test del modal: técnicos, carga y catálogo de clientes.
+    server.use(
+      http.get('*/api/reparaciones/carga-tecnicos', () => HttpResponse.json({ pedidos: [], total: [] })),
+      http.get('*/api/clientes', () => HttpResponse.json([])),
+    )
+    const cargas = contarCargas()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    abrir()
+    await screen.findByText('A20260916_1')
+    expect(cargas.n).toBe(1)
+
+    await usuario.click(screen.getByRole('button', { name: 'Asignar' }))
+    expect(await screen.findByRole('heading', { name: 'Asignar trabajos' })).toBeInTheDocument()
+    await avanzar(INTERVALO_CONECTADO_MS * 2)
+    expect(cargas.n).toBe(1)
+
+    // Sin entradas, Escape lo cierra sin preguntar; al desmontarse libera el sondeo.
+    await usuario.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Asignar trabajos' })).not.toBeInTheDocument())
     await avanzar(INTERVALO_CONECTADO_MS)
     await waitFor(() => expect(cargas.n).toBe(2))
   })

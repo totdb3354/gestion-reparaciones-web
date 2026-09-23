@@ -19,14 +19,13 @@ import { contarTecnicosPorImei } from './conteoTecnicos'
 import { useEditores } from './editores/useEditores'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
+import { AsignarTrabajosDialog } from './modal/AsignarTrabajosDialog'
 import { TecnicosGlassDialog } from './TecnicosGlassDialog'
 import { useAccionConDeshacer } from './useAccionConDeshacer'
 import { useInteraccionesAbiertas } from './useInteraccionesAbiertas'
 
 /** Tope del contador, calco de actualizarContador() del JavaFX ("999+ asignaciones"). */
 const TOPE_CONTADOR = 999
-/** El modal "Asignar trabajos" es el sub-proyecto 3b; hasta entonces el botón existe en su sitio pero no abre nada. */
-const TOOLTIP_ASIGNAR = 'Disponible en el siguiente sub-proyecto'
 
 /**
  * Vista de asignaciones pendientes del supertécnico (spec 3a): las tres categorías en una sola tabla, sin ordenación
@@ -64,6 +63,9 @@ export function AsignacionesPage() {
   const [cargaAbierta, setCargaAbierta] = useState(false)
   // El diálogo de técnicos de glass: se lleva la consulta de técnicos dentro, que es la misma que ya usa la vista.
   const [glassAbierto, setGlassAbierto] = useState(false)
+  // El modal "Asignar trabajos" se monta solo mientras está abierto: cada apertura empieza con el estado vacío y
+  // sus consultas (técnicos, carga, clientes) solo se piden entonces. Congela el sondeo como las otras ventanas.
+  const [asignando, setAsignando] = useState(false)
   const borrarAsignacion = useBorrarAsignacion()
   useEffect(() => {
     if (!aBorrar) return
@@ -111,11 +113,7 @@ export function AsignacionesPage() {
           desaparece, no se queda un botón muerto. */}
       {!soloLectura && (
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          {/* El tooltip va en el envoltorio: un botón deshabilitado no recibe el hover (mismo patrón que los botones
-              reservados para Almacén del panel de notificaciones). */}
-          <span title={TOOLTIP_ASIGNAR} className="inline-block">
-            <BotonPrimario disabled className="pointer-events-none">Asignar</BotonPrimario>
-          </span>
+          <BotonPrimario onClick={() => setAsignando(true)}>Asignar</BotonPrimario>
         </div>
       )}
       <DataTable
@@ -177,6 +175,7 @@ export function AsignacionesPage() {
         onCerrar={() => setGlassAbierto(false)}
         onInteraccion={marcar}
       />
+      {asignando && <AsignarTrabajosDialog tabla={data} onCerrar={() => setAsignando(false)} onInteraccion={marcar} />}
       {aviso}
       {dialogos}
     </div>
