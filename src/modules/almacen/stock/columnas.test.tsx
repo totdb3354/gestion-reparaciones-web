@@ -50,17 +50,36 @@ describe('columnas de Stock actual', () => {
     rerender(<BadgeEstadoStock estado="Desactivado" />)
     expect(screen.getByText('Desactivado')).toHaveClass('bg-fila-cancelado-bg', 'text-fila-cancelado-text')
   })
-  it('clase de fila: borde por estado y opacidad en desactivadas, que no se ponen azules', () => {
+  it('clase de fila: borde por estado y opacidad en desactivadas, que al seleccionarse se ponen azules atenuadas', () => {
     expect(claseFilaStock(c({ stock: 2 }))).toContain('border-l-fila-solicitud-brd')
     expect(claseFilaStock(c({ stock: 0 }))).toContain('border-l-rojo-sin-stock')
     expect(claseFilaStock(base)).toContain('border-l-transparent')
     const inactiva = claseFilaStock(c({ activo: false }))
     expect(inactiva).toContain('opacity-45')
-    expect(inactiva).toContain('data-[state=selected]:bg-transparent')
+    // stock-fila-desactivada-seleccionada.png: navy al 45 % con texto claro, así que no se anula el azul de la selección.
+    expect(inactiva).not.toContain('data-[state=selected]:bg-transparent')
+    expect(inactiva).not.toContain('data-[state=selected]:text-inherit')
   })
-  it('en una fila desactivada "Último pedido" no lleva la crema de la fila seleccionada (no se pone azul)', () => {
-    montar([c({ activo: false, ultimoPedido: '2026-08-15T09:00:00' })])
-    expect(screen.getByText('15/08/2026')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
+  it('una fila desactivada seleccionada lleva el azul y la crema de la selección, con la opacidad 0.45', () => {
+    render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn() })} data={[c({ activo: false, ultimoPedido: '2026-08-15T09:00:00' })]} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} filaClase={claseFilaStock} seleccionada="1" onSeleccionar={vi.fn()} />)
+    const fila = screen.getByRole('row', { name: /^lcd-x/ })
+    expect(fila).toHaveAttribute('data-state', 'selected')
+    expect(fila).toHaveClass('opacity-45', 'data-[state=selected]:bg-azul-medio', 'data-[state=selected]:text-crema')
+    expect(fila).not.toHaveClass('data-[state=selected]:bg-transparent')
+    expect(screen.getByText('15/08/2026')).toHaveClass(CREMA_EN_FILA_SELECCIONADA)
+  })
+  it('la última fila conserva la franja izquierda: el cuerpo de la tabla solo quita el borde inferior de la última', () => {
+    montar([c({ idCom: 1, stock: 5 }), c({ idCom: 2, tipo: 'bat-x', stock: 0 })])
+    const filas = screen.getAllByRole('row').slice(1)
+    const ultima = filas[filas.length - 1]
+    expect(ultima).toHaveClass('border-l-8', 'border-l-rojo-sin-stock')
+    const cuerpo = ultima.closest('tbody')
+    expect(cuerpo).toHaveClass('[&_tr:last-child]:border-b-0')
+    expect(cuerpo).not.toHaveClass('[&_tr:last-child]:border-0')
+  })
+  it('la celda Componente conserva los dos espacios de "(compartido)" (whitespace-pre)', () => {
+    montar([c({ idComMaster: 9 })])
+    expect(screen.getByText('lcd-x  (compartido)', { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) })).toHaveClass('whitespace-pre')
   })
   it('parámetros hacia Pedidos: los tres estados del pipeline y el buscador con el tipo', () => {
     expect(parametrosPedidos(c({ tipo: 'lcd x pro' }))).toBe('estados=pendiente%2Cen+camino%2Cparcial&buscar=lcd+x+pro')

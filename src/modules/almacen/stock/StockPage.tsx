@@ -15,6 +15,7 @@ import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { Input } from '@/shared/ui/input'
 import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
+import { ultimaRutaStock } from '../estado'
 import { AjustarMinimoDialog } from './AjustarMinimoDialog'
 import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditarStock, useSetActivoComponente, useSolicitarPieza } from './api'
 import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
@@ -49,6 +50,8 @@ export function StockPage() {
   const setActivo = useSetActivoComponente()
   const solicitar = useSolicitarPieza()
 
+  // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
+  useEffect(() => { ultimaRutaStock.set('/stock') }, [])
   // El diálogo cuenta como interacción abierta: el sondeo se congela mientras esté abierto (D4 del 3a).
   useEffect(() => {
     if (!dialogo) return
@@ -153,9 +156,10 @@ export function StockPage() {
               />
             ) : undefined}
           />
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-[10px] text-texto-vacio">{pieDesactivados ?? ''}</span>
-            <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
+          {/* Pie en una línea (FXML :56-64): "N desactivados" a la izquierda y "Actualizado" a la derecha, sin estirar el botón. */}
+          <div className="mt-1 flex items-center justify-between gap-4">
+            <span className="text-[10px] whitespace-nowrap text-texto-vacio">{pieDesactivados ?? ''}</span>
+            <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} className="mt-0 w-auto shrink-0 whitespace-nowrap" />
           </div>
         </div>
         {/* Tarjeta de 240 px fijos (FXML :66-106): donut arriba, separador, gráfico por SKU abajo. */}

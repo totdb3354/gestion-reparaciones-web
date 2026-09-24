@@ -9,6 +9,7 @@ import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import * as csv from '@/shared/lib/csv'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
+import { ultimaRutaStock } from '../estado'
 import { StockPage } from './StockPage'
 
 const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null }
@@ -47,6 +48,25 @@ describe('StockPage', () => {
     expect(screen.getByText(/^Actualizado \d\d:\d\d$/)).toBeInTheDocument()
     // "Sin stock" también está en la leyenda del donut: se busca el badge dentro de la tabla.
     expect(within(screen.getByRole('table')).getByText('Sin stock')).toBeInTheDocument()
+  })
+  it('el pie va en una línea: "N desactivados" a la izquierda y "Actualizado" a la derecha, en el mismo contenedor', async () => {
+    montar()
+    await screen.findByText('lcd-x')
+    const desactivados = screen.getByText('1 desactivado')
+    const actualizado = screen.getByRole('button', { name: /^Actualizado \d\d:\d\d$/ })
+    const pie = desactivados.parentElement
+    expect(pie).toBe(actualizado.parentElement)
+    expect(pie).toHaveClass('flex', 'items-center', 'justify-between')
+    // El botón no se estira (w-full lo estrechaba todo y partía el texto de la izquierda en dos líneas).
+    expect(actualizado).not.toHaveClass('w-full')
+    expect(actualizado).toHaveClass('shrink-0', 'whitespace-nowrap')
+    expect(desactivados).toHaveClass('whitespace-nowrap')
+  })
+  it('al entrar guarda "/stock" como última pestaña de Stock (el botón "Stock" de la barra superior vuelve aquí)', async () => {
+    ultimaRutaStock.set('/stock/proveedores')
+    montar()
+    await screen.findByText('lcd-x')
+    expect(ultimaRutaStock.get()).toBe('/stock')
   })
   it('el donut cuenta sobre todo (activos) y no cambia al filtrar; el buscador filtra "contiene" y vacío pinta "Sin componentes"', async () => {
     montar()

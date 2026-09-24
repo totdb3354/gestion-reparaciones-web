@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { CABECERAS_CSV_PROVEEDORES, filaCsvProveedor } from './columnas'
+import { ultimaRutaStock } from '../estado'
 import { ProveedoresPage } from './ProveedoresPage'
 
 const proveedores = [
@@ -35,6 +36,17 @@ describe('ProveedoresPage', () => {
     expect(screen.getByRole('row', { name: /^ACME/ })).toHaveClass('border-l-fila-reparado-brd')
     expect(screen.getByRole('row', { name: /^Antiguo/ })).not.toHaveClass('opacity-45')
     expect(screen.getByText(/^Actualizado \d\d:\d\d$/)).toBeInTheDocument()
+  })
+  it('el comentario respeta los saltos de línea (whitespace-pre-line), como el JavaFX, que hace crecer la fila', async () => {
+    server.use(http.get('*/api/proveedores', () => HttpResponse.json([{ ...proveedores[0], comentario: 'linea uno\nlinea dos' }])))
+    montar()
+    const comentario = await screen.findByText((_, el) => el?.tagName === 'SPAN' && el.textContent === 'linea uno\nlinea dos')
+    expect(comentario).toHaveClass('whitespace-pre-line')
+  })
+  it('al entrar guarda "/stock/proveedores" como última pestaña de Stock (S2: la barra superior vuelve a ella)', async () => {
+    montar()
+    await screen.findByText('ACME')
+    expect(ultimaRutaStock.get()).toBe('/stock/proveedores')
   })
   it('el filtro solo ofrece activos, dice "N proveedores" con varios y filtra por nombre; vacío pinta "Sin proveedores"', async () => {
     montar()

@@ -9,7 +9,9 @@ const SECTORES = [
 
 /** Calco del PieChart de 120×120 con el círculo blanco de radio 38 encima (donut), el total de 17 px en el centro con
  *  "total" de 9 px debajo, y la leyenda manual (leyendaItem :524-535): cuadrado 8×8, nombre de 9 px gris y número de
- *  12 px negrita. Sin animación, como `animated="false"` del FXML. */
+ *  12 px negrita. Sin animación, como `animated="false"` del FXML. Como el PieChart (startAngle 0, clockwise), los
+ *  sectores van en sentido horario desde las 3 en punto (en Recharts los ángulos crecen al revés: 0 → -360), separados
+ *  por una línea blanca de 1 px. */
 export function GraficoEstado({ conteos }: { conteos: ConteosDonut }) {
   const datos = SECTORES.map((s) => ({ nombre: s.nombre, valor: conteos[s.clave], color: s.color }))
   return (
@@ -17,7 +19,7 @@ export function GraficoEstado({ conteos }: { conteos: ConteosDonut }) {
       <h2 className="self-start text-[13px] font-bold text-azul-medio">Estado del stock</h2>
       <div className="relative h-[120px] w-[120px]">
         <PieChart width={120} height={120}>
-          <Pie data={datos} dataKey="valor" nameKey="nombre" cx="50%" cy="50%" innerRadius={38} outerRadius={60} isAnimationActive={false} stroke="none">
+          <Pie data={datos} dataKey="valor" nameKey="nombre" cx="50%" cy="50%" innerRadius={38} outerRadius={60} isAnimationActive={false} startAngle={0} endAngle={-360} stroke="#FFFFFF" strokeWidth={1}>
             {datos.map((d) => <Cell key={d.nombre} fill={d.color} />)}
           </Pie>
         </PieChart>

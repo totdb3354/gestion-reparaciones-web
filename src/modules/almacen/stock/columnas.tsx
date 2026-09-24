@@ -17,11 +17,12 @@ const BORDE_POR_ESTADO: Record<EstadoStock, string> = {
   Desactivado: 'border-l-transparent',
 }
 
-/** Calco del rowFactory (:433-459): borde izquierdo de 8 px por estado; la desactivada va con opacidad 0.45 y prevalece
- *  sobre la selección (no se pone azul), de ahí el bg-transparent en el estado seleccionado. */
+/** Calco del rowFactory (:433-459): borde izquierdo de 8 px por estado; la desactivada va con opacidad 0.45 y, al
+ *  seleccionarse, se ve navy atenuado con el texto claro (stock-fila-desactivada-seleccionada.png): la selección de
+ *  DataTable se aplica igual y la opacidad la atenúa. */
 export function claseFilaStock(c: Componente): string {
   const estado = estadoStock(c)
-  if (!c.activo) return 'border-l-8 border-l-transparent opacity-45 data-[state=selected]:bg-transparent data-[state=selected]:text-inherit'
+  if (!c.activo) return 'border-l-8 border-l-transparent opacity-45'
   return cn('border-l-8', BORDE_POR_ESTADO[estado])
 }
 
@@ -33,7 +34,11 @@ export function parametrosPedidos(c: Componente): string {
 
 export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente) => void }): ColumnDef<Componente>[] {
   return [
-    { id: 'componente', header: 'Componente', size: ANCHOS_STOCK.componente, accessorFn: nombreComponente },
+    // whitespace-pre: el sufijo "  (compartido)" lleva dos espacios, que HTML colapsaría (la celda ya es whitespace-nowrap).
+    {
+      id: 'componente', header: 'Componente', size: ANCHOS_STOCK.componente, accessorFn: nombreComponente,
+      cell: ({ row }) => <span className="whitespace-pre">{nombreComponente(row.original)}</span>,
+    },
     { id: 'enStock', header: 'En Stock', size: ANCHOS_STOCK.enStock, accessorFn: (c) => String(c.stock) },
     {
       id: 'enCamino', header: 'En Camino', size: ANCHOS_STOCK.enCamino,
@@ -51,10 +56,9 @@ export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente)
     { id: 'stockMinimo', header: 'Stock Mínimo', size: ANCHOS_STOCK.stockMinimo, accessorFn: (c) => String(c.stockMinimo) },
     {
       id: 'ultimoPedido', header: 'Último pedido', size: ANCHOS_STOCK.ultimoPedido,
-      // La desactivada no se pone azul al seleccionarse (claseFilaStock): sin la crema, que sobre blanco con opacidad 0.45 no se leería.
       // formatear pasa de UTC a hora de Madrid, como el resto de la web y el CSV del JavaFX; la tabla del JavaFX pinta el día UTC
       // sin convertir (StockController:328-330). Diferencia aceptada (decisión 8), anotada en la ficha.
-      cell: ({ row }) => <span className={row.original.activo ? CREMA_EN_FILA_SELECCIONADA : undefined}>{row.original.ultimoPedido ? formatear(row.original.ultimoPedido, 'dd/MM/yyyy') : '—'}</span>,
+      cell: ({ row }) => <span className={CREMA_EN_FILA_SELECCIONADA}>{row.original.ultimoPedido ? formatear(row.original.ultimoPedido, 'dd/MM/yyyy') : '—'}</span>,
     },
     { id: 'estado', header: 'Estado', size: ANCHOS_STOCK.estado, cell: ({ row }) => <BadgeEstadoStock estado={estadoStock(row.original)} /> },
   ]

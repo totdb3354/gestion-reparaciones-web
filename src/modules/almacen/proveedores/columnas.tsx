@@ -8,7 +8,11 @@ export function crearColumnasProveedores(): ColumnDef<Proveedor>[] {
     { accessorKey: 'nombre', header: 'Nombre', size: 200 },
     { accessorKey: 'divisa', header: 'Divisa', size: 60 },
     { id: 'estado', header: 'Estado', size: 90, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
-    { id: 'comentario', header: 'Comentario', size: 300, accessorFn: (p) => p.comentario ?? '' },
+    // whitespace-pre-line: el comentario con saltos de línea los respeta y la fila crece, como la celda del JavaFX.
+    {
+      id: 'comentario', header: 'Comentario', size: 300, accessorFn: (p) => p.comentario ?? '',
+      cell: ({ row }) => <span className="whitespace-pre-line">{row.original.comentario ?? ''}</span>,
+    },
   ]
 }
 

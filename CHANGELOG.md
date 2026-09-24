@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.6.0] - 2026-09-XX — Stock actual y Proveedores
+## [0.6.0] - 2026-09-24 — Stock actual y Proveedores
 
 - Vista Stock en `/stock` con la columna lateral Stock actual · Pedidos · Proveedores (Pedidos llega en la siguiente entrega).
 - Stock actual: tabla con componente, en stock, en camino (enlace a Pedidos), mínimo, último pedido y el semáforo OK / Bajo / Sin stock / Desactivado; filtro de estado, buscador y "Limpiar filtros"; donut "Estado del stock" y gráfico por SKU al seleccionar una fila; menú por rol con Pedir, Editar stock, Ajustar mínimo, Desactivar/Activar y Solicitar pieza.
@@ -12,6 +12,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - La campana: "Ver Stock Completo" e "→ Ir a pedidos" abren la vista de Stock.
 - Servidor: cantidad en camino resuelta al SKU master, 409 al borrar un proveedor con pedidos y 422 en cantidades negativas, nombre vacío o de más de 100 caracteres o divisa desconocida.
 - Diferencias aceptadas respecto al programa de escritorio: `docs/paridad/stock.md`.
+- Ajustes de paridad tras comparar capturas con el programa de escritorio (bordes de fila, fila desactivada seleccionada, donut, tooltip y eje del gráfico, pie y pestaña de Stock al volver).
 
 ## [0.5.0] - 2026-09-24 — Asignar trabajos
 

@@ -2,6 +2,8 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { Route } from 'react-router'
+import { act } from '@testing-library/react'
+import { ultimaRutaStock } from '@/modules/almacen/estado'
 import { handlersNotificaciones } from '@/modules/taller/notificaciones/test/handlers'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
@@ -16,6 +18,22 @@ describe('barra superior (calco de MainView)', () => {
       expect(screen.getByRole('link', { name: b })).toBeInTheDocument()
     }
     expect(screen.getByText('Hola, tecnico_n')).toBeInTheDocument()
+  })
+  it('"Stock" lleva a la última pestaña de Stock visitada (caché de vista del JavaFX) y no se marca fuera de /stock', () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/reparaciones' })
+    expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
+    act(() => ultimaRutaStock.set('/stock/proveedores'))
+    expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock/proveedores')
+    expect(screen.getByRole('link', { name: 'Stock' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'Reparaciones' })).toHaveAttribute('aria-current', 'page')
+  })
+  it.each(['/stock', '/stock/pedidos', '/stock/proveedores'])('"Stock" sigue activo en %s aunque apunte a otra pestaña', (ruta) => {
+    ultimaRutaStock.set(ruta === '/stock' ? '/stock/proveedores' : '/stock')
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta })
+    const stock = screen.getByRole('link', { name: 'Stock' })
+    expect(stock).toHaveAttribute('aria-current', 'page')
+    expect(stock).toHaveClass('bg-azul-noche', 'text-texto-nav-activo')
+    expect(screen.getByRole('link', { name: 'Reparaciones' })).not.toHaveAttribute('aria-current')
   })
   it('el menú de usuario de un técnico no tiene opciones de admin y "Descargar CSV" va deshabilitado', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC })
