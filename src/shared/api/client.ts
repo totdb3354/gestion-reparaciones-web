@@ -14,6 +14,9 @@ export type ReparacionResumen = components['schemas']['ReparacionResumen']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
+/** Almacén (sub-proyecto 4a): proveedores de componentes (`tipo` COMPONENTES/TELEFONOS viene del servidor de main). */
+export type Proveedor = components['schemas']['Proveedor']
+
 /** Formulario de reparación y campana (sub-proyecto 2). `ComponentesAgrupados` es la respuesta de
  *  GET /api/componentes/agrupados: prefijo del tipo → sus componentes, en el orden de claves del servidor. */
 export type Componente = components['schemas']['Componente']

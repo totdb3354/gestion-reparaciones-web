@@ -4045,10 +4045,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
+                  "$ref" : "#/components/schemas/ValorEntero"
                 }
               }
             }
