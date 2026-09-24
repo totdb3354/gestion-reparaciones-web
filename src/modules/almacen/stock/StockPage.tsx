@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { Componente } from '@/shared/api/client'
-import { esErrorGestionadoGlobalmente, mensajeDeError, ReglaNegocioError } from '@/shared/api/errors'
+import { esErrorGestionadoGlobalmente, mensajeDeError, ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
 import { descargarCsv } from '@/shared/lib/csv'
 import { ESTADOS_STOCK, type EstadoStock } from '@/shared/lib/semaforoStock'
 import { useStore } from '@/shared/lib/store'
@@ -97,7 +97,8 @@ export function StockPage() {
     return true
   }
 
-  /** Editar stock: el 409 es el aviso de modificado (calco de :661-665); el resto de errores pasan por el mapeo común.
+  /** Editar stock: el 409 es el aviso de modificado (calco de :661-665) y cierra el diálogo; cualquier otro error
+   *  (403/404/5xx/red) deja el diálogo abierto y pasa por el mapeo común, igual que "Ajustar mínimo".
    *  Las dos mutaciones con diálogo silencian el diálogo global (meta.silenciarError), así que el aviso sale una vez. */
   function alFallarEdicion(e: unknown) {
     if (esErrorGestionadoGlobalmente(e)) return
@@ -176,8 +177,13 @@ export function StockPage() {
           setErrorServidor(null)
           editarStock.mutate({ c, stock }, {
             onSuccess: cerrarDialogo,
-            // 422 → inline con el diálogo abierto; 409 y resto → se cierra y avisa (el 409 recarga por el onSettled del hook).
-            onError: (e) => { if (errorEnDialogo(e)) return; cerrarDialogo(); alFallarEdicion(e) },
+            // 422 → inline con el diálogo abierto; 409 → se cierra y avisa (recarga por el onSettled del hook);
+            // cualquier otro error (403/404/5xx/red) deja el diálogo abierto y avisa igual que "Ajustar mínimo".
+            onError: (e) => {
+              if (errorEnDialogo(e)) return
+              if (e instanceof StaleDataError) cerrarDialogo()
+              alFallarEdicion(e)
+            },
           })
         }}
       />

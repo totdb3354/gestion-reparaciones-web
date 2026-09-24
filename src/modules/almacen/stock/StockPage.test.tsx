@@ -198,6 +198,19 @@ describe('StockPage', () => {
     expect(screen.queryByRole('dialog', { name: 'Editar stock' })).not.toBeInTheDocument()
     await waitFor(() => expect(cargas.n).toBe(3))
   })
+  it('un error que no es 409 ni 422 en Editar stock deja el diálogo abierto y avisa', async () => {
+    server.use(http.put('*/api/componentes/1', () => HttpResponse.json({ message: 'Recurso no encontrado.' }, { status: 404 })))
+    montar()
+    await screen.findByText('lcd-x')
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
+    await userEvent.type(within(screen.getByRole('dialog', { name: 'Editar stock' })).getByLabelText('Nueva cantidad'), '{Enter}')
+    expect(await screen.findByText('Recurso no encontrado.')).toBeInTheDocument()
+    // El aviso es un diálogo modal: Radix marca aria-hidden el resto (patrón de :124), y con el título vía
+    // aria-labelledby oculto el nombre accesible del rol "dialog" se computa vacío; se busca por el título en vez.
+    expect(screen.getByText('Editar stock', { selector: 'h2' })).toBeInTheDocument()
+    expect(within(screen.getByText('Editar stock', { selector: 'h2' }).closest('[role="dialog"]')!).getByLabelText('Nueva cantidad')).toBeInTheDocument()
+  })
   it('un 422 del servidor se muestra inline y el diálogo sigue abierto (Editar stock y Ajustar mínimo), sin aviso global', async () => {
     server.use(
       http.put('*/api/componentes/1', () => HttpResponse.json({ message: 'Cantidad no válida (debe ser ≥ 0).' }, { status: 422 })),

@@ -40,7 +40,6 @@ Internas, sin efecto visible: `BadgeEstadoStock` vive en su propio fichero (`sto
 
 ## Pendiente de decidir
 
-- [ ] **"Editar stock" con un error que no es 409 ni 422** (un 500, un corte): la web cierra el diálogo y avisa; el JavaFX lo deja abierto con el error. "Ajustar mínimo" en la web sí lo deja abierto. El calco sería cerrar solo con el 409.
 - [ ] **Los dos puntos "a comprobar en capturas"**: el separador " : N" del tooltip del gráfico por SKU (`stock-tooltip-barra`) y el filtro de proveedores que conserva nombres renombrados o desactivados.
 
 ## Columna lateral y rutas
@@ -115,6 +114,7 @@ Internas, sin efecto visible: `BadgeEstadoStock` vive en su propio fichero (`sto
 - [ ] No entero o negativo: "Cantidad no válida (debe ser ≥ 0)." con el diálogo abierto (`stock-editar-stock-error`).
 - [ ] Confirmar manda el PUT con tipo, stock, mínimo y `updatedAt` tal como llegaron, cierra y recarga.
 - [ ] 409: cierra, aviso "El componente fue modificado mientras editabas. Recarga los datos." y recarga (`stock-editar-stock-conflicto`: no reproducible en la toma; se comprueba con la web).
+- [ ] Con un error que no sea 409 ni 422 (403/404/5xx/red) el diálogo queda abierto y el error se muestra con el aviso global (calco del JavaFX; `stock-editar-stock-error` no aplica, sin captura).
 
 ## Ajustar mínimo
 
