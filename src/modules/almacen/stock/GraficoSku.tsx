@@ -24,7 +24,7 @@ export function GraficoSku({ componente, enCamino }: { componente: Componente | 
         <BarChart width={208} height={140} data={datos} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <XAxis dataKey="nombre" tick={{ fontSize: 10 }} />
           <YAxis domain={[0, maximo]} allowDecimals={false} tick={{ fontSize: 10 }} label={{ value: 'Unidades', angle: -90, position: 'insideLeft', fontSize: 10 }} />
-          <Tooltip formatter={(v: unknown) => [String(v), '']} />
+          <Tooltip separator="" formatter={(v: unknown) => [String(v), '']} />
           <Bar dataKey="valor" isAnimationActive={false}>
             {datos.map((d) => <Cell key={d.nombre} fill={d.color} />)}
           </Bar>

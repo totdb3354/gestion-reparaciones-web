@@ -138,6 +138,21 @@ describe('StockPage', () => {
     // URLSearchParams codifica la coma como %2C y el espacio como +.
     expect(router.state.location.search).toBe('?estados=pendiente%2Cen+camino%2Cparcial&buscar=bat-x')
   })
+  it('"Pedir" del menú navega a Pedidos filtrado por el componente', async () => {
+    const { router } = renderConRouter(
+      [
+        { path: '/stock', element: <StockPage /> },
+        { path: '/stock/pedidos', element: <p data-testid="pedidos">Pedidos</p> },
+      ],
+      { sesion: SESION_SUPER, ruta: '/stock' },
+    )
+    await screen.findByText('lcd-x')
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Pedir' }))
+    expect(await screen.findByTestId('pedidos')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/stock/pedidos')
+    expect(router.state.location.search).toBe('?componente=1')
+  })
   it('menú del supertécnico: los cinco ítems con separadores; "Activar" en una desactivada; ADMIN sin menú; TECNICO solo "Solicitar pieza"', async () => {
     montar()
     await screen.findByText('lcd-x')

@@ -53,4 +53,9 @@ describe('DialogoAlmacen', () => {
     expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
   })
+  it('enviando: Escape no cancela (evita el 422 fantasma en la siguiente apertura)', async () => {
+    const { onCancelar } = montar({ enviando: true })
+    await userEvent.keyboard('{Escape}')
+    expect(onCancelar).not.toHaveBeenCalled()
+  })
 })

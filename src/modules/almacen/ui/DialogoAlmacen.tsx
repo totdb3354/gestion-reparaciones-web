@@ -20,7 +20,7 @@ type Props = {
  *  mínimo", "Nuevo proveedor") también pasan por aquí (spec 4a, S5). Enter confirma porque los campos van en un form. */
 export function DialogoAlmacen({ abierto, titulo, subtitulo, error, textoAccion, enviando = false, onConfirmar, onCancelar, children }: Props) {
   return (
-    <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
+    <Dialog open={abierto} onOpenChange={(o) => { if (!o && !enviando) onCancelar() }}>
       <DialogContent {...(subtitulo ? {} : { 'aria-describedby': undefined })} className="w-[360px] max-w-[min(360px,calc(100%-2rem))] gap-3 bg-fondo-vista p-7 sm:max-w-[min(360px,calc(100%-2rem))]">
         <form onSubmit={(e) => { e.preventDefault(); if (!enviando) onConfirmar() }} className="flex flex-col gap-3">
           <DialogHeader>
