@@ -14,11 +14,18 @@ async function idsPintados(page: Page): Promise<string[]> {
   return celdas.map((t) => t.trim()).filter(Boolean)
 }
 
+const escaparRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /** La fila cuya celda de id es EXACTAMENTE `idRep` (columnas.tsx pinta `idRep` tal cual en "Id Asignación"). */
 function filaDeId(page: Page, idRep: string) {
-  const exacto = new RegExp(`^\\s*${idRep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
+  const exacto = new RegExp(`^\\s*${escaparRegex(idRep)}\\s*$`)
   return page.getByRole('row').filter({ has: page.locator('td[data-columna="id"]', { hasText: exacto }) })
 }
+
+/** La casilla del técnico por su nombre EXACTO: ListaTecnicos etiqueta "{nombre} ● {pct}%" (con o sin espacios
+ *  según el cálculo del nombre accesible), así que se ancla al principio y al separador para que "TEST" no case
+ *  también con "SUPERTEST". */
+const casillaDeTecnico = (nombre: string) => new RegExp(`^${escaparRegex(nombre)}(?=\\s|●)`)
 
 /**
  * ESCRIBE en el entorno de destino: crea UNA asignación de Reparación (IMEI de prueba + técnico de prueba) y la borra.
@@ -51,7 +58,7 @@ test('el supertécnico asigna un trabajo desde el modal y lo borra', async ({ pa
   await modal.getByPlaceholder('Escanea o escribe el IMEI (15 dígitos)...').fill(imei!)
   await expect(modal.getByTestId('imei-en-curso')).toHaveText(imei!)
   await expect(modal.getByRole('combobox', { name: 'Modelo de iPhone' })).not.toHaveValue('')
-  await modal.getByRole('checkbox', { name: new RegExp(tecnico!) }).click()
+  await modal.getByRole('checkbox', { name: casillaDeTecnico(tecnico!) }).click()
   await modal.getByRole('button', { name: 'Asignar →' }).click()
 
   // Ambas esperas se registran ANTES del click: `waitForResponse` solo atrapa respuestas posteriores al registro.
