@@ -81,4 +81,8 @@ describe('nivelStock y claseStock (color del SKU)', () => {
   it('acepta un Componente entero', () => {
     expect(nivelStock(componente({ stock: 1, stockMinimo: 1 }))).toBe('bajo')
   })
+  it('stock negativo → bajo, en ámbar (calco de estadoComponente / aplicarColorStock)', () => {
+    expect(nivelStock({ stock: -1, stockMinimo: 0 })).toBe('bajo')
+    expect(claseStock({ stock: -1, stockMinimo: 2 })).toBe('text-fila-solicitud-brd')
+  })
 })

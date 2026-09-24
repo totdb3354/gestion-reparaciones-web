@@ -8,6 +8,8 @@ import { useCallback, useState } from 'react'
  * `marcar` es estable a propósito (useCallback sin dependencias, con la forma funcional de setN): varios
  * consumidores la llevan en las dependencias de su efecto, y si cambiara de identidad el efecto se rearmaría en
  * cada render y el aviso parpadearía, descongelando el sondeo justo mientras el usuario interactúa.
+ *
+ * Vive en shared desde el sub-proyecto 4a porque Almacén también congela el sondeo con un menú o un diálogo abiertos.
  */
 export function useInteraccionesAbiertas() {
   const [n, setN] = useState(0)

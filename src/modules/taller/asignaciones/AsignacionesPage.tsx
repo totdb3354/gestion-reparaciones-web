@@ -22,7 +22,7 @@ import { MenuAsignacion } from './MenuAsignacion'
 import { AsignarTrabajosDialog } from './modal/AsignarTrabajosDialog'
 import { TecnicosGlassDialog } from './TecnicosGlassDialog'
 import { useAccionConDeshacer } from './useAccionConDeshacer'
-import { useInteraccionesAbiertas } from './useInteraccionesAbiertas'
+import { useInteraccionesAbiertas } from '@/shared/lib/useInteraccionesAbiertas'
 
 /** Tope del contador, calco de actualizarContador() del JavaFX ("999+ asignaciones"). */
 const TOPE_CONTADOR = 999
