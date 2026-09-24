@@ -61,7 +61,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Columna blanca de 200 px (160 en el JavaFX, ver arriba) con "Stock actual", "Pedidos" y "Proveedores" en ese orden; la activa en navy con texto crema (`stock-actual-supertecnico`).
 - [x] "Stock actual" activa al entrar en `/stock`; "Proveedores" en `/stock/proveedores` (`proveedores-supertecnico`).
 - [ ] "Pedidos" lleva a `/stock/pedidos`, que en 4a sigue "Pendiente de migrar".
-- [ ] Los tres roles ven la vista entera, con la columna "En Camino" (`stock-actual-tecnico`, `stock-actual-admin`) (pendiente: sin captura de admin).
+- [x] Los tres roles ven la vista entera, con la columna "En Camino" (`stock-actual-tecnico`, `stock-actual-admin`).
 - [x] Al volver desde Reparaciones se conservan la pestaña, los filtros y la selección (`stock-cache-vuelta`).
 
 ## Tabla de stock
@@ -111,14 +111,14 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Con selección: título = tipo, barras "Stock" con el color del semáforo y "Pedido" azul, eje "Unidades" (`stock-fila-seleccionada-ok`, `stock-fila-seleccionada-bajo`, `stock-fila-seleccionada-sinstock`).
 - [ ] En un compartido la barra "Pedido" suma los pedidos del master (arreglo del servidor) (`stock-fila-compartido-seleccionada`) (no comparable: sin En Camino > 0 en la web).
 - [x] Tooltip oscuro solo con el número al pasar por una barra, sin banda gris (`stock-tooltip-barra`).
-- [ ] El TECNICO ve "Pedido" a 0 sin pedir la cantidad; ADMIN y SUPERTECNICO la piden (`stock-actual-tecnico`, `stock-actual-admin`) (pendiente: sin captura de admin).
+- [x] El TECNICO ve "Pedido" a 0 sin pedir la cantidad; ADMIN y SUPERTECNICO la piden (`stock-actual-tecnico`, `stock-actual-admin`).
 
 ## Menú contextual por rol
 
 - [x] SUPERTECNICO: Pedir, Editar stock | Ajustar mínimo | Desactivar | Solicitar pieza, con separadores (`stock-menu-contextual-supertecnico`).
 - [x] En una fila desactivada el ítem dice "Activar" (`stock-menu-contextual-desactivado`).
 - [x] TECNICO: solo "Solicitar pieza" (`stock-menu-contextual-tecnico`).
-- [ ] ADMIN: sin menú (`stock-actual-admin`) (pendiente: sin captura de admin).
+- [x] ADMIN: sin menú (`stock-actual-admin`).
 - [x] "Pedir" navega a `/stock/pedidos?componente=<id>`, "Pendiente de migrar" hasta 4b (`stock-pedir-desde-componente`, `stock-pedir-desde-desactivado`).
 
 ## Editar stock
@@ -152,7 +152,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Columnas Nombre, Divisa, Estado y Comentario; orden del servidor por nombre (`proveedores-supertecnico`).
 - [ ] Badge "Activo" verde / "Inactivo" gris; fila activa con borde izquierdo verde suave, inactiva sin opacidad (`proveedores-fila-seleccionada`) (inactiva no comparable: sin proveedores inactivos en la toma).
 - [x] Fila seleccionada navy (`proveedores-fila-seleccionada`).
-- [ ] TECNICO y ADMIN: sin botón ni menú (`proveedores-tecnico`, `proveedores-admin`) (pendiente: sin captura de admin).
+- [x] TECNICO y ADMIN: sin botón ni menú (`proveedores-tecnico`, `proveedores-admin`).
 - [x] Solo proveedores de componentes (`?tipo=COMPONENTES`).
 
 ## Proveedores — filtro
