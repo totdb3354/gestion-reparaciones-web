@@ -130,4 +130,9 @@
   --color-pill-buscando-bg: #EEF1F5;
   --color-cola-quitar: #C2B3B3;
   --color-pulido-sel-bg: #E8EEF7;
+
+  /* Stock actual (sub-proyecto 4a), calco de StockController: el donut y la barra "Stock" usan un ámbar distinto del
+     badge/fila "Bajo" (#C07800, fila-solicitud-brd); el verde #3a7d44 es fila-recibido-brd y se reutiliza. */
+  --color-ambar-grafico: #C77A00;
+  --color-badge-sin-stock-bg: #F9E0E3;
 }

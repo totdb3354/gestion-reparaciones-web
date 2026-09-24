@@ -1,4 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
+import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
 import { AsignacionesPage } from '@/modules/taller/asignaciones/AsignacionesPage'
 import { FormularioEditarRuta, FormularioNuevoRuta } from '@/modules/taller/formulario/rutas'
@@ -64,7 +66,9 @@ export const router = createBrowserRouter([
             element: <ImeiDetallePage />,
             children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="imei" /> }] }],
           },
-          { path: '/stock/*', element: <PendienteDeMigrar nombre="Stock" /> },
+          { path: '/stock', element: <StockPage /> },
+          { path: '/stock/pedidos', element: <PendienteDeMigrar nombre="Pedidos" /> },
+          { path: '/stock/proveedores', element: <ProveedoresPage /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },
           { path: '/gestion/tecnicos', element: <PendienteDeMigrar nombre="Gestionar técnicos" /> },

@@ -1,15 +1,18 @@
 import { NavLink, useLocation } from 'react-router'
-import { enlacesReparaciones, type EnlaceTaller } from '@/modules/taller/rutas'
+import { enlacesStock } from '@/modules/almacen/rutas'
+import { enlacesReparaciones } from '@/modules/taller/rutas'
 import { BadgeAsignaciones } from '@/modules/taller/asignaciones/BadgeAsignaciones'
 import { BadgePendientes } from '@/modules/taller/componentes/BadgePendientes'
+import type { Enlace } from '@/shared/lib/enlaces'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
 import type { Sesion } from '@/shared/session/storage'
 
 /** Enlaces de la columna por sección (primer segmento de la ruta) y rol. Cada sub-proyecto añade los suyos. */
-const SUBNAV: Record<string, (sesion: Sesion | null) => EnlaceTaller[]> = {
+const SUBNAV: Record<string, (sesion: Sesion | null) => Enlace[]> = {
   clientes: () => [{ to: '/clientes', label: 'Clientes' }],
   reparaciones: enlacesReparaciones,
+  stock: enlacesStock,
 }
 
 export function SubNav() {
@@ -24,6 +27,7 @@ export function SubNav() {
         <NavLink
           key={e.to}
           to={e.to}
+          end={e.end}
           className={({ isActive }) =>
             cn(
               'flex w-full items-center rounded-3xl px-4 py-2.5 text-left text-[13px] font-bold',

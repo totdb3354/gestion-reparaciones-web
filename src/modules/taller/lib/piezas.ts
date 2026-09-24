@@ -1,4 +1,5 @@
 import type { Componente, ComponentesAgrupados } from '@/shared/api/client'
+import { estadoStock } from '@/shared/lib/semaforoStock'
 
 /** Calco de Piezas: categoría legible a partir del prefijo del SKU (prefijos largos antes para no confundir cha/cam con g). */
 const PREFIJOS = ['otro', 'cha', 'cam', 'bat', 'lcd', 'mc', 'g'] as const
@@ -38,11 +39,14 @@ export function prefijosDeFila(agrupados: ComponentesAgrupados, glass: boolean):
 
 export type NivelStock = 'sinStock' | 'bajo' | 'normal'
 
-/** stock 0 → 'sinStock'; 0 < stock ≤ mínimo → 'bajo'; resto 'normal'. */
+/** stock 0 → 'sinStock'; 0 < stock ≤ mínimo → 'bajo'; resto 'normal'. El combo del formulario solo lista activos, así que
+ *  el "Desactivado" del semáforo compartido no llega aquí; el negativo cae en 'bajo' como en estadoStock. */
 export function nivelStock(c: Pick<Componente, 'stock' | 'stockMinimo'>): NivelStock {
-  if (c.stock === 0) return 'sinStock'
-  if (c.stock > 0 && c.stock <= c.stockMinimo) return 'bajo'
-  return 'normal'
+  switch (estadoStock({ ...c, activo: true })) {
+    case 'Sin stock': return 'sinStock'
+    case 'Bajo': return 'bajo'
+    default: return 'normal'
+  }
 }
 
 const CLASES_STOCK: Record<NivelStock, string> = { sinStock: 'text-rojo-sin-stock', bajo: 'text-fila-solicitud-brd', normal: '' }

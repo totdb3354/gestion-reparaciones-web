@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { renderConProviders, SESION_SUPER } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { TOOLTIP_ALMACEN } from '../lib/textos'
 import { componente, solicitudPreventiva, solicitudUrgente } from '../test/fabrica'
@@ -55,6 +55,16 @@ async function abrirPanel(escenario: EscenarioNotificaciones = ESCENARIO, pestan
   const registro = conRegistroNotificaciones(escenario)
   server.use(...registro.handlers)
   const resultado = renderConProviders(<Campana />, { sesion: SESION_SUPER })
+  await userEvent.click(screen.getByTestId('campana'))
+  await userEvent.click(screen.getByRole('tab', { name: pestana }))
+  return { ...resultado, llamadas: registro.llamadas }
+}
+/** Como abrirPanel, pero con un data router para leer la ruta tras navegar (sub-proyecto 4a). La Campana va en la ruta
+ *  comodín para seguir montada después de ir a /stock o /stock/pedidos. */
+async function abrirPanelConRouter(escenario: EscenarioNotificaciones = ESCENARIO, pestana: 'Solicitudes' | 'Alertas' = 'Solicitudes') {
+  const registro = conRegistroNotificaciones(escenario)
+  server.use(...registro.handlers)
+  const resultado = renderConRouter([{ path: '*', element: <Campana /> }], { sesion: SESION_SUPER })
   await userEvent.click(screen.getByTestId('campana'))
   await userEvent.click(screen.getByRole('tab', { name: pestana }))
   return { ...resultado, llamadas: registro.llamadas }
@@ -176,18 +186,20 @@ describe('panel (ficha notificaciones.md, "Panel")', () => {
     expect(screen.getByRole('tabpanel', { name: 'Solicitudes' })).toHaveClass('h-[370px]', 'overflow-y-auto', 'overflow-x-hidden')
     expect(screen.queryByText(/sin solicitudes/i)).not.toBeInTheDocument()
   })
-  it('"→ Ir a pedidos" deshabilitado con el tooltip de Almacén en las dos pestañas', async () => {
-    await abrirPanel({})
-    for (const pestana of ['Solicitudes', 'Alertas']) {
-      await userEvent.click(screen.getByRole('tab', { name: pestana }))
+  it('"→ Ir a pedidos" cierra el panel y navega a /stock/pedidos desde las dos pestañas', async () => {
+    for (const pestana of ['Solicitudes', 'Alertas'] as const) {
+      const { router, unmount } = await abrirPanelConRouter({}, pestana)
       const enlace = screen.getByRole('button', { name: '→ Ir a pedidos' })
-      expect(enlace).toBeDisabled()
-      expect(enlace).toHaveClass('text-[12px]', 'font-bold', 'text-azul-noche')
-      expect(enlace.parentElement).toHaveAttribute('title', TOOLTIP_ALMACEN)
-      expect(enlace.parentElement).not.toHaveClass('pointer-events-none')
+      expect(enlace).toBeEnabled()
+      expect(enlace).toHaveClass('text-[12px]', 'font-bold', 'text-azul-noche', 'cursor-pointer')
+      await userEvent.click(enlace)
+      await waitFor(() => expect(screen.queryByTestId('panel-notificaciones')).not.toBeInTheDocument())
+      expect(screen.getByTestId('campana')).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe('/stock/pedidos')
+      unmount()
     }
   })
-  it('"Pedir piezas", "Pedir", "Pedir todas las piezas" y "Ver Stock Completo" deshabilitados con tooltip; "Rechazar todo" habilitado', async () => {
+  it('"Pedir piezas", "Pedir" y "Pedir todas las piezas" deshabilitados con tooltip; "Rechazar todo" habilitado', async () => {
     await abrirPanel()
     expect(screen.getByRole('button', { name: 'Rechazar todo' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Rechazar todo' })).toHaveClass('bg-notif-rechazar-bg', 'text-notif-rechazar-text', 'text-[13px]', 'font-bold', 'rounded-[20px]', 'p-[11px]')
@@ -196,12 +208,22 @@ describe('panel (ficha notificaciones.md, "Panel")', () => {
     expect(pedirPiezas).toBeDisabled()
     expect(pedirPiezas.parentElement).toHaveAttribute('title', TOOLTIP_ALMACEN)
     await userEvent.click(screen.getByRole('tab', { name: 'Alertas' }))
-    const reservados = [...screen.getAllByRole('button', { name: 'Pedir' }), screen.getByRole('button', { name: 'Pedir todas las piezas' }), screen.getByRole('button', { name: 'Ver Stock Completo' })]
-    expect(reservados).toHaveLength(4)
+    const reservados = [...screen.getAllByRole('button', { name: 'Pedir' }), screen.getByRole('button', { name: 'Pedir todas las piezas' })]
+    expect(reservados).toHaveLength(3)
     for (const boton of reservados) {
       expect(boton).toBeDisabled()
       expect(boton.parentElement).toHaveAttribute('title', TOOLTIP_ALMACEN)
     }
+  })
+  it('"Ver Stock Completo" cierra el panel y navega a /stock sin filtros', async () => {
+    const { router } = await abrirPanelConRouter(ESCENARIO, 'Alertas')
+    const boton = screen.getByRole('button', { name: 'Ver Stock Completo' })
+    expect(boton).toBeEnabled()
+    expect(boton).toHaveClass('bg-azul-medio', 'text-superficie')
+    await userEvent.click(boton)
+    await waitFor(() => expect(screen.queryByTestId('panel-notificaciones')).not.toBeInTheDocument())
+    expect(router.state.location.pathname).toBe('/stock')
+    expect(router.state.location.search).toBe('')
   })
 })
 

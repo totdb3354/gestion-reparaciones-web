@@ -16,9 +16,24 @@ describe('columna lateral de sub-navegación', () => {
   })
 
   it('en una sección todavía sin enlaces mantiene la columna vacía', () => {
-    renderConProviders(<SubNav />, { ruta: '/stock' })
+    renderConProviders(<SubNav />, { ruta: '/estadisticas' })
     const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
     expect(within(columna).queryAllByRole('link')).toHaveLength(0)
+  })
+
+  it('en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada', () => {
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock/proveedores' })
+    const columna = within(screen.getByRole('navigation', { name: 'Sub-navegación' }))
+    expect(columna.getAllByRole('link').map((l) => l.textContent)).toEqual(['Stock actual', 'Pedidos', 'Proveedores'])
+    expect(columna.getByRole('link', { name: 'Stock actual' })).toHaveAttribute('href', '/stock')
+    expect(columna.getByRole('link', { name: 'Pedidos' })).toHaveAttribute('href', '/stock/pedidos')
+    expect(columna.getByRole('link', { name: 'Proveedores' })).toHaveAttribute('aria-current', 'page')
+    expect(columna.getByRole('link', { name: 'Stock actual' })).not.toHaveAttribute('aria-current')
+  })
+  it('"Stock actual" solo está activo en /stock exacto (NavLink end), no en /stock/pedidos', () => {
+    renderConProviders(<SubNav />, { sesion: SESION_ADMIN, ruta: '/stock/pedidos' })
+    expect(screen.getByRole('link', { name: 'Pedidos' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Stock actual' })).not.toHaveAttribute('aria-current')
   })
 
   // El mapa de secciones es un objeto plano: leerlo con `SUBNAV[seccion]` devuelve los miembros heredados de

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { useNavigate } from 'react-router'
 import { cn } from '@/shared/lib/utils'
 import { TOOLTIP_ALMACEN } from '../lib/textos'
 import type { AlertaStock } from './alertas'
@@ -38,6 +39,7 @@ function BotonAlmacen({ texto, className, envoltorio }: { texto: string; classNa
  *  derecho alineado con el de la campana y 6 px por debajo; se recoloca al cambiar el tamaño de la ventana. Se cierra al
  *  pulsar fuera del panel y de la campana, y con Escape. */
 export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alertas }: Props) {
+  const navigate = useNavigate()
   const panelRef = useRef<HTMLDivElement>(null)
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial)
   // Copia que pintan las tarjetas: solo se sustituye cuando cambia el conjunto de identificadores con su grupo y clase.
@@ -87,6 +89,13 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
     }
   }, [anclaRef, onCerrar])
 
+  /** Calco de mostrarStockEnPedidos / mostrarStockEnActual (MainController): cierra el panel y abre la pestaña de Stock
+   *  correspondiente, sin aplicar filtros (sub-proyecto 4a). Los tres botones de pedir siguen reservados hasta 4b. */
+  function irA(ruta: '/stock' | '/stock/pedidos') {
+    onCerrar()
+    navigate(ruta)
+  }
+
   const tarjeta = (t: TarjetaDatos, i: number) => (
     <TarjetaSolicitud
       key={`${t.clase}-${t.id}`}
@@ -116,7 +125,7 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
           ))}
         </div>
         <div className="flex-1" />
-        <BotonAlmacen texto="→ Ir a pedidos" className="text-[12px] font-bold text-azul-noche" />
+        <button type="button" onClick={() => irA('/stock/pedidos')} className="cursor-pointer text-[12px] font-bold text-azul-noche hover:underline">→ Ir a pedidos</button>
       </div>
 
       {pestana === 'solicitudes' ? (
@@ -150,7 +159,7 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
           </div>
           <div className="flex gap-2">
             <BotonAlmacen texto="Pedir todas las piezas" envoltorio="flex-1" className={cn(BOTON_INFERIOR, 'bg-azul-medio text-superficie')} />
-            <BotonAlmacen texto="Ver Stock Completo" envoltorio="flex-1" className={cn(BOTON_INFERIOR, 'bg-azul-medio text-superficie')} />
+            <button type="button" onClick={() => irA('/stock')} className={cn(BOTON_INFERIOR, 'flex-1 cursor-pointer bg-azul-medio text-superficie')}>Ver Stock Completo</button>
           </div>
         </>
       )}

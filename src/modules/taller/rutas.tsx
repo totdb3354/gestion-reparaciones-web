@@ -4,8 +4,9 @@ import { MSG_SIN_PERMISOS } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin, esAdminOSuperTecnico, esSuperTecnico, type Sesion } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
+import type { Enlace } from '@/shared/lib/enlaces'
 
-export type EnlaceTaller = { to: string; label: string; badge?: 'pendientes' | 'asignaciones' }
+export type EnlaceTaller = Enlace
 
 /** Columna lateral de Reparaciones en el orden del JavaFX: TECNICO Pendientes·Historial·IMEIs; SUPERTECNICO
  *  Asignaciones·Pendientes·Historial·IMEIs; ADMIN Asignaciones·Historial·IMEIs. */

@@ -40,8 +40,12 @@ de un modelo que tenga un tipo con stock y otro con el SKU a 0.
 `asignar.spec.ts` también **escribe** en el entorno de destino: con `E2E_USER` abre el modal "Asignar trabajos", crea UNA
 asignación de Reparación del IMEI `E2E_IMEI_PRUEBA` al técnico `E2E_TEC_PRUEBA` y la borra al terminar (solo borra el id que
 devuelve el propio guardado; si el guardado no crea exactamente esa asignación, falla sin borrar nada). Usa siempre un IMEI
-sintético de prueba sin asignación de Reparación abierta para ese técnico y un técnico de prueba, nunca datos reales. Sin
-credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso de `asignar.spec.ts`) en el entorno, los tests se saltan.
+sintético de prueba sin asignación de Reparación abierta para ese técnico y un técnico de prueba, nunca datos reales.
+`stock.spec.ts` también **escribe**: con `E2E_USER` edita el stock del SKU `E2E_SKU_PRUEBA` (+1 y lo devuelve) y crea y
+borra un proveedor de prueba `E2E <timestamp>` (el id a borrar sale del listado por el nombre exacto; sin ese id, falla sin
+limpiar). Si falla la restauración del stock, el SKU de prueba queda en +1 y se corrige a mano. Usa siempre un SKU de
+prueba, nunca uno real. Sin credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso
+de `asignar.spec.ts`, o sin `E2E_SKU_PRUEBA` en el de `stock.spec.ts`) en el entorno, los tests se saltan.
 
 ## Despliegue
 Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guía operativa es privada y vive fuera del repo.
