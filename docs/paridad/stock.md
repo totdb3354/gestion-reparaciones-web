@@ -34,13 +34,13 @@ Decididas durante la ejecución:
 - **El servidor recorta el nombre del proveedor y pasa la divisa a mayúsculas** antes de validar y guardar; inocuo, porque el JavaFX y la web ya mandan los valores limpios. El `PUT` rechaza con 422 "Divisa no válida (EUR o USD)." una divisa que no sea EUR o USD (decisión 1: antes del merge se normalizan en BD las que hubiera).
 - **`BORRAR_PROVEEDOR` es un tipo de log nuevo** (spec §4.2) y no se puede filtrar en el visor de logs del JavaFX, que no lo conoce; las entradas se ven igualmente sin filtro.
 - **El filtro de proveedores conserva los nombres marcados aunque ese proveedor se renombre o se desactive** después (calco del conjunto de nombres del JavaFX); a comprobar en capturas.
-- **Tooltip del gráfico por SKU**: la web pinta el valor con el separador de Recharts (" : N"); a comprobar en capturas (`stock-tooltip-barra`).
+- **Tooltip del gráfico por SKU**: Recharts pintaba el valor con su separador (" : N"); la web lo quita (`separator=""`) para que salga solo el número, como el JavaFX (`stock-tooltip-barra`).
 
 Internas, sin efecto visible: `BadgeEstadoStock` vive en su propio fichero (`stock/BadgeEstadoStock.tsx`) y `subtituloComponente`/`parseEnteroNoNegativo` en `stock/dialogos.ts`, por la regla de lint de React Refresh; `MSG_NOMBRE_VACIO` se exporta desde `NuevoProveedorDialog.tsx`; `useInteraccionesAbiertas` está en `shared/lib` y no en `shared/api` como decía la spec §5; el smoke obtiene el id del proveedor de prueba con un GET por nombre exacto porque el alta no lo devuelve.
 
 ## Pendiente de decidir
 
-- [ ] **Los dos puntos "a comprobar en capturas"**: el separador " : N" del tooltip del gráfico por SKU (`stock-tooltip-barra`) y el filtro de proveedores que conserva nombres renombrados o desactivados.
+- [ ] **Un punto "a comprobar en capturas"**: el filtro de proveedores conserva nombres marcados aunque se renombren o desactiven (calco del `LinkedHashSet` del JavaFX).
 
 ## Columna lateral y rutas
 
@@ -96,7 +96,7 @@ Internas, sin efecto visible: `BadgeEstadoStock` vive en su propio fichero (`sto
 - [ ] Sin selección: "Selecciona un componente" y "↑ Haz clic en una fila" (`stock-actual-supertecnico`).
 - [ ] Con selección: título = tipo, barras "Stock" con el color del semáforo y "Pedido" azul, eje "Unidades" (`stock-fila-seleccionada-ok`, `stock-fila-seleccionada-bajo`, `stock-fila-seleccionada-sinstock`).
 - [ ] En un compartido la barra "Pedido" suma los pedidos del master (arreglo del servidor) (`stock-fila-compartido-seleccionada`).
-- [ ] Tooltip con el número al pasar por una barra (`stock-tooltip-barra`; ver "Pendiente de decidir").
+- [ ] Tooltip con el número al pasar por una barra, sin separador (`stock-tooltip-barra`).
 - [ ] El TECNICO ve "Pedido" a 0 sin pedir la cantidad; ADMIN y SUPERTECNICO la piden (`stock-actual-tecnico`, `stock-actual-admin`).
 
 ## Menú contextual por rol
