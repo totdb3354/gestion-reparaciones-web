@@ -1259,6 +1259,34 @@
         }
       }
     },
+    "/api/glass/prediccion" : {
+      "post" : {
+        "tags" : [ "glass-controller" ],
+        "operationId" : "predecir",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GlassPrediccionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PrediccionGlassRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/glass/asignaciones" : {
       "get" : {
         "tags" : [ "glass-controller" ],
@@ -1533,6 +1561,42 @@
           },
           "401" : {
             "description" : "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/asignaciones/lote" : {
+      "post" : {
+        "tags" : [ "asignacion-controller" ],
+        "operationId" : "guardarLote",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoteAsignacionesPeticion"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoteAsignacionesRespuesta"
+                }
+              }
+            }
           }
         }
       }
@@ -5077,6 +5141,62 @@
           }
         }
       },
+      "GlassPrediccionRequest" : {
+        "required" : [ "conCliente", "imei", "verdes" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "conCliente" : {
+            "type" : "boolean"
+          },
+          "verdes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GlassVerdeRequest"
+            }
+          }
+        }
+      },
+      "GlassVerdeRequest" : {
+        "required" : [ "conCliente", "esChasis", "idTec", "imei", "tipo" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tipo" : {
+            "type" : "string",
+            "enum" : [ "REPARACION", "GLASS", "PULIDO" ]
+          },
+          "esChasis" : {
+            "type" : "boolean"
+          },
+          "conCliente" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PrediccionGlassRespuesta" : {
+        "required" : [ "idTec", "nombre" ],
+        "type" : "object",
+        "properties" : {
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "nombre" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
       "GlassGlassAsignacionRequest" : {
         "required" : [ "comentario", "idTec", "imei", "urgente" ],
         "type" : "object",
@@ -5272,6 +5392,124 @@
           },
           "token" : {
             "type" : "string"
+          }
+        }
+      },
+      "LoteAsignacionesAsignacionDelLote" : {
+        "required" : [ "categoria", "comentario", "esChasis", "idTec", "imei" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "categoria" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comentario" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "esChasis" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "LoteAsignacionesPeticion" : {
+        "required" : [ "asignaciones", "telefonos" ],
+        "type" : "object",
+        "properties" : {
+          "telefonos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LoteAsignacionesTelefonoDelLote"
+            }
+          },
+          "asignaciones" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LoteAsignacionesAsignacionDelLote"
+            }
+          }
+        }
+      },
+      "LoteAsignacionesTelefonoDelLote" : {
+        "required" : [ "clienteExplicito", "idCli", "imei", "modelo" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "clienteExplicito" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "LoteAsignacionesConflicto" : {
+        "required" : [ "categoria", "idTec", "imei", "nombreTecnico" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombreTecnico" : {
+            "type" : "string"
+          },
+          "categoria" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LoteAsignacionesCreada" : {
+        "required" : [ "categoria", "idRep", "idTec", "imei" ],
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "categoria" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LoteAsignacionesRespuesta" : {
+        "required" : [ "conflictos", "creadas" ],
+        "type" : "object",
+        "properties" : {
+          "creadas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LoteAsignacionesCreada"
+            }
+          },
+          "conflictos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LoteAsignacionesConflicto"
+            }
           }
         }
       },

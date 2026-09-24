@@ -1,14 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type Cliente } from '@/shared/api/client'
-
-export const CLAVE_CLIENTES = ['clientes'] as const
-
-export function useClientes() {
-  return useQuery({
-    queryKey: CLAVE_CLIENTES,
-    queryFn: async () => (await api.GET('/api/clientes')).data ?? [],
-  })
-}
+import { CLAVE_CLIENTES } from '@/shared/api/clientes'
 
 export async function tieneTelefonos(idCli: number): Promise<boolean> {
   const { data } = await api.GET('/api/clientes/{idCli}/tiene-telefonos', { params: { path: { idCli } } })

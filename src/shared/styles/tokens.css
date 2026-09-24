@@ -114,4 +114,20 @@
   /* Punto de identidad del alcance activo: violeta Pedidos / azul Total, fijos (no dependen del nivel). */
   --color-carga-pedidos: #7B1FA2;
   --color-carga-total: #1565C0;
+
+  /* Modal "Asignar trabajos" (sub-proyecto 3b), calco de los estilos inline de abrirFormularioAsignacion.
+     #DDE1E7 (fondo del modal) ya existe como --color-fondo-vista, #2E7D32 ("Asignados (N)" / mensaje ok) como
+     --color-recibido-text y #EAF1FF (fila seleccionada) como --color-seleccion-suave: se reutilizan esos en vez
+     de duplicarlos aquí. */
+  --color-cola-roja: #C0392B;          /* "Pendiente de asignar (N)", ✕ al pasar, pastilla de pendientes */
+  --color-cola-roja-brd: #EFC4C0;
+  --color-cola-roja-bg: #FDE2E1;       /* pastilla del toggle con pendientes */
+  --color-cola-verde-brd: #BFE0C2;
+  --color-pill-modelo-bg: #E3F1E4;
+  --color-pill-modelo-text: #1B5E20;
+  --color-pill-aviso-bg: #FCE7C3;      /* "⚠ falta modelo" y "N asignados" */
+  --color-pill-aviso-text: #9A6B00;
+  --color-pill-buscando-bg: #EEF1F5;
+  --color-cola-quitar: #C2B3B3;
+  --color-pulido-sel-bg: #E8EEF7;
 }

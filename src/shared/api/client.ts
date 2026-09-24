@@ -36,6 +36,17 @@ export type CargaTecnicosRespuesta = components['schemas']['CargaTecnicosRespues
 export type FilaCarga = components['schemas']['CargaTecnicosRespuestaFilaCarga']
 export type DesgloseCarga = components['schemas']['CargaTecnicosRespuestaDesgloseDto']
 
+/** Guardado por lotes del modal "Asignar trabajos" (sub-proyecto 3b). */
+export type PeticionLote = components['schemas']['LoteAsignacionesPeticion']
+export type TelefonoDelLote = components['schemas']['LoteAsignacionesTelefonoDelLote']
+export type AsignacionDelLote = components['schemas']['LoteAsignacionesAsignacionDelLote']
+export type RespuestaLote = components['schemas']['LoteAsignacionesRespuesta']
+export type ConflictoLote = components['schemas']['LoteAsignacionesConflicto']
+/** Predicción de la glass automática (sub-proyecto 3b). */
+export type PeticionPrediccion = components['schemas']['GlassPrediccionRequest']
+export type VerdePrediccion = components['schemas']['GlassVerdeRequest']
+export type RespuestaPrediccion = components['schemas']['PrediccionGlassRespuesta']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''

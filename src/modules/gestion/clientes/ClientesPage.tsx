@@ -12,7 +12,8 @@ import { DataTable } from '@/shared/ui/DataTable'
 import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { ClienteDialog } from './ClienteDialog'
-import { tieneTelefonos, useBorrarCliente, useClientes, useCrearCliente, useEditarCliente, useSetActivoCliente } from './api'
+import { tieneTelefonos, useBorrarCliente, useCrearCliente, useEditarCliente, useSetActivoCliente } from './api'
+import { useClientes } from '@/shared/api/clientes'
 
 const MSG_MODIFICADO = 'El cliente fue modificado por otro usuario. Se recargan los datos.'
 
