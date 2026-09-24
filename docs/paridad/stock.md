@@ -92,7 +92,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Varios marcados: se combinan con O y el botón dice "N estados" (`stock-filtro-dos-estados`).
 - [x] Solo "Desactivado": quedan las filas atenuadas (`stock-filtro-desactivado`).
 - [x] Buscador "Buscar componente…": "contiene", sin mayúsculas, sobre el tipo sin sufijo (`stock-buscador`).
-- [ ] "Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección. (sin test que lo asegure)
+- [x] "Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección. (verificado por test: `src/modules/almacen/stock/StockPage.test.tsx` ""Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección")
 
 ## Pie
 
@@ -134,7 +134,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] Título "Ajustar mínimo", subtítulo de componente, "Nuevo stock mínimo:" precargado (diferencia, ver arriba) (`stock-ajustar-minimo`).
 - [x] Negativo o no entero: "Valor no válido (debe ser ≥ 0)." (inline en la web; aviso aparte en el JavaFX) (`stock-ajustar-minimo-error`).
-- [ ] Confirmar manda el PATCH del mínimo y recarga. (sin test que lo asegure)
+- [x] Confirmar manda el PATCH del mínimo y recarga. (verificado por test: `src/modules/almacen/stock/StockPage.test.tsx` ""Ajustar mínimo": tras el PATCH se cierra el diálogo y se recarga la lista de componentes")
 
 ## Activar / desactivar
 
@@ -150,7 +150,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] Título "Proveedores", filtro "Proveedor", botón "Nuevo proveedor" (solo SUPERTECNICO), tabla y pie "Actualizado HH:mm" (`proveedores-supertecnico`).
 - [x] Columnas Nombre, Divisa, Estado y Comentario; orden del servidor por nombre (`proveedores-supertecnico`).
-- [ ] Badge "Activo" verde / "Inactivo" gris; fila activa con borde izquierdo verde suave, inactiva sin opacidad (`proveedores-fila-seleccionada`) (inactiva no comparable: sin proveedores inactivos en la toma). (sin test que lo asegure)
+- [x] Badge "Activo" verde / "Inactivo" gris; fila activa con borde izquierdo verde suave, inactiva sin opacidad (`proveedores-fila-seleccionada`) (inactiva no comparable: sin proveedores inactivos en la toma). (verificado por test: `src/modules/almacen/proveedores/ProveedoresPage.test.tsx` "badge "Activo" verde e "Inactivo" gris; la fila activa con borde verde y la inactiva sin opacidad")
 - [x] Fila seleccionada navy (`proveedores-fila-seleccionada`).
 - [x] TECNICO y ADMIN: sin botón ni menú (`proveedores-tecnico`, `proveedores-admin`).
 - [x] Solo proveedores de componentes (`?tipo=COMPONENTES`).
@@ -161,31 +161,31 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Uno marcado: el botón dice su nombre (`proveedores-filtro-uno`).
 - [x] Varios: "N proveedores" (`proveedores-filtro-varios`).
 - [x] Sin "Limpiar filtros". (verificado por test: `ProveedoresPage.test.tsx` "el filtro solo ofrece activos, dice \"N proveedores\" con varios y filtra por nombre; vacío pinta \"Sin proveedores\"")
-- [ ] Tabla vacía por el filtro: "Sin proveedores" (`proveedores-vacio`) (no reproducible en la toma). (sin test que lo asegure)
+- [x] Tabla vacía por el filtro: "Sin proveedores" (`proveedores-vacio`) (no reproducible en la toma). (verificado por test: `src/modules/almacen/proveedores/ProveedoresPage.test.tsx` "tabla vacía por el filtro: el proveedor filtrado deja de venir tras recargar y se pinta "Sin proveedores"")
 
 ## Proveedores — menú
 
 - [x] Sin pedidos: Desactivar, Editar, Borrar (`proveedores-menu-contextual-con-borrar`).
 - [x] Con pedidos: solo Desactivar y Editar (`proveedores-menu-contextual-sin-borrar`).
 - [x] Inactivo: "Activar" (`proveedores-menu-contextual-inactivo`) (no reproducible en la toma). (verificado por test: `ProveedoresPage.test.tsx` "menú del supertécnico: Desactivar/Editar y \"Borrar\" solo sin pedidos; \"Activar\" en el inactivo")
-- [ ] Activar/desactivar sin confirmación; recarga. (sin test que lo asegure)
+- [x] Activar/desactivar sin confirmación; recarga. (verificado por test: `src/modules/almacen/proveedores/ProveedoresPage.test.tsx` ""Desactivar"/"Activar": tras el PATCH recarga la lista")
 
 ## Proveedores — nuevo
 
 - [x] Diálogo "Nuevo proveedor" con "Nombre del proveedor:" vacío (diferencia de estilo, ver arriba) (`proveedores-nuevo`).
 - [x] Nombre en blanco: "El nombre no puede estar vacío." (diferencia, ver arriba). (verificado por test: `ProveedoresPage.test.tsx` "\"Nuevo proveedor\": nombre en blanco avisa (S5); con nombre hace el POST con tipo COMPONENTES y recarga")
-- [ ] Alta con el nombre recortado, tipo COMPONENTES y divisa EUR; recarga. (sin test que lo asegure)
+- [x] Alta con el nombre recortado, tipo COMPONENTES y divisa EUR; recarga. (verificado por test: `src/modules/almacen/proveedores/ProveedoresPage.test.tsx` ""Nuevo proveedor": tras el POST cierra el diálogo y recarga")
 
 ## Proveedores — editar
 
 - [x] Título "Editar proveedor" con el nombre en el subtítulo; Nombre, Divisa (combo navy con EUR y USD) y Comentario de 3 filas, precargados (`proveedores-editar`).
 - [x] Nombre vacío: "El nombre no puede estar vacío." con el diálogo abierto (`proveedores-editar-error`).
-- [ ] Confirmar manda el PUT, cierra y recarga. (sin test que lo asegure)
+- [x] Confirmar manda el PUT, cierra y recarga. (verificado por test: `src/modules/almacen/proveedores/ProveedoresPage.test.tsx` ""Editar": tras el PUT cierra el diálogo y recarga")
 
 ## Proveedores — borrar
 
 - [x] Confirmación roja "Borrar proveedor" / "¿Eliminar el proveedor "`<nombre>`"?" con el botón "Borrar" (`proveedores-borrar-confirm`).
-- [ ] Confirmar manda el DELETE y recarga; un 409 se enseña como error de negocio (diferencia, ver arriba). (sin test que lo asegure)
+- [x] Confirmar manda el DELETE y recarga; un 409 se enseña como error de negocio (diferencia, ver arriba). (verificado por test: `src/modules/almacen/proveedores/ProveedoresPage.test.tsx` ""Borrar": tras el DELETE recarga la lista")
 
 ## Campana
 
@@ -200,8 +200,8 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 ## Refresco y errores
 
-- [ ] Refresco cada 60 s (5 s con el banner de conexión), solo de la pestaña visible. (sin test que lo asegure)
+- [x] Refresco cada 60 s (5 s con el banner de conexión), solo de la pestaña visible. (verificado por test: `src/modules/almacen/stock/StockPage.test.tsx` "el refresco de 60 s solo recarga la pestaña visible: componentes sí, proveedores no")
 - [x] Congelado con un menú, el filtro o un diálogo abiertos. (verificado por test: `useInteraccionesAbiertas.test.tsx` "marcar(true) dos veces y marcar(false) una deja una abierta"; en la web, `StockPage.test.tsx` "con un diálogo abierto el sondeo se congela")
 - [x] Sin conexión: banner amarillo, sin ventana de error (`stock-banner-sin-conexion`: no reproducible en el JavaFX; simulado en la web).
 - [x] Fallo de la cantidad en camino: el gráfico por SKU conserva lo anterior y se avisa por el mapeo común. (verificado por test: `StockPage.test.tsx` "si falla la cantidad en camino, el gráfico por SKU conserva el anterior (título incluido) y avisa")
-- [ ] Errores de "Solicitar pieza" con el diálogo abierto. (sin test que lo asegure)
+- [x] Errores de "Solicitar pieza" con el diálogo abierto. (verificado por test: `src/modules/almacen/stock/StockPage.test.tsx` "un error de "Solicitar pieza" (403) deja el diálogo abierto y avisa con el mensaje mapeado")
