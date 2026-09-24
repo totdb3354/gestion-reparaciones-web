@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.5.0] - 2026-09-XX — Asignar trabajos
+## [0.5.0] - 2026-09-24 — Asignar trabajos
 
 - El botón "Asignar" abre el modal de asignación: colas de Reparación, Glass y Pulido, escaneo y pegado de IMEIs, modelo y cliente por IMEI, técnicos que se mantienen entre IMEIs, chasis y "Lleva glass" con la glass automática.
 - Todo el lote se guarda de una vez al final; si algo falla no queda nada a medias y reintentar no duplica. Las asignaciones que ya existían se saltan y se avisan.
