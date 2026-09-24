@@ -14,11 +14,13 @@ const proveedores = [
   { idProv: 3, nombre: 'Antiguo', activo: false, divisa: 'EUR', comentario: '', tipo: 'COMPONENTES' },
 ]
 let tipoPedido: string | null = null
+const cargas = { n: 0 }
 
 beforeEach(() => {
   tipoPedido = null
+  cargas.n = 0
   server.use(
-    http.get('*/api/proveedores', ({ request }) => { tipoPedido = new URL(request.url).searchParams.get('tipo'); return HttpResponse.json(proveedores) }),
+    http.get('*/api/proveedores', ({ request }) => { cargas.n += 1; tipoPedido = new URL(request.url).searchParams.get('tipo'); return HttpResponse.json(proveedores) }),
     http.get('*/api/proveedores/:id/tiene-pedidos', ({ params }) => HttpResponse.json({ value: params.id === '1' })),
   )
 })
@@ -171,5 +173,77 @@ describe('ProveedoresPage', () => {
     expect(CABECERAS_CSV_PROVEEDORES).toEqual(['ID', 'Nombre', 'Activo'])
     expect(filaCsvProveedor(proveedores[0])).toEqual(['1', 'ACME', 'Sí'])
     expect(filaCsvProveedor(proveedores[2])).toEqual(['3', 'Antiguo', 'No'])
+  })
+  it('badge "Activo" verde e "Inactivo" gris; la fila activa con borde verde y la inactiva sin opacidad', async () => {
+    montar()
+    await screen.findByText('ACME')
+    const activo = within(screen.getByRole('row', { name: /^ACME/ })).getByText('Activo')
+    expect(activo).toHaveClass('bg-fila-reparado-bg', 'text-fila-reparado-ico')
+    const inactivo = within(screen.getByRole('row', { name: /^Antiguo/ })).getByText('Inactivo')
+    expect(inactivo).toHaveClass('bg-fila-cancelado-bg', 'text-fila-cancelado-text')
+    expect(inactivo).not.toHaveClass('bg-fila-reparado-bg')
+    expect(screen.getByRole('row', { name: /^ACME/ })).toHaveClass('border-l-fila-reparado-brd')
+    expect(screen.getByRole('row', { name: /^Antiguo/ })).not.toHaveClass('opacity-45')
+  })
+  it('tabla vacía por el filtro: el proveedor filtrado deja de venir tras recargar y se pinta "Sin proveedores"', async () => {
+    montar()
+    await screen.findByText('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Proveedor' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'ACME' }))
+    await userEvent.keyboard('{Escape}')
+    expect(within(screen.getByRole('table')).getByText('ACME')).toBeInTheDocument()
+    server.use(http.get('*/api/proveedores', () => { cargas.n += 1; return HttpResponse.json(proveedores.filter((p) => p.nombre !== 'ACME')) }))
+    const antes = cargas.n
+    await userEvent.click(screen.getByRole('button', { name: /^Actualizado \d\d:\d\d$/ }))
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
+    expect(await screen.findByText('Sin proveedores')).toBeInTheDocument()
+  })
+  it('"Desactivar"/"Activar": tras el PATCH recarga la lista', async () => {
+    let patch = false
+    server.use(http.patch('*/api/proveedores/3/activo', () => { patch = true; return new HttpResponse(null, { status: 200 }) }))
+    montar()
+    await screen.findByText('ACME')
+    const antes = cargas.n
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Antiguo') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Activar' }))
+    await waitFor(() => expect(patch).toBe(true))
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
+  })
+  it('"Nuevo proveedor": tras el POST cierra el diálogo y recarga', async () => {
+    let post = false
+    server.use(http.post('*/api/proveedores', () => { post = true; return new HttpResponse(null, { status: 201 }) }))
+    montar()
+    await screen.findByText('ACME')
+    const antes = cargas.n
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo proveedor' }))
+    await userEvent.type(within(screen.getByRole('dialog', { name: 'Nuevo proveedor' })).getByLabelText('Nombre del proveedor:'), 'Nuevo{Enter}')
+    await waitFor(() => expect(post).toBe(true))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
+  })
+  it('"Editar": tras el PUT cierra el diálogo y recarga', async () => {
+    let put = false
+    server.use(http.put('*/api/proveedores/1', () => { put = true; return new HttpResponse(null, { status: 200 }) }))
+    montar()
+    await screen.findByText('ACME')
+    const antes = cargas.n
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('ACME') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar' }))
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Editar proveedor' })).getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(put).toBe(true))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
+  })
+  it('"Borrar": tras el DELETE recarga la lista', async () => {
+    let borrado = false
+    server.use(http.delete('*/api/proveedores/2', () => { borrado = true; return new HttpResponse(null, { status: 204 }) }))
+    montar()
+    await screen.findByText('ACME')
+    const antes = cargas.n
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Proveedor B') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Borrar' }))
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Borrar proveedor' })).getByRole('button', { name: 'Borrar' }))
+    await waitFor(() => expect(borrado).toBe(true))
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
   })
 })
