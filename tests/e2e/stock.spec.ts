@@ -79,7 +79,7 @@ test('supertécnico: stock actual, editar stock y devolverlo; proveedor de prueb
   const filaProv = filaExacta(page, nombre)
   await expect(filaProv).toHaveCount(1)
   try {
-    await expect(filaProv.getByText('Activo')).toBeVisible()
+    await expect(filaProv.getByText('Activo', { exact: true })).toBeVisible()
   } finally {
     // Solo pasa el DELETE de ese id: si la fila o el menú apuntaran a otro proveedor, la petición se aborta.
     await page.route('**/api/proveedores/*', (route) => {
