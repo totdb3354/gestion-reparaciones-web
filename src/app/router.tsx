@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
 import { AsignacionesPage } from '@/modules/taller/asignaciones/AsignacionesPage'
@@ -67,7 +68,7 @@ export const router = createBrowserRouter([
           },
           { path: '/stock', element: <StockPage /> },
           { path: '/stock/pedidos', element: <PendienteDeMigrar nombre="Pedidos" /> },
-          { path: '/stock/proveedores', element: <PendienteDeMigrar nombre="Proveedores" /> },
+          { path: '/stock/proveedores', element: <ProveedoresPage /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },
           { path: '/gestion/tecnicos', element: <PendienteDeMigrar nombre="Gestionar técnicos" /> },
