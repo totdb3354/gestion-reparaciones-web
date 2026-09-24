@@ -60,7 +60,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] Columna blanca de 200 px (160 en el JavaFX, ver arriba) con "Stock actual", "Pedidos" y "Proveedores" en ese orden; la activa en navy con texto crema (`stock-actual-supertecnico`).
 - [x] "Stock actual" activa al entrar en `/stock`; "Proveedores" en `/stock/proveedores` (`proveedores-supertecnico`).
-- [ ] "Pedidos" lleva a `/stock/pedidos`, que en 4a sigue "Pendiente de migrar".
+- [x] "Pedidos" lleva a `/stock/pedidos`, que en 4a sigue "Pendiente de migrar". (verificado por test: `SubNav.test.tsx` "en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada")
 - [x] Los tres roles ven la vista entera, con la columna "En Camino" (`stock-actual-tecnico`, `stock-actual-admin`).
 - [x] Al volver desde Reparaciones se conservan la pestaña, los filtros y la selección (`stock-cache-vuelta`).
 
@@ -69,8 +69,8 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Título "Stock actual", fila de filtros, tabla con pie a la izquierda y tarjeta de gráficos de 240 px a la derecha (`stock-actual-supertecnico`).
 - [x] Seis columnas: Componente, En Stock, En Camino, Stock Mínimo, Último pedido y Estado, con sus anchos (`stock-actual-supertecnico`).
 - [x] Componente compartido con el sufijo "  (compartido)" (dos espacios) (`stock-fila-compartido-seleccionada`).
-- [ ] "En Camino" a 0 pinta "—"; mayor que 0 es un enlace azul subrayado al pasar (`stock-en-camino-hover`) (no reproducible hoy: sin En Camino > 0).
-- [ ] El clic en "En Camino" navega a Pedidos con pendiente, en camino y parcial y el buscador con el componente (`stock-en-camino-navegacion`; en 4a llega a "Pendiente de migrar" con los parámetros en la URL) (no reproducible hoy: sin En Camino > 0).
+- [x] "En Camino" a 0 pinta "—"; mayor que 0 es un enlace azul subrayado al pasar (`stock-en-camino-hover`) (no reproducible hoy: sin En Camino > 0). (verificado por test: `columnas.test.tsx` "'En Camino' a 0 es texto —; > 0 es un enlace azul que avisa con el componente")
+- [x] El clic en "En Camino" navega a Pedidos con pendiente, en camino y parcial y el buscador con el componente (`stock-en-camino-navegacion`; en 4a llega a "Pendiente de migrar" con los parámetros en la URL) (no reproducible hoy: sin En Camino > 0). (verificado por test: `StockPage.test.tsx` "'En Camino' > 0 navega a Pedidos con los tres estados y el buscador")
 - [x] "Último pedido" en `dd/MM/yyyy`; nulo → "—" (`stock-actual-supertecnico`).
 - [x] Activos primero y desactivados al final; dentro de cada grupo, el orden del servidor (`stock-actual-supertecnico`).
 - [x] Sin ordenación por cabecera (diferencia, ver arriba) (`stock-orden-cabecera`).
@@ -82,17 +82,17 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Borde izquierdo de 8 px ámbar en "Bajo" y rojo en "Sin stock"; transparente en "OK" (`stock-fila-seleccionada-bajo`, `stock-fila-seleccionada-sinstock`).
 - [x] Fila seleccionada navy con textos crema; el badge y el enlace conservan su color (`stock-fila-seleccionada-ok`).
 - [x] Fila desactivada con opacidad 0.45; seleccionada se pinta navy con textos crema, atenuada al 45 % (`stock-fila-desactivada-seleccionada`).
-- [ ] Stock negativo = "Bajo" (calco).
+- [x] Stock negativo = "Bajo" (calco). (verificado por test: `semaforoStock.test.ts` "stock negativo es Bajo (calco)")
 
 ## Filtros
 
 - [x] Botón "Estado" con las casillas "OK", "Bajo", "Sin stock" y "Desactivado"; marcar no cierra el desplegable (`stock-filtro-estado-abierto`).
-- [ ] Sin desactivados, "Desactivado" no aparece en el filtro ni hay "N desactivados" en el pie (`stock-filtro-estado-sin-desactivados`) (no reproducible en la toma).
+- [x] Sin desactivados, "Desactivado" no aparece en el filtro ni hay "N desactivados" en el pie (`stock-filtro-estado-sin-desactivados`) (no reproducible en la toma). (verificado por test: `StockPage.test.tsx` "sin desactivados el check \"Desactivado\" no aparece ni el pie")
 - [x] Un estado marcado: el botón dice su nombre (`stock-filtro-bajo`).
 - [x] Varios marcados: se combinan con O y el botón dice "N estados" (`stock-filtro-dos-estados`).
 - [x] Solo "Desactivado": quedan las filas atenuadas (`stock-filtro-desactivado`).
 - [x] Buscador "Buscar componente…": "contiene", sin mayúsculas, sobre el tipo sin sufijo (`stock-buscador`).
-- [ ] "Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección.
+- [ ] "Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección. (sin test que lo asegure)
 
 ## Pie
 
@@ -103,13 +103,13 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] Título "Estado del stock", donut de tres sectores (OK verde, Bajo ámbar del gráfico, Sin stock rojo) con el total y la palabra "total" en el centro (`stock-actual-supertecnico`).
 - [x] Leyenda con cuadrado de color, nombre y número por sector (`stock-actual-supertecnico`).
-- [ ] Se calcula sobre toda la lista sin filtros, sin desactivados ni negativos; los compartidos cuentan cada uno como una fila (calco).
+- [x] Se calcula sobre toda la lista sin filtros, sin desactivados ni negativos; los compartidos cuentan cada uno como una fila (calco). (verificado por test: `graficos.test.ts` "cuenta OK, Bajo y Sin stock sobre los activos; excluye desactivados y negativos (calco :495-501)" y "un grupo compartido cuenta cada fila (calco)")
 
 ## Gráfico por SKU
 
 - [x] Sin selección: "Selecciona un componente" y "↑ Haz clic en una fila" (`stock-actual-supertecnico`).
 - [x] Con selección: título = tipo, barras "Stock" con el color del semáforo y "Pedido" azul, eje "Unidades" (`stock-fila-seleccionada-ok`, `stock-fila-seleccionada-bajo`, `stock-fila-seleccionada-sinstock`).
-- [ ] En un compartido la barra "Pedido" suma los pedidos del master (arreglo del servidor) (`stock-fila-compartido-seleccionada`) (no comparable: sin En Camino > 0 en la web).
+- [x] En un compartido la barra "Pedido" suma los pedidos del master (arreglo del servidor) (`stock-fila-compartido-seleccionada`) (no comparable: sin En Camino > 0 en la web). (verificado por test: `CompraComponenteDAOEnCaminoTest` "unSlaveConsultaLaSumaDeSuMaster"; en la web, `api.test.tsx` "pedirCantidadEnCamino lee el value tipado")
 - [x] Tooltip oscuro solo con el número al pasar por una barra, sin banda gris (`stock-tooltip-barra`).
 - [x] El TECNICO ve "Pedido" a 0 sin pedir la cantidad; ADMIN y SUPERTECNICO la piden (`stock-actual-tecnico`, `stock-actual-admin`).
 
@@ -124,33 +124,33 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 ## Editar stock
 
 - [x] Título "Editar stock", subtítulo "Componente: `<tipo>`   ·   Stock actual: `<stock>` ud(s).", "Nueva cantidad" precargada con foco (`stock-editar-stock`).
-- [ ] Enter confirma.
+- [x] Enter confirma. (verificado por test: `dialogos.test.tsx` "abre con el stock precargado y el subtítulo; confirma con el entero")
 - [x] No entero o negativo: "Cantidad no válida (debe ser ≥ 0)." con el diálogo abierto (`stock-editar-stock-error`).
-- [ ] Confirmar manda el PUT con tipo, stock, mínimo y `updatedAt` tal como llegaron, cierra y recarga.
-- [ ] 409: cierra, aviso "El componente fue modificado mientras editabas. Recarga los datos." y recarga (`stock-editar-stock-conflicto`) (no reproducible en la toma).
-- [ ] Con un error que no sea 409 ni 422 (403/404/5xx/red) el diálogo queda abierto y el error se muestra con el aviso global (calco del JavaFX; `stock-editar-stock-error` no aplica, sin captura).
+- [x] Confirmar manda el PUT con tipo, stock, mínimo y `updatedAt` tal como llegaron, cierra y recarga. (verificado por test: `StockPage.test.tsx` "\"Editar stock\" manda el PUT, recarga, y un 409 cierra el diálogo con el aviso y recarga")
+- [x] 409: cierra, aviso "El componente fue modificado mientras editabas. Recarga los datos." y recarga (`stock-editar-stock-conflicto`) (no reproducible en la toma). (verificado por test: `StockPage.test.tsx` "\"Editar stock\" manda el PUT, recarga, y un 409 cierra el diálogo con el aviso y recarga")
+- [x] Con un error que no sea 409 ni 422 (403/404/5xx/red) el diálogo queda abierto y el error se muestra con el aviso global (calco del JavaFX; `stock-editar-stock-error` no aplica, sin captura). (verificado por test: `StockPage.test.tsx` "un error que no es 409 ni 422 en Editar stock deja el diálogo abierto y avisa")
 
 ## Ajustar mínimo
 
 - [x] Título "Ajustar mínimo", subtítulo de componente, "Nuevo stock mínimo:" precargado (diferencia, ver arriba) (`stock-ajustar-minimo`).
 - [x] Negativo o no entero: "Valor no válido (debe ser ≥ 0)." (inline en la web; aviso aparte en el JavaFX) (`stock-ajustar-minimo-error`).
-- [ ] Confirmar manda el PATCH del mínimo y recarga.
+- [ ] Confirmar manda el PATCH del mínimo y recarga. (sin test que lo asegure)
 
 ## Activar / desactivar
 
-- [ ] Sin confirmación; recarga.
+- [x] Sin confirmación; recarga. (verificado por test: `StockPage.test.tsx` "\"Ajustar mínimo\" hace el PATCH; \"Desactivar\" sin confirmación; \"Solicitar pieza\" hace el POST sin recargar")
 - [x] En un compartido se desactiva todo el grupo, que baja al final atenuado (calco) (`stock-desactivar-compartido-antes`, `stock-desactivar-compartido-despues`).
 
 ## Solicitar pieza
 
 - [x] Título "Solicitar pieza", subtítulo de componente, "Descripción (opcional)" con área de 3 filas y placeholder "Motivo o contexto de la solicitud...", botón "Solicitar" (`stock-solicitar-pieza`).
-- [ ] Sin validación; descripción vacía → nula; sin mensaje de éxito ni recarga (calco).
+- [x] Sin validación; descripción vacía → nula; sin mensaje de éxito ni recarga (calco). (verificado por test: `StockPage.test.tsx` "\"Ajustar mínimo\" hace el PATCH; \"Desactivar\" sin confirmación; \"Solicitar pieza\" hace el POST sin recargar")
 
 ## Proveedores — tabla
 
 - [x] Título "Proveedores", filtro "Proveedor", botón "Nuevo proveedor" (solo SUPERTECNICO), tabla y pie "Actualizado HH:mm" (`proveedores-supertecnico`).
 - [x] Columnas Nombre, Divisa, Estado y Comentario; orden del servidor por nombre (`proveedores-supertecnico`).
-- [ ] Badge "Activo" verde / "Inactivo" gris; fila activa con borde izquierdo verde suave, inactiva sin opacidad (`proveedores-fila-seleccionada`) (inactiva no comparable: sin proveedores inactivos en la toma).
+- [ ] Badge "Activo" verde / "Inactivo" gris; fila activa con borde izquierdo verde suave, inactiva sin opacidad (`proveedores-fila-seleccionada`) (inactiva no comparable: sin proveedores inactivos en la toma). (sin test que lo asegure)
 - [x] Fila seleccionada navy (`proveedores-fila-seleccionada`).
 - [x] TECNICO y ADMIN: sin botón ni menú (`proveedores-tecnico`, `proveedores-admin`).
 - [x] Solo proveedores de componentes (`?tipo=COMPONENTES`).
@@ -160,32 +160,32 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] El desplegable ofrece solo los activos (`proveedores-filtro-abierto`).
 - [x] Uno marcado: el botón dice su nombre (`proveedores-filtro-uno`).
 - [x] Varios: "N proveedores" (`proveedores-filtro-varios`).
-- [ ] Sin "Limpiar filtros".
-- [ ] Tabla vacía por el filtro: "Sin proveedores" (`proveedores-vacio`) (no reproducible en la toma).
+- [x] Sin "Limpiar filtros". (verificado por test: `ProveedoresPage.test.tsx` "el filtro solo ofrece activos, dice \"N proveedores\" con varios y filtra por nombre; vacío pinta \"Sin proveedores\"")
+- [ ] Tabla vacía por el filtro: "Sin proveedores" (`proveedores-vacio`) (no reproducible en la toma). (sin test que lo asegure)
 
 ## Proveedores — menú
 
 - [x] Sin pedidos: Desactivar, Editar, Borrar (`proveedores-menu-contextual-con-borrar`).
 - [x] Con pedidos: solo Desactivar y Editar (`proveedores-menu-contextual-sin-borrar`).
-- [ ] Inactivo: "Activar" (`proveedores-menu-contextual-inactivo`) (no reproducible en la toma).
-- [ ] Activar/desactivar sin confirmación; recarga.
+- [x] Inactivo: "Activar" (`proveedores-menu-contextual-inactivo`) (no reproducible en la toma). (verificado por test: `ProveedoresPage.test.tsx` "menú del supertécnico: Desactivar/Editar y \"Borrar\" solo sin pedidos; \"Activar\" en el inactivo")
+- [ ] Activar/desactivar sin confirmación; recarga. (sin test que lo asegure)
 
 ## Proveedores — nuevo
 
 - [x] Diálogo "Nuevo proveedor" con "Nombre del proveedor:" vacío (diferencia de estilo, ver arriba) (`proveedores-nuevo`).
-- [ ] Nombre en blanco: "El nombre no puede estar vacío." (diferencia, ver arriba).
-- [ ] Alta con el nombre recortado, tipo COMPONENTES y divisa EUR; recarga.
+- [x] Nombre en blanco: "El nombre no puede estar vacío." (diferencia, ver arriba). (verificado por test: `ProveedoresPage.test.tsx` "\"Nuevo proveedor\": nombre en blanco avisa (S5); con nombre hace el POST con tipo COMPONENTES y recarga")
+- [ ] Alta con el nombre recortado, tipo COMPONENTES y divisa EUR; recarga. (sin test que lo asegure)
 
 ## Proveedores — editar
 
 - [x] Título "Editar proveedor" con el nombre en el subtítulo; Nombre, Divisa (combo navy con EUR y USD) y Comentario de 3 filas, precargados (`proveedores-editar`).
 - [x] Nombre vacío: "El nombre no puede estar vacío." con el diálogo abierto (`proveedores-editar-error`).
-- [ ] Confirmar manda el PUT, cierra y recarga.
+- [ ] Confirmar manda el PUT, cierra y recarga. (sin test que lo asegure)
 
 ## Proveedores — borrar
 
 - [x] Confirmación roja "Borrar proveedor" / "¿Eliminar el proveedor "`<nombre>`"?" con el botón "Borrar" (`proveedores-borrar-confirm`).
-- [ ] Confirmar manda el DELETE y recarga; un 409 se enseña como error de negocio (diferencia, ver arriba).
+- [ ] Confirmar manda el DELETE y recarga; un 409 se enseña como error de negocio (diferencia, ver arriba). (sin test que lo asegure)
 
 ## Campana
 
@@ -200,8 +200,8 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 ## Refresco y errores
 
-- [ ] Refresco cada 60 s (5 s con el banner de conexión), solo de la pestaña visible.
-- [ ] Congelado con un menú, el filtro o un diálogo abiertos.
+- [ ] Refresco cada 60 s (5 s con el banner de conexión), solo de la pestaña visible. (sin test que lo asegure)
+- [x] Congelado con un menú, el filtro o un diálogo abiertos. (verificado por test: `useInteraccionesAbiertas.test.tsx` "marcar(true) dos veces y marcar(false) una deja una abierta"; en la web, `StockPage.test.tsx` "con un diálogo abierto el sondeo se congela")
 - [x] Sin conexión: banner amarillo, sin ventana de error (`stock-banner-sin-conexion`: no reproducible en el JavaFX; simulado en la web).
-- [ ] Fallo de la cantidad en camino: el gráfico por SKU conserva lo anterior y se avisa por el mapeo común.
-- [ ] Errores de "Solicitar pieza" con el diálogo abierto.
+- [x] Fallo de la cantidad en camino: el gráfico por SKU conserva lo anterior y se avisa por el mapeo común. (verificado por test: `StockPage.test.tsx` "si falla la cantidad en camino, el gráfico por SKU conserva el anterior (título incluido) y avisa")
+- [ ] Errores de "Solicitar pieza" con el diálogo abierto. (sin test que lo asegure)
