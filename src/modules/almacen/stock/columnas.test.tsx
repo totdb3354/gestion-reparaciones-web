@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Componente } from '@/shared/api/client'
 import { CREMA_EN_FILA_SELECCIONADA, DataTable } from '@/shared/ui/DataTable'
-import { BadgeEstadoStock, CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
+import { BadgeEstadoStock } from './BadgeEstadoStock'
+import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 
 const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
@@ -31,6 +32,8 @@ describe('columnas de Stock actual', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
   it('"En Camino" a 0 es texto "—"; > 0 es un enlace azul que avisa con el componente', async () => {
+    montar([c({ ultimoPedido: '2026-09-01T09:00:00' })])
+    expect(document.querySelector('[data-columna="enCamino"]')).toHaveTextContent('—')
     const onEnCamino = montar([c({ enCamino: 3 })])
     const enlace = screen.getByRole('button', { name: '3' })
     expect(enlace).toHaveClass('text-texto-accion', 'hover:underline')
