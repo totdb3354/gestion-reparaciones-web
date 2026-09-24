@@ -1,5 +1,6 @@
 import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
 import { horaLocal } from '@/shared/lib/fechas'
+import { cn } from '@/shared/lib/utils'
 import { useAlerta } from './AlertaProvider'
 
 type Props = {
@@ -7,12 +8,14 @@ type Props = {
   actualizadoEn: number
   /** Recarga manual; debe rechazar si falla (`() => refetch({ throwOnError: true })`). */
   onRecargar: () => Promise<unknown>
+  /** Clases extra para colocarla junto a otro texto del pie (p. ej. en una fila flex); por defecto ocupa todo el ancho. */
+  className?: string
 }
 
 /** Calco de lblUltimaActualizacion: "Actualizado HH:mm" (10 px, gris, hora local del PC) abajo a la derecha, con
  *  subrayado al pasar y recarga al pulsar. La recarga la pide el usuario, así que un fallo de conexión abre el
  *  diálogo (en el JavaFX el catch de cargar() muestra el Alert porque no es un refresco de fondo). */
-export function EtiquetaActualizado({ actualizadoEn, onRecargar }: Props) {
+export function EtiquetaActualizado({ actualizadoEn, onRecargar, className }: Props) {
   const { mostrarError } = useAlerta()
   async function recargar() {
     try {
@@ -23,7 +26,7 @@ export function EtiquetaActualizado({ actualizadoEn, onRecargar }: Props) {
     }
   }
   return (
-    <button type="button" onClick={recargar} className="mt-1 block w-full cursor-pointer text-right text-[10px] text-texto-vacio hover:underline">
+    <button type="button" onClick={recargar} className={cn('mt-1 block w-full cursor-pointer text-right text-[10px] text-texto-vacio hover:underline', className)}>
       {actualizadoEn > 0 ? `Actualizado ${horaLocal(new Date(actualizadoEn))}` : ''}
     </button>
   )

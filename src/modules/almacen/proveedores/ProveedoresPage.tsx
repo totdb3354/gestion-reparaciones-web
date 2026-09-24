@@ -13,6 +13,7 @@ import { DataTable } from '@/shared/ui/DataTable'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { MultiSelect } from '@/shared/ui/MultiSelect'
+import { ultimaRutaStock } from '../estado'
 import { useBorrarProveedor, useCrearProveedor, useEditarProveedor, useProveedoresComponentes, useSetActivoProveedor } from './api'
 import { CABECERAS_CSV_PROVEEDORES, claseFilaProveedor, crearColumnasProveedores, filaCsvProveedor } from './columnas'
 import { EditarProveedorDialog } from './EditarProveedorDialog'
@@ -38,6 +39,8 @@ export function ProveedoresPage() {
   const editar = useEditarProveedor()
   const setActivo = useSetActivoProveedor()
   const borrar = useBorrarProveedor()
+  // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
+  useEffect(() => { ultimaRutaStock.set('/stock/proveedores') }, [])
   useEffect(() => {
     if (!dialogo) return
     marcar(true)

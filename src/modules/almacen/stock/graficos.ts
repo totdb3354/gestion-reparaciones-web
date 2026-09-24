@@ -28,3 +28,15 @@ export function colorBarraStock(estado: EstadoStock): string {
   if (estado === 'Bajo') return COLORES_DONUT.bajo
   return COLORES_DONUT.ok
 }
+
+/** Marcas del eje Y del gráfico por SKU, calco literal de cargarChartSku (:563-567) y de NumberAxis.calculateTickValues:
+ *  cota superior = máximo (1 si es 0), tickUnit = max(1, max / 5) con división entera de Java, marcas desde 0 mientras
+ *  queden por debajo de la cota y la cota siempre al final (101 → 0, 20, …, 100, 101; Recharts oculta la que se solape). */
+export function ticksEjeY(maximo: number): number[] {
+  const tope = maximo <= 0 ? 1 : maximo
+  const paso = Math.max(1, Math.trunc(maximo / 5))
+  const ticks: number[] = []
+  for (let v = 0; v < tope; v += paso) ticks.push(v)
+  ticks.push(tope)
+  return ticks
+}
