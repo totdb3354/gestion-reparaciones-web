@@ -26,8 +26,10 @@ import { CABECERAS_CSV_OTROS, CABECERAS_CSV_PEDIDOS, claseFilaPedido, crearColum
 import { confirmacionDe } from './confirmaciones'
 import { filtrosPedidos, seleccionPedidos } from './estado'
 import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock } from './filtros'
+import { EditarOtroPedidoDialog } from './formulario/EditarOtroPedidoDialog'
+import { EditarPedidoDialog } from './formulario/EditarPedidoDialog'
 import { MenuPedido } from './MenuPedido'
-import { chipDeEstado, entradasMenu, ESTADOS_PEDIDO, idPedido, type AccionMenu, type EstadoPedido, type Pedido, type TipoPedido } from './reglas'
+import { chipDeEstado, entradasMenu, esCompra, ESTADOS_PEDIDO, idPedido, type AccionMenu, type EstadoPedido, type Pedido, type TipoPedido } from './reglas'
 
 /** mostrarConflicto() de StockController :1929-1933. */
 const MSG_MODIFICADO = 'Este pedido fue modificado por otro usuario. Los datos se han recargado.'
@@ -157,7 +159,6 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
         setConfirmar({ accion, pedido })
         return
       case 'editar':
-        // T17: editores
         setEditando(pedido)
         return
     }
@@ -283,6 +284,8 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
         onConfirmar={confirmarAccion}
         onCancelar={() => setConfirmar(null)}
       />
+      <EditarPedidoDialog pedido={tipo === 'componentes' && editando !== null && esCompra(editando) ? editando : null} onCerrar={() => setEditando(null)} />
+      <EditarOtroPedidoDialog pedido={tipo === 'otros' && editando !== null && !esCompra(editando) ? editando : null} onCerrar={() => setEditando(null)} />
     </div>
   )
 }
