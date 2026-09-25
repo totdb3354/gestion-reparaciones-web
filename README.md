@@ -44,8 +44,14 @@ sintético de prueba sin asignación de Reparación abierta para ese técnico y 
 `stock.spec.ts` también **escribe**: con `E2E_USER` edita el stock del SKU `E2E_SKU_PRUEBA` (+1 y lo devuelve) y crea y
 borra un proveedor de prueba `E2E <timestamp>` (el id a borrar sale del listado por el nombre exacto; sin ese id, falla sin
 limpiar). Si falla la restauración del stock, el SKU de prueba queda en +1 y se corrige a mano. Usa siempre un SKU de
-prueba, nunca uno real. Sin credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso
-de `asignar.spec.ts`, o sin `E2E_SKU_PRUEBA` en el de `stock.spec.ts`) en el entorno, los tests se saltan.
+prueba, nunca uno real.
+`pedidos.spec.ts` también **escribe**: con `E2E_USER` crea por API un proveedor de prueba `e2e-proveedor-<marca>`, crea
+desde "Nuevo pedido" un pedido de una línea del SKU `E2E_SKU_PRUEBA` con precio 0 y desde "Nuevo otro pedido" uno con un
+concepto sintético, edita los dos (cantidad 2) y los borra por el id que devuelve su propio lote; al final borra el
+proveedor (lo que no se haya borrado por la interfaz se borra por API, siempre por id). No confirma ni recibe ningún
+pedido, así que no toca stock.
+Sin credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso
+de `asignar.spec.ts`, o sin `E2E_SKU_PRUEBA` en el de `stock.spec.ts` y `pedidos.spec.ts`) en el entorno, los tests se saltan.
 
 ## Despliegue
 Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guía operativa es privada y vive fuera del repo.
