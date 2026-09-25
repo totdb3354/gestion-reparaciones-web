@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.7.0] - 2026-09-XX — Pedidos
+## [0.7.0] - 2026-09-25 — Pedidos
 
 - Pestaña Pedidos en `/stock/pedidos` con el conmutador Componentes | Otros: tablas con fecha, componente o concepto, proveedor, cantidad, precio por unidad, total en euros y estado, con sus colores, "!" en los recibidos a precio cero y "⚠" en los urgentes en camino; filtros de estado, proveedor, buscador y fechas compartidos por las dos tablas, "Limpiar filtros" y CSV de cada tabla.
 - Menú del supertécnico según el estado del pedido: confirmar pedido, recepción parcial, confirmar recibido, recibir resto, cerrar sin resto, cancelar, borrar, revertir a En camino y editar, con sus diálogos y confirmaciones.
