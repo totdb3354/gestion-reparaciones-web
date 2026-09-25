@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { PedidosPage } from '@/modules/almacen/pedidos/PedidosPage'
 import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
@@ -67,7 +68,9 @@ export const router = createBrowserRouter([
             children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="imei" /> }] }],
           },
           { path: '/stock', element: <StockPage /> },
-          { path: '/stock/pedidos', element: <PendienteDeMigrar nombre="Pedidos" /> },
+          // `key` por toggle: cada ruta monta su propia instancia (estado local, diálogos) en vez de reutilizar la anterior.
+          { path: '/stock/pedidos', element: <PedidosPage key="componentes" tipo="componentes" /> },
+          { path: '/stock/pedidos/otros', element: <PedidosPage key="otros" tipo="otros" /> },
           { path: '/stock/proveedores', element: <ProveedoresPage /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },

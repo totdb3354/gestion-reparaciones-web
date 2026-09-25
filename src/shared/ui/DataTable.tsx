@@ -28,7 +28,8 @@ type Props<T> = {
   data: T[]
   vacio: string
   filaClase?: (row: T) => string
-  /** Menú contextual de la fila (equivale al ContextMenu del TableView). */
+  /** Menú contextual de la fila (equivale al ContextMenu del TableView). Si devuelve null, esa fila no lleva menú: el
+   *  TableView no muestra un ContextMenu sin entradas (p. ej. un pedido cancelado). */
   menuFila?: (row: T, celda: CeldaPulsada) => ReactNode
   getRowId?: (row: T) => string
   /** 'fijo' (por defecto): cada columna mide su `size` en px y lo que sobra queda en blanco, como el TableView con
@@ -352,10 +353,12 @@ export function DataTable<T>({
     )
     if (!menuFila) return tr
     const celda: CeldaPulsada = { columnaId: columnaPulsada, resaltar: () => setResaltada({ fila: id, columna: columnaPulsada }) }
+    const contenido = menuFila(row.original, celda)
+    if (contenido === null) return tr
     return (
       <ContextMenu key={id}>
         <ContextMenuTrigger asChild>{tr}</ContextMenuTrigger>
-        <ContextMenuContent>{menuFila(row.original, celda)}</ContextMenuContent>
+        <ContextMenuContent>{contenido}</ContextMenuContent>
       </ContextMenu>
     )
   }
