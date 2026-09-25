@@ -68,16 +68,19 @@ export function StockPage() {
   }, [dialogo, marcar])
 
   // Vuelta desde Pedidos (calco de navegarAComponente, StockController :233-246; spec 4b §6 "Vuelta a Stock"): con los
-  // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente está
-  // en la lista, lo selecciona y pide a la tabla que se desplace hasta él. Después limpia la URL con replace. Un id que
-  // no es un entero positivo solo limpia la URL.
+  // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente sigue
+  // visible con esos filtros nuevos, lo selecciona y pide a la tabla que se desplace hasta él. Después limpia la URL con
+  // replace. Un id que no es un entero positivo solo limpia la URL. Se comprueba contra la lista YA filtrada (no contra
+  // `data`): un componente desactivado que llega sin "Desactivado" marcado no debe seleccionarse ni pedir scroll, aunque
+  // siga estando en `data` (T19 #12).
   const componenteUrl = params.get('componente')
   useEffect(() => {
     if (componenteUrl === null || !isSuccess) return
     const id = Number(componenteUrl)
     if (Number.isInteger(id) && id > 0) {
-      setFiltros(filtrosDesdePedidos)
-      if (data.some((c) => c.idCom === id)) {
+      const nuevosFiltros = filtrosDesdePedidos(filtrosStock.get())
+      setFiltros(nuevosFiltros)
+      if (aplicarFiltrosStock(data, nuevosFiltros).some((c) => c.idCom === id)) {
         setSeleccionada(String(id))
         // eslint-disable-next-line react-hooks/set-state-in-effect -- la llegada desde Pedidos se consume una sola vez, cuando ya hay datos; la petición de desplazamiento es la única forma de pedirle el scroll a DataTable
         setPeticionDesplazamiento((n) => n + 1)

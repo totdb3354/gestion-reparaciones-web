@@ -17,8 +17,8 @@ const otro = (o: Partial<CompraOtro> = {}): CompraOtro => ({
   estado: 'recibido', updatedAt: '2026-09-20T08:30:00', ...o,
 })
 
-function montarPedidos(filas: CompraComponente[], onComponente = vi.fn()) {
-  const r = render(<DataTable columns={crearColumnasPedidos({ onComponente })} data={filas} vacio="Sin pedidos" getRowId={(p) => String(p.idCompra)} filaClase={claseFilaPedido} />)
+function montarPedidos(filas: CompraComponente[], onComponente = vi.fn(), onSeleccionar?: (id: string | null) => void) {
+  const r = render(<DataTable columns={crearColumnasPedidos({ onComponente })} data={filas} vacio="Sin pedidos" getRowId={(p) => String(p.idCompra)} filaClase={claseFilaPedido} onSeleccionar={onSeleccionar} />)
   return { ...r, onComponente }
 }
 const celdas = (container: HTMLElement, columna: string) => Array.from(container.querySelectorAll(`[data-columna="${columna}"]`)).map((c) => c.textContent)
@@ -71,6 +71,12 @@ describe('tabla de componentes', () => {
     await userEvent.click(enlace)
     expect(onComponente).toHaveBeenCalledWith(expect.objectContaining({ idCompra: 2, idCom: 12 }))
   })
+  it('clic en el enlace Componente también selecciona la fila (calco: no lleva stopPropagation)', async () => {
+    const onSeleccionar = vi.fn()
+    montarPedidos([compra({ idCompra: 2, idCom: 12, tipoComponente: 'bat-x' })], vi.fn(), onSeleccionar)
+    await userEvent.click(screen.getByRole('button', { name: 'bat-x' }))
+    expect(onSeleccionar).toHaveBeenCalledWith('2')
+  })
 })
 
 describe('tabla de otros', () => {
@@ -109,13 +115,20 @@ describe('badge, "⚠" y clase de fila', () => {
     render(<BadgeEstadoPedido pedido={compra({ estado: 'pendiente', esUrgente: true })} />)
     expect(screen.queryByText('⚠')).not.toBeInTheDocument()
   })
-  it('clase de fila: barra de 8 px por estado; en camino solo si es urgente; cancelado sin barra y con opacidad', () => {
+  it('clase de fila: barra de 8 px por estado; en camino solo si es urgente; cancelado sin barra y con opacidad salvo seleccionado', () => {
     expect(claseFilaPedido(compra({ estado: 'pendiente' }))).toBe('border-l-8 border-l-fila-pendiente-brd')
     expect(claseFilaPedido(compra({ estado: 'en_camino', esUrgente: true }))).toBe('border-l-8 border-l-fila-solicitud-brd')
     expect(claseFilaPedido(compra({ estado: 'en_camino' }))).toBe('border-l-8 border-l-transparent')
     expect(claseFilaPedido(compra({ estado: 'recibido' }))).toBe('border-l-8 border-l-fila-recibido-brd')
     expect(claseFilaPedido(otro({ estado: 'parcial' }))).toBe('border-l-8 border-l-fila-parcial-brd')
-    expect(claseFilaPedido(otro({ estado: 'cancelado' }))).toBe('border-l-8 border-l-transparent opacity-45')
+    // El JavaFX pinta el navy de la fila seleccionada antes del switch de estado: un cancelado seleccionado no lleva la
+    // opacidad de "cancelado" (calco, la variante quita la opacidad solo cuando DataTable marca data-state="selected").
+    expect(claseFilaPedido(otro({ estado: 'cancelado' }))).toBe('border-l-8 border-l-transparent opacity-45 data-[state=selected]:opacity-100')
+  })
+  it('cancelado seleccionado: la fila lleva la clase que anula la opacidad con data-state="selected"', () => {
+    montarPedidos([compra({ idCompra: 2, idCom: 12, tipoComponente: 'bat-x', estado: 'cancelado' })], vi.fn(), vi.fn())
+    const fila = screen.getByText('bat-x').closest('tr') as HTMLElement
+    expect(fila).toHaveClass('opacity-45', 'data-[state=selected]:opacity-100')
   })
 })
 

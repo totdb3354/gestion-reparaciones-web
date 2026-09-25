@@ -237,6 +237,22 @@ describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
     await waitFor(() => expect(llamadas).toEqual([`2 confirmar-parcial {"cantidadRecibida":1,"updatedAt":"${U2}"}`]))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
+  it('un 409 dentro de "Recepción parcial" cierra el diálogo, avisa "modificado por otro usuario" y recarga', async () => {
+    const llamadas = registrarPatch('*/api/compras/:id/:accion', () => HttpResponse.json({ message: 'El pedido ya no está en camino' }, { status: 409 }))
+    montar()
+    await screen.findByText('bat-x')
+    const antes = cargas.compras
+    await abrirMenu('bat-x')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Recepción parcial' }))
+    const dlg = screen.getByRole('dialog', { name: 'Recepción parcial' })
+    const campo = within(dlg).getByLabelText('Cantidad recibida ahora:')
+    await userEvent.type(campo, '1{Enter}')
+    await waitFor(() => expect(llamadas).toEqual([`2 confirmar-parcial {"cantidadRecibida":1,"updatedAt":"${U2}"}`]))
+    expect(await screen.findByText(MSG_MODIFICADO)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Recepción parcial' })).not.toBeInTheDocument()
+    expect(screen.queryByText('El pedido ya no está en camino')).not.toBeInTheDocument()
+    await waitFor(() => expect(cargas.compras).toBeGreaterThan(antes))
+  })
   it('"Recibir resto": un 422 del servidor se pinta inline y el diálogo sigue abierto, sin aviso global', async () => {
     const msg = 'No puedes recibir más de lo pedido. Faltan 7 unidad(es).'
     registrarPatch('*/api/compras/:id/:accion', () => HttpResponse.json({ message: msg }, { status: 422 }))

@@ -406,6 +406,22 @@ describe('StockPage', () => {
     await waitFor(() => expect(filaDe('mc-x')).toHaveAttribute('aria-selected', 'true'))
     expect(screen.queryByText('bat-x')).not.toBeInTheDocument()
   })
+  it('?componente= de un componente activo con solo "Desactivado" marcado: aplica los filtros y limpia la URL, pero no selecciona ni pide desplazamiento (T19 #12)', async () => {
+    seleccionStock.set(null)
+    filtrosStock.set({ estados: new Set<EstadoStock>(['Desactivado']), buscador: 'zzz' })
+    // id 2 = bat-x, activo: con solo "Desactivado" marcado no está en la lista visible (solo lo está mc-x).
+    const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=2' })
+    await screen.findByText('mc-x')
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(router.state.location.pathname).toBe('/stock')
+    expect([...filtrosStock.get().estados]).toEqual(['Desactivado'])
+    expect(filtrosStock.get().buscador).toBe('')
+    // No se selecciona una fila que no se ve, ni se pide scroll: el store de selección queda como estaba.
+    expect(seleccionStock.get()).toBeNull()
+    expect(screen.queryByText('bat-x')).not.toBeInTheDocument()
+    expect(screen.getByText('Selecciona un componente')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /^Stock/ })).not.toBeInTheDocument()
+  })
   it('?componente= de un componente que no está en la lista aplica los filtros y limpia la URL sin tocar la selección; un id no numérico solo limpia la URL', async () => {
     seleccionStock.set('1')
     filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), buscador: 'lcd' })

@@ -118,6 +118,16 @@ describe('NuevoPedidoDialog', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('si falla la carga de componentes (500), no hay aviso de omitidas y "Cancelar" cierra el diálogo', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => new HttpResponse(null, { status: 500 })))
+    const onCerrar = abrir({ modo: 'solicitudes', urgentes: [urgente(10, 2), urgente(11, 4)], preventivas: [] })
+    // El error de la consulta abre el diálogo global (queryClient.test.tsx): se cierra antes de seguir con el formulario.
+    await userEvent.click(await screen.findByRole('button', { name: 'Aceptar' }))
+    expect(screen.queryByText(/solicitud\(es\) de componentes desactivados/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(onCerrar).toHaveBeenCalledTimes(1)
+  })
+
   it('autocompletar: solo activos (con los slaves de SKU compartido), filtro "contiene" y Enter elige el primero', async () => {
     abrir()
     await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))

@@ -33,10 +33,13 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
 
   // Precarga una sola vez, cuando la lista de componentes termina de cargar (bien o mal): patrón "ajustar el estado
   // durante el render" (CampoAutocompletar, useErrorServidor), sin useEffect + setState.
+  // Si la carga falla, `activos` queda vacío y toda solicitud parecería "omitida" (falso: no se ha podido leer la
+  // lista, no es que estén desactivados). El diálogo global de error ya avisa del fallo, así que aquí no se cuenta
+  // ninguna omitida y no sale la línea de información.
   if (lineas === null && (componentes.isSuccess || componentes.isError)) {
     const inicial = precargaInicial(precarga, activos)
     setLineas(inicial.lineas)
-    setOmitidas(inicial.omitidas)
+    setOmitidas(componentes.isError ? 0 : inicial.omitidas)
   }
   const preseleccion = preseleccionDe(precarga, activos)
 

@@ -30,9 +30,10 @@ export function crearColumnasPedidos({ onComponente }: { onComponente: (p: Compr
     {
       id: 'componente', header: 'Componente', size: ANCHOS_PEDIDOS.componente,
       // Calco del Label con TEXTO_ACCION, cursor mano y subrayado al pasar (:762-780), con la clase del enlace "En Camino"
-      // de Stock (stock/columnas.tsx:50): lleva a Stock actual con la fila del componente seleccionada.
+      // de Stock (stock/columnas.tsx:50): lleva a Stock actual con la fila del componente seleccionada. Sin stopPropagation:
+      // el clic también selecciona la fila antes de navegar, como en el JavaFX (StockController :762-772).
       cell: ({ row }) => (
-        <button type="button" onClick={(e) => { e.stopPropagation(); onComponente(row.original) }} className="cursor-pointer text-texto-accion hover:underline">
+        <button type="button" onClick={() => onComponente(row.original)} className="cursor-pointer text-texto-accion hover:underline">
           {row.original.tipoComponente}
         </button>
       ),
@@ -60,7 +61,8 @@ export function crearColumnasOtros(): ColumnDef<CompraOtro>[] {
 
 /** Calco del rowFactory (:853-882): barra izquierda de 8 px por estado (pendiente ámbar a mano, en camino solo si urgente,
  *  recibido verde, parcial violeta) y el cancelado sin barra con opacidad 0.45 en toda la fila. La seleccionada la pinta
- *  DataTable (navy, texto crema, barra transparente); la opacidad del cancelado prevalece, como la desactivada de Stock. */
+ *  DataTable (navy, texto crema, barra transparente); el JavaFX aplica el estilo navy antes del switch de estado
+ *  (`actualizarEstilo`, StockController :857-863), así que un cancelado seleccionado queda navy liso, sin la opacidad. */
 export function claseFilaPedido(p: Pedido): string {
   switch (p.estado) {
     case 'pendiente':
@@ -72,7 +74,7 @@ export function claseFilaPedido(p: Pedido): string {
     case 'parcial':
       return 'border-l-8 border-l-fila-parcial-brd'
     case 'cancelado':
-      return 'border-l-8 border-l-transparent opacity-45'
+      return 'border-l-8 border-l-transparent opacity-45 data-[state=selected]:opacity-100'
     default:
       return 'border-l-8 border-l-transparent'
   }
