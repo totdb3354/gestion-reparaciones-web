@@ -85,6 +85,16 @@ describe('CampoAutocompletar', () => {
     await userEvent.type(screen.getByRole('combobox'), 'cliente')
     expect(screen.getByRole('listbox')).toHaveStyle({ maxHeight: '180px' })
   })
+  it('la lista va en un portal: no queda anidada dentro de un contenedor con scroll propio (C24, DialogoLineas)', async () => {
+    const contenedor = document.createElement('div')
+    contenedor.setAttribute('data-testid', 'contenedor-scroll')
+    document.body.appendChild(contenedor)
+    render(<Envoltorio />, { container: contenedor })
+    await userEvent.type(screen.getByRole('combobox', { name: 'Modelo' }), '14')
+    const lista = screen.getByRole('listbox')
+    expect(contenedor.contains(lista)).toBe(false)
+    expect(document.body.contains(lista)).toBe(true)
+  })
   it('sigue el valor cuando el padre lo cambia desde fuera (sin pasar por onElegir del propio campo)', async () => {
     render(<EnvoltorioExterno inicial="14" />)
     const campo = screen.getByRole('combobox')

@@ -90,8 +90,8 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
         {/* Alto máximo con scroll propio (calco del ListView a prefHeight 220 de FormularioCompraView.fxml, C24): con
             muchas líneas la tabla desplaza y "Cancelar"/"Confirmar pedido" quedan siempre a la vista. El popup del
-            autocompletar es absolute dentro de esta misma caja, así que si la fila abierta queda fuera del recorte
-            visible, el propio scroll (o el desplazamiento del campo al enfocarlo) la trae a la vista. */}
+            autocompletar de Componente va en un portal (CampoAutocompletar), así que el recorte de esta caja no lo
+            afecta: no hace falta que el scroll lo traiga a la vista. */}
         <div className="min-h-[220px] max-h-[260px] overflow-y-auto rounded-md bg-superficie">
           <table className="w-full table-fixed text-sm">
             <colgroup>

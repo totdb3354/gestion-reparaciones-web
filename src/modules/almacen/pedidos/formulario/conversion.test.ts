@@ -23,4 +23,16 @@ describe('conversión a euros (tasa = divisa por 1 EUR, P3: se divide)', () => {
     expect(etiquetaTasa('USD', 1.1367)).toBe('  (1 USD = 0,8797 €)')
     expect(etiquetaTasa('EUR', 1)).toBe('')
   })
+  it('aEuros: HALF_UP en un empate por encima de 1, donde Number.EPSILON no basta para compensar el redondeo'
+    + ' binario (1,74 / 0,8 = 2,175 exacto, pero el double más cercano cae por debajo y Math.round sin más trunca'
+    + ' a 2,17 en vez de subir a 2,18, como el BigDecimal HALF_UP del servidor)', () => {
+    expect(aEuros(1.74, 0.8)).toBe(2.18)
+    expect(aEuros(1.94, 0.8)).toBe(2.43)
+    expect(aEuros(2.61, 1.2)).toBe(2.18)
+  })
+  it('aEuros: en EUR (tasa 1) devuelve el precio SIN redondear, como `ConversionEur.aEuros` del servidor (que ni'
+    + ' siquiera consulta la tasa en ese caso); el redondeo a 2 decimales lo hace solo el formateador al pintar', () => {
+    expect(aEuros(12.345, 1)).toBe(12.345)
+    expect(totalLinea(12.345, 1, 3)).toBeCloseTo(37.035, 4)
+  })
 })
