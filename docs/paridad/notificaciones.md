@@ -24,10 +24,10 @@ Capturas de referencia (documentación privada, fuera del repo): `formulario/{ca
 ## Panel
 
 - [x] Se abre con un clic en la campana y se cierra con otro (conmutador). Panel flotante sin cabecera, título ni botón de cerrar, no modal: 480 px de ancho, fondo #DDE1E7, borde 1 px #C4C9D4, sin sombra ni radio, padding 20, separación vertical 12; borde derecho alineado con el de la campana y 6 px por debajo de ella; se recoloca si cambia el tamaño de la ventana.
-- [x] También se cierra al pulsar en cualquier punto de la página fuera del panel y de la campana, y con "→ Ir a pedidos" y "Ver Stock Completo". No se cierra por perder el foco la ventana.
+- [x] También se cierra al pulsar en cualquier punto de la página fuera del panel y de la campana, y con "→ Ir a pedidos", "Ver Stock Completo", "Pedir", "Pedir todas las piezas" y "Pedir piezas" (este último solo si hay pendientes). No se cierra por perder el foco la ventana.
 - [x] Pestaña inicial: "Solicitudes", salvo que el pulso estuviera latiendo en el momento del clic: entonces "Alertas" (solo ocurre en la primera apertura de la sesión con alertas).
 - [x] Control segmentado "Solicitudes" · "Alertas": contenedor blanco, radio 20, borde 1 px #D0D4DC, padding 3. Activo: fondo #2C3B54, texto blanco, 12 px negrita, radio 17, padding 7 18. Inactivo: transparente, texto #586376, 12 px sin negrita. Sin contadores. Cambiar de pestaña no recarga datos.
-- [x] A la derecha de esa fila, enlace "→ Ir a pedidos" (12 px negrita, #001232, cursor de mano, sin subrayado), visible en las dos pestañas. **Deshabilitado hasta el sub-proyecto 4** con tooltip "Disponible con Almacén (próxima entrega)" (en el JavaFX cierra el panel y abre Stock en la pestaña Pedidos).
+- [x] A la derecha de esa fila, enlace "→ Ir a pedidos" (12 px negrita, #001232, cursor de mano, sin subrayado), visible en las dos pestañas: cierra el panel y abre Stock en la pestaña Pedidos, sin filtros (sub-proyecto 4a).
 
 ## Pestaña Solicitudes
 
@@ -44,7 +44,7 @@ Capturas de referencia (documentación privada, fuera del repo): `formulario/{ca
 - [x] Errores de cualquier acción: aviso con el mensaje del servidor según la política del shell; la lista no cambia.
 - [x] Botones inferiores, mitad y mitad, separación 8, siempre habilitados en el JavaFX: "Pedir piezas" (fondo #2C3B54, texto blanco, 13 px negrita, radio 20, padding 11) y "Rechazar todo" (mismo formato, fondo #F5A0A0 y texto #7A2020).
 - [x] "Rechazar todo": **sin confirmación**; pide las `PENDIENTE` al servidor en ese momento y las pasa a `RECHAZADA` una a una, urgentes primero y preventivas después; al primer error se detiene (las ya rechazadas quedan así), muestra el error y no recarga; si todo va bien, recarga las solicitudes. Con la lista vacía no hace nada.
-- [x] "Pedir piezas": **deshabilitado hasta el sub-proyecto 4** con tooltip "Disponible con Almacén (próxima entrega)" (en el JavaFX abre "Nuevo pedido — solicitudes pendientes" con una línea por componente y, al confirmar el pedido, pasa a `GESTIONADA` todas las solicitudes pendientes).
+- [x] "Pedir piezas": relee las solicitudes PENDIENTE urgentes y preventivas; si no hay ninguna no hace nada (sin aviso); si las hay, cierra el panel y abre "Nuevo pedido" con una línea por componente y cantidad = número de solicitudes; al confirmar el pedido, las solicitudes de los componentes con línea pasan a GESTIONADA en el mismo guardado (sub-proyecto 4b, D10). Si falla la relectura, aviso con el mensaje y el panel sigue abierto.
 
 ## Pestaña Alertas
 
@@ -52,8 +52,8 @@ Capturas de referencia (documentación privada, fuera del repo): `formulario/{ca
 - [x] Orden: primero las de stock 0, después las de stock > 0; dentro de cada grupo, el orden del servidor (por SKU). Fondo alterno con un único contador para los dos grupos. Se repinta en cada recarga. Un fallo al cargar es silencioso y se mantiene la última lista buena.
 - [x] Tarjeta: blanca (alterna #F5F6F8), radio 6, padding 12, separación 12. Icono circular de 40 px: #E8504A con "✕" (sin stock) o #E8903A con "!" (stock bajo), 14 px negrita blanco. SKU (14 px negrita, #2C3B54). Debajo, etiqueta "Sin Stock" / "Stock Bajo" (11 px negrita, del color del icono, sin fondo) y a su lado "Sin unidades" / "<stock> unid. restantes" (11 px, #9AA0AA; sin forma singular). El mínimo no se muestra. Sin menú contextual.
 - [x] Un componente con stock negativo cuenta como alerta (pulso) pero no tiene tarjeta (los grupos son `== 0` y `> 0`), como en el JavaFX.
-- [x] Botón "Pedir" de cada tarjeta (fondo #2C3B54, texto blanco, 11 px, radio 20, padding 6 16): **deshabilitado hasta el sub-proyecto 4** con el mismo tooltip (en el JavaFX abre "Nuevo pedido" con ese componente).
-- [x] Botones inferiores, mitad y mitad, los dos con el formato oscuro de "Pedir piezas": "Pedir todas las piezas" y "Ver Stock Completo". **Deshabilitados hasta el sub-proyecto 4** con el mismo tooltip (en el JavaFX: "Nuevo pedido — alertas de stock" con una línea por alerta, y cerrar el panel para abrir Stock en "Stock actual").
+- [x] Botón "Pedir" de cada tarjeta (fondo #2C3B54, texto blanco, 11 px, radio 20, padding 6 16): cierra el panel y abre "Nuevo pedido" con ese componente (sub-proyecto 4b).
+- [x] Botones inferiores, mitad y mitad, los dos con el formato oscuro de "Pedir piezas": "Pedir todas las piezas" (cierra el panel y abre "Nuevo pedido" con una línea por alerta, cantidad 1, en el orden de la campana; sin alertas no hace nada) y "Ver Stock Completo" (cierra el panel y abre Stock en "Stock actual").
 - [x] Pedir una pieza no quita la alerta: solo desaparece cuando el stock supera el mínimo.
 
 ## Refresco
@@ -68,7 +68,7 @@ Capturas de referencia (documentación privada, fuera del repo): `formulario/{ca
 - **Escape cierra el panel** (accesibilidad web); en el JavaFX no había manejador.
 - Con el panel cerrado, la web sigue recalculando el contador con el intervalo general (60 s / 5 s), además de al volver el foco; el JavaFX solo lo hacía al volver el foco. Efecto: el badge se pone al día antes.
 - "Inicio de sesión" a efectos del pulso = carga de la aplicación con sesión (incluye recargar la página).
-- "→ Ir a pedidos", "Pedir piezas", "Pedir", "Pedir todas las piezas" y "Ver Stock Completo": deshabilitados con tooltip hasta que exista Almacén (sub-proyecto 4).
+- Los botones de pedir cierran el panel antes de abrir el formulario; en el JavaFX la ventana de notificaciones queda abierta detrás del formulario modal (sub-proyecto 4b).
 - Las llamadas no bloquean la interfaz (en el JavaFX iban en el hilo de la UI).
 - Un fallo al cargar los componentes muestra el error solo en la primera carga (la que decide el pulso); los sondeos y recargas posteriores son silenciosos y conservan la última lista buena.
 - Al cambiar el tamaño de la ventana el panel se recoloca; en el JavaFX se cerraba.

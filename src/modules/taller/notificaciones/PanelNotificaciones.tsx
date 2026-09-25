@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
+import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
+import { abrirNuevoPedido } from '@/shared/lib/formularioPedido'
 import { cn } from '@/shared/lib/utils'
-import { TOOLTIP_ALMACEN } from '../lib/textos'
+import { useAlerta } from '@/shared/ui/AlertaProvider'
 import type { AlertaStock } from './alertas'
-import { useCambiarEstadoSolicitud, useQuitarSolicitud, useRechazarTodo, useSolicitudesPanel } from './api'
+import { pedirPendientes, useCambiarEstadoSolicitud, useQuitarSolicitud, useRechazarTodo, useSolicitudesPanel } from './api'
 import { firma, type ListasSolicitudes, type TarjetaDatos } from './solicitudes'
 import { TarjetaAlerta } from './TarjetaAlerta'
 import { TarjetaSolicitud } from './TarjetaSolicitud'
@@ -24,26 +26,19 @@ const PESTANAS: { clave: Pestana; texto: string }[] = [
 ]
 const BOTON_INFERIOR = 'w-full rounded-[20px] p-[11px] text-[13px] font-bold'
 
-/** Botón reservado para Almacén: visible, deshabilitado y con tooltip en un envoltorio que sí recibe el hover. */
-function BotonAlmacen({ texto, className, envoltorio }: { texto: string; className: string; envoltorio?: string }) {
-  return (
-    <span title={TOOLTIP_ALMACEN} className={envoltorio ?? 'inline-block'}>
-      <button type="button" disabled className={cn('pointer-events-none disabled:opacity-50', className)}>
-        {texto}
-      </button>
-    </span>
-  )
-}
-
 /** Panel flotante de la campana: 480 px, sin cabecera ni botón de cerrar, no modal (sin overlay ni trampa de foco). Borde
  *  derecho alineado con el de la campana y 6 px por debajo; se recoloca al cambiar el tamaño de la ventana. Se cierra al
  *  pulsar fuera del panel y de la campana, y con Escape. */
 export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alertas }: Props) {
   const navigate = useNavigate()
+  const { mostrarError } = useAlerta()
   const panelRef = useRef<HTMLDivElement>(null)
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial)
   // Copia que pintan las tarjetas: solo se sustituye cuando cambia el conjunto de identificadores con su grupo y clase.
   const [pintadas, setPintadas] = useState<ListasSolicitudes>(VACIAS)
+  // "Pedir piezas" relee las pendientes antes de abrir el formulario: mientras tanto el botón no admite otro clic (el
+  // JavaFX lo hace en el hilo de la interfaz, donde un segundo clic no es posible).
+  const [pidiendo, setPidiendo] = useState(false)
   const solicitudes = useSolicitudesPanel(true)
   const cambiarEstado = useCambiarEstadoSolicitud()
   const quitar = useQuitarSolicitud()
@@ -90,10 +85,41 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
   }, [anclaRef, onCerrar])
 
   /** Calco de mostrarStockEnPedidos / mostrarStockEnActual (MainController): cierra el panel y abre la pestaña de Stock
-   *  correspondiente, sin aplicar filtros (sub-proyecto 4a). Los tres botones de pedir siguen reservados hasta 4b. */
+   *  correspondiente, sin aplicar filtros (sub-proyecto 4a). */
   function irA(ruta: '/stock' | '/stock/pedidos') {
     onCerrar()
     navigate(ruta)
+  }
+
+  /** "Pedir" de una alerta y "Pedir todas las piezas" (calco de MainController :699-704 y :275-278): "Nuevo pedido" con una
+   *  línea por componente, cantidad 1, en el orden de la campana. El formulario es un modal sobre la vista actual (P1)
+   *  y el panel se cierra antes de abrirlo (spec §6 "Campana"). */
+  function pedirComponentes(idsCom: number[]) {
+    onCerrar()
+    abrirNuevoPedido({ modo: 'componentes', idsCom })
+  }
+
+  /** "Pedir todas las piezas" sin alertas no hace nada (calco de MainController :276). */
+  function pedirTodas() {
+    if (alertas.length === 0) return
+    pedirComponentes(alertas.map((a) => a.componente.idCom))
+  }
+
+  /** "Pedir piezas" (calco de MainController :334-351): relee las PENDIENTE; con las dos listas vacías no hace nada, sin
+   *  aviso; si no, "Nuevo pedido" con las solicitudes, que el lote marcará GESTIONADA al guardar (D10). Un fallo de la
+   *  relectura se avisa (mostrarError del JavaFX) y el panel sigue abierto. */
+  async function pedirPiezas() {
+    setPidiendo(true)
+    try {
+      const { urgentes, preventivas } = await pedirPendientes()
+      if (urgentes.length === 0 && preventivas.length === 0) return
+      onCerrar()
+      abrirNuevoPedido({ modo: 'solicitudes', urgentes, preventivas })
+    } catch (e) {
+      if (!esErrorGestionadoGlobalmente(e)) mostrarError(mensajeDeError(e))
+    } finally {
+      setPidiendo(false)
+    }
   }
 
   const tarjeta = (t: TarjetaDatos, i: number) => (
@@ -137,7 +163,9 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
             <div className="flex flex-col gap-1.5">{pintadas.rechazadas.map(tarjeta)}</div>
           </div>
           <div className="flex gap-2">
-            <BotonAlmacen texto="Pedir piezas" envoltorio="flex-1" className={cn(BOTON_INFERIOR, 'bg-azul-medio text-superficie')} />
+            <button type="button" disabled={pidiendo} onClick={() => void pedirPiezas()} className={cn(BOTON_INFERIOR, 'flex-1 cursor-pointer bg-azul-medio text-superficie')}>
+              Pedir piezas
+            </button>
             <button type="button" onClick={() => rechazarTodo.mutate()} className={cn(BOTON_INFERIOR, 'flex-1 cursor-pointer bg-notif-rechazar-bg text-notif-rechazar-text')}>
               Rechazar todo
             </button>
@@ -152,13 +180,13 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
             ) : (
               <div className="flex flex-col gap-1.5">
                 {alertas.map((a, i) => (
-                  <TarjetaAlerta key={a.componente.idCom} alerta={a} alterna={i % 2 === 1} />
+                  <TarjetaAlerta key={a.componente.idCom} alerta={a} alterna={i % 2 === 1} onPedir={() => pedirComponentes([a.componente.idCom])} />
                 ))}
               </div>
             )}
           </div>
           <div className="flex gap-2">
-            <BotonAlmacen texto="Pedir todas las piezas" envoltorio="flex-1" className={cn(BOTON_INFERIOR, 'bg-azul-medio text-superficie')} />
+            <button type="button" onClick={pedirTodas} className={cn(BOTON_INFERIOR, 'flex-1 cursor-pointer bg-azul-medio text-superficie')}>Pedir todas las piezas</button>
             <button type="button" onClick={() => irA('/stock')} className={cn(BOTON_INFERIOR, 'flex-1 cursor-pointer bg-azul-medio text-superficie')}>Ver Stock Completo</button>
           </div>
         </>

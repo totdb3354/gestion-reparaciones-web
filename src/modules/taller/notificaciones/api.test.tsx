@@ -11,7 +11,7 @@ import { SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { componente, solicitudPreventiva, solicitudUrgente } from '../test/fabrica'
 import {
-  CLAVE_NOTIF, CLAVE_NOTIF_COMPONENTES, CLAVE_NOTIF_CONTADOR, CLAVE_NOTIF_SOLICITUDES, useCambiarEstadoSolicitud,
+  CLAVE_NOTIF, CLAVE_NOTIF_COMPONENTES, CLAVE_NOTIF_CONTADOR, CLAVE_NOTIF_SOLICITUDES, pedirPendientes, useCambiarEstadoSolicitud,
   useComponentesGestionados, useContadorNotificaciones, useQuitarSolicitud, useRechazarTodo, useSolicitudesPanel,
 } from './api'
 import { conRegistroNotificaciones, handlersNotificaciones } from './test/handlers'
@@ -179,5 +179,17 @@ describe('api de notificaciones', () => {
     const m2 = renderHook(() => useRechazarTodo(), { wrapper: otro.wrapper })
     await act(async () => { await m2.result.current.mutateAsync() })
     expect(vacio.llamadas).toEqual([])
+  })
+  it('pedirPendientes relee solo las PENDIENTE de urgentes y preventivas, sin caché (calco de "Pedir piezas", MainController :336-337)', async () => {
+    const gets = espiarGets()
+    server.use(...handlersNotificaciones({ ...TRES_PENDIENTES, urgRech: [solicitudUrgente({ idRc: 503 })], prevRech: [solicitudPreventiva({ idSol: 702 })] }))
+    guardarSesion(SESION_SUPER)
+    const { urgentes, preventivas } = await pedirPendientes()
+    expect(urgentes.map((s) => s.idRc)).toEqual([501, 502])
+    expect(preventivas.map((s) => s.idSol)).toEqual([701])
+    expect([...gets].sort()).toEqual(['/api/solicitudes-stock?estado=PENDIENTE', '/api/solicitudes?estado=PENDIENTE'])
+    // Una segunda llamada vuelve a pedir: no hay caché de por medio.
+    await pedirPendientes()
+    expect(gets).toHaveLength(4)
   })
 })

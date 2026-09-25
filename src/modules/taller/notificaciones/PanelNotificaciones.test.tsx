@@ -2,9 +2,10 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MSG_SIN_PERMISOS } from '@/shared/api/errors'
+import { formularioPedido } from '@/shared/lib/formularioPedido'
 import { renderConProviders, renderConRouter, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
-import { TOOLTIP_ALMACEN } from '../lib/textos'
 import { componente, solicitudPreventiva, solicitudUrgente } from '../test/fabrica'
 import { CLAVE_NOTIF_COMPONENTES, CLAVE_NOTIF_SOLICITUDES } from './api'
 import { Campana } from './Campana'
@@ -199,21 +200,26 @@ describe('panel (ficha notificaciones.md, "Panel")', () => {
       unmount()
     }
   })
-  it('"Pedir piezas", "Pedir" y "Pedir todas las piezas" deshabilitados con tooltip; "Rechazar todo" habilitado', async () => {
+  it('"Pedir piezas", "Pedir" y "Pedir todas las piezas" habilitados, sin tooltip y con su estilo; "Rechazar todo" habilitado', async () => {
     await abrirPanel()
     expect(screen.getByRole('button', { name: 'Rechazar todo' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Rechazar todo' })).toHaveClass('bg-notif-rechazar-bg', 'text-notif-rechazar-text', 'text-[13px]', 'font-bold', 'rounded-[20px]', 'p-[11px]')
     const pedirPiezas = screen.getByRole('button', { name: 'Pedir piezas' })
-    expect(pedirPiezas).toHaveClass('bg-azul-medio', 'text-superficie', 'text-[13px]', 'font-bold')
-    expect(pedirPiezas).toBeDisabled()
-    expect(pedirPiezas.parentElement).toHaveAttribute('title', TOOLTIP_ALMACEN)
+    expect(pedirPiezas).toBeEnabled()
+    expect(pedirPiezas).toHaveClass('flex-1', 'cursor-pointer', 'bg-azul-medio', 'text-superficie', 'text-[13px]', 'font-bold', 'rounded-[20px]', 'p-[11px]')
+    expect(pedirPiezas.closest('[title]')).toBeNull()
     await userEvent.click(screen.getByRole('tab', { name: 'Alertas' }))
-    const reservados = [...screen.getAllByRole('button', { name: 'Pedir' }), screen.getByRole('button', { name: 'Pedir todas las piezas' })]
-    expect(reservados).toHaveLength(3)
-    for (const boton of reservados) {
-      expect(boton).toBeDisabled()
-      expect(boton.parentElement).toHaveAttribute('title', TOOLTIP_ALMACEN)
+    const pedir = await screen.findAllByRole('button', { name: 'Pedir' })
+    expect(pedir).toHaveLength(2)
+    for (const boton of pedir) {
+      expect(boton).toBeEnabled()
+      expect(boton).toHaveClass('cursor-pointer', 'rounded-[20px]', 'bg-azul-medio', 'px-4', 'py-1.5', 'text-[11px]', 'text-superficie')
+      expect(boton.closest('[title]')).toBeNull()
     }
+    const todas = screen.getByRole('button', { name: 'Pedir todas las piezas' })
+    expect(todas).toBeEnabled()
+    expect(todas).toHaveClass('flex-1', 'cursor-pointer', 'bg-azul-medio', 'text-superficie', 'text-[13px]', 'font-bold')
+    expect(todas.closest('[title]')).toBeNull()
   })
   it('"Ver Stock Completo" cierra el panel y navega a /stock sin filtros', async () => {
     const { router } = await abrirPanelConRouter(ESCENARIO, 'Alertas')
@@ -402,5 +408,76 @@ describe('refresco (ficha notificaciones.md, "Refresco")', () => {
     expect(screen.getByTestId('tarjeta-solicitud-U-501')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('tab', { name: 'Alertas' }))
     expect(screen.getByTestId('tarjeta-alerta-102')).toBeInTheDocument()
+  })
+})
+
+describe('botones de pedir (sub-proyecto 4b, spec §6 "Campana")', () => {
+  it('"Pedir" de una alerta cierra el panel y abre "Nuevo pedido" con ese componente', async () => {
+    await abrirPanel(ESCENARIO, 'Alertas')
+    expect(formularioPedido.get()).toBeNull()
+    await userEvent.click(within(await screen.findByTestId('tarjeta-alerta-101')).getByRole('button', { name: 'Pedir' }))
+    await waitFor(() => expect(screen.queryByTestId('panel-notificaciones')).not.toBeInTheDocument())
+    expect(screen.getByTestId('campana')).toBeInTheDocument()
+    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'componentes', idsCom: [101] } })
+  })
+  it('"Pedir todas las piezas" cierra el panel y abre "Nuevo pedido" con una línea por alerta, en el orden de la campana', async () => {
+    await abrirPanel(ESCENARIO, 'Alertas')
+    await screen.findByTestId('tarjeta-alerta-102')
+    await userEvent.click(screen.getByRole('button', { name: 'Pedir todas las piezas' }))
+    await waitFor(() => expect(screen.queryByTestId('panel-notificaciones')).not.toBeInTheDocument())
+    // Sin stock primero (102, stock 0) y después bajo mínimo (101); 112 no está en alerta.
+    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'componentes', idsCom: [102, 101] } })
+  })
+  it('"Pedir todas las piezas" sin alertas no hace nada: ni abre el formulario ni cierra el panel (calco de MainController :276)', async () => {
+    await abrirPanel({ gestionados: [componente({ stock: 5, stockMinimo: 2 })] }, 'Alertas')
+    expect(await screen.findByText('Sin alertas de stock')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Pedir todas las piezas' }))
+    expect(formularioPedido.get()).toBeNull()
+    expect(screen.getByTestId('panel-notificaciones')).toBeInTheDocument()
+  })
+  it('"Pedir piezas" relee las PENDIENTE de las dos listas, cierra el panel y abre "Nuevo pedido" con las solicitudes', async () => {
+    const gets = espiarGets()
+    const { queryClient } = await abrirPanel()
+    await tarjeta('U-501')
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    const antes = { urgentes: cuantas(gets, '/api/solicitudes?estado=PENDIENTE'), preventivas: cuantas(gets, '/api/solicitudes-stock?estado=PENDIENTE') }
+    await userEvent.click(screen.getByRole('button', { name: 'Pedir piezas' }))
+    await waitFor(() => expect(screen.queryByTestId('panel-notificaciones')).not.toBeInTheDocument())
+    expect(cuantas(gets, '/api/solicitudes?estado=PENDIENTE')).toBe(antes.urgentes + 1)
+    expect(cuantas(gets, '/api/solicitudes-stock?estado=PENDIENTE')).toBe(antes.preventivas + 1)
+    expect(formularioPedido.get()).toEqual({
+      tipo: 'compra',
+      precarga: {
+        modo: 'solicitudes',
+        urgentes: [expect.objectContaining({ idRc: 501 }), expect.objectContaining({ idRc: 502 })],
+        preventivas: [expect.objectContaining({ idSol: 701 })],
+      },
+    })
+  })
+  it('"Pedir piezas" con las dos listas PENDIENTE vacías no hace nada: ni abre el formulario ni cierra el panel (calco)', async () => {
+    const gets = espiarGets()
+    const { queryClient } = await abrirPanel({ urgRech: [solicitudUrgente({ idRc: 503 })] })
+    await tarjeta('U-503')
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    const antes = cuantas(gets, '/api/solicitudes-stock?estado=PENDIENTE')
+    const boton = screen.getByRole('button', { name: 'Pedir piezas' })
+    await userEvent.click(boton)
+    await waitFor(() => expect(cuantas(gets, '/api/solicitudes-stock?estado=PENDIENTE')).toBe(antes + 1))
+    // Deshabilitado mientras relee: vuelve a habilitarse cuando la relectura ha terminado.
+    await waitFor(() => expect(boton).toBeEnabled())
+    expect(formularioPedido.get()).toBeNull()
+    expect(screen.getByTestId('panel-notificaciones')).toBeInTheDocument()
+  })
+  it('"Pedir piezas": si falla la relectura avisa con el mensaje, no abre el formulario y el panel sigue abierto', async () => {
+    const { queryClient } = await abrirPanel()
+    await tarjeta('U-501')
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    // Después de abrirPanel: MSW antepone cada server.use, así que este 403 gana a los handlers del escenario.
+    server.use(http.get('*/api/solicitudes-stock', () => HttpResponse.json({ message: 'no' }, { status: 403 })))
+    await userEvent.click(screen.getByRole('button', { name: 'Pedir piezas' }))
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent(MSG_SIN_PERMISOS)
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    expect(formularioPedido.get()).toBeNull()
+    expect(screen.getByTestId('panel-notificaciones')).toBeInTheDocument()
   })
 })
