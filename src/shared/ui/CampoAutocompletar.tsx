@@ -1,5 +1,6 @@
 import { useId, useMemo, useState, type KeyboardEvent } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { Popover, PopoverAnchor, PopoverContent } from './popover'
 
 type Opcion = { clave: string; etiqueta: string }
 type Props = {
@@ -69,46 +70,61 @@ export function CampoAutocompletar({ valor, opciones, onElegir, onTextoCambiado,
 
   return (
     <div className="relative w-full">
-      <input
-        role="combobox"
-        aria-label={ariaLabel}
-        aria-expanded={abierto}
-        aria-controls={idLista}
-        aria-autocomplete="list"
-        value={texto}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(ev) => {
-          setTexto(ev.target.value)
-          setAbierto(true)
-          if (ev.target.value !== elegida) onTextoCambiado?.(ev.target.value)
-        }}
-        onKeyDown={onKeyDown}
-        onBlur={onBlur}
-        className="w-full rounded-full bg-azul-noche px-3 py-1 text-[12px] font-bold text-crema placeholder:text-crema/45 disabled:opacity-60"
-      />
-      {abierto && filtradas.length > 0 && (
-        <ul
-          id={idLista}
-          role="listbox"
-          style={{ maxHeight: `${ALTO_FILA * VISIBLES}px` }}
-          className="absolute z-50 mt-px w-full overflow-y-auto rounded-lg border border-borde-input bg-white py-0.5 shadow-md"
+      <Popover open={abierto && filtradas.length > 0}>
+        <PopoverAnchor asChild>
+          <input
+            role="combobox"
+            aria-label={ariaLabel}
+            aria-expanded={abierto}
+            aria-controls={idLista}
+            aria-autocomplete="list"
+            value={texto}
+            placeholder={placeholder}
+            disabled={disabled}
+            onChange={(ev) => {
+              setTexto(ev.target.value)
+              setAbierto(true)
+              if (ev.target.value !== elegida) onTextoCambiado?.(ev.target.value)
+            }}
+            onKeyDown={onKeyDown}
+            onBlur={onBlur}
+            className="w-full rounded-full bg-azul-noche px-3 py-1 text-[12px] font-bold text-crema placeholder:text-crema/45 disabled:opacity-60"
+          />
+        </PopoverAnchor>
+        {/* Portal (Radix Popover) en vez de `position: absolute` dentro de la celda: la fila puede vivir en una tabla
+            con scroll propio (DialogoLineas, C24) y un popup absolute quedaría recortado por ese contenedor en vez
+            de traído a la vista por su scroll. El portal escapa a document.body y Radix posiciona el contenido bajo
+            el input (Popper), así que nunca queda recortado. Sin autofoco de Radix al abrir/cerrar: el foco se queda
+            en el input, igual que con el popup absolute de antes. */}
+        <PopoverContent
+          align="start"
+          sideOffset={2}
+          onOpenAutoFocus={(ev) => ev.preventDefault()}
+          onCloseAutoFocus={(ev) => ev.preventDefault()}
+          className="w-[var(--radix-popover-trigger-width)] rounded-lg border border-borde-input bg-white p-0.5 shadow-md"
         >
-          {filtradas.map((o) => (
-            <li
-              key={o.clave}
-              role="option"
-              aria-selected={o.clave === valor}
-              // mousedown en vez de click: se adelanta al blur del input, que si no cerraría la lista antes
-              onMouseDown={(ev) => { ev.preventDefault(); elegir(o) }}
-              className={cn('mx-1.5 cursor-pointer rounded-lg px-3 text-[12px] font-bold text-azul-noche hover:bg-azul-noche hover:text-white')}
-              style={{ lineHeight: `${ALTO_FILA}px` }}
-            >
-              {o.etiqueta}
-            </li>
-          ))}
-        </ul>
-      )}
+          <ul
+            id={idLista}
+            role="listbox"
+            style={{ maxHeight: `${ALTO_FILA * VISIBLES}px` }}
+            className="overflow-y-auto"
+          >
+            {filtradas.map((o) => (
+              <li
+                key={o.clave}
+                role="option"
+                aria-selected={o.clave === valor}
+                // mousedown en vez de click: se adelanta al blur del input, que si no cerraría la lista antes
+                onMouseDown={(ev) => { ev.preventDefault(); elegir(o) }}
+                className={cn('mx-1.5 cursor-pointer rounded-lg px-3 text-[12px] font-bold text-azul-noche hover:bg-azul-noche hover:text-white')}
+                style={{ lineHeight: `${ALTO_FILA}px` }}
+              >
+                {o.etiqueta}
+              </li>
+            ))}
+          </ul>
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

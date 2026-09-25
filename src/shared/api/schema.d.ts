@@ -548,6 +548,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/compras/lote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["guardarLoteCompras"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/compras-otros": {
         parameters: {
             query?: never;
@@ -558,6 +574,22 @@ export interface paths {
         get: operations["getAll_8"];
         put?: never;
         post: operations["insertar_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/compras-otros/lote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["guardarLoteOtros"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2193,8 +2225,11 @@ export interface components {
             /** Format: double */
             precioUnidad: number;
             divisa: string;
-            /** Format: double */
-            precioEur: number;
+            /**
+             * Format: double
+             * @description Ignorado: el servidor calcula el importe en euros
+             */
+            precioEur: number | null;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -2208,8 +2243,11 @@ export interface components {
             /** Format: double */
             precioUnidad: number;
             divisa: string;
-            /** Format: double */
-            precioEur: number;
+            /**
+             * Format: double
+             * @description Ignorado: el servidor calcula el importe en euros
+             */
+            precioEur: number | null;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -2460,8 +2498,33 @@ export interface components {
             /** Format: double */
             precioUnidad: number;
             divisa: string;
+            /**
+             * Format: double
+             * @description Ignorado: el servidor calcula el importe en euros
+             */
+            precioEur: number | null;
+        };
+        LoteComprasLinea: {
+            /** Format: int32 */
+            idCom: number | null;
+            /** Format: int32 */
+            idProv: number | null;
+            /** Format: int32 */
+            cantidad: number;
+            esUrgente: boolean;
             /** Format: double */
-            precioEur: number;
+            precioUnidad: number;
+        };
+        LoteComprasPeticion: {
+            lineas: components["schemas"]["LoteComprasLinea"][];
+            solicitudes: components["schemas"]["LoteComprasSolicitudes"];
+        };
+        LoteComprasSolicitudes: {
+            urgentes: number[];
+            preventivas: number[];
+        };
+        LoteComprasRespuesta: {
+            idsCreados: number[];
         };
         CompraOtroInsertarRequest: {
             /** Format: int32 */
@@ -2473,8 +2536,24 @@ export interface components {
             /** Format: double */
             precioUnidad: number;
             divisa: string;
+            /**
+             * Format: double
+             * @description Ignorado: el servidor calcula el importe en euros
+             */
+            precioEur: number | null;
+        };
+        LoteComprasOtrosLinea: {
+            /** Format: int32 */
+            idProv: number | null;
+            concepto: string | null;
+            /** Format: int32 */
+            cantidad: number;
+            esUrgente: boolean;
             /** Format: double */
-            precioEur: number;
+            precioUnidad: number;
+        };
+        LoteComprasOtrosPeticion: {
+            lineas: components["schemas"]["LoteComprasOtrosLinea"][];
         };
         ComponenteInsertarRequest: {
             tipo: string;
@@ -3050,12 +3129,12 @@ export interface components {
             /** Format: int32 */
             cantidad: number;
             /** Format: int32 */
-            cantidadRecibida: number;
+            cantidadRecibida: number | null;
             esUrgente: boolean;
             /** Format: date-time */
             fechaPedido: string;
             /** Format: date-time */
-            fechaLlegada: string;
+            fechaLlegada: string | null;
             /** Format: double */
             precioUnidadPedido: number;
             divisa: string;
@@ -3075,12 +3154,12 @@ export interface components {
             /** Format: int32 */
             cantidad: number;
             /** Format: int32 */
-            cantidadRecibida: number;
+            cantidadRecibida: number | null;
             esUrgente: boolean;
             /** Format: date-time */
             fechaPedido: string;
             /** Format: date-time */
-            fechaLlegada: string;
+            fechaLlegada: string | null;
             /** Format: double */
             precioUnidadPedido: number;
             divisa: string;
@@ -4396,6 +4475,32 @@ export interface operations {
             };
         };
     };
+    guardarLoteCompras: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoteComprasPeticion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoteComprasRespuesta"];
+                };
+            };
+        };
+    };
     getAll_8: {
         parameters: {
             query?: never;
@@ -4435,6 +4540,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    guardarLoteOtros: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoteComprasOtrosPeticion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoteComprasRespuesta"];
+                };
             };
         };
     };

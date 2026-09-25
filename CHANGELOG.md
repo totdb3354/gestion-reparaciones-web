@@ -4,6 +4,16 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.7.0] - 2026-09-XX — Pedidos
+
+- Pestaña Pedidos en `/stock/pedidos` con el conmutador Componentes | Otros: tablas con fecha, componente o concepto, proveedor, cantidad, precio por unidad, total en euros y estado, con sus colores, "!" en los recibidos a precio cero y "⚠" en los urgentes en camino; filtros de estado, proveedor, buscador y fechas compartidos por las dos tablas, "Limpiar filtros" y CSV de cada tabla.
+- Menú del supertécnico según el estado del pedido: confirmar pedido, recepción parcial, confirmar recibido, recibir resto, cerrar sin resto, cancelar, borrar, revertir a En camino y editar, con sus diálogos y confirmaciones.
+- Formularios "Nuevo pedido" y "Nuevo otro pedido" como ventana encima de la vista en la que estás, con varias líneas y el total en euros de cada una; "Editar pedido" para pedidos de componentes y de otros.
+- Stock actual: "Pedir" abre el formulario sin salir de Stock; el componente de un pedido lleva a su fila de Stock actual y "En Camino" lleva a sus pedidos.
+- La campana: "Pedir" de una alerta, "Pedir todas las piezas" y "Pedir piezas" abren el formulario; al confirmar, las solicitudes pedidas quedan gestionadas en el mismo guardado y las de componentes desactivados se avisan y siguen pendientes.
+- Servidor: los cambios de estado y las cantidades de recepción se validan también en el servidor; el importe en euros lo calcula el servidor con el tipo de cambio en el sentido correcto, también para el programa de escritorio; el alta de varios pedidos se guarda de una vez, sin quedar a medias ni duplicarse al reintentar.
+- Diferencias aceptadas respecto al programa de escritorio: `docs/paridad/pedidos.md`.
+
 ## [0.6.0] - 2026-09-24 — Stock actual y Proveedores
 
 - Vista Stock en `/stock` con la columna lateral Stock actual · Pedidos · Proveedores (Pedidos llega en la siguiente entrega).

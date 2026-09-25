@@ -1,7 +1,8 @@
 import { claveUnica } from '@/shared/lib/claveUnica'
 
-/** 'fila:<prefijo>' | 'accion:<id>' | 'agotar:<prefijo>' | 'completa' | 'editarAccion' | 'editarFila'
- *  | 'completaFilas' | 'completaAcciones'. */
+/** Formulario de reparación: 'fila:<prefijo>' | 'accion:<id>' | 'agotar:<prefijo>' | 'completa' | 'editarAccion' |
+ *  'editarFila' | 'completaFilas' | 'completaAcciones'. Formularios de pedido (sub-proyecto 4b): 'compras:lote' |
+ *  'compras-otros:lote'. Vive en shared desde el 4b porque lo usan el taller y el almacén (spec 4b, P9). */
 export type Operacion = string
 
 /** Una clave por operación lógica del formulario abierto. Misma operación + mismo cuerpo (comparado con

@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router'
+import { FormulariosPedido } from '@/modules/almacen/pedidos/formulario/FormulariosPedido'
 import { ExportableProvider } from '@/shared/ui/exportable'
 import { TopBar } from './TopBar'
 import { ConnectionBanner } from './ConnectionBanner'
@@ -17,6 +18,8 @@ export function AppLayout() {
           </main>
         </div>
       </div>
+      {/* Formularios de alta de pedido (P1): modal sobre la vista actual, abierto desde el store compartido. */}
+      <FormulariosPedido />
     </ExportableProvider>
   )
 }

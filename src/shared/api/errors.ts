@@ -56,6 +56,10 @@ export function clasificar(status: number, msg: string | null): ApiError {
     case 422:
       return new ReglaNegocioError(422, msg ?? 'El servidor ha rechazado la operación.')
     default:
+      // Un 503 con mensaje solo lo emite nuestro backend (p. ej. el tipo de cambio no disponible, sub-proyecto 4b):
+      // es un error de negocio que la vista enseña inline. client.ts solo pasa el mensaje de un 503 si el cuerpo
+      // es JSON {message}; los de nginx (vacíos, texto o HTML) llegan con msg null y siguen siendo "sin conexión".
+      if (status === 503 && msg) return new ReglaNegocioError(503, msg)
       if (status >= 500) return new ConexionError(status, MSG_SIN_CONEXION, `HTTP ${status}`)
       return new ApiError(status, msg ?? `Error del servidor (${status}).`)
   }
@@ -79,7 +83,7 @@ export function mensajeDeError(e: unknown, opciones?: { staleData?: string }): s
 
 /** `true` si el error ya lo gestiona un mecanismo global (401 → redirección a login, 5xx/red → banner de
  *  conexión) y por tanto ningún `onError` propio de una mutación debe volver a mostrarlo (evita el aviso
- *  doble: banner + diálogo). */
+ *  doble: banner + diálogo). Un 503 con mensaje es ReglaNegocioError y NO se gestiona globalmente. */
 export function esErrorGestionadoGlobalmente(e: unknown): boolean {
   return e instanceof SesionExpiradaError || e instanceof ConexionError
 }

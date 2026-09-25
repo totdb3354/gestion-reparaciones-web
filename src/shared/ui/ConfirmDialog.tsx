@@ -42,7 +42,7 @@ export function ConfirmDialog({ abierto, titulo, descripcion, textoAccion, texto
       >
         <DialogHeader>
           <DialogTitle className="text-[18px] font-bold text-texto-error">{titulo}</DialogTitle>
-          <DialogDescription className="text-[13px] text-azul-medio">{descripcion}</DialogDescription>
+          <DialogDescription className="whitespace-pre-line text-[13px] text-azul-medio">{descripcion}</DialogDescription>
         </DialogHeader>
         {conMotivo && (
           <textarea

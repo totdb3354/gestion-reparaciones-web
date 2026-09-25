@@ -17,6 +17,11 @@ export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 /** Almacén (sub-proyecto 4a): proveedores de componentes (`tipo` COMPONENTES/TELEFONOS viene del servidor de main). */
 export type Proveedor = components['schemas']['Proveedor']
 
+/** Pedidos (sub-proyecto 4b): pedidos de componentes y "otros pedidos". `cantidadRecibida` y `fechaLlegada` vienen a null
+ *  hasta la recepción (nullables del contrato desde la Task 6 del servidor). */
+export type CompraComponente = components['schemas']['CompraComponente']
+export type CompraOtro = components['schemas']['CompraOtro']
+
 /** Formulario de reparación y campana (sub-proyecto 2). `ComponentesAgrupados` es la respuesta de
  *  GET /api/componentes/agrupados: prefijo del tipo → sus componentes, en el orden de claves del servidor. */
 export type Componente = components['schemas']['Componente']
@@ -65,7 +70,6 @@ const auth: Middleware = {
     // Por debajo de 500 el servidor ha respondido: aunque sea un error (4xx), demuestra que hay conexión.
     if (response.status < 500) reportarExito()
     if (response.ok) return response
-    if (response.status >= 500) reportarFallo()
     const texto = await response.clone().text()
     let body: unknown = texto
     try {
@@ -73,7 +77,12 @@ const auth: Middleware = {
     } catch {
       /* texto plano */
     }
-    const err = clasificar(response.status, extraerMensaje(body))
+    // Un 503 solo es de negocio con el JSON {message} de nuestro backend (sub-proyecto 4b); el texto plano o el HTML
+    // de nginx sigue siendo "sin conexión".
+    const msg = response.status === 503 && typeof body === 'string' ? null : extraerMensaje(body)
+    const err = clasificar(response.status, msg)
+    if (err instanceof ConexionError) reportarFallo()
+    else if (response.status >= 500) reportarExito()
     if (err instanceof SesionExpiradaError) dispararSesionExpirada()
     throw err
   },

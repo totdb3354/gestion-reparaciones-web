@@ -3,7 +3,7 @@ import { esErrorGestionadoGlobalmente, mensajeDeError, StaleDataError } from '@/
 import { useSession } from '@/shared/session/SessionProvider'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { useAgotarComponente, useCompleta, useEditarReparacion, useGuardarFila } from './api'
-import { crearClavesIdempotencia } from './clavesIdempotencia'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import {
   accionPideConfirmacion, cuerpoGuardarAccion, cuerpoGuardarFila, planGuardarCambios, planTerminar, reducir,
   type AccionFormulario, type EstadoFormulario,

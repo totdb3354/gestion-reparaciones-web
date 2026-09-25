@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { getDefaultNormalizer, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -82,5 +82,11 @@ describe('ConfirmDialog (calco de ConfirmDialog.mostrar)', () => {
     )
     expect(screen.getByPlaceholderText('Escribe el motivo del borrado...')).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Borrar reparación' })).toBeDisabled()
+  })
+
+  it('la descripción respeta los saltos de línea (Revertir a En camino de Pedidos, tres líneas)', () => {
+    const texto = '¿Revertir el pedido #4 de cam-x a En camino?\nSe descontarán 2 unidad(es) del stock.\nRecuerda revisar el stock tras la operación.'
+    render(<ConfirmDialog abierto titulo="Revertir a En camino" descripcion={texto} textoAccion="Revertir a En camino" onConfirmar={vi.fn()} onCancelar={vi.fn()} />)
+    expect(screen.getByText(texto, { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) })).toHaveClass('whitespace-pre-line')
   })
 })

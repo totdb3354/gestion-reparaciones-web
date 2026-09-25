@@ -58,4 +58,15 @@ describe('DialogoAlmacen', () => {
     await userEvent.keyboard('{Escape}')
     expect(onCancelar).not.toHaveBeenCalled()
   })
+  it('por defecto: caja de 360 px y título de 20 px', () => {
+    montar()
+    expect(screen.getByRole('dialog')).toHaveClass('w-[360px]')
+    expect(screen.getByRole('heading', { name: 'Editar stock' })).toHaveClass('text-[20px]')
+  })
+  it('ancho 520 (Editar pedido): caja de 520 px y título de 24 px (vista-titulo)', () => {
+    montar({ ancho: 520 })
+    expect(screen.getByRole('dialog')).toHaveClass('w-[520px]')
+    expect(screen.getByRole('dialog')).not.toHaveClass('w-[360px]')
+    expect(screen.getByRole('heading', { name: 'Editar stock' })).toHaveClass('text-2xl')
+  })
 })

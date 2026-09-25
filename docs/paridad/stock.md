@@ -60,7 +60,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] Columna blanca de 200 px (160 en el JavaFX, ver arriba) con "Stock actual", "Pedidos" y "Proveedores" en ese orden; la activa en navy con texto crema (`stock-actual-supertecnico`).
 - [x] "Stock actual" activa al entrar en `/stock`; "Proveedores" en `/stock/proveedores` (`proveedores-supertecnico`).
-- [x] "Pedidos" lleva a `/stock/pedidos`, que en 4a sigue "Pendiente de migrar". (verificado por test: `SubNav.test.tsx` "en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada")
+- [x] "Pedidos" lleva a `/stock/pedidos` (la pestaña llega en 4b: ficha `pedidos.md`). (verificado por test: `SubNav.test.tsx` "en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada")
 - [x] Los tres roles ven la vista entera, con la columna "En Camino" (`stock-actual-tecnico`, `stock-actual-admin`).
 - [x] Al volver desde Reparaciones se conservan la pestaña, los filtros y la selección (`stock-cache-vuelta`).
 
@@ -75,6 +75,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Activos primero y desactivados al final; dentro de cada grupo, el orden del servidor (`stock-actual-supertecnico`).
 - [x] Sin ordenación por cabecera (diferencia, ver arriba) (`stock-orden-cabecera`).
 - [x] Placeholder "Sin componentes" cuando el filtro no deja filas; el donut no cambia (`stock-vacio`).
+- [x] Al volver desde el enlace Componente de Pedidos: desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador, selecciona la fila con scroll y limpia la URL (`stock-desde-pedidos`, sub-proyecto 4b). (verificado por test: `StockPage.test.tsx` "?componente=<id> al llegar desde Pedidos: …" y "?componente= conserva \"Desactivado\" marcado (calco) …")
 
 ## Semáforo y estilos
 
@@ -119,7 +120,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] En una fila desactivada el ítem dice "Activar" (`stock-menu-contextual-desactivado`).
 - [x] TECNICO: solo "Solicitar pieza" (`stock-menu-contextual-tecnico`).
 - [x] ADMIN: sin menú (`stock-actual-admin`).
-- [x] "Pedir" navega a `/stock/pedidos?componente=<id>`, "Pendiente de migrar" hasta 4b (`stock-pedir-desde-componente`, `stock-pedir-desde-desactivado`).
+- [x] "Pedir" abre el formulario "Nuevo pedido" como modal encima de Stock actual, con una línea de ese componente (vacía si está desactivado); desde 4b ya no navega a `/stock/pedidos?componente=` (`stock-pedir-desde-componente`, `stock-pedir-desde-desactivado`; ficha `pedidos.md`). (verificado por test: `StockPage.test.tsx` "\"Pedir\" del menú abre \"Nuevo pedido\" en el sitio con ese componente, sin navegar (4b, P1)")
 
 ## Editar stock
 
@@ -191,7 +192,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] "Ver Stock Completo" cierra el panel y abre Stock actual; conserva los filtros de la caché, como `irAStockActual()` (`campana-ver-stock-completo`).
 - [x] "→ Ir a pedidos" abre `/stock/pedidos` (`campana-ir-a-pedidos`).
-- [x] Los botones de pedir de la campana siguen deshabilitados hasta 4b (`campana-panel-alertas`).
+- [x] Los botones de pedir de la campana abren el formulario de pedido desde 4b (`campana-panel-alertas`; ficha `notificaciones.md`).
 
 ## CSV
 

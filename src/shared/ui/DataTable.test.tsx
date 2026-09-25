@@ -201,6 +201,17 @@ describe('DataTable', () => {
     expect(container.querySelector('tbody')).not.toBeNull()
   })
 
+  it('una fila cuyo menuFila devuelve null no lleva menú contextual (p. ej. un pedido cancelado)', async () => {
+    render(
+      <DataTable columns={COLUMNAS} data={DATOS} vacio="" getRowId={(f) => f.id}
+        menuFila={(f) => (f.id === '2' ? null : <ContextMenuItem>Acción</ContextMenuItem>)} />,
+    )
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('b') })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('a') })
+    expect(await screen.findByRole('menuitem', { name: 'Acción' })).toBeInTheDocument()
+  })
+
   it('ordena por clic en la cabecera solo si se pide', async () => {
     render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" ordenacion />)
     await userEvent.click(screen.getByRole('button', { name: 'Nombre' }))

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query'
-import { api, type Componente } from '@/shared/api/client'
+import { api, type Componente, type SolicitudResumen, type SolicitudStock } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { emitirError } from '@/shared/ui/alertas'
@@ -20,6 +20,14 @@ async function contar(): Promise<number> {
 
 const pedirUrgentes = async (estado: Estado) => (await api.GET('/api/solicitudes', { params: { query: { estado } } })).data ?? []
 const pedirPreventivas = async (estado: Estado) => (await api.GET('/api/solicitudes-stock', { params: { query: { estado } } })).data ?? []
+
+/** "Pedir piezas" de la campana (calco de MainController :334-351): relee en ese momento las urgentes y las preventivas
+ *  PENDIENTE, sin pasar por la caché del panel, para abrir "Nuevo pedido" con ellas (sub-proyecto 4b, D10). Un fallo se
+ *  propaga: lo muestra quien llama. */
+export async function pedirPendientes(): Promise<{ urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] }> {
+  const [urgentes, preventivas] = await Promise.all([pedirUrgentes('PENDIENTE'), pedirPreventivas('PENDIENTE')])
+  return { urgentes, preventivas }
+}
 
 async function pedirListas(): Promise<ListasSolicitudes> {
   const [urgPend, prevPend, urgRech, prevRech] = await Promise.all([

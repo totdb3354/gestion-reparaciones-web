@@ -38,6 +38,16 @@ describe('clasificar (port de ApiClient.clasificar)', () => {
     expect(e.message).toBe(MSG_SIN_CONEXION)
     expect(e.detalle).toBe('HTTP 503')
   })
+  it('503 con mensaje del servidor (tipo de cambio no disponible) es un error de negocio, no de conexión', () => {
+    const e = clasificar(503, 'No se pudo obtener el tipo de cambio de USD. Inténtalo de nuevo.')
+    expect(e).toBeInstanceOf(ReglaNegocioError)
+    expect(e.status).toBe(503)
+    expect(e.message).toBe('No se pudo obtener el tipo de cambio de USD. Inténtalo de nuevo.')
+  })
+  it('503 sin mensaje (nginx) sigue siendo sin conexión', () => {
+    expect(clasificar(503, null)).toBeInstanceOf(ConexionError)
+    expect(clasificar(503, '')).toBeInstanceOf(ConexionError)
+  })
   it('otros códigos → ApiError genérico con el mensaje o el código', () => {
     expect(clasificar(400, 'Body inválido').message).toBe('Body inválido')
     expect(clasificar(418, null).message).toBe('Error del servidor (418).')

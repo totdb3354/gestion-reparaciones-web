@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { Componente } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError, ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
 import { descargarCsv } from '@/shared/lib/csv'
+import { abrirNuevoPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import { ESTADOS_STOCK, type EstadoStock } from '@/shared/lib/semaforoStock'
 import { useStore } from '@/shared/lib/store'
 import { useInteraccionesAbiertas } from '@/shared/lib/useInteraccionesAbiertas'
@@ -21,7 +22,7 @@ import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditar
 import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
-import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, textoDesactivados } from './filtros'
+import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
 import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
 import { conteosDonut } from './graficos'
@@ -37,14 +38,21 @@ type Grafico = { componente: Componente; enCamino: number }
 export function StockPage() {
   const { sesion } = useSession()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [params] = useSearchParams()
   const { mostrarError } = useAlerta()
   const { hayAlguna, marcar } = useInteraccionesAbiertas()
   const [filtros, setFiltros] = useStore(filtrosStock)
   const [seleccionada, setSeleccionada] = useStore(seleccionStock)
+  // El formulario de pedido (P1 de 4b) es un modal del shell: mientras esté abierto, el sondeo se congela como con un
+  // diálogo propio (spec 4b §7).
+  const [formulario] = useStore(formularioPedido)
   const [dialogo, setDialogo] = useState<Dialogo>(null)
   // Texto de un 422 del servidor para el diálogo abierto (spec §8): se pinta dentro del diálogo, que sigue abierto.
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
-  const { data = [], dataUpdatedAt, refetch } = useComponentesStock({ activo: !hayAlguna })
+  // Cada llegada desde Pedidos pide a la tabla desplazarse hasta la fila seleccionada (contador, DataTable.tsx:52).
+  const [peticionDesplazamiento, setPeticionDesplazamiento] = useState(0)
+  const { data = [], dataUpdatedAt, refetch, isSuccess } = useComponentesStock({ activo: !hayAlguna && formulario === null })
   const editarStock = useEditarStock()
   const ajustarMinimo = useAjustarMinimo()
   const setActivo = useSetActivoComponente()
@@ -58,6 +66,28 @@ export function StockPage() {
     marcar(true)
     return () => marcar(false)
   }, [dialogo, marcar])
+
+  // Vuelta desde Pedidos (calco de navegarAComponente, StockController :233-246; spec 4b §6 "Vuelta a Stock"): con los
+  // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente sigue
+  // visible con esos filtros nuevos, lo selecciona y pide a la tabla que se desplace hasta él. Después limpia la URL con
+  // replace. Un id que no es un entero positivo solo limpia la URL. Se comprueba contra la lista YA filtrada (no contra
+  // `data`): un componente desactivado que llega sin "Desactivado" marcado no debe seleccionarse ni pedir scroll, aunque
+  // siga estando en `data` (T19 #12).
+  const componenteUrl = params.get('componente')
+  useEffect(() => {
+    if (componenteUrl === null || !isSuccess) return
+    const id = Number(componenteUrl)
+    if (Number.isInteger(id) && id > 0) {
+      const nuevosFiltros = filtrosDesdePedidos(filtrosStock.get())
+      setFiltros(nuevosFiltros)
+      if (aplicarFiltrosStock(data, nuevosFiltros).some((c) => c.idCom === id)) {
+        setSeleccionada(String(id))
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- la llegada desde Pedidos se consume una sola vez, cuando ya hay datos; la petición de desplazamiento es la única forma de pedirle el scroll a DataTable
+        setPeticionDesplazamiento((n) => n + 1)
+      }
+    }
+    void navigate(pathname, { replace: true })
+  }, [componenteUrl, isSuccess, data, navigate, pathname, setFiltros, setSeleccionada])
 
   const visibles = useMemo(() => aplicarFiltrosStock(data, filtros), [data, filtros])
   const conteos = useMemo(() => conteosDonut(data), [data])
@@ -141,13 +171,16 @@ export function StockPage() {
             getRowId={(c) => String(c.idCom)}
             seleccionada={seleccionada}
             onSeleccionar={setSeleccionada}
+            pedirDesplazamiento={peticionDesplazamiento}
             filaClase={claseFilaStock}
             altoFila={35}
             menuFila={rol ? (c) => (
               <MenuComponente
                 c={c}
                 rol={rol}
-                onPedir={(x) => navigate(`/stock/pedidos?componente=${x.idCom}`)}
+                // "Pedir" abre "Nuevo pedido" como modal encima de Stock actual (calco del Stage modal, spec 4b P1): el
+                // host del shell lo pinta; la línea va vacía si el componente está desactivado (calco, T14).
+                onPedir={(x) => abrirNuevoPedido({ modo: 'componentes', idsCom: [x.idCom] })}
                 onEditarStock={(x) => setDialogo({ tipo: 'stock', c: x })}
                 onAjustarMinimo={(x) => setDialogo({ tipo: 'minimo', c: x })}
                 onToggleActivo={(x) => setActivo.mutate({ idCom: x.idCom, activo: !x.activo })}
