@@ -49,6 +49,13 @@ type Props<L extends LineaBase> = {
 export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   const [anadida, setAnadida] = useState<number | null>(null)
+  // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
+  // SELECCIONA el primer campo tabulable al abrirse (@radix-ui/react-focus-scope, focusFirst({ select: true })):
+  // el Componente de la línea 1 queda con el texto en azul, y teclear lo pisa. El JavaFX no autoenfoca ese campo.
+  // Con el diálogo vacío (alta manual u "Otros") no hay ninguna línea todavía en el primer render, así que el
+  // foco automático de Radix no cae sobre un campo con texto y se deja como estaba (calco). El valor se congela
+  // en el primer render: es justo el que ve el efecto de montaje de FocusScope, que solo corre una vez.
+  const [huboPrecarga] = useState(() => lineas.length > 0)
   const porId = new Map(proveedores.map((p) => [p.idProv, p]))
   const divisaDe = (l: LineaBase): string => (l.idProv === null ? undefined : porId.get(l.idProv)?.divisa) ?? 'EUR'
   const tasas = useTasas(Array.from(new Set(lineas.map(divisaDe))))
@@ -73,10 +80,19 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
 
   return (
     <Dialog open onOpenChange={(abierto) => { if (!abierto && !enviando) onCerrar() }}>
-      <DialogContent aria-describedby={undefined} className="max-h-[calc(100vh-24px)] w-[700px] max-w-[min(700px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7 sm:max-w-[min(700px,calc(100%-2rem))]">
+      <DialogContent
+        aria-describedby={undefined}
+        // Sin seleccionar texto en una precarga (C25): igual de accesible que el comportamiento por defecto de Radix
+        // (el propio diálogo recibe el foco, sin tocar ningún campo), pero sin pisar lo precargado al teclear.
+        onOpenAutoFocus={huboPrecarga ? (e) => { e.preventDefault(); (e.target as HTMLElement).focus() } : undefined}
+        className="max-h-[calc(100vh-24px)] w-[700px] max-w-[min(700px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7 sm:max-w-[min(700px,calc(100%-2rem))]"
+      >
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
-        {/* Sin contenedor con overflow: recortaría el popup del autocompletar. Quien desplaza es el DialogContent. */}
-        <div className="min-h-[220px] rounded-md bg-superficie">
+        {/* Alto máximo con scroll propio (calco del ListView a prefHeight 220 de FormularioCompraView.fxml, C24): con
+            muchas líneas la tabla desplaza y "Cancelar"/"Confirmar pedido" quedan siempre a la vista. El popup del
+            autocompletar es absolute dentro de esta misma caja, así que si la fila abierta queda fuera del recorte
+            visible, el propio scroll (o el desplazamiento del campo al enfocarlo) la trae a la vista. */}
+        <div className="min-h-[220px] max-h-[260px] overflow-y-auto rounded-md bg-superficie">
           <table className="w-full table-fixed text-sm">
             <colgroup>
               {anchos.map((a, i) => <col key={i} style={{ width: `${(a / suma) * 100}%` }} />)}

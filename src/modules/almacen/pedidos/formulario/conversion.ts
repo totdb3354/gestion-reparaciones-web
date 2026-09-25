@@ -1,9 +1,20 @@
 import { formatearNumero } from '@/shared/lib/importes'
 
+/** Redondeo HALF_UP a `decimales` (calco de `BigDecimal.setScale(decimales, RoundingMode.HALF_UP)` del servidor): el
+ *  empate (…5) siempre sube, a diferencia del banker's rounding que hace `toFixed` con algunos binarios. Los precios de
+ *  este formulario nunca son negativos (validarLineasCompra los rechaza antes), así que no hace falta cubrir el redondeo
+ *  HALF_UP "lejos de cero" para negativos. */
+function redondearHaciaArriba(n: number, decimales: number): number {
+  const factor = 10 ** decimales
+  return Math.round((n + Number.EPSILON) * factor) / factor
+}
+
 /** Frankfurter (`from=EUR&to={DIV}`) da unidades de la divisa por 1 EUR: el precio en euros es precio / tasa (P3). El
- *  JavaFX multiplicaba. El servidor calcula el `precioEur` que se guarda; esto es solo la vista previa del formulario. */
+ *  JavaFX multiplicaba. C40: el servidor calcula `precioEur` redondeando el UNITARIO a 2 decimales (HALF_UP) antes de
+ *  multiplicar por la cantidad; esta vista previa hace lo mismo para que el editor y la fila de la tabla coincidan
+ *  (#90, 3 × 12,70 $ a 1,1367 → unitario 11,17 €, total 33,51 €, no 33,52 € de multiplicar sin redondear). */
 export function aEuros(precio: number, tasa: number): number {
-  return precio / tasa
+  return redondearHaciaArriba(precio / tasa, 2)
 }
 
 /** Total EUR de una línea o del editor. null si falta el precio, la cantidad o la tasa (aún no ha llegado o falló): la

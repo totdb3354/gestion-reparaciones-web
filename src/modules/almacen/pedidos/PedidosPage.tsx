@@ -61,7 +61,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
   const puedeEditar = esSuperTecnico(sesion)
   const navigate = useNavigate()
   const location = useLocation()
-  const { mostrarError } = useAlerta()
+  const { mostrarError, mostrarAviso } = useAlerta()
   const { hayAlguna, marcar } = useInteraccionesAbiertas()
   const [formulario] = useStore(formularioPedido)
   const [filtros, setFiltros] = useStore(filtrosPedidos)
@@ -131,10 +131,14 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
   })
 
   /** 409 → aviso genérico, salvo desrecibir, que enseña el mensaje del servidor (stock insuficiente o estado, :1635). Lo que
-   *  gestiona el mecanismo global (401, sin conexión) no se repite. La recarga la hace el onSettled de la mutación. */
+   *  gestiona el mecanismo global (401, sin conexión) no se repite. La recarga la hace el onSettled de la mutación.
+   *  Un 409 es un conflicto de concurrencia, no un fallo: se avisa como "Advertencia" (Alert WARNING de
+   *  StockController.mostrarConflicto :1851), calco del JavaFX. El resto de errores sigue como "Error". */
   function avisarFallo(accion: AccionTransicion, e: unknown) {
     if (esErrorGestionadoGlobalmente(e)) return
-    mostrarError(accion === 'desrecibir' ? mensajeDeError(e) : mensajeDeError(e, { staleData: MSG_MODIFICADO }))
+    const mensaje = accion === 'desrecibir' ? mensajeDeError(e) : mensajeDeError(e, { staleData: MSG_MODIFICADO })
+    if (e instanceof StaleDataError) mostrarAviso('Advertencia', mensaje)
+    else mostrarError(mensaje)
   }
 
   function transicionar(accion: AccionTransicion, pedido: Pedido) {

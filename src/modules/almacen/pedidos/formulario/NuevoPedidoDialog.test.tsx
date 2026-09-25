@@ -3,8 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
+import { crearQueryClient } from '@/shared/api/queryClient'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
+import { CLAVE_COMPONENTES_GESTIONADOS } from '../../stock/api'
 import { COMPONENTES, PROVEEDORES, preventiva, urgente } from './datosPrueba'
 import { NuevoPedidoDialog } from './NuevoPedidoDialog'
 
@@ -90,6 +92,18 @@ describe('NuevoPedidoDialog', () => {
     expect(filaDe(1)).not.toHaveAttribute('data-state')
   })
 
+  it('"Pedir" con un componente precargado: no autoenfoca el campo Componente (C25, se pisaría la precarga al teclear)', async () => {
+    // Caché ya caliente (como al venir de Stock, que ya pidió `useComponentesStock`): la línea precargada existe
+    // desde el primer render del diálogo, que es cuando Radix decide a qué enfocar al abrirse.
+    const qc = crearQueryClient({ retry: false })
+    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, COMPONENTES)
+    const onCerrar = vi.fn()
+    renderConProviders(<NuevoPedidoDialog precarga={{ modo: 'componentes', idsCom: [2] }} onCerrar={onCerrar} />, { sesion: SESION_SUPER, queryClient: qc })
+    const campo = await screen.findByRole('combobox', { name: 'Componente línea 1' })
+    expect(campo).toHaveValue('bat-x')
+    expect(document.activeElement).not.toBe(campo)
+  })
+
   it('componente desactivado o desconocido: la línea va vacía (calco), con su placeholder', async () => {
     abrir({ modo: 'componentes', idsCom: [4, 99] })
     expect(await screen.findByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('')
@@ -141,6 +155,15 @@ describe('NuevoPedidoDialog', () => {
     expect(campo).toHaveValue('bat-x')
   })
 
+  it('con muchas líneas: la tabla de líneas tiene alto máximo con scroll propio y los botones siguen visibles (C24)', async () => {
+    abrir()
+    const boton = await screen.findByRole('button', { name: '+ Añadir línea' })
+    for (let i = 0; i < 8; i += 1) await userEvent.click(boton)
+    const tabla = screen.getByRole('table').parentElement as HTMLElement
+    expect(tabla).toHaveClass('max-h-[260px]', 'overflow-y-auto')
+    expect(screen.getByRole('button', { name: 'Confirmar pedido' })).toBeInTheDocument()
+  })
+
   it('validación en la línea de error, en orden y parando en el primer fallo; cambiar una línea la borra', async () => {
     abrir()
     await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))
@@ -172,7 +195,7 @@ describe('NuevoPedidoDialog', () => {
     await escribir('Precio línea 1', '10')
     await escribir('Cantidad línea 1', '2')
     expect(within(filaDe(1)).getByText('$')).toBeInTheDocument()
-    expect(await within(filaDe(1)).findByText('17,59 €')).toBeInTheDocument()
+    expect(await within(filaDe(1)).findByText('17,60 €')).toBeInTheDocument()
     await elegirProveedor(1, 'ACME')
     expect(within(filaDe(1)).getByText('€')).toBeInTheDocument()
     expect(within(filaDe(1)).getByText('20,00 €')).toBeInTheDocument()

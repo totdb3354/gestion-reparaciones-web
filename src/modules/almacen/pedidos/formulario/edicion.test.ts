@@ -30,7 +30,7 @@ describe('textoTotalEdicion', () => {
     expect(textoTotalEdicion('abc', '3', 'EUR', TASA_EUR)).toBe('—')
     expect(textoTotalEdicion('12,50', '', 'EUR', TASA_EUR)).toBe('—')
   })
-  it('USD: precio / tasa × cantidad y la etiqueta con 1/tasa', () => {
-    expect(textoTotalEdicion('12,50', '3', 'USD', TASA_USD)).toBe('32,99 €  (1 USD = 0,8797 €)')
+  it('USD: precio / tasa × cantidad y la etiqueta con 1/tasa (C40: el unitario redondea a 2 decimales antes de multiplicar, como el servidor)', () => {
+    expect(textoTotalEdicion('12,50', '3', 'USD', TASA_USD)).toBe('33,00 €  (1 USD = 0,8797 €)')
   })
 })

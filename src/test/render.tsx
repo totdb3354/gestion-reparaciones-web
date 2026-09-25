@@ -7,7 +7,7 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { guardarSesion, type Sesion } from '@/shared/session/storage'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 
-type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; layout?: ReactElement; patron?: string }
+type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; layout?: ReactElement; patron?: string; queryClient?: QueryClient }
 
 /** Render con el QueryClient de producción (única diferencia: sin reintentos), SessionProvider y MemoryRouter.
  *  `rutas` permite añadir <Route>s auxiliares. `layout` monta `ui` como ruta hija de ese elemento (mismo patrón
@@ -16,10 +16,12 @@ type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; l
  *  solo hace falta si la ruta a testear no coincide literalmente con `ruta` (p. ej. un patrón con parámetros).
  *  Al compartir fábrica con main.tsx, los tests observan la misma política de errores (diálogo ante cualquier
  *  fallo que no sea sesión expirada o desconexión). Devuelve también el `queryClient`, para que un test pueda forzar
- *  la recarga de una consulta (lo que en producción hacen el sondeo o el foco de la ventana). */
-export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas, layout, patron }: Opciones = {}) {
+ *  la recarga de una consulta (lo que en producción hacen el sondeo o el foco de la ventana). `queryClient` (opcional)
+ *  permite pasar uno ya creado y precargado (`setQueryData` antes del render) para reproducir la caché "caliente" con
+ *  la que se abre un formulario desde una vista que ya pidió los mismos datos (p. ej. el foco inicial de C25). */
+export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas, layout, patron, queryClient }: Opciones = {}) {
   if (sesion) guardarSesion(sesion)
-  const qc = crearQueryClient({ retry: false })
+  const qc = queryClient ?? crearQueryClient({ retry: false })
   const rutaUi = layout ? (
     <Route element={layout}>
       <Route path={patron ?? ruta} element={ui} />

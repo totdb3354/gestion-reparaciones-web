@@ -107,7 +107,7 @@ describe('EditarPedidoDialog', () => {
     abrir()
     await screen.findByRole('dialog', { name: 'Editar pedido #7' })
     await elegirDivisa('USD')
-    await waitFor(() => expect(total()).toBe('32,99 €  (1 USD = 0,8797 €)'))
+    await waitFor(() => expect(total()).toBe('33,00 €  (1 USD = 0,8797 €)'))
   })
 
   it('mientras llega la tasa: "Obteniendo tasa…"', async () => {
