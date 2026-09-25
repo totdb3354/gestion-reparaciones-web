@@ -7,9 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppLayout } from '@/app/shell/AppLayout'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import * as csv from '@/shared/lib/csv'
+import { cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formularioPedido'
+import type { EstadoStock } from '@/shared/lib/semaforoStock'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { ultimaRutaStock } from '../estado'
+import { filtrosStock, seleccionStock } from './estado'
 import { StockPage } from './StockPage'
 
 const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null }
@@ -158,7 +161,7 @@ describe('StockPage', () => {
     // URLSearchParams codifica la coma como %2C y el espacio como +.
     expect(router.state.location.search).toBe('?estados=pendiente%2Cen+camino%2Cparcial&buscar=bat-x')
   })
-  it('"Pedir" del menú navega a Pedidos filtrado por el componente', async () => {
+  it('"Pedir" del menú abre "Nuevo pedido" en el sitio con ese componente, sin navegar (4b, P1)', async () => {
     const { router } = renderConRouter(
       [
         { path: '/stock', element: <StockPage /> },
@@ -169,9 +172,10 @@ describe('StockPage', () => {
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Pedir' }))
-    expect(await screen.findByTestId('pedidos')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/stock/pedidos')
-    expect(router.state.location.search).toBe('?componente=1')
+    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'componentes', idsCom: [1] } })
+    expect(router.state.location.pathname).toBe('/stock')
+    expect(router.state.location.search).toBe('')
+    expect(screen.queryByTestId('pedidos')).not.toBeInTheDocument()
   })
   it('menú del supertécnico: los cinco ítems con separadores; "Activar" en una desactivada; ADMIN sin menú; TECNICO solo "Solicitar pieza"', async () => {
     montar()
@@ -377,5 +381,60 @@ describe('StockPage', () => {
     // El aviso es modal: el diálogo de fondo queda aria-hidden, se localiza por su título (patrón de "Editar stock").
     const titulo = screen.getByText('Solicitar pieza', { selector: 'h2' })
     expect(within(titulo.closest('[role="dialog"]')!).getByRole('button', { name: 'Solicitar', hidden: true })).toBeInTheDocument()
+  })
+  it('?componente=<id> al llegar desde Pedidos: desmarca OK, Bajo y Sin stock, vacía el buscador, selecciona y desplaza hasta la fila y limpia la URL', async () => {
+    filtrosStock.set({ estados: new Set<EstadoStock>(['OK', 'Bajo']), buscador: 'lcd' })
+    const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=2' })
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(router.state.location.pathname).toBe('/stock')
+    expect(filtrosStock.get().estados.size).toBe(0)
+    expect(screen.getByPlaceholderText('Buscar componente…')).toHaveValue('')
+    expect(seleccionStock.get()).toBe('2')
+    await waitFor(() => expect(filaDe('bat-x')).toHaveAttribute('aria-selected', 'true'))
+    // La petición de desplazamiento encontró la fila: DataTable desplaza y enfoca su contenedor (DataTable.test.tsx,
+    // "cada petición de desplazamiento…"), calco de select(i) + scrollTo(i) de navegarAComponente.
+    await waitFor(() => expect(screen.getByRole('table').parentElement).toHaveFocus())
+    // La selección alimenta el gráfico por SKU como un clic.
+    expect(await screen.findByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
+  })
+  it('?componente= conserva "Desactivado" marcado (calco) y selecciona una fila desactivada', async () => {
+    filtrosStock.set({ estados: new Set<EstadoStock>(['Bajo', 'Desactivado']), buscador: 'zzz' })
+    const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=4' })
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect([...filtrosStock.get().estados]).toEqual(['Desactivado'])
+    expect(filtrosStock.get().buscador).toBe('')
+    await waitFor(() => expect(filaDe('mc-x')).toHaveAttribute('aria-selected', 'true'))
+    expect(screen.queryByText('bat-x')).not.toBeInTheDocument()
+  })
+  it('?componente= de un componente que no está en la lista aplica los filtros y limpia la URL sin tocar la selección; un id no numérico solo limpia la URL', async () => {
+    seleccionStock.set('1')
+    filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), buscador: 'lcd' })
+    const primero = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=99' })
+    await waitFor(() => expect(primero.router.state.location.search).toBe(''))
+    expect(filtrosStock.get().estados.size).toBe(0)
+    expect(filtrosStock.get().buscador).toBe('')
+    expect(seleccionStock.get()).toBe('1')
+    primero.unmount()
+
+    filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), buscador: 'lcd' })
+    const segundo = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=abc' })
+    await waitFor(() => expect(segundo.router.state.location.search).toBe(''))
+    expect([...filtrosStock.get().estados]).toEqual(['OK'])
+    expect(filtrosStock.get().buscador).toBe('lcd')
+  })
+  it('con el formulario de pedido abierto el sondeo se congela; al cerrarlo se reanuda', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    montar()
+    await screen.findByText('lcd-x')
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Pedir' }))
+    expect(formularioPedido.get()).not.toBeNull()
+    // El menú ya se cerró: lo único abierto es el formulario (que en la app pinta el host del shell).
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
+    expect(cargas.n).toBe(1)
+    act(() => cerrarFormularioPedido())
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(1))
   })
 })

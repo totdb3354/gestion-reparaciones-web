@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Componente } from '@/shared/api/client'
-import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, nombreComponente, ordenarStock, textoDesactivados } from './filtros'
+import type { EstadoStock } from '@/shared/lib/semaforoStock'
+import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, nombreComponente, ordenarStock, textoDesactivados } from './filtros'
 
 const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
@@ -44,5 +45,21 @@ describe('textos', () => {
   it('nombre con el sufijo "(compartido)" de dos espacios', () => {
     expect(nombreComponente({ tipo: 'lcd-y', idComMaster: 1 })).toBe('lcd-y  (compartido)')
     expect(nombreComponente({ tipo: 'lcd-x', idComMaster: null })).toBe('lcd-x')
+  })
+})
+
+describe('filtrosDesdePedidos', () => {
+  it('desmarca OK, Bajo y Sin stock, conserva Desactivado y vacía el buscador (calco de navegarAComponente :233-246)', () => {
+    const f = filtrosDesdePedidos({ estados: new Set<EstadoStock>(['OK', 'Bajo', 'Sin stock', 'Desactivado']), buscador: 'lcd' })
+    expect([...f.estados]).toEqual(['Desactivado'])
+    expect(f.buscador).toBe('')
+  })
+  it('sin Desactivado marcado deja los estados vacíos (todos) y no modifica los filtros de entrada', () => {
+    const antes = { estados: new Set<EstadoStock>(['Bajo']), buscador: 'bat' }
+    const f = filtrosDesdePedidos(antes)
+    expect(f.estados.size).toBe(0)
+    expect(f.buscador).toBe('')
+    expect([...antes.estados]).toEqual(['Bajo'])
+    expect(antes.buscador).toBe('bat')
   })
 })

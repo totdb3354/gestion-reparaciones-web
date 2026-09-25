@@ -27,3 +27,10 @@ export function textoDesactivados(n: number): string | null {
 export function nombreComponente(c: Pick<Componente, 'tipo' | 'idComMaster'>): string {
   return c.idComMaster != null ? `${c.tipo}  (compartido)` : c.tipo
 }
+
+/** Llegada a Stock actual desde el enlace Componente de Pedidos (calco de navegarAComponente, StockController :233-246):
+ *  desmarca OK, Bajo y Sin stock, conserva "Desactivado" tal como estuviera y vacía el buscador. Devuelve filtros nuevos
+ *  (el store no se muta en sitio). */
+export function filtrosDesdePedidos(f: FiltrosStock): FiltrosStock {
+  return { estados: new Set([...f.estados].filter((e) => e === 'Desactivado')), buscador: '' }
+}
