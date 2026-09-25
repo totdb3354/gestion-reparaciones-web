@@ -1414,6 +1414,42 @@
         }
       }
     },
+    "/api/compras/lote" : {
+      "post" : {
+        "tags" : [ "compra-lote-controller" ],
+        "operationId" : "guardarLoteCompras",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoteComprasPeticion"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoteComprasRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/compras-otros" : {
       "get" : {
         "tags" : [ "compra-otro-controller" ],
@@ -1450,6 +1486,42 @@
         "responses" : {
           "201" : {
             "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/compras-otros/lote" : {
+      "post" : {
+        "tags" : [ "compra-lote-controller" ],
+        "operationId" : "guardarLoteOtros",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoteComprasOtrosPeticion"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoteComprasRespuesta"
+                }
+              }
+            }
           }
         }
       }
@@ -4525,7 +4597,9 @@
           },
           "precioEur" : {
             "type" : "number",
-            "format" : "double"
+            "description" : "Ignorado: el servidor calcula el importe en euros",
+            "format" : "double",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
@@ -4560,7 +4634,9 @@
           },
           "precioEur" : {
             "type" : "number",
-            "format" : "double"
+            "description" : "Ignorado: el servidor calcula el importe en euros",
+            "format" : "double",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
@@ -5295,7 +5371,84 @@
           },
           "precioEur" : {
             "type" : "number",
+            "description" : "Ignorado: el servidor calcula el importe en euros",
+            "format" : "double",
+            "nullable" : true
+          }
+        }
+      },
+      "LoteComprasLinea" : {
+        "required" : [ "cantidad", "esUrgente", "idCom", "idProv", "precioUnidad" ],
+        "type" : "object",
+        "properties" : {
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
             "format" : "double"
+          }
+        }
+      },
+      "LoteComprasPeticion" : {
+        "required" : [ "lineas", "solicitudes" ],
+        "type" : "object",
+        "properties" : {
+          "lineas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LoteComprasLinea"
+            }
+          },
+          "solicitudes" : {
+            "$ref" : "#/components/schemas/LoteComprasSolicitudes"
+          }
+        }
+      },
+      "LoteComprasSolicitudes" : {
+        "required" : [ "preventivas", "urgentes" ],
+        "type" : "object",
+        "properties" : {
+          "urgentes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "preventivas" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "LoteComprasRespuesta" : {
+        "required" : [ "idsCreados" ],
+        "type" : "object",
+        "properties" : {
+          "idsCreados" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },
@@ -5326,7 +5479,47 @@
           },
           "precioEur" : {
             "type" : "number",
+            "description" : "Ignorado: el servidor calcula el importe en euros",
+            "format" : "double",
+            "nullable" : true
+          }
+        }
+      },
+      "LoteComprasOtrosLinea" : {
+        "required" : [ "cantidad", "concepto", "esUrgente", "idProv", "precioUnidad" ],
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "concepto" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
             "format" : "double"
+          }
+        }
+      },
+      "LoteComprasOtrosPeticion" : {
+        "required" : [ "lineas" ],
+        "type" : "object",
+        "properties" : {
+          "lineas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LoteComprasOtrosLinea"
+            }
           }
         }
       },
@@ -6854,7 +7047,8 @@
           },
           "cantidadRecibida" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "esUrgente" : {
             "type" : "boolean"
@@ -6865,7 +7059,8 @@
           },
           "fechaLlegada" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "precioUnidadPedido" : {
             "type" : "number",
@@ -6911,7 +7106,8 @@
           },
           "cantidadRecibida" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "esUrgente" : {
             "type" : "boolean"
@@ -6922,7 +7118,8 @@
           },
           "fechaLlegada" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "precioUnidadPedido" : {
             "type" : "number",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fechaLocal, formatear, horaLocal, hoyMadrid, marcaFichero, parsearUtc } from './fechas'
+import { FMT_FECHA_PEDIDO, fechaLocal, formatear, horaLocal, hoyMadrid, marcaFichero, parsearUtc } from './fechas'
 
 describe('fechas (UTC del servidor → Madrid, calco de FechaUtils)', () => {
   it('formatea en hora de Madrid con los patrones del JavaFX', () => {
@@ -27,5 +27,12 @@ describe('fechas (UTC del servidor → Madrid, calco de FechaUtils)', () => {
     const local = new Date(2026, 8, 16, 9, 5)
     expect(horaLocal(local)).toBe('09:05')
     expect(marcaFichero(local)).toBe('2026-09-16_09-05')
+  })
+  it('patrón de la columna Pedido (dd/MM/yy HH:mm, StockController FMT :153): dos cifras del año, sin romper yyyy', () => {
+    expect(FMT_FECHA_PEDIDO).toBe('dd/MM/yy HH:mm')
+    expect(formatear('2026-08-28T08:42:00', FMT_FECHA_PEDIDO)).toBe('28/08/26 10:42')
+    // 23:30 UTC del 31/12 = 00:30 del 1/1 en Madrid (CET): cambian el día, el mes y las dos cifras del año.
+    expect(formatear('2026-12-31T23:30:00', FMT_FECHA_PEDIDO)).toBe('01/01/27 00:30')
+    expect(formatear('2026-08-28T08:42:00', 'dd/MM/yyyy HH:mm')).toBe('28/08/2026 10:42')
   })
 })

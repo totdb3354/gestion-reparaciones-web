@@ -135,4 +135,11 @@
      badge/fila "Bajo" (#C07800, fila-solicitud-brd); el verde #3a7d44 es fila-recibido-brd y se reutiliza. */
   --color-ambar-grafico: #C77A00;
   --color-badge-sin-stock-bg: #F9E0E3;
+
+  /* Pedidos (sub-proyecto 4b), calco de StockController :869 y :904 (colores a mano, sin constante en Colores.java):
+     barra ámbar del pendiente y su badge. El resto reutiliza fila-solicitud (en camino urgente), fila-recibido,
+     fila-parcial, fila-cancelado y badge-neutro/azul-gris (en camino normal). */
+  --color-fila-pendiente-brd: #C8961E;
+  --color-badge-pendiente-bg: #FFF3D6;
+  --color-badge-pendiente-text: #B26A00;
 }

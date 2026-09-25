@@ -68,6 +68,12 @@ describe('cliente API', () => {
     await expect(api.GET('/api/clientes')).rejects.toBeInstanceOf(ConexionError)
     expect(estaConectado()).toBe(false)
   })
+  it('un 503 con {message} de nuestro backend es de negocio y no enciende el banner', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.json({ message: 'No se pudo obtener el tipo de cambio de USD. Inténtalo de nuevo.' }, { status: 503 })))
+    const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ReglaNegocioError)
+    expect(estaConectado()).toBe(true)
+  })
   it('un 4xx no toca el estado de conexión (y cura el banner)', async () => {
     reportarFallo()
     server.use(http.get('*/api/clientes', () => new HttpResponse(null, { status: 404 })))
