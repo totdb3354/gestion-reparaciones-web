@@ -93,6 +93,12 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       const respuestaLote = page.waitForResponse(esRespuesta('/api/compras/lote', 'POST'))
       await dlg.getByRole('button', { name: 'Confirmar pedido' }).click()
       const respuesta = await respuestaLote
+      // Se registra cada id devuelto en porBorrar ANTES de cualquier otra aserción: si algo de lo que sigue falla, el
+      // finally ya sabe qué pedidos borrar y no deja basura en el entorno de destino.
+      if (respuesta.ok()) {
+        const { idsCreados } = (await respuesta.json()) as RespuestaLote
+        for (const idCreado of idsCreados) porBorrar.add(`/api/compras/${idCreado}`)
+      }
       expect(respuesta.ok(), `POST /api/compras/lote respondió ${respuesta.status()}`).toBe(true)
       const peticion = respuesta.request()
       expect(peticion.headers()['idempotency-key']).toBeTruthy()
@@ -103,7 +109,6 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       const { idsCreados } = (await respuesta.json()) as RespuestaLote
       expect(idsCreados).toHaveLength(1)
       const id = idsCreados[0]
-      porBorrar.add(`/api/compras/${id}`)
       await expect(dlg).toBeHidden()
 
       await page.getByPlaceholder('Buscar componente…').fill(sku!)
@@ -116,8 +121,8 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await fila.click({ button: 'right' })
       await page.getByRole('menuitem', { name: 'Editar' }).click()
       const editor = page.getByRole('dialog', { name: `Editar pedido #${id}` })
-      await expect(editor.getByLabel('Cantidad')).toHaveValue('1')
-      await editor.getByLabel('Cantidad').fill('2')
+      await expect(editor.getByLabel('Cantidad:')).toHaveValue('1')
+      await editor.getByLabel('Cantidad:').fill('2')
       const guardado = page.waitForResponse(esRespuesta(`/api/compras/${id}`, 'PUT'))
       await editor.getByRole('button', { name: 'Guardar' }).click()
       expect((await guardado).ok()).toBe(true)
@@ -149,13 +154,17 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       const respuestaLote = page.waitForResponse(esRespuesta('/api/compras-otros/lote', 'POST'))
       await dlg.getByRole('button', { name: 'Confirmar pedido' }).click()
       const respuesta = await respuestaLote
+      // Mismo orden que en el pedido de componentes: registrar los ids devueltos antes de cualquier otra aserción.
+      if (respuesta.ok()) {
+        const { idsCreados } = (await respuesta.json()) as RespuestaLote
+        for (const idCreado of idsCreados) porBorrar.add(`/api/compras-otros/${idCreado}`)
+      }
       expect(respuesta.ok(), `POST /api/compras-otros/lote respondió ${respuesta.status()}`).toBe(true)
       expect(respuesta.request().headers()['idempotency-key']).toBeTruthy()
       expect(respuesta.request().postDataJSON()).toEqual({ lineas: [{ idProv, concepto, cantidad: 1, esUrgente: false, precioUnidad: 0 }] })
       const { idsCreados } = (await respuesta.json()) as RespuestaLote
       expect(idsCreados).toHaveLength(1)
       const id = idsCreados[0]
-      porBorrar.add(`/api/compras-otros/${id}`)
       await expect(dlg).toBeHidden()
 
       // Los filtros son compartidos por los dos toggles: el buscador aún tiene el SKU.
@@ -167,8 +176,8 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await fila.click({ button: 'right' })
       await page.getByRole('menuitem', { name: 'Editar' }).click()
       const editor = page.getByRole('dialog', { name: `Editar pedido #${id}` })
-      await expect(editor.getByLabel('Cantidad')).toHaveValue('1')
-      await editor.getByLabel('Cantidad').fill('2')
+      await expect(editor.getByLabel('Cantidad:')).toHaveValue('1')
+      await editor.getByLabel('Cantidad:').fill('2')
       const guardado = page.waitForResponse(esRespuesta(`/api/compras-otros/${id}`, 'PUT'))
       await editor.getByRole('button', { name: 'Guardar' }).click()
       expect((await guardado).ok()).toBe(true)
@@ -189,10 +198,18 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
     // proveedor (un pedido que siga vivo le daría 409). Los fallos de limpieza se señalan sin tapar el fallo original.
     await page.unrouteAll({ behavior: 'ignoreErrors' })
     for (const ruta of porBorrar) {
-      const r = await llamarApi(page, 'DELETE', ruta)
-      expect.soft(r.status, `limpieza DELETE ${ruta}`).toBe(200)
+      try {
+        const r = await llamarApi(page, 'DELETE', ruta)
+        expect.soft(r.status, `limpieza DELETE ${ruta}`).toBe(200)
+      } catch (e) {
+        console.warn(`limpieza DELETE ${ruta} lanzó`, e)
+      }
     }
-    const r = await llamarApi(page, 'DELETE', `/api/proveedores/${idProv}`)
-    expect.soft(r.status, `limpieza DELETE /api/proveedores/${idProv}`).toBe(204)
+    try {
+      const r = await llamarApi(page, 'DELETE', `/api/proveedores/${idProv}`)
+      expect.soft(r.status, `limpieza DELETE /api/proveedores/${idProv}`).toBe(204)
+    } catch (e) {
+      console.warn(`limpieza DELETE /api/proveedores/${idProv} lanzó`, e)
+    }
   }
 })
