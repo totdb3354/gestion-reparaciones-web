@@ -22,6 +22,11 @@ Las de la spec §10:
 
 Decididas durante la ejecución y la comparación de capturas: se añaden aquí, cada una con la decisión del usuario.
 
+- **El aviso "Mostrando los 1.000 registros más recientes; acota con los filtros." depende de las filas recibidas del servidor, no de las que deja el buscador**: puede verse con pocas filas o con "Tabla sin contenido", porque el buscador solo mira esas 1.000 (decisión del usuario 2026-09-26, aceptada).
+- **"Acción..." y "Técnico..." abren la lista al enfocarlos o pulsarlos**, sin teclear, y la lista es más ancha que el campo (mínimo 250 px) para leer los códigos enteros, como el `Popup` del JavaFX (decisión del usuario 2026-09-26, calcado).
+- **Ancho de "Detalle"**: reparto proporcional de las cuatro columnas (`ajuste="estirar"`), equivalente al del JavaFX maximizado (decisión del usuario 2026-09-26, aceptada).
+- **La ventana no modal del JavaFX sobrevive a "Cerrar Sesión"; la página de la web no**, consecuencia de ser una página del shell (G2) (decisión del usuario 2026-09-26, aceptada).
+
 ## Calcos
 
 - El buscador no mira el motivo ni la fecha; el motivo solo se ve con el doble clic.
@@ -33,54 +38,56 @@ Decididas durante la ejecución y la comparación de capturas: se añaden aquí,
 
 ## Pendiente de decidir
 
-- Placeholder de la tabla vacía: previsto "No hay contenido en la tabla", el mismo que en técnicos; se fija con `gestion-logs-vacio`.
+Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
+
+- Placeholder de la tabla vacía: "Tabla sin contenido", el mismo que en técnicos (fijado con la captura `gestion-logs-vacio`).
 
 ## Ruta y acceso
 
-- [ ] "Ver logs" del menú (solo ADMIN) abre `/gestion/logs`; SUPERTECNICO y TECNICO no tienen el ítem (`gestion-menu-usuario-admin`, `gestion-menu-usuario-supertecnico`) y por URL reciben el aviso de permisos.
+- [x] "Ver logs" del menú (solo ADMIN) abre `/gestion/logs`; SUPERTECNICO y TECNICO no tienen el ítem (`gestion-menu-usuario-admin`, `gestion-menu-usuario-supertecnico`) y por URL reciben el aviso de permisos.
 
 ## Cabecera
 
-- [ ] Logo de 46 px, "Log de actividad" y "Registro de acciones realizadas en el sistema"; separador (`gestion-logs-inicial`).
+- [x] Logo de 46 px, "Log de actividad" y "Registro de acciones realizadas en el sistema"; separador (`gestion-logs-inicial`).
 
 ## Barra de filtros
 
-- [ ] En este orden: "Buscar..." (220 px), "Acción..." (150 px), "Técnico..." (150 px), "Desde:" / "Hasta:" y "Limpiar filtros" (`gestion-logs-inicial`).
-- [ ] "Buscar...": contiene, sin mayúsculas y con trim, sobre usuario, acción y detalle; se conserva al recargar (`gestion-logs-buscador`).
-- [ ] "Acción...": lista completa y filtrada al teclear; elegir filtra en el servidor por igualdad; borrar el texto quita el filtro (`gestion-logs-popup-accion`, `gestion-logs-popup-accion-filtrado`, `gestion-logs-filtro-accion`).
-- [ ] "Técnico...": nombres de usuario en orden natural, sin ADMIN (`gestion-logs-popup-tecnico`).
-- [ ] "Desde:" / "Hasta:" inclusivos en hora de Madrid (`gestion-logs-fechas`, `gestion-logs-fechas-madrugada`: diferencia, ver arriba).
-- [ ] "Limpiar filtros" vacía los cinco con una sola recarga.
+- [x] En este orden: "Buscar..." (220 px), "Acción..." (150 px), "Técnico..." (150 px), "Desde:" / "Hasta:" y "Limpiar filtros" (`gestion-logs-inicial`).
+- [x] "Buscar...": contiene, sin mayúsculas y con trim, sobre usuario, acción y detalle; se conserva al recargar (`gestion-logs-buscador`).
+- [x] "Acción...": lista completa y filtrada al teclear; elegir filtra en el servidor por igualdad; borrar el texto quita el filtro (`gestion-logs-popup-accion`, `gestion-logs-popup-accion-filtrado`, `gestion-logs-filtro-accion`; la apertura al enfocar y el ancho de la lista, corregidos tras la toma, los cubre el test `modules/gestion/logs/LogsPage.test.tsx`).
+- [x] "Técnico...": nombres de usuario en orden natural, sin ADMIN (`gestion-logs-popup-tecnico`; la apertura al enfocar la cubre el test `modules/gestion/logs/LogsPage.test.tsx`).
+- [x] "Desde:" / "Hasta:" inclusivos en hora de Madrid (`gestion-logs-fechas`, `gestion-logs-fechas-madrugada`: diferencia, ver arriba; sin actividad de madrugada en la toma, el caso lo cubre el test `LogDAOFiltroTest`).
+- [x] "Limpiar filtros" vacía los cinco con una sola recarga (cubierto por test `modules/gestion/logs/LogsPage.test.tsx`).
 
 ## Aviso de tope
 
-- [ ] Con 1.000 filas exactas, bajo la barra: "Mostrando los 1.000 registros más recientes; acota con los filtros." (sin captura del JavaFX: diferencia).
+- [x] Con 1.000 filas exactas, bajo la barra: "Mostrando los 1.000 registros más recientes; acota con los filtros." (sin captura del JavaFX: diferencia; se ve en `web-gestion-logs-inicial` y lo cubre el test `modules/gestion/logs/LogsPage.test.tsx`).
 
 ## Tabla
 
-- [ ] Fecha (150; `dd/MM/yyyy HH:mm:ss` en hora de Madrid), Usuario (80; nombre de login), Acción (180; el código tal cual), Detalle (el resto, una línea con elipsis); orden del servidor, fecha y desempate por id descendentes (`gestion-logs-inicial`, `gestion-logs-maximizada`).
-- [ ] Fila seleccionada navy con texto claro (`gestion-logs-fila-seleccionada`).
-- [ ] Sin ordenación por cabecera (`gestion-logs-orden-cabecera`: diferencia, ver arriba).
-- [ ] Tabla vacía: el placeholder que se decida arriba (`gestion-logs-vacio`).
+- [x] Fecha (150; `dd/MM/yyyy HH:mm:ss` en hora de Madrid), Usuario (80; nombre de login), Acción (180; el código tal cual), Detalle (el resto, una línea con elipsis); orden del servidor, fecha y desempate por id descendentes (`gestion-logs-inicial`, `gestion-logs-maximizada`).
+- [x] Fila seleccionada navy con texto claro (`gestion-logs-fila-seleccionada`).
+- [x] Sin ordenación por cabecera (`gestion-logs-orden-cabecera`: diferencia, ver arriba).
+- [x] Tabla vacía: "Tabla sin contenido" (`gestion-logs-vacio`).
 
 ## Detalle
 
-- [ ] Doble clic en una fila: "Detalle del log" con el detalle de solo lectura y "Copiar" (`gestion-logs-detalle`).
-- [ ] Con motivo: línea en blanco y "MOTIVO: …" debajo del detalle (`gestion-logs-detalle-motivo`).
-- [ ] Detalle largo con ajuste de línea y scroll (`gestion-logs-detalle-largo`).
+- [x] Doble clic en una fila: "Detalle del log" con el detalle de solo lectura y "Copiar" (`gestion-logs-detalle`).
+- [x] Con motivo: línea en blanco y "MOTIVO: …" debajo del detalle (`gestion-logs-detalle-motivo`; la captura de la web se tomó sobre un registro sin motivo, que equivale a `gestion-logs-detalle-sin-motivo`: la línea del motivo la cubre el test `modules/gestion/logs/LogsPage.test.tsx`).
+- [x] Detalle largo con ajuste de línea y scroll (`gestion-logs-detalle-largo`).
 
 ## Pie y errores
 
-- [ ] "Actualizar" (navy) recarga con los filtros actuales; "Cerrar" vuelve a la vista de origen.
-- [ ] Fallo de carga: "Error al cargar los logs: …" conservando la tabla (`gestion-logs-error`: diferencia de presentación, ver arriba).
+- [x] "Actualizar" (navy) recarga con los filtros actuales; "Cerrar" vuelve a la vista de origen.
+- [x] Fallo de carga: "Error al cargar los logs: …" conservando la tabla (`gestion-logs-error`: diferencia de presentación, ver arriba; no reproducible en producción; cubierto por test `modules/gestion/logs/LogsPage.test.tsx`).
 
 ## Comprobado por tests
 
 Lo que no se ve en una captura o no se puede provocar en la toma:
 
-- [ ] `limite` opcional, 422 "Límite no válido (debe estar entre 1 y 5000)." fuera de rango, `GET /api/logs/acciones` solo ADMIN (`LogControllerTest`).
-- [ ] Límites de día en Madrid convertidos a UTC en verano e invierno y orden con desempate (`LogDAOFiltroTest`).
-- [ ] Ruta nueva, `limite` y los nulos de `LogActividad` en el contrato (`OpenApiContractTest`).
-- [ ] Los nueve casos de `coincideTexto` portados del cliente y `queryLogs` sin vacíos (`modules/gestion/logs/filtros.test.ts`).
-- [ ] Filtros de servidor y de memoria, aviso de tope, doble clic con y sin motivo, "Actualizar", "Limpiar filtros" con una sola carga y error conservando los datos (`modules/gestion/logs/LogsPage.test.tsx`, `columnas.test.tsx`, `api.test.ts`).
-- [ ] `CREAR_USUARIO` del día filtrando por acción y fechas contra producción, buscador y detalle (`tests/e2e/gestion.spec.ts`).
+- [x] `limite` opcional, 422 "Límite no válido (debe estar entre 1 y 5000)." fuera de rango, `GET /api/logs/acciones` solo ADMIN (`LogControllerTest`).
+- [x] Límites de día en Madrid convertidos a UTC en verano e invierno y orden con desempate (`LogDAOFiltroTest`).
+- [x] Ruta nueva, `limite` y los nulos de `LogActividad` en el contrato (`OpenApiContractTest`).
+- [x] Los nueve casos de `coincideTexto` portados del cliente y `queryLogs` sin vacíos (`modules/gestion/logs/filtros.test.ts`).
+- [x] Filtros de servidor y de memoria, aviso de tope, doble clic con y sin motivo, "Actualizar", "Limpiar filtros" con una sola carga y error conservando los datos (`modules/gestion/logs/LogsPage.test.tsx`, `columnas.test.tsx`, `api.test.ts`).
+- [x] `CREAR_USUARIO` del día filtrando por acción y fechas contra producción, buscador y detalle (`tests/e2e/gestion.spec.ts`).
