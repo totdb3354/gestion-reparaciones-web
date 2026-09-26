@@ -41,6 +41,7 @@ describe('CampoPassword', () => {
     expect(img2).toHaveClass('size-[18px]', 'object-contain')
     expect(img2).not.toHaveClass('h-[18px]')
     expect(img2).not.toHaveClass('w-[18px]')
+    expect(img2).not.toHaveClass('w-auto')
   })
   it('el ojo alterna type, aria-label e icono y conserva el texto escrito', async () => {
     render(<Demo />)
