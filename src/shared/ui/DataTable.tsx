@@ -37,8 +37,12 @@ type Props<T> = {
    *  anchos del Historial, `prefWidth = max(min, min·u)`), con scroll horizontal por debajo de la suma; si alguna
    *  columna declara `maxSize` (el maxWidth del FXML), no pasa de él y lo que cede queda en blanco (`anchosEstirados`).
    *  'ultima': cada columna mide su `size` salvo la última, que se queda con todo el ancho sobrante y nunca baja de su
-   *  `size` (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN del TableView). */
-  ajuste?: 'fijo' | 'estirar' | 'ultima'
+   *  `size` (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN del TableView).
+   *  'fluido' (adaptación a web, no es un calco): cada columna mide al menos su `size` y, si declara `maxSize`, no pasa
+   *  de él (con `maxSize === size` es de ancho fijo); lo que ceden las topadas se reparte entre las demás en proporción
+   *  a su `size` (`anchosFluidos`), así que la tabla ocupa todo el ancho sin columna de relleno. Por debajo de la suma
+   *  de `size`, scroll horizontal. */
+  ajuste?: 'fijo' | 'estirar' | 'ultima' | 'fluido'
   seleccionada?: string | null
   /** Selección hecha en la propia tabla (clic, clic derecho, flechas).
    *  La página debe aplicar el id de forma síncrona (p. ej. `onSeleccionar={setSeleccionada}`): la marca que distingue esta
@@ -89,6 +93,36 @@ export function anchosEstirados(minimos: number[], maximos: (number | undefined)
     const tope = maximos[i]
     return tope === undefined ? preferido : Math.min(preferido, Math.max(min, tope))
   })
+}
+
+/** Anchos en px del ajuste 'fluido' (adaptación a web, sin calco en el JavaFX): cada columna mide al menos su mínimo y,
+ *  si tiene tope, no pasa de él; lo que ceden las columnas topadas se reparte entre las que aún no han llegado al suyo,
+ *  en proporción a su mínimo, hasta que ninguna lo supera. Con topes en todas, la suma puede quedarse por debajo del
+ *  disponible (ese resto queda en blanco). Con menos ancho que la suma de mínimos, los mínimos (scroll horizontal). Un
+ *  tope por debajo del mínimo deja el mínimo, como en `anchosEstirados`. No redondea. */
+export function anchosFluidos(minimos: number[], maximos: (number | undefined)[], disponible: number): number[] {
+  const sumaMinimos = minimos.reduce((a, b) => a + b, 0)
+  if (disponible <= sumaMinimos) return [...minimos]
+  const anchos = [...minimos]
+  // Las columnas con un tope que no pasa de su mínimo ya están resueltas: miden su mínimo.
+  let libres = minimos.map((_, i) => i).filter((i) => maximos[i] === undefined || (maximos[i] as number) > minimos[i])
+  let restante = disponible - minimos.reduce((a, min, i) => (libres.includes(i) ? a : a + min), 0)
+  while (libres.length > 0) {
+    const sumaLibres = libres.reduce((a, i) => a + minimos[i], 0)
+    // Multiplica antes de dividir: una sola columna libre se queda exactamente con lo restante (sin 869,99… por 870).
+    const parte = (i: number) => (sumaLibres > 0 ? (restante * minimos[i]) / sumaLibres : 0)
+    const topadas = libres.filter((i) => maximos[i] !== undefined && parte(i) >= (maximos[i] as number))
+    if (topadas.length === 0) {
+      for (const i of libres) anchos[i] = parte(i)
+      break
+    }
+    for (const i of topadas) {
+      anchos[i] = maximos[i] as number
+      restante -= anchos[i]
+    }
+    libres = libres.filter((i) => !topadas.includes(i))
+  }
+  return anchos
 }
 
 /** Tope de ancho declarado en la columna; el `maxSize` que TanStack pone por defecto (MAX_SAFE_INTEGER) no cuenta. */
@@ -168,6 +202,9 @@ export function DataTable<T>({
   const suma = anchos.reduce((a, b) => a + b, 0)
   const topes = hojas.map((c) => topeDeColumna(c.columnDef.maxSize))
   const conTopes = ajuste === 'estirar' && topes.some((t) => t !== undefined)
+  const fluido = ajuste === 'fluido'
+  // Anchos medidos en px: 'estirar' con topes y 'fluido' (este siempre, para repartir lo que ceden las topadas).
+  const medir = conTopes || fluido
   const filas = table.getRowModel().rows
   // Columna de relleno del ajuste 'fijo': una celda más por fila, sin <col> (en una tabla table-fixed al 100 % se queda
   // con lo que dejan las columnas de ancho fijo, 0 si no sobra nada) y fuera del árbol accesible. La banda de la
@@ -179,7 +216,8 @@ export function DataTable<T>({
   const cabeceraRef = useRef<HTMLTableSectionElement>(null)
   const filaRefs = useRef(new Map<string, HTMLTableRowElement>())
 
-  // Con topes, los porcentajes no bastan (una columna topada deja de crecer y lo que cede queda en blanco): se mide el
+  // Con topes (y en 'fluido'), los porcentajes no bastan (una columna topada deja de crecer y lo que cede queda en
+  // blanco o, en 'fluido', pasa a las demás): se mide el
   // ancho útil del contenedor y los anchos se pintan en px. contentRect excluye la barra de scroll vertical, como
   // clientWidth, pero es fraccionario: redondeado hacia abajo, la tabla nunca pasa del ancho real (clientWidth puede
   // redondear hacia arriba y sacar una barra de scroll horizontal por medio píxel). Sin medida (jsdom, tabla oculta)
@@ -187,15 +225,16 @@ export function DataTable<T>({
   const [anchoContenedor, setAnchoContenedor] = useState(0)
   useLayoutEffect(() => {
     const contenedor = contenedorRef.current
-    if (!conTopes || !contenedor) return
+    if (!medir || !contenedor) return
     const observador = new ResizeObserver((entradas) => {
       const ultima = entradas[entradas.length - 1]
       if (ultima) setAnchoContenedor(Math.floor(ultima.contentRect.width))
     })
     observador.observe(contenedor)
     return () => observador.disconnect()
-  }, [conTopes])
-  const anchosPx = conTopes && anchoContenedor > 0 ? anchosEstirados(anchos, topes, anchoContenedor) : null
+  }, [medir])
+  const anchosPx =
+    medir && anchoContenedor > 0 ? (fluido ? anchosFluidos : anchosEstirados)(anchos, topes, anchoContenedor) : null
   const virtual = filas.length > umbralVirtual
   const virtualizador = useVirtualizer({
     count: filas.length,
@@ -404,7 +443,7 @@ export function DataTable<T>({
               style={
                 ajuste === 'ultima'
                   ? i === hojas.length - 1 ? undefined : { width: anchos[i] }
-                  : { width: anchosPx ? anchosPx[i] : ajuste === 'estirar' ? `${(anchos[i] / suma) * 100}%` : anchos[i] }
+                  : { width: anchosPx ? anchosPx[i] : ajuste === 'estirar' || fluido ? `${(anchos[i] / suma) * 100}%` : anchos[i] }
               }
             />
           ))}

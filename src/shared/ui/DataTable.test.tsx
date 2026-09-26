@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ColumnDef } from '@tanstack/react-table'
 import { AlertaProvider } from './AlertaProvider'
 import { ContextMenuItem } from './context-menu'
-import { anchosEstirados, CREMA_EN_FILA_SELECCIONADA, DataTable, type CeldaPulsada } from './DataTable'
+import { anchosEstirados, anchosFluidos, CREMA_EN_FILA_SELECCIONADA, DataTable, type CeldaPulsada } from './DataTable'
 import { TextoExpandible } from './TextoExpandible'
 
 type Fila = { id: string; nombre: string; nota: string }
@@ -92,6 +92,18 @@ describe('DataTable', () => {
     expect(cols[1].style.width).toMatch(/^27\.65/)
     expect(container.querySelector('table')).toHaveStyle({ minWidth: '470px' })
     expect(container.querySelector('table')).toHaveClass('w-full')
+  })
+
+  it('en ajuste fluido la tabla ocupa todo el ancho, sin columna de relleno, y nunca baja de la suma (sin medida, porcentajes)', () => {
+    const { container } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" ajuste="fluido" />)
+    const tabla = container.querySelector('table')!
+    expect(tabla).toHaveClass('w-full')
+    expect(tabla.style.minWidth).toBe('470px')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    expect(within(screen.getByRole('row', { name: /^WEB a$/ })).getAllByRole('cell')).toHaveLength(2)
+    const cols = container.querySelectorAll('col')
+    expect(cols[0].style.width).toMatch(/^72\.34/)
+    expect(cols[1].style.width).toMatch(/^27\.65/)
   })
 
   it('en ajuste ultima las columnas miden su size y la última se queda sin ancho fijo para absorber el sobrante', () => {
@@ -652,6 +664,47 @@ describe('anchosEstirados (aplicarAnchosDetalle: prefWidth = max(min, min·u), a
   })
 })
 
+describe('anchosFluidos (ajuste fluido: lo que ceden las columnas topadas se reparte entre las demás)', () => {
+  const suma = (anchos: number[]) => anchos.reduce((a, b) => a + b, 0)
+
+  it('sin topes reparte el ancho en proporción al mínimo (el tope por defecto de TanStack no cuenta)', () => {
+    expect(anchosFluidos([100, 200, 300], [undefined, Number.MAX_SAFE_INTEGER, undefined], 1200)).toEqual([200, 400, 600])
+  })
+
+  it('una columna topada se queda en su tope y lo que cede va a las demás: la suma es exactamente el disponible', () => {
+    const anchos = anchosFluidos([100, 200, 300], [undefined, 300, undefined], 1200)
+    expect(anchos).toEqual([225, 300, 675])
+    expect(suma(anchos)).toBe(1200)
+  })
+
+  it('los topes se alcanzan en cascada: lo que cede la primera topada hace llegar a la segunda al suyo', () => {
+    // u = 900 / 400 = 2,25 → la primera (225) pasa de 150; u = 750 / 300 = 2,5 → la segunda (250) pasa de 230
+    const anchos = anchosFluidos([100, 100, 200], [150, 230, undefined], 900)
+    expect(anchos).toEqual([150, 230, 520])
+    expect(suma(anchos)).toBe(900)
+  })
+
+  it('con menos ancho que la suma de mínimos todas se quedan en su mínimo (y la tabla hace scroll horizontal)', () => {
+    expect(anchosFluidos([100, 200, 300], [150, 250, undefined], 500)).toEqual([100, 200, 300])
+  })
+
+  it('con todas las columnas topadas se quedan en sus topes y el resto queda en blanco', () => {
+    const anchos = anchosFluidos([100, 200, 300], [150, 250, 350], 1200)
+    expect(anchos).toEqual([150, 250, 350])
+    expect(suma(anchos)).toBe(750)
+  })
+
+  it('una columna con maxSize igual a su size es de ancho fijo', () => {
+    expect(anchosFluidos([100, 50], [undefined, 50], 400)).toEqual([350, 50])
+    // sin error de coma flotante: 340 · (870 / 340) daría 869,99…
+    expect(anchosFluidos([340, 130], [undefined, 130], 1000)).toEqual([870, 130])
+  })
+
+  it('un tope por debajo del mínimo deja el mínimo', () => {
+    expect(anchosFluidos([100, 200], [80, undefined], 600)).toEqual([100, 500])
+  })
+})
+
 describe('DataTable — ajuste estirar con topes (maxSize de la columna)', () => {
   const COLUMNAS_CON_TOPE: ColumnDef<Fila, string>[] = [
     { accessorKey: 'nombre', header: 'Nombre', size: 300 },
@@ -700,6 +753,22 @@ describe('DataTable — ajuste estirar con topes (maxSize de la columna)', () =>
     expect(cols[0]).toHaveStyle({ width: '375px' })
     expect(cols[1]).toHaveStyle({ width: '125px' })
     expect(tabla).toHaveStyle({ width: '500px', minWidth: '400px' })
+  })
+
+  it('en ajuste fluido mide el contenedor y reparte lo que cede la topada entre las demás columnas', () => {
+    const { container } = render(<DataTable columns={COLUMNAS_CON_TOPE} data={DATOS} vacio="" ajuste="fluido" />)
+    const tabla = container.querySelector('table')!
+    expect(observadores.flatMap((o) => o.observados)).toEqual([tabla.parentElement])
+    medirContenedor(800.7) // Nota topada a 150; Nombre se queda con los 650 restantes
+    const cols = container.querySelectorAll('col')
+    expect(cols[0]).toHaveStyle({ width: '650px' })
+    expect(cols[1]).toHaveStyle({ width: '150px' })
+    expect(tabla).toHaveStyle({ width: '800px', minWidth: '400px' })
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    medirContenedor(300) // por debajo de la suma de mínimos: cada columna en su size y scroll horizontal
+    expect(cols[0]).toHaveStyle({ width: '300px' })
+    expect(cols[1]).toHaveStyle({ width: '100px' })
+    expect(tabla).toHaveStyle({ width: '400px', minWidth: '400px' })
   })
 
   it('el ancho del contenedor no depende de la tabla (contain-inline-size): lo medido no vuelve a ensanchar lo que se mide', () => {
