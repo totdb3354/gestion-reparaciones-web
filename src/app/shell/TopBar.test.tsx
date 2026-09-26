@@ -1,8 +1,8 @@
-import { screen } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { HttpResponse, http } from 'msw'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { Route, useLocation } from 'react-router'
-import { act } from '@testing-library/react'
 import { ultimaRutaStock } from '@/modules/almacen/estado'
 import { handlersNotificaciones } from '@/modules/taller/notificaciones/test/handlers'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
@@ -70,7 +70,7 @@ describe('barra superior (calco de MainView)', () => {
     await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar contraseña' }))
     expect(screen.queryByText('CUENTA')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Hola, tecnico_n/ })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Cambiar contraseña' })).toBeInTheDocument()
   })
   it('TopBar: la campana va a la izquierda del usuario, solo para el supertécnico', async () => {
     server.use(...handlersNotificaciones())
@@ -96,5 +96,55 @@ describe('barra superior (calco de MainView)', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Cerrar Sesión' }))
     expect(await screen.findByText('LOGIN')).toBeInTheDocument()
     expect(sessionStorage.getItem('fsgr.sesion')).toBeNull()
+  })
+})
+
+describe('"Cambiar contraseña" desde el menú de usuario (spec §6.3, G6)', () => {
+  // En /reparaciones el lateral de TECNICO y SUPERTECNICO pide los contadores: sin handler, MSW corta la petición,
+  // sale el diálogo modal de conexión y el menú queda con pointer-events: none. Mismo handler que la Task 13.
+  beforeEach(() => {
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })))
+  })
+  it.each([
+    ['técnico', SESION_TEC, /Hola, tecnico_n/],
+    ['supertécnico', SESION_SUPER, /Hola, tecnico_f/],
+    ['admin', SESION_ADMIN, /Hola, admin/],
+  ])('%s: abre el diálogo sobre la vista actual, sin navegar', async (_rol, sesion, saludo) => {
+    server.use(...handlersNotificaciones())
+    renderConProviders(<AppLayout />, {
+      sesion, ruta: '/reparaciones',
+      rutas: <Route path="/cuenta/cambiar-password" element={<p>RUTA VIEJA</p>} />,
+    })
+    await userEvent.click(screen.getByRole('button', { name: saludo }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar contraseña' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Cambiar contraseña' })
+    expect(within(dlg).getByLabelText('Contraseña actual')).toBeInTheDocument()
+    expect(screen.queryByText('RUTA VIEJA')).not.toBeInTheDocument()
+    expect(screen.getByText('FSGR:')).toBeInTheDocument()
+  })
+  it('"Cancelar" lo cierra y el menú se puede volver a abrir (sin pointer-events colgados)', async () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/reparaciones' })
+    await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar contraseña' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Cambiar contraseña' })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Cambiar contraseña' })).not.toBeInTheDocument())
+    expect(document.body.style.pointerEvents).not.toBe('none')
+    await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
+    expect(await screen.findByRole('menuitem', { name: 'Cambiar contraseña' })).toBeInTheDocument()
+  })
+  it('guardar con éxito cierra el diálogo, avisa y deja al usuario en la misma vista', async () => {
+    server.use(http.patch('*/api/auth/cambiar-password', () => new HttpResponse(null, { status: 204 })))
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/reparaciones' })
+    await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar contraseña' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Cambiar contraseña' })
+    await userEvent.type(within(dlg).getByLabelText('Contraseña actual'), 'secreta1')
+    await userEvent.type(within(dlg).getByLabelText('Nueva contraseña'), 'nueva123')
+    await userEvent.type(within(dlg).getByLabelText('Confirmar nueva contraseña'), 'nueva123')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByRole('dialog', { name: 'Información' })).toHaveTextContent('Contraseña cambiada correctamente.')
+    expect(screen.queryByRole('dialog', { name: 'Cambiar contraseña' })).not.toBeInTheDocument()
+    expect(screen.getByText('Hola, tecnico_n')).toBeInTheDocument()
   })
 })
