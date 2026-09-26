@@ -3,6 +3,7 @@ import { PedidosPage } from '@/modules/almacen/pedidos/PedidosPage'
 import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { RequiereAdmin } from '@/modules/gestion/rutas'
 import { AsignacionesPage } from '@/modules/taller/asignaciones/AsignacionesPage'
 import { FormularioEditarRuta, FormularioNuevoRuta } from '@/modules/taller/formulario/rutas'
 import { HistorialPage } from '@/modules/taller/historial/HistorialPage'
@@ -74,9 +75,14 @@ export const router = createBrowserRouter([
           { path: '/stock/proveedores', element: <ProveedoresPage /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },
-          { path: '/gestion/tecnicos', element: <PendienteDeMigrar nombre="Gestionar técnicos" /> },
-          { path: '/gestion/logs', element: <PendienteDeMigrar nombre="Ver logs" /> },
-          { path: '/cuenta/cambiar-password', element: <PendienteDeMigrar nombre="Cambiar contraseña" /> },
+          {
+            // Solo ADMIN (spec 6): TECNICO y SUPERTECNICO por URL reciben el aviso genérico y vuelven a /reparaciones.
+            element: <RequiereAdmin />,
+            children: [
+              { path: '/gestion/tecnicos', element: <PendienteDeMigrar nombre="Gestionar técnicos" /> },
+              { path: '/gestion/logs', element: <PendienteDeMigrar nombre="Ver logs" /> },
+            ],
+          },
           // Una URL desconocida (enlace viejo, ruta aún sin migrar) vuelve al panel inicial en vez de dar 404.
           { path: '*', element: <Navigate to="/" replace /> },
         ],

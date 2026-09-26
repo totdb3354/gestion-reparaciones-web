@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin } from '@/shared/session/storage'
@@ -7,6 +7,7 @@ import { useExportable } from '@/shared/ui/exportable'
 export function UserMenu() {
   const { sesion, logout } = useSession()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const exportar = useExportable()
   if (!sesion) return null
   return (
@@ -18,13 +19,13 @@ export function UserMenu() {
       <DropdownMenuContent align="end">
         {esAdmin(sesion) && (
           <>
-            <DropdownMenuItem onSelect={() => navigate('/gestion/tecnicos')}>Gestionar técnicos</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => navigate('/gestion/logs')}>Ver logs</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate('/gestion/tecnicos', { state: { volverA: pathname } })}>Gestionar técnicos</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate('/gestion/logs', { state: { volverA: pathname } })}>Ver logs</DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
         <DropdownMenuItem disabled={!exportar} onSelect={() => exportar?.()}>Descargar CSV</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => navigate('/cuenta/cambiar-password')}>Cambiar contraseña</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => { /* Task 12: abre CambiarPasswordDialog en el sitio (spec 6, G6) */ }}>Cambiar contraseña</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => { logout(); navigate('/login', { replace: true }) }}>Cerrar Sesión</DropdownMenuItem>
       </DropdownMenuContent>
