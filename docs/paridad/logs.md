@@ -78,7 +78,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 ## Pie y errores
 
-- [x] "Actualizar" (navy) recarga con los filtros actuales; "Cerrar" vuelve a la vista de origen.
+- [x] "Actualizar" (navy) recarga con los filtros actuales; "Cerrar" vuelve a la vista de origen (cubierto por test `modules/gestion/logs/LogsPage.test.tsx`).
 - [x] Fallo de carga: "Error al cargar los logs: …" conservando la tabla (`gestion-logs-error`: diferencia de presentación, ver arriba; no reproducible en producción; cubierto por test `modules/gestion/logs/LogsPage.test.tsx`).
 
 ## Comprobado por tests

@@ -57,7 +57,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 - [x] Fila de cuatro campos a partes iguales, etiqueta 11 px negrita azul gris encima, campo blanco con borde `#D4D8DE`, radio 8, padding 10/12: "Nombre del técnico" ("Nombre visible en reparaciones"), "Nombre de usuario" ("Credencial de login"), "Contraseña" ("Contraseña", sin ojo), "Confirmar" ("Repite la contraseña") (`gestion-tecnicos-vacio-formulario`).
 - [x] Fila de acción: línea de error (11 px rojo, ocupa su hueco vacía) · combo de 130 px "TECNICO" / "SUPERTECNICO" con TECNICO por defecto · botón navy "Registrar técnico" en píldora de radio 24 (`gestion-tecnicos-combo-rol`).
-- [x] Separador `#D4D8DE` bajo el formulario.
+- [x] Separador `#D4D8DE` bajo el formulario (`gestion-tecnicos-vacio-formulario`).
 
 ## Duplicados en vivo
 
@@ -78,7 +78,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 - [x] Título "Técnicos registrados" (13 px negrita); columnas Técnico (160), Usuario (130), Rol (110, tal cual), Estado (90) y acciones sin cabecera que absorbe el resto; orden del servidor (nombre de técnico); filas de 35 px (`gestion-tecnicos-tabla`).
 - [x] Badge "Activo" `#2E7D32` sobre `#D4EDDA` e "Inactivo" `#B03040` sobre `#F5E6E6`, radio 10, padding 3/10, 11 px negrita (`gestion-tecnicos-tabla`).
 - [x] Candado `Unlock.png` 18 px en activos con tooltip "Desactivar acceso" y `Lock.png` en inactivos con "Activar acceso" (`gestion-tecnicos-tooltip-desactivar`, `gestion-tecnicos-tooltip-activar`; la captura de la web no pinta el `title` nativo: el texto lo cubre el test `modules/gestion/tecnicos/columnas.test.tsx`).
-- [x] Papelera `borrar.png` 22 px en todas las filas.
+- [x] Papelera `borrar.png` 22 px en todas las filas (`gestion-tecnicos-tabla`).
 - [x] Fila seleccionada navy con texto claro; badge e iconos sin cambiar (`gestion-tecnicos-fila-seleccionada`).
 - [x] Tabla vacía: "Tabla sin contenido" (`gestion-tecnicos-tabla-vacia`: no reproducible en producción; cubierto por test `modules/gestion/tecnicos/TecnicosPage.test.tsx`).
 - [x] Error de carga: "Error al cargar los usuarios." en la línea inline y la tabla vacía (no reproducible en producción; cubierto por test `modules/gestion/tecnicos/TecnicosPage.test.tsx`).

@@ -47,11 +47,11 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 - [x] 380 px; barra superior navy `#001232` con "Cambiar contraseña" (15 px negrita blanco, padding 16/20); cuerpo blanco con padding 24 y separación 16 (`gestion-password-vacia`).
 - [x] Tres campos con etiqueta 11 px negrita `#555`: "Contraseña actual" (placeholder "Contraseña actual"), "Nueva contraseña" ("Nueva contraseña") y "Confirmar nueva contraseña" ("Confirmar contraseña"); foco inicial en la actual (`gestion-password-vacia`).
 - [x] Ojo independiente por campo (`ojo_activar` / `ojo_desactivar`, 18 px de alto conservando la proporción) que muestra y oculta el texto (`gestion-password-ojo`).
-- [x] Botones a la derecha: "Cancelar" (blanco, borde `#C2C8D0`, radio 6) y "Guardar" (navy, negrita, radio 6).
+- [x] Botones a la derecha: "Cancelar" (blanco, borde `#C2C8D0`, radio 6) y "Guardar" (navy, negrita, radio 6) (`gestion-password-vacia`).
 
 ## Validación
 
-- [x] Línea de error `#CC0000` 12 px, oculta hasta que hay error.
+- [x] Línea de error `#CC0000` 12 px, oculta hasta que hay error (`gestion-password-error-vacios`).
 - [x] Alguno vacío: "Rellena todos los campos." (`gestion-password-error-vacios`).
 - [x] Nueva de menos de 6: "La contraseña debe tener al menos 6 caracteres." (`gestion-password-error-corta`).
 - [x] Nueva distinta de la confirmación: "Las contraseñas nuevas no coinciden." (`gestion-password-error-no-coinciden`).
