@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -47,15 +47,42 @@ describe('DataTable', () => {
     vi.restoreAllMocks()
   })
 
-  it('fija los anchos con un colgroup y sin columna de relleno (ajuste fijo)', () => {
+  it('fija los anchos con un colgroup y lo que sobra es una columna de relleno sin <col> ni rol (ajuste fijo)', () => {
     const { container } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" />)
     const cols = container.querySelectorAll('col')
     expect(cols).toHaveLength(2)
     expect(cols[0]).toHaveStyle({ width: '340px' })
     expect(cols[1]).toHaveStyle({ width: '130px' })
-    expect(container.querySelector('table')).toHaveStyle({ width: '470px' })
+    // la tabla ocupa todo el contenedor para que el relleno llegue al borde, y nunca baja de la suma
+    expect(container.querySelector('table')).toHaveClass('w-full')
+    expect(container.querySelector('table')).toHaveStyle({ minWidth: '470px' })
     expect(screen.getAllByRole('columnheader')).toHaveLength(2)
     expect(within(screen.getByRole('row', { name: /^WEB a$/ })).getAllByRole('cell')).toHaveLength(2)
+  })
+
+  it('la cabecera y la línea de cada fila cubren la columna de relleno, como la del TableView', () => {
+    const { container } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" />)
+    const cabeceraRelleno = container.querySelector('th[data-relleno]')!
+    expect(cabeceraRelleno).toHaveAttribute('aria-hidden', 'true')
+    expect(cabeceraRelleno).toBeEmptyDOMElement()
+    // el fondo de la banda de cabecera es el del <thead>, el mismo que llevan las demás cabeceras
+    expect(cabeceraRelleno.closest('thead')).toHaveClass('bg-crema')
+    const fila = screen.getByRole('row', { name: /^WEB a$/ })
+    const celdaRelleno = fila.querySelector('td[data-relleno]')!
+    expect(celdaRelleno).toBeEmptyDOMElement()
+    expect(celdaRelleno).toHaveClass('p-0')
+    // la línea es el borde inferior del <tr> (border-collapse): la celda de relleno es hija de la fila y la comparte,
+    // igual que el hover y la selección
+    expect(celdaRelleno.parentElement).toBe(fila)
+    expect(fila).toHaveClass('border-b', 'border-fila-sep')
+    expect(fila.lastElementChild).toBe(celdaRelleno)
+  })
+
+  it('los ajustes estirar y ultima no llevan columna de relleno', () => {
+    const { container, rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" ajuste="estirar" />)
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" ajuste="ultima" />)
+    expect(container.querySelector('[data-relleno]')).toBeNull()
   })
 
   it('en ajuste estirar reparte porcentajes sobre la suma y fija el mínimo', () => {
@@ -135,8 +162,24 @@ describe('DataTable', () => {
     expect(pintar.mock.calls.length).toBe(trasElClic)
   })
 
+  it('vacía conserva el alto de la llena: el alto máximo pasa a ser también el mínimo', () => {
+    const { container, rerender } = render(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" />)
+    const caja = container.querySelector('table')!.parentElement!
+    expect(caja).toHaveStyle({ maxHeight: 'calc(100dvh - 330px)', minHeight: 'calc(100dvh - 330px)' })
+    rerender(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" alturaMax="400px" />)
+    expect(caja).toHaveStyle({ maxHeight: '400px', minHeight: '400px' })
+    // con filas el alto no cambia: solo el tope, y la caja se ajusta a su contenido
+    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" alturaMax="400px" />)
+    expect(caja).toHaveStyle({ maxHeight: '400px' })
+    expect(caja.style.minHeight).toBe('')
+  })
+
   it('el mensaje de vacío ocupa todas las columnas que se pintan', () => {
     render(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" />)
+    // dos columnas más la de relleno del ajuste fijo
+    expect(screen.getByRole('cell', { name: 'Sin filas' })).toHaveAttribute('colspan', '3')
+    cleanup()
+    render(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" ajuste="estirar" />)
     expect(screen.getByRole('cell', { name: 'Sin filas' })).toHaveAttribute('colspan', '2')
   })
 

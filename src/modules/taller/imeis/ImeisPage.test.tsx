@@ -74,8 +74,9 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     // resetarModo: IMEI 180 · Modelo 150 · Fechas 130 · Trabajos 160 · Estado 130; Observación y Cliente sin prefWidth
     // en AgrupadoView.fxml (80 por defecto, acotado a su minWidth 150).
     expect(Array.from(container.querySelectorAll('col')).map((c) => c.style.width)).toEqual(['180px', '150px', '130px', '160px', '130px', '150px', '150px'])
-    expect(screen.getByRole('table')).toHaveStyle({ width: '1050px' })
-    expect(screen.getByRole('table')).not.toHaveClass('w-full')
+    // no estiran: lo que sobra es la columna de relleno del TableView (sin <col>), y la tabla no baja de la suma
+    expect(screen.getByRole('table')).toHaveStyle({ minWidth: '1050px' })
+    expect(screen.getByRole('table').querySelector('th[data-relleno]')).toBeInTheDocument()
     const fila = screen.getByRole('row', { name: new RegExp(A) })
     expect(fila).toHaveClass('cursor-pointer', 'bg-fila-maestro-bg', 'hover:bg-fila-maestro-bg')
     expect(fila).not.toHaveClass('cursor-default')

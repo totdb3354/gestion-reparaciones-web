@@ -32,8 +32,8 @@ type Props<T> = {
    *  TableView no muestra un ContextMenu sin entradas (p. ej. un pedido cancelado). */
   menuFila?: (row: T, celda: CeldaPulsada) => ReactNode
   getRowId?: (row: T) => string
-  /** 'fijo' (por defecto): cada columna mide su `size` en px y lo que sobra queda en blanco, como el TableView con
-   *  columna de relleno. 'estirar': las columnas se reparten el ancho proporcionalmente a `size` (política de
+  /** 'fijo' (por defecto): cada columna mide su `size` en px y lo que sobra es una columna de relleno vacía, como la
+   *  del TableView: la banda de la cabecera y las líneas de fila llegan hasta el borde derecho. 'estirar': las columnas se reparten el ancho proporcionalmente a `size` (política de
    *  anchos del Historial, `prefWidth = max(min, min·u)`), con scroll horizontal por debajo de la suma; si alguna
    *  columna declara `maxSize` (el maxWidth del FXML), no pasa de él y lo que cede queda en blanco (`anchosEstirados`).
    *  'ultima': cada columna mide su `size` salvo la última, que se queda con todo el ancho sobrante y nunca baja de su
@@ -57,7 +57,7 @@ type Props<T> = {
   onAbrir?: (row: T) => void
   /** Ordenación por clic en la cabecera; apagada por defecto porque el JavaFX no ordena por clic. */
   ordenacion?: boolean
-  /** Altura máxima del contenedor con scroll. */
+  /** Altura máxima del contenedor con scroll; sin filas es también su altura mínima. */
   alturaMax?: string
   /** A partir de cuántas filas se pintan solo las visibles (el TableView virtualiza siempre). */
   umbralVirtual?: number
@@ -169,6 +169,11 @@ export function DataTable<T>({
   const topes = hojas.map((c) => topeDeColumna(c.columnDef.maxSize))
   const conTopes = ajuste === 'estirar' && topes.some((t) => t !== undefined)
   const filas = table.getRowModel().rows
+  // Columna de relleno del ajuste 'fijo': una celda más por fila, sin <col> (en una tabla table-fixed al 100 % se queda
+  // con lo que dejan las columnas de ancho fijo, 0 si no sobra nada) y fuera del árbol accesible. La banda de la
+  // cabecera (el fondo del <thead>) y la línea de fila (el borde del <tr>) la cubren como al resto de celdas.
+  const relleno = ajuste === 'fijo'
+  const columnasPintadas = hojas.length + (relleno ? 1 : 0)
 
   const contenedorRef = useRef<HTMLDivElement>(null)
   const cabeceraRef = useRef<HTMLTableSectionElement>(null)
@@ -351,6 +356,7 @@ export function DataTable<T>({
             {flexRender(c.column.columnDef.cell, c.getContext())}
           </TableCell>
         ))}
+        {relleno && <TableCell aria-hidden data-relleno className="p-0" />}
       </TableRow>
     )
     if (!menuFila) return tr
@@ -382,11 +388,13 @@ export function DataTable<T>({
       // el <main> flexible (la página hacía scroll en vez de la tabla) y, con los anchos medidos del ajuste 'estirar', cada
       // medida ensanchaba lo medido: el Historial crecía sin fin y se repintaba sin parar.
       className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50 scroll-pt-10 contain-inline-size"
-      style={{ maxHeight: alturaMax }}
+      // Vacía conserva el alto que tendría llena (el TableView vacío crece hasta el pie como el lleno, VBox.vgrow): sin
+      // filas la caja se quedaría en la cabecera más el mensaje.
+      style={filas.length === 0 ? { maxHeight: alturaMax, minHeight: alturaMax } : { maxHeight: alturaMax }}
     >
       <table
-        className={cn('table-fixed caption-bottom text-sm', (ajuste === 'ultima' || (ajuste === 'estirar' && !anchosPx)) && 'w-full')}
-        style={anchosPx ? { width: anchosPx.reduce((a, b) => a + b, 0), minWidth: suma } : ajuste === 'fijo' ? { width: suma } : { minWidth: suma }}
+        className={cn('table-fixed caption-bottom text-sm', !anchosPx && 'w-full')}
+        style={anchosPx ? { width: anchosPx.reduce((a, b) => a + b, 0), minWidth: suma } : { minWidth: suma }}
       >
         <colgroup>
           {hojas.map((c, i) => (
@@ -424,21 +432,22 @@ export function DataTable<T>({
                   </TableHead>
                 )
               })}
+              {relleno && <TableHead aria-hidden data-relleno className="p-0" />}
             </TableRow>
           ))}
         </TableHeader>
         <TableBody>
           {filas.length === 0 && (
             <TableRow>
-              <TableCell colSpan={hojas.length} className="py-8 text-center text-azul-gris">{vacio}</TableCell>
+              <TableCell colSpan={columnasPintadas} className="py-8 text-center text-azul-gris">{vacio}</TableCell>
             </TableRow>
           )}
           {!virtual && filas.map((r, i) => pintarFila(r, i))}
           {virtual && items && (
             <>
-              {arriba > 0 && <tr aria-hidden style={{ height: arriba }}><td colSpan={hojas.length} /></tr>}
+              {arriba > 0 && <tr aria-hidden style={{ height: arriba }}><td colSpan={columnasPintadas} /></tr>}
               {items.map((vi) => pintarFila(filas[vi.index], vi.index))}
-              {abajo > 0 && <tr aria-hidden style={{ height: abajo }}><td colSpan={hojas.length} /></tr>}
+              {abajo > 0 && <tr aria-hidden style={{ height: abajo }}><td colSpan={columnasPintadas} /></tr>}
             </>
           )}
         </TableBody>

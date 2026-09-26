@@ -28,11 +28,9 @@ export function ConfirmDialog({ abierto, titulo, descripcion, textoAccion, texto
   const listo = !conMotivo || motivo.trim() !== ''
   return (
     <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
-      {/* El ancho usa min() para no comerse el margen de 2rem de DialogContent en pantallas estrechas, y el
-          sm: lo repite porque si no el sm:max-w-lg que trae DialogContent (y que tailwind-merge no puede
-          descartar, al no colisionar con la utilidad sin modificador) ganaría a partir de 640 px. */}
+      {/* El ancho usa min() para no comerse el margen de 2rem de DialogContent en pantallas estrechas. */}
       <DialogContent
-        className="max-w-[min(400px,calc(100%-2rem))] gap-2.5 p-6 sm:max-w-[min(400px,calc(100%-2rem))]"
+        className="max-w-[min(400px,calc(100%-2rem))] gap-2.5 p-6"
         // La acción va primero en el DOM (es el orden visual del JavaFX), así que el autofocus de Radix
         // dejaría el foco en el botón destructivo y un Enter despistado confirmaría: lo llevamos a Cancelar.
         onOpenAutoFocus={(e) => {

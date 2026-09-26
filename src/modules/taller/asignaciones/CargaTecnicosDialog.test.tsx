@@ -76,6 +76,14 @@ const nombres = () => filas().map((f) => within(f).getByText(/^Técnico /).textC
 const filaDe = (nombre: string) => within(filas().find((f) => within(f).queryByText(nombre))!).getByRole('button')
 
 describe('CargaTecnicosDialog', () => {
+  it('mide 680 px como la ventana del JavaFX (setWidth 680), sin el tope de 512 del DialogContent base', async () => {
+    abrir()
+    await esperarLista()
+    const dlg = screen.getByRole('dialog')
+    expect(dlg).toHaveClass('max-w-[680px]')
+    expect(dlg).not.toHaveClass('sm:max-w-lg')
+  })
+
   it('arranca en Pedidos', async () => {
     abrir()
     expect(await esperarLista()).toBeInTheDocument()

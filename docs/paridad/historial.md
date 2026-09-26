@@ -44,7 +44,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 
 - [x] Título "Historial de pulidos" + píldora "N pulidos" / "1 pulido" (sin tope).
 - [x] Filtros: IMEI · Técnico (activos, los tres roles) · Desde · Hasta · Limpiar filtros.
-- [x] Columnas y anchos (px): Id Pulido 110 · IMEI 130 · Modelo 120 · Técnico 110 · Fecha asignación 130 · Fecha fin 130 · Comentario 160 · Cliente 110 · Asignado por 120; el resto en blanco. Fechas `yyyy/MM/dd HH:mm`. Comentario = `comentarioAsignacion`. Asignado por = `nombreTecnicoAsigna` o "—".
+- [x] Columnas y anchos (px): Id Pulido 110 · IMEI 130 · Modelo 120 · Técnico 110 · Fecha asignación 130 · Fecha fin 130 · Comentario 160 · Cliente 110 · Asignado por 120; el sobrante de la tabla es una columna de relleno vacía, como la del TableView: la banda de la cabecera y las líneas de fila llegan hasta el borde derecho (web 0.8.1). Fechas `yyyy/MM/dd HH:mm`. Comentario = `comentarioAsignacion`. Asignado por = `nombreTecnicoAsigna` o "—".
 - [x] Filas sin borde de estado.
 - [x] Menú contextual SUPERTECNICO: "Editar modelo" (icono `editar.png`), "Borrar", separador, "📋  Copiar celda". TECNICO y ADMIN: solo "Copiar celda".
 - [x] "Editar modelo": ventana "Editar modelo" con "Selecciona el modelo:", campo "Filtrar modelo…" (filtra por el nombre traducido, sin distinguir mayúsculas), lista de `MODELOS_ORDENADOS` traducidos con el modelo actual preseleccionado, botones "Cancelar" y "Guardar" (deshabilitado sin selección) → `POST /api/telefonos {imei, modelo}` (el código interno). Recarga.

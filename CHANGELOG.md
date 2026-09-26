@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.8.1] - 2026-09-26 — Dimensionado
+
+- El ojo de los campos de contraseña se ve al tamaño del programa de escritorio: encajado en 18 × 18 sin deformarse (antes el ojo abierto salía más ancho).
+- Cada ventana emergente mide lo que le corresponde: "Carga de técnicos" 680 px, "Técnicos de glass" y los avisos 420 px, las listas de selección 440 px y los comentarios, observaciones e incidencias 520 px, en vez de quedarse todas en 512 px.
+- En las tablas de columnas fijas (Stock, Pedidos, Proveedores, Clientes, IMEIs, Mis asignaciones pendientes (Reparaciones/Glass), Pulidos pendientes e Historial de pulidos) la banda gris de la cabecera y las líneas de cada fila llegan hasta el borde derecho, como el programa de escritorio.
+- Una tabla vacía ocupa el mismo alto que llena, en todas las vistas (por ejemplo, Mis asignaciones pendientes sin asignaciones).
+
 ## [0.8.0] - 2026-09-26 — Gestión
 
 - "Gestionar técnicos" en `/gestion/tecnicos` (solo administrador): alta de usuario y técnico con rol TECNICO o SUPERTECNICO, aviso mientras se escribe si el nombre ya existe, tabla de técnicos registrados con su estado, candado para activar o desactivar el acceso y papelera con confirmación, o con aviso si el técnico tiene historial.

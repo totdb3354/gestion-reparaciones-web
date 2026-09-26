@@ -27,7 +27,7 @@ export function ClienteDialog({ abierto, titulo, etiqueta, valorInicial = '', on
   }
   return (
     <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent aria-describedby={undefined} className="max-w-[420px]">
         <form onSubmit={(e) => { e.preventDefault(); aceptar() }}>
           <DialogHeader>
             <DialogTitle>{titulo}</DialogTitle>

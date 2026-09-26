@@ -34,7 +34,7 @@ export function CambiarPasswordDialog({ abierto, onCerrar }: Props) {
         showCloseButton={false}
         // El Stage modal del JavaFX no se cierra pulsando fuera: quedan Esc y "Cancelar".
         onInteractOutside={(e) => e.preventDefault()}
-        className="w-[380px] max-w-[min(380px,calc(100%-2rem))] gap-0 overflow-hidden border-0 bg-superficie p-0 sm:max-w-[min(380px,calc(100%-2rem))]"
+        className="w-[380px] max-w-[min(380px,calc(100%-2rem))] gap-0 overflow-hidden border-0 bg-superficie p-0"
       >
         <div className="bg-azul-noche px-5 py-4">
           <DialogTitle className="text-[15px] leading-normal font-bold text-white">Cambiar contraseña</DialogTitle>

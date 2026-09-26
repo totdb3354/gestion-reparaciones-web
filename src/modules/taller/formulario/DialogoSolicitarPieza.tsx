@@ -19,7 +19,7 @@ export function DialogoSolicitarPieza({ abierto, tipo, variante, stock, inicial,
   const textoBoton = variante === 'sinStock' ? 'Confirmar: solicitar pieza' : `Confirmar: descontar ${stock} ud. de stock y solicitar`
   return (
     <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
-      <DialogContent aria-describedby={undefined} className="max-w-[min(460px,calc(100%-2rem))] gap-2 bg-fondo-input p-4 sm:max-w-[min(460px,calc(100%-2rem))]">
+      <DialogContent aria-describedby={undefined} className="max-w-[min(460px,calc(100%-2rem))] gap-2 bg-fondo-input p-4">
         <DialogHeader>
           <DialogTitle className="text-[14px] font-bold text-azul-medio">{`Solicitar pieza — ${tipo}`}</DialogTitle>
         </DialogHeader>

@@ -34,7 +34,7 @@ describe('CambiarPasswordDialog: estructura (CambiarPasswordView.fxml)', () => {
   it('barra navy con el título, tres campos con sus etiquetas y placeholders, botones y 380 px', () => {
     abrir()
     const dlg = screen.getByRole('dialog', { name: 'Cambiar contraseña' })
-    expect(dlg).toHaveClass('w-[380px]', 'p-0', 'sm:max-w-[min(380px,calc(100%-2rem))]')
+    expect(dlg).toHaveClass('w-[380px]', 'p-0', 'max-w-[min(380px,calc(100%-2rem))]')
     expect(dlg).not.toHaveClass('sm:max-w-lg')
     const titulo = within(dlg).getByText('Cambiar contraseña')
     expect(titulo).toHaveClass('text-[15px]', 'font-bold', 'text-white')
