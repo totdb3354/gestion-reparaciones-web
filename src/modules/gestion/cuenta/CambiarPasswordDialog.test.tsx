@@ -99,7 +99,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     const onCerrar = abrir()
     await rellenar('secreta1', 'nueva123', 'nueva123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    const aviso = await screen.findByRole('dialog', { name: 'Información' })
+    const aviso = await screen.findByRole('dialog', { name: 'Mensaje' })
     expect(aviso).toHaveTextContent('Contraseña cambiada correctamente.')
     expect(cuerpos).toEqual([{ passwordActual: 'secreta1', passwordNueva: 'nueva123' }])
     expect(onCerrar).toHaveBeenCalledTimes(1)

@@ -6,7 +6,7 @@ describe('textos (CambiarPasswordController :84-105)', () => {
     expect(MSG_RELLENA).toBe('Rellena todos los campos.')
     expect(MSG_PASSWORD_CORTA).toBe('La contraseña debe tener al menos 6 caracteres.')
     expect(MSG_NUEVAS_NO_COINCIDEN).toBe('Las contraseñas nuevas no coinciden.')
-    expect(TITULO_EXITO).toBe('Información')
+    expect(TITULO_EXITO).toBe('Mensaje')
     expect(MSG_EXITO).toBe('Contraseña cambiada correctamente.')
   })
 })

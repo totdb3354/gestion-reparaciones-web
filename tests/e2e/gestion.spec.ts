@@ -58,7 +58,7 @@ async function cambiarPassword(page: Page, actual: string, nueva: string) {
   await dlg.getByRole('button', { name: 'Guardar' }).click()
   expect((await respuesta).status(), 'PATCH /api/auth/cambiar-password').toBe(204)
   await expect(dlg).toBeHidden()
-  const aviso = page.getByRole('dialog', { name: 'Información' })
+  const aviso = page.getByRole('dialog', { name: 'Mensaje' })
   await expect(aviso.getByText('Contraseña cambiada correctamente.')).toBeVisible()
   await aviso.getByRole('button', { name: 'Aceptar' }).click()
   await expect(page).toHaveURL(new RegExp(`${escaparRegex(ruta)}$`))

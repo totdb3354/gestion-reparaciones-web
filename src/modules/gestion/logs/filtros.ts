@@ -11,8 +11,8 @@ export const FILTROS_LOGS_VACIOS: FiltrosLogs = { texto: '', accion: null, usuar
 /** G3: la web pide las 1.000 filas más recientes (el servidor admite 1..5000 en `limite`; sin él, todo, como el JavaFX). */
 export const LIMITE_LOGS = 1000
 export const MSG_TOPE = 'Mostrando los 1.000 registros más recientes; acota con los filtros.'
-/** Placeholder por defecto del TableView (no lo fija LogView.fxml); a confirmar con la captura `gestion-logs-vacio.png`. */
-export const TEXTO_VACIO_LOGS = 'No hay contenido en la tabla'
+/** Placeholder por defecto del TableView (no lo fija LogView.fxml); fijado con la captura del JavaFX el 2026-09-26. */
+export const TEXTO_VACIO_LOGS = 'Tabla sin contenido'
 
 /** Parámetros de GET /api/logs (`getAll_6`): los nombres del servidor. El usuario viaja como `tecnico`, igual que en el
  *  LogDAO del JavaFX (:14-18), porque el servidor filtra por `NOMBRE_USUARIO` con ese nombre de parámetro. */

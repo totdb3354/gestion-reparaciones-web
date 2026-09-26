@@ -283,7 +283,7 @@ describe('TecnicosPage', () => {
     server.use(http.get('*/api/usuarios/tecnicos', () => new HttpResponse('boom', { status: 500 })))
     montar()
     expect(await screen.findByText('Error al cargar los usuarios.')).toBe(linea())
-    expect(screen.getByText('No hay contenido en la tabla')).toBeInTheDocument()
+    expect(screen.getByText('Tabla sin contenido')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
   it('una escritura con éxito marca como caducados los técnicos del resto de la web', async () => {

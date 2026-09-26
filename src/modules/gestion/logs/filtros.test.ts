@@ -20,7 +20,7 @@ describe('constantes', () => {
     expect(FILTROS_LOGS_VACIOS).toEqual({ texto: '', accion: null, usuario: null, desde: '', hasta: '' })
     expect(LIMITE_LOGS).toBe(1000)
     expect(MSG_TOPE).toBe('Mostrando los 1.000 registros más recientes; acota con los filtros.')
-    expect(TEXTO_VACIO_LOGS).toBe('No hay contenido en la tabla')
+    expect(TEXTO_VACIO_LOGS).toBe('Tabla sin contenido')
   })
 })
 

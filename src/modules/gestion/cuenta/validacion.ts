@@ -2,8 +2,8 @@
 export const MSG_RELLENA = 'Rellena todos los campos.'
 export const MSG_PASSWORD_CORTA = 'La contraseña debe tener al menos 6 caracteres.'
 export const MSG_NUEVAS_NO_COINCIDEN = 'Las contraseñas nuevas no coinciden.'
-/** Título por defecto del Alert INFORMATION con locale español; a confirmar con `gestion-password-exito.png`. */
-export const TITULO_EXITO = 'Información'
+/** Título por defecto del Alert INFORMATION con locale español; fijado con la captura del JavaFX el 2026-09-26. */
+export const TITULO_EXITO = 'Mensaje'
 export const MSG_EXITO = 'Contraseña cambiada correctamente.'
 
 /** Calco de `guardar` (:84-95): sin trim ("   " cuenta como relleno), longitud en unidades UTF-16 como `String.length()`,

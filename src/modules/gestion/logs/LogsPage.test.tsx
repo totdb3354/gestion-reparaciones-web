@@ -90,10 +90,10 @@ describe('LogsPage: estructura (LogView.fxml)', () => {
     expect(filas.map((f) => within(f).getAllByRole('cell')[0].textContent)).toEqual(['25/09/2026 10:15:30', '25/09/2026 10:10:00', '25/09/2026 00:30:00'])
     expect(within(filas[0]).getAllByRole('cell').map((c) => c.textContent)).toEqual(['25/09/2026 10:15:30', 'usuario-a', 'CREAR_ASIGNACION', 'ID_REP: R1, IMEI: 000000000000000, TECNICO: tecnico-a'])
   })
-  it('sin filas: "No hay contenido en la tabla" y sin aviso de tope', async () => {
+  it('sin filas: "Tabla sin contenido" y sin aviso de tope', async () => {
     registrarLogs(() => HttpResponse.json([]))
     abrir()
-    expect(await screen.findByText('No hay contenido en la tabla')).toBeInTheDocument()
+    expect(await screen.findByText('Tabla sin contenido')).toBeInTheDocument()
     expect(screen.queryByText(/Mostrando los 1\.000/)).not.toBeInTheDocument()
   })
   it('no registra exportable: "Descargar CSV" queda deshabilitado (calco, sin CSV de logs)', async () => {
@@ -122,7 +122,7 @@ describe('LogsPage: buscador en memoria', () => {
     expect(screen.getByText('ELIMINAR_ASIGNACION')).toBeInTheDocument()
     await userEvent.clear(buscar)
     await userEvent.type(buscar, 'duplicada')
-    expect(screen.getByText('No hay contenido en la tabla')).toBeInTheDocument()
+    expect(screen.getByText('Tabla sin contenido')).toBeInTheDocument()
     expect(peticiones).toHaveLength(1)
   })
   it('"Actualizar" recarga con los filtros actuales y el buscador se conserva', async () => {

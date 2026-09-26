@@ -16,8 +16,8 @@ export const textoNoEliminar = (n: string) =>
 export const TITULO_ELIMINAR = 'Eliminar técnico'
 export const textoEliminar = (n: string) => `¿Eliminar a "${n}" definitivamente?\nSe borrarán sus credenciales de acceso y su registro de técnico.`
 
-/** Placeholder por defecto del TableView (RegisterView.fxml no define uno); se confirma con la captura (spec 6, §12). */
-export const TEXTO_VACIO_TABLA = 'No hay contenido en la tabla'
+/** Placeholder por defecto del TableView (RegisterView.fxml no define uno); fijado con la captura del JavaFX el 2026-09-26 (spec 6, §12). */
+export const TEXTO_VACIO_TABLA = 'Tabla sin contenido'
 
 /** Tooltip del candado (:179); la papelera no tiene tooltip. */
 export const TOOLTIP_DESACTIVAR = 'Desactivar acceso'
