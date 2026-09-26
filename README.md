@@ -68,3 +68,4 @@ Los ficheros de referencia (compose, nginx, README) están en `deploy/`. La guí
 - Spec del taller técnico: repo raíz, `docs/superpowers/specs/2026-09-16-web-taller-design.md`.
 - Spec del formulario de reparación y la campana: repo raíz, `docs/superpowers/specs/2026-09-19-web-formulario-design.md`.
 - Fichas de paridad por vista: `docs/paridad/` (taller: `docs/paridad/{pendientes,historial,imeis,formulario,notificaciones}.md`).
+- Spec de Gestión (técnicos, logs y contraseña): repo raíz, `docs/superpowers/specs/2026-09-26-web-gestion-design.md`; fichas `docs/paridad/{tecnicos,logs,cuenta}.md`.
