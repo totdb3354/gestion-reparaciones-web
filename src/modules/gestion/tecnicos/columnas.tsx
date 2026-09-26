@@ -4,7 +4,7 @@ import { BadgeEstadoUsuario } from './BadgeEstadoUsuario'
 import { TOOLTIP_ACTIVAR, TOOLTIP_DESACTIVAR } from './textos'
 
 /** prefWidth de RegisterView.fxml :105-109. La de acciones es la última (80): en el JavaFX absorbe el sobrante
- *  (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN); aquí lo que sobra queda en la columna de relleno del DataTable. */
+ *  (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN); aquí lo absorbe igual, con `ajuste="ultima"` desde la 0.8.0. */
 export const ANCHOS_TECNICOS = { tecnico: 160, usuario: 130, rol: 110, estado: 90, acciones: 80 } as const
 
 type Acciones = { onToggle: (u: Usuario) => void; onEliminar: (u: Usuario) => void }

@@ -737,6 +737,9 @@ describe('DataTable — ajuste estirar con topes (maxSize de la columna)', () =>
   })
   afterEach(() => {
     vi.unstubAllGlobals()
+    // Restaura también los `vi.spyOn` que algún test de aquí abajo deja puestos (p. ej. `getComputedStyle`): como
+    // último paso del `afterEach` en vez de última línea del test, se restauran igual si una aserción anterior falla.
+    vi.restoreAllMocks()
   })
 
   it('mide el ancho del contenedor (redondeado hacia abajo) y pinta los anchos en px con la regla del JavaFX', () => {
@@ -784,13 +787,27 @@ describe('DataTable — ajuste estirar con topes (maxSize de la columna)', () =>
     expect(cols[0]).toHaveStyle({ width: '646px' })
     expect(cols[1]).toHaveStyle({ width: '150px' })
     expect(container.querySelector('table')).toHaveStyle({ width: '796px' })
-    vi.restoreAllMocks()
   })
 
   it('en ajuste fluido sin filas no descuenta nada (no hay borde de fila)', () => {
     const { container } = render(<DataTable columns={COLUMNAS_CON_TOPE} data={[]} vacio="Sin filas" ajuste="fluido" />)
     medirContenedor(800)
     expect(container.querySelector('table')).toHaveStyle({ width: '800px' })
+  })
+
+  it('en ajuste fluido, de vacía a llena vuelve a medir el borde y descuenta (transición sin remontar, caso de Pendientes al llegar los datos)', () => {
+    // jsdom no aplica las clases de Tailwind: el borde de 8 px de la franja de estado (border-l-8) se simula.
+    const original = window.getComputedStyle
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((el, pseudo) => {
+      const estilo = original(el, pseudo)
+      return el.tagName === 'TR' ? ({ ...estilo, borderLeftStyle: 'solid', borderLeftWidth: '8px' } as CSSStyleDeclaration) : estilo
+    })
+    const { container, rerender } = render(<DataTable columns={COLUMNAS_CON_TOPE} data={[]} vacio="Sin filas" ajuste="fluido" />)
+    medirContenedor(800) // sin filas todavía no hay borde que medir: la tabla llega a los 800 del contenedor
+    expect(container.querySelector('table')).toHaveStyle({ width: '800px' })
+    rerender(<DataTable columns={COLUMNAS_CON_TOPE} data={DATOS} vacio="Sin filas" ajuste="fluido" />)
+    // ya hay una fila pintada: se remide el borde y se descuentan los 4 px, sin que el contenedor cambie de tamaño
+    expect(container.querySelector('table')).toHaveStyle({ width: '796px' })
   })
 
   it('el ancho del contenedor no depende de la tabla (contain-inline-size): lo medido no vuelve a ensanchar lo que se mide', () => {
