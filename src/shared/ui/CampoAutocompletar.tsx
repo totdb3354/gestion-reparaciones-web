@@ -111,10 +111,12 @@ export function CampoAutocompletar({
           onOpenAutoFocus={(ev) => ev.preventDefault()}
           onCloseAutoFocus={(ev) => ev.preventDefault()}
           // Con `anchoLista` la lista crece hasta su contenido con ese mínimo (el popup de Logs mide ≈250 frente a los
-          // 150 del campo y así no recorta los códigos); sin él, el ancho del campo como hasta ahora.
+          // 150 del campo y así no recorta los códigos); sin él, el ancho del campo como hasta ahora. El máximo evita
+          // que un código largo (o el viewport estrecho) la ensanche sin límite; las opciones se cortan con "…" y el
+          // texto completo queda en el `title`.
           style={anchoLista != null ? { minWidth: `${anchoLista}px` } : undefined}
           className={cn(
-            anchoLista != null ? 'w-max' : 'w-[var(--radix-popover-trigger-width)]',
+            anchoLista != null ? 'w-max max-w-[min(480px,calc(100vw-32px))]' : 'w-[var(--radix-popover-trigger-width)]',
             'rounded-lg border border-borde-input bg-white p-0.5 shadow-md',
           )}
         >
@@ -129,9 +131,10 @@ export function CampoAutocompletar({
                 key={o.clave}
                 role="option"
                 aria-selected={o.clave === valor}
+                title={o.etiqueta}
                 // mousedown en vez de click: se adelanta al blur del input, que si no cerraría la lista antes
                 onMouseDown={(ev) => { ev.preventDefault(); elegir(o) }}
-                className={cn('mx-1.5 cursor-pointer rounded-lg px-3 text-[12px] font-bold text-azul-noche hover:bg-azul-noche hover:text-white')}
+                className={cn('mx-1.5 cursor-pointer truncate rounded-lg px-3 text-[12px] font-bold text-azul-noche hover:bg-azul-noche hover:text-white')}
                 style={{ lineHeight: `${ALTO_FILA}px` }}
               >
                 {o.etiqueta}
