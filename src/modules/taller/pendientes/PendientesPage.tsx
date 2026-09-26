@@ -138,8 +138,6 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         columns={columnas}
         data={visibles}
         vacio="No tienes asignaciones pendientes"
-        // Como el TableView de PendientesTecnicoController (política constrained): las columnas se reparten hasta el borde
-        ajuste="estirar"
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

@@ -48,17 +48,6 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(screen.getByText('iPhone 14 Plus')).toBeInTheDocument()
     expect(screen.getByText('2026/09/15 10:53')).toBeInTheDocument()
   })
-  it('las columnas se reparten hasta el borde (ajuste estirar: anchos en %, tabla al 100 %, sin columna de relleno)', async () => {
-    abrir()
-    await screen.findByText('iPhone 14 Plus')
-    const tabla = screen.getByRole('table')
-    expect(tabla).toHaveClass('w-full')
-    const anchos = Array.from(tabla.querySelectorAll('col')).map((c) => c.style.width)
-    expect(anchos.length).toBeGreaterThan(0)
-    for (const ancho of anchos) expect(ancho).toMatch(/%$/)
-    expect(tabla.querySelector('[data-relleno]')).toBeNull()
-  })
-
   it('orden urgente → con cliente → resto; borde por solicitud e incidencia; badges de estado', async () => {
     abrir()
     await screen.findByText('A20260915_29')

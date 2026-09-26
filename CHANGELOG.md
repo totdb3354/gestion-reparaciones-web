@@ -9,7 +9,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - El ojo de los campos de contraseña se ve al tamaño del programa de escritorio: encajado en 18 × 18 sin deformarse (antes el ojo abierto salía más ancho).
 - Cada ventana emergente mide lo que le corresponde: "Carga de técnicos" 680 px, "Técnicos de glass" y los avisos 420 px, las listas de selección 440 px y los comentarios, observaciones e incidencias 520 px, en vez de quedarse todas en 512 px.
 - En las tablas de columnas fijas (Stock, Pedidos, Proveedores, Clientes, IMEIs, Pulidos pendientes) la banda gris de la cabecera y las líneas de cada fila llegan hasta el borde derecho, como el programa de escritorio.
-- Mis asignaciones pendientes: las columnas se reparten todo el ancho, y una tabla vacía ocupa el mismo alto que llena, en todas las vistas.
+- Una tabla vacía ocupa el mismo alto que llena, en todas las vistas (por ejemplo, Mis asignaciones pendientes sin asignaciones).
 
 ## [0.8.0] - 2026-09-26 — Gestión
 
