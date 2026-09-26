@@ -15,6 +15,8 @@ import { COLUMNAS_LOGS, textoDetalle } from './columnas'
 import { aplicarBuscador, FILTROS_LOGS_VACIOS, LIMITE_LOGS, MSG_TOPE, queryLogs, TEXTO_VACIO_LOGS, type FiltrosLogs } from './filtros'
 
 const PREFIJO_ERROR = 'Error al cargar los logs: '
+/** El popup de "Acción..."/"Técnico..." del JavaFX mide ≈250 px frente a los 150 del campo (comparación de capturas). */
+const ANCHO_LISTA = 250
 
 /** "Ver logs" (LogView.fxml + LogController de `hotfix/0.16.3`), como página del shell (G2). Solo lectura. */
 export function LogsPage() {
@@ -97,6 +99,8 @@ export function LogsPage() {
               onTextoCambiado={(t) => { if (t.trim() === '') setFiltros((f) => (f.accion === null ? f : { ...f, accion: null })) }}
               placeholder="Acción..."
               aria-label="Acción"
+              abrirAlEnfocar
+              anchoLista={ANCHO_LISTA}
             />
           </div>
           <div className="w-[150px]">
@@ -108,6 +112,8 @@ export function LogsPage() {
               onTextoCambiado={(t) => { if (t.trim() === '') setFiltros((f) => (f.usuario === null ? f : { ...f, usuario: null })) }}
               placeholder="Técnico..."
               aria-label="Técnico"
+              abrirAlEnfocar
+              anchoLista={ANCHO_LISTA}
             />
           </div>
           <RangoFechas desde={filtros.desde} hasta={filtros.hasta} onChange={(desde, hasta) => setFiltros((f) => ({ ...f, desde, hasta }))} />

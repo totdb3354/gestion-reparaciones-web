@@ -110,4 +110,45 @@ describe('CampoAutocompletar', () => {
     await userEvent.type(campo, 'y')
     expect(campo).toHaveValue('iPhone 15xy')
   })
+  it('por defecto, enfocar o pulsar el campo no abre la lista (solo teclear)', async () => {
+    render(<Envoltorio />)
+    const campo = screen.getByRole('combobox', { name: 'Modelo' })
+    campo.focus()
+    await userEvent.click(campo)
+    expect(screen.queryByRole('option')).toBeNull()
+    expect(campo).toHaveAttribute('aria-expanded', 'false')
+  })
+  it('con `abrirAlEnfocar`, el foco abre la lista completa sin teclear; elegir la cierra y un clic la reabre', async () => {
+    const onElegir = vi.fn()
+    render(<>
+      <CampoAutocompletar aria-label="Modelo" placeholder="Escribe modelo..." valor={null} opciones={OPCIONES}
+        onElegir={onElegir} abrirAlEnfocar />
+      <button>fuera</button>
+    </>)
+    const campo = screen.getByRole('combobox', { name: 'Modelo' })
+    await userEvent.tab()
+    expect(campo).toHaveFocus()
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(OPCIONES.map((o) => o.etiqueta))
+    await userEvent.click(screen.getByRole('option', { name: 'iPhone 15' }))
+    expect(onElegir).toHaveBeenCalledWith('15')
+    expect(screen.queryByRole('option')).toBeNull()
+    await userEvent.click(campo)
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['iPhone 15'])
+    await userEvent.tab()
+    expect(screen.queryByRole('option')).toBeNull()
+  })
+  it('con `anchoLista`, la lista tiene ese ancho mínimo; sin él, el ancho del campo', async () => {
+    const { unmount } = render(<CampoAutocompletar aria-label="Acción" placeholder="Acción..." valor={null} opciones={OPCIONES}
+      onElegir={vi.fn()} anchoLista={250} />)
+    await userEvent.type(screen.getByRole('combobox'), 'iphone')
+    const contenido = screen.getByRole('listbox').parentElement!
+    expect(contenido).toHaveStyle({ minWidth: '250px' })
+    expect(contenido).not.toHaveClass('w-[var(--radix-popover-trigger-width)]')
+    unmount()
+    render(<Envoltorio />)
+    await userEvent.type(screen.getByRole('combobox'), 'iphone')
+    const porDefecto = screen.getByRole('listbox').parentElement!
+    expect(porDefecto).toHaveClass('w-[var(--radix-popover-trigger-width)]')
+    expect(porDefecto.style.minWidth).toBe('')
+  })
 })

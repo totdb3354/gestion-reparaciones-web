@@ -11,13 +11,20 @@ type Props = {
   placeholder: string
   disabled?: boolean
   'aria-label': string
+  /** Abre la lista (todas las opciones, o las que filtre el texto actual) al enfocar o pulsar el campo, como el popup
+   *  de "Acción..."/"Técnico..." de LogController. Por defecto `false`: solo se abre al teclear. */
+  abrirAlEnfocar?: boolean
+  /** Ancho mínimo de la lista en px (puede ser más ancha que el campo, alineada al inicio). Sin él, el ancho del campo. */
+  anchoLista?: number
 }
 
 const ALTO_FILA = 30
 const VISIBLES = 6
 
 /** Buscador en línea del modal "Asignar trabajos" (modelo y cliente): calco de los TextField + Popup del JavaFX. */
-export function CampoAutocompletar({ valor, opciones, onElegir, onTextoCambiado, placeholder, disabled, 'aria-label': ariaLabel }: Props) {
+export function CampoAutocompletar({
+  valor, opciones, onElegir, onTextoCambiado, placeholder, disabled, 'aria-label': ariaLabel, abrirAlEnfocar = false, anchoLista,
+}: Props) {
   const etiquetaDe = (clave: string | null) => opciones.find((o) => o.clave === clave)?.etiqueta ?? ''
   const elegida = etiquetaDe(valor)
   const [texto, setTexto] = useState(elegida)
@@ -88,6 +95,8 @@ export function CampoAutocompletar({ valor, opciones, onElegir, onTextoCambiado,
             }}
             onKeyDown={onKeyDown}
             onBlur={onBlur}
+            onFocus={abrirAlEnfocar ? () => setAbierto(true) : undefined}
+            onClick={abrirAlEnfocar ? () => setAbierto(true) : undefined}
             className="w-full rounded-full bg-azul-noche px-3 py-1 text-[12px] font-bold text-crema placeholder:text-crema/45 disabled:opacity-60"
           />
         </PopoverAnchor>
@@ -101,7 +110,13 @@ export function CampoAutocompletar({ valor, opciones, onElegir, onTextoCambiado,
           sideOffset={2}
           onOpenAutoFocus={(ev) => ev.preventDefault()}
           onCloseAutoFocus={(ev) => ev.preventDefault()}
-          className="w-[var(--radix-popover-trigger-width)] rounded-lg border border-borde-input bg-white p-0.5 shadow-md"
+          // Con `anchoLista` la lista crece hasta su contenido con ese mínimo (el popup de Logs mide ≈250 frente a los
+          // 150 del campo y así no recorta los códigos); sin él, el ancho del campo como hasta ahora.
+          style={anchoLista != null ? { minWidth: `${anchoLista}px` } : undefined}
+          className={cn(
+            anchoLista != null ? 'w-max' : 'w-[var(--radix-popover-trigger-width)]',
+            'rounded-lg border border-borde-input bg-white p-0.5 shadow-md',
+          )}
         >
           <ul
             id={idLista}

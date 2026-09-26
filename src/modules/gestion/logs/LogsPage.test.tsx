@@ -156,6 +156,16 @@ describe('LogsPage: filtros de servidor', () => {
     await waitFor(() => expect(peticiones).toHaveLength(3))
     expect(ultima(peticiones)).toEqual({ limite: '1000' })
   })
+  it('"Acción..." y "Técnico..." abren la lista completa al enfocarlos, sin teclear, y la lista mide al menos 250 px (calco del popup del JavaFX)', async () => {
+    registrarLogs()
+    abrir()
+    await screen.findByText('CREAR_ASIGNACION')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Acción' }))
+    expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual(['CREAR_ASIGNACION', 'ELIMINAR_ASIGNACION', 'LOGIN'])
+    expect(screen.getByRole('listbox').parentElement).toHaveStyle({ minWidth: '250px' })
+    await userEvent.click(screen.getByRole('combobox', { name: 'Técnico' }))
+    expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual(['Usuario-C', 'usuario-a', 'usuario-b'])
+  })
   it('"Técnico...": nombres de usuario en orden natural de cadena; elegir manda `tecnico`', async () => {
     const peticiones = registrarLogs()
     abrir()
