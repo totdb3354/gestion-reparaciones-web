@@ -4,6 +4,10 @@ Referencia: línea hotfix 0.16.2 del cliente JavaFX (idéntica a `hotfix/0.16.3`
 
 Capturas de referencia (documentación privada, fuera del repo): `taller/{imeis-maestro-tecnico,imeis-maestro-supertecnico,imeis-maestro-admin,imeis-filtro-tecnico,imeis-filtro-cliente,imeis-maestro-filtro-incidencias,imeis-maestro-menu-contextual,imeis-maestro-menu-contextual-supertecnico,imeis-maestro-menu-contextual-admin,imeis-maestro-tras-volver,imeis-detalle-tecnico,imeis-detalle-supertecnico,imeis-detalle-admin,imeis-detalle-filtro-incidencias,imeis-detalle-menu-contextual,imeis-detalle-menu-contextual-supertecnico,imeis-detalle-menu-contextual-admin,imeis-dialogo-observacion,imeis-dialogo-cliente,imeis-dialogo-incidencia,imeis-dialogo-borrar}.png`.
 
+## Diferencias deliberadas respecto al JavaFX
+
+- **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm` (`dd/MM/yyyy` en el Historial de técnico); el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+
 ## Común a maestro y detalle
 
 - [x] Roles: los tres. Entrada "IMEIs" de la columna lateral; pulsarla estando en el detalle vuelve al maestro (equivale a "← Volver").

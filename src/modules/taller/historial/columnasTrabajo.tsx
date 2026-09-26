@@ -14,8 +14,8 @@ import { traducirModelo } from '../lib/modelos'
 type Opciones = {
   /** Columna "Tipo" delante (detalle de IMEIs) */
   conTipo?: boolean
-  /** Patrón de la columna Fechas: en el Historial 'yyyy/MM/dd' para TECNICO y 'yyyy/MM/dd HH:mm' para SUPERTECNICO y
-   *  ADMIN; 'yyyy/MM/dd HH:mm' en el detalle de IMEIs */
+  /** Patrón de la columna Fechas: en el Historial 'dd/MM/yyyy' para TECNICO y 'dd/MM/yyyy HH:mm' para SUPERTECNICO y
+   *  ADMIN; 'dd/MM/yyyy HH:mm' en el detalle de IMEIs */
   patronFechas: Patron
   /** Título de la columna del ID: "Id Reparación" en el Historial, "Id" en el detalle */
   tituloId: string

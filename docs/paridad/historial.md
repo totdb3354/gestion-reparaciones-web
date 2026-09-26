@@ -4,6 +4,10 @@ Referencia: línea hotfix 0.16.2 del cliente JavaFX (idéntica a `hotfix/0.16.3`
 
 Capturas de referencia (documentación privada, fuera del repo): `taller/{historial-reparaciones-tecnico,historial-reparaciones-supertecnico,historial-reparaciones-admin,historial-glass-tecnico,historial-glass-supertecnico,historial-glass-admin,historial-pulidos-tecnico,historial-pulidos-supertecnico,historial-pulidos-admin,historial-filtro-pieza,historial-filtro-tecnico,historial-filtro-incidencias,historial-filtro-fecha-desde,historial-menu-contextual,historial-menu-contextual-supertecnico,historial-menu-contextual-admin,historial-pulidos-menu-contextual,historial-pulidos-menu-contextual-supertecnico,historial-pulidos-menu-contextual-admin,historial-dialogo-borrar,historial-observaciones-popup}.png` (los diálogos "Añadir incidencia" y "Borrar incidencia" son los mismos que en IMEIs: ver `imeis-dialogo-incidencia.png`).
 
+## Diferencias deliberadas respecto al JavaFX
+
+- **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm` (`dd/MM/yyyy` en el Historial de técnico); el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+
 ## Común a los tres toggles
 
 - [x] Roles: los tres. Es la vista de entrada de ADMIN y, hasta el sub-proyecto 3, también de SUPERTECNICO. Entrada "Historial" de la columna lateral.

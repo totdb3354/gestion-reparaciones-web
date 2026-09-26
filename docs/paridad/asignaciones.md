@@ -8,6 +8,8 @@ Los ejemplos de identificador (`A20260922_1`, `AG20260922_1`, `AP20260922_1`) y 
 
 ## Diferencias deliberadas respecto al JavaFX
 
+- **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm`; el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+
 Las tres que la spec ya anunciaba:
 
 - **La tabla no se ordena por columna** (D5). El orden urgente → con cliente → resto es funcional: lo que corre va arriba. Ordenar por otra cosa entierra lo urgente sin avisar, así que la web podría ordenar y deliberadamente no lo hace (el JavaFX apaga el `sortable` de todas sus columnas por el mismo motivo).

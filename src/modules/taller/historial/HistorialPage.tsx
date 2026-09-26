@@ -50,7 +50,7 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
   }, [data, filtroImei, filtros])
   // FORMATO_FECHA de cada controller, en la celda Fechas y en su "Copiar celda" (también con el toggle Glass, que es la
   // misma tabla): "yyyy/MM/dd HH:mm" en ReparacionController{SuperTecnico,Admin}, "yyyy/MM/dd" en ReparacionControllerTecnico.
-  const patronFechas: Patron = global ? 'yyyy/MM/dd HH:mm' : 'yyyy/MM/dd'
+  const patronFechas: Patron = global ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'
   const columnas = useMemo(() => columnasTrabajo({
     patronFechas,
     tituloId: 'Id Reparación',

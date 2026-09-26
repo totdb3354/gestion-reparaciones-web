@@ -4,6 +4,10 @@ Referencia: línea hotfix 0.16.2 del cliente JavaFX (la que usa la tienda; idén
 
 Capturas de referencia (documentación privada, fuera del repo): `taller/{pendientes-reparaciones-tecnico,pendientes-filtro-tipo,pendientes-menu-contextual,pendientes-menu-contextual-con-glass,pendientes-filtro-imei-valido,pendientes-filtro-imei-incompleto,pendientes-glass-tecnico,pendientes-pulidos-tecnico,pendientes-reparaciones-supertecnico}.png`.
 
+## Diferencias deliberadas respecto al JavaFX
+
+- **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm` (`dd/MM/yyyy` en el Historial de técnico); el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+
 ## Común a las tres pestañas
 
 - [x] Roles: TECNICO y SUPERTECNICO (los que tienen `idTec`); es la vista de entrada del TECNICO. ADMIN no tiene el apartado (la ruta le lleva a Historial).

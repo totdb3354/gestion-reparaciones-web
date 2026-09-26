@@ -3,7 +3,7 @@ import { columnasTrabajo } from './columnasTrabajo'
 
 /** [id, size (mínimo y peso al estirar: el de aplicarAnchosDetalle), maxSize (maxWidth del FXML)] de cada columna, en orden. */
 const anchos = (conTipo: boolean) =>
-  columnasTrabajo({ conTipo, patronFechas: 'yyyy/MM/dd', tituloId: 'Id', onIrA: () => {} }).map((c) => [c.id, c.size, c.maxSize])
+  columnasTrabajo({ conTipo, patronFechas: 'dd/MM/yyyy', tituloId: 'Id', onIrA: () => {} }).map((c) => [c.id, c.size, c.maxSize])
 
 const COMUNES = [
   ['id', 110, undefined],

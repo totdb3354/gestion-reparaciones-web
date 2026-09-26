@@ -104,7 +104,7 @@ describe('crearColumnas: contenido de las celdas', () => {
     expect(screen.getByText('000000000000001')).toBeInTheDocument()
     expect(screen.getByText('Glass: Técnico H')).toBeInTheDocument()
     expect(screen.getByText('iPhone 14')).toBeInTheDocument()
-    expect(screen.getByText('2026/09/16 09:02')).toBeInTheDocument()
+    expect(screen.getByText('16/09/2026 09:02')).toBeInTheDocument()
     expect(screen.getByText('Cliente Uno')).toBeInTheDocument()
     expect(screen.getByText('Técnico F')).toBeInTheDocument()
   })
