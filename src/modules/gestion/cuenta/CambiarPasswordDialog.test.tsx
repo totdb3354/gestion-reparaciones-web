@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { useState } from 'react'
@@ -182,6 +182,20 @@ describe('CambiarPasswordDialog: cerrar', () => {
     const onCerrar = abrir()
     await userEvent.keyboard('{Escape}')
     expect(onCerrar).toHaveBeenCalledTimes(1)
+  })
+  it('pulsar fuera del diálogo (el velo o el body) no lo cierra y conserva lo tecleado (Stage modal del JavaFX)', async () => {
+    const onCerrar = abrir()
+    await rellenar('secreta1', '', '')
+    const velo = document.querySelector('[data-slot="dialog-overlay"]')
+    expect(velo).not.toBeNull()
+    await userEvent.click(velo!)
+    // Radix pone `pointer-events: none` en el body mientras el modal está abierto (user-event se niega a pulsarlo): el
+    // `pointerdown` que escucha su DismissableLayer se dispara a mano.
+    fireEvent.pointerDown(document.body)
+    fireEvent.click(document.body)
+    expect(onCerrar).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Cambiar contraseña' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Contraseña actual')).toHaveValue('secreta1')
   })
   it('al reabrir, los campos y el error vuelven vacíos (la ventana del JavaFX se crea de nuevo)', async () => {
     function Arnes() {
