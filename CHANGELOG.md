@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.8.1] - 2026-09-26 — Dimensionado
+## [0.8.1] - 2026-09-27 — Dimensionado
 
 - El ojo de los campos de contraseña se ve al tamaño del programa de escritorio: encajado en 18 × 18 sin deformarse (antes el ojo abierto salía más ancho).
 - Cada ventana emergente mide lo que le corresponde: "Carga de técnicos" 680 px, "Técnicos de glass" y los avisos 420 px, las listas de selección 440 px y los comentarios, observaciones e incidencias 520 px, en vez de quedarse todas en 512 px.
