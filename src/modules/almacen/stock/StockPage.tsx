@@ -168,6 +168,7 @@ export function StockPage() {
             columns={columnas}
             data={visibles}
             vacio="Sin componentes"
+            ajuste="fluido"
             getRowId={(c) => String(c.idCom)}
             seleccionada={seleccionada}
             onSeleccionar={setSeleccionada}

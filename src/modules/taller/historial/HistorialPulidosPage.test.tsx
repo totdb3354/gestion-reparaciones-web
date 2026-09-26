@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
+import { anchosDeColumnas, simularAnchoDeTabla } from '@/test/columnas'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { resumen, tecnico } from '../test/fabrica'
 import { HistorialPulidosPage } from './HistorialPulidosPage'
@@ -74,5 +75,16 @@ describe('HistorialPulidosPage (ficha docs/paridad/historial.md, toggle Pulidos)
     server.use(http.get('*/api/pulidos/historial', () => HttpResponse.json([])))
     renderConProviders(<HistorialPulidosPage />, { sesion: SESION_TEC, ruta: '/reparaciones/historial/pulidos' })
     expect(await screen.findByText('No hay pulidos completados')).toBeInTheDocument()
+  })
+})
+
+describe('HistorialPulidosPage: tabla fluida (adaptación a web)', () => {
+  it('sin columna de relleno; Id, IMEI y las dos fechas fijas, y las de texto se reparten el sobrante', async () => {
+    // 1740 px: 500 para las fijas y 1240 para Modelo, Técnico, Comentario, Cliente y Asignado por, el doble de sus mínimos (620)
+    simularAnchoDeTabla(1740)
+    const { container } = abrir()
+    await screen.findByText('P20260915_10')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    expect(anchosDeColumnas(container)).toEqual([110, 130, 240, 220, 130, 130, 320, 220, 240])
   })
 })

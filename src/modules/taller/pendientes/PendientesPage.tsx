@@ -71,18 +71,18 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
 
   const columnas = useMemo<ColumnDef<ReparacionResumen>[]>(() => {
     const base: ColumnDef<ReparacionResumen>[] = [
-      { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90 },
-      { id: 'tipo', header: 'Tipo', size: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
-      { id: 'imei', header: 'IMEI', size: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
+      { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
+      { id: 'tipo', header: 'Tipo', size: 90, maxSize: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
+      { id: 'imei', header: 'IMEI', size: 130, maxSize: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
       { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
-      { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
+      { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
       { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
-      { id: 'estado', header: 'Estado', size: 100, cell: ({ row }) => <BadgesEstadoPendiente rep={row.original} hoy={hoy} /> },
-      { id: 'accion', header: '', size: 150, cell: ({ row }) => <BotonAnadir rep={row.original} glass={glass} /> },
+      { id: 'estado', header: 'Estado', size: 100, maxSize: 100, cell: ({ row }) => <BadgesEstadoPendiente rep={row.original} hoy={hoy} /> },
+      { id: 'accion', header: '', size: 150, maxSize: 150, cell: ({ row }) => <BotonAnadir rep={row.original} glass={glass} /> },
     ]
-    if (esSuper) base.push({ id: 'borrar', header: '', size: 45, cell: ({ row }) => <BotonPapelera onClick={() => setABorrar(row.original)} /> })
+    if (esSuper) base.push({ id: 'borrar', header: '', size: 45, maxSize: 45, cell: ({ row }) => <BotonPapelera onClick={() => setABorrar(row.original)} /> })
     return base
   }, [esSuper, glass, hoy])
 
@@ -138,6 +138,7 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         columns={columnas}
         data={visibles}
         vacio="No tienes asignaciones pendientes"
+        ajuste="fluido"
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

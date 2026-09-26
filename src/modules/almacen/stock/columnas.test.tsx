@@ -5,6 +5,7 @@ import type { Componente } from '@/shared/api/client'
 import { CREMA_EN_FILA_SELECCIONADA, DataTable } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
+import { repartoFluido } from '@/test/columnas'
 
 const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
@@ -88,5 +89,15 @@ describe('columnas de Stock actual', () => {
   it('CSV: cabeceras exactas del JavaFX, tipo sin sufijo, estado del semáforo y fecha de registro con hora (Madrid)', () => {
     expect(CABECERAS_CSV_STOCK).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro'])
     expect(filaCsvStock(c({ idComMaster: 9, stock: 0, enCamino: 4 }))).toEqual(['lcd-x', '0', '2', 'Sin stock', '4', '01/09/2026 12:30'])
+  })
+})
+
+describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => {
+  it('Componente absorbe el ancho sobrante y las de números, fecha y badge son fijas (maxSize = size, que sigue siendo el del FXML)', () => {
+    expect(repartoFluido(crearColumnasStock({ onEnCamino: vi.fn() }))).toEqual({
+      fijas: ['enStock', 'enCamino', 'stockMinimo', 'ultimoPedido', 'estado'],
+      absorben: ['componente'],
+      otras: [],
+    })
   })
 })

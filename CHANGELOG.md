@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.8.2] - 2026-09-XX — Tablas fluidas
+
+- Almacén (Stock actual, Pedidos y Proveedores): el componente, el concepto, el proveedor y el comentario se quedan con el ancho que sobra en pantallas grandes; las cantidades, las fechas, los importes y el estado mantienen su ancho.
+- Clientes: el nombre se queda con el ancho que sobra; el estado mantiene su ancho.
+- Agrupado por IMEI: el modelo, los trabajos, la observación y el cliente se quedan con el ancho que sobra; el IMEI, las fechas y el estado mantienen su ancho.
+- Mis asignaciones pendientes (Reparaciones/Glass), Pulidos pendientes e Historial de pulidos: el modelo, el técnico, el comentario, el cliente y "Asignado por" se quedan con el ancho que sobra; el identificador, el IMEI, las fechas, las etiquetas y los botones mantienen su ancho.
+- En pantallas pequeñas las columnas no bajan de su ancho de siempre y la tabla se desplaza en horizontal. Diferencia decidida respecto al programa de escritorio, que deja el sobrante en blanco y recorta el texto: anotada en las fichas de `docs/paridad/`.
+
 ## [0.8.1] - 2026-09-27 — Dimensionado
 
 - El ojo de los campos de contraseña se ve al tamaño del programa de escritorio: encajado en 18 × 18 sin deformarse (antes el ojo abierto salía más ancho).

@@ -4,7 +4,8 @@ import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { CABECERAS_CSV_PROVEEDORES, filaCsvProveedor } from './columnas'
+import { repartoFluido } from '@/test/columnas'
+import { CABECERAS_CSV_PROVEEDORES, crearColumnasProveedores, filaCsvProveedor } from './columnas'
 import { ultimaRutaStock } from '../estado'
 import { ProveedoresPage } from './ProveedoresPage'
 
@@ -245,5 +246,14 @@ describe('ProveedoresPage', () => {
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Borrar proveedor' })).getByRole('button', { name: 'Borrar' }))
     await waitFor(() => expect(borrado).toBe(true))
     await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
+  })
+})
+
+describe('ProveedoresPage: tabla fluida', () => {
+  it('Nombre y Comentario absorben el ancho sobrante, Divisa y Estado son fijas, y la tabla va sin columna de relleno', async () => {
+    expect(repartoFluido(crearColumnasProveedores())).toEqual({ fijas: ['divisa', 'estado'], absorben: ['nombre', 'comentario'], otras: [] })
+    const { container } = montar()
+    await screen.findByText('ACME')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
   })
 })

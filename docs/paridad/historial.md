@@ -44,7 +44,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 
 - [x] Título "Historial de pulidos" + píldora "N pulidos" / "1 pulido" (sin tope).
 - [x] Filtros: IMEI · Técnico (activos, los tres roles) · Desde · Hasta · Limpiar filtros.
-- [x] Columnas y anchos (px): Id Pulido 110 · IMEI 130 · Modelo 120 · Técnico 110 · Fecha asignación 130 · Fecha fin 130 · Comentario 160 · Cliente 110 · Asignado por 120; el sobrante de la tabla es una columna de relleno vacía, como la del TableView: la banda de la cabecera y las líneas de fila llegan hasta el borde derecho (web 0.8.1). Fechas `yyyy/MM/dd HH:mm`. Comentario = `comentarioAsignacion`. Asignado por = `nombreTecnicoAsigna` o "—".
+- [x] Columnas y anchos (px): Id Pulido 110 · IMEI 130 · Modelo 120 · Técnico 110 · Fecha asignación 130 · Fecha fin 130 · Comentario 160 · Cliente 110 · Asignado por 120; son los mínimos: Modelo, Técnico, Comentario, Cliente y Asignado por se reparten el sobrante y las demás son fijas (diferencia aceptada, web 0.8.2). Fechas `yyyy/MM/dd HH:mm`. Comentario = `comentarioAsignacion`. Asignado por = `nombreTecnicoAsigna` o "—".
 - [x] Filas sin borde de estado.
 - [x] Menú contextual SUPERTECNICO: "Editar modelo" (icono `editar.png`), "Borrar", separador, "📋  Copiar celda". TECNICO y ADMIN: solo "Copiar celda".
 - [x] "Editar modelo": ventana "Editar modelo" con "Selecciona el modelo:", campo "Filtrar modelo…" (filtra por el nombre traducido, sin distinguir mayúsculas), lista de `MODELOS_ORDENADOS` traducidos con el modelo actual preseleccionado, botones "Cancelar" y "Guardar" (deshabilitado sin selección) → `POST /api/telefonos {imei, modelo}` (el código interno). Recarga.
@@ -55,6 +55,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 
 ## Diferencias aceptadas
 
+- Las columnas de texto se reparten el ancho sobrante y las de números/fechas/badges/acciones son fijas (`ajuste="fluido"`); el JavaFX deja el sobrante en blanco y recorta el texto (decisión del usuario 2026-09-27, adaptación a web; web 0.8.2). Solo en el toggle Pulidos; Reparaciones y Glass ya estiran sus columnas.
 - El SUPERTECNICO entra en Historial en vez de en Asignaciones hasta el sub-proyecto 3.
 - Los toggles son rutas (el botón atrás del navegador cambia de toggle); los diálogos y ventanas son modales con los mismos títulos, etiquetas y botones; sin cuenta atrás en los `ConfirmDialog`.
 - La entrada "Historial" de la columna lateral abre siempre el toggle "Reparaciones"; el JavaFX vuelve a abrir el último toggle usado.

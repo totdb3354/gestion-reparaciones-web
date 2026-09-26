@@ -25,6 +25,7 @@ Las de la spec §10:
 - **Filtros Estado y Proveedor como `MultiSelect`** sin el buscador "Buscar…" del desplegable de proveedores (aceptado en 4a) y **fechas "Desde/Hasta" tecleables** (aceptado en Historial).
 - **Guards de estado y rangos en el servidor**: una transición no permitida responde 409 y una cantidad fuera de rango 422, con los textos del cliente; el JavaFX 0.16.x no los dispara porque su menú y sus validaciones ya lo impiden.
 - **Editar un pedido cuyo proveedor se desactivó después** responde 422 "El proveedor no está activo." aunque no se cambie el proveedor (spec §4.2, desviación 8 del servidor); el JavaFX no lo bloqueaba, y el JavaFX 0.16.x también recibe ahora ese 422 al editar. El componente no se valida en la edición (el `PUT` no lo lleva; "El componente no está activo." es solo del alta).
+- Las columnas de texto se reparten el ancho sobrante y las de números/fechas/badges/acciones son fijas (`ajuste="fluido"`); el JavaFX deja el sobrante en blanco y recorta el texto (decisión del usuario 2026-09-27, adaptación a web; web 0.8.2). En las dos tablas absorben Componente/Concepto y Proveedor.
 
 Inocuas:
 

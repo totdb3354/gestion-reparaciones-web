@@ -67,16 +67,16 @@ export function PulidosPendientesPage() {
 
   const columnas = useMemo<ColumnDef<ReparacionResumen>[]>(() => {
     const base: ColumnDef<ReparacionResumen>[] = [
-      { id: 'check', header: '', size: 40, cell: ({ row }) => <Checkbox aria-label={`Seleccionar ${row.original.idRep}`} checked={seleccionados.has(row.original.idRep)} onCheckedChange={(v) => marcar(row.original.idRep, v === true)} /> },
-      { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90 },
-      { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130 },
+      { id: 'check', header: '', size: 40, maxSize: 40, cell: ({ row }) => <Checkbox aria-label={`Seleccionar ${row.original.idRep}`} checked={seleccionados.has(row.original.idRep)} onCheckedChange={(v) => marcar(row.original.idRep, v === true)} /> },
+      { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
+      { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
       { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
-      { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
+      { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
       { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
     ]
-    if (esSuper) base.push({ id: 'borrar', header: '', size: 50, cell: ({ row }) => <BotonPapelera onClick={() => setABorrar(row.original)} /> })
+    if (esSuper) base.push({ id: 'borrar', header: '', size: 50, maxSize: 50, cell: ({ row }) => <BotonPapelera onClick={() => setABorrar(row.original)} /> })
     return base
   }, [esSuper, seleccionados])
 
@@ -104,6 +104,7 @@ export function PulidosPendientesPage() {
         columns={columnas}
         data={visibles}
         vacio="No tienes pulidos pendientes"
+        ajuste="fluido"
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

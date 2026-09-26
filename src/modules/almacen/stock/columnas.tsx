@@ -39,9 +39,9 @@ export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente)
       id: 'componente', header: 'Componente', size: ANCHOS_STOCK.componente, accessorFn: nombreComponente,
       cell: ({ row }) => <span className="whitespace-pre">{nombreComponente(row.original)}</span>,
     },
-    { id: 'enStock', header: 'En Stock', size: ANCHOS_STOCK.enStock, accessorFn: (c) => String(c.stock) },
+    { id: 'enStock', header: 'En Stock', size: ANCHOS_STOCK.enStock, maxSize: ANCHOS_STOCK.enStock, accessorFn: (c) => String(c.stock) },
     {
-      id: 'enCamino', header: 'En Camino', size: ANCHOS_STOCK.enCamino,
+      id: 'enCamino', header: 'En Camino', size: ANCHOS_STOCK.enCamino, maxSize: ANCHOS_STOCK.enCamino,
       cell: ({ row }) => {
         const c = row.original
         if (c.enCamino <= 0) return '—'
@@ -53,14 +53,14 @@ export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente)
         )
       },
     },
-    { id: 'stockMinimo', header: 'Stock Mínimo', size: ANCHOS_STOCK.stockMinimo, accessorFn: (c) => String(c.stockMinimo) },
+    { id: 'stockMinimo', header: 'Stock Mínimo', size: ANCHOS_STOCK.stockMinimo, maxSize: ANCHOS_STOCK.stockMinimo, accessorFn: (c) => String(c.stockMinimo) },
     {
-      id: 'ultimoPedido', header: 'Último pedido', size: ANCHOS_STOCK.ultimoPedido,
+      id: 'ultimoPedido', header: 'Último pedido', size: ANCHOS_STOCK.ultimoPedido, maxSize: ANCHOS_STOCK.ultimoPedido,
       // formatear pasa de UTC a hora de Madrid, como el resto de la web y el CSV del JavaFX; la tabla del JavaFX pinta el día UTC
       // sin convertir (StockController:328-330). Diferencia aceptada (decisión 8), anotada en la ficha.
       cell: ({ row }) => <span className={CREMA_EN_FILA_SELECCIONADA}>{row.original.ultimoPedido ? formatear(row.original.ultimoPedido, 'dd/MM/yyyy') : '—'}</span>,
     },
-    { id: 'estado', header: 'Estado', size: ANCHOS_STOCK.estado, cell: ({ row }) => <BadgeEstadoStock estado={estadoStock(row.original)} /> },
+    { id: 'estado', header: 'Estado', size: ANCHOS_STOCK.estado, maxSize: ANCHOS_STOCK.estado, cell: ({ row }) => <BadgeEstadoStock estado={estadoStock(row.original)} /> },
   ]
 }
 

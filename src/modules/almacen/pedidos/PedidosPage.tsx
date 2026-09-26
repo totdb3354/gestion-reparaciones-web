@@ -201,6 +201,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
     ? (p: Pedido) => (entradasMenu(p.estado).length > 0 ? <MenuPedido pedido={p} onAccion={alElegir} onInteraccion={marcar} /> : null)
     : undefined
   const propsTabla = {
+    ajuste: 'fluido' as const,
     getRowId: (p: Pedido) => String(idPedido(p)),
     filaClase: claseFilaPedido,
     seleccionada,

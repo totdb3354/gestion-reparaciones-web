@@ -45,12 +45,12 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
 }
 
 const COLUMNAS: ColumnDef<ReparacionResumen>[] = [
-  { id: 'id', accessorKey: 'idRep', header: 'Id Pulido', size: 110 },
-  { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130 },
+  { id: 'id', accessorKey: 'idRep', header: 'Id Pulido', size: 110, maxSize: 110 },
+  { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
   { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
   { id: 'tecnico', header: 'Técnico', size: 110, accessorFn: (r) => r.nombreTecnico ?? '' },
-  { id: 'fechaIni', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT) },
-  { id: 'fechaFin', header: 'Fecha fin', size: 130, accessorFn: (r) => formatear(r.fechaFin, FMT) },
+  { id: 'fechaIni', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT) },
+  { id: 'fechaFin', header: 'Fecha fin', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaFin, FMT) },
   { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
   { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
   { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
@@ -101,6 +101,7 @@ export function HistorialPulidosPage() {
         columns={COLUMNAS}
         data={visibles}
         vacio="No hay pulidos completados"
+        ajuste="fluido"
         getRowId={(r) => r.idRep}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}

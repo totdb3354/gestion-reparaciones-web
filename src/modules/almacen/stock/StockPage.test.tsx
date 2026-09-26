@@ -454,3 +454,12 @@ describe('StockPage', () => {
     await waitFor(() => expect(cargas.n).toBeGreaterThan(1))
   })
 })
+
+describe('StockPage: tabla fluida', () => {
+  it('la tabla ocupa todo el ancho sin columna de relleno (ajuste fluido)', async () => {
+    const { container } = montar()
+    await screen.findByText('lcd-x')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    expect(screen.getByRole('table')).toHaveClass('w-full')
+  })
+})

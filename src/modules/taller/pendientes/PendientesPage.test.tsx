@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
+import { anchosDeColumnas, simularAnchoDeTabla } from '@/test/columnas'
 import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { handlersNotificaciones } from '../notificaciones/test/handlers'
@@ -250,5 +251,16 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
     expect(filasCsv[0]).toEqual(['A20260915_29', '="355400000000111"', 'Técnico A', '15/09/2026 10:53', '', '', '', 'No', 'No', ''])
     descargar.mockRestore()
+  })
+})
+
+describe('PendientesPage: tabla fluida (adaptación a web)', () => {
+  it('sin columna de relleno; Id, Tipo, IMEI, Fecha, Estado, la acción y la papelera fijas, y las de texto se reparten el sobrante', async () => {
+    // 1755 px: 735 para las fijas y 1020 para Modelo, Comentario, Cliente y Asignado por, el doble de sus mínimos (510)
+    simularAnchoDeTabla(1755)
+    const { container } = abrir(SESION_SUPER)
+    await screen.findByText('A20260915_29')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    expect(anchosDeColumnas(container)).toEqual([90, 90, 130, 240, 130, 320, 220, 240, 100, 150, 45])
   })
 })

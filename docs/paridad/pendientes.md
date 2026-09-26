@@ -23,7 +23,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 ## Pestañas Reparaciones y Glass (PendientesTecnicoView, `setModoGlass` en la segunda)
 
 - [x] Filtro "Tipo" (`MenuButton` navy, 130 px) con tres casillas: "Solicitudes pieza", "Incidencias", "Asignaciones" (el menú no se cierra al marcar). Etiqueta del botón: "Tipo" sin marcar, el nombre de la única marcada, "Todas" con las tres, "N filtros" con dos. Predicado: solicitud = `esSolicitud > 0`; incidencia = `esIncidencia`; asignación = ni lo uno ni lo otro; una fila pasa si es de alguno de los tipos marcados.
-- [x] Columnas y anchos (px): Id Asignación 90 · Tipo 90 · IMEI 130 · Modelo 120 · Fecha asignación 130 · Comentario 160 · Cliente 110 · Asignado por 120 · Estado 100 · botón 150 · papelera 45 (solo SUPERTECNICO); el sobrante de la tabla es una columna de relleno vacía, como la del TableView: la banda de la cabecera y las líneas de fila llegan hasta el borde derecho (web 0.8.1). Vacía, la tabla conserva el alto de la llena (web 0.8.1).
+- [x] Columnas y anchos (px): Id Asignación 90 · Tipo 90 · IMEI 130 · Modelo 120 · Fecha asignación 130 · Comentario 160 · Cliente 110 · Asignado por 120 · Estado 100 · botón 150 · papelera 45 (solo SUPERTECNICO); son los mínimos: Modelo, Comentario, Cliente y Asignado por se reparten el sobrante y las demás son fijas (diferencia aceptada, web 0.8.2). Vacía, la tabla conserva el alto de la llena (web 0.8.1).
 - [x] Tipo: píldora "Reparación" (#E3F2FD / #1565C0) o "Glass" (#E0F2F1 / #00796B), radio 10, 11 px negrita, padding 2 10; debajo "Chasis" (10 px, #8A94A6) si `esChasis` y es reparación.
 - [x] IMEI (12 px azul medio) con mini-píldora debajo (10 px negrita, radio 8, padding 1 8): "Glass: <técnico>" con la paleta Glass en filas de reparación con `glassAbierta` y sin `glassEntregadoAt` (tooltip "Glass abierta de <técnico> — entrega sin registrar"; "glass" si no hay nombre); "Rep: <técnico>" con la paleta Reparación en filas de glass con `normalAbierta` (tooltip "Reparación abierta de <técnico>"; "técnico" si no hay nombre; se mantiene tras "Llegó").
 - [x] Modelo traducido (`traducirModelo`: "12promax" → "iPhone 12 Pro Max"; vacío si no hay).
@@ -43,7 +43,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 
 - [x] Título "Mis pulidos pendientes" + píldora "N pendientes" / "1 pendiente".
 - [x] Filtros: "Filtrar por IMEI" y "Limpiar filtros"; a la derecha (margen 24 px) "Seleccionar todo" (`btn-secondary`; marca todas las filas, o las desmarca todas si ya estaban todas marcadas) y "Completar seleccionados" (`btn-primary`, deshabilitado sin selección).
-- [x] Columnas y anchos (px): casilla 40 · Id Asignación 90 · IMEI 130 · Modelo 120 · Fecha asignación 130 · Comentario 160 · Cliente 110 · Asignado por 120 · papelera 50 (solo SUPERTECNICO).
+- [x] Columnas y anchos (px): casilla 40 · Id Asignación 90 · IMEI 130 · Modelo 120 · Fecha asignación 130 · Comentario 160 · Cliente 110 · Asignado por 120 · papelera 50 (solo SUPERTECNICO); son los mínimos: Modelo, Comentario, Cliente y Asignado por se reparten el sobrante y las demás son fijas (diferencia aceptada, web 0.8.2).
 - [x] Filas sin borde de estado (solo separador); la selección de casillas sobrevive al filtrado y se vacía al recargar.
 - [x] "Completar seleccionados": `POST /api/pulidos/asignaciones/completar-lote {ids}`, vacía la selección, recarga lista y contadores.
 - [x] Papelera (SUPERTECNICO): `ConfirmDialog` "Borrar asignación <id>" / "El pulido dejará de estar asignado y desaparecerá de tus pendientes." / "Borrar asignación" → `DELETE /api/pulidos/asignaciones/{id}`.
@@ -53,6 +53,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 
 ## Diferencias aceptadas
 
+- Las columnas de texto se reparten el ancho sobrante y las de números/fechas/badges/acciones son fijas (`ajuste="fluido"`); el JavaFX deja el sobrante en blanco y recorta el texto (decisión del usuario 2026-09-27, adaptación a web; web 0.8.2). En las tres pestañas.
 - Las pestañas son rutas: el botón atrás del navegador cambia de pestaña.
 - La entrada "Pendientes" de la columna lateral abre siempre la pestaña "Reparaciones"; el JavaFX vuelve a abrir la última pestaña usada.
 - El `ConfirmDialog` de la papelera es un modal con el mismo título, texto y botones (sin cuenta atrás, como en Clientes).
