@@ -3,6 +3,7 @@ import { PedidosPage } from '@/modules/almacen/pedidos/PedidosPage'
 import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
+import { LogsPage } from '@/modules/gestion/logs/LogsPage'
 import { RequiereAdmin } from '@/modules/gestion/rutas'
 import { TecnicosPage } from '@/modules/gestion/tecnicos/TecnicosPage'
 import { AsignacionesPage } from '@/modules/taller/asignaciones/AsignacionesPage'
@@ -81,7 +82,7 @@ export const router = createBrowserRouter([
             element: <RequiereAdmin />,
             children: [
               { path: '/gestion/tecnicos', element: <TecnicosPage /> },
-              { path: '/gestion/logs', element: <PendienteDeMigrar nombre="Ver logs" /> },
+              { path: '/gestion/logs', element: <LogsPage /> },
             ],
           },
           // Una URL desconocida (enlace viejo, ruta aún sin migrar) vuelve al panel inicial en vez de dar 404.
