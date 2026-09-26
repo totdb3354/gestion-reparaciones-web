@@ -83,7 +83,8 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await expect(dlg.getByText('Añade al menos una línea')).toBeVisible()
       await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
       await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
-      await dlg.getByRole('option', { name: sku!, exact: true }).click()
+      // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
+      await page.getByRole('option', { name: sku!, exact: true }).click()
       // El primer combobox del diálogo es el autocompletar de Componente (CampoAutocompletar, también role="combobox"),
       // no el proveedor: se localiza por su aria-label (DialogoLineas.tsx:111), no por posición.
       await dlg.getByRole('combobox', { name: 'Proveedor línea 1' }).click()

@@ -189,6 +189,10 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Los cinco filtros, "Limpiar filtros" y la ventana de carga funcionan con normalidad para el ADMIN.
 - [x] Esto es la capa visible, no la protección: reasignar, urgente, chasis, el comentario, el borrado y los técnicos de glass exigen ya **SUPERTECNICO** en el servidor, y la carga de técnicos exige SUPERTECNICO o ADMIN.
 
+## CSV
+
+- [x] "Descargar CSV" del menú de usuario (spec SP6 §6.5, G7; antes deshabilitado en esta vista) descarga `reparaciones_pendientes_<fecha>_<hora>.csv` con las filas visibles tras los filtros, en el orden de la tabla, y las 14 columnas `ID;Tipo;Técnico;IMEI;Modelo;Fecha asignación;Comentario;Cliente;Asignado por;Urgente;Chasis;Por cerrar;Entregado;En espera de pieza` (calco de `filaAsignacion` del hotfix): Tipo "Reparación"/"Glass"/"Pulido" por el prefijo; IMEI como `="…"`; modelo traducido o vacío; fecha `dd/MM/yyyy HH:mm` en hora de Madrid; técnico, comentario y cliente vacíos si faltan; "Asignado por" vacío como "—"; "Sí"/"No" en Urgente, Chasis y Por cerrar; "Entregado" con la fecha de la entrega a glass (fila A: la de su glass; fila AG: la suya; vacío sin entrega y en pulidos); "En espera de pieza" "Sí" con solicitud activa salvo gestionada con stock. Para SUPERTECNICO y ADMIN (`gestion/asig-csv`, captura nueva del SP6; el nombre `reparaciones_pendientes_<fecha>_<hora>.csv` es el mismo en los dos, comprobado por código y por el `FileChooser` del JavaFX; las 14 columnas las cubre el test `modules/taller/asignaciones/csv.test.ts`).
+
 ## Errores
 
 - [x] Se reutiliza el mapeo de errores del sub-proyecto 0: sin conexión y timeout muestran el banner; 401 lleva al inicio de sesión; 403 muestra el aviso de permisos.

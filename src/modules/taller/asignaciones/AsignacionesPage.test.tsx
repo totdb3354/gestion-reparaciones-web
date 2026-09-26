@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- el badge del lateral vive en el SubNav del AppLayout real; ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
+import * as csv from '@/shared/lib/csv'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import { TEXTO_COPIAR_CELDA } from '@/shared/ui/MenuCopiarCelda'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
@@ -367,5 +368,40 @@ describe('AsignacionesPage · con el lateral montado (badge de Asignaciones)', (
     await abrirMenuContextual()
     await avanzar(INTERVALO_CONECTADO_MS * 2)
     expect(cargas.n).toBe(1)
+  })
+})
+
+/**
+ * "Descargar CSV" vive en el menú de usuario del AppLayout real (TopBar), como en PendientesPage.test.tsx: la vista solo
+ * registra el exportador. Se filtra por IMEI para comprobar que exporta las filas VISIBLES, no la lista completa.
+ */
+describe('AsignacionesPage · CSV (spec SP6 §6.5)', () => {
+  beforeEach(() => {
+    // AppLayout con supertécnico monta la campana de la barra y el badge de Pendientes del lateral.
+    server.use(...handlersNotificaciones())
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })))
+  })
+
+  it('"Descargar CSV" exporta reparaciones_pendientes con las 14 columnas y solo las filas visibles', async () => {
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const usuario = userEvent.setup()
+    renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones', layout: <AppLayout /> })
+    await screen.findByText('A20260916_1')
+    await usuario.type(screen.getByPlaceholderText('Filtrar por IMEI'), '000000000000003')
+    await waitFor(() => expect(screen.queryByText('A20260916_1')).not.toBeInTheDocument())
+    await usuario.click(screen.getByRole('button', { name: /Hola,/ }))
+    await usuario.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
+    expect(descargar).toHaveBeenCalledTimes(1)
+    const [base, cabeceras, filas] = descargar.mock.calls[0]
+    expect(base).toBe('reparaciones_pendientes')
+    expect(cabeceras).toEqual([
+      'ID', 'Tipo', 'Técnico', 'IMEI', 'Modelo', 'Fecha asignación', 'Comentario', 'Cliente', 'Asignado por', 'Urgente',
+      'Chasis', 'Por cerrar', 'Entregado', 'En espera de pieza',
+    ])
+    // La fila de pulido del beforeEach de arriba: resumen() con idRep AP…, IMEI …003 y cliente "CLIENTE A".
+    expect(filas).toEqual([
+      ['AP20260916_3', 'Pulido', 'Técnico A', '="000000000000003"', 'iPhone 14', '16/09/2026 09:02', '', 'CLIENTE A', 'Técnico F', 'No', 'No', 'No', '', 'No'],
+    ])
+    descargar.mockRestore()
   })
 })

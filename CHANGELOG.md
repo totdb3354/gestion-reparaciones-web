@@ -4,6 +4,16 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.8.0] - 2026-09-XX — Gestión
+
+- "Gestionar técnicos" en `/gestion/tecnicos` (solo administrador): alta de usuario y técnico con rol TECNICO o SUPERTECNICO, aviso mientras se escribe si el nombre ya existe, tabla de técnicos registrados con su estado, candado para activar o desactivar el acceso y papelera con confirmación, o con aviso si el técnico tiene historial.
+- "Ver logs" en `/gestion/logs` (solo administrador): registro de actividad con buscador, filtros de acción, técnico y fechas, las 1.000 entradas más recientes con aviso al llegar al tope y el detalle completo con doble clic.
+- "Cambiar contraseña" se abre encima de la vista en la que estás, con un ojo en cada campo para ver lo escrito.
+- El inicio de sesión dice "Rellena usuario y contraseña." con los campos vacíos, como el programa de escritorio.
+- Asignaciones: "Descargar CSV" exporta las asignaciones visibles con 14 columnas, incluida "Entregado".
+- Servidor: el alta de usuarios y el cambio de contraseña se validan también en el servidor; un técnico con historial (reparaciones, asignaciones, entregas, solicitudes o movimientos) no se puede borrar y se explica por qué; un técnico inexistente responde "no encontrado"; el filtro de fechas del registro de actividad usa la hora de Madrid, también para el programa de escritorio; solo el administrador puede crear o borrar técnicos.
+- Diferencias aceptadas respecto al programa de escritorio: `docs/paridad/tecnicos.md`, `docs/paridad/logs.md` y `docs/paridad/cuenta.md`.
+
 ## [0.7.0] - 2026-09-25 — Pedidos
 
 - Pestaña Pedidos en `/stock/pedidos` con el conmutador Componentes | Otros: tablas con fecha, componente o concepto, proveedor, cantidad, precio por unidad, total en euros y estado, con sus colores, "!" en los recibidos a precio cero y "⚠" en los urgentes en camino; filtros de estado, proveedor, buscador y fechas compartidos por las dos tablas, "Limpiar filtros" y CSV de cada tabla.

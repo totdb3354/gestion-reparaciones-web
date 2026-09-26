@@ -1,7 +1,16 @@
 /** Calco de FechaUtils: el servidor manda LocalDateTime ISO sin zona (UTC); se muestra en Europe/Madrid. */
 const ZONA = 'Europe/Madrid'
 
-export type Patron = 'yyyy/MM/dd HH:mm' | 'yyyy/MM/dd' | 'dd/MM HH:mm' | 'dd/MM' | 'HH:mm' | 'dd/MM/yyyy' | 'dd/MM/yyyy HH:mm' | 'dd/MM/yy HH:mm'
+export type Patron =
+  | 'yyyy/MM/dd HH:mm'
+  | 'yyyy/MM/dd'
+  | 'dd/MM HH:mm'
+  | 'dd/MM'
+  | 'HH:mm'
+  | 'dd/MM/yyyy'
+  | 'dd/MM/yyyy HH:mm'
+  | 'dd/MM/yy HH:mm'
+  | 'dd/MM/yyyy HH:mm:ss'
 
 /** Patrón de "Fecha asignación" (Pendientes, Asignaciones): una sola constante para que la fecha que se pinta y la
  *  que copia "Copiar celda" no puedan divergir. */
@@ -10,6 +19,9 @@ export const FMT_FECHA_ASIGNACION: Patron = 'yyyy/MM/dd HH:mm'
 /** Patrón de la columna "Pedido" de las dos tablas de Pedidos (StockController `FMT` :153). */
 export const FMT_FECHA_PEDIDO: Patron = 'dd/MM/yy HH:mm'
 
+/** Patrón de la columna "Fecha" del visor de logs (LogController `FMT` :36): el único del cliente con segundos. */
+export const FMT_FECHA_LOG: Patron = 'dd/MM/yyyy HH:mm:ss'
+
 const FMT = new Intl.DateTimeFormat('es-ES', {
   timeZone: ZONA,
   year: 'numeric',
@@ -17,17 +29,18 @@ const FMT = new Intl.DateTimeFormat('es-ES', {
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  second: '2-digit',
   hour12: false,
 })
 
-type Partes = Record<'yyyy' | 'yy' | 'MM' | 'dd' | 'HH' | 'mm', string>
+type Partes = Record<'yyyy' | 'yy' | 'MM' | 'dd' | 'HH' | 'mm' | 'ss', string>
 
 function partesMadrid(d: Date): Partes {
   const p: Record<string, string> = {}
   for (const parte of FMT.formatToParts(d)) p[parte.type] = parte.value
   // Algunos motores devuelven "24" a medianoche con hour12: false
   const HH = p.hour === '24' ? '00' : p.hour
-  return { yyyy: p.year, yy: p.year.slice(-2), MM: p.month, dd: p.day, HH, mm: p.minute }
+  return { yyyy: p.year, yy: p.year.slice(-2), MM: p.month, dd: p.day, HH, mm: p.minute, ss: p.second }
 }
 
 /** ISO sin zona = UTC (el JavaFX hace `atZone(UTC)`); con zona se respeta. Nulo o inválido → null. */
@@ -42,7 +55,7 @@ export function formatear(iso: string | null | undefined, patron: Patron): strin
   const d = parsearUtc(iso)
   if (!d) return ''
   const p = partesMadrid(d)
-  return patron.replace(/yyyy|yy|MM|dd|HH|mm/g, (t) => p[t as keyof Partes])
+  return patron.replace(/yyyy|yy|MM|dd|HH|mm|ss/g, (t) => p[t as keyof Partes])
 }
 
 /** Fecha civil en Madrid ('yyyy-MM-dd'), comparable con los <input type="date"> de los filtros. */

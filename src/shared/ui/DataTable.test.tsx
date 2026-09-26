@@ -67,6 +67,19 @@ describe('DataTable', () => {
     expect(container.querySelector('table')).toHaveClass('w-full')
   })
 
+  it('en ajuste ultima las columnas miden su size y la última se queda sin ancho fijo para absorber el sobrante', () => {
+    const { container } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" ajuste="ultima" />)
+    const cols = container.querySelectorAll('col')
+    expect(cols).toHaveLength(2)
+    expect(cols[0]).toHaveStyle({ width: '340px' })
+    expect(cols[1].style.width).toBe('')
+    const tabla = container.querySelector('table')!
+    expect(tabla).toHaveClass('w-full')
+    // Nunca por debajo de la suma: la última no baja de su size.
+    expect(tabla).toHaveStyle({ minWidth: '470px' })
+    expect(tabla.style.width).toBe('')
+  })
+
   it('con altoFila cada fila de datos mide ese alto (setFixedCellSize); sin él las filas no llevan alto', () => {
     const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" altoFila={44} />)
     const [cabecera, ...filas] = screen.getAllByRole('row')

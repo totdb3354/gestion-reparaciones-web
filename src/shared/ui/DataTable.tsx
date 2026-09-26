@@ -35,8 +35,10 @@ type Props<T> = {
   /** 'fijo' (por defecto): cada columna mide su `size` en px y lo que sobra queda en blanco, como el TableView con
    *  columna de relleno. 'estirar': las columnas se reparten el ancho proporcionalmente a `size` (política de
    *  anchos del Historial, `prefWidth = max(min, min·u)`), con scroll horizontal por debajo de la suma; si alguna
-   *  columna declara `maxSize` (el maxWidth del FXML), no pasa de él y lo que cede queda en blanco (`anchosEstirados`). */
-  ajuste?: 'fijo' | 'estirar'
+   *  columna declara `maxSize` (el maxWidth del FXML), no pasa de él y lo que cede queda en blanco (`anchosEstirados`).
+   *  'ultima': cada columna mide su `size` salvo la última, que se queda con todo el ancho sobrante y nunca baja de su
+   *  `size` (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN del TableView). */
+  ajuste?: 'fijo' | 'estirar' | 'ultima'
   seleccionada?: string | null
   /** Selección hecha en la propia tabla (clic, clic derecho, flechas).
    *  La página debe aplicar el id de forma síncrona (p. ej. `onSeleccionar={setSeleccionada}`): la marca que distingue esta
@@ -383,12 +385,20 @@ export function DataTable<T>({
       style={{ maxHeight: alturaMax }}
     >
       <table
-        className={cn('table-fixed caption-bottom text-sm', ajuste === 'estirar' && !anchosPx && 'w-full')}
-        style={anchosPx ? { width: anchosPx.reduce((a, b) => a + b, 0), minWidth: suma } : ajuste === 'estirar' ? { minWidth: suma } : { width: suma }}
+        className={cn('table-fixed caption-bottom text-sm', (ajuste === 'ultima' || (ajuste === 'estirar' && !anchosPx)) && 'w-full')}
+        style={anchosPx ? { width: anchosPx.reduce((a, b) => a + b, 0), minWidth: suma } : ajuste === 'fijo' ? { width: suma } : { minWidth: suma }}
       >
         <colgroup>
           {hojas.map((c, i) => (
-            <col key={c.id} style={{ width: anchosPx ? anchosPx[i] : ajuste === 'estirar' ? `${(anchos[i] / suma) * 100}%` : anchos[i] }} />
+            // En 'ultima' la última <col> va sin ancho: en una tabla table-fixed al 100 % se queda con lo que dejan las demás.
+            <col
+              key={c.id}
+              style={
+                ajuste === 'ultima'
+                  ? i === hojas.length - 1 ? undefined : { width: anchos[i] }
+                  : { width: anchosPx ? anchosPx[i] : ajuste === 'estirar' ? `${(anchos[i] / suma) * 100}%` : anchos[i] }
+              }
+            />
           ))}
         </colgroup>
         <TableHeader ref={cabeceraRef} className="sticky top-0 z-10 bg-crema">

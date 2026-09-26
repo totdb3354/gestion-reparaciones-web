@@ -142,4 +142,15 @@
   --color-fila-pendiente-brd: #C8961E;
   --color-badge-pendiente-bg: #FFF3D6;
   --color-badge-pendiente-text: #B26A00;
+
+  /* Gestión (sub-proyecto 6). Fondo de RegisterView.fxml (#EFEFEF, el mismo valor que fondo-login: token propio para no
+     atar la página de técnicos al login), badge de estado de RegisterController :106-131 (colores a mano, sin constante en
+     Colores.java) y el error y las etiquetas de CambiarPasswordView.fxml. */
+  --color-fondo-gestion: #EFEFEF;
+  --color-badge-usuario-activo-bg: #D4EDDA;
+  --color-badge-usuario-activo-text: #2E7D32;
+  --color-badge-usuario-inactivo-bg: #F5E6E6;
+  --color-badge-usuario-inactivo-text: #B03040;
+  --color-error-password: #CC0000;
+  --color-etiqueta-password: #555555;
 }
