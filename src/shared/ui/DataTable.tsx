@@ -233,8 +233,24 @@ export function DataTable<T>({
     observador.observe(contenedor)
     return () => observador.disconnect()
   }, [medir])
+  // 'fluido' llena el contenedor al píxel, así que cuenta con el borde izquierdo de las filas (la franja de estado,
+  // `border-l-8`/`border-l-4`): con bordes colapsados, la mitad del borde de la primera celda queda fuera del ancho de la
+  // tabla y el contenedor lo suma a su scrollWidth, lo que sacaba una barra horizontal de 4 px (2 px con `border-l-4`).
+  // Se mide en la primera fila de datos pintada; sin filas no hay borde.
+  const [desbordeFilas, setDesbordeFilas] = useState(0)
+  useLayoutEffect(() => {
+    if (!fluido) return
+    const fila = contenedorRef.current?.querySelector('tbody tr[data-index]')
+    const estilo = fila ? getComputedStyle(fila) : null
+    // Sin estilo de borde no hay borde, aunque el ancho calculado diga otra cosa (jsdom devuelve el 'medium' por defecto).
+    const borde = estilo && estilo.borderLeftStyle !== 'none' && estilo.borderLeftStyle !== 'hidden' ? parseFloat(estilo.borderLeftWidth) || 0 : 0
+    const desborde = Math.ceil(borde / 2)
+    // Solo cambia el estado cuando cambia el borde; se vuelve a medir cuando cambian las filas pintadas.
+    if (desborde !== desbordeFilas) setDesbordeFilas(desborde)
+  }, [fluido, filas, desbordeFilas])
+  const disponible = fluido ? anchoContenedor - desbordeFilas : anchoContenedor
   const anchosPx =
-    medir && anchoContenedor > 0 ? (fluido ? anchosFluidos : anchosEstirados)(anchos, topes, anchoContenedor) : null
+    medir && anchoContenedor > 0 ? (fluido ? anchosFluidos : anchosEstirados)(anchos, topes, disponible) : null
   const virtual = filas.length > umbralVirtual
   const virtualizador = useVirtualizer({
     count: filas.length,
