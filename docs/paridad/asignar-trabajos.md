@@ -39,6 +39,7 @@ Marcada el 2026-09-24 con la web de la rama en local contra la API de producció
 
 ## Cabecera y pestañas
 
+- [x] El modal abre a 720 px de ancho como máximo (calco de la ventana: `contenido.setPrefWidth(720)` y `ventana.setMinWidth(720)` de `PendientesSuperTecnicoController`); en pantallas más estrechas, al ancho de la ventana menos 32 px, con scroll vertical interno. A 720 px los dos paneles caben lado a lado: en Pulido la lista mide 280 px para que el combo de técnico del detalle (344 px) quepa en su recuadro (web 0.8.3).
 - [x] Título "Asignar trabajos" y el subtítulo corregido (ver diferencias).
 - [x] Toggle Reparación · Glass · Pulido, Reparación por defecto, sin poder deseleccionar.
 - [x] Una pastilla por cola con el número de entradas: roja si hay alguna pendiente, gris si no.

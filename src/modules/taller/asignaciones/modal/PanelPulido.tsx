@@ -42,7 +42,7 @@ export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes }: Pro
         {n === 0 ? 'Nada añadido aún' : `${n} en pulido`}
       </span>
       <div className="flex flex-wrap gap-[18px]">
-        <div className="max-h-[300px] w-[300px] min-w-[280px] shrink-0 overflow-y-auto rounded-md border border-cola-verde-brd bg-white">
+        <div className="max-h-[300px] w-[280px] min-w-[280px] shrink-0 overflow-y-auto rounded-md border border-cola-verde-brd bg-white">
           {estado.pulido.map((f) => (
             <div key={f.seq} onClick={() => dispatch({ tipo: 'PULIDO_SELECCIONAR', seq: f.seq })}
               className={cn('flex cursor-pointer items-center gap-2 border-b border-pill-buscando-bg p-2', f.seq === estado.pulidoSel && 'bg-pulido-sel-bg')}>

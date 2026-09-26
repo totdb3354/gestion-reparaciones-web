@@ -53,6 +53,13 @@ describe('AsignarTrabajosDialog', () => {
     expect(screen.getByText('0 configurados · 0 pendientes')).toBeInTheDocument()
   })
 
+  it('abre a 720 px de ancho como la ventana del JavaFX (no a 980)', async () => {
+    abrir()
+    const dlg = await screen.findByRole('dialog', { name: 'Asignar trabajos' })
+    expect(dlg).toHaveClass('max-w-[720px]', 'w-[calc(100vw-32px)]', 'max-h-[calc(100vh-24px)]', 'overflow-y-auto')
+    expect(dlg).not.toHaveClass('max-w-[980px]')
+  })
+
   it('flujo completo: reparación + glass automática → un lote con clave → se cierra', async () => {
     const onCerrar = abrir()
     await asignarUnaConGlass()

@@ -77,7 +77,7 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
   return (
     <>
       <Dialog open onOpenChange={(abierto) => { if (!abierto) pedirCierre() }}>
-        <DialogContent className="max-h-[calc(100vh-24px)] w-[calc(100vw-32px)] max-w-[980px] overflow-y-auto bg-fondo-vista p-[26px]">
+        <DialogContent className="max-h-[calc(100vh-24px)] w-[calc(100vw-32px)] max-w-[720px] overflow-y-auto bg-fondo-vista p-[26px]">
           <DialogTitle className="text-[20px] font-bold text-azul-medio">Asignar trabajos</DialogTitle>
           <DialogDescription className="text-[11px] text-azul-gris">
             Elige el tipo, escanea IMEIs y configúralos. Los técnicos se mantienen entre IMEIs. Se guardan todos al final.
