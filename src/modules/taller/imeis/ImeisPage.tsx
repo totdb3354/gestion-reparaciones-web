@@ -74,12 +74,13 @@ export function ImeisPage() {
     mostrarError(e instanceof StaleDataError ? MSG_TELEFONO_MODIFICADO : `No se pudo guardar: ${mensajeDeError(e)}`)
   }
 
-  // Anchos fijos, sin estirar: el TableView del maestro no tiene política de redimensionado (`param -> true`) y
-  // resetarModo fija IMEI 180, Modelo 150, Fechas 130, Trabajos 160 y Estado 130. Observación y Cliente no tienen
-  // prefWidth en AgrupadoView.fxml: quedan en su minWidth, 150 (el prefWidth por defecto, 80, acotado a [150, 300]).
+  // Mínimos del TableView del maestro: resetarModo fija IMEI 180, Modelo 150, Fechas 130, Trabajos 160 y Estado 130;
+  // Observación y Cliente no tienen prefWidth en AgrupadoView.fxml y quedan en su minWidth, 150 (el prefWidth por
+  // defecto, 80, acotado a [150, 300]). El JavaFX no redimensiona (`param -> true`) y deja el sobrante en blanco; la web
+  // (ajuste fluido, adaptación decidida) deja fijas IMEI, Fechas y Estado y reparte el sobrante entre las de texto.
   const columnas = useMemo<ColumnDef<GrupoImei>[]>(() => [
     {
-      id: 'imei', header: 'IMEI teléfono', size: 180,
+      id: 'imei', header: 'IMEI teléfono', size: 180, maxSize: 180,
       cell: ({ row }) => (
         <div className="flex items-center justify-between gap-2">
           <span className={`text-[12px] font-bold text-azul-medio ${CREMA_EN_FILA_SELECCIONADA}`}>{row.original.imei}</span>
@@ -90,9 +91,9 @@ export function ImeisPage() {
       ),
     },
     { id: 'modelo', header: 'Modelo', size: 150, accessorFn: (g) => traducirModelo(g.modelo) },
-    { id: 'fechas', header: 'Fechas', size: 130, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaMasAntigua} fin={row.original.fechaMasReciente} patron={FMT} /> },
+    { id: 'fechas', header: 'Fechas', size: 130, maxSize: 130, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaMasAntigua} fin={row.original.fechaMasReciente} patron={FMT} /> },
     { id: 'trabajos', header: 'Trabajos', size: 160, accessorFn: resumenTipos },
-    { id: 'estado', header: 'Estado', size: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },
+    { id: 'estado', header: 'Estado', size: 130, maxSize: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },
     { id: 'observacion', header: 'Observación', size: 150, cell: ({ row }) => <TextoExpandible titulo="Observación" texto={row.original.observacion} /> },
     { id: 'cliente', header: 'Cliente', size: 150, cell: ({ row }) => <TextoExpandible titulo="Cliente" texto={row.original.cliente} /> },
   ], [abrir])
@@ -113,6 +114,7 @@ export function ImeisPage() {
         columns={columnas}
         data={grupos}
         vacio=""
+        ajuste="fluido"
         // tabla.setFixedCellSize(44), la misma tabla que el detalle
         altoFila={44}
         getRowId={(g) => g.imei}

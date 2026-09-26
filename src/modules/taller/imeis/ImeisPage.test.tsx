@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
+import { anchosDeColumnas, simularAnchoDeTabla } from '@/test/columnas'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
@@ -68,19 +69,25 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect(filas[0]).toHaveStyle({ height: '44px' })
     expect(screen.queryByText(/Actualizado/)).not.toBeInTheDocument()
   })
-  it('columnas de ancho fijo, sin estirar (política de redimensionado nula y prefWidth del maestro); filas con cursor de mano y el mismo fondo al pasar', async () => {
+  it('columnas con el prefWidth del maestro como mínimo, sin columna de relleno (ajuste fluido); filas con cursor de mano y el mismo fondo al pasar', async () => {
     const { container } = abrir()
     await screen.findByText(A)
-    // resetarModo: IMEI 180 · Modelo 150 · Fechas 130 · Trabajos 160 · Estado 130; Observación y Cliente sin prefWidth
-    // en AgrupadoView.fxml (80 por defecto, acotado a su minWidth 150).
-    expect(Array.from(container.querySelectorAll('col')).map((c) => c.style.width)).toEqual(['180px', '150px', '130px', '160px', '130px', '150px', '150px'])
-    // no estiran: lo que sobra es la columna de relleno del TableView (sin <col>), y la tabla no baja de la suma
+    // la tabla llena el contenedor y no baja de la suma de los mínimos (resetarModo: IMEI 180 · Modelo 150 · Fechas 130 ·
+    // Trabajos 160 · Estado 130; Observación y Cliente sin prefWidth en AgrupadoView.fxml, acotado a su minWidth 150)
     expect(screen.getByRole('table')).toHaveStyle({ minWidth: '1050px' })
-    expect(screen.getByRole('table').querySelector('th[data-relleno]')).toBeInTheDocument()
+    expect(screen.getByRole('table')).toHaveClass('w-full')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
     const fila = screen.getByRole('row', { name: new RegExp(A) })
     expect(fila).toHaveClass('cursor-pointer', 'bg-fila-maestro-bg', 'hover:bg-fila-maestro-bg')
     expect(fila).not.toHaveClass('cursor-default')
     expect(fila).not.toHaveClass('hover:bg-muted/50')
+  })
+  it('con el contenedor medido, IMEI, Fechas y Estado quedan fijas y Modelo, Trabajos, Observación y Cliente se reparten el sobrante', async () => {
+    // 1660 px: 440 para las fijas y 1220 para las de texto, el doble de sus mínimos (610)
+    simularAnchoDeTabla(1660)
+    const { container } = abrir()
+    await screen.findByText(A)
+    expect(anchosDeColumnas(container)).toEqual([180, 300, 130, 320, 130, 300, 300])
   })
   it('filtros: IMEI, Técnico, Cliente con "(Sin cliente)", Incidencias con dos casillas, Limpiar', async () => {
     abrir()
