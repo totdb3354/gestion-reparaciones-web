@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Button } from '@/shared/ui/button'
+import { CampoPassword } from '@/shared/ui/CampoPassword'
 import { Input } from '@/shared/ui/input'
 import { APP_VERSION } from '@/shared/lib/version'
 import { useSession } from '@/shared/session/SessionProvider'
@@ -14,7 +15,6 @@ export function LoginPage() {
   const location = useLocation()
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
-  const [verPassword, setVerPassword] = useState(false)
   // Mensaje pendiente (sesión expirada, dejado por main.tsx antes de recargar) o de una navegación interna.
   const [error, setError] = useState<string | null>(
     () => sessionStorage.getItem('fsgr.mensajeLogin') ?? (location.state as { mensaje?: string } | null)?.mensaje ?? null,
@@ -28,7 +28,7 @@ export function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (usuario.trim() === '' || password === '') {
-      setError('Introduce usuario y contraseña.')
+      setError('Rellena usuario y contraseña.')
       return
     }
     setEnviando(true)
@@ -56,23 +56,15 @@ export function LoginPage() {
           <div>Reparaciones</div>
         </div>
         <Input className={`mb-2.5 ${inputCls}`} placeholder="Usuario" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoFocus autoComplete="username" />
-        <div className="relative mb-1.5 w-full">
-          <Input
-            className={`pr-11 ${inputCls}`}
+        <div className="mb-1.5 w-full">
+          <CampoPassword
+            valor={password}
+            onChange={setPassword}
             placeholder="Contraseña"
-            type={verPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            aria-label="Contraseña"
             autoComplete="current-password"
+            className={inputCls}
           />
-          <button
-            type="button"
-            aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            onClick={() => setVerPassword((v) => !v)}
-            className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer"
-          >
-            <img src={verPassword ? '/ojo_desactivar.png' : '/ojo_activar.png'} alt="" className="h-[18px] w-[18px]" />
-          </button>
         </div>
         <p className={`mb-2.5 w-full text-[11px] text-texto-error ${error ? '' : 'invisible'}`} role="alert">
           {error ?? ' '}

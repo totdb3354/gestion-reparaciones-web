@@ -573,15 +573,14 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "object"
-                }
-              }
-            }
+          "201" : {
+            "description" : "Created"
+          },
+          "409" : {
+            "description" : "Conflict"
+          },
+          "422" : {
+            "description" : "Unprocessable Entity"
           }
         }
       }
@@ -1729,6 +1728,9 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found"
           }
         }
       }
@@ -1749,6 +1751,9 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found"
           }
         }
       }
@@ -2939,15 +2944,11 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "object"
-                }
-              }
-            }
+          "204" : {
+            "description" : "No Content"
+          },
+          "422" : {
+            "description" : "Unprocessable Entity"
           }
         }
       }
@@ -4029,6 +4030,14 @@
             "type" : "string",
             "format" : "date"
           }
+        }, {
+          "name" : "limite",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -4039,6 +4048,27 @@
                   "type" : "array",
                   "items" : {
                     "$ref" : "#/components/schemas/LogActividad"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logs/acciones" : {
+      "get" : {
+        "tags" : [ "log-controller" ],
+        "operationId" : "getAcciones",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
                   }
                 }
               }
@@ -4328,7 +4358,8 @@
         }, {
           "name" : "idUsu",
           "in" : "query",
-          "required" : true,
+          "description" : "Ignorado: el servidor lo resuelve desde idTec",
+          "required" : false,
           "schema" : {
             "type" : "integer",
             "format" : "int32"
@@ -4337,6 +4368,12 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "409" : {
+            "description" : "Conflict"
           }
         }
       }
@@ -7012,10 +7049,12 @@
             "type" : "string"
           },
           "detalle" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "motivo" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

@@ -1908,6 +1908,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/logs/acciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAcciones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/glass/historial": {
         parameters: {
             query?: never;
@@ -3114,8 +3130,8 @@ export interface components {
             fecha: string;
             nombreUsuario: string;
             accion: string;
-            detalle: string;
-            motivo: string;
+            detalle: string | null;
+            motivo: string | null;
         };
         CompraComponente: {
             /** Format: int32 */
@@ -3746,14 +3762,26 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": Record<string, never>;
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4768,6 +4796,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     activarTecnico: {
@@ -4783,6 +4818,13 @@ export interface operations {
         responses: {
             /** @description No Content */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5787,14 +5829,19 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": Record<string, never>;
+                content?: never;
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content?: never;
             };
         };
     };
@@ -6609,6 +6656,7 @@ export interface operations {
                 tecnico?: string;
                 desde?: string;
                 hasta?: string;
+                limite?: number;
             };
             header?: never;
             path?: never;
@@ -6623,6 +6671,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LogActividad"][];
+                };
+            };
+        };
+    };
+    getAcciones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string[];
                 };
             };
         };
@@ -6843,8 +6911,9 @@ export interface operations {
     };
     eliminarTecnico: {
         parameters: {
-            query: {
-                idUsu: number;
+            query?: {
+                /** @description Ignorado: el servidor lo resuelve desde idTec */
+                idUsu?: number;
             };
             header?: never;
             path: {
@@ -6856,6 +6925,20 @@ export interface operations {
         responses: {
             /** @description No Content */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

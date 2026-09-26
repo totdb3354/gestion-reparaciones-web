@@ -22,6 +22,11 @@ export type Proveedor = components['schemas']['Proveedor']
 export type CompraComponente = components['schemas']['CompraComponente']
 export type CompraOtro = components['schemas']['CompraOtro']
 
+/** Gestión (sub-proyecto 6): usuarios TECNICO/SUPERTECNICO de GET /api/usuarios/tecnicos (sin ADMIN; `activo` es el de
+ *  Tecnico) y filas del log de actividad (`detalle` y `motivo` nullables desde la Task 5 del servidor). */
+export type Usuario = components['schemas']['Usuario']
+export type LogActividad = components['schemas']['LogActividad']
+
 /** Formulario de reparación y campana (sub-proyecto 2). `ComponentesAgrupados` es la respuesta de
  *  GET /api/componentes/agrupados: prefijo del tipo → sus componentes, en el orden de claves del servidor. */
 export type Componente = components['schemas']['Componente']

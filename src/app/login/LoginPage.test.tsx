@@ -33,13 +33,22 @@ describe('LoginPage', () => {
     expect(screen.getByPlaceholderText('Contraseña')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Iniciar Sesión' })).toBeInTheDocument()
   })
-  it('con campos vacíos no llama a la API y avisa', async () => {
+  it('con campos vacíos no llama a la API y avisa con el texto del JavaFX', async () => {
     let llamadas = 0
     server.use(http.post('*/api/auth/login', () => { llamadas++; return HttpResponse.json(respuestaLogin) }))
     montar()
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(llamadas).toBe(0)
-    expect(screen.getByText('Introduce usuario y contraseña.')).toBeInTheDocument()
+    expect(screen.getByText('Rellena usuario y contraseña.')).toBeInTheDocument()
+  })
+  it('un usuario de solo espacios cuenta como vacío (trim) y no llama a la API', async () => {
+    let llamadas = 0
+    server.use(http.post('*/api/auth/login', () => { llamadas++; return HttpResponse.json(respuestaLogin) }))
+    montar()
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), '   ')
+    await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'secreta1{enter}')
+    expect(llamadas).toBe(0)
+    expect(screen.getByText('Rellena usuario y contraseña.')).toBeInTheDocument()
   })
   it('login correcto guarda la sesión y navega a /', async () => {
     server.use(http.post('*/api/auth/login', () => HttpResponse.json(respuestaLogin)))
@@ -91,11 +100,13 @@ describe('LoginPage', () => {
     expect(await screen.findByText(/Sin conexión con el servidor/)).toBeInTheDocument()
     expect(intentos).toBe(2)
   })
-  it('el ojo alterna la visibilidad de la contraseña', async () => {
+  it('el ojo (CampoPassword) alterna la visibilidad de la contraseña y su icono', async () => {
     montar()
     const pass = screen.getByPlaceholderText('Contraseña')
     expect(pass).toHaveAttribute('type', 'password')
+    expect(pass).toHaveClass('pr-11')
     await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
     expect(pass).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: 'Ocultar contraseña' }).querySelector('img')).toHaveAttribute('src', '/ojo_desactivar.png')
   })
 })
