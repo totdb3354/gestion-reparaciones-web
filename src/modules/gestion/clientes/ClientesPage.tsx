@@ -17,10 +17,10 @@ import { useClientes } from '@/shared/api/clientes'
 
 const MSG_MODIFICADO = 'El cliente fue modificado por otro usuario. Se recargan los datos.'
 
-// anchos del TableView de ClientesController; lo que sobra queda en blanco (columna de relleno del DataTable)
+// anchos del TableView de ClientesController como mínimos; Estado es fija y Nombre se queda con el sobrante (ajuste fluido)
 const columnas: ColumnDef<Cliente>[] = [
   { accessorKey: 'nombre', header: 'Nombre', size: 340 },
-  { accessorKey: 'activo', header: 'Estado', size: 130, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
+  { accessorKey: 'activo', header: 'Estado', size: 130, maxSize: 130, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
 ]
 
 type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; cliente: Cliente } | { tipo: 'borrar'; cliente: Cliente } | null
@@ -104,6 +104,7 @@ export function ClientesPage() {
         columns={columnas}
         data={visibles}
         vacio="Sin clientes"
+        ajuste="fluido"
         getRowId={(c) => String(c.idCli)}
         filaClase={(c) => (c.activo ? 'border-l-8 border-l-fila-reparado-brd' : 'border-l-8 border-l-transparent')}
         menuFila={

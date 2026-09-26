@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
+import { anchosDeColumnas, simularAnchoDeTabla } from '@/test/columnas'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { estaConectado } from '@/shared/api/conexion'
 import { ClientesPage } from './ClientesPage'
@@ -47,19 +48,23 @@ describe('ClientesPage', () => {
     // el botón va pegado al filtro, no empujado al borde derecho de la vista
     expect(nuevo).not.toHaveClass('ml-auto')
   })
-  it('da a Nombre y Estado el ancho del TableView con un colgroup, y el sobrante es la columna de relleno', async () => {
+  it('Nombre y Estado nunca bajan del ancho del TableView; Estado es fija y Nombre se queda con el sobrante, sin columna de relleno', async () => {
     const { container } = renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
     await screen.findByText('WEB')
     const cols = container.querySelectorAll('col')
     expect(cols).toHaveLength(2)
-    expect(cols[0]).toHaveStyle({ width: '340px' })
-    expect(cols[1]).toHaveStyle({ width: '130px' })
     expect(screen.getAllByRole('columnheader')).toHaveLength(2)
     const fila = screen.getByRole('row', { name: /^WEB Activo$/ })
     expect(within(fila).getAllByRole('cell')).toHaveLength(2)
-    // lo que sobra es la columna de relleno (sin rol): la tabla llena el contenedor sin bajar de la suma
+    // la tabla llena el contenedor sin bajar de la suma de los anchos del TableView, y sin columna de relleno
     expect(container.querySelector('table')).toHaveStyle({ minWidth: '470px' })
-    expect(fila.querySelector('td[data-relleno]')).toBeInTheDocument()
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+  })
+  it('con el contenedor medido, Estado se queda en sus 130 px y Nombre absorbe el resto (ajuste fluido)', async () => {
+    simularAnchoDeTabla(1000)
+    const { container } = renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
+    await screen.findByText('WEB')
+    expect(anchosDeColumnas(container)).toEqual([870, 130])
   })
   it('un técnico no ve "Nuevo cliente" ni menú contextual', async () => {
     renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
