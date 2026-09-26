@@ -36,12 +36,13 @@ Decididas durante la ejecución:
 - **El servidor recorta el nombre del proveedor y pasa la divisa a mayúsculas** antes de validar y guardar; inocuo, porque el JavaFX y la web ya mandan los valores limpios. El `PUT` rechaza con 422 "Divisa no válida (EUR o USD)." una divisa que no sea EUR o USD (decisión 1: antes del merge se normalizan en BD las que hubiera).
 - **`BORRAR_PROVEEDOR` es un tipo de log nuevo** (spec §4.2) y no se puede filtrar en el visor de logs del JavaFX, que no lo conoce; las entradas se ven igualmente sin filtro.
 - **El filtro de proveedores conserva los nombres marcados aunque ese proveedor se renombre o se desactive** después (calco del conjunto de nombres del JavaFX); la comparación de capturas no encontró diferencias.
+- Las columnas de texto se reparten el ancho sobrante y las de números/fechas/badges/acciones son fijas (`ajuste="fluido"`); el JavaFX deja el sobrante en blanco y recorta el texto (decisión del usuario 2026-09-27, adaptación a web; web 0.8.2). Aplica a Stock actual (Componente absorbe) y a Proveedores (Nombre y Comentario absorben).
 
 Aceptadas tras la comparación de capturas del 2026-09-24:
 
 - **El gráfico por SKU mantiene la fila seleccionada aunque se desactive o el filtro la oculte** (consecuencia de S4); el JavaFX pierde la selección en los dos casos (`stock-desactivar-compartido-despues`, `stock-vacio`).
 - **Sin rejilla ni fondo alterno en el gráfico de barras**; el eje Y sí calca la regla `tickUnit = max(1, max/5)`.
-- **La tabla no llena el ancho ni el alto de la vista y encoge con pocas filas** ("Sin componentes" queda arriba); el JavaFX mantiene la altura con el placeholder centrado. Es del DataTable compartido y va al backlog de tablas.
+- **La tabla no llena el ancho ni el alto de la vista y encoge con pocas filas** ("Sin componentes" queda arriba); el JavaFX mantiene la altura con el placeholder centrado. El ancho ya lo llena desde la web 0.8.2 (ajuste fluido, ver arriba). Es del DataTable compartido y va al backlog de tablas.
 - **La tarjeta de gráficos apila su contenido arriba** en vez de repartir la altura entre el donut y el gráfico por SKU.
 - **Al desplazar, los bordes de color de las filas asoman bajo la cabecera fija** (`campana-ver-stock-completo`); backlog de tablas.
 - **La fila seleccionada deja 8 px transparentes a la izquierda**, donde el JavaFX pinta navy hasta el borde; backlog de tablas.
