@@ -73,6 +73,15 @@ describe('TecnicosPage', () => {
     expect(container.firstChild).toHaveClass('bg-fondo-gestion')
     expect(await screen.findByText('tecnico-a')).toBeInTheDocument()
   })
+  it('la tabla ocupa el ancho y la columna de acciones absorbe el sobrante (CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN)', async () => {
+    const { container } = montar()
+    await screen.findByText('tecnico-a')
+    const tabla = container.querySelector('table')!
+    expect(tabla).toHaveClass('w-full')
+    const cols = container.querySelectorAll('col')
+    expect(cols[0]).toHaveStyle({ width: '160px' })
+    expect(cols[4].style.width).toBe('')
+  })
   it('pinta la lista del servidor en su orden, sin ordenación por cabecera', async () => {
     const { container } = montar()
     await screen.findByText('tecnico-a')

@@ -31,6 +31,16 @@ describe('columnas de técnicos', () => {
     expect(cols[3]).toHaveStyle({ width: '90px' })
     expect(cols[4]).toHaveStyle({ width: '80px' })
   })
+  it('con ajuste "ultima" (el de la página) la de acciones absorbe el sobrante (FLEX_LAST_COLUMN) con los iconos centrados', () => {
+    const { container } = render(<DataTable columns={columnasTecnicos({ onToggle: vi.fn(), onEliminar: vi.fn() })} data={usuarios}
+      vacio="" getRowId={(u) => String(u.idTec)} ajuste="ultima" />)
+    const cols = container.querySelectorAll('col')
+    expect(cols[3]).toHaveStyle({ width: '90px' })
+    expect(cols[4].style.width).toBe('')
+    expect(container.querySelector('table')).toHaveStyle({ minWidth: '570px' })
+    const celda = container.querySelector('[data-columna="acciones"]')!
+    expect(celda.firstElementChild).toHaveClass('flex', 'justify-center')
+  })
   it('nombre de técnico, de usuario y el rol en mayúsculas tal cual, en el orden recibido', () => {
     const { container } = montar()
     expect(celdas(container, 'tecnico')).toEqual(['tecnico-a', 'tecnico-b'])

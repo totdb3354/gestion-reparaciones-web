@@ -188,6 +188,8 @@ export function TecnicosPage() {
           onSeleccionar={setSeleccionada}
           ordenacion={false}
           altoFila={35}
+          // Calco de CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN: la de acciones (candado y papelera centrados) se queda el sobrante.
+          ajuste="ultima"
         />
       </div>
 
