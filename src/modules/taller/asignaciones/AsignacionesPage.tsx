@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
+import { descargarCsv } from '@/shared/lib/csv'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin } from '@/shared/session/storage'
@@ -7,6 +8,7 @@ import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
+import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
 import { useTecnicos } from '../api'
 import { opcionesCliente } from '../imeis/agrupacion'
@@ -16,6 +18,7 @@ import { BarraFiltros } from './BarraFiltros'
 import { CargaTecnicosDialog } from './CargaTecnicosDialog'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { contarTecnicosPorImei } from './conteoTecnicos'
+import { CABECERAS_ASIGNACIONES, filaAsignacionCsv, NOMBRE_CSV_ASIGNACIONES } from './csv'
 import { useEditores } from './editores/useEditores'
 import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
@@ -78,6 +81,10 @@ export function AsignacionesPage() {
 
   // El contador de la cabecera cuenta las filas ya filtradas (spec §9); el badge del lateral sigue siendo el total.
   const visibles = useMemo(() => aplicarFiltros(data, filtros), [data, filtros])
+  // "Descargar CSV" del menú de usuario (spec SP6 §6.5, G7): las filas visibles tras los filtros, en el orden de la tabla,
+  // como el exportarCSV del hotfix con la tabla de asignaciones a la vista. Lo tienen quienes ven la vista
+  // (SUPERTECNICO y ADMIN); el ADMIN también exporta aunque la vista sea de solo lectura.
+  useRegistrarExportable(() => descargarCsv(NOMBRE_CSV_ASIGNACIONES, CABECERAS_ASIGNACIONES, visibles.map(filaAsignacionCsv)))
   // Los clientes del desplegable son los presentes en lo cargado, no un catálogo: se repueblan en cada carga
   // (calco de cargarClientes() del JavaFX). Reutiliza el helper del maestro de IMEIs, que ya hace eso mismo.
   const clientes = useMemo(() => opcionesCliente(data), [data])
