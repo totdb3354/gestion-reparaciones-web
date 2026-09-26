@@ -57,7 +57,7 @@ type Props<T> = {
   onAbrir?: (row: T) => void
   /** Ordenación por clic en la cabecera; apagada por defecto porque el JavaFX no ordena por clic. */
   ordenacion?: boolean
-  /** Altura máxima del contenedor con scroll. */
+  /** Altura máxima del contenedor con scroll; sin filas es también su altura mínima. */
   alturaMax?: string
   /** A partir de cuántas filas se pintan solo las visibles (el TableView virtualiza siempre). */
   umbralVirtual?: number
@@ -388,7 +388,9 @@ export function DataTable<T>({
       // el <main> flexible (la página hacía scroll en vez de la tabla) y, con los anchos medidos del ajuste 'estirar', cada
       // medida ensanchaba lo medido: el Historial crecía sin fin y se repintaba sin parar.
       className="overflow-auto rounded-md bg-superficie outline-none focus-visible:ring-2 focus-visible:ring-ring/50 scroll-pt-10 contain-inline-size"
-      style={{ maxHeight: alturaMax }}
+      // Vacía conserva el alto que tendría llena (el TableView vacío crece hasta el pie como el lleno, VBox.vgrow): sin
+      // filas la caja se quedaría en la cabecera más el mensaje.
+      style={filas.length === 0 ? { maxHeight: alturaMax, minHeight: alturaMax } : { maxHeight: alturaMax }}
     >
       <table
         className={cn('table-fixed caption-bottom text-sm', !anchosPx && 'w-full')}

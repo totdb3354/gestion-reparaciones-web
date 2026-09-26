@@ -162,6 +162,18 @@ describe('DataTable', () => {
     expect(pintar.mock.calls.length).toBe(trasElClic)
   })
 
+  it('vacía conserva el alto de la llena: el alto máximo pasa a ser también el mínimo', () => {
+    const { container, rerender } = render(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" />)
+    const caja = container.querySelector('table')!.parentElement!
+    expect(caja).toHaveStyle({ maxHeight: 'calc(100dvh - 330px)', minHeight: 'calc(100dvh - 330px)' })
+    rerender(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" alturaMax="400px" />)
+    expect(caja).toHaveStyle({ maxHeight: '400px', minHeight: '400px' })
+    // con filas el alto no cambia: solo el tope, y la caja se ajusta a su contenido
+    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="Sin filas" alturaMax="400px" />)
+    expect(caja).toHaveStyle({ maxHeight: '400px' })
+    expect(caja.style.minHeight).toBe('')
+  })
+
   it('el mensaje de vacío ocupa todas las columnas que se pintan', () => {
     render(<DataTable columns={COLUMNAS} data={[]} vacio="Sin filas" />)
     // dos columnas más la de relleno del ajuste fijo
