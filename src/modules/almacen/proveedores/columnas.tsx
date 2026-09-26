@@ -6,8 +6,8 @@ import { StatusBadge } from '@/shared/ui/StatusBadge'
 export function crearColumnasProveedores(): ColumnDef<Proveedor>[] {
   return [
     { accessorKey: 'nombre', header: 'Nombre', size: 200 },
-    { accessorKey: 'divisa', header: 'Divisa', size: 60 },
-    { id: 'estado', header: 'Estado', size: 90, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
+    { accessorKey: 'divisa', header: 'Divisa', size: 60, maxSize: 60 },
+    { id: 'estado', header: 'Estado', size: 90, maxSize: 90, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
     // whitespace-pre-line: el comentario con saltos de línea los respeta y la fila crece, como la celda del JavaFX.
     {
       id: 'comentario', header: 'Comentario', size: 300, accessorFn: (p) => p.comentario ?? '',

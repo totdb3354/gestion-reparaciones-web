@@ -419,3 +419,15 @@ describe('PedidosPage: refresco y CSV', () => {
     descargar.mockRestore()
   })
 })
+
+describe('PedidosPage: tablas fluidas', () => {
+  it('las dos tablas ocupan todo el ancho sin columna de relleno (ajuste fluido)', async () => {
+    const { container, unmount } = montar()
+    await screen.findByText('lcd-x-negro')
+    expect(container.querySelector('[data-relleno]')).toBeNull()
+    unmount()
+    const otrosMontada = montar(SESION_SUPER, '/stock/pedidos/otros')
+    await screen.findByText('Cinta de embalar')
+    expect(otrosMontada.container.querySelector('[data-relleno]')).toBeNull()
+  })
+})

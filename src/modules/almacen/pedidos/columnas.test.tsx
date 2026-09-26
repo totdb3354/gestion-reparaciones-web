@@ -5,6 +5,7 @@ import type { CompraComponente, CompraOtro } from '@/shared/api/client'
 import { DataTable } from '@/shared/ui/DataTable'
 import { BadgeEstadoPedido } from './BadgeEstadoPedido'
 import { CABECERAS_CSV_OTROS, CABECERAS_CSV_PEDIDOS, claseFilaPedido, crearColumnasOtros, crearColumnasPedidos, filaCsvOtro, filaCsvPedido } from './columnas'
+import { repartoFluido } from '@/test/columnas'
 
 const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
   idCompra: 1, idCom: 11, tipoComponente: 'lcd-x-negro', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 5, cantidadRecibida: null,
@@ -141,5 +142,22 @@ describe('CSV (StockController :1961-2006)', () => {
   it('otros: sin Urgente', () => {
     expect(CABECERAS_CSV_OTROS).toEqual(['Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filaCsvOtro(otro())).toEqual(['20/09/2026 10:30', 'Cinta de embalar', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'])
+  })
+})
+
+describe('columnas de Pedidos en ajuste fluido (adaptación a web)', () => {
+  it('componentes: Componente y Proveedor absorben el ancho sobrante; fecha, cantidad, importes y estado son fijas', () => {
+    expect(repartoFluido(crearColumnasPedidos({ onComponente: vi.fn() }))).toEqual({
+      fijas: ['fecha', 'cantidad', 'precio', 'eur', 'estado'],
+      absorben: ['componente', 'proveedor'],
+      otras: [],
+    })
+  })
+  it('otros: Concepto y Proveedor absorben el ancho sobrante; fecha, cantidad, importes y estado son fijas', () => {
+    expect(repartoFluido(crearColumnasOtros())).toEqual({
+      fijas: ['fecha', 'cantidad', 'precio', 'eur', 'estado'],
+      absorben: ['concepto', 'proveedor'],
+      otras: [],
+    })
   })
 })

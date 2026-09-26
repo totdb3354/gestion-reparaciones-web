@@ -26,7 +26,7 @@ const fecha = (p: Pedido) => formatear(p.fechaPedido, FMT_FECHA_PEDIDO)
 
 export function crearColumnasPedidos({ onComponente }: { onComponente: (p: CompraComponente) => void }): ColumnDef<CompraComponente>[] {
   return [
-    { id: 'fecha', header: 'Pedido', size: ANCHOS_PEDIDOS.fecha, accessorFn: fecha },
+    { id: 'fecha', header: 'Pedido', size: ANCHOS_PEDIDOS.fecha, maxSize: ANCHOS_PEDIDOS.fecha, accessorFn: fecha },
     {
       id: 'componente', header: 'Componente', size: ANCHOS_PEDIDOS.componente,
       // Calco del Label con TEXTO_ACCION, cursor mano y subrayado al pasar (:762-780), con la clase del enlace "En Camino"
@@ -39,23 +39,23 @@ export function crearColumnasPedidos({ onComponente }: { onComponente: (p: Compr
       ),
     },
     { id: 'proveedor', header: 'Proveedor', size: ANCHOS_PEDIDOS.proveedor, accessorFn: (p) => p.nombreProveedor },
-    { id: 'cantidad', header: 'Cant.', size: ANCHOS_PEDIDOS.cantidad, accessorFn: textoCantidad },
-    { id: 'precio', header: 'P.Unit.', size: ANCHOS_PEDIDOS.precio, cell: ({ row }) => precio(row.original) },
-    { id: 'eur', header: 'EUR', size: ANCHOS_PEDIDOS.eur, cell: ({ row }) => eur(row.original) },
-    { id: 'estado', header: 'Estado', size: ANCHOS_PEDIDOS.estado, cell: ({ row }) => <BadgeEstadoPedido pedido={row.original} /> },
+    { id: 'cantidad', header: 'Cant.', size: ANCHOS_PEDIDOS.cantidad, maxSize: ANCHOS_PEDIDOS.cantidad, accessorFn: textoCantidad },
+    { id: 'precio', header: 'P.Unit.', size: ANCHOS_PEDIDOS.precio, maxSize: ANCHOS_PEDIDOS.precio, cell: ({ row }) => precio(row.original) },
+    { id: 'eur', header: 'EUR', size: ANCHOS_PEDIDOS.eur, maxSize: ANCHOS_PEDIDOS.eur, cell: ({ row }) => eur(row.original) },
+    { id: 'estado', header: 'Estado', size: ANCHOS_PEDIDOS.estado, maxSize: ANCHOS_PEDIDOS.estado, cell: ({ row }) => <BadgeEstadoPedido pedido={row.original} /> },
   ]
 }
 
 /** Tabla de otros (:1046-1126): Concepto es un Label sin enlace. */
 export function crearColumnasOtros(): ColumnDef<CompraOtro>[] {
   return [
-    { id: 'fecha', header: 'Pedido', size: ANCHOS_OTROS.fecha, accessorFn: fecha },
+    { id: 'fecha', header: 'Pedido', size: ANCHOS_OTROS.fecha, maxSize: ANCHOS_OTROS.fecha, accessorFn: fecha },
     { id: 'concepto', header: 'Concepto', size: ANCHOS_OTROS.concepto, accessorFn: (p) => p.concepto },
     { id: 'proveedor', header: 'Proveedor', size: ANCHOS_OTROS.proveedor, accessorFn: (p) => p.nombreProveedor },
-    { id: 'cantidad', header: 'Cant.', size: ANCHOS_OTROS.cantidad, accessorFn: textoCantidad },
-    { id: 'precio', header: 'P.Unit.', size: ANCHOS_OTROS.precio, cell: ({ row }) => precio(row.original) },
-    { id: 'eur', header: 'EUR', size: ANCHOS_OTROS.eur, cell: ({ row }) => eur(row.original) },
-    { id: 'estado', header: 'Estado', size: ANCHOS_OTROS.estado, cell: ({ row }) => <BadgeEstadoPedido pedido={row.original} /> },
+    { id: 'cantidad', header: 'Cant.', size: ANCHOS_OTROS.cantidad, maxSize: ANCHOS_OTROS.cantidad, accessorFn: textoCantidad },
+    { id: 'precio', header: 'P.Unit.', size: ANCHOS_OTROS.precio, maxSize: ANCHOS_OTROS.precio, cell: ({ row }) => precio(row.original) },
+    { id: 'eur', header: 'EUR', size: ANCHOS_OTROS.eur, maxSize: ANCHOS_OTROS.eur, cell: ({ row }) => eur(row.original) },
+    { id: 'estado', header: 'Estado', size: ANCHOS_OTROS.estado, maxSize: ANCHOS_OTROS.estado, cell: ({ row }) => <BadgeEstadoPedido pedido={row.original} /> },
   ]
 }
 

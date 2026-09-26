@@ -76,6 +76,7 @@ export function ProveedoresPage() {
         columns={columnas}
         data={visibles}
         vacio="Sin proveedores"
+        ajuste="fluido"
         getRowId={(p) => String(p.idProv)}
         seleccionada={seleccionada}
         onSeleccionar={setSeleccionada}
