@@ -19,7 +19,7 @@ function Demo({ alCambiar, className }: { alCambiar?: (v: string) => void; class
 
 /** Calco del par PasswordField/TextField con el botón del ojo de LoginController :70-85 y CambiarPasswordController :41-72. */
 describe('CampoPassword', () => {
-  it('empieza oculto, con el placeholder y el ojo de mostrar (ojo_activar.png, 18 px de alto)', () => {
+  it('empieza oculto, con el placeholder y el ojo de mostrar (ojo_activar.png, encajado en 18×18)', () => {
     render(<Demo />)
     const campo = screen.getByLabelText('Nueva contraseña')
     expect(campo).toHaveAttribute('type', 'password')
@@ -27,16 +27,19 @@ describe('CampoPassword', () => {
     const ojo = screen.getByRole('button', { name: 'Mostrar contraseña' })
     expect(ojo).toHaveAttribute('type', 'button')
     expect(ojo.querySelector('img')).toHaveAttribute('src', '/ojo_activar.png')
-    expect(ojo.querySelector('img')).toHaveClass('h-[18px]', 'w-auto')
+    expect(ojo.querySelector('img')).toHaveClass('size-[18px]', 'object-contain')
   })
-  it('el ojo conserva la proporción del icono (15×10): alto 18 y ancho automático, sin ancho fijo de 18', async () => {
+  it('los dos ojos se encajan en 18×18 con proporción (ImageView fit 18×18 + preserveRatio): sin alto ni ancho sueltos', async () => {
     render(<Demo />)
     const img = screen.getByRole('button', { name: 'Mostrar contraseña' }).querySelector('img')
-    expect(img).toHaveClass('h-[18px]', 'w-auto')
+    expect(img).toHaveClass('size-[18px]', 'object-contain')
+    expect(img).not.toHaveClass('h-[18px]')
     expect(img).not.toHaveClass('w-[18px]')
+    expect(img).not.toHaveClass('w-auto')
     await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
     const img2 = screen.getByRole('button', { name: 'Ocultar contraseña' }).querySelector('img')
-    expect(img2).toHaveClass('h-[18px]', 'w-auto')
+    expect(img2).toHaveClass('size-[18px]', 'object-contain')
+    expect(img2).not.toHaveClass('h-[18px]')
     expect(img2).not.toHaveClass('w-[18px]')
   })
   it('el ojo alterna type, aria-label e icono y conserva el texto escrito', async () => {
