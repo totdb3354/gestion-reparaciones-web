@@ -14,6 +14,8 @@ describe('AlertaProvider (calco de Alertas.mostrarError)', () => {
     render(<AlertaProvider><Demo /></AlertaProvider>)
     await userEvent.click(screen.getByText('boom'))
     expect(screen.getByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    // Sin el sm:max-w-lg del DialogContent base el aviso declara su ancho (420, el mismo que el popup de texto)
+    expect(screen.getByRole('dialog', { name: 'Error' })).toHaveClass('max-w-[420px]')
     expect(screen.getByText(/modificado por otro usuario/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

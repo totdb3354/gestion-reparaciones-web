@@ -125,14 +125,13 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
 
   return (
     <Dialog open onOpenChange={(abierto) => { if (!abierto) cerrar() }}>
-      {/* max-w-none y sm:max-w-none anulan el max-w y el sm:max-w-lg de DialogContent (tailwind-merge no descarta la variante
-          con modificador si no se repite). Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕. */}
+      {/* max-w-none anula el max-w de DialogContent. Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕. */}
       <DialogContent
         aria-label={titulo}
         aria-describedby={undefined}
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
-        className="flex h-[calc(100vh-48px)] min-h-[700px] w-[calc(100vw-48px)] max-w-none min-w-[960px] flex-col gap-0 overflow-hidden rounded-none border-0 bg-fondo-vista p-0 sm:max-w-none"
+        className="flex h-[calc(100vh-48px)] min-h-[700px] w-[calc(100vw-48px)] max-w-none min-w-[960px] flex-col gap-0 overflow-hidden rounded-none border-0 bg-fondo-vista p-0"
       >
         <DialogTitle className="sr-only">{titulo}</DialogTitle>
         <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />

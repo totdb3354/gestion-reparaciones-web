@@ -31,9 +31,8 @@ describe('ConfirmDialog (calco de ConfirmDialog.mostrar)', () => {
     // el JavaFX apila acción y luego Cancelar: el orden del DOM es el orden visual y el de tabulación
     expect(accion.compareDocumentPosition(cancelar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // clases que sostienen el calco: sin ellas el diálogo vuelve a los valores de DialogContent/DialogFooter
-    // el min() deja el margen de 2rem en móvil; el sm: es lo único que hace que tailwind-merge descarte el
-    // sm:max-w-lg de DialogContent, que si no ganaría por orden de cascada a partir de 640 px
-    expect(dlg).toHaveClass('max-w-[min(400px,calc(100%-2rem))]', 'sm:max-w-[min(400px,calc(100%-2rem))]')
+    // el min() deja el margen de 2rem en móvil; DialogContent ya no trae el sm:max-w-lg que lo pisaba
+    expect(dlg).toHaveClass('max-w-[min(400px,calc(100%-2rem))]')
     expect(dlg).not.toHaveClass('sm:max-w-lg')
     // sin sm:flex-col el footer pasaría a fila a partir de 640 px
     expect(accion.parentElement).toHaveClass('flex-col', 'sm:flex-col')

@@ -16,7 +16,7 @@ export function DialogoDescripcionSolicitud({ abierto, inicial, onGuardar, onCan
   const claseBoton = 'h-auto w-full rounded py-2 text-[12px] text-superficie'
   return (
     <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
-      <DialogContent aria-describedby={undefined} showCloseButton={false} className="max-w-[min(440px,calc(100%-2rem))] gap-2 bg-fondo-input p-4 sm:max-w-[min(440px,calc(100%-2rem))]">
+      <DialogContent aria-describedby={undefined} showCloseButton={false} className="max-w-[min(440px,calc(100%-2rem))] gap-2 bg-fondo-input p-4">
         <DialogTitle className="sr-only">Editar descripción de solicitud</DialogTitle>
         <textarea
           aria-label="Descripción de la pieza"

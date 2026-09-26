@@ -19,8 +19,8 @@ type Props = {
 }
 
 const ESTILO_ANCHO: Record<360 | 520, { caja: string; titulo: string }> = {
-  360: { caja: 'w-[360px] max-w-[min(360px,calc(100%-2rem))] sm:max-w-[min(360px,calc(100%-2rem))]', titulo: 'text-[20px]' },
-  520: { caja: 'w-[520px] max-w-[min(520px,calc(100%-2rem))] sm:max-w-[min(520px,calc(100%-2rem))]', titulo: 'text-2xl' },
+  360: { caja: 'w-[360px] max-w-[min(360px,calc(100%-2rem))]', titulo: 'text-[20px]' },
+  520: { caja: 'w-[520px] max-w-[min(520px,calc(100%-2rem))]', titulo: 'text-2xl' },
 }
 
 /** Calco de las ventanas propias de StockController (editarStock, solicitarPieza, editarProveedor): VBox de 360 px con

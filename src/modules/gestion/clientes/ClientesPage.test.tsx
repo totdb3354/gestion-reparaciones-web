@@ -74,6 +74,8 @@ describe('ClientesPage', () => {
     await screen.findByText('WEB')
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
     const dlg = screen.getByRole('dialog', { name: 'Nuevo cliente' })
+    // Sin el sm:max-w-lg del DialogContent base el diálogo declara su ancho
+    expect(dlg).toHaveClass('max-w-[420px]')
     // "Nombre del cliente:" cabe en una línea, como el TextInputDialog del JavaFX
     expect(within(dlg).getByText('Nombre del cliente:')).toHaveClass('whitespace-nowrap')
     await userEvent.type(within(dlg).getByLabelText('Nombre del cliente:'), '  Amazon  ')

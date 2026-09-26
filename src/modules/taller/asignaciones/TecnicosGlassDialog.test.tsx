@@ -62,6 +62,14 @@ beforeEach(() => {
 })
 
 describe('TecnicosGlassDialog', () => {
+  it('mide 420 px, sin el tope de 512 del DialogContent base', async () => {
+    abrir()
+    await screen.findByRole('checkbox', { name: 'Técnico A' })
+    const dlg = screen.getByRole('dialog')
+    expect(dlg).toHaveClass('max-w-[420px]')
+    expect(dlg).not.toHaveClass('sm:max-w-lg')
+  })
+
   it('lista los técnicos activos con su estado actual', async () => {
     abrir()
     expect(await screen.findByRole('checkbox', { name: 'Técnico A' })).toBeChecked()

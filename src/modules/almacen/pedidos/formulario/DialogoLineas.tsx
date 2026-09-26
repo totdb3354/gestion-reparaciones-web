@@ -85,7 +85,7 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
         // Sin seleccionar texto en una precarga (C25): igual de accesible que el comportamiento por defecto de Radix
         // (el propio diálogo recibe el foco, sin tocar ningún campo), pero sin pisar lo precargado al teclear.
         onOpenAutoFocus={huboPrecarga ? (e) => { e.preventDefault(); (e.target as HTMLElement).focus() } : undefined}
-        className="max-h-[calc(100vh-24px)] w-[700px] max-w-[min(700px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7 sm:max-w-[min(700px,calc(100%-2rem))]"
+        className="max-h-[calc(100vh-24px)] w-[700px] max-w-[min(700px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7"
       >
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
         {/* Alto máximo con scroll propio (calco del ListView a prefHeight 220 de FormularioCompraView.fxml, C24): con

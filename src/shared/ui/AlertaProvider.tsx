@@ -52,7 +52,7 @@ export function AlertaProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={value}>
       {children}
       <Dialog open={aviso !== null} onOpenChange={(o) => !o && setAviso(null)}>
-        <DialogContent onCloseAutoFocus={devolverFoco}>
+        <DialogContent onCloseAutoFocus={devolverFoco} className="max-w-[420px]">
           <DialogHeader>
             <DialogTitle>{aviso?.titulo}</DialogTitle>
             <DialogDescription className="whitespace-pre-line">{aviso?.msg}</DialogDescription>
