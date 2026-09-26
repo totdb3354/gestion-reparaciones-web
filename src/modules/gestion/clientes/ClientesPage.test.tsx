@@ -47,7 +47,7 @@ describe('ClientesPage', () => {
     // el botón va pegado al filtro, no empujado al borde derecho de la vista
     expect(nuevo).not.toHaveClass('ml-auto')
   })
-  it('da a Nombre y Estado el ancho del TableView con un colgroup, sin columna de relleno', async () => {
+  it('da a Nombre y Estado el ancho del TableView con un colgroup, y el sobrante es la columna de relleno', async () => {
     const { container } = renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
     await screen.findByText('WEB')
     const cols = container.querySelectorAll('col')
@@ -57,8 +57,9 @@ describe('ClientesPage', () => {
     expect(screen.getAllByRole('columnheader')).toHaveLength(2)
     const fila = screen.getByRole('row', { name: /^WEB Activo$/ })
     expect(within(fila).getAllByRole('cell')).toHaveLength(2)
-    // lo que sobra es el blanco del contenedor, no una celda
-    expect(container.querySelector('table')).toHaveStyle({ width: '470px' })
+    // lo que sobra es la columna de relleno (sin rol): la tabla llena el contenedor sin bajar de la suma
+    expect(container.querySelector('table')).toHaveStyle({ minWidth: '470px' })
+    expect(fila.querySelector('td[data-relleno]')).toBeInTheDocument()
   })
   it('un técnico no ve "Nuevo cliente" ni menú contextual', async () => {
     renderConProviders(<ClientesPage />, { sesion: SESION_TEC })
