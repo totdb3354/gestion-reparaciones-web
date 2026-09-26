@@ -4,6 +4,7 @@ import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
 import { RequiereAdmin } from '@/modules/gestion/rutas'
+import { TecnicosPage } from '@/modules/gestion/tecnicos/TecnicosPage'
 import { AsignacionesPage } from '@/modules/taller/asignaciones/AsignacionesPage'
 import { FormularioEditarRuta, FormularioNuevoRuta } from '@/modules/taller/formulario/rutas'
 import { HistorialPage } from '@/modules/taller/historial/HistorialPage'
@@ -79,7 +80,7 @@ export const router = createBrowserRouter([
             // Solo ADMIN (spec 6): TECNICO y SUPERTECNICO por URL reciben el aviso genérico y vuelven a /reparaciones.
             element: <RequiereAdmin />,
             children: [
-              { path: '/gestion/tecnicos', element: <PendienteDeMigrar nombre="Gestionar técnicos" /> },
+              { path: '/gestion/tecnicos', element: <TecnicosPage /> },
               { path: '/gestion/logs', element: <PendienteDeMigrar nombre="Ver logs" /> },
             ],
           },
