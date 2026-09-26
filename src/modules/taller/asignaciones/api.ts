@@ -61,6 +61,10 @@ export function useTotalAsignaciones({ sondea }: { sondea: boolean }) {
     select: (filas) => filas.length,
     refetchInterval: intervalo,
     refetchOnWindowFocus: sondea,
+    // Sondeo del badge del lateral: su carga no enciende el overlay. Con la vista montada manda la `meta` de su observador
+    // (sin `sinCapa`; TanStack aplica las opciones del último observador que las fija y la vista se monta después del
+    // lateral), así que la carga inicial de Asignaciones sí lleva overlay.
+    meta: { sinCapa: true },
   })
 }
 

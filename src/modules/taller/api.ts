@@ -66,6 +66,8 @@ export function useContadoresPendientes() {
     queryFn: async (): Promise<ContadoresPendientes> =>
       (await api.GET('/api/reparaciones/pendientes/contadores', { params: { query: { tecnico } } })).data ?? { reparaciones: 0, glass: 0, pulidos: 0 },
     refetchInterval: intervalo,
+    // Sondeo del badge del lateral (y de los toggles de Pendientes, misma clave): su carga no tapa la vista con el overlay.
+    meta: { sinCapa: true },
   })
 }
 
