@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.8.2] - 2026-09-XX — Tablas fluidas
+## [0.8.2] - 2026-09-27 — Tablas fluidas
 
 - Almacén (Stock actual, Pedidos y Proveedores): el componente, el concepto, el proveedor y el comentario se quedan con el ancho que sobra en pantallas grandes; las cantidades, las fechas, los importes y el estado mantienen su ancho.
 - Clientes: el nombre se queda con el ancho que sobra; el estado mantiene su ancho.
