@@ -80,7 +80,7 @@ describe('cliente API', () => {
     expect(err).toBeInstanceOf(LimiteLoginError)
     expect(err).not.toBeInstanceOf(ConexionError)
     expect((err as Error).message).toBe(MSG_LIMITE_LOGIN)
-    expect(MSG_LIMITE_LOGIN).toBe('Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.')
+    expect(MSG_LIMITE_LOGIN).toBe('Demasiados intentos de inicio de sesión. Espera unos segundos y vuelve a intentarlo.')
     expect(estaConectado()).toBe(true)
   })
   it('fuera del login un 503 sigue siendo sin conexión y un 429 no es el límite', async () => {

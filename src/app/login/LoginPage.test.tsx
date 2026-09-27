@@ -109,7 +109,7 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByPlaceholderText('Usuario'), 'tecnico_f')
     await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'x')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/^Demasiados intentos de inicio de sesión\. Espera un minuto y vuelve a intentarlo\.$/)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^Demasiados intentos de inicio de sesión\. Espera unos segundos y vuelve a intentarlo\.$/)
     expect(intentos).toBe(1)
     expect(estaConectado()).toBe(true)
     expect(leerSesion()).toBeNull()

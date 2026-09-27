@@ -36,7 +36,7 @@ export const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usu
 const SIN_CONEXION = 'Sin conexión con el servidor'
 export const MSG_SIN_CONEXION = `${SIN_CONEXION}.`
 export const MSG_TIMEOUT = 'tiempo de espera agotado'
-export const MSG_LIMITE_LOGIN = 'Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.'
+export const MSG_LIMITE_LOGIN = 'Demasiados intentos de inicio de sesión. Espera unos segundos y vuelve a intentarlo.'
 
 /** Texto del diálogo del JavaFX cuando una acción del usuario falla por falta de conexión: el detalle técnico
  *  si lo hay. Los `ConexionError` que nacen aquí (`clasificar`) o en el fetch siempre traen `detalle`; el
