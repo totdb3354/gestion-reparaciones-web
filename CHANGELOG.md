@@ -17,6 +17,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - En Asignaciones, un cliente que aparece en una recarga entra marcado en el filtro Cliente aunque el filtro esté aplicado a medias, como en el programa de escritorio: sus trabajos ya no quedan ocultos sin avisar.
 - Si se supera el límite de intentos de inicio de sesión, la pantalla de entrada lo dice ("Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.") y no reintenta sola, en vez de mostrar "Sin conexión con el servidor.".
 - El supertécnico entra en Asignaciones al iniciar sesión y al pulsar "Reparaciones", como en el programa de escritorio (antes entraba en el Historial). Técnico y administrador siguen igual: Pendientes e Historial.
+- "Descargar CSV" abre la ventana "Guardar como" con el nombre del fichero ya propuesto, como el programa de escritorio, para elegir dónde guardarlo (en Chrome y Edge; en otros navegadores se descarga a la carpeta de descargas, como hasta ahora). Si se cancela, no se guarda nada.
 - Documentación: fichas de paridad corregidas donde afirmaban un calco que no lo es ("+ Añadir línea" tras "Pedir", CSV del administrador en Asignaciones, vista de entrada del supertécnico, orden de botones de Clientes), nueva regla para marcar las casillas de comportamiento, y el smoke del formulario crea y borra su propia asignación de prueba.
 
 ## [0.8.4] - 2026-09-27 — Respuestas comprimidas

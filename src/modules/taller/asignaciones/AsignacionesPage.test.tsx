@@ -404,7 +404,7 @@ describe('AsignacionesPage · CSV (spec SP6 §6.5)', () => {
   })
 
   it('"Descargar CSV" exporta reparaciones_pendientes con las 14 columnas y solo las filas visibles', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     const usuario = userEvent.setup()
     renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones', layout: <AppLayout /> })
     await screen.findByText('A20260916_1')

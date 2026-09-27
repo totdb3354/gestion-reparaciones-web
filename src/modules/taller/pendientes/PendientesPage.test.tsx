@@ -226,7 +226,7 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(screen.queryByRole('button', { name: 'Borrar asignación' })).not.toBeInTheDocument()
   })
   it('"Descargar CSV" exporta las filas visibles con las cabeceras del técnico', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
     // no solo la página: renderConProviders monta PendientesPage como ruta hija de <AppLayout/> (opción `layout`).
     renderConProviders(<PendientesPage tipo="REPARACION" />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes', layout: <AppLayout /> })
@@ -241,7 +241,7 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     descargar.mockRestore()
   })
   it('"Descargar CSV" del supertécnico añade la columna Técnico', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     renderConProviders(<PendientesPage tipo="REPARACION" />, { sesion: SESION_SUPER, ruta: '/reparaciones/pendientes', layout: <AppLayout /> })
     await screen.findByText('A20260915_29')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))

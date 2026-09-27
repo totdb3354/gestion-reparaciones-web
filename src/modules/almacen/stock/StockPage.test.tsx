@@ -306,7 +306,7 @@ describe('StockPage', () => {
     expect(await screen.findByPlaceholderText('Buscar componente…')).toHaveValue('bat')
   })
   it('Descargar CSV exporta la lista filtrada con el nombre y las cabeceras del JavaFX', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // <AppLayout/> monta la campana y el SubNav: sus peticiones van con handlers propios (no se importan los de taller,
     // regla de módulos). Si onUnhandledRequest:'error' señala otra, se añade aquí. No se pisa el de `gestionados`.
     server.use(

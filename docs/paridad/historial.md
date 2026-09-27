@@ -65,6 +65,6 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 - Reparaciones y Glass guardan cada uno sus filtros de técnico, pieza, fechas e incidencias; en el JavaFX los dos toggles comparten los mismos controles y lo filtrado en uno sigue aplicado al pasar al otro (el de IMEI se conserva al cambiar de toggle en la web y en el JavaFX).
 - La columna "Asignado por" se estira con las demás; en el JavaFX se queda en su ancho mínimo de 100 px (`aplicarAnchosDetalle` no la toca y reparte el ancho de la tabla entre las otras columnas), así que, salvo en ventanas muy anchas, la tabla muestra barra de scroll horizontal.
 - El selector de fecha es el calendario del navegador con el mismo formato visible.
-- El CSV es una descarga del navegador con nombre `<base>_yyyy-MM-dd_HH-mm.csv`.
+- El CSV propone el nombre `<base>_yyyy-MM-dd_HH-mm.csv`: "Guardar como" en Chrome y Edge, descarga del navegador en el resto (ficha `shell.md`, web 0.8.5).
 - El ADMIN exporta el Historial de pulidos a CSV (`historial_pulidos`, con la columna "Técnico"); el `exportarCSV` del ADMIN del JavaFX no tiene rama de pulidos y desde ese toggle descarga como `historial_reparaciones` las filas de la tabla de reparaciones/glass que queda oculta.
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación.

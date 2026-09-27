@@ -283,7 +283,7 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
   })
   it('CSV agrupado_resumen con los grupos visibles', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
     // no solo la página: renderConProviders monta ImeisPage como ruta hija de <AppLayout/> (opción `layout`).
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis', layout: <AppLayout /> })

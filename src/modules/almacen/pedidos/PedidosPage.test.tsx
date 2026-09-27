@@ -386,7 +386,7 @@ describe('PedidosPage: refresco y CSV', () => {
     expect(cargas.compras).toBe(0)
   })
   it('Descargar CSV en Componentes exporta la lista filtrada con el nombre y las cabeceras del JavaFX', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     handlersLayout()
     renderConProviders(<PedidosPage key="componentes" tipo="componentes" />, { sesion: SESION_SUPER, ruta: '/stock/pedidos', layout: <AppLayout /> })
     await screen.findByText('lcd-x-negro')
@@ -403,7 +403,7 @@ describe('PedidosPage: refresco y CSV', () => {
     descargar.mockRestore()
   })
   it('Descargar CSV en Otros exporta pedidos_otros sin Urgente', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     handlersLayout()
     renderConProviders(<PedidosPage key="otros" tipo="otros" />, { sesion: SESION_SUPER, ruta: '/stock/pedidos/otros', layout: <AppLayout /> })
     await screen.findByText('Cinta de embalar')

@@ -454,7 +454,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(escribir).toHaveBeenCalledWith('358800000000131')
   })
   it('CSV del supertécnico con columna Técnico y nombre historial_reparaciones', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
     // no solo la página: renderConProviders monta HistorialPage como ruta hija de <AppLayout/> (opción `layout`).
     renderConProviders(<HistorialPage tipo="REPARACION" />, { sesion: SESION_SUPER, ruta: '/reparaciones/historial', layout: <AppLayout /> })
@@ -468,7 +468,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     descargar.mockRestore()
   })
   it('CSV del técnico con nombre mis_reparaciones y sin columna Técnico', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     renderConProviders(<HistorialPage tipo="REPARACION" />, { sesion: SESION_TEC, ruta: '/reparaciones/historial', layout: <AppLayout /> })
     await screen.findByText('R20260915_133')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
@@ -480,7 +480,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
   })
   it('toggle Glass activo, sub-etiqueta "Llegó" del reparador y CSV historial_glass', async () => {
     server.use(http.get('*/api/glass/historial', () => HttpResponse.json([glass('2026-09-16T09:30:00')])))
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // Sesión SUPERTECNICO (por defecto): reutiliza el mismo AppLayout+mock de contadores que el resto del
     // fichero, así que es la más barata para probar aquí el nombre historial_glass; el cálculo de mis_glass
     // (TECNICO) es el mismo `global ? … : 'mis_' + tipo` ya cubierto por "mis_reparaciones" arriba.
