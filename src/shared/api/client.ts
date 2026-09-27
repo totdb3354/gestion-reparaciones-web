@@ -2,7 +2,7 @@ import createClient, { type Middleware } from 'openapi-fetch'
 import type { components, paths } from './schema'
 import { leerSesion } from '@/shared/session/storage'
 import { dispararSesionExpirada } from '@/shared/session/expiracion'
-import { ConexionError, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
+import { ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
 import { reportarExito, reportarFallo } from './conexion'
 
 /** Tipos del contrato tal cual los genera openapi-typescript: el servidor marca todas las propiedades como
@@ -65,16 +65,24 @@ export type RespuestaPrediccion = components['schemas']['PrediccionGlassRespuest
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''
 export const TIMEOUT_MS = 15_000
 
+/** El límite de intentos del inicio de sesión: el servidor web responde 503 (429 si se cambia su configuración). Solo en
+ *  `POST /api/auth/login`; en el resto de rutas un 503 sigue siendo "sin conexión". */
+function esLimiteLogin(request: Request, status: number): boolean {
+  return (status === 503 || status === 429) && request.method === 'POST' && new URL(request.url).pathname === '/api/auth/login'
+}
+
 const auth: Middleware = {
   onRequest({ request }) {
     const s = leerSesion()
     if (s) request.headers.set('Authorization', `Bearer ${s.token}`)
     return request
   },
-  async onResponse({ response }) {
+  async onResponse({ request, response }) {
     // Por debajo de 500 el servidor ha respondido: aunque sea un error (4xx), demuestra que hay conexión.
     if (response.status < 500) reportarExito()
     if (response.ok) return response
+    // Antes de clasificar: el 503 del límite no debe pasar por ConexionError (ni banner ni reintento del login).
+    if (esLimiteLogin(request, response.status)) throw new LimiteLoginError(response.status, MSG_LIMITE_LOGIN)
     const texto = await response.clone().text()
     let body: unknown = texto
     try {

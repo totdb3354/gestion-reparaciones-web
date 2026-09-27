@@ -14,6 +14,9 @@ export class NoEncontradoError extends ApiError {}
 export class StaleDataError extends ApiError {}
 /** 422: regla de negocio del servidor; su mensaje se muestra tal cual. */
 export class ReglaNegocioError extends ApiError {}
+/** `POST /api/auth/login` rechazado por demasiados intentos (503 del servidor web, o 429): no es un corte de conexión,
+ *  no se reintenta y no enciende el banner; el login enseña su texto bajo el formulario. */
+export class LimiteLoginError extends ApiError {}
 /** 5xx, fallo de red o timeout: activa el banner de sin conexión. `detalle` es la causa técnica
  *  ("HTTP 503", "Failed to fetch", "tiempo de espera agotado") que el diálogo muestra cuando el fallo
  *  corta una acción del usuario; el banner sigue usando `message`. */
@@ -33,6 +36,7 @@ export const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usu
 const SIN_CONEXION = 'Sin conexión con el servidor'
 export const MSG_SIN_CONEXION = `${SIN_CONEXION}.`
 export const MSG_TIMEOUT = 'tiempo de espera agotado'
+export const MSG_LIMITE_LOGIN = 'Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.'
 
 /** Texto del diálogo del JavaFX cuando una acción del usuario falla por falta de conexión: el detalle técnico
  *  si lo hay. Los `ConexionError` que nacen aquí (`clasificar`) o en el fetch siempre traen `detalle`; el

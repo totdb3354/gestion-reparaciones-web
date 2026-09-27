@@ -7,6 +7,7 @@ import { server } from '@/test/server'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { leerSesion } from '@/shared/session/storage'
 import { onSesionExpirada } from '@/shared/session/expiracion'
+import { estaConectado, reportarExito } from '@/shared/api/conexion'
 import { useSession } from '@/shared/session/SessionProvider'
 import { LoginPage } from './LoginPage'
 
@@ -99,6 +100,19 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
     expect(await screen.findByText(/Sin conexión con el servidor/)).toBeInTheDocument()
     expect(intentos).toBe(2)
+  })
+  it.each([503, 429])('superar el límite de intentos (%s): su mensaje bajo el formulario, sin reintento y sin banner', async (status) => {
+    reportarExito()
+    let intentos = 0
+    server.use(http.post('*/api/auth/login', () => { intentos++; return HttpResponse.text('<html>limite</html>', { status }) }))
+    montar()
+    await userEvent.type(screen.getByPlaceholderText('Usuario'), 'tecnico_f')
+    await userEvent.type(screen.getByPlaceholderText('Contraseña'), 'x')
+    await userEvent.click(screen.getByRole('button', { name: 'Iniciar Sesión' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^Demasiados intentos de inicio de sesión\. Espera un minuto y vuelve a intentarlo\.$/)
+    expect(intentos).toBe(1)
+    expect(estaConectado()).toBe(true)
+    expect(leerSesion()).toBeNull()
   })
   it('el ojo (CampoPassword) alterna la visibilidad de la contraseña y su icono', async () => {
     montar()

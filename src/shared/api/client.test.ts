@@ -11,7 +11,7 @@ import type {
   ReparacionResumen, SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico,
 } from './client'
 import type { paths } from './schema'
-import { ConexionError, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
+import { ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
 
 /** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
  *  no hereda (y no es el mismo objeto), así que estos dobles imitan al real: un Error con el `name` del corte. */
@@ -73,6 +73,24 @@ describe('cliente API', () => {
     const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ReglaNegocioError)
     expect(estaConectado()).toBe(true)
+  })
+  it.each([503, 429])('un %s del login es el límite de intentos: su mensaje, sin encender el banner', async (status) => {
+    server.use(http.post('*/api/auth/login', () => HttpResponse.text('<html>503</html>', { status })))
+    const err: unknown = await api.POST('/api/auth/login', { body: { usuario: 'u', password: 'p' } }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(LimiteLoginError)
+    expect(err).not.toBeInstanceOf(ConexionError)
+    expect((err as Error).message).toBe(MSG_LIMITE_LOGIN)
+    expect(MSG_LIMITE_LOGIN).toBe('Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.')
+    expect(estaConectado()).toBe(true)
+  })
+  it('fuera del login un 503 sigue siendo sin conexión y un 429 no es el límite', async () => {
+    server.use(
+      http.post('*/api/clientes', () => HttpResponse.text('<html>503</html>', { status: 503 })),
+      http.get('*/api/clientes', () => HttpResponse.text('', { status: 429 })),
+    )
+    await expect(api.POST('/api/clientes', { body: { nombre: 'x' } })).rejects.toBeInstanceOf(ConexionError)
+    const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(err).not.toBeInstanceOf(LimiteLoginError)
   })
   it('un 4xx no toca el estado de conexión (y cura el banner)', async () => {
     reportarFallo()
