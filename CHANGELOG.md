@@ -4,6 +4,11 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.8.4] - 2026-09-27 — Respuestas comprimidas
+
+- El servidor web envía comprimidos los datos de la API y los ficheros de la propia web. Los historiales, que eran las descargas más pesadas, ocupan entre 27 y 39 veces menos, así que las vistas cargan antes y deja de aparecer el aviso de "sin conexión" cuando una descarga grande tardaba demasiado. No cambia nada de lo que se ve ni de cómo se refresca.
+- Solo cambia la configuración del servidor web (`deploy/nginx/default.conf`): hay que copiarla a la máquina y reiniciar nginx.
+
 ## [0.8.3] - 2026-09-27 — Fechas, carga y modal
 
 - Asignaciones, Mis asignaciones pendientes, Pulidos pendientes, Historial, Historial de pulidos y Agrupado por IMEI muestran las fechas como día/mes/año (`dd/MM/yyyy HH:mm`; `dd/MM/yyyy` en el Historial de técnico). Los CSV, Pedidos y los logs no cambian.
