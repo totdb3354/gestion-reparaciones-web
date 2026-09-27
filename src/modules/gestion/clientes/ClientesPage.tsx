@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esSuperTecnico } from '@/shared/session/storage'
 import type { Cliente } from '@/shared/api/client'
-import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
+import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion, SesionDeOtraPestanaError } from '@/shared/api/errors'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
@@ -41,6 +41,8 @@ function MenuCliente({ c, onToggle, onEditar, onBorrar }: { c: Cliente; onToggle
       // de conexión se anuncia con el detalle técnico, como el diálogo del JavaFX, y no con el genérico.
       .catch((e: unknown) => {
         if (!vivo) return
+        // La sesión guardada ya es de otra pestaña: esta se está recargando o yendo al login; no se avisa de nada.
+        if (e instanceof SesionDeOtraPestanaError) return
         if (e instanceof ConexionError) { mostrarError(mensajeSinConexion(e)); return }
         mostrarError(mensajeDeError(e))
       })

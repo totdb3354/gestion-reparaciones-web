@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { mensajeDeError } from '@/shared/api/errors'
+import { mensajeDeError, SesionDeOtraPestanaError } from '@/shared/api/errors'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
@@ -85,6 +85,8 @@ export function TecnicosGlassDialog({ abierto, soloLectura, onCerrar, onInteracc
     // caché, y el `await Promise.allSettled(...)` de más arriba no sigue hasta que TODOS lo están. Lo que se
     // guardó se ve guardado y lo que no, sin guardar; sin ese await se vería el instante con la caché vieja.
     setMarcados({})
+    // La sesión guardada ya es de otra pestaña: esta se está recargando o yendo al login; no se pinta ningún error.
+    if (fallo.reason instanceof SesionDeOtraPestanaError) return
     setError(`No se pudo guardar: ${mensajeDeError(fallo.reason)}`)
   }
 

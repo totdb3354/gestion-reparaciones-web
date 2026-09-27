@@ -102,6 +102,18 @@ describe('api de notificaciones', () => {
     expect(avisos).toHaveLength(1)
     quitar()
   })
+  it('componentes: si la sesión guardada ya es de otra pestaña, la consulta no sale y no avisa', async () => {
+    const avisos: string[] = []
+    const quitar = onError((m) => avisos.push(m))
+    const gets = espiarGets()
+    const { wrapper } = envoltorio()
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...SESION_SUPER, idUsu: 99, nombreUsuario: 'otra', token: 'jwt-otra' }))
+    const h = renderHook(() => useComponentesGestionados(false), { wrapper })
+    await waitFor(() => expect(h.result.current.isError).toBe(true))
+    expect(gets).toEqual([])
+    expect(avisos).toEqual([])
+    quitar()
+  })
   it('componentes: un fallo con datos ya cargados es silencioso y conserva la última lista buena', async () => {
     const avisos: string[] = []
     const quitar = onError((m) => avisos.push(m))

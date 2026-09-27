@@ -120,6 +120,18 @@ describe('TecnicosGlassDialog', () => {
     expect(enviados).toEqual([])
   })
 
+  it('si la sesión guardada ya es de otra pestaña, "Aceptar" no envía nada ni pinta ningún error', async () => {
+    abrir()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Técnico B' }))
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...SESION_SUPER, idUsu: 99, nombreUsuario: 'otra', token: 'jwt-otra' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Aceptar' })).toBeEnabled())
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    expect(enviados).toEqual([])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/No se pudo guardar/)).not.toBeInTheDocument()
+  })
+
   it('si una llamada falla, el diálogo no se cierra y los checks quedan en lo que sí se guardó', async () => {
     rechazados = new Set([3])
     abrir()

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -187,6 +187,16 @@ describe('ProveedoresPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Borrar' }))
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Borrar proveedor' })).getByRole('button', { name: 'Borrar' }))
     expect(await screen.findByText('El proveedor tiene pedidos y no se puede borrar.')).toBeInTheDocument()
+  })
+  it('si la sesión guardada ya es de otra pestaña, abrir el menú no muestra ningún aviso', async () => {
+    montar()
+    await screen.findByText('ACME')
+    // Otra pestaña entra con otra sesión: la consulta tiene-pedidos del menú no llega a salir.
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...SESION_SUPER, idUsu: 99, nombreUsuario: 'otra', token: 'jwt-otra' }))
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('ACME') })
+    expect(await screen.findByRole('menuitem', { name: 'Editar' })).toBeInTheDocument()
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
   it('"Desactivar" hace el PATCH sin confirmación', async () => {
     let cuerpo: unknown = null
