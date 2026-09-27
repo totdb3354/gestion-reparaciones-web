@@ -144,8 +144,16 @@ export function ImeisPage() {
           // el estrechamiento de un opcional encadenado a una variable distinta asignada antes de comprobarlo.
           const g = conObservacion
           if (!g?.telefonoUpdatedAt) return
-          // Se cierra solo cuando el guardado sale bien; si falla, sigue abierto con lo escrito (calco del JavaFX).
-          editarObservacion.mutate({ imei: g.imei, observacion, updatedAt: g.telefonoUpdatedAt }, { onSuccess: () => setConObservacion(null), onError: alFallar })
+          // Se cierra cuando el guardado sale bien. Si otro usuario modificó el teléfono (409), se cierra también y la lista
+          // se recarga (onSettled de la mutación): reintentar con el mismo updatedAt daría 409 siempre (calco de
+          // AgrupadoController.abrirDialogoObservacionTelefono). Con cualquier otro fallo sigue abierto con lo escrito.
+          editarObservacion.mutate({ imei: g.imei, observacion, updatedAt: g.telefonoUpdatedAt }, {
+            onSuccess: () => setConObservacion(null),
+            onError: (e) => {
+              if (e instanceof StaleDataError) setConObservacion(null)
+              alFallar(e)
+            },
+          })
         }} />
       <SelectorLista abierto={conCliente !== null} titulo="Seleccionar cliente" placeholderBuscar="Buscar cliente..." opciones={opcionesClienteActivo} claveActual={claveClienteActual}
         textoNada="Nada seleccionado" textoSeleccionar="Seleccionar" onCancelar={() => setConCliente(null)}
