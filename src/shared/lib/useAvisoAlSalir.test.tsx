@@ -1,8 +1,13 @@
 import { renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { dispararSesionExpirada, onSesionExpirada } from '@/shared/session/expiracion'
+import { borrarSesion, guardarSesion } from '@/shared/session/storage'
 import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { useAvisoAlSalir } from './useAvisoAlSalir'
 
+beforeEach(() => {
+  guardarSesion({ idUsu: 1, nombreUsuario: 'usuario-a', rol: 'TECNICO', idTec: 1, token: 'jwt' })
+})
 afterEach(() => {
   vi.restoreAllMocks()
 })
@@ -31,5 +36,20 @@ describe('useAvisoAlSalir', () => {
     expect(avisaAlSalir()).toBe(true)
     unmount()
     expect(avisaAlSalir()).toBe(false)
+  })
+
+  it('la salida por sesión caducada no se para en el aviso aunque haya cambios', () => {
+    const assign = vi.fn()
+    // El mismo handler que registra main.tsx: borra la sesión y sale a /login. La salida se simula con el beforeunload.
+    const quitar = onSesionExpirada(() => {
+      borrarSesion()
+      assign('/login')
+    })
+    renderHook(() => useAvisoAlSalir(true))
+    expect(avisaAlSalir()).toBe(true)
+    dispararSesionExpirada()
+    expect(assign).toHaveBeenCalledWith('/login')
+    expect(avisaAlSalir()).toBe(false)
+    quitar()
   })
 })
