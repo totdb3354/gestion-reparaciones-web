@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '@/test/server'
 import { avisaAlSalir } from '@/test/avisoAlSalir'
-import { renderConProviders, SESION_SUPER } from '@/test/render'
+import { renderConRouter, SESION_SUPER } from '@/test/render'
 import { AsignarTrabajosDialog } from './AsignarTrabajosDialog'
 import { filaCarga, tecnico } from '../../test/fabrica'
 
@@ -31,7 +31,8 @@ beforeEach(() => {
 
 function abrir() {
   const onCerrar = vi.fn()
-  renderConProviders(<AsignarTrabajosDialog tabla={[]} onCerrar={onCerrar} onInteraccion={vi.fn()} />, { sesion: SESION_SUPER })
+  // Data router: con IMEIs en las colas el modal bloquea el Atrás del navegador (useBlocker).
+  renderConRouter([{ path: '/', element: <AsignarTrabajosDialog tabla={[]} onCerrar={onCerrar} onInteraccion={vi.fn()} /> }], { sesion: SESION_SUPER })
   return onCerrar
 }
 
@@ -61,6 +62,39 @@ describe('AsignarTrabajosDialog', () => {
     await userEvent.type(screen.getByPlaceholderText('Escanea o escribe el IMEI (15 dígitos)...'), IMEI)
     await screen.findByText('iPhone 14')
     expect(avisaAlSalir()).toBe(true)
+  })
+
+  it('Atrás con IMEIs en las colas pide la misma confirmación "Descartar"; Cancelar se queda y Descartar sale', async () => {
+    const { router } = renderConRouter(
+      [{ path: '/lista', element: <p>lista</p> }, { path: '/asignar', element: <AsignarTrabajosDialog tabla={[]} onCerrar={vi.fn()} onInteraccion={vi.fn()} /> }],
+      { sesion: SESION_SUPER, ruta: '/lista' },
+    )
+    await act(async () => { await router.navigate('/asignar') })
+    await userEvent.type(await screen.findByPlaceholderText('Escanea o escribe el IMEI (15 dígitos)...'), IMEI)
+    await screen.findByText('iPhone 14')
+    await act(async () => { await router.navigate(-1) })
+    expect(await screen.findByText('Se descartarán los 1 IMEIs escaneados.')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/asignar')
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByText('Se descartarán los 1 IMEIs escaneados.')).not.toBeInTheDocument())
+    expect(router.state.location.pathname).toBe('/asignar')
+    expect(screen.getByRole('dialog', { name: 'Asignar trabajos' })).toBeInTheDocument()
+    await act(async () => { await router.navigate(-1) })
+    await screen.findByText('Se descartarán los 1 IMEIs escaneados.')
+    await userEvent.click(screen.getByRole('button', { name: 'Descartar' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lista'))
+  })
+
+  it('Atrás sin IMEIs en las colas sale sin preguntar', async () => {
+    const { router } = renderConRouter(
+      [{ path: '/lista', element: <p>lista</p> }, { path: '/asignar', element: <AsignarTrabajosDialog tabla={[]} onCerrar={vi.fn()} onInteraccion={vi.fn()} /> }],
+      { sesion: SESION_SUPER, ruta: '/lista' },
+    )
+    await act(async () => { await router.navigate('/asignar') })
+    await screen.findByRole('heading', { name: 'Asignar trabajos' })
+    await act(async () => { await router.navigate(-1) })
+    expect(router.state.location.pathname).toBe('/lista')
+    expect(screen.queryByText(/Se descartarán/)).not.toBeInTheDocument()
   })
 
   it('abre a 720 px de ancho como la ventana del JavaFX (no a 980)', async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
+import { NavigationType, useBlocker, type Blocker } from 'react-router'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { useClientes } from '@/shared/api/clientes'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
@@ -27,6 +28,17 @@ const CATEGORIA: Record<string, string> = { R: 'Reparación', G: 'Glass', P: 'Pu
 /** Cola vacía estable: mientras cargan los clientes no se consume ningún efecto (ver abajo). */
 const SIN_EFECTOS: Efecto[] = []
 
+/** Mientras haya IMEIs en las colas, Atrás (y Adelante) del navegador no cierran el modal en silencio: se para la navegación
+ *  y el modal enseña la misma confirmación "Descartar" que al cerrarlo. Componente aparte que solo se monta con IMEIs en
+ *  las colas: `useBlocker` exige data router (el de app/router.tsx). */
+function GuardiaAtras({ activa, onBloqueo }: { activa: boolean; onBloqueo: (b: Blocker) => void }) {
+  const blocker = useBlocker(({ historyAction }) => activa && historyAction === NavigationType.Pop)
+  useEffect(() => {
+    onBloqueo(blocker)
+  }, [blocker, onBloqueo])
+  return null
+}
+
 /** Modal "Asignar trabajos" (abrirFormularioAsignacion del JavaFX). Nada se escribe hasta "Guardar (N)", salvo el
  *  modelo decidido a mano (D3). La tabla de detrás queda congelada mientras está abierto. */
 export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props) {
@@ -47,6 +59,9 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
   // no duplica lo que quizá sí escribió; tras un éxito el modal se cierra y la siguiente apertura empieza de cero.
   const [claves] = useState(() => crearClavesIdempotencia())
   const [descartar, setDescartar] = useState(false)
+  // Atrás del navegador con IMEIs en las colas: el bloqueo que para la navegación hasta que se confirme o cancele.
+  const [bloqueo, setBloqueo] = useState<Blocker | null>(null)
+  const atrasBloqueado = bloqueo?.state === 'blocked'
   const { mostrarError, mostrarAviso } = useAlerta()
   const barra = resumenBarra(estado)
   const guardando = guardarLote.isPending
@@ -122,8 +137,11 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
           </div>
         </DialogContent>
       </Dialog>
-      <ConfirmDialog abierto={descartar} titulo="Descartar" descripcion={`Se descartarán los ${total} IMEIs escaneados.`}
-        textoAccion="Descartar" onConfirmar={onCerrar} onCancelar={() => setDescartar(false)} />
+      {total > 0 && <GuardiaAtras activa={!guardando} onBloqueo={setBloqueo} />}
+      <ConfirmDialog abierto={descartar || atrasBloqueado} titulo="Descartar" descripcion={`Se descartarán los ${total} IMEIs escaneados.`}
+        textoAccion="Descartar"
+        onConfirmar={() => { if (bloqueo?.state === 'blocked') bloqueo.proceed(); else onCerrar() }}
+        onCancelar={() => { if (bloqueo?.state === 'blocked') bloqueo.reset(); setDescartar(false) }} />
     </>
   )
 }

@@ -128,5 +128,5 @@ Marcada el 2026-09-24 con la web de la rama en local contra la API de producció
 
 ## Cerrar
 
-- [x] Con entradas en alguna cola, la ✕, Esc o un clic fuera abren la confirmación "Descartar" con "Se descartarán los N IMEIs escaneados." (diferencia respecto al JavaFX, ver arriba).
+- [x] Con entradas en alguna cola, la ✕, Esc o un clic fuera abren la confirmación "Descartar" con "Se descartarán los N IMEIs escaneados." (diferencia respecto al JavaFX, ver arriba). El botón Atrás (o Adelante) del navegador abre la misma confirmación: "Cancelar" deja el modal como estaba y "Descartar" sigue con la navegación. Recargar o cerrar la pestaña con entradas hace que el navegador pregunte con su aviso propio (web 0.8.5).
 - [x] Sin ninguna entrada en ninguna cola, se cierra directamente sin confirmación.
