@@ -93,7 +93,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         <span className="truncate">{actual ? actual.etiqueta : textoVacio}</span>
         <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-texto-nav-activo" />
       </PopoverTrigger>
-      <PopoverContent align="start" style={ancho === 'full' ? undefined : { minWidth: ancho }} className="w-auto rounded-lg border border-fila-sep bg-superficie p-0 shadow-md">
+      <PopoverContent align="start" style={ancho === 'full' ? undefined : { minWidth: ancho }} className={cn(ancho === 'full' && 'min-w-(--radix-popover-trigger-width)', 'w-auto rounded-lg border border-fila-sep bg-superficie p-0 shadow-md')}>
         <ul
           role="listbox"
           aria-label={etiquetaAccesible}

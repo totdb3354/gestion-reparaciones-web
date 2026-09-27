@@ -75,7 +75,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] IMEI (12 px) con la mini-píldora debajo: "Glass: `<técnico>`" en filas de reparación con glass abierta y sin entregar, "Rep: `<técnico>`" en filas de glass con reparación abierta (se mantiene tras el "Llegó"); cada una con su tooltip. Son las de la lógica de entrega de glass, ya en la web desde el sub-proyecto 1 (`asig-tipo-glass`, `entrega-glass-accion`).
 - [x] IMEI: tercera línea "N asignados" (10 px, cursiva, gris, crema en la fila seleccionada) cuando el IMEI tiene dos o más técnicos distintos y la píldora no cuenta ya al segundo: con exactamente 2 se oculta —la píldora `Glass:`/`Rep:` (o el badge índigo de entrega) ya dice quién es el otro— y con 3 o más vuelve y convive con ella. El conteo son técnicos distintos por IMEI sobre la lista **completa**, no sobre la filtrada, como el `cargar()` del JavaFX. Es exclusivo de esta vista: la spec del indicador (2026-06-29 §3) deja "Mis pendientes" del técnico fuera a propósito, y su celda del JavaFX apila solo dos líneas.
 - [x] Modelo: nombre traducido del código del modelo (vacío si no hay).
-- [x] Fecha asignación: `yyyy/MM/dd HH:mm`, en hora de Madrid, texto plano que hereda el color de la fila.
+- [x] Fecha asignación: `dd/MM/yyyy HH:mm` (web 0.8.3; el JavaFX, `yyyy/MM/dd HH:mm`), en hora de Madrid, texto plano que hereda el color de la fila.
 - [x] Comentario: el comentario de la asignación (vacío si es nulo); pulsar sobre el texto abre el popup de lectura.
 - [x] Cliente: el nombre, o vacío.
 - [x] Asignado por: el nombre de quien la creó, o "—" si no hay (calco del `cAsignadoPor`).
