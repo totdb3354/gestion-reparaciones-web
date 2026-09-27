@@ -140,7 +140,12 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
       {total > 0 && <GuardiaAtras activa={!guardando} onBloqueo={setBloqueo} />}
       <ConfirmDialog abierto={descartar || atrasBloqueado} titulo="Descartar" descripcion={`Se descartarán los ${total} IMEIs escaneados.`}
         textoAccion="Descartar"
-        onConfirmar={() => { if (bloqueo?.state === 'blocked') bloqueo.proceed(); else onCerrar() }}
+        onConfirmar={() => {
+          // Desde el Atrás también se cierra el modal (y con él sus colas) antes de dejar seguir la navegación, por si la ruta
+          // de destino mantuviera montada la página.
+          onCerrar()
+          if (bloqueo?.state === 'blocked') bloqueo.proceed()
+        }}
         onCancelar={() => { if (bloqueo?.state === 'blocked') bloqueo.reset(); setDescartar(false) }} />
     </>
   )

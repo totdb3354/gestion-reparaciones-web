@@ -64,9 +64,10 @@ describe('AsignarTrabajosDialog', () => {
     expect(avisaAlSalir()).toBe(true)
   })
 
-  it('Atrás con IMEIs en las colas pide la misma confirmación "Descartar"; Cancelar se queda y Descartar sale', async () => {
+  it('Atrás con IMEIs en las colas pide la misma confirmación "Descartar"; Cancelar se queda y Descartar cierra el modal y sale', async () => {
+    const onCerrar = vi.fn()
     const { router } = renderConRouter(
-      [{ path: '/lista', element: <p>lista</p> }, { path: '/asignar', element: <AsignarTrabajosDialog tabla={[]} onCerrar={vi.fn()} onInteraccion={vi.fn()} /> }],
+      [{ path: '/lista', element: <p>lista</p> }, { path: '/asignar', element: <AsignarTrabajosDialog tabla={[]} onCerrar={onCerrar} onInteraccion={vi.fn()} /> }],
       { sesion: SESION_SUPER, ruta: '/lista' },
     )
     await act(async () => { await router.navigate('/asignar') })
@@ -79,10 +80,12 @@ describe('AsignarTrabajosDialog', () => {
     await waitFor(() => expect(screen.queryByText('Se descartarán los 1 IMEIs escaneados.')).not.toBeInTheDocument())
     expect(router.state.location.pathname).toBe('/asignar')
     expect(screen.getByRole('dialog', { name: 'Asignar trabajos' })).toBeInTheDocument()
+    expect(onCerrar).not.toHaveBeenCalled()
     await act(async () => { await router.navigate(-1) })
     await screen.findByText('Se descartarán los 1 IMEIs escaneados.')
     await userEvent.click(screen.getByRole('button', { name: 'Descartar' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/lista'))
+    expect(onCerrar).toHaveBeenCalledTimes(1)
   })
 
   it('Atrás sin IMEIs en las colas sale sin preguntar', async () => {

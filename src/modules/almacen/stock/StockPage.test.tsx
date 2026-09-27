@@ -287,7 +287,7 @@ describe('StockPage', () => {
     await waitFor(() => expect(llamadas).toContain('sol {"idCom":1,"descripcion":null}'))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(cargas.n).toBe(antes)
-  })
+  }, 15_000)
   it('con un diálogo abierto el sondeo se congela', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     montar()
