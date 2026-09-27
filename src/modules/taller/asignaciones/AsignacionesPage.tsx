@@ -20,7 +20,7 @@ import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { contarTecnicosPorImei } from './conteoTecnicos'
 import { CABECERAS_ASIGNACIONES, filaAsignacionCsv, NOMBRE_CSV_ASIGNACIONES } from './csv'
 import { useEditores } from './editores/useEditores'
-import { aplicarFiltros, FILTROS_VACIOS, type EstadoFiltros } from './filtros'
+import { aplicarFiltros, FILTROS_VACIOS, incorporarClientesNuevos, type EstadoFiltros } from './filtros'
 import { MenuAsignacion } from './MenuAsignacion'
 import { AsignarTrabajosDialog } from './modal/AsignarTrabajosDialog'
 import { TecnicosGlassDialog } from './TecnicosGlassDialog'
@@ -79,15 +79,24 @@ export function AsignacionesPage() {
   // badges de entrega de glass se quedarían diciendo "Llegó HH:mm" pasada la medianoche con la pestaña abierta.
   const hoy = hoyMadrid()
 
+  // Los clientes del desplegable son los presentes en lo cargado, no un catálogo: se repueblan en cada carga
+  // (calco de cargarClientes() del JavaFX). Reutiliza el helper del maestro de IMEIs, que ya hace eso mismo.
+  const clientes = useMemo(() => opcionesCliente(data), [data])
+  // Un cliente que llega por primera vez en una recarga entra marcado aunque el filtro esté a medias (calco de
+  // poblarFiltroCliente del JavaFX). Patrón "ajustar el estado durante el render", sin useEffect + setState.
+  const [clientesConocidos, setClientesConocidos] = useState<string[]>([])
+  const incorporacion = incorporarClientesNuevos(filtros, clientesConocidos, clientes)
+  if (incorporacion !== null) {
+    setClientesConocidos(incorporacion.conocidos)
+    if (incorporacion.filtros !== filtros) setFiltros(incorporacion.filtros)
+  }
+
   // El contador de la cabecera cuenta las filas ya filtradas (spec §9); el badge del lateral sigue siendo el total.
   const visibles = useMemo(() => aplicarFiltros(data, filtros), [data, filtros])
   // "Descargar CSV" del menú de usuario (spec SP6 §6.5, G7): las filas visibles tras los filtros, en el orden de la tabla,
   // como el exportarCSV del hotfix con la tabla de asignaciones a la vista. Lo tienen quienes ven la vista
   // (SUPERTECNICO y ADMIN); el ADMIN también exporta aunque la vista sea de solo lectura.
   useRegistrarExportable(() => descargarCsv(NOMBRE_CSV_ASIGNACIONES, CABECERAS_ASIGNACIONES, visibles.map(filaAsignacionCsv)))
-  // Los clientes del desplegable son los presentes en lo cargado, no un catálogo: se repueblan en cada carga
-  // (calco de cargarClientes() del JavaFX). Reutiliza el helper del maestro de IMEIs, que ya hace eso mismo.
-  const clientes = useMemo(() => opcionesCliente(data), [data])
   // El "N asignados" de la celda IMEI: técnicos distintos por IMEI sobre la lista COMPLETA, no sobre `visibles`.
   // En el JavaFX se calcula en cargar(), antes de filtrar, así que filtrar la tabla no baja el contador de las
   // filas que quedan a la vista: el teléfono lo siguen teniendo dos técnicos aunque solo se vea uno.
