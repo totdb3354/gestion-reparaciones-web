@@ -9,3 +9,5 @@ Antes del primer `up`, `/opt/reparaciones/sql/init.sql` tiene que existir (dump 
 El backend no expone puertos al host. `SERVER_ERROR_INCLUDE_MESSAGE=always` (decisión 2026-09-15): los 409/422 de los DAOs viajan como `ResponseStatusException` y solo llevan su mensaje de negocio con `always`; se revisará con un manejador de errores propio en el hardening.
 Actualizar: `cd /opt/reparaciones && git -C gestion-reparaciones-servidor pull && git -C gestion-reparaciones-web pull && docker compose up -d --build`.
 El paso a paso de la primera instalación y el mantenimiento están en la guía privada del equipo `Apuntes/despliegue_vdc_produccion.md` (fuera del repo).
+
+Tras cambiar `nginx/default.conf` en el repo: copiarlo a `/opt/reparaciones/nginx/default.conf`, comprobar la sintaxis con `docker compose exec nginx nginx -t` y reiniciar con `docker compose restart nginx`.
