@@ -89,7 +89,7 @@ describe('NuevoPedidoDialog', () => {
     expect(lotes).toHaveLength(0)
   })
 
-  it('"Pedir" (un componente): una línea con él, cantidad 1, precio 0,00, sin proveedor ni urgente; "+ Añadir línea" lo repite y selecciona la nueva', async () => {
+  it('"Pedir" (un componente): una línea con él, cantidad 1, precio 0,00, sin proveedor ni urgente; "+ Añadir línea" añade una vacía (calco: añadirFila(null)) y la selecciona', async () => {
     abrir({ modo: 'componentes', idsCom: [2] })
     expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
     expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' }).textContent).toBe('')
@@ -98,7 +98,12 @@ describe('NuevoPedidoDialog', () => {
     expect(screen.getByRole('checkbox', { name: 'Urgente línea 1' })).not.toBeChecked()
     expect(within(filaDe(1)).getByText('0,00 €')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
-    expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('bat-x')
+    expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 2' }).textContent).toBe('')
+    expect(screen.getByRole('textbox', { name: 'Cantidad línea 2' })).toHaveValue('1')
+    expect(screen.getByRole('textbox', { name: 'Precio línea 2' })).toHaveValue('0,00')
+    expect(screen.getByRole('checkbox', { name: 'Urgente línea 2' })).not.toBeChecked()
+    expect(screen.getByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
     expect(filaDe(2)).toHaveAttribute('data-state', 'selected')
     expect(filaDe(1)).not.toHaveAttribute('data-state')
   })

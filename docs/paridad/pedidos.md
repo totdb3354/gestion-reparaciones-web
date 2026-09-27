@@ -92,9 +92,7 @@ Anotadas como diferencias aceptadas:
 
 ## Pendiente de decidir
 
-Las diferencias nuevas de la comparación se decidieron (ver la sección anterior). Queda una, encontrada después en la auditoría de sustitución:
-
-- **"+ Añadir línea" tras abrir con "Pedir" (un componente)**: la web rellena la línea nueva con ese mismo componente; el JavaFX añade siempre una línea vacía (`hotfix/0.16.3`, `FormularioCompraController.java:496`: `anadirLinea() { añadirFila(null); }`; el componente solo se preselecciona al abrir, :88). No se cambia hasta que el usuario decida.
+Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea" tras abrir con "Pedir" repetía el componente) la decidió el usuario el 2026-09-27: calco del JavaFX, la línea nueva va vacía (ver «Nuevo pedido»).
 
 ## Pestaña, rutas y toggle
 
@@ -183,7 +181,7 @@ Las diferencias nuevas de la comparación se decidieron (ver la sección anterio
 - [x] Autocompletar "contiene", hasta 6 filas visibles; Enter elige la primera (`form-nuevo-popup-componente`; `NuevoPedidoDialog.test.tsx` "autocompletar: … Enter elige el primero", `CampoAutocompletar.test.tsx` "muestra como mucho 6 filas a la vez…").
 - [x] Cant. y P.Unit. editables (`form-nuevo-editando-cantidad`).
 - [x] Proveedor en USD: `$` en P.Unit. y Total EUR convertido con `precio / tasa` (`form-nuevo-usd`; `NuevoPedidoDialog.test.tsx` "proveedor en USD…").
-- [x] "+ Añadir línea" añade, selecciona y desplaza hasta la línea nueva (`FormularioCompraController.java:496-513`; `form-nuevo-varias-lineas`; `NuevoPedidoDialog.test.tsx` "\"Pedir\" (un componente): … \"+ Añadir línea\" lo repite y selecciona la nueva"). Abierto con "Pedir", la línea nueva repite el componente y la del JavaFX va vacía: diferencia pendiente de decidir, ver «Pendiente de decidir».
+- [x] "+ Añadir línea" añade una línea **vacía** (sin componente ni proveedor, cantidad 1, precio 0,00, sin urgente), la selecciona y desplaza hasta ella, también cuando el formulario se abrió con "Pedir" sobre un componente: solo la primera línea lleva ese componente (calco de `hotfix/0.16.3`, `FormularioCompraController.java:496` `anadirLinea() { añadirFila(null); }`, :498-513 `añadirFila`, y :88 para la línea inicial; valores de `LineaPedido.java:20-29`; decisión del usuario 2026-09-27, web 0.8.5) (`form-nuevo-varias-lineas`; `NuevoPedidoDialog.test.tsx` "\"Pedir\" (un componente): … \"+ Añadir línea\" añade una vacía (calco: añadirFila(null)) y la selecciona").
 - [x] Avisos inline: "Añade al menos una línea.", "Línea {i}: selecciona un componente.", "Línea {i}: selecciona un proveedor.", "Línea {i}: la cantidad debe ser mayor que 0.", "Línea {i}: el precio no puede ser negativo." (`form-nuevo-error-sin-lineas`, `form-nuevo-error-componente`, `form-nuevo-error-proveedor`; los de cantidad y precio solo en la web, C21; `lineas.test.ts` "validarLineasCompra").
 - [x] Guardar cierra y recarga pedidos, stock y campana; "Cancelar" cierra sin preguntar. (verificado por test: `api.test.tsx` "useRecargaPedidos", `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\" → un lote con clave… cierra", "\"Cancelar\" cierra sin preguntar aunque haya líneas…")
 - [x] 503 del tipo de cambio al guardar: el mensaje del servidor en la línea de error, formulario abierto y sin banner (diferencia D-503, ver arriba). (verificado por test: `NuevoPedidoDialog.test.tsx` "503 del tipo de cambio al guardar…")

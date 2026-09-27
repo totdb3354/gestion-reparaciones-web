@@ -8,7 +8,7 @@ import { useGuardarLoteCompras } from '../api'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  avisoOmitidas, cambiarLinea, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, preseleccionDe, quitarLinea, siguienteId,
+  avisoOmitidas, cambiarLinea, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
   validarLineasCompra, type LineaCompra,
 } from './lineas'
 
@@ -41,7 +41,6 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setLineas(inicial.lineas)
     setOmitidas(componentes.isError ? 0 : inicial.omitidas)
   }
-  const preseleccion = preseleccionDe(precarga, activos)
 
   function cambiar(id: number, cambio: Partial<LineaCompra>) {
     setLineas((ls) => cambiarLinea(ls ?? [], id, cambio))
@@ -53,7 +52,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   }
   function anadir(): number {
     const id = siguienteId(lineas ?? [])
-    setLineas((ls) => [...(ls ?? []), lineaCompraVacia(id, preseleccion)])
+    // Siempre vacía, también si se abrió con "Pedir": calco de anadirLinea() { añadirFila(null); } (FormularioCompraController :496).
+    setLineas((ls) => [...(ls ?? []), lineaCompraVacia(id)])
     setError(null)
     return id
   }

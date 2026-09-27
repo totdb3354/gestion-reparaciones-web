@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import {
   avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
-  precargarComponentes, precargarSolicitudes, preseleccionDe, quitarLinea, siguienteId, validarLineasCompra, validarLineasOtro,
+  precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
 
@@ -23,13 +23,6 @@ describe('precargas', () => {
   })
   it('precargarComponentes: inactivo o desconocido → línea vacía (calco)', () => {
     expect(precargarComponentes([4, 99], COMPONENTES)).toEqual([lineaCompraVacia(1), lineaCompraVacia(2)])
-  })
-  it('preseleccionDe: solo con un único componente activo ("Pedir" de Stock o de una alerta)', () => {
-    expect(preseleccionDe({ modo: 'componentes', idsCom: [2] }, COMPONENTES)).toBe(2)
-    expect(preseleccionDe({ modo: 'componentes', idsCom: [4] }, COMPONENTES)).toBeNull()
-    expect(preseleccionDe({ modo: 'componentes', idsCom: [1, 2] }, COMPONENTES)).toBeNull()
-    expect(preseleccionDe({ modo: 'vacio' }, COMPONENTES)).toBeNull()
-    expect(preseleccionDe({ modo: 'solicitudes', urgentes: [urgente(10, 2)], preventivas: [] }, COMPONENTES)).toBeNull()
   })
   it('precargarSolicitudes: agrupa por componente, urgentes primero y en su orden, cantidad = nº de solicitudes; cuenta las omitidas', () => {
     const r = precargarSolicitudes(
