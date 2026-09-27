@@ -22,11 +22,11 @@ export function enlacesReparaciones(sesion: Sesion | null): EnlaceTaller[] {
 }
 
 /** Entrada por rol (spec web-taller §4.1): TECNICO en Pendientes; ADMIN y SUPERTECNICO en Historial.
- *  Con la vista de Asignaciones ya migrada (sub-proyecto 3a) se revisó si el supertécnico debía entrar por ella, y el
- *  JavaFX de referencia no lo respalda: ReparacionViewSuperTecnico.fxml arranca con `pnlHistorial visible="true"` y el
- *  panel de Asignaciones oculto, igual que el del ADMIN (el del TECNICO arranca en `pnlMisPendientes`). Solo el clic en
- *  el logo (irAInicio) lleva al supertécnico a Asignaciones, y eso es otro gesto que la web no tiene. Se deja Historial;
- *  cambiarlo es una decisión del usuario, no del calco. */
+ *  Diferencia con el JavaFX, pendiente de decidir por el usuario: allí el supertécnico entra en Asignaciones. Su FXML
+ *  arranca con `pnlHistorial visible="true"`, pero `ReparacionControllerSuperTecnico.initialize()` termina con
+ *  `mostrarPanel(pnlPendientes, btnTabPendientes)` (hotfix/0.16.3, ReparacionControllerSuperTecnico.java:229; el
+ *  comentario de :239-241 llama a Asignaciones "la pestaña inicial"). El ADMIN sí arranca en Historial
+ *  (ReparacionControllerAdmin, `irAInicio` :209) y el TECNICO en sus pendientes. */
 export function InicioReparaciones() {
   const { sesion } = useSession()
   const aPendientes = !esAdminOSuperTecnico(sesion) && sesion?.idTec != null

@@ -4,6 +4,17 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.8.5] - 2026-09-27 — Arreglos de la verificación
+
+- Un doble clic en "Aceptar", "Guardar", "Registrar técnico" o "Añadir incidencia y asignar" de los diálogos de alta ya no crea el registro dos veces: el segundo clic se ignora mientras el primero se envía. Si el envío falla, o si falta un dato, se puede volver a pulsar.
+- Las altas de solicitud de pieza (Stock), proveedor, cliente, técnico e incidencia llevan una clave de reintento: si se repite el mismo envío tras un fallo o un corte, el servidor lo registra una sola vez. Con el servidor anterior todo funciona igual que antes.
+- El formulario de reparación cabe en pantallas bajas: la cabecera con el IMEI y la ✕ y la zona de "Terminar asignación" / "Guardar cambios" quedan siempre a la vista, y lo que se desplaza son las filas. En pantallas estrechas el formulario se desplaza en horizontal en vez de cortarse.
+- Antes de recargar, cerrar la pestaña o salir de la web con trabajo sin guardar (editando una reparación, en un formulario nuevo aún sin autoguardar, en "Asignar trabajos" con IMEIs en las colas o en "Nuevo pedido" / "Nuevo otro pedido" con líneas), el navegador pregunta. En un formulario de reparación nuevo, el botón Atrás del navegador guarda el borrador igual que la ✕.
+- "Añadir incidencia", "Observación del teléfono" y "Editar modelo" ya no se cierran hasta que el guardado sale bien: si falla, el diálogo sigue abierto con lo escrito.
+- En Asignaciones, un cliente que aparece en una recarga entra marcado en el filtro Cliente aunque el filtro esté aplicado a medias, como en el programa de escritorio: sus trabajos ya no quedan ocultos sin avisar.
+- Si se supera el límite de intentos de inicio de sesión, la pantalla de entrada lo dice ("Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.") y no reintenta sola, en vez de mostrar "Sin conexión con el servidor.".
+- Documentación: fichas de paridad corregidas donde afirmaban un calco que no lo es ("+ Añadir línea" tras "Pedir", CSV del administrador en Asignaciones, vista de entrada del supertécnico, orden de botones de Clientes), nueva regla para marcar las casillas de comportamiento, y el smoke del formulario crea y borra su propia asignación de prueba.
+
 ## [0.8.4] - 2026-09-27 — Respuestas comprimidas
 
 - El servidor web envía comprimidos los datos de la API y los ficheros de la propia web. Los historiales, que eran las descargas más pesadas, ocupan entre 27 y 39 veces menos, así que las vistas cargan antes y deja de aparecer el aviso de "sin conexión" cuando una descarga grande tardaba demasiado. No cambia nada de lo que se ve ni de cómo se refresca.

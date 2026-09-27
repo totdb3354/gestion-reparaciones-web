@@ -63,8 +63,9 @@ export function precargaInicial(precarga: PrecargaPedido, activos: Componente[])
   }
 }
 
-/** Componente con el que "+ Añadir línea" rellena la línea nueva (añadirFila :496-513, `preselect`): solo cuando se abrió
- *  con un único componente ("Pedir") y ese componente está activo. */
+/** Componente con el que "+ Añadir línea" rellena la línea nueva: solo cuando se abrió con un único componente ("Pedir") y
+ *  ese componente está activo. No es un calco: el JavaFX añade siempre una línea vacía (`anadirLinea() { añadirFila(null); }`,
+ *  FormularioCompraController :496); diferencia pendiente de decidir por el usuario (docs/paridad/pedidos.md). */
 export function preseleccionDe(precarga: PrecargaPedido, activos: Componente[]): number | null {
   if (precarga.modo !== 'componentes' || precarga.idsCom.length !== 1) return null
   const id = precarga.idsCom[0]

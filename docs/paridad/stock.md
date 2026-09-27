@@ -19,6 +19,7 @@ Las de la spec §10:
 - **Borrar un proveedor que tiene pedidos responde 409** "El proveedor tiene pedidos y no se puede borrar." y la web lo enseña como error de negocio (S6); el JavaFX recibía un 500 disfrazado de "servidor no disponible".
 - **`tiene-pedidos` se consulta al abrir el menú** del proveedor, no en cada clic de fila (S6).
 - **Gráficos con Recharts** (S7): colores, tamaños y textos calcados, implementación distinta.
+- **"Solicitar pieza" y "Nuevo proveedor" no se envían dos veces y llevan clave de reintento** (web 0.8.5): un doble clic confirma una sola vez, y repetir el envío con el mismo contenido tras un fallo reutiliza la clave, así que el servidor no duplica la solicitud ni el proveedor; con otro contenido o tras un envío correcto, clave nueva. En el JavaFX la llamada bloqueaba la ventana (verificado por test: `DialogoAlmacen.test.tsx` "dos clics en el mismo instante confirman una sola vez", `StockPage.test.tsx` "\"Solicitar pieza\" lleva Idempotency-Key: …", `ProveedoresPage.test.tsx` "\"Nuevo proveedor\" lleva Idempotency-Key: …").
 
 Decididas durante la ejecución:
 

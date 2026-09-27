@@ -1,8 +1,59 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
 // El test del supertécnico rechaza y recupera la solicitud que deja el del técnico: van en orden y en el mismo worker.
 test.describe.configure({ mode: 'serial' })
+
+/** Forma de la respuesta de POST /api/asignaciones/lote (schema.d.ts: LoteAsignacionesRespuesta). Se repite a mano porque
+ *  el e2e no importa código de la app. */
+type RespuestaLote = { creadas: { idRep: string; imei: string; idTec: number; categoria: string }[]; conflictos: unknown[] }
+
+/** Contexto de API con la sesión del supertécnico (E2E_USER): crea la asignación de prueba y la borra en afterAll con el
+ *  mismo token, sin gastar otro inicio de sesión (el entorno limita los inicios por minuto). */
+let api: { ctx: APIRequestContext; headers: Record<string, string> } | null = null
+/** Asignación de prueba creada por este fichero; afterAll la borra si sigue abierta. */
+let creada: { idRep: string } | null = null
+
+/** IMEI sintético de 15 dígitos, distinto en cada ejecución: "000000" + los 9 últimos dígitos de la marca de tiempo. */
+const imeiSintetico = () => `000000${String(Date.now()).slice(-9)}`
+
+test.beforeAll(async ({ playwright }, testInfo) => {
+  const usuario = process.env.E2E_USER
+  const clave = process.env.E2E_PASS
+  if (!usuario || !clave || !process.env.TEC_USER || !process.env.TEC_PASS) return // los tests se saltan con credenciales()
+  const ctx = await playwright.request.newContext({ baseURL: testInfo.project.use.baseURL })
+  const login = await ctx.post('/api/auth/login', { data: { usuario, password: clave } })
+  expect(login.status(), 'POST /api/auth/login (supertécnico, por API)').toBe(200)
+  const { token } = (await login.json()) as { token: string }
+  api = { ctx, headers: { Authorization: `Bearer ${token}` } }
+})
+
+/**
+ * Crea por la API, con la sesión del supertécnico, UNA asignación de Reparación de un IMEI sintético para el técnico con la
+ * sesión abierta en `page`. El modelo del teléfono es `E2E_MODELO_PRUEBA` si está definido (un modelo con un tipo con
+ * stock y otro con el SKU a 0); si no, el teléfono va sin modelo y el test elige el primero del combo.
+ */
+async function crearAsignacionDePrueba(page: Page): Promise<{ idRep: string; imei: string }> {
+  expect(api, 'sesión de API del supertécnico (beforeAll)').not.toBeNull()
+  const idTec = await page.evaluate(() => (JSON.parse(sessionStorage.getItem('fsgr.sesion') ?? '{}') as { idTec?: number }).idTec)
+  expect(typeof idTec, 'idTec del técnico en la sesión').toBe('number')
+  const imei = imeiSintetico()
+  const respuesta = await api!.ctx.post('/api/asignaciones/lote', {
+    headers: { ...api!.headers, 'Idempotency-Key': `e2e-formulario-${imei}` },
+    data: {
+      telefonos: [{ imei, modelo: process.env.E2E_MODELO_PRUEBA || null, idCli: null, clienteExplicito: false }],
+      asignaciones: [{ imei, categoria: 'R', idTec, comentario: null, esChasis: false }],
+    },
+  })
+  expect(respuesta.status(), 'POST /api/asignaciones/lote').toBe(200)
+  const lote = (await respuesta.json()) as RespuestaLote
+  if (lote.creadas.length !== 1 || lote.creadas[0].imei !== imei || lote.creadas[0].categoria !== 'R') {
+    throw new Error(`El lote no creó exactamente una Reparación para el IMEI de prueba: ${JSON.stringify(lote)}`)
+  }
+  creada = { idRep: lote.creadas[0].idRep }
+  test.info().annotations.push({ type: 'e2e-creado', description: `asignación ${creada.idRep} / IMEI ${imei}` })
+  return { idRep: creada.idRep, imei }
+}
 
 async function entrar(page: Page, usuario: string, clave: string) {
   await page.goto('/login')
@@ -16,18 +67,21 @@ const esBorrador = (metodo: string) => (r: { url(): string; request(): { method(
   r.request().method() === metodo && new URL(r.url()).pathname.endsWith('/borrador') && r.ok()
 
 /**
- * Guion del técnico (spec §11). ESCRIBE: guarda una fila (consume una unidad de stock de prueba), registra una solicitud
- * de pieza y termina. Datos necesarios, creados antes con el cliente de escritorio: una asignación de reparación pendiente
- * del técnico de TEC_USER sobre un IMEI de prueba, de un modelo con al menos un tipo con stock y otro tipo con el SKU a 0.
+ * Guion del técnico (spec §11). ESCRIBE: crea por la API su propia asignación de Reparación (IMEI sintético, técnico de
+ * TEC_USER), guarda una fila (consume una unidad de stock de prueba), registra una solicitud de pieza y termina. Si el test
+ * cae antes de terminar, afterAll borra la asignación.
  */
 test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', async ({ page }) => {
+  credenciales('E2E_USER', 'E2E_PASS')
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   await entrar(page, usuario, clave)
   await expect(page).toHaveURL(/\/reparaciones\/pendientes$/)
+  const { idRep, imei } = await crearAsignacionDePrueba(page)
+  await page.reload()
 
-  // Abrir "Añadir reparación" de la primera asignación
-  await page.getByRole('button', { name: 'Añadir reparación' }).first().click()
-  await expect(page).toHaveURL(/\/reparaciones\/pendientes\/reparar\/[^/]+$/)
+  // Abrir "Añadir reparación" de la asignación de prueba (su fila, por el IMEI sintético)
+  await page.getByRole('row').filter({ hasText: imei }).getByRole('button', { name: 'Añadir reparación' }).click()
+  await expect(page).toHaveURL(new RegExp(`/reparaciones/pendientes/reparar/${idRep}$`))
   const urlFormulario = page.url()
   const formulario = page.getByRole('dialog', { name: /^Nueva reparación — IMEI / })
   await expect(formulario).toBeVisible()
@@ -147,4 +201,29 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   }
   await expect(page).toHaveURL(/\/reparaciones\/historial$/)
   await expect(edicion).toBeHidden()
+})
+
+/**
+ * Limpieza con la sesión de API del beforeAll: si la asignación de prueba sigue abierta (el test cayó antes de terminar),
+ * se borra por su id; si ya se terminó, GET /api/reparaciones/asignaciones/{id} deja de encontrarla y no se toca nada.
+ * Los fallos se señalan con expect.soft nombrando la ruta, sin tapar el fallo original.
+ */
+test.afterAll(async () => {
+  const sesion = api
+  const restante = creada
+  api = null
+  creada = null
+  if (!sesion) return
+  try {
+    if (!restante) return
+    const ruta = `/api/reparaciones/asignaciones/${restante.idRep}`
+    const abierta = await sesion.ctx.get(ruta, { headers: sesion.headers })
+    if (abierta.status() === 404) return
+    expect.soft(abierta.status(), `limpieza GET ${ruta}`).toBe(200)
+    if (!abierta.ok()) return
+    const r = await sesion.ctx.delete(ruta, { headers: sesion.headers, data: { motivo: 'Limpieza del smoke e2e' } })
+    expect.soft(r.status(), `limpieza DELETE ${ruta}`).toBe(204)
+  } finally {
+    await sesion.ctx.dispose()
+  }
 })

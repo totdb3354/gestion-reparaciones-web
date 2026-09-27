@@ -45,6 +45,11 @@ Decididas durante la ejecución, antes de la comparación de capturas (cada una 
 - **"Pedir" de Stock actual sobre un componente desactivado**: el formulario abre con la línea vacía (calco) y, si se guarda con ese componente, el servidor responde 422 "El componente no está activo." (spec §4.2). El JavaFX lo guardaba; desde 4b el JavaFX 0.16.x recibe ese 422 con el mensaje legible.
 - **Editar desde el JavaFX 0.16.x un `recibido` cerrado con "Cerrar sin resto"** (recibida < pedida): el JavaFX precarga la recibida y el servidor responde 422 "No se puede cambiar la cantidad de un pedido recibido." salvo que se teclee la cantidad pedida (P2). La web no lo sufre porque precarga la pedida. Decisión del usuario: se deja así, con nota en las NOVEDADES del JavaFX y al backlog del servidor tolerar `cantidad == cantidadRecibida` como "sin cambio".
 
+Decididas en la web 0.8.5 (decisión del usuario 2026-09-27):
+
+- **Aviso del navegador al salir de "Nuevo pedido" o "Nuevo otro pedido" con líneas**: recargar la página, cerrar la pestaña o salir de la web con alguna línea en el formulario hace que el navegador pregunte antes con su aviso propio; sin líneas no pregunta. El JavaFX no tiene ese caso (el formulario es una ventana del sistema) (verificado por test: `NuevoPedidoDialog.test.tsx` y `NuevoOtroPedidoDialog.test.tsx` "aviso al salir (F5, cerrar la pestaña): sin líneas no pregunta; con una línea, sí; al quitarla, ya no").
+- **Las altas no se envían dos veces y llevan clave de reintento**: los diálogos del almacén (`DialogoAlmacen`) no confirman dos veces con un doble clic, y "Nuevo pedido" y "Nuevo otro pedido" mandan su lote con clave de reintento (P5): repetir el mismo envío no duplica el pedido (verificado por test: `DialogoAlmacen.test.tsx` "dos clics en el mismo instante confirman una sola vez"; `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\" → un lote con clave…").
+
 Internas, sin efecto visible: `crearClavesIdempotencia` vive en `shared/lib` (P9); el formulario de alta se abre con el store `shared/lib/formularioPedido.ts` y lo pinta un host en el shell; los helpers puros van en `.ts` propios por la regla de React Refresh.
 
 ## Calcos
@@ -87,7 +92,9 @@ Anotadas como diferencias aceptadas:
 
 ## Pendiente de decidir
 
-Sin puntos: las diferencias nuevas de la comparación se decidieron (ver la sección anterior).
+Las diferencias nuevas de la comparación se decidieron (ver la sección anterior). Queda una, encontrada después en la auditoría de sustitución:
+
+- **"+ Añadir línea" tras abrir con "Pedir" (un componente)**: la web rellena la línea nueva con ese mismo componente; el JavaFX añade siempre una línea vacía (`hotfix/0.16.3`, `FormularioCompraController.java:496`: `anadirLinea() { añadirFila(null); }`; el componente solo se preselecciona al abrir, :88). No se cambia hasta que el usuario decida.
 
 ## Pestaña, rutas y toggle
 
@@ -176,7 +183,7 @@ Sin puntos: las diferencias nuevas de la comparación se decidieron (ver la secc
 - [x] Autocompletar "contiene", hasta 6 filas visibles; Enter elige la primera (`form-nuevo-popup-componente`; `NuevoPedidoDialog.test.tsx` "autocompletar: … Enter elige el primero", `CampoAutocompletar.test.tsx` "muestra como mucho 6 filas a la vez…").
 - [x] Cant. y P.Unit. editables (`form-nuevo-editando-cantidad`).
 - [x] Proveedor en USD: `$` en P.Unit. y Total EUR convertido con `precio / tasa` (`form-nuevo-usd`; `NuevoPedidoDialog.test.tsx` "proveedor en USD…").
-- [x] "+ Añadir línea" añade, selecciona y desplaza hasta la línea nueva (`form-nuevo-varias-lineas`; `NuevoPedidoDialog.test.tsx` "\"Pedir\" (un componente): … \"+ Añadir línea\" lo repite y selecciona la nueva").
+- [x] "+ Añadir línea" añade, selecciona y desplaza hasta la línea nueva (`FormularioCompraController.java:496-513`; `form-nuevo-varias-lineas`; `NuevoPedidoDialog.test.tsx` "\"Pedir\" (un componente): … \"+ Añadir línea\" lo repite y selecciona la nueva"). Abierto con "Pedir", la línea nueva repite el componente y la del JavaFX va vacía: diferencia pendiente de decidir, ver «Pendiente de decidir».
 - [x] Avisos inline: "Añade al menos una línea.", "Línea {i}: selecciona un componente.", "Línea {i}: selecciona un proveedor.", "Línea {i}: la cantidad debe ser mayor que 0.", "Línea {i}: el precio no puede ser negativo." (`form-nuevo-error-sin-lineas`, `form-nuevo-error-componente`, `form-nuevo-error-proveedor`; los de cantidad y precio solo en la web, C21; `lineas.test.ts` "validarLineasCompra").
 - [x] Guardar cierra y recarga pedidos, stock y campana; "Cancelar" cierra sin preguntar. (verificado por test: `api.test.tsx` "useRecargaPedidos", `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\" → un lote con clave… cierra", "\"Cancelar\" cierra sin preguntar aunque haya líneas…")
 - [x] 503 del tipo de cambio al guardar: el mensaje del servidor en la línea de error, formulario abierto y sin banner (diferencia D-503, ver arriba). (verificado por test: `NuevoPedidoDialog.test.tsx` "503 del tipo de cambio al guardar…")
