@@ -109,6 +109,34 @@ describe('ProveedoresPage', () => {
     expect(screen.getByRole('dialog', { name: 'Nuevo proveedor' })).toBeInTheDocument()
     expect(screen.getAllByText('El nombre no puede estar vacío.')).toHaveLength(1)
   })
+  it('"Nuevo proveedor" lleva Idempotency-Key: el reintento repite la clave, otro nombre la cambia y tras un alta correcta es nueva', async () => {
+    const envios: { nombre: string; clave: string | null }[] = []
+    server.use(http.post('*/api/proveedores', async ({ request }) => {
+      const { nombre } = (await request.json()) as { nombre: string }
+      envios.push({ nombre, clave: request.headers.get('Idempotency-Key') })
+      return envios.length < 3 ? HttpResponse.json({ message: 'El nombre no puede estar vacío.' }, { status: 422 }) : new HttpResponse(null, { status: 201 })
+    }))
+    montar()
+    await screen.findByText('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo proveedor' }))
+    const campo = () => within(screen.getByRole('dialog', { name: 'Nuevo proveedor' })).getByLabelText('Nombre del proveedor:')
+    await userEvent.type(campo(), 'Nuevo{Enter}')
+    await waitFor(() => expect(envios).toHaveLength(1))
+    await screen.findByRole('alert')
+    await userEvent.type(campo(), '{Enter}')
+    await waitFor(() => expect(envios).toHaveLength(2))
+    await userEvent.type(campo(), 'X{Enter}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nuevo proveedor' })).not.toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo proveedor' }))
+    await userEvent.type(campo(), 'NuevoX{Enter}')
+    await waitFor(() => expect(envios).toHaveLength(4))
+    expect(envios.map((e) => e.nombre)).toEqual(['Nuevo', 'Nuevo', 'NuevoX', 'NuevoX'])
+    const [a, b, c, d] = envios.map((e) => e.clave)
+    expect(a).toMatch(/^[0-9a-f-]{36}$/)
+    expect(b).toBe(a)
+    expect(c).not.toBe(a)
+    expect(d).not.toBe(c)
+  })
   it('"Editar": precarga nombre, divisa y comentario; manda el PUT; nombre vacío avisa', async () => {
     let cuerpo: unknown = null
     server.use(http.put('*/api/proveedores/1', async ({ request }) => { cuerpo = await request.json(); return new HttpResponse(null, { status: 200 }) }))

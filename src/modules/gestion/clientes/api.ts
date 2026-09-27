@@ -12,10 +12,12 @@ function useRecarga() {
   return () => qc.invalidateQueries({ queryKey: CLAVE_CLIENTES })
 }
 
+/** `clave` va en la cabecera Idempotency-Key (la da la página con crearClavesIdempotencia). */
 export function useCrearCliente() {
   const recargar = useRecarga()
   return useMutation({
-    mutationFn: (nombre: string) => api.POST('/api/clientes', { body: { nombre } }),
+    mutationFn: ({ nombre, clave }: { nombre: string; clave: string }) =>
+      api.POST('/api/clientes', { params: { header: { 'Idempotency-Key': clave } }, body: { nombre } }),
     onSettled: recargar,
   })
 }

@@ -1,6 +1,7 @@
 import { useCallback, useId, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import type { Usuario } from '@/shared/api/client'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
@@ -22,6 +23,8 @@ import { cuerpoAlta, duplicadosEnVivo, rolDe, ROLES, validarAlta, type DatosAlta
 const FORMULARIO_VACIO: DatosAlta = { nombreTecnico: '', nombreUsuario: '', password: '', confirmar: '', rol: 'TECNICO' }
 const OPCIONES_ROL: OpcionCombo[] = ROLES.map((r) => ({ valor: r, etiqueta: r }))
 const SIN_USUARIOS: Usuario[] = []
+
+const OPERACION_ALTA = 'usuarios/tecnicos'
 
 type CampoTexto = 'nombreTecnico' | 'nombreUsuario' | 'password' | 'confirmar'
 /** Fila de campos de RegisterView.fxml :32-77 (etiqueta, prompt y tipo). Las contraseñas no llevan ojo (PasswordField). */
@@ -45,6 +48,8 @@ export function TecnicosPage() {
   const idBase = useId()
   const { data: usuarios = SIN_USUARIOS, isError, errorUpdatedAt } = useUsuariosTecnicos()
   const registrar = useRegistrar()
+  // Clave de reintento del alta: la misma mientras el formulario no cambie; nueva tras un alta correcta.
+  const [claves] = useState(() => crearClavesIdempotencia())
   const { mutate: mutarActivo } = useCambiarActivo()
   const { mutate: mutarEliminar } = useEliminar()
   const [form, setForm] = useState<DatosAlta>(FORMULARIO_VACIO)
@@ -107,8 +112,9 @@ export function TecnicosPage() {
       setError(fallo)
       return
     }
-    registrar.mutate(cuerpoAlta(form), {
-      onSuccess: () => setForm(FORMULARIO_VACIO),
+    const cuerpo = cuerpoAlta(form)
+    registrar.mutate({ cuerpo, clave: claves.para(OPERACION_ALTA, cuerpo) }, {
+      onSuccess: () => { claves.hecha(OPERACION_ALTA); setForm(FORMULARIO_VACIO) },
       onError: (e) => setError(mensajeInline(e, MSG_ERROR_REGISTRO, [409, 422])),
     })
   }

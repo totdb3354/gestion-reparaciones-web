@@ -382,6 +382,35 @@ describe('StockPage', () => {
     const titulo = screen.getByText('Solicitar pieza', { selector: 'h2' })
     expect(within(titulo.closest('[role="dialog"]')!).getByRole('button', { name: 'Solicitar', hidden: true })).toBeInTheDocument()
   })
+  it('"Solicitar pieza" lleva Idempotency-Key: reintentar el mismo cuerpo repite la clave; cambiar la descripción la cambia', async () => {
+    const claves: (string | null)[] = []
+    server.use(http.post('*/api/solicitudes-stock', ({ request }) => {
+      claves.push(request.headers.get('Idempotency-Key'))
+      return claves.length < 3 ? HttpResponse.json({ message: 'Prohibido' }, { status: 403 }) : new HttpResponse(null, { status: 201 })
+    }))
+    montar()
+    await screen.findByText('lcd-x')
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    const solicitar = async () => {
+      const titulo = screen.getByText('Solicitar pieza', { selector: 'h2' })
+      await userEvent.click(within(titulo.closest('[role="dialog"]')!).getByRole('button', { name: 'Solicitar', hidden: true }))
+    }
+    const cerrarAviso = async () => {
+      await screen.findByText('No tienes permisos para realizar esta acción.')
+      await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    }
+    await solicitar()
+    await cerrarAviso()
+    await solicitar()
+    await cerrarAviso()
+    await userEvent.type(screen.getByLabelText('Descripción (opcional)'), 'urgente')
+    await solicitar()
+    await waitFor(() => expect(claves).toHaveLength(3))
+    expect(claves[0]).toMatch(/^[0-9a-f-]{36}$/)
+    expect(claves[1]).toBe(claves[0])
+    expect(claves[2]).not.toBe(claves[0])
+  })
   it('?componente=<id> al llegar desde Pedidos: desmarca OK, Bajo y Sin stock, vacía el buscador, selecciona y desplaza hasta la fila y limpia la URL', async () => {
     filtrosStock.set({ estados: new Set<EstadoStock>(['OK', 'Bajo']), buscador: 'lcd' })
     const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=2' })

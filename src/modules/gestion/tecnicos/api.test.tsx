@@ -30,14 +30,17 @@ function caducadas(qc: ReturnType<typeof crearQueryClient>) {
 const RECARGADAS = { usuarios: true, tecnicos: true, activos: true, clientes: false }
 const INTACTAS = { usuarios: false, tecnicos: false, activos: false, clientes: false }
 
-type Peticion = { metodo: string; ruta: string; query: string; cuerpo: unknown }
+type Peticion = { metodo: string; ruta: string; query: string; cuerpo: unknown; clave?: string }
 function registrar(patron: string, respuesta: () => Response = () => new HttpResponse(null, { status: 204 })) {
   const peticiones: Peticion[] = []
   server.use(
     http.all(patron, async ({ request }) => {
       const texto = await request.text()
       const url = new URL(request.url)
-      peticiones.push({ metodo: request.method, ruta: url.pathname, query: url.search, cuerpo: texto ? JSON.parse(texto) : null })
+      peticiones.push({
+        metodo: request.method, ruta: url.pathname, query: url.search, cuerpo: texto ? JSON.parse(texto) : null,
+        clave: request.headers.get('Idempotency-Key') ?? undefined,
+      })
       return respuesta()
     }),
   )
@@ -45,13 +48,16 @@ function registrar(patron: string, respuesta: () => Response = () => new HttpRes
 }
 
 describe('api de técnicos', () => {
-  it('useRegistrar: POST /api/usuarios/tecnicos con el cuerpo tal cual y, si sale bien, recarga usuarios y técnicos', async () => {
+  it('useRegistrar: POST /api/usuarios/tecnicos con el cuerpo tal cual y la Idempotency-Key recibida; si sale bien, recarga usuarios y técnicos', async () => {
     const peticiones = registrar('*/api/usuarios/tecnicos', () => new HttpResponse(null, { status: 201 }))
     const { qc, wrapper } = envoltorio()
     const { result } = renderHook(() => useRegistrar(), { wrapper })
-    await result.current.mutateAsync({ nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' })
+    await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' }, clave: 'clave-alta' })
     expect(peticiones).toEqual([
-      { metodo: 'POST', ruta: '/api/usuarios/tecnicos', query: '', cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' } },
+      {
+        metodo: 'POST', ruta: '/api/usuarios/tecnicos', query: '', clave: 'clave-alta',
+        cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' },
+      },
     ])
     expect(caducadas(qc)).toEqual(RECARGADAS)
   })
@@ -61,7 +67,7 @@ describe('api de técnicos', () => {
     registrar('*/api/usuarios/tecnicos', () => HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }))
     const { qc, wrapper } = envoltorio()
     const { result } = renderHook(() => useRegistrar(), { wrapper })
-    const error = await result.current.mutateAsync({ nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-a', password: 'secreta1', rol: 'TECNICO' }).catch((e: unknown) => e)
+    const error = await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-a', password: 'secreta1', rol: 'TECNICO' }, clave: 'clave-alta' }).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(StaleDataError)
     expect((error as StaleDataError).message).toBe('Ese nombre de usuario ya existe.')
     expect(avisos).not.toHaveBeenCalled()

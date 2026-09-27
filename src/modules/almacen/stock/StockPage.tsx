@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { Componente } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError, ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { descargarCsv } from '@/shared/lib/csv'
 import { abrirNuevoPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import { ESTADOS_STOCK, type EstadoStock } from '@/shared/lib/semaforoStock'
@@ -31,6 +32,8 @@ import { SolicitarPiezaDialog } from './SolicitarPiezaDialog'
 
 const MSG_MODIFICADO = 'El componente fue modificado mientras editabas. Recarga los datos.'
 
+const OPERACION_SOLICITAR = 'solicitudes-stock'
+
 type Dialogo = { tipo: 'stock' | 'minimo' | 'solicitar'; c: Componente } | null
 type Grafico = { componente: Componente; enCamino: number }
 
@@ -57,6 +60,8 @@ export function StockPage() {
   const ajustarMinimo = useAjustarMinimo()
   const setActivo = useSetActivoComponente()
   const solicitar = useSolicitarPieza()
+  // Clave de reintento de "Solicitar pieza": la misma mientras el cuerpo no cambie; nueva tras un envío correcto.
+  const [claves] = useState(() => crearClavesIdempotencia())
 
   // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
   useEffect(() => { ultimaRutaStock.set('/stock') }, [])
@@ -245,7 +250,10 @@ export function StockPage() {
         onCancelar={cerrarDialogo}
         onConfirmar={(descripcion) => {
           if (dialogo?.tipo !== 'solicitar') return
-          solicitar.mutate({ idCom: dialogo.c.idCom, descripcion }, { onSuccess: cerrarDialogo })
+          const cuerpo = { idCom: dialogo.c.idCom, descripcion }
+          solicitar.mutate({ ...cuerpo, clave: claves.para(OPERACION_SOLICITAR, cuerpo) }, {
+            onSuccess: () => { claves.hecha(OPERACION_SOLICITAR); cerrarDialogo() },
+          })
         }}
       />
     </div>

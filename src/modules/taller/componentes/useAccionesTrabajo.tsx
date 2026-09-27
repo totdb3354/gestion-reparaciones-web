@@ -1,11 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { referenciadora, useAnadirIncidencia, useBorrarReparacion, useCancelarIncidencia } from '../api'
 import { DialogoIncidencia } from './DialogoIncidencia'
 import type { AccionesHistorial } from './MenuHistorial'
+
+const OPERACION_INCIDENCIA = 'incidencia'
 
 export const TITULOS_BORRAR = { historial: 'Borrar reparación', trabajo: 'Borrar trabajo' } as const
 
@@ -30,6 +33,8 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
   const [conIncidencia, setConIncidencia] = useState<ReparacionResumen | null>(null)
   const borrar = useBorrarReparacion()
   const anadir = useAnadirIncidencia()
+  // Clave de reintento de "Añadir incidencia": la misma mientras el cuerpo (con el idRep) no cambie; nueva tras guardar bien.
+  const [claves] = useState(() => crearClavesIdempotencia())
   const cancelar = useCancelarIncidencia()
 
   async function pedirBorrado(rep: ReparacionResumen) {
@@ -57,8 +62,9 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
         onGuardar={(comentario, idTec) => {
           if (!conIncidencia) return
           const rep = conIncidencia
-          anadir.mutate({ idRep: rep.idRep, comentario, imei: rep.imei, idTec }, {
-            onSuccess: () => setConIncidencia(null),
+          const cuerpo = { idRep: rep.idRep, comentario, imei: rep.imei, idTec }
+          anadir.mutate({ ...cuerpo, clave: claves.para(OPERACION_INCIDENCIA, cuerpo) }, {
+            onSuccess: () => { claves.hecha(OPERACION_INCIDENCIA); setConIncidencia(null) },
             onError: (e) => { if (!esErrorGestionadoGlobalmente(e)) mostrarError(`No se pudo guardar: ${mensajeDeError(e)}`) },
           })
         }} />
