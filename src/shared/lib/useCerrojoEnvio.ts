@@ -57,8 +57,20 @@ export function useCerrojoEnvio({ abierto, enviando, error = null }: Args): (acc
     if (cerrado.current || !estado.current.abierto || estado.current.enviando) return
     cerrado.current = true
     visto.current = false
-    accion()
+    try {
+      accion()
+    } catch (e) {
+      // La acción falló antes de lanzar nada (no llegó a haber envío): el cerrojo no puede quedarse cerrado.
+      cerrado.current = false
+      throw e
+    }
     if (temporizador.current !== null) clearTimeout(temporizador.current)
+    // SUPUESTO DE ORDEN: `mutate` pone la mutación en `pending` de forma síncrona y TanStack Query avisa a React con su
+    // propio setTimeout 0 (notifyManager, scheduleFn por defecto), programado DENTRO de `accion()`, antes que este. Los
+    // temporizadores de igual retardo salen en orden y React pinta esa actualización (carril síncrono) antes del siguiente
+    // temporizador, así que cuando esto corre el layout effect ya ha anotado `visto` si hubo envío. Si TanStack cambiara su
+    // planificador, este temporizador soltaría el cerrojo con el envío en vuelo; lo vigila el test "supuesto de orden" de
+    // useCerrojoEnvio.test.tsx.
     temporizador.current = setTimeout(() => {
       temporizador.current = null
       if (!visto.current) cerrado.current = false

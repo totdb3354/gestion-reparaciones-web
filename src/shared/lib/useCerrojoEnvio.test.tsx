@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { useLayoutEffect, useRef } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { useCerrojoEnvio } from './useCerrojoEnvio'
 
@@ -64,5 +65,35 @@ describe('useCerrojoEnvio', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
     await esperarTurno()
     expect(mutationFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la acción lanza al empezar, el error sale y el cerrojo se suelta', () => {
+    const { result } = renderHook(() => useCerrojoEnvio({ abierto: true, enviando: false }))
+    expect(() => result.current(() => { throw new Error('fallo') })).toThrow('fallo')
+    const accion = vi.fn()
+    result.current(accion)
+    expect(accion).toHaveBeenCalledTimes(1)
+  })
+
+  it('supuesto de orden: un setTimeout 0 programado justo después de mutate ya ve isPending pintado', async () => {
+    // El cerrojo se suelta en un setTimeout 0 si no ha visto `enviando`; esto solo es correcto si la notificación de
+    // TanStack Query llega a React antes. Si una versión nueva cambiara ese orden, este test falla.
+    let visto: boolean | null = null
+    function Sonda() {
+      const mut = useMutation({ mutationFn: () => new Promise(() => {}) })
+      const pendiente = useRef(false)
+      useLayoutEffect(() => {
+        pendiente.current = mut.isPending
+      })
+      return <button type="button" onClick={() => { mut.mutate(); setTimeout(() => { visto = pendiente.current }, 0) }}>Sondear</button>
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <Sonda />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Sondear' }))
+    await esperarTurno()
+    expect(visto).toBe(true)
   })
 })
