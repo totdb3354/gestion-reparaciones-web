@@ -10,6 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Mientras una vista hace su primera carga o se guarda un cambio, un círculo girando sobre la pantalla atenuada indica que el programa está trabajando y evita clics dobles; solo aparece si la espera pasa de 200 ms. Los refrescos automáticos no lo muestran.
 - "Asignar trabajos" abre a 720 px de ancho, como la ventana del programa de escritorio (antes, más ancho); en Pulido la lista mide 280 px para que el detalle quepa al lado.
 - La lista de sugerencias de los campos de autocompletar que se ensanchan con su contenido tiene un ancho máximo; las opciones largas se recortan con puntos suspensivos y se leen enteras al pasar el ratón.
+- Con una conexión lenta, si una lista tarda más de 15 segundos en descargarse, el programa muestra el aviso de "sin conexión" en lugar de una ventana de error en inglés.
 - Interno: pruebas de la tabla fluida al pasar de vacía a llena, restauración de los simulacros aunque falle una prueba y un comentario de Técnicos al día.
 - Diferencias decididas respecto al programa de escritorio (fechas e indicador de carga): anotadas en las fichas de `docs/paridad/`.
 

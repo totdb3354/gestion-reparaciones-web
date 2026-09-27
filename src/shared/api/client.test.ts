@@ -4,14 +4,14 @@ import { server } from '@/test/server'
 import { guardarSesion } from '@/shared/session/storage'
 import { onSesionExpirada, rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { estaConectado, reportarExito, reportarFallo } from './conexion'
-import { api } from './client'
+import { TIMEOUT_MS, api } from './client'
 import type {
   AgotarRequest, AsignacionActiva, Cliente, Componente, ComponentesAgrupados, ContadoresPendientes, DetalleEdicion,
   EditarReparacionRequest, FilaReparacion, GuardarFilaRequest, InsertarCompletaRequest, LoginResponse, Reparacion,
   ReparacionResumen, SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico,
 } from './client'
 import type { paths } from './schema'
-import { ConexionError, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
+import { ConexionError, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
 
 /** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
  *  no hereda (y no es el mismo objeto), así que estos dobles imitan al real: un Error con el `name` del corte. */
@@ -112,6 +112,86 @@ describe('cliente API', () => {
     expect(err).not.toBeInstanceOf(ConexionError)
     expect((err as Error).name).toBe('AbortError')
     expect(estaConectado()).toBe(true)
+  })
+})
+
+describe('cliente API: descarga del cuerpo tras las cabeceras', () => {
+  /** Respuesta cuyas cabeceras llegan ya y cuyo cuerpo no termina nunca: la lectura falla con `alCortar()` cuando
+   *  se aborta la señal que recibió el fetch (como el navegador con la descarga lenta), o antes si se llama a `cortar`. */
+  const cuerpoColgado = (alCortar: () => unknown) => {
+    let cortar: ((e: unknown) => void) | null = null
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce((_req, init) => {
+      const cuerpo = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('[{"idCli":1'))
+          cortar = (e) => controller.error(e)
+          init?.signal?.addEventListener('abort', () => controller.error(alCortar()))
+        },
+      })
+      return Promise.resolve(new Response(cuerpo, { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    })
+    return {
+      cortar: (e: unknown) => {
+        if (!cortar) throw new Error('el fetch aún no ha empezado')
+        cortar(e)
+      },
+    }
+  }
+
+  beforeEach(() => {
+    reportarExito()
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+  it('un timeout que vence durante la descarga del cuerpo es sin conexión con el sufijo, no un AbortError', async () => {
+    // AbortSignal.timeout usa los temporizadores internos de Node, que vi.useFakeTimers no controla: la señal del
+    // timeout se sustituye por una que el test vence a mano, como haría el reloj a los TIMEOUT_MS.
+    const reloj = new AbortController()
+    const espia = vi.spyOn(AbortSignal, 'timeout').mockReturnValueOnce(reloj.signal)
+    cuerpoColgado(() => errorDeCorte('AbortError'))
+    const promesa = api.GET('/api/clientes').catch((e: unknown) => e)
+    await vi.waitFor(() => { expect(globalThis.fetch).toHaveBeenCalled() })
+    reloj.abort(errorDeCorte('TimeoutError'))
+    const err: unknown = await promesa
+    expect(espia).toHaveBeenCalledWith(TIMEOUT_MS)
+    expect(err).toBeInstanceOf(ConexionError)
+    expect((err as Error).message).toContain(MSG_TIMEOUT)
+    expect((err as ConexionError).detalle).toBe(MSG_TIMEOUT)
+    expect(estaConectado()).toBe(false)
+  })
+  it('una cancelación del llamador durante la descarga sigue siendo un AbortError y no toca la conexión', async () => {
+    cuerpoColgado(() => errorDeCorte('AbortError'))
+    const ac = new AbortController()
+    const promesa = api.GET('/api/clientes', { signal: ac.signal }).catch((e: unknown) => e)
+    await Promise.resolve()
+    ac.abort()
+    const err: unknown = await promesa
+    expect(err).not.toBeInstanceOf(ConexionError)
+    expect((err as Error).name).toBe('AbortError')
+    expect(estaConectado()).toBe(true)
+  })
+  it('un corte de red durante la descarga es sin conexión con el mensaje de la red como detalle', async () => {
+    const { cortar } = cuerpoColgado(() => errorDeCorte('AbortError'))
+    const promesa = api.GET('/api/clientes').catch((e: unknown) => e)
+    await vi.waitFor(() => { cortar(new TypeError('network error')) })
+    const err: unknown = await promesa
+    expect(err).toBeInstanceOf(ConexionError)
+    expect((err as Error).message).not.toContain(MSG_TIMEOUT)
+    expect((err as ConexionError).detalle).toBe('network error')
+    expect(estaConectado()).toBe(false)
+  })
+  it('un 204 sin cuerpo sigue funcionando', async () => {
+    server.use(http.delete('*/api/clientes/5', () => new HttpResponse(null, { status: 204 })))
+    const { data, response } = await api.DELETE('/api/clientes/{idCli}', { params: { path: { idCli: 5 } } })
+    expect(response.status).toBe(204)
+    expect(data).toBeUndefined()
+  })
+  it('una respuesta JSON normal se sigue leyendo entera', async () => {
+    server.use(http.get('*/api/clientes', () => HttpResponse.json([{ idCli: 1, nombre: 'WEB', activo: true, updatedAt: '2026-09-01T10:00:00' }])))
+    const { data, response } = await api.GET('/api/clientes')
+    expect(response.headers.get('content-type')).toContain('application/json')
+    expect(data?.[0]?.nombre).toBe('WEB')
   })
 })
 

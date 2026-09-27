@@ -93,6 +93,9 @@ const auth: Middleware = {
   },
 }
 
+/** Estados HTTP sin cuerpo: el constructor de Response lanza si se le pasa uno. */
+const SIN_CUERPO = new Set([101, 204, 205, 304])
+
 /** openapi-fetch invoca este fetch en tiempo de ejecución como `fetch(request, requestInitExt)`, aunque
  *  su tipo solo declara un parámetro: con `init` opcional la firma sigue encajando y recibimos el segundo. */
 const fetchConTimeout = async (request: Request, init?: RequestInit): Promise<Response> => {
@@ -102,16 +105,23 @@ const fetchConTimeout = async (request: Request, init?: RequestInit): Promise<Re
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
   const signal = AbortSignal.any([timeout, request.signal, init?.signal].filter((s): s is AbortSignal => !!s))
   try {
-    return await fetch(request, { ...init, signal })
+    const response = await fetch(request, { ...init, signal })
+    // fetch() se resuelve con las cabeceras; el cuerpo se descarga después bajo la misma señal. Se lee entero aquí
+    // para que un timeout (o un corte de red) durante la descarga pase por este catch y no escape como un AbortError
+    // suelto desde response.json() o desde el middleware. La Response nueva conserva estado y cabeceras.
+    const cuerpo = SIN_CUERPO.has(response.status) || response.body === null ? null : await response.arrayBuffer()
+    return new Response(cuerpo, { status: response.status, statusText: response.statusText, headers: response.headers })
   } catch (e) {
     const nombre = e instanceof Error ? e.name : ''
+    // El navegador puede rechazar la lectura del cuerpo con un AbortError genérico aunque la causa sea el timeout:
+    // lo que decide es si la señal del timeout ha vencido.
+    const esTimeout = nombre === 'TimeoutError' || timeout.aborted
     // Cancelación del llamador (p. ej. TanStack Query al desmontar): no es una caída del servidor.
-    if (nombre === 'AbortError') throw e
+    if (!esTimeout && nombre === 'AbortError') throw e
     // Solo la red (TypeError de fetch) y el timeout se disfrazan de "sin conexión".
-    if (nombre !== 'TimeoutError' && !(e instanceof TypeError)) throw e
+    if (!esTimeout && !(e instanceof TypeError)) throw e
     reportarFallo()
     // El detalle (causa técnica) lo muestra el diálogo cuando el corte ocurre durante una acción del usuario.
-    const esTimeout = nombre === 'TimeoutError'
     const detalle = esTimeout ? MSG_TIMEOUT : e instanceof Error ? e.message : String(e)
     throw new ConexionError(0, MSG_SIN_CONEXION + (esTimeout ? ` (${MSG_TIMEOUT})` : ''), detalle)
   }
