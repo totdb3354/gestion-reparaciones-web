@@ -12,8 +12,10 @@ export const UMBRAL_MS = 150_000
 let detenerActual: (() => void) | null = null
 
 /**
- * Arranca la señal de actividad de esta pestaña: cada `LATIDO_MS`, al volver a ser visible, al recibir el foco y en
- * `pageshow` escribe la hora en `fsgr.latido`, solo si hay sesión guardada. No hace peticiones al servidor. Una sola vez
+ * Arranca la señal de actividad de esta pestaña: cada `LATIDO_MS`, al volver a ser visible, al recibir el foco, en
+ * `pageshow`, en `pagehide` y en `resume` (la pestaña vuelve de estar congelada) escribe la hora en `fsgr.latido`, solo si
+ * hay sesión guardada. `pagehide` y `resume` conservan la sesión en una recarga pulsada justo al despertar el PC o al
+ * volver de una pestaña congelada, antes del siguiente intervalo. No hace peticiones al servidor. Una sola vez
  * por pestaña: arrancarlo de nuevo sustituye al anterior. Devuelve cómo detenerlo.
  */
 export function arrancarLatido(): () => void {
@@ -28,11 +30,15 @@ export function arrancarLatido(): () => void {
   document.addEventListener('visibilitychange', alCambiarVisibilidad)
   window.addEventListener('focus', latir)
   window.addEventListener('pageshow', latir)
+  window.addEventListener('pagehide', latir)
+  document.addEventListener('resume', latir)
   const detener = () => {
     window.clearInterval(intervalo)
     document.removeEventListener('visibilitychange', alCambiarVisibilidad)
     window.removeEventListener('focus', latir)
     window.removeEventListener('pageshow', latir)
+    window.removeEventListener('pagehide', latir)
+    document.removeEventListener('resume', latir)
     if (detenerActual === detener) detenerActual = null
   }
   detenerActual = detener

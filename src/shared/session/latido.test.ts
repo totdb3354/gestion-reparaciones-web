@@ -61,11 +61,24 @@ describe('latido: señal de actividad de la pestaña', () => {
     expect(localStorage.getItem('fsgr.latido')).toBe(String(INICIO + 3000))
   })
 
+  it('con sesión escribe en pagehide y en resume (recarga justo al despertar el PC o al volver de una pestaña congelada)', () => {
+    guardarSesion(TECNICO)
+    detener = arrancarLatido()
+    vi.setSystemTime(INICIO + 4000)
+    window.dispatchEvent(new Event('pagehide'))
+    expect(localStorage.getItem('fsgr.latido')).toBe(String(INICIO + 4000))
+    vi.setSystemTime(INICIO + 5000)
+    document.dispatchEvent(new Event('resume'))
+    expect(localStorage.getItem('fsgr.latido')).toBe(String(INICIO + 5000))
+  })
+
   it('sin sesión no escribe', () => {
     detener = arrancarLatido()
     vi.advanceTimersByTime(3 * LATIDO_MS)
     window.dispatchEvent(new Event('focus'))
     window.dispatchEvent(new Event('pageshow'))
+    window.dispatchEvent(new Event('pagehide'))
+    document.dispatchEvent(new Event('resume'))
     fijarVisibilidad('visible')
     document.dispatchEvent(new Event('visibilitychange'))
     expect(localStorage.getItem('fsgr.latido')).toBeNull()
@@ -95,6 +108,8 @@ describe('latido: señal de actividad de la pestaña', () => {
     escribir.mockClear()
     vi.advanceTimersByTime(3 * LATIDO_MS)
     window.dispatchEvent(new Event('focus'))
+    window.dispatchEvent(new Event('pagehide'))
+    document.dispatchEvent(new Event('resume'))
     expect(escribir).not.toHaveBeenCalled()
   })
 })
