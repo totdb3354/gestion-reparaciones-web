@@ -164,7 +164,7 @@ describe('cliente API: descarga del cuerpo tras las cabeceras', () => {
     cuerpoColgado(() => errorDeCorte('AbortError'))
     const ac = new AbortController()
     const promesa = api.GET('/api/clientes', { signal: ac.signal }).catch((e: unknown) => e)
-    await Promise.resolve()
+    await vi.waitFor(() => { expect(globalThis.fetch).toHaveBeenCalled() })
     ac.abort()
     const err: unknown = await promesa
     expect(err).not.toBeInstanceOf(ConexionError)
