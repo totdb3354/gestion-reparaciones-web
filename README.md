@@ -36,9 +36,10 @@ npm run e2e
 `clientes.spec.ts` crea y borra un cliente de prueba llamado `E2E <timestamp>`. `taller.spec.ts` necesita además `TEC_USER`/`TEC_PASS`
 (un técnico con pendientes) y es de solo lectura: no crea, edita ni borra nada. `formulario.spec.ts` **escribe**: con `TEC_USER`
 abre una asignación de reparación pendiente, guarda una fila (consume una unidad de stock), registra una solicitud de pieza y
-termina; con `E2E_USER` rechaza y recupera esa solicitud desde la campana y abre "Editar" del Historial sin guardar. La
-asignación la crea el propio test por la API (con `E2E_USER`, para el técnico de `TEC_USER`, sobre un IMEI sintético nuevo en
-cada ejecución) y, si el test cae antes de terminarla, `afterAll` la borra por su id. `E2E_MODELO_PRUEBA` (opcional) fija el
+termina; con `E2E_USER` rechaza y recupera desde la campana solo la solicitud de ese IMEI y abre "Editar" del Historial sin
+guardar. La asignación la crea el propio test por la API (con `E2E_USER`, para el técnico de `TEC_USER`, sobre un IMEI
+sintético nuevo en cada ejecución) y, termine bien o caiga a medias, `afterAll` borra todo lo que cuelga de ese IMEI: la
+asignación, las reparaciones (la fila guardada devuelve su unidad al stock), la solicitud de pieza y, al final, el teléfono. `E2E_MODELO_PRUEBA` (opcional) fija el
 modelo del teléfono sintético: uno que tenga un tipo con stock y otro con el SKU a 0. Solo se ejecuta contra un entorno con
 usuarios y datos de prueba.
 `asignar.spec.ts` también **escribe** en el entorno de destino: con `E2E_USER` abre el modal "Asignar trabajos", crea UNA

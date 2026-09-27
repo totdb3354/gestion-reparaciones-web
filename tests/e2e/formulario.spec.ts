@@ -69,7 +69,7 @@ const esBorrador = (metodo: string) => (r: { url(): string; request(): { method(
 /**
  * Guion del técnico (spec §11). ESCRIBE: crea por la API su propia asignación de Reparación (IMEI sintético, técnico de
  * TEC_USER), guarda una fila (consume una unidad de stock de prueba), registra una solicitud de pieza y termina. Si el test
- * cae antes de terminar, afterAll borra la asignación.
+ * termine o no, afterAll borra la asignación, las reparaciones, la solicitud y el teléfono de ese IMEI.
  */
 test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', async ({ page }) => {
   credenciales('E2E_USER', 'E2E_PASS')
@@ -158,10 +158,17 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   await expect(panel).toBeVisible()
   await panel.getByRole('tab', { name: 'Solicitudes' }).click()
 
-  const pendiente = panel.locator('[data-testid^="tarjeta-solicitud-"][data-grupo="pendiente"]').first()
-  await expect(pendiente).toBeVisible()
-  const idTarjeta = (await pendiente.getAttribute('data-testid')) ?? ''
-  const tarjeta = panel.getByTestId(idTarjeta)
+  // Solo la tarjeta de la solicitud del IMEI sintético de este fichero (nunca la primera de la lista, que puede ser real):
+  // su idRc sale de GET /api/solicitudes?estado=PENDIENTE y la tarjeta urgente se identifica por él.
+  expect(api, 'sesión de API del supertécnico (beforeAll)').not.toBeNull()
+  expect(creada, 'asignación de prueba creada por el test del técnico').not.toBeNull()
+  const imeiPrueba = creada!.imei
+  const pendientes = await api!.ctx.get('/api/solicitudes', { headers: api!.headers, params: { estado: 'PENDIENTE' } })
+  expect(pendientes.status(), 'GET /api/solicitudes?estado=PENDIENTE').toBe(200)
+  const suyas = ((await pendientes.json()) as { idRc: number; imei: string }[]).filter((s) => s.imei === imeiPrueba)
+  expect(suyas, `solicitudes pendientes del IMEI de prueba ${imeiPrueba}`).toHaveLength(1)
+  const tarjeta = panel.getByTestId(`tarjeta-solicitud-U-${suyas[0].idRc}`)
+  await expect(tarjeta).toHaveAttribute('data-grupo', 'pendiente')
   await tarjeta.getByRole('button', { name: 'Rechazar' }).click()
   await expect(tarjeta).toHaveAttribute('data-grupo', 'rechazada')
   await tarjeta.getByRole('button', { name: 'Recuperar' }).click()
@@ -209,7 +216,8 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
  * 2. después se borran por DELETE /api/reparaciones/{idRep} todas las reparaciones que queden del IMEI: primero las R… que
  *    creó el test (la fila guardada devuelve su unidad al stock y con ellas se van sus Reparacion_componente, incluida la
  *    solicitud de pieza) y al final la asignación ya cerrada;
- * 3. se comprueba que no queda ninguna reparación del IMEI ni ninguna solicitud de pieza suya.
+ * 3. se comprueba que no queda ninguna reparación del IMEI ni ninguna solicitud de pieza suya;
+ * 4. se borra el teléfono que creó el lote (DELETE /api/telefonos/{imei}) y se comprueba que ya no existe.
  * Los fallos se señalan con expect.soft nombrando la ruta, sin tapar el fallo original.
  */
 test.afterAll(async () => {
@@ -253,6 +261,14 @@ test.afterAll(async () => {
       const suyas = ((await solicitudes.json()) as { imei: string }[]).filter((x) => x.imei === restante.imei)
       expect.soft(suyas, `limpieza: sin solicitudes de pieza del IMEI ${restante.imei}`).toEqual([])
     }
+
+    // Por último, el teléfono que creó el lote: solo puede irse cuando ya no lo referencia ninguna reparación ni solicitud.
+    // El servidor puede haberlo borrado ya con la última reparación; el DELETE es idempotente (204 igualmente).
+    const rutaTelefono = `/api/telefonos/${restante.imei}`
+    const borrado = await sesion.ctx.delete(rutaTelefono, { headers: sesion.headers })
+    expect.soft(borrado.status(), `limpieza DELETE ${rutaTelefono}`).toBe(204)
+    const existe = await sesion.ctx.get(`${rutaTelefono}/exists`, { headers: sesion.headers })
+    expect.soft(existe.ok() ? await existe.json() : null, `limpieza: sin teléfono ${restante.imei}`).toEqual({ value: false })
   } finally {
     await sesion.ctx.dispose()
   }
