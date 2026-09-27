@@ -30,7 +30,7 @@ export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes }: Pro
     <div className="flex flex-col gap-2">
       <span className={ETIQUETA}>Técnico (se aplica a los IMEIs que escanees)</span>
       <ComboNavy aria-label="Técnico para los IMEIs que escanees" valor={estado.tecPulidoArriba == null ? null : String(estado.tecPulidoArriba)}
-        opciones={opcionesTec} onChange={(v) => dispatch({ tipo: 'PULIDO_TEC_ARRIBA', idTec: Number(v) })} textoVacio="" ancho={344} />
+        opciones={opcionesTec} onChange={(v) => dispatch({ tipo: 'PULIDO_TEC_ARRIBA', idTec: Number(v) })} textoVacio="" ancho="full" />
       <hr className="border-borde-input" />
       <CampoEscaneo etiqueta="Escanear IMEI → pulido"
         onTeclear={() => dispatch({ tipo: 'LIMPIAR_MENSAJE', panel: 'pulido' })}
@@ -63,7 +63,7 @@ export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes }: Pro
             <span data-testid="imei-pulido" className="font-mono text-[18px] font-bold text-azul-medio">{sel?.imei ?? '—'}</span>
             <span className={ETIQUETA}>Técnico</span>
             <ComboNavy aria-label="Técnico del pulido" valor={sel?.idTec == null ? null : String(sel.idTec)} opciones={opcionesTec}
-              onChange={(v) => dispatch({ tipo: 'PULIDO_TECNICO', idTec: Number(v) })} textoVacio="" ancho={344} disabled={!sel} />
+              onChange={(v) => dispatch({ tipo: 'PULIDO_TECNICO', idTec: Number(v) })} textoVacio="" ancho="full" disabled={!sel} />
             <span className={ETIQUETA}>Cliente (opcional)</span>
             <CampoAutocompletar aria-label="Cliente" placeholder="Escribe cliente..." opciones={opciones}
               valor={valorCliente(sel ? { idCli: sel.idCli, sinCliente: sel.sinCliente } : null)}

@@ -31,7 +31,7 @@ Decididas en la comparación de capturas (todas aceptadas tal como está la web)
 - **El campo Cliente deshabilitado se queda vacío** (texto guía "Escribe cliente...") cuando no hay ninguna entrada cargada, por ejemplo justo después de "Asignar →"; el JavaFX sigue mostrando el último cliente en el campo gris. Los técnicos marcados sí se mantienen en ambos.
 - **El título del aviso de conflictos es "Aviso"**; el JavaFX usa la alerta `WARNING` sin título propio.
 - **El borde del recuadro de detalle y del textarea de comentario es `#D4D8DE`** (`borde-input`), algo más claro que el `#C2C8D0` del JavaFX.
-- **Los dos combos de técnico de Pulido miden 344 px**; en el JavaFX llenan todo el ancho.
+- **Los dos combos de técnico de Pulido llenan todo el ancho del recuadro** (antes medían 344 px fijos; ahora igual que el JavaFX, web 0.8.3).
 
 ## Verificación
 
@@ -39,7 +39,7 @@ Marcada el 2026-09-24 con la web de la rama en local contra la API de producció
 
 ## Cabecera y pestañas
 
-- [x] El modal abre a 720 px de ancho como máximo (calco de la ventana: `contenido.setPrefWidth(720)` y `ventana.setMinWidth(720)` de `PendientesSuperTecnicoController`); en pantallas más estrechas, al ancho de la ventana menos 32 px, con scroll vertical interno. A 720 px los dos paneles caben lado a lado: en Pulido la lista mide 280 px para que el combo de técnico del detalle (344 px) quepa en su recuadro (web 0.8.3).
+- [x] El modal abre a 720 px de ancho como máximo (calco de la ventana: `contenido.setPrefWidth(720)` y `ventana.setMinWidth(720)` de `PendientesSuperTecnicoController`); en pantallas más estrechas, al ancho de la ventana menos 32 px, con scroll vertical interno. A 720 px los dos paneles caben lado a lado: en Pulido la lista mide 280 px para que el combo de técnico del detalle, que llena el recuadro, quepa (web 0.8.3).
 - [x] Título "Asignar trabajos" y el subtítulo corregido (ver diferencias).
 - [x] Toggle Reparación · Glass · Pulido, Reparación por defecto, sin poder deseleccionar.
 - [x] Una pastilla por cola con el número de entradas: roja si hay alguna pendiente, gris si no.

@@ -10,7 +10,8 @@ type Props = {
   opciones: OpcionCombo[]
   onChange: (valor: string) => void
   textoVacio: string
-  ancho: number
+  /** Ancho en px, o `'full'` para llenar el ancho del contenedor (`w-full`; JavaFX: `setMaxWidth(Double.MAX_VALUE)`). */
+  ancho: number | 'full'
   tamanoTexto?: 11 | 12
   /** Filas visibles de la lista antes de desplazar (8 en el combo de SKU). */
   visibles?: number
@@ -81,9 +82,10 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         aria-haspopup="listbox"
         aria-label={etiquetaAccesible}
         disabled={disabled}
-        style={{ width: ancho }}
+        style={ancho === 'full' ? undefined : { width: ancho }}
         className={cn(
           'flex h-[27px] shrink-0 items-center justify-between gap-1 rounded-3xl bg-azul-noche px-3 font-bold hover:bg-azul-noche-hover disabled:cursor-default disabled:opacity-60 disabled:hover:bg-azul-noche',
+          ancho === 'full' && 'w-full',
           tamano,
           actual?.clase || 'text-texto-nav-activo',
         )}
@@ -91,7 +93,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         <span className="truncate">{actual ? actual.etiqueta : textoVacio}</span>
         <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-texto-nav-activo" />
       </PopoverTrigger>
-      <PopoverContent align="start" style={{ minWidth: ancho }} className="w-auto rounded-lg border border-fila-sep bg-superficie p-0 shadow-md">
+      <PopoverContent align="start" style={ancho === 'full' ? undefined : { minWidth: ancho }} className="w-auto rounded-lg border border-fila-sep bg-superficie p-0 shadow-md">
         <ul
           role="listbox"
           aria-label={etiquetaAccesible}

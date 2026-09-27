@@ -67,6 +67,12 @@ describe('ComboNavy (combo navy de selección única)', () => {
     expect(lista).toHaveStyle({ maxHeight: '64px' })
     expect(lista.closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-superficie', 'rounded-lg')
   })
+  it('con ancho="full" llena el contenedor (w-full) en vez de un ancho fijo en px', async () => {
+    render(<ComboNavy valor={null} opciones={MODELOS} onChange={() => {}} textoVacio="—" ancho="full" aria-label="Filtrar por modelo" />)
+    const combo = screen.getByRole('combobox', { name: 'Filtrar por modelo' })
+    expect(combo).toHaveClass('w-full')
+    expect(combo).not.toHaveAttribute('style')
+  })
   it('avisa con onOpenChange al abrir, al elegir una opción y al cerrar sin elegir', async () => {
     // El aviso lo necesita quien congela algo mientras el desplegable está abierto (el sondeo de una tabla, que al
     // recargar movería la fila bajo el cursor). Elegir una opción cierra el combo a mano, así que también avisa.
