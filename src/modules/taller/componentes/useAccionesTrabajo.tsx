@@ -52,12 +52,15 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
         onCancelar={() => setABorrar(null)} onConfirmar={(motivo) => { if (aBorrar && motivo) borrar.mutate({ idRep: aBorrar.idRep, motivo }); setABorrar(null) }} />
       <ConfirmDialog abierto={aCancelar !== null} titulo="Borrar incidencia" descripcion="Esta acción solo es válida si fue un error al añadirla." textoAccion="Borrar incidencia"
         onCancelar={() => setACancelar(null)} onConfirmar={() => { if (aCancelar) cancelar.mutate(aCancelar.idRep); setACancelar(null) }} />
-      <DialogoIncidencia rep={conIncidencia} onCerrar={() => setConIncidencia(null)}
+      {/* Se cierra solo cuando el POST sale bien; si falla, el diálogo sigue abierto con lo escrito (calco del JavaFX). */}
+      <DialogoIncidencia rep={conIncidencia} enviando={anadir.isPending} onCerrar={() => setConIncidencia(null)}
         onGuardar={(comentario, idTec) => {
           if (!conIncidencia) return
           const rep = conIncidencia
-          setConIncidencia(null)
-          anadir.mutate({ idRep: rep.idRep, comentario, imei: rep.imei, idTec }, { onError: (e) => { if (!esErrorGestionadoGlobalmente(e)) mostrarError(`No se pudo guardar: ${mensajeDeError(e)}`) } })
+          anadir.mutate({ idRep: rep.idRep, comentario, imei: rep.imei, idTec }, {
+            onSuccess: () => setConIncidencia(null),
+            onError: (e) => { if (!esErrorGestionadoGlobalmente(e)) mostrarError(`No se pudo guardar: ${mensajeDeError(e)}`) },
+          })
         }} />
     </>
   )

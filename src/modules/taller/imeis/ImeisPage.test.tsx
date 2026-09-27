@@ -203,6 +203,26 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.click(within(await screen.findByRole('dialog', { name: 'Observación del teléfono' })).getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('El teléfono fue modificado por otro usuario. Se recargan los datos.')
   })
+  it('"Editar observación": si el guardado falla, el diálogo sigue abierto con lo escrito; si sale bien, se cierra', async () => {
+    let respuesta = () => HttpResponse.json({ message: 'No se pudo guardar la observación.' }, { status: 422 })
+    server.use(http.patch(`*/api/telefonos/${B}/observacion`, () => respuesta()))
+    abrir()
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText(B) })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar observación' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Observación del teléfono' })
+    const area = within(dlg).getByLabelText(`Observación — IMEI ${B}`)
+    await userEvent.clear(area)
+    await userEvent.type(area, 'pantalla con rayas')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    const error = await screen.findByRole('dialog', { name: 'Error' })
+    expect(error).toHaveTextContent('No se pudo guardar: No se pudo guardar la observación.')
+    expect(dlg).toBeInTheDocument()
+    expect(area).toHaveValue('pantalla con rayas')
+    await userEvent.click(within(error).getByRole('button', { name: 'Aceptar' }))
+    respuesta = () => new HttpResponse(null, { status: 204 })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Observación del teléfono' })).not.toBeInTheDocument())
+  })
   it('SUPERTECNICO, grupo sin fila Telefono (telefonoUpdatedAt null): solo Copiar celda', async () => {
     // Diferencia aceptada (docs/paridad/imeis.md, ImeisPage.tsx): "Editar observación"/"Editar cliente" exigen
     // updatedAt no nulo (Task 3); el grupo A no tiene fila Telefono (fixture de arriba).

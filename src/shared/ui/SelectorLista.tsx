@@ -1,4 +1,5 @@
 import { useEffectEvent, useLayoutEffect, useState } from 'react'
+import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog'
@@ -20,13 +21,18 @@ type Props = {
   /** Si se da, debajo de la lista se muestra este texto sin nada elegido o "Seleccionado: <etiqueta>" (SelectorClienteDialog). */
   textoNada?: string
   textoSeleccionar: string
+  /** Guardado en curso: el botón principal queda deshabilitado y el diálogo no se cierra (quien lo abre lo cierra al terminar
+   *  bien, y si falla sigue abierto con lo elegido). */
+  enviando?: boolean
   onSeleccionar: (clave: string) => void
   onCancelar: () => void
 }
 
 /** Calco de SelectorClienteDialog y del selector "Editar modelo": buscador que filtra por etiqueta, lista con la opción
- *  actual resaltada y la elegida en navy, botón principal deshabilitado sin nada elegido; doble clic elige directamente. */
-export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBuscar, opciones, claveActual = null, preseleccionarActual = false, textoNada, textoSeleccionar, onSeleccionar, onCancelar }: Props) {
+ *  actual resaltada y la elegida en navy, botón principal deshabilitado sin nada elegido; doble clic elige directamente.
+ *  Elegir pasa por un cerrojo síncrono (useCerrojoEnvio): un doble clic no llama dos veces a `onSeleccionar`. */
+export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBuscar, opciones, claveActual = null, preseleccionarActual = false, textoNada, textoSeleccionar, enviando = false, onSeleccionar, onCancelar }: Props) {
+  const enviar = useCerrojoEnvio({ abierto, enviando })
   const [busqueda, setBusqueda] = useState('')
   const [seleccion, setSeleccion] = useState<string | null>(null)
   // useEffectEvent: lee las opciones y la clave actual del momento de abrir sin reiniciar el diálogo cuando la página
@@ -43,7 +49,7 @@ export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBusca
   const visibles = filtro === '' ? opciones : opciones.filter((o) => o.etiqueta.toLowerCase().includes(filtro))
   const elegida = opciones.find((o) => o.clave === seleccion)
   return (
-    <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
+    <Dialog open={abierto} onOpenChange={(o) => { if (!o && !enviando) onCancelar() }}>
       <DialogContent aria-describedby={undefined} className="max-w-[440px] gap-3 bg-crema p-6">
         <DialogHeader>
           <DialogTitle className="text-[16px] font-bold text-azul-medio">{titulo}</DialogTitle>
@@ -56,7 +62,7 @@ export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBusca
               <button
                 type="button"
                 onClick={() => setSeleccion(o.clave)}
-                onDoubleClick={() => onSeleccionar(o.clave)}
+                onDoubleClick={() => enviar(() => onSeleccionar(o.clave))}
                 className={cn(
                   'mx-1 my-0.5 block w-[calc(100%-8px)] rounded px-3 py-1 text-left text-[12px] text-azul-noche hover:bg-seleccion-suave',
                   seleccion === o.clave ? 'bg-azul-noche font-bold text-superficie hover:bg-azul-noche' : claveActual === o.clave && 'bg-seleccion-suave font-bold',
@@ -68,10 +74,10 @@ export function SelectorLista({ abierto, titulo, etiquetaLista, placeholderBusca
           ))}
         </ul>
         {textoNada !== undefined && <p className="text-[12px] text-azul-gris">{elegida ? `Seleccionado: ${elegida.etiqueta}` : textoNada}</p>}
-        <Button disabled={seleccion === null} onClick={() => seleccion !== null && onSeleccionar(seleccion)} className="h-auto w-full rounded bg-azul-medio py-2.5 text-[12px] text-crema hover:bg-azul-medio/90">
+        <Button disabled={seleccion === null || enviando} onClick={() => { if (seleccion !== null) enviar(() => onSeleccionar(seleccion)) }} className="h-auto w-full rounded bg-azul-medio py-2.5 text-[12px] text-crema hover:bg-azul-medio/90">
           {textoSeleccionar}
         </Button>
-        <Button variant="outline" onClick={onCancelar} className="h-auto w-full rounded border-azul-gris bg-crema py-2.5 text-[12px] text-azul-gris shadow-none hover:bg-crema hover:text-azul-gris">
+        <Button variant="outline" disabled={enviando} onClick={onCancelar} className="h-auto w-full rounded border-azul-gris bg-crema py-2.5 text-[12px] text-azul-gris shadow-none hover:bg-crema hover:text-azul-gris">
           Cancelar
         </Button>
       </DialogContent>

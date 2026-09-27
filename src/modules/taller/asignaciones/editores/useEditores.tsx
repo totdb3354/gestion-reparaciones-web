@@ -77,13 +77,14 @@ export function useEditores({ onInteraccion }: { onInteraccion: (abierto: boolea
         claveActual={conModelo?.modelo ?? null}
         preseleccionarActual
         textoSeleccionar="Guardar"
+        enviando={guardarModelo.isPending}
         onCancelar={() => setConModelo(null)}
         onSeleccionar={(modelo) => {
           const fila = conModelo
           if (!fila) return
-          setConModelo(null)
-          // `modelo` es el código interno, no el nombre traducido que se ve en la lista (hoja de contrato §4).
-          guardarModelo.mutate({ imei: fila.imei, modelo }, { onSettled: recargarLista })
+          // `modelo` es el código interno, no el nombre traducido que se ve en la lista (hoja de contrato §4). Se cierra solo
+          // cuando el guardado sale bien; si falla, sigue abierto con lo elegido (calco del JavaFX).
+          guardarModelo.mutate({ imei: fila.imei, modelo }, { onSuccess: () => setConModelo(null), onSettled: recargarLista })
         }}
       />
       <SelectorLista
