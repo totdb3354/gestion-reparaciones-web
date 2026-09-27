@@ -4,6 +4,7 @@ import { delay, HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { crearQueryClient } from '@/shared/api/queryClient'
+import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { CLAVE_COMPONENTES_GESTIONADOS } from '../../stock/api'
@@ -59,6 +60,16 @@ async function escribir(etiqueta: string, valor: string) {
 }
 
 describe('NuevoPedidoDialog', () => {
+  it('aviso al salir (F5, cerrar la pestaña): sin líneas no pregunta; con una línea, sí; al quitarla, ya no', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    expect(avisaAlSalir()).toBe(false)
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    expect(avisaAlSalir()).toBe(true)
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar línea 1' }))
+    expect(avisaAlSalir()).toBe(false)
+  })
+
   it('vacío: título de 24 px, siete columnas, placeholder y los tres botones', async () => {
     abrir()
     const dlg = within(await screen.findByRole('dialog', { name: 'Nuevo pedido' }))

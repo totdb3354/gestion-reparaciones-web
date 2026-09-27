@@ -5,6 +5,7 @@ import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/error
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
+import { useAvisoAlSalir } from '@/shared/lib/useAvisoAlSalir'
 import { cn } from '@/shared/lib/utils'
 import { useTecnicos } from '../../api'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
@@ -50,6 +51,8 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
   const barra = resumenBarra(estado)
   const guardando = guardarLote.isPending
   const total = totalEscaneados(estado)
+  // F5, cerrar la pestaña o salir de la web con IMEIs en las colas: el navegador pregunta (nada se ha guardado aún).
+  useAvisoAlSalir(total > 0)
 
   const pedirCierre = () => {
     if (guardando) return

@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { PROVEEDORES } from './datosPrueba'
@@ -47,6 +48,16 @@ async function escribir(etiqueta: string, valor: string) {
 }
 
 describe('NuevoOtroPedidoDialog', () => {
+  it('aviso al salir (F5, cerrar la pestaña): sin líneas no pregunta; con una línea, sí; al quitarla, ya no', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo otro pedido' })
+    expect(avisaAlSalir()).toBe(false)
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    expect(avisaAlSalir()).toBe(true)
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar línea 1' }))
+    expect(avisaAlSalir()).toBe(false)
+  })
+
   it('título "Nuevo otro pedido", columna Concepto en vez de Componente, placeholder y sin pedir componentes', async () => {
     abrir()
     const dlg = within(await screen.findByRole('dialog', { name: 'Nuevo otro pedido' }))

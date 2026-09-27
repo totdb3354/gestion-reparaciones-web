@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '@/test/server'
+import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { AsignarTrabajosDialog } from './AsignarTrabajosDialog'
 import { filaCarga, tecnico } from '../../test/fabrica'
@@ -51,6 +52,15 @@ describe('AsignarTrabajosDialog', () => {
     for (const n of ['Reparación', 'Glass', 'Pulido']) expect(screen.getByRole('button', { name: new RegExp(`^${n}`) })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar (0)' })).toBeDisabled()
     expect(screen.getByText('0 configurados · 0 pendientes')).toBeInTheDocument()
+  })
+
+  it('aviso al salir (F5, cerrar la pestaña): sin nada en las colas no pregunta; con un IMEI escaneado, sí', async () => {
+    abrir()
+    await screen.findByRole('heading', { name: 'Asignar trabajos' })
+    expect(avisaAlSalir()).toBe(false)
+    await userEvent.type(screen.getByPlaceholderText('Escanea o escribe el IMEI (15 dígitos)...'), IMEI)
+    await screen.findByText('iPhone 14')
+    expect(avisaAlSalir()).toBe(true)
   })
 
   it('abre a 720 px de ancho como la ventana del JavaFX (no a 980)', async () => {

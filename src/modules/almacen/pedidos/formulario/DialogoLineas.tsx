@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import type { Proveedor } from '@/shared/api/client'
 import { formatearImporte, parsearDecimal, parsearEntero, simboloFormulario } from '@/shared/lib/importes'
+import { useAvisoAlSalir } from '@/shared/lib/useAvisoAlSalir'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { ComboNavy } from '@/shared/ui/ComboNavy'
@@ -56,6 +57,8 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
   // foco automático de Radix no cae sobre un campo con texto y se deja como estaba (calco). El valor se congela
   // en el primer render: es justo el que ve el efecto de montaje de FocusScope, que solo corre una vez.
   const [huboPrecarga] = useState(() => lineas.length > 0)
+  // F5, cerrar la pestaña o salir de la web con líneas en el pedido: el navegador pregunta (el pedido aún no se ha guardado).
+  useAvisoAlSalir(lineas.length > 0)
   const porId = new Map(proveedores.map((p) => [p.idProv, p]))
   const divisaDe = (l: LineaBase): string => (l.idProv === null ? undefined : porId.get(l.idProv)?.divisa) ?? 'EUR'
   const tasas = useTasas(Array.from(new Set(lineas.map(divisaDe))))
