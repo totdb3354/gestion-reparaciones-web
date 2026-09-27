@@ -10,13 +10,8 @@ import { borrarSesion } from '@/shared/session/storage'
 import { MSG_SESION_EXPIRADA_UI } from '@/app/session/mensajes'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
-import { aplicarTextoGuardado } from '@/shared/lib/useTextoGrande'
 
 const queryClient = crearQueryClient()
-
-// "Texto grande" guardado en este navegador: antes del primer render para que la app no se pinte primero a su tamaño normal.
-// Lleva su propio try/catch (storage inaccesible = texto normal).
-aplicarTextoGuardado()
 
 // 401 con sesión: se borra la sesión y se recarga la app en /login con el mensaje (equivale a volver al
 // login del JavaFX, que descarta las vistas cacheadas). LoginPage lee y borra 'fsgr.mensajeLogin'.

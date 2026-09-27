@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { CambiarPasswordDialog } from '@/modules/gestion/cuenta/CambiarPasswordDialog'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
-import { useTextoGrande } from '@/shared/lib/useTextoGrande'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin } from '@/shared/session/storage'
 import { useExportable } from '@/shared/ui/exportable'
@@ -14,8 +13,6 @@ export function UserMenu() {
   const exportar = useExportable()
   // "Cambiar contraseña" es un diálogo sobre la vista actual (G6, calco del Stage modal): estado local, sin ruta.
   const [passwordAbierto, setPasswordAbierto] = useState(false)
-  // "Texto grande": función nueva de la web (el JavaFX no la tiene), zoom del 115 % guardado en este navegador.
-  const [textoGrande, setTextoGrande] = useTextoGrande()
   if (!sesion) return null
   return (
     <>
@@ -34,7 +31,6 @@ export function UserMenu() {
           )}
           <DropdownMenuItem disabled={!exportar} onSelect={() => exportar?.()}>Descargar CSV</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setPasswordAbierto(true)}>Cambiar contraseña</DropdownMenuItem>
-          <DropdownMenuCheckboxItem checked={textoGrande} onCheckedChange={(v) => setTextoGrande(v === true)}>Texto grande</DropdownMenuCheckboxItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => { logout(); navigate('/login', { replace: true }) }}>Cerrar Sesión</DropdownMenuItem>
         </DropdownMenuContent>

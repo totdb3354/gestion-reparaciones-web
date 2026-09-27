@@ -4,15 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.8.3] - 2026-09-27 — Fechas, carga, modal y texto grande
+## [0.8.3] - 2026-09-27 — Fechas, carga y modal
 
 - Asignaciones, Mis asignaciones pendientes, Pulidos pendientes, Historial, Historial de pulidos y Agrupado por IMEI muestran las fechas como día/mes/año (`dd/MM/yyyy HH:mm`; `dd/MM/yyyy` en el Historial de técnico). Los CSV, Pedidos y los logs no cambian.
 - Mientras una vista hace su primera carga o se guarda un cambio, un círculo girando sobre la pantalla atenuada indica que el programa está trabajando y evita clics dobles; solo aparece si la espera pasa de 200 ms. Los refrescos automáticos no lo muestran.
 - "Asignar trabajos" abre a 720 px de ancho, como la ventana del programa de escritorio (antes, más ancho); en Pulido la lista mide 280 px para que el detalle quepa al lado.
-- "Texto grande" en el menú de usuario: amplía toda la aplicación al 115 % y se recuerda en el navegador de cada PC.
 - La lista de sugerencias de los campos de autocompletar que se ensanchan con su contenido tiene un ancho máximo; las opciones largas se recortan con puntos suspensivos y se leen enteras al pasar el ratón.
 - Interno: pruebas de la tabla fluida al pasar de vacía a llena, restauración de los simulacros aunque falle una prueba y un comentario de Técnicos al día.
-- Diferencias decididas respecto al programa de escritorio (fechas, indicador de carga y texto grande): anotadas en las fichas de `docs/paridad/`.
+- Diferencias decididas respecto al programa de escritorio (fechas e indicador de carga): anotadas en las fichas de `docs/paridad/`.
 
 ## [0.8.2] - 2026-09-27 — Tablas fluidas
 

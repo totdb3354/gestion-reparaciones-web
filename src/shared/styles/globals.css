@@ -61,13 +61,6 @@
   }
 }
 
-/* "Texto grande" del menú de usuario (useTextoGrande, web 0.8.3): zoom del 115 % de toda la app. `zoom` y no `font-size`
-   porque la app fija muchas medidas en px (`text-[13px]`, `w-[300px]`…) que un `rem` no escalaría; `zoom` reescala
-   layout, tipografía y popups y es estándar en los navegadores actuales. */
-html[data-texto='grande'] {
-  zoom: 1.15;
-}
-
 /* Pulso de alertas de la campana (calco del ScaleTransition + DropShadow del JavaFX): escala 1 → 1,25 → 1 y halo
    amarillo de 0 → 40 px → 0, ciclo de 1,2 s, lineal, sin fin. La lógica (cuándo late) vive en Campana.tsx. */
 @keyframes pulso-campana {

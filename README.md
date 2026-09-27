@@ -9,6 +9,8 @@ Cliente web del ERP de reparaciones (React + TypeScript). Sustituye al cliente J
    (la del entorno desplegado o un servidor local `http://localhost:8080`).
 3. `npm run dev` → http://localhost:5173. Las llamadas a `/api` van por proxy a esa URL, sin CORS.
 
+El tamaño del texto se ajusta con el zoom del navegador (Ctrl + / Ctrl −), que el navegador recuerda por sitio.
+
 ## Calidad
 `npm run check` = lint + typecheck + tests (lo mismo que ejecuta la CI). `npm run test:watch` en desarrollo.
 
