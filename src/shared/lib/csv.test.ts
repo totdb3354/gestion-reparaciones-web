@@ -96,4 +96,31 @@ describe('descargarCsv con "Guardar como" (calco del FileChooser de CsvExporter.
     await descargarCsv('mis_pendientes', cabeceras, filas, ahora)
     expect(clic).toHaveBeenCalledTimes(1)
   })
+
+  it('si la escritura falla a medias, aborta el fichero elegido (no queda a medias) y después descarga', async () => {
+    const clic = espiarDescarga()
+    const abortar = vi.fn(async () => {})
+    const cerrar = vi.fn(async () => {})
+    ofrecerVentana(async () => ({
+      createWritable: async () => ({ write: async () => { throw new DOMException('disco lleno', 'QuotaExceededError') }, close: cerrar, abort: abortar }),
+    }) as unknown as FileSystemFileHandle)
+    await descargarCsv('mis_pendientes', cabeceras, filas, ahora)
+    expect(abortar).toHaveBeenCalledTimes(1)
+    expect(cerrar).not.toHaveBeenCalled()
+    expect(clic).toHaveBeenCalledTimes(1)
+    expect(abortar.mock.invocationCallOrder[0]).toBeLessThan(clic.mock.invocationCallOrder[0])
+  })
+
+  it('si además falla el propio aborto, lo ignora y descarga igual', async () => {
+    const clic = espiarDescarga()
+    ofrecerVentana(async () => ({
+      createWritable: async () => ({
+        write: async () => { throw new DOMException('disco lleno', 'QuotaExceededError') },
+        close: async () => {},
+        abort: async () => { throw new DOMException('ya cerrado', 'InvalidStateError') },
+      }),
+    }) as unknown as FileSystemFileHandle)
+    await expect(descargarCsv('mis_pendientes', cabeceras, filas, ahora)).resolves.toBeUndefined()
+    expect(clic).toHaveBeenCalledTimes(1)
+  })
 })

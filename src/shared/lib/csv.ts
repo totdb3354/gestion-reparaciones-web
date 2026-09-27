@@ -39,11 +39,14 @@ export async function descargarCsv(nombreBase: string, cabeceras: string[], fila
     descargarEnlace(blob, nombre)
     return
   }
+  let escritura: FileSystemWritableFileStream | null = null
   try {
-    const escritura = await fichero.createWritable()
+    escritura = await fichero.createWritable()
     await escritura.write(blob)
     await escritura.close()
   } catch {
+    // Si la escritura falla a medias, se aborta: el fichero elegido no se queda con una parte del CSV.
+    await escritura?.abort().catch(() => {})
     descargarEnlace(blob, nombre)
   }
 }
