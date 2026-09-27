@@ -65,6 +65,10 @@ export function adoptarSesionGuardada() {
  * Lo que hay guardado sigue siendo lo de esta pestaña: la misma sesión (mismo token) o, en las dos, ninguna. Falso si otra
  * pestaña entró con otra sesión o la cerró.
  */
+/** Token de la sesión con la que trabaja esta pestaña (null si no tiene). */
+export function tokenDeEstaPestana(): string | null {
+  return tokenDePestana
+}
 export function esSesionDeEstaPestana(): boolean {
   return (leerSesion()?.token ?? null) === tokenDePestana
 }

@@ -56,6 +56,18 @@ describe('cliente API', () => {
     expect(vistas).toEqual(['Bearer jwt-1'])
     expect(estaConectado()).toBe(true)
   })
+  it('el bearer es el token de la pestaña: la sesión guardada se lee una sola vez por petición', async () => {
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    let auth = ''
+    server.use(http.get('*/api/clientes', ({ request }) => {
+      auth = request.headers.get('authorization') ?? ''
+      return HttpResponse.json([])
+    }))
+    const lecturas = vi.spyOn(Storage.prototype, 'getItem')
+    await api.GET('/api/clientes')
+    expect(lecturas.mock.calls.filter(([clave]) => clave === 'fsgr.sesion')).toHaveLength(1)
+    expect(auth).toBe('Bearer jwt-1')
+  })
   it('si otra pestaña cerró la sesión, la petición no sale; tras cerrarla también en esta, sale sin bearer', async () => {
     guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
     const vistas: string[] = []

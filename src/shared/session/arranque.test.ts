@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { CERROJO_PESTANA, comprobarSesionAlArrancar } from './arranque'
+import { arrancarTrasComprobarSesion, CERROJO_PESTANA, comprobarSesionAlArrancar, ESPERA_CERROJOS_MS } from './arranque'
 import { LATIDO_MS, UMBRAL_MS } from './latido'
 import { borrarSesion, esSesionDeEstaPestana, guardarSesion, leerSesion, type Sesion } from './storage'
 
@@ -17,9 +17,10 @@ function sesionPrevia(latido: string | null) {
 }
 
 /** Web Locks falso: `retenidos` son los nombres de los cerrojos que tienen otros documentos. */
-function cerrojosFalsos({ retenidos = [] as string[], consultaFalla = false } = {}) {
+function cerrojosFalsos({ retenidos = [] as string[], consultaFalla = false, consultaSinRespuesta = false } = {}) {
   const gestor = {
     query: vi.fn(async () => {
+      if (consultaSinRespuesta) await new Promise<never>(() => {})
       if (consultaFalla) throw new DOMException('no disponible', 'SecurityError')
       return { held: retenidos.map((name) => ({ name, mode: 'shared' as const })), pending: [] }
     }),
@@ -181,5 +182,76 @@ describe('comprobarSesionAlArrancar (al cargar el documento desde cero)', () => 
       detener = await comprobarSesionAlArrancar(AHORA)
       expect(gestor.request).toHaveBeenCalledWith(CERROJO_PESTANA, { mode: 'shared' }, expect.any(Function))
     })
+
+    it('si la consulta no responde, a los 2 s decide la señal de actividad (reciente: conserva)', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(AHORA)
+      cerrojosFalsos({ retenidos: [CERROJO_PESTANA], consultaSinRespuesta: true })
+      sesionPrevia(String(AHORA - 1000))
+      let terminado = false
+      const comprobacion = comprobarSesionAlArrancar(AHORA).then((d) => {
+        terminado = true
+        return d
+      })
+      await vi.advanceTimersByTimeAsync(ESPERA_CERROJOS_MS - 1)
+      expect(terminado).toBe(false)
+      await vi.advanceTimersByTimeAsync(1)
+      detener = await comprobacion
+      expect(leerSesion()).toEqual(TECNICO)
+    })
+
+    it('si la consulta no responde y la señal es vieja, a los 2 s cierra la sesión', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(AHORA)
+      cerrojosFalsos({ retenidos: [CERROJO_PESTANA], consultaSinRespuesta: true })
+      sesionPrevia(VIEJA)
+      const comprobacion = comprobarSesionAlArrancar(AHORA)
+      await vi.advanceTimersByTimeAsync(ESPERA_CERROJOS_MS)
+      detener = await comprobacion
+      expect(leerSesion()).toBeNull()
+    })
+  })
+})
+
+describe('arrancarTrasComprobarSesion (main.tsx): la aplicación siempre se pinta', () => {
+  let detener: () => void = () => {}
+  afterEach(() => {
+    detener()
+    Reflect.deleteProperty(navigator, 'locks')
+  })
+
+  it('pinta después de la comprobación', async () => {
+    const orden: string[] = []
+    detener = await arrancarTrasComprobarSesion(() => orden.push('pintar'), async () => {
+      orden.push('comprobar')
+      return () => {}
+    }, AHORA)
+    expect(orden).toEqual(['comprobar', 'pintar'])
+  })
+
+  it('si la comprobación falla, pinta igual y decide la señal: reciente conserva la sesión y la pestaña la adopta', async () => {
+    sesionPrevia(String(AHORA - 1000))
+    const pintar = vi.fn()
+    detener = await arrancarTrasComprobarSesion(pintar, () => Promise.reject(new Error('fallo')), AHORA)
+    expect(pintar).toHaveBeenCalledTimes(1)
+    expect(leerSesion()).toEqual(TECNICO)
+    expect(esSesionDeEstaPestana()).toBe(true)
+    expect(localStorage.getItem('fsgr.latido')).toBe(String(AHORA))
+  })
+
+  it('si la comprobación falla y la señal es vieja, pinta con la sesión cerrada (login)', async () => {
+    sesionPrevia(VIEJA)
+    const pintar = vi.fn()
+    detener = await arrancarTrasComprobarSesion(pintar, () => Promise.reject(new Error('fallo')), AHORA)
+    expect(pintar).toHaveBeenCalledTimes(1)
+    expect(leerSesion()).toBeNull()
+  })
+
+  it('si la comprobación lanza de forma síncrona, pinta igual', async () => {
+    const pintar = vi.fn()
+    detener = await arrancarTrasComprobarSesion(pintar, () => {
+      throw new Error('fallo')
+    }, AHORA)
+    expect(pintar).toHaveBeenCalledTimes(1)
   })
 })
