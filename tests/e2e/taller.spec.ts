@@ -55,12 +55,15 @@ test('técnico: pendientes, historial, IMEIs y detalle', async ({ page }) => {
 })
 
 /** El supertécnico entra por Historial y ve el filtro de técnico. */
-test('supertécnico: entra en Historial de reparaciones con filtro de técnico', async ({ page }) => {
+test('supertécnico: entra en Asignaciones y el Historial de reparaciones tiene filtro de técnico', async ({ page }) => {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await page.goto('/login')
   await page.getByPlaceholder('Usuario').fill(usuario)
   await page.getByPlaceholder('Contraseña').fill(clave)
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
+  // Entra en Asignaciones, como en el JavaFX (ReparacionControllerSuperTecnico.java:229); el Historial, por su enlace.
+  await expect(page).toHaveURL(/\/reparaciones\/asignaciones$/)
+  await page.getByRole('link', { name: 'Historial', exact: true }).click()
   await expect(page).toHaveURL(/\/reparaciones\/historial$/)
   await expect(page.getByRole('heading', { name: 'Historial de reparaciones' })).toBeVisible()
   // exact: las celdas de texto libre (observaciones, incidencias) también son botones y podrían contener "Técnico"

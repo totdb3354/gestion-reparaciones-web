@@ -149,7 +149,8 @@ test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', 
 test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin guardar', async ({ page }) => {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await entrar(page, usuario, clave)
-  await expect(page).toHaveURL(/\/reparaciones\/historial$/)
+  // El supertécnico entra en Asignaciones, como en el JavaFX (ReparacionControllerSuperTecnico.java:229).
+  await expect(page).toHaveURL(/\/reparaciones\/asignaciones$/)
 
   // La solicitud que dejó el técnico enciende el badge
   await expect(page.getByTestId('campana-badge')).toHaveText(/^[1-9][0-9]*$/)
@@ -176,7 +177,9 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   await page.keyboard.press('Escape')
   await expect(panel).toBeHidden()
 
-  // "Editar" desde el Historial
+  // "Editar" desde el Historial (enlace de la columna lateral de Reparaciones)
+  await page.getByRole('link', { name: 'Historial', exact: true }).click()
+  await expect(page).toHaveURL(/\/reparaciones\/historial$/)
   await expect(page.getByRole('heading', { name: 'Historial de reparaciones' })).toBeVisible()
   const primeraFila = page.getByRole('table').locator('tr[aria-selected]').first()
   await expect(primeraFila).toBeVisible()

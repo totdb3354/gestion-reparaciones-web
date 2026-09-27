@@ -10,7 +10,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 
 ## Común a los tres toggles
 
-- [x] Roles: los tres. Es la vista de entrada de ADMIN y, hasta el sub-proyecto 3, también de SUPERTECNICO. Entrada "Historial" de la columna lateral.
+- [x] Roles: los tres. Es la vista de entrada del ADMIN (`ReparacionViewAdmin.fxml:41`, `pnlHistorial visible="true"`); el SUPERTECNICO entra en Asignaciones, como en el JavaFX (`ReparacionControllerSuperTecnico.java:229`; web 0.8.5). Entrada "Historial" de la columna lateral.
 - [x] Toggles "Reparaciones" · "Glass" · "Pulidos" (misma píldora segmentada que en Pendientes, sin sufijo). Rutas `/reparaciones/historial`, `/reparaciones/historial/glass`, `/reparaciones/historial/pulidos`. Al cambiar de toggle se conserva el texto del filtro IMEI.
 - [x] Filtro "Filtrar por IMEI" con la misma canonicalización y bordes que en Pendientes; "Limpiar filtros" (`btn-secondary`) vacía todos los filtros del toggle.
 - [x] "Desde:" / "Hasta:" (etiquetas 12 px) con selector de fecha (campo no editable a mano, botón de calendario); filtran por la **fecha de fin** del trabajo en hora de Madrid, ambos extremos incluidos; con un rango puesto, los trabajos sin fecha de fin no se muestran.
@@ -60,7 +60,6 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 ## Diferencias aceptadas
 
 - Las columnas de texto se reparten el ancho sobrante y las de números/fechas/badges/acciones son fijas (`ajuste="fluido"`); el JavaFX deja el sobrante en blanco y recorta el texto (decisión del usuario 2026-09-27, adaptación a web; web 0.8.2). Solo en el toggle Pulidos; Reparaciones y Glass ya estiran sus columnas.
-- El SUPERTECNICO entra en Historial en vez de en Asignaciones hasta el sub-proyecto 3.
 - Los toggles son rutas (el botón atrás del navegador cambia de toggle); los diálogos y ventanas son modales con los mismos títulos, etiquetas y botones; sin cuenta atrás en los `ConfirmDialog`.
 - La entrada "Historial" de la columna lateral abre siempre el toggle "Reparaciones"; el JavaFX vuelve a abrir el último toggle usado.
 - Reparaciones y Glass guardan cada uno sus filtros de técnico, pieza, fechas e incidencias; en el JavaFX los dos toggles comparten los mismos controles y lo filtrado en uno sigue aplicado al pasar al otro (el de IMEI se conserva al cambiar de toggle en la web y en el JavaFX).
