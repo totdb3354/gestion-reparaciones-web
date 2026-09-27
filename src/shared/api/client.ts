@@ -1,8 +1,8 @@
 import createClient, { type Middleware } from 'openapi-fetch'
 import type { components, paths } from './schema'
-import { leerSesion } from '@/shared/session/storage'
+import { esSesionDeEstaPestana, leerSesion } from '@/shared/session/storage'
 import { dispararSesionExpirada } from '@/shared/session/expiracion'
-import { ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
+import { ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionDeOtraPestanaError, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
 import { reportarExito, reportarFallo } from './conexion'
 
 /** Tipos del contrato tal cual los genera openapi-typescript: el servidor marca todas las propiedades como
@@ -73,6 +73,8 @@ function esLimiteLogin(request: Request, status: number): boolean {
 
 const auth: Middleware = {
   onRequest({ request }) {
+    // Cada petición sale con la sesión de SU pestaña: si la guardada ya es otra (u otra pestaña la cerró), no sale.
+    if (!esSesionDeEstaPestana()) throw new SesionDeOtraPestanaError()
     const s = leerSesion()
     if (s) request.headers.set('Authorization', `Bearer ${s.token}`)
     return request

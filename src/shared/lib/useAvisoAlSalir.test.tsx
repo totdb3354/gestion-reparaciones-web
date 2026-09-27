@@ -53,6 +53,13 @@ describe('useAvisoAlSalir', () => {
     quitar()
   })
 
+  it('si otra pestaña entra con otra sesión, salir no pregunta (esta pestaña se va a recargar)', () => {
+    renderHook(() => useAvisoAlSalir(true))
+    expect(avisaAlSalir()).toBe(true)
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ idUsu: 2, nombreUsuario: 'usuario-b', rol: 'TECNICO', idTec: 2, token: 'jwt-b' }))
+    expect(avisaAlSalir()).toBe(false)
+  })
+
   it('si la sesión se cierra en otra pestaña (se borra la sesión compartida), salir no pregunta', () => {
     renderHook(() => useAvisoAlSalir(true))
     expect(avisaAlSalir()).toBe(true)

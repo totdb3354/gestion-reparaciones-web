@@ -1,7 +1,7 @@
 import { HttpResponse, delay, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { server } from '@/test/server'
-import { guardarSesion } from '@/shared/session/storage'
+import { borrarSesion, guardarSesion } from '@/shared/session/storage'
 import { onSesionExpirada, rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { estaConectado, reportarExito, reportarFallo } from './conexion'
 import { TIMEOUT_MS, api } from './client'
@@ -11,7 +11,10 @@ import type {
   ReparacionResumen, SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico,
 } from './client'
 import type { paths } from './schema'
-import { ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
+import {
+  ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionDeOtraPestanaError, SesionExpiradaError,
+  StaleDataError, esErrorGestionadoGlobalmente,
+} from './errors'
 
 /** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
  *  no hereda (y no es el mismo objeto), así que estos dobles imitan al real: un Error con el `name` del corte. */
@@ -37,6 +40,34 @@ describe('cliente API', () => {
     const { data } = await api.GET('/api/clientes')
     expect(auth).toBe('Bearer jwt-1')
     expect(data?.[0]?.nombre).toBe('WEB')
+  })
+  it('cada petición sale con la sesión de su pestaña: si otra pestaña guardó otra, no sale', async () => {
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    const vistas: string[] = []
+    server.use(http.get('*/api/clientes', ({ request }) => {
+      vistas.push(request.headers.get('authorization') ?? '')
+      return HttpResponse.json([])
+    }))
+    await api.GET('/api/clientes')
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ idUsu: 2, nombreUsuario: 'b', rol: 'TECNICO', idTec: 2, token: 'jwt-2' }))
+    const error = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(SesionDeOtraPestanaError)
+    expect(esErrorGestionadoGlobalmente(error)).toBe(true)
+    expect(vistas).toEqual(['Bearer jwt-1'])
+    expect(estaConectado()).toBe(true)
+  })
+  it('si otra pestaña cerró la sesión, la petición no sale; tras cerrarla también en esta, sale sin bearer', async () => {
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    const vistas: string[] = []
+    server.use(http.get('*/api/clientes', ({ request }) => {
+      vistas.push(request.headers.get('authorization') ?? 'sin')
+      return HttpResponse.json([])
+    }))
+    localStorage.removeItem('fsgr.sesion')
+    await expect(api.GET('/api/clientes')).rejects.toBeInstanceOf(SesionDeOtraPestanaError)
+    borrarSesion()
+    await api.GET('/api/clientes')
+    expect(vistas).toEqual(['sin'])
   })
   it('409 lanza StaleDataError con el mensaje del servidor', async () => {
     server.use(http.delete('*/api/clientes/5', () => HttpResponse.json({ message: 'Tiene teléfonos' }, { status: 409 })))

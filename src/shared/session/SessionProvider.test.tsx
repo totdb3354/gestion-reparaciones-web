@@ -6,7 +6,7 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { crearStore } from '@/shared/lib/store'
 import { server } from '@/test/server'
 import { SessionProvider, useSession } from './SessionProvider'
-import { borrarSesion, escribirLatido, guardarSesion, leerSesion, type Sesion } from './storage'
+import { escribirLatido, guardarSesion, leerSesion, type Sesion } from './storage'
 
 const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1' }
 
@@ -53,6 +53,11 @@ describe('SessionProvider: los stores de estado no pasan de una sesión a otra',
   })
 })
 
+/** Otra pestaña guarda su sesión: escribe en el almacenamiento compartido, pero esta pestaña no la adopta. */
+function escribirDesdeOtraPestana(s: Sesion) {
+  localStorage.setItem('fsgr.sesion', JSON.stringify(s))
+}
+
 /** Lo que ve esta pestaña cuando OTRA cambia el almacenamiento: el cambio ya está hecho y llega el evento `storage`. */
 function cambioEnOtraPestana(clave: string, cambiar: () => void) {
   const antes = localStorage.getItem(clave)
@@ -78,7 +83,7 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
     const qc = crearQueryClient()
     qc.setQueryData(['x'], 1)
     const ctx = montar({ qc })
-    cambioEnOtraPestana('fsgr.sesion', () => borrarSesion())
+    cambioEnOtraPestana('fsgr.sesion', () => localStorage.removeItem('fsgr.sesion'))
     expect(ctx.actual!.sesion).toBeNull()
     expect(qc.getQueryCache().getAll()).toHaveLength(0)
     expect(replace).not.toHaveBeenCalled()
@@ -87,7 +92,7 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
   it('la misma sesión escrita de nuevo en otra pestaña no hace nada', () => {
     const replace = espiarRecarga()
     const ctx = montar()
-    cambioEnOtraPestana('fsgr.sesion', () => guardarSesion({ ...TECNICO }))
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ ...TECNICO }))
     expect(ctx.actual!.sesion).toEqual(TECNICO)
     expect(replace).not.toHaveBeenCalled()
   })
@@ -95,14 +100,14 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
   it('otro usuario entra en otra pestaña: recarga completa hacia la raíz', () => {
     const replace = espiarRecarga()
     montar()
-    cambioEnOtraPestana('fsgr.sesion', () => guardarSesion({ idUsu: 91, nombreUsuario: 'tecnico2', rol: 'TECNICO', idTec: 2, token: 'jwt-tecnico2' }))
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ idUsu: 91, nombreUsuario: 'tecnico2', rol: 'TECNICO', idTec: 2, token: 'jwt-tecnico2' }))
     expect(replace).toHaveBeenCalledWith('/')
   })
 
   it('el mismo usuario con otro token (entró de nuevo en otra pestaña): recarga completa hacia la raíz', () => {
     const replace = espiarRecarga()
     montar()
-    cambioEnOtraPestana('fsgr.sesion', () => guardarSesion({ ...TECNICO, token: 'jwt-nuevo' }))
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ ...TECNICO, token: 'jwt-nuevo' }))
     expect(replace).toHaveBeenCalledWith('/')
   })
 
@@ -110,7 +115,7 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
     const replace = espiarRecarga()
     const ctx = montar({ sesion: null })
     expect(ctx.actual!.sesion).toBeNull()
-    cambioEnOtraPestana('fsgr.sesion', () => guardarSesion(TECNICO))
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana(TECNICO))
     expect(replace).toHaveBeenCalledWith('/')
   })
 
@@ -133,7 +138,7 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
     const replace = espiarRecarga()
     const ctx = montar()
     cleanup()
-    cambioEnOtraPestana('fsgr.sesion', () => guardarSesion({ ...TECNICO, token: 'jwt-nuevo' }))
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ ...TECNICO, token: 'jwt-nuevo' }))
     expect(replace).not.toHaveBeenCalled()
     expect(ctx.actual!.sesion).toEqual(TECNICO)
   })

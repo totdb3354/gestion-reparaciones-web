@@ -1,15 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CERROJO_PESTANA, comprobarSesionAlArrancar } from './arranque'
 import { LATIDO_MS, UMBRAL_MS } from './latido'
-import { guardarSesion, leerSesion, type Sesion } from './storage'
+import { borrarSesion, esSesionDeEstaPestana, guardarSesion, leerSesion, type Sesion } from './storage'
 
 const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1' }
 const AHORA = new Date(2026, 8, 27, 10, 0).getTime()
 const VIEJA = String(AHORA - UMBRAL_MS - 1)
 
-/** Sesión guardada por una carga anterior del documento, con la señal de actividad indicada (null: sin señal). */
+/** Sesión guardada por una carga anterior del documento, con la señal de actividad indicada (null: sin señal). Este
+ *  documento aún no la ha adoptado. */
 function sesionPrevia(latido: string | null) {
-  guardarSesion(TECNICO)
+  borrarSesion()
+  localStorage.setItem('fsgr.sesion', JSON.stringify(TECNICO))
   if (latido === null) localStorage.removeItem('fsgr.latido')
   else localStorage.setItem('fsgr.latido', latido)
 }
@@ -105,6 +107,13 @@ describe('comprobarSesionAlArrancar (al cargar el documento desde cero)', () => 
       guardarSesion(TECNICO)
       vi.advanceTimersByTime(LATIDO_MS)
       expect(localStorage.getItem('fsgr.latido')).toBe(String(AHORA + LATIDO_MS))
+    })
+
+    it('esta pestaña adopta la sesión conservada', async () => {
+      sesionPrevia(String(AHORA - 1000))
+      expect(esSesionDeEstaPestana()).toBe(false)
+      detener = await comprobarSesionAlArrancar(AHORA)
+      expect(esSesionDeEstaPestana()).toBe(true)
     })
 
     it('con sesión conservada el latido sigue escribiendo cada 30 s', async () => {

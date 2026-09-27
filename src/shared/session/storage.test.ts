@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { borrarSesion, esAdmin, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerLatido, leerSesion, type Sesion } from './storage'
+import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerLatido, leerSesion, type Sesion } from './storage'
 
 const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt' }
 
@@ -67,6 +67,29 @@ describe('storage de sesión', () => {
     expect(leerLatido()).toBeNull()
     localStorage.setItem('fsgr.latido', '')
     expect(leerLatido()).toBeNull()
+  })
+  it('la sesión de esta pestaña: la que guardó o adoptó; deja de serlo si otra pestaña guarda otra o la borra', () => {
+    expect(esSesionDeEstaPestana()).toBe(true)
+    guardarSesion(tecnicoF)
+    expect(esSesionDeEstaPestana()).toBe(true)
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, token: 'jwt-otra' }))
+    expect(esSesionDeEstaPestana()).toBe(false)
+    adoptarSesionGuardada()
+    expect(esSesionDeEstaPestana()).toBe(true)
+    localStorage.removeItem('fsgr.sesion')
+    expect(esSesionDeEstaPestana()).toBe(false)
+    borrarSesion()
+    expect(esSesionDeEstaPestana()).toBe(true)
+  })
+  it('si el almacenamiento no acepta la sesión, esta pestaña no la adopta', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('lleno', 'QuotaExceededError')
+    })
+    guardarSesion(tecnicoF)
+    vi.restoreAllMocks()
+    expect(esSesionDeEstaPestana()).toBe(true)
+    localStorage.setItem('fsgr.sesion', JSON.stringify(tecnicoF))
+    expect(esSesionDeEstaPestana()).toBe(false)
   })
   it('helpers de rol calcados de Sesion.java', () => {
     expect(esSuperTecnico(tecnicoF)).toBe(true)

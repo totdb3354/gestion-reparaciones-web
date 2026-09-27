@@ -1,5 +1,5 @@
 import { arrancarLatido, LATIDO_MS, UMBRAL_MS } from './latido'
-import { borrarSesion, CLAVE_SESION, escribirLatido, leerLatido, leerSesion } from './storage'
+import { adoptarSesionGuardada, borrarSesion, CLAVE_SESION, escribirLatido, leerLatido, leerSesion } from './storage'
 
 /**
  * Cerrojo compartido (Web Locks) que cada pestaña de la aplicación sostiene mientras vive su documento, haya sesión o no.
@@ -53,7 +53,7 @@ function sostenerCerrojoDePestana(): void {
  * - Una sesión guardada se conserva si otra pestaña de la aplicación sigue abierta (cerrojo `fsgr.pestana`, consultado
  *   antes de pedir el propio) o si la señal de actividad es válida (`latidoValido`); si no, se cierra: se cerró el
  *   navegador, o pasaron más de dos minutos y medio desde que se cerró la última pestaña. Sin Web Locks decide la señal.
- * - Después esta pestaña pide su cerrojo, escribe la señal si queda sesión y arranca el latido. El latido arranca siempre
+ * - Después esta pestaña pide su cerrojo, escribe la señal si queda sesión, adopta la sesión que quede y arranca el latido. El latido arranca siempre
  *   (solo escribe mientras haya sesión), para que un inicio de sesión posterior en esta pestaña también lo mantenga.
  * Devuelve cómo detener el latido (pruebas).
  */
@@ -69,5 +69,6 @@ export async function comprobarSesionAlArrancar(ahora: number = Date.now()): Pro
   }
   sostenerCerrojoDePestana()
   if (leerSesion() !== null) escribirLatido(ahora)
+  adoptarSesionGuardada()
   return arrancarLatido()
 }

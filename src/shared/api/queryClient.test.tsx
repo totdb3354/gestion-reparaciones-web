@@ -3,9 +3,9 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
-import { renderConProviders } from '@/test/render'
+import { renderConProviders, SESION_TEC } from '@/test/render'
 import { api } from './client'
 import { estaConectado, reportarExito } from './conexion'
 
@@ -134,5 +134,43 @@ describe('crearQueryClient: errores de consultas', () => {
     expect(await screen.findByText('FALLO')).toBeInTheDocument()
     expect(estaConectado()).toBe(false)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('crearQueryClient: la sesión guardada ya no es la de esta pestaña', () => {
+  beforeEach(() => reportarExito())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('una mutación lanzada después de que otra pestaña entrase con otra sesión no sale y no muestra nada', async () => {
+    // El aviso entre pestañas recargaría la página: aquí no se dispara el evento, solo cambia lo guardado.
+    vi.stubGlobal('location', { ...window.location, replace: vi.fn() })
+    let peticiones = 0
+    server.use(http.post('*/api/clientes', () => {
+      peticiones++
+      return HttpResponse.json({ idCli: 1 })
+    }))
+    renderConProviders(<BotonMutacion />, { sesion: SESION_TEC })
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...SESION_TEC, idUsu: 99, nombreUsuario: 'otro', token: 'jwt-otro' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(peticiones).toBe(0)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(estaConectado()).toBe(true)
+  })
+
+  it('una consulta tras cerrarse la sesión en otra pestaña no sale y no muestra nada', async () => {
+    let peticiones = 0
+    server.use(http.get('*/api/clientes', () => {
+      peticiones++
+      return HttpResponse.json([])
+    }))
+    renderConProviders(<VistaConsulta />, { sesion: SESION_TEC })
+    expect(await screen.findByText('DATOS 0')).toBeInTheDocument()
+    localStorage.removeItem('fsgr.sesion')
+    await userEvent.click(screen.getByRole('button', { name: 'Refrescar' }))
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(peticiones).toBe(1)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(estaConectado()).toBe(true)
   })
 })
