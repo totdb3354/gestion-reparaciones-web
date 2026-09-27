@@ -217,7 +217,7 @@ describe('LogsPage: aviso de tope (G3)', () => {
     const { unmount } = abrir()
     expect(await screen.findByText('Mostrando los 1.000 registros más recientes; acota con los filtros.')).toBeInTheDocument()
     unmount()
-    sessionStorage.clear()
+    localStorage.clear()
     registrarLogs(() => HttpResponse.json(lote(999)))
     abrir()
     await screen.findByText('ID_REP: R0')

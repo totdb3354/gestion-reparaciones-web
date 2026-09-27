@@ -87,7 +87,7 @@ describe('barra superior (calco de MainView)', () => {
       const { unmount } = renderConProviders(<AppLayout />, { sesion })
       expect(screen.queryByRole('button', { name: 'Notificaciones' })).not.toBeInTheDocument()
       unmount()
-      sessionStorage.clear()
+      localStorage.clear()
     }
   })
   it('Cerrar Sesión borra la sesión y lleva al login', async () => {
@@ -95,7 +95,7 @@ describe('barra superior (calco de MainView)', () => {
     await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Cerrar Sesión' }))
     expect(await screen.findByText('LOGIN')).toBeInTheDocument()
-    expect(sessionStorage.getItem('fsgr.sesion')).toBeNull()
+    expect(localStorage.getItem('fsgr.sesion')).toBeNull()
   })
 })
 

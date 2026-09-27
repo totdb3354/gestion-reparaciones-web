@@ -52,4 +52,11 @@ describe('useAvisoAlSalir', () => {
     expect(avisaAlSalir()).toBe(false)
     quitar()
   })
+
+  it('si la sesión se cierra en otra pestaña (se borra la sesión compartida), salir no pregunta', () => {
+    renderHook(() => useAvisoAlSalir(true))
+    expect(avisaAlSalir()).toBe(true)
+    localStorage.removeItem('fsgr.sesion')
+    expect(avisaAlSalir()).toBe(false)
+  })
 })

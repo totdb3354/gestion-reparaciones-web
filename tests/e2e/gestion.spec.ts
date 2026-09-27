@@ -37,7 +37,7 @@ async function cerrarSesion(page: Page) {
 /** GET /api/usuarios/tecnicos con el token de la sesión de la página (misma origin que la app; patrón de pedidos.spec.ts). */
 async function usuariosTecnicos(page: Page): Promise<UsuarioApi[]> {
   return page.evaluate(async () => {
-    const sesion = JSON.parse(sessionStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
+    const sesion = JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
     const r = await fetch('/api/usuarios/tecnicos', { headers: { Authorization: `Bearer ${sesion.token}` } })
     if (!r.ok) throw new Error(`GET /api/usuarios/tecnicos: ${r.status}`)
     return (await r.json()) as UsuarioApi[]

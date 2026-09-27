@@ -25,6 +25,8 @@ afterEach(() => {
   // después de desmontar, igual que al cerrar sesión.
   reiniciarStores()
   server.resetHandlers()
+  // La sesión y su señal de actividad viven en localStorage; sessionStorage guarda el mensaje del login de la pestaña.
+  localStorage.clear()
   sessionStorage.clear()
   reportarExito()
   // El disparo de sesión expirada es global y de una sola vez: sin rearmar, un test lo dejaría gastado

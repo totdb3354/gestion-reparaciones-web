@@ -35,7 +35,7 @@ test.beforeAll(async ({ playwright }, testInfo) => {
  */
 async function crearAsignacionDePrueba(page: Page): Promise<{ idRep: string; imei: string }> {
   expect(api, 'sesión de API del supertécnico (beforeAll)').not.toBeNull()
-  const idTec = await page.evaluate(() => (JSON.parse(sessionStorage.getItem('fsgr.sesion') ?? '{}') as { idTec?: number }).idTec)
+  const idTec = await page.evaluate(() => (JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { idTec?: number }).idTec)
   expect(typeof idTec, 'idTec del técnico en la sesión').toBe('number')
   const imei = imeiSintetico()
   const respuesta = await api!.ctx.post('/api/asignaciones/lote', {

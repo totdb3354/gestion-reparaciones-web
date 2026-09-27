@@ -4,7 +4,7 @@ import { borrarSesion, guardarSesion } from './storage'
 
 describe('sesión expirada', () => {
   beforeEach(() => {
-    sessionStorage.clear()
+    localStorage.clear()
     rearmarSesionExpirada()
   })
   it('sin sesión no dispara (p. ej. 401 del propio login)', () => {

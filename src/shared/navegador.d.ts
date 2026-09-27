@@ -10,3 +10,8 @@ interface Window {
   /** Ventana "Guardar como" del sistema; no existe en todos los navegadores. */
   showSaveFilePicker?: (opciones?: SaveFilePickerOptions) => Promise<FileSystemFileHandle>
 }
+
+interface Document {
+  /** Verdadero cuando el navegador descartó el documento para ahorrar memoria y lo está recargando (Chrome y Edge). */
+  readonly wasDiscarded?: boolean
+}

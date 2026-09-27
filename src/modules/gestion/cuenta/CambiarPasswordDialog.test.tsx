@@ -117,7 +117,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     expect(aviso).toHaveTextContent('Contraseña cambiada correctamente.')
     expect(cuerpos).toEqual([{ passwordActual: 'secreta1', passwordNueva: 'nueva123' }])
     expect(onCerrar).toHaveBeenCalledTimes(1)
-    expect(sessionStorage.getItem('fsgr.sesion')).not.toBeNull()
+    expect(localStorage.getItem('fsgr.sesion')).not.toBeNull()
   })
   it('Enter en un campo guarda', async () => {
     const cuerpos = registrarCambio()
