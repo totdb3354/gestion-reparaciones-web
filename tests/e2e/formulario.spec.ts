@@ -28,20 +28,66 @@ test.beforeAll(async ({ playwright }, testInfo) => {
   api = { ctx, headers: { Authorization: `Bearer ${token}` } }
 })
 
+/** Códigos de modelo del catálogo, como los guarda el servidor. Se repiten a mano porque el e2e no importa código de la app. */
+const MODELOS = [
+  '6s', '6splus', '7', '7plus', '8', '8plus', 'se2020', 'x', 'xr', 'xs', 'xsmax', '11', '11pro', '11promax',
+  '12', '12mini', '12pro', '12promax', '13', '13mini', '13pro', '13promax', '14', '14plus', '14pro', '14promax',
+  '15', '15plus', '15pro', '15promax', '16', '16e', '16plus', '16pro', '16promax', '17', 'air', '17pro', '17promax',
+]
+/** Tipos que no son fila del formulario de Reparación: acciones y los dos de Glass. */
+const TIPOS_SIN_FILA = ['otro', 'g', 'mc']
+
+/** Modelo de un SKU: sin el prefijo del tipo ni la "i" inicial, el código más largo del catálogo que sea prefijo del resto. */
+function modeloDeSku(sku: string, prefijo: string): string | null {
+  let resto = sku.toLowerCase().slice(prefijo.length)
+  if (resto.startsWith('i')) resto = resto.slice(1)
+  let mejor: string | null = null
+  for (const m of MODELOS) if (resto.startsWith(m) && (mejor === null || m.length > mejor.length)) mejor = m
+  return mejor
+}
+
+/**
+ * Modelo del teléfono sintético (el servidor lo exige en una asignación de Reparación): `E2E_MODELO_PRUEBA` si está definido;
+ * si no, el primero del catálogo que, según GET /api/componentes/agrupados, tiene un tipo con algún SKU activo con stock
+ * (para guardar la fila) y otro con todos sus SKU activos a 0 (para solicitar la pieza).
+ */
+async function elegirModeloDePrueba(): Promise<string> {
+  if (process.env.E2E_MODELO_PRUEBA) return process.env.E2E_MODELO_PRUEBA
+  const respuesta = await api!.ctx.get('/api/componentes/agrupados', { headers: api!.headers })
+  expect(respuesta.status(), 'GET /api/componentes/agrupados').toBe(200)
+  const agrupados = (await respuesta.json()) as Record<string, { tipo: string; stock: number; activo: boolean }[]>
+  const porModelo = new Map<string, Map<string, number[]>>()
+  for (const [prefijo, skus] of Object.entries(agrupados)) {
+    if (TIPOS_SIN_FILA.includes(prefijo)) continue
+    for (const c of skus) {
+      const modelo = c.activo ? modeloDeSku(c.tipo, prefijo) : null
+      if (modelo === null) continue
+      const tipos = porModelo.get(modelo) ?? new Map<string, number[]>()
+      tipos.set(prefijo, [...(tipos.get(prefijo) ?? []), c.stock])
+      porModelo.set(modelo, tipos)
+    }
+  }
+  const elegido = MODELOS.find((m) => {
+    const stocks = [...(porModelo.get(m)?.values() ?? [])]
+    return stocks.some((s) => s.some((n) => n > 0)) && stocks.some((s) => s.every((n) => n <= 0))
+  })
+  if (!elegido) throw new Error('Ningún modelo tiene un tipo con stock y otro con todos sus SKU a 0: define E2E_MODELO_PRUEBA')
+  return elegido
+}
 /**
  * Crea por la API, con la sesión del supertécnico, UNA asignación de Reparación de un IMEI sintético para el técnico con la
- * sesión abierta en `page`. El modelo del teléfono es `E2E_MODELO_PRUEBA` si está definido (un modelo con un tipo con
- * stock y otro con el SKU a 0); si no, el teléfono va sin modelo y el test elige el primero del combo.
+ * sesión abierta en `page`. El modelo del teléfono lo da `elegirModeloDePrueba`.
  */
 async function crearAsignacionDePrueba(page: Page): Promise<{ idRep: string; imei: string }> {
   expect(api, 'sesión de API del supertécnico (beforeAll)').not.toBeNull()
   const idTec = await page.evaluate(() => (JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { idTec?: number }).idTec)
   expect(typeof idTec, 'idTec del técnico en la sesión').toBe('number')
   const imei = imeiSintetico()
+  const modelo = await elegirModeloDePrueba()
   const respuesta = await api!.ctx.post('/api/asignaciones/lote', {
     headers: { ...api!.headers, 'Idempotency-Key': `e2e-formulario-${imei}` },
     data: {
-      telefonos: [{ imei, modelo: process.env.E2E_MODELO_PRUEBA || null, idCli: null, clienteExplicito: false }],
+      telefonos: [{ imei, modelo, idCli: null, clienteExplicito: false }],
       asignaciones: [{ imei, categoria: 'R', idTec, comentario: null, esChasis: false }],
     },
   })
@@ -51,7 +97,7 @@ async function crearAsignacionDePrueba(page: Page): Promise<{ idRep: string; ime
     throw new Error(`El lote no creó exactamente una Reparación para el IMEI de prueba: ${JSON.stringify(lote)}`)
   }
   creada = { idRep: lote.creadas[0].idRep, imei }
-  test.info().annotations.push({ type: 'e2e-creado', description: `asignación ${creada.idRep} / IMEI ${imei}` })
+  test.info().annotations.push({ type: 'e2e-creado', description: `asignación ${creada.idRep} / IMEI ${imei} / modelo ${modelo}` })
   return { idRep: creada.idRep, imei }
 }
 

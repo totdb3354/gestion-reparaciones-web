@@ -40,7 +40,8 @@ termina; con `E2E_USER` rechaza y recupera desde la campana solo la solicitud de
 guardar. La asignación la crea el propio test por la API (con `E2E_USER`, para el técnico de `TEC_USER`, sobre un IMEI
 sintético nuevo en cada ejecución) y, termine bien o caiga a medias, `afterAll` borra todo lo que cuelga de ese IMEI: la
 asignación, las reparaciones (la fila guardada devuelve su unidad al stock), la solicitud de pieza y, al final, el teléfono. `E2E_MODELO_PRUEBA` (opcional) fija el
-modelo del teléfono sintético: uno que tenga un tipo con stock y otro con el SKU a 0. Solo se ejecuta contra un entorno con
+modelo del teléfono sintético: uno que tenga un tipo con stock y otro con todos sus SKU a 0; sin él, el test lo elige solo
+consultando el stock. Solo se ejecuta contra un entorno con
 usuarios y datos de prueba.
 `asignar.spec.ts` también **escribe** en el entorno de destino: con `E2E_USER` abre el modal "Asignar trabajos", crea UNA
 asignación de Reparación del IMEI `E2E_IMEI_PRUEBA` al técnico `E2E_TEC_PRUEBA` y la borra al terminar (solo borra el id que
