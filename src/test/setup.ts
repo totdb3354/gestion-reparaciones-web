@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll } from 'vitest'
 import { reportarExito } from '@/shared/api/conexion'
 import { reiniciarStores } from '@/shared/lib/store'
 import { rearmarSesionExpirada } from '@/shared/session/expiracion'
+import { borrarSesion } from '@/shared/session/storage'
 import { server } from './server'
 
 // Polyfills que Radix (popover, dropdown, context-menu) necesita y jsdom no trae.
@@ -25,6 +26,10 @@ afterEach(() => {
   // después de desmontar, igual que al cerrar sesión.
   reiniciarStores()
   server.resetHandlers()
+  // La sesión y su señal de actividad viven en localStorage; sessionStorage guarda el mensaje del login de la pestaña.
+  localStorage.clear()
+  // Además del almacenamiento, la pestaña olvida la sesión que había adoptado.
+  borrarSesion()
   sessionStorage.clear()
   reportarExito()
   // El disparo de sesión expirada es global y de una sola vez: sin rearmar, un test lo dejaría gastado

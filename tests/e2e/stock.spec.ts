@@ -12,7 +12,7 @@ function filaExacta(page: Page, texto: string) {
 /** GET /api/proveedores?tipo=COMPONENTES con el token de la sesión de la página (misma origin que la app). */
 async function proveedoresComponentes(page: Page): Promise<{ idProv: number; nombre: string }[]> {
   return page.evaluate(async () => {
-    const sesion = JSON.parse(sessionStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
+    const sesion = JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
     const r = await fetch('/api/proveedores?tipo=COMPONENTES', { headers: { Authorization: `Bearer ${sesion.token}` } })
     if (!r.ok) throw new Error(`GET /api/proveedores: ${r.status}`)
     return (await r.json()) as { idProv: number; nombre: string }[]

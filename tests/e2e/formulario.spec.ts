@@ -1,8 +1,59 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
 // El test del supertécnico rechaza y recupera la solicitud que deja el del técnico: van en orden y en el mismo worker.
 test.describe.configure({ mode: 'serial' })
+
+/** Forma de la respuesta de POST /api/asignaciones/lote (schema.d.ts: LoteAsignacionesRespuesta). Se repite a mano porque
+ *  el e2e no importa código de la app. */
+type RespuestaLote = { creadas: { idRep: string; imei: string; idTec: number; categoria: string }[]; conflictos: unknown[] }
+
+/** Contexto de API con la sesión del supertécnico (E2E_USER): crea la asignación de prueba y la borra en afterAll con el
+ *  mismo token, sin gastar otro inicio de sesión (el entorno limita los inicios por minuto). */
+let api: { ctx: APIRequestContext; headers: Record<string, string> } | null = null
+/** Asignación de prueba creada por este fichero (y su IMEI sintético); afterAll borra todo lo que cuelga de ese IMEI. */
+let creada: { idRep: string; imei: string } | null = null
+
+/** IMEI sintético de 15 dígitos, distinto en cada ejecución: "000000" + los 9 últimos dígitos de la marca de tiempo. */
+const imeiSintetico = () => `000000${String(Date.now()).slice(-9)}`
+
+test.beforeAll(async ({ playwright }, testInfo) => {
+  const usuario = process.env.E2E_USER
+  const clave = process.env.E2E_PASS
+  if (!usuario || !clave || !process.env.TEC_USER || !process.env.TEC_PASS) return // los tests se saltan con credenciales()
+  const ctx = await playwright.request.newContext({ baseURL: testInfo.project.use.baseURL })
+  const login = await ctx.post('/api/auth/login', { data: { usuario, password: clave } })
+  expect(login.status(), 'POST /api/auth/login (supertécnico, por API)').toBe(200)
+  const { token } = (await login.json()) as { token: string }
+  api = { ctx, headers: { Authorization: `Bearer ${token}` } }
+})
+
+/**
+ * Crea por la API, con la sesión del supertécnico, UNA asignación de Reparación de un IMEI sintético para el técnico con la
+ * sesión abierta en `page`. El modelo del teléfono es `E2E_MODELO_PRUEBA` si está definido (un modelo con un tipo con
+ * stock y otro con el SKU a 0); si no, el teléfono va sin modelo y el test elige el primero del combo.
+ */
+async function crearAsignacionDePrueba(page: Page): Promise<{ idRep: string; imei: string }> {
+  expect(api, 'sesión de API del supertécnico (beforeAll)').not.toBeNull()
+  const idTec = await page.evaluate(() => (JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { idTec?: number }).idTec)
+  expect(typeof idTec, 'idTec del técnico en la sesión').toBe('number')
+  const imei = imeiSintetico()
+  const respuesta = await api!.ctx.post('/api/asignaciones/lote', {
+    headers: { ...api!.headers, 'Idempotency-Key': `e2e-formulario-${imei}` },
+    data: {
+      telefonos: [{ imei, modelo: process.env.E2E_MODELO_PRUEBA || null, idCli: null, clienteExplicito: false }],
+      asignaciones: [{ imei, categoria: 'R', idTec, comentario: null, esChasis: false }],
+    },
+  })
+  expect(respuesta.status(), 'POST /api/asignaciones/lote').toBe(200)
+  const lote = (await respuesta.json()) as RespuestaLote
+  if (lote.creadas.length !== 1 || lote.creadas[0].imei !== imei || lote.creadas[0].categoria !== 'R') {
+    throw new Error(`El lote no creó exactamente una Reparación para el IMEI de prueba: ${JSON.stringify(lote)}`)
+  }
+  creada = { idRep: lote.creadas[0].idRep, imei }
+  test.info().annotations.push({ type: 'e2e-creado', description: `asignación ${creada.idRep} / IMEI ${imei}` })
+  return { idRep: creada.idRep, imei }
+}
 
 async function entrar(page: Page, usuario: string, clave: string) {
   await page.goto('/login')
@@ -16,18 +67,21 @@ const esBorrador = (metodo: string) => (r: { url(): string; request(): { method(
   r.request().method() === metodo && new URL(r.url()).pathname.endsWith('/borrador') && r.ok()
 
 /**
- * Guion del técnico (spec §11). ESCRIBE: guarda una fila (consume una unidad de stock de prueba), registra una solicitud
- * de pieza y termina. Datos necesarios, creados antes con el cliente de escritorio: una asignación de reparación pendiente
- * del técnico de TEC_USER sobre un IMEI de prueba, de un modelo con al menos un tipo con stock y otro tipo con el SKU a 0.
+ * Guion del técnico (spec §11). ESCRIBE: crea por la API su propia asignación de Reparación (IMEI sintético, técnico de
+ * TEC_USER), guarda una fila (consume una unidad de stock de prueba), registra una solicitud de pieza y termina. Si el test
+ * termine o no, afterAll borra la asignación, las reparaciones, la solicitud y el teléfono de ese IMEI.
  */
 test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', async ({ page }) => {
+  credenciales('E2E_USER', 'E2E_PASS')
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   await entrar(page, usuario, clave)
   await expect(page).toHaveURL(/\/reparaciones\/pendientes$/)
+  const { idRep, imei } = await crearAsignacionDePrueba(page)
+  await page.reload()
 
-  // Abrir "Añadir reparación" de la primera asignación
-  await page.getByRole('button', { name: 'Añadir reparación' }).first().click()
-  await expect(page).toHaveURL(/\/reparaciones\/pendientes\/reparar\/[^/]+$/)
+  // Abrir "Añadir reparación" de la asignación de prueba (su fila, por el IMEI sintético)
+  await page.getByRole('row').filter({ hasText: imei }).getByRole('button', { name: 'Añadir reparación' }).click()
+  await expect(page).toHaveURL(new RegExp(`/reparaciones/pendientes/reparar/${idRep}$`))
   const urlFormulario = page.url()
   const formulario = page.getByRole('dialog', { name: /^Nueva reparación — IMEI / })
   await expect(formulario).toBeVisible()
@@ -95,7 +149,8 @@ test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', 
 test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin guardar', async ({ page }) => {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await entrar(page, usuario, clave)
-  await expect(page).toHaveURL(/\/reparaciones\/historial$/)
+  // El supertécnico entra en Asignaciones, como en el JavaFX (ReparacionControllerSuperTecnico.java:229).
+  await expect(page).toHaveURL(/\/reparaciones\/asignaciones$/)
 
   // La solicitud que dejó el técnico enciende el badge
   await expect(page.getByTestId('campana-badge')).toHaveText(/^[1-9][0-9]*$/)
@@ -104,10 +159,17 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   await expect(panel).toBeVisible()
   await panel.getByRole('tab', { name: 'Solicitudes' }).click()
 
-  const pendiente = panel.locator('[data-testid^="tarjeta-solicitud-"][data-grupo="pendiente"]').first()
-  await expect(pendiente).toBeVisible()
-  const idTarjeta = (await pendiente.getAttribute('data-testid')) ?? ''
-  const tarjeta = panel.getByTestId(idTarjeta)
+  // Solo la tarjeta de la solicitud del IMEI sintético de este fichero (nunca la primera de la lista, que puede ser real):
+  // su idRc sale de GET /api/solicitudes?estado=PENDIENTE y la tarjeta urgente se identifica por él.
+  expect(api, 'sesión de API del supertécnico (beforeAll)').not.toBeNull()
+  expect(creada, 'asignación de prueba creada por el test del técnico').not.toBeNull()
+  const imeiPrueba = creada!.imei
+  const pendientes = await api!.ctx.get('/api/solicitudes', { headers: api!.headers, params: { estado: 'PENDIENTE' } })
+  expect(pendientes.status(), 'GET /api/solicitudes?estado=PENDIENTE').toBe(200)
+  const suyas = ((await pendientes.json()) as { idRc: number; imei: string }[]).filter((s) => s.imei === imeiPrueba)
+  expect(suyas, `solicitudes pendientes del IMEI de prueba ${imeiPrueba}`).toHaveLength(1)
+  const tarjeta = panel.getByTestId(`tarjeta-solicitud-U-${suyas[0].idRc}`)
+  await expect(tarjeta).toHaveAttribute('data-grupo', 'pendiente')
   await tarjeta.getByRole('button', { name: 'Rechazar' }).click()
   await expect(tarjeta).toHaveAttribute('data-grupo', 'rechazada')
   await tarjeta.getByRole('button', { name: 'Recuperar' }).click()
@@ -115,7 +177,9 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   await page.keyboard.press('Escape')
   await expect(panel).toBeHidden()
 
-  // "Editar" desde el Historial
+  // "Editar" desde el Historial (enlace de la columna lateral de Reparaciones)
+  await page.getByRole('link', { name: 'Historial', exact: true }).click()
+  await expect(page).toHaveURL(/\/reparaciones\/historial$/)
   await expect(page.getByRole('heading', { name: 'Historial de reparaciones' })).toBeVisible()
   const primeraFila = page.getByRole('table').locator('tr[aria-selected]').first()
   await expect(primeraFila).toBeVisible()
@@ -147,4 +211,68 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   }
   await expect(page).toHaveURL(/\/reparaciones\/historial$/)
   await expect(edicion).toBeHidden()
+})
+
+/**
+ * Limpieza con la sesión de API del beforeAll (supertécnico), de todo lo que cuelga del IMEI sintético:
+ * 1. si la asignación de prueba sigue abierta (el test cayó antes de terminar), se borra por su id;
+ * 2. después se borran por DELETE /api/reparaciones/{idRep} todas las reparaciones que queden del IMEI: primero las R… que
+ *    creó el test (la fila guardada devuelve su unidad al stock y con ellas se van sus Reparacion_componente, incluida la
+ *    solicitud de pieza) y al final la asignación ya cerrada;
+ * 3. se comprueba que no queda ninguna reparación del IMEI ni ninguna solicitud de pieza suya;
+ * 4. se borra el teléfono que creó el lote (DELETE /api/telefonos/{imei}) y se comprueba que ya no existe.
+ * Los fallos se señalan con expect.soft nombrando la ruta, sin tapar el fallo original.
+ */
+test.afterAll(async () => {
+  const sesion = api
+  const restante = creada
+  api = null
+  creada = null
+  if (!sesion) return
+  try {
+    if (!restante) return
+    const motivo = { motivo: 'Limpieza del smoke e2e' }
+    const ruta = `/api/reparaciones/asignaciones/${restante.idRep}`
+    const abierta = await sesion.ctx.get(ruta, { headers: sesion.headers })
+    if (abierta.status() !== 404) {
+      expect.soft(abierta.status(), `limpieza GET ${ruta}`).toBe(200)
+      if (abierta.ok()) {
+        const r = await sesion.ctx.delete(ruta, { headers: sesion.headers, data: motivo })
+        expect.soft(r.status(), `limpieza DELETE ${ruta}`).toBe(204)
+      }
+    }
+
+    const rutaImei = `/api/reparaciones/imei/${restante.imei}`
+    const delImei = await sesion.ctx.get(rutaImei, { headers: sesion.headers })
+    expect.soft(delImei.status(), `limpieza GET ${rutaImei}`).toBe(200)
+    if (delImei.ok()) {
+      const ids = ((await delImei.json()) as { idRep: string }[]).map((r) => r.idRep)
+      // Las R… antes que la asignación: así ninguna queda apuntando a una asignación ya borrada.
+      const orden = [...ids.filter((id) => id.startsWith('R')), ...ids.filter((id) => !id.startsWith('R'))]
+      for (const idRep of orden) {
+        const rutaRep = `/api/reparaciones/${idRep}`
+        const r = await sesion.ctx.delete(rutaRep, { headers: sesion.headers, data: motivo })
+        expect.soft(r.status(), `limpieza DELETE ${rutaRep}`).toBe(204)
+      }
+      const despues = await sesion.ctx.get(rutaImei, { headers: sesion.headers })
+      expect.soft(despues.ok() ? await despues.json() : null, `limpieza: sin reparaciones del IMEI ${restante.imei}`).toEqual([])
+    }
+
+    const solicitudes = await sesion.ctx.get('/api/solicitudes', { headers: sesion.headers })
+    expect.soft(solicitudes.status(), 'limpieza GET /api/solicitudes').toBe(200)
+    if (solicitudes.ok()) {
+      const suyas = ((await solicitudes.json()) as { imei: string }[]).filter((x) => x.imei === restante.imei)
+      expect.soft(suyas, `limpieza: sin solicitudes de pieza del IMEI ${restante.imei}`).toEqual([])
+    }
+
+    // Por último, el teléfono que creó el lote: solo puede irse cuando ya no lo referencia ninguna reparación ni solicitud.
+    // El servidor puede haberlo borrado ya con la última reparación; el DELETE es idempotente (204 igualmente).
+    const rutaTelefono = `/api/telefonos/${restante.imei}`
+    const borrado = await sesion.ctx.delete(rutaTelefono, { headers: sesion.headers })
+    expect.soft(borrado.status(), `limpieza DELETE ${rutaTelefono}`).toBe(204)
+    const existe = await sesion.ctx.get(`${rutaTelefono}/exists`, { headers: sesion.headers })
+    expect.soft(existe.ok() ? await existe.json() : null, `limpieza: sin teléfono ${restante.imei}`).toEqual({ value: false })
+  } finally {
+    await sesion.ctx.dispose()
+  }
 })

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Proveedor } from '@/shared/api/client'
-import { ConexionError, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
+import { ConexionError, mensajeDeError, mensajeSinConexion, SesionDeOtraPestanaError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ContextMenuItem } from '@/shared/ui/context-menu'
 import { tienePedidos } from './api'
@@ -29,6 +29,8 @@ export function MenuProveedor({ p, onToggle, onEditar, onBorrar, onInteraccion }
       .then((tiene) => { if (vivo) setBorrable(!tiene) })
       .catch((e: unknown) => {
         if (!vivo) return
+        // La sesión guardada ya es de otra pestaña: esta se está recargando o yendo al login; no se avisa de nada.
+        if (e instanceof SesionDeOtraPestanaError) return
         mostrarError(e instanceof ConexionError ? mensajeSinConexion(e) : mensajeDeError(e))
       })
     return () => { vivo = false }

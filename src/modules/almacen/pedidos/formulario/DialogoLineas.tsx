@@ -1,14 +1,18 @@
 import { useState, type ReactNode } from 'react'
+import type { Blocker } from 'react-router'
 import type { Proveedor } from '@/shared/api/client'
 import { formatearImporte, parsearDecimal, parsearEntero, simboloFormulario } from '@/shared/lib/importes'
+import { useAvisoAlSalir } from '@/shared/lib/useAvisoAlSalir'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { ComboNavy } from '@/shared/ui/ComboNavy'
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
+import { GuardiaAtras } from '@/shared/ui/GuardiaAtras'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { useTasas } from '../tasa'
 import { totalLinea } from './conversion'
-import type { LineaBase } from './lineas'
+import { textoDescartar, type LineaBase } from './lineas'
 
 /** Columnas tras la primera (FormularioCompraView.fxml:19-25): Proveedor 155 · Cant. 55 · P.Unit. 80 · Urg. 45 ·
  *  Total EUR 90 · papelera 40 sin cabecera. */
@@ -56,6 +60,13 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
   // foco automático de Radix no cae sobre un campo con texto y se deja como estaba (calco). El valor se congela
   // en el primer render: es justo el que ve el efecto de montaje de FocusScope, que solo corre una vez.
   const [huboPrecarga] = useState(() => lineas.length > 0)
+  // F5, cerrar la pestaña o salir de la web con líneas en el pedido: el navegador pregunta (el pedido aún no se ha guardado).
+  useAvisoAlSalir(lineas.length > 0)
+  // Atrás (y Adelante) del navegador con líneas en el pedido: se para la navegación y se pide confirmación "Descartar",
+  // como en "Asignar trabajos". Diferencia deliberada con el JavaFX (decisión del usuario 2026-09-27, web 0.8.5): la ✕ y
+  // "Cancelar" siguen cerrando sin preguntar, como su cancelar() (FormularioCompraController.java:558).
+  const [bloqueo, setBloqueo] = useState<Blocker | null>(null)
+  const atrasBloqueado = bloqueo?.state === 'blocked'
   const porId = new Map(proveedores.map((p) => [p.idProv, p]))
   const divisaDe = (l: LineaBase): string => (l.idProv === null ? undefined : porId.get(l.idProv)?.divisa) ?? 'EUR'
   const tasas = useTasas(Array.from(new Set(lineas.map(divisaDe))))
@@ -79,6 +90,7 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
   }
 
   return (
+    <>
     <Dialog open onOpenChange={(abierto) => { if (!abierto && !enviando) onCerrar() }}>
       <DialogContent
         aria-describedby={undefined}
@@ -161,5 +173,14 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
         </div>
       </DialogContent>
     </Dialog>
+    {lineas.length > 0 && <GuardiaAtras activa={!enviando} onBloqueo={setBloqueo} />}
+    <ConfirmDialog abierto={atrasBloqueado} titulo="Descartar" descripcion={textoDescartar(lineas.length)} textoAccion="Descartar"
+      onConfirmar={() => {
+        // Como en "Asignar trabajos": se cierra el diálogo (y con él sus líneas) antes de dejar seguir la navegación.
+        onCerrar()
+        if (bloqueo?.state === 'blocked') bloqueo.proceed()
+      }}
+      onCancelar={() => { if (bloqueo?.state === 'blocked') bloqueo.reset() }} />
+    </>
   )
 }

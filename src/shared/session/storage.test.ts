@@ -1,32 +1,95 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { borrarSesion, esAdmin, esAdminOSuperTecnico, esSuperTecnico, guardarSesion, leerSesion, type Sesion } from './storage'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerLatido, leerSesion, type Sesion } from './storage'
 
 const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt' }
 
 describe('storage de sesión', () => {
-  beforeEach(() => sessionStorage.clear())
+  beforeEach(() => localStorage.clear())
+  afterEach(() => vi.restoreAllMocks())
   it('sin sesión devuelve null', () => {
     expect(leerSesion()).toBeNull()
   })
-  it('guarda y lee la sesión en sessionStorage', () => {
+  it('guarda y lee la sesión en localStorage, compartida por todas las pestañas', () => {
     guardarSesion(tecnicoF)
     expect(leerSesion()).toEqual(tecnicoF)
-    expect(sessionStorage.getItem('fsgr.sesion')).toContain('"tecnico_f"')
+    expect(localStorage.getItem('fsgr.sesion')).toContain('"tecnico_f"')
+    expect(sessionStorage.getItem('fsgr.sesion')).toBeNull()
   })
-  it('borrar la deja en null', () => {
+  it('guardar la sesión escribe también la señal de actividad', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+    guardarSesion(tecnicoF)
+    expect(localStorage.getItem('fsgr.latido')).toBe('1700000000000')
+  })
+  it('borrar deja sin sesión y sin señal de actividad', () => {
     guardarSesion(tecnicoF)
     borrarSesion()
     expect(leerSesion()).toBeNull()
+    expect(localStorage.getItem('fsgr.sesion')).toBeNull()
+    expect(localStorage.getItem('fsgr.latido')).toBeNull()
   })
   it('un valor corrupto se trata como sin sesión', () => {
-    sessionStorage.setItem('fsgr.sesion', '{no-json')
+    localStorage.setItem('fsgr.sesion', '{no-json')
     expect(leerSesion()).toBeNull()
   })
   it('un valor parseable pero incompleto o con tipos incorrectos se trata como sin sesión', () => {
-    sessionStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, rol: undefined }))
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, rol: undefined }))
     expect(leerSesion()).toBeNull()
-    sessionStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, idUsu: '7' }))
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, idUsu: '7' }))
     expect(leerSesion()).toBeNull()
+  })
+  it('si el almacenamiento lanza al leer, sin sesión y sin señal', () => {
+    localStorage.setItem('fsgr.sesion', JSON.stringify(tecnicoF))
+    escribirLatido(1)
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    })
+    expect(leerSesion()).toBeNull()
+    expect(leerLatido()).toBeNull()
+  })
+  it('si el almacenamiento lanza al escribir o borrar, no propaga el error y queda sin sesión', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('lleno', 'QuotaExceededError')
+    })
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError')
+    })
+    expect(() => guardarSesion(tecnicoF)).not.toThrow()
+    expect(() => escribirLatido()).not.toThrow()
+    expect(() => borrarSesion()).not.toThrow()
+    expect(leerSesion()).toBeNull()
+  })
+  it('la señal de actividad se lee como número; si falta o no es numérica, null', () => {
+    expect(leerLatido()).toBeNull()
+    escribirLatido(1234)
+    expect(localStorage.getItem('fsgr.latido')).toBe('1234')
+    expect(leerLatido()).toBe(1234)
+    localStorage.setItem('fsgr.latido', 'ayer')
+    expect(leerLatido()).toBeNull()
+    localStorage.setItem('fsgr.latido', '')
+    expect(leerLatido()).toBeNull()
+  })
+  it('la sesión de esta pestaña: la que guardó o adoptó; deja de serlo si otra pestaña guarda otra o la borra', () => {
+    expect(esSesionDeEstaPestana()).toBe(true)
+    guardarSesion(tecnicoF)
+    expect(esSesionDeEstaPestana()).toBe(true)
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, token: 'jwt-otra' }))
+    expect(esSesionDeEstaPestana()).toBe(false)
+    adoptarSesionGuardada()
+    expect(esSesionDeEstaPestana()).toBe(true)
+    localStorage.removeItem('fsgr.sesion')
+    expect(esSesionDeEstaPestana()).toBe(false)
+    borrarSesion()
+    expect(esSesionDeEstaPestana()).toBe(true)
+  })
+  it('si el almacenamiento no acepta la sesión, esta pestaña no la adopta', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('lleno', 'QuotaExceededError')
+    })
+    guardarSesion(tecnicoF)
+    vi.restoreAllMocks()
+    expect(esSesionDeEstaPestana()).toBe(true)
+    localStorage.setItem('fsgr.sesion', JSON.stringify(tecnicoF))
+    expect(esSesionDeEstaPestana()).toBe(false)
   })
   it('helpers de rol calcados de Sesion.java', () => {
     expect(esSuperTecnico(tecnicoF)).toBe(true)

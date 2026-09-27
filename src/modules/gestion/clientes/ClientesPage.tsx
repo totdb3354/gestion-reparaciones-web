@@ -3,7 +3,8 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esSuperTecnico } from '@/shared/session/storage'
 import type { Cliente } from '@/shared/api/client'
-import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
+import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion, SesionDeOtraPestanaError } from '@/shared/api/errors'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -23,6 +24,8 @@ const columnas: ColumnDef<Cliente>[] = [
   { accessorKey: 'activo', header: 'Estado', size: 130, maxSize: 130, cell: ({ row }) => <StatusBadge activo={row.original.activo} /> },
 ]
 
+const OPERACION_ALTA = 'clientes'
+
 type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; cliente: Cliente } | { tipo: 'borrar'; cliente: Cliente } | null
 
 /** Contenido del menú contextual. Radix solo lo monta al abrirse, así que el useEffect equivale a la consulta
@@ -38,6 +41,8 @@ function MenuCliente({ c, onToggle, onEditar, onBorrar }: { c: Cliente; onToggle
       // de conexión se anuncia con el detalle técnico, como el diálogo del JavaFX, y no con el genérico.
       .catch((e: unknown) => {
         if (!vivo) return
+        // La sesión guardada ya es de otra pestaña: esta se está recargando o yendo al login; no se avisa de nada.
+        if (e instanceof SesionDeOtraPestanaError) return
         if (e instanceof ConexionError) { mostrarError(mensajeSinConexion(e)); return }
         mostrarError(mensajeDeError(e))
       })
@@ -58,6 +63,9 @@ export function ClientesPage() {
   const { mostrarError } = useAlerta()
   const { data: clientes = [] } = useClientes()
   const crear = useCrearCliente()
+  // Clave de reintento del alta: la misma mientras el nombre no cambie (también al reabrir el diálogo tras un fallo, que
+  // es como se reintenta aquí: el diálogo se cierra al aceptar); nueva tras un alta correcta.
+  const [claves] = useState(() => crearClavesIdempotencia())
   const editar = useEditarCliente()
   const setActivo = useSetActivoCliente()
   const borrar = useBorrarCliente()
@@ -126,7 +134,10 @@ export function ClientesPage() {
         titulo="Nuevo cliente"
         etiqueta="Nombre del cliente:"
         onCancelar={() => setDialogo(null)}
-        onAceptar={(nombre) => { setDialogo(null); crear.mutate(nombre) }}
+        onAceptar={(nombre) => {
+          setDialogo(null)
+          crear.mutate({ nombre, clave: claves.para(OPERACION_ALTA, { nombre }) }, { onSuccess: () => claves.hecha(OPERACION_ALTA) })
+        }}
       />
       <ClienteDialog
         abierto={dialogo?.tipo === 'editar'}

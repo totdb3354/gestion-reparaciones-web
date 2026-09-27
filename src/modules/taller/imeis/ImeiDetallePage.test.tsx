@@ -180,7 +180,7 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     expect(screen.getByRole('button', { name: '← Volver' })).toBeInTheDocument()
   })
   it('CSV agrupado_<imei> con Tipo y sin ID anterior en pulidos', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar): aquí hace falta el layout real, con
     // `patron` porque la ruta a testear (`/reparaciones/imeis/${A}`) lleva un parámetro.
     renderConProviders(<ImeiDetallePage />, { sesion: SESION_SUPER, ruta: `/reparaciones/imeis/${A}`, patron: '/reparaciones/imeis/:imei', layout: <AppLayout /> })

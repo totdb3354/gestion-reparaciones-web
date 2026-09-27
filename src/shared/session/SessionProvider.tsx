@@ -1,10 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, type LoginResponse } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
 import { reiniciarStores } from '@/shared/lib/store'
 import { rearmarSesionExpirada } from '@/shared/session/expiracion'
-import { borrarSesion, guardarSesion, leerSesion, type Sesion } from '@/shared/session/storage'
+import { borrarSesion, CLAVE_SESION, guardarSesion, leerSesion, type Sesion } from '@/shared/session/storage'
 
 export const MSG_CREDENCIALES = 'Usuario o contraseña incorrectos.'
 
@@ -59,7 +59,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const s: Sesion = { idUsu: data.idUsu, nombreUsuario: data.nombreUsuario, rol: data.rol, idTec: data.idTec ?? null, token: data.token }
     guardarSesion(s)
     rearmarSesionExpirada()
-    setSesion(s)
+    // El estado sigue a lo guardado: si el almacenamiento no la acepta, la pestaña queda sin sesión, igual que el cliente HTTP.
+    setSesion(leerSesion())
   }, [qc])
 
   const logout = useCallback(() => {
@@ -68,6 +69,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     reiniciarStores()
     setSesion(null)
   }, [qc])
+
+  // Una sesión para todas las pestañas: el evento `storage` avisa de lo que cambian las OTRAS (nunca de lo que escribe esta,
+  // así que no hay bucle; la señal de actividad `fsgr.latido` se ignora). Se decide por lo que hay guardado ahora.
+  useEffect(() => {
+    const alCambiarEnOtraPestana = (e: StorageEvent) => {
+      // key null: se vació el almacenamiento entero.
+      if (e.key !== CLAVE_SESION && e.key !== null) return
+      const guardada = leerSesion()
+      if (guardada === null) {
+        // Cerrar Sesión (o sesión caducada) en otra pestaña: aquí igual que si se hubiera pulsado en esta; sin sesión,
+        // RequireSesion lleva a /login.
+        if (sesion !== null) logout()
+        return
+      }
+      // Entró otra persona, u otra sesión de la misma: recarga completa hacia la raíz para no mezclar en pantalla datos
+      // de una sesión con otra. Una pestaña en /login que recibe una sesión entra así en la aplicación.
+      if (sesion === null || guardada.idUsu !== sesion.idUsu || guardada.token !== sesion.token) window.location.replace('/')
+    }
+    window.addEventListener('storage', alCambiarEnOtraPestana)
+    return () => window.removeEventListener('storage', alCambiarEnOtraPestana)
+  }, [sesion, logout])
 
   const value = useMemo(() => ({ sesion, login, logout }), [sesion, login, logout])
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

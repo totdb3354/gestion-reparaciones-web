@@ -28,11 +28,13 @@ function useRecarga() {
 }
 
 /** El alta del cliente no manda divisa y el DAO pone EUR; el contrato (`ProveedorAltaRequest`) exige `nombre`, `divisa`
- *  y `tipo`, así que se manda 'EUR' explícito: mismo resultado. Su 422 lo pinta el diálogo: silencia el global. */
-export function useCrearProveedor(): UseMutationResult<unknown, unknown, string> {
+ *  y `tipo`, así que se manda 'EUR' explícito: mismo resultado. Su 422 lo pinta el diálogo: silencia el global.
+ *  `clave` va en la cabecera Idempotency-Key (la da la página con crearClavesIdempotencia). */
+export function useCrearProveedor(): UseMutationResult<unknown, unknown, { nombre: string; clave: string }> {
   const recargar = useRecarga()
   return useMutation({
-    mutationFn: (nombre: string) => api.POST('/api/proveedores', { body: { nombre, divisa: 'EUR', tipo: 'COMPONENTES' } }),
+    mutationFn: ({ nombre, clave }: { nombre: string; clave: string }) =>
+      api.POST('/api/proveedores', { params: { header: { 'Idempotency-Key': clave } }, body: { nombre, divisa: 'EUR', tipo: 'COMPONENTES' } }),
     meta: { silenciarError: true },
     onSettled: recargar,
   })

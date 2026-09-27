@@ -1,11 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { referenciadora, useAnadirIncidencia, useBorrarReparacion, useCancelarIncidencia } from '../api'
 import { DialogoIncidencia } from './DialogoIncidencia'
 import type { AccionesHistorial } from './MenuHistorial'
+
+const OPERACION_INCIDENCIA = 'incidencia'
 
 export const TITULOS_BORRAR = { historial: 'Borrar reparación', trabajo: 'Borrar trabajo' } as const
 
@@ -30,6 +33,8 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
   const [conIncidencia, setConIncidencia] = useState<ReparacionResumen | null>(null)
   const borrar = useBorrarReparacion()
   const anadir = useAnadirIncidencia()
+  // Clave de reintento de "Añadir incidencia": la misma mientras el cuerpo (con el idRep) no cambie; nueva tras guardar bien.
+  const [claves] = useState(() => crearClavesIdempotencia())
   const cancelar = useCancelarIncidencia()
 
   async function pedirBorrado(rep: ReparacionResumen) {
@@ -52,12 +57,16 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
         onCancelar={() => setABorrar(null)} onConfirmar={(motivo) => { if (aBorrar && motivo) borrar.mutate({ idRep: aBorrar.idRep, motivo }); setABorrar(null) }} />
       <ConfirmDialog abierto={aCancelar !== null} titulo="Borrar incidencia" descripcion="Esta acción solo es válida si fue un error al añadirla." textoAccion="Borrar incidencia"
         onCancelar={() => setACancelar(null)} onConfirmar={() => { if (aCancelar) cancelar.mutate(aCancelar.idRep); setACancelar(null) }} />
-      <DialogoIncidencia rep={conIncidencia} onCerrar={() => setConIncidencia(null)}
+      {/* Se cierra solo cuando el POST sale bien; si falla, el diálogo sigue abierto con lo escrito (calco del JavaFX). */}
+      <DialogoIncidencia rep={conIncidencia} enviando={anadir.isPending} onCerrar={() => setConIncidencia(null)}
         onGuardar={(comentario, idTec) => {
           if (!conIncidencia) return
           const rep = conIncidencia
-          setConIncidencia(null)
-          anadir.mutate({ idRep: rep.idRep, comentario, imei: rep.imei, idTec }, { onError: (e) => { if (!esErrorGestionadoGlobalmente(e)) mostrarError(`No se pudo guardar: ${mensajeDeError(e)}`) } })
+          const cuerpo = { idRep: rep.idRep, comentario, imei: rep.imei, idTec }
+          anadir.mutate({ ...cuerpo, clave: claves.para(OPERACION_INCIDENCIA, cuerpo) }, {
+            onSuccess: () => { claves.hecha(OPERACION_INCIDENCIA); setConIncidencia(null) },
+            onError: (e) => { if (!esErrorGestionadoGlobalmente(e)) mostrarError(`No se pudo guardar: ${mensajeDeError(e)}`) },
+          })
         }} />
     </>
   )

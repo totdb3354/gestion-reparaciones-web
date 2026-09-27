@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -88,6 +88,39 @@ describe('ClientesPage', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: 'Aceptar' }))
     await waitFor(() => expect(creado).toEqual({ nombre: 'Amazon' }))
   })
+  it('"Nuevo cliente" lleva Idempotency-Key: reintentar el mismo nombre tras un fallo repite la clave; otro nombre o un alta correcta la cambian', async () => {
+    const envios: { nombre: string; clave: string | null }[] = []
+    const fallos = new Set([1, 3])
+    server.use(http.post('*/api/clientes', async ({ request }) => {
+      const { nombre } = (await request.json()) as { nombre: string }
+      envios.push({ nombre, clave: request.headers.get('Idempotency-Key') })
+      return fallos.has(envios.length) ? HttpResponse.json({ message: 'Prohibido' }, { status: 403 }) : new HttpResponse(null, { status: 201 })
+    }))
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('WEB')
+    const alta = async (nombre: string, n: number) => {
+      await userEvent.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
+      const dlg = within(screen.getByRole('dialog', { name: 'Nuevo cliente' }))
+      await userEvent.type(dlg.getByLabelText('Nombre del cliente:'), nombre)
+      await userEvent.click(dlg.getByRole('button', { name: 'Aceptar' }))
+      await waitFor(() => expect(envios).toHaveLength(n))
+      if (fallos.has(n)) {
+        await screen.findByText('No tienes permisos para realizar esta acción.')
+        await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+      }
+    }
+    await alta('cliente-a', 1) // falla
+    await alta('cliente-a', 2) // reintento: sale bien
+    await alta('cliente-b', 3) // otro nombre: falla
+    await alta('cliente-b', 4) // reintento: sale bien
+    await alta('cliente-b', 5) // tras un alta correcta
+    const [a1, a2, b1, b2, b3] = envios.map((e) => e.clave)
+    expect(a1).toMatch(/^[0-9a-f-]{36}$/)
+    expect(a2).toBe(a1)
+    expect(b1).not.toBe(a1)
+    expect(b2).toBe(b1)
+    expect(b3).not.toBe(b2)
+  })
   it('el menú contextual ofrece Desactivar/Editar y Borrar solo si no tiene teléfonos', async () => {
     renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
     await screen.findByText('WEB')
@@ -102,6 +135,16 @@ describe('ClientesPage', () => {
     await userEvent.keyboard('{Escape}')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('Antiguo') })
     expect(await screen.findByRole('menuitem', { name: 'Activar' })).toBeInTheDocument()
+  })
+  it('si la sesión guardada ya es de otra pestaña, abrir el menú no muestra ningún aviso', async () => {
+    renderConProviders(<ClientesPage />, { sesion: SESION_SUPER })
+    await screen.findByText('WEB')
+    // Otra pestaña entra con otra sesión: la consulta tiene-telefonos del menú no llega a salir.
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...SESION_SUPER, idUsu: 99, nombreUsuario: 'otra', token: 'jwt-otra' }))
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('WEB') })
+    expect(await screen.findByRole('menuitem', { name: 'Editar' })).toBeInTheDocument()
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
   it('si tiene-telefonos cae sin conexión, el diálogo trae el detalle técnico como en el JavaFX', async () => {
     // Es una consulta suelta (no pasa por el QueryCache), así que el aviso lo pone el `.catch` de MenuCliente:

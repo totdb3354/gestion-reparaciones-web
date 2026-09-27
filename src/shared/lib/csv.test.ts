@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { descargarCsv, escaparCsv, generarCsv, textoForzado } from './csv'
 
 describe('csv (calco de CsvExporter)', () => {
@@ -20,7 +20,7 @@ describe('csv (calco de CsvExporter)', () => {
     const csv = generarCsv(['ID', 'IMEI'], [['R1', textoForzado('351')], ['R2', 'a;b']])
     expect(csv).toBe('\uFEFFID;IMEI\r\nR1;"=""351"""\r\nR2;"a;b"\r\n')
   })
-  it('descargarCsv crea un enlace con el nombre <base>_yyyy-MM-dd_HH-mm.csv y lo pulsa', () => {
+  it('descargarCsv, sin "Guardar como" en el navegador, crea un enlace con el nombre <base>_yyyy-MM-dd_HH-mm.csv y lo pulsa', async () => {
     const crear = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x')
     const revocar = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
     const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
@@ -33,5 +33,94 @@ describe('csv (calco de CsvExporter)', () => {
     expect(enlace.download).toBe('mis_pendientes_2026-09-16_09-05.csv')
     expect(revocar).toHaveBeenCalledWith('blob:x')
     vi.restoreAllMocks()
+  })
+})
+
+describe('descargarCsv con "Guardar como" (calco del FileChooser de CsvExporter.exportar)', () => {
+  const ahora = new Date(2026, 8, 16, 9, 5)
+  const cabeceras = ['ID', 'IMEI']
+  const filas = [['R1', textoForzado('351')], ['R2', 'a;b']]
+
+  function espiarDescarga() {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    return vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  }
+  function ofrecerVentana(impl: () => Promise<FileSystemFileHandle>) {
+    const ventana = vi.fn(impl)
+    window.showSaveFilePicker = ventana
+    return ventana
+  }
+
+  afterEach(() => {
+    delete window.showSaveFilePicker
+    vi.restoreAllMocks()
+  })
+
+  it('abre la ventana con el nombre propuesto y el tipo CSV, y escribe el mismo contenido que la descarga', async () => {
+    const clic = espiarDescarga()
+    const escrito: Blob[] = []
+    const cerrar = vi.fn(async () => {})
+    const ventana = ofrecerVentana(async () => ({
+      createWritable: async () => ({ write: async (b: Blob) => { escrito.push(b) }, close: cerrar }),
+    }) as unknown as FileSystemFileHandle)
+    await descargarCsv('mis_pendientes', cabeceras, filas, ahora)
+    expect(ventana).toHaveBeenCalledWith({ suggestedName: 'mis_pendientes_2026-09-16_09-05.csv', types: [{ accept: { 'text/csv': ['.csv'] } }] })
+    expect(escrito).toHaveLength(1)
+    expect(escrito[0].type).toBe('text/csv;charset=utf-8')
+    const bytes = new Uint8Array(await escrito[0].arrayBuffer())
+    expect(Array.from(bytes)).toEqual(Array.from(new TextEncoder().encode(generarCsv(cabeceras, filas))))
+    expect(Array.from(bytes.slice(0, 3))).toEqual([0xef, 0xbb, 0xbf])
+    expect(cerrar).toHaveBeenCalledTimes(1)
+    expect(clic).not.toHaveBeenCalled()
+  })
+
+  it('si el usuario cancela la ventana, no descarga nada ni lanza', async () => {
+    const clic = espiarDescarga()
+    ofrecerVentana(async () => { throw new DOMException('cancelado', 'AbortError') })
+    await expect(descargarCsv('mis_pendientes', cabeceras, filas, ahora)).resolves.toBeUndefined()
+    expect(clic).not.toHaveBeenCalled()
+  })
+
+  it('si la ventana falla por otro motivo (sin gesto de usuario), descarga como siempre', async () => {
+    const clic = espiarDescarga()
+    ofrecerVentana(async () => { throw new DOMException('sin gesto', 'SecurityError') })
+    await descargarCsv('mis_pendientes', cabeceras, filas, ahora)
+    expect(clic).toHaveBeenCalledTimes(1)
+    expect((clic.mock.instances[0] as HTMLAnchorElement).download).toBe('mis_pendientes_2026-09-16_09-05.csv')
+  })
+
+  it('si escribir el fichero elegido falla, descarga como siempre', async () => {
+    const clic = espiarDescarga()
+    ofrecerVentana(async () => ({ createWritable: async () => { throw new DOMException('no', 'NotAllowedError') } }) as unknown as FileSystemFileHandle)
+    await descargarCsv('mis_pendientes', cabeceras, filas, ahora)
+    expect(clic).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la escritura falla a medias, aborta el fichero elegido (no queda a medias) y después descarga', async () => {
+    const clic = espiarDescarga()
+    const abortar = vi.fn(async () => {})
+    const cerrar = vi.fn(async () => {})
+    ofrecerVentana(async () => ({
+      createWritable: async () => ({ write: async () => { throw new DOMException('disco lleno', 'QuotaExceededError') }, close: cerrar, abort: abortar }),
+    }) as unknown as FileSystemFileHandle)
+    await descargarCsv('mis_pendientes', cabeceras, filas, ahora)
+    expect(abortar).toHaveBeenCalledTimes(1)
+    expect(cerrar).not.toHaveBeenCalled()
+    expect(clic).toHaveBeenCalledTimes(1)
+    expect(abortar.mock.invocationCallOrder[0]).toBeLessThan(clic.mock.invocationCallOrder[0])
+  })
+
+  it('si además falla el propio aborto, lo ignora y descarga igual', async () => {
+    const clic = espiarDescarga()
+    ofrecerVentana(async () => ({
+      createWritable: async () => ({
+        write: async () => { throw new DOMException('disco lleno', 'QuotaExceededError') },
+        close: async () => {},
+        abort: async () => { throw new DOMException('ya cerrado', 'InvalidStateError') },
+      }),
+    }) as unknown as FileSystemFileHandle)
+    await expect(descargarCsv('mis_pendientes', cabeceras, filas, ahora)).resolves.toBeUndefined()
+    expect(clic).toHaveBeenCalledTimes(1)
   })
 })

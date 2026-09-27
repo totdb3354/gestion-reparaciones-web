@@ -562,6 +562,14 @@
       "post" : {
         "tags" : [ "usuario-controller" ],
         "operationId" : "registrarTecnico",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -787,6 +795,14 @@
       "post" : {
         "tags" : [ "solicitud-stock-controller" ],
         "operationId" : "insertar_2",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -862,6 +878,13 @@
           "name" : "idRep",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -1182,6 +1205,14 @@
       "post" : {
         "tags" : [ "proveedor-controller" ],
         "operationId" : "insertar_5",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1588,6 +1619,14 @@
       "post" : {
         "tags" : [ "cliente-controller" ],
         "operationId" : "insertar_9",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {

@@ -1,10 +1,12 @@
 import { Link, isRouteErrorResponse, useRouteError } from 'react-router'
-import { mensajeDeError } from '@/shared/api/errors'
+import { mensajeDeError, SesionDeOtraPestanaError } from '@/shared/api/errors'
 
 /** Último recinto: si una ruta revienta (loader, render), en vez de una pantalla en blanco se ve el error
  *  y un enlace de vuelta, como el diálogo de error del JavaFX cuando falla abrir una vista. */
 export function ErrorRuta() {
   const error = useRouteError()
+  // La sesión guardada ya es de otra pestaña: esta se está recargando o yendo al login; no se pinta ningún error.
+  if (error instanceof SesionDeOtraPestanaError) return null
   const mensaje = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : mensajeDeError(error)
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-fondo-vista p-6 text-center">

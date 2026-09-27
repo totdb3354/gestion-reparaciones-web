@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
+import type { Blocker } from 'react-router'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { useClientes } from '@/shared/api/clientes'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
+import { GuardiaAtras } from '@/shared/ui/GuardiaAtras'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
+import { useAvisoAlSalir } from '@/shared/lib/useAvisoAlSalir'
 import { cn } from '@/shared/lib/utils'
 import { useTecnicos } from '../../api'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
@@ -26,6 +29,9 @@ const CATEGORIA: Record<string, string> = { R: 'Reparación', G: 'Glass', P: 'Pu
 /** Cola vacía estable: mientras cargan los clientes no se consume ningún efecto (ver abajo). */
 const SIN_EFECTOS: Efecto[] = []
 
+/* Mientras haya IMEIs en las colas, Atrás (y Adelante) del navegador no cierran el modal en silencio: GuardiaAtras (shared)
+ * para la navegación y el modal enseña la misma confirmación "Descartar" que al cerrarlo. */
+
 /** Modal "Asignar trabajos" (abrirFormularioAsignacion del JavaFX). Nada se escribe hasta "Guardar (N)", salvo el
  *  modelo decidido a mano (D3). La tabla de detrás queda congelada mientras está abierto. */
 export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props) {
@@ -46,10 +52,15 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
   // no duplica lo que quizá sí escribió; tras un éxito el modal se cierra y la siguiente apertura empieza de cero.
   const [claves] = useState(() => crearClavesIdempotencia())
   const [descartar, setDescartar] = useState(false)
+  // Atrás del navegador con IMEIs en las colas: el bloqueo que para la navegación hasta que se confirme o cancele.
+  const [bloqueo, setBloqueo] = useState<Blocker | null>(null)
+  const atrasBloqueado = bloqueo?.state === 'blocked'
   const { mostrarError, mostrarAviso } = useAlerta()
   const barra = resumenBarra(estado)
   const guardando = guardarLote.isPending
   const total = totalEscaneados(estado)
+  // F5, cerrar la pestaña o salir de la web con IMEIs en las colas: el navegador pregunta (nada se ha guardado aún).
+  useAvisoAlSalir(total > 0)
 
   const pedirCierre = () => {
     if (guardando) return
@@ -119,8 +130,16 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
           </div>
         </DialogContent>
       </Dialog>
-      <ConfirmDialog abierto={descartar} titulo="Descartar" descripcion={`Se descartarán los ${total} IMEIs escaneados.`}
-        textoAccion="Descartar" onConfirmar={onCerrar} onCancelar={() => setDescartar(false)} />
+      {total > 0 && <GuardiaAtras activa={!guardando} onBloqueo={setBloqueo} />}
+      <ConfirmDialog abierto={descartar || atrasBloqueado} titulo="Descartar" descripcion={`Se descartarán los ${total} IMEIs escaneados.`}
+        textoAccion="Descartar"
+        onConfirmar={() => {
+          // Desde el Atrás también se cierra el modal (y con él sus colas) antes de dejar seguir la navegación, por si la ruta
+          // de destino mantuviera montada la página.
+          onCerrar()
+          if (bloqueo?.state === 'blocked') bloqueo.proceed()
+        }}
+        onCancelar={() => { if (bloqueo?.state === 'blocked') bloqueo.reset(); setDescartar(false) }} />
     </>
   )
 }

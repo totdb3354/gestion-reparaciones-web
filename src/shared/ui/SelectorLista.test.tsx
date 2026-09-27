@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SelectorLista } from './SelectorLista'
@@ -95,5 +95,21 @@ describe('SelectorLista (calco de SelectorClienteDialog)', () => {
     expect(within(dlg).getByRole('option', { name: 'AMAZON' })).toHaveAttribute('aria-selected', 'true')
     expect(within(dlg).getByRole('option', { name: 'CLIENTE A' })).toHaveAttribute('aria-selected', 'false')
     expect(within(dlg).getByRole('button', { name: 'Guardar' })).toBeEnabled()
+  })
+  it('dos clics seguidos en el botón principal eligen una sola vez', () => {
+    const onSeleccionar = vi.fn()
+    render(<SelectorLista abierto preseleccionarActual titulo="Editar modelo" placeholderBuscar="Filtrar modelo…" opciones={OPCIONES} claveActual="1" textoSeleccionar="Guardar" onSeleccionar={onSeleccionar} onCancelar={() => {}} />)
+    const guardar = screen.getByRole('button', { name: 'Guardar' })
+    fireEvent.click(guardar)
+    fireEvent.click(guardar)
+    expect(onSeleccionar).toHaveBeenCalledTimes(1)
+  })
+  it('enviando: Guardar y Cancelar deshabilitados y Escape no cierra', async () => {
+    const onCancelar = vi.fn()
+    render(<SelectorLista abierto preseleccionarActual enviando titulo="Editar modelo" placeholderBuscar="Filtrar modelo…" opciones={OPCIONES} claveActual="1" textoSeleccionar="Guardar" onSeleccionar={vi.fn()} onCancelar={onCancelar} />)
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
+    await userEvent.keyboard('{Escape}')
+    expect(onCancelar).not.toHaveBeenCalled()
   })
 })

@@ -1,4 +1,4 @@
-import { getDefaultNormalizer, screen, within } from '@testing-library/react'
+import { fireEvent, getDefaultNormalizer, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { renderConProviders } from '@/test/render'
@@ -68,5 +68,51 @@ describe('DialogoAlmacen', () => {
     expect(screen.getByRole('dialog')).toHaveClass('w-[520px]')
     expect(screen.getByRole('dialog')).not.toHaveClass('w-[360px]')
     expect(screen.getByRole('heading', { name: 'Editar stock' })).toHaveClass('text-2xl')
+  })
+
+  describe('cerrojo del envío (doble clic)', () => {
+    function montarControlado(props: { error?: string | null; enviando?: boolean }, onConfirmar = vi.fn()) {
+      const ui = (p: { error?: string | null; enviando?: boolean }) => (
+        <DialogoAlmacen abierto titulo="Nuevo proveedor" error={p.error ?? null} enviando={p.enviando} textoAccion="Confirmar" onConfirmar={onConfirmar} onCancelar={vi.fn()}>
+          <input aria-label="Nombre" defaultValue="x" />
+        </DialogoAlmacen>
+      )
+      const { rerender } = render(ui(props))
+      return { onConfirmar, actualizar: (p: { error?: string | null; enviando?: boolean }) => rerender(ui(p)) }
+    }
+    it('dos clics en el mismo instante confirman una sola vez', () => {
+      const { onConfirmar } = montarControlado({})
+      const boton = screen.getByRole('button', { name: 'Confirmar' })
+      fireEvent.click(boton)
+      fireEvent.click(boton)
+      expect(onConfirmar).toHaveBeenCalledTimes(1)
+    })
+    it('mientras el envío está en curso no se vuelve a confirmar; al terminar, sí', () => {
+      const { onConfirmar, actualizar } = montarControlado({})
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+      actualizar({ enviando: true })
+      actualizar({ enviando: false, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+      expect(onConfirmar).toHaveBeenCalledTimes(2)
+    })
+    it('tras un envío fallido (error nuevo) se puede volver a enviar al instante', () => {
+      const { onConfirmar, actualizar } = montarControlado({})
+      const boton = screen.getByRole('button', { name: 'Confirmar' })
+      fireEvent.click(boton)
+      actualizar({ error: 'No se pudo guardar.' })
+      fireEvent.click(boton)
+      expect(onConfirmar).toHaveBeenCalledTimes(2)
+    })
+    it('una validación local que no lanza ningún envío no deja el botón muerto', async () => {
+      const { onConfirmar } = montarControlado({})
+      const boton = screen.getByRole('button', { name: 'Confirmar' })
+      fireEvent.click(boton)
+      fireEvent.click(boton)
+      expect(onConfirmar).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        fireEvent.click(boton)
+        expect(onConfirmar).toHaveBeenCalledTimes(2)
+      })
+    })
   })
 })

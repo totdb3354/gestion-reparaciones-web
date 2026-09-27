@@ -301,6 +301,62 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.click(boton)
     await waitFor(() => expect(body).toEqual({ comentario: 'sigue sin cargar', imei: '358800000000131', idTec: 5 }))
   })
+  it('"Añadir incidencia": si el guardado falla, el diálogo sigue abierto con lo escrito; si sale bien, se cierra', async () => {
+    let respuesta = () => HttpResponse.json({ message: 'No se pudo registrar la incidencia.' }, { status: 422 })
+    server.use(http.post('*/api/reparaciones/R20260916_6/incidencia', () => respuesta()))
+    abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Añadir incidencia' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Añadir incidencia' })
+    const comentario = within(dlg).getByLabelText('Comentario de incidencia')
+    await userEvent.type(comentario, 'sigue sin cargar')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' }))
+    const error = await screen.findByRole('dialog', { name: 'Error' })
+    expect(error).toHaveTextContent('No se pudo guardar: No se pudo registrar la incidencia.')
+    expect(dlg).toBeInTheDocument()
+    expect(comentario).toHaveValue('sigue sin cargar')
+    await userEvent.click(within(error).getByRole('button', { name: 'Aceptar' }))
+    respuesta = () => new HttpResponse(null, { status: 201 })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Añadir incidencia' })).not.toBeInTheDocument())
+  })
+  it('"Añadir incidencia" lleva Idempotency-Key: el reintento repite la clave; cambiar el comentario o guardar bien la cambian', async () => {
+    const envios: { comentario: string; clave: string | null }[] = []
+    server.use(http.post('*/api/reparaciones/R20260916_6/incidencia', async ({ request }) => {
+      const { comentario } = (await request.json()) as { comentario: string }
+      envios.push({ comentario, clave: request.headers.get('Idempotency-Key') })
+      return envios.length < 3 ? HttpResponse.json({ message: 'No se pudo registrar la incidencia.' }, { status: 422 }) : new HttpResponse(null, { status: 201 })
+    }))
+    abrir()
+    await screen.findByText('R20260915_133')
+    const abrirDialogo = async () => {
+      await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Añadir incidencia' }))
+      return screen.findByRole('dialog', { name: 'Añadir incidencia' })
+    }
+    const guardar = async (dlg: HTMLElement, n: number) => {
+      await userEvent.click(within(dlg).getByRole('button', { name: 'Añadir incidencia y asignar' }))
+      await waitFor(() => expect(envios).toHaveLength(n))
+      if (n < 3) await userEvent.click(within(await screen.findByRole('dialog', { name: 'Error' })).getByRole('button', { name: 'Aceptar' }))
+    }
+    let dlg = await abrirDialogo()
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), 'sigue sin cargar')
+    await guardar(dlg, 1)
+    await guardar(dlg, 2)
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), ' bien')
+    await guardar(dlg, 3)
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Añadir incidencia' })).not.toBeInTheDocument())
+    dlg = await abrirDialogo()
+    await userEvent.type(within(dlg).getByLabelText('Comentario de incidencia'), 'sigue sin cargar bien')
+    await guardar(dlg, 4)
+    expect(envios.map((e) => e.comentario)).toEqual(['sigue sin cargar', 'sigue sin cargar', 'sigue sin cargar bien', 'sigue sin cargar bien'])
+    const [a, b, c, d] = envios.map((e) => e.clave)
+    expect(a).toMatch(/^[0-9a-f-]{36}$/)
+    expect(b).toBe(a)
+    expect(c).not.toBe(a)
+    expect(d).not.toBe(c)
+  })
   it('"Añadir incidencia" en un trabajo de un técnico inactivo: sin preselección, botón deshabilitado hasta elegir un activo y POST con el elegido', async () => {
     // Calco de `tecnicos.stream().filter(t -> t.getIdTec() == rep.getIdTec()).findFirst().ifPresent(cbTecnico::setValue)`
     // sobre getAllActivos(): tecnico_n (7) está inactivo, así que no se preselecciona nadie.
@@ -398,7 +454,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(escribir).toHaveBeenCalledWith('358800000000131')
   })
   it('CSV del supertécnico con columna Técnico y nombre historial_reparaciones', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
     // no solo la página: renderConProviders monta HistorialPage como ruta hija de <AppLayout/> (opción `layout`).
     renderConProviders(<HistorialPage tipo="REPARACION" />, { sesion: SESION_SUPER, ruta: '/reparaciones/historial', layout: <AppLayout /> })
@@ -412,7 +468,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     descargar.mockRestore()
   })
   it('CSV del técnico con nombre mis_reparaciones y sin columna Técnico', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     renderConProviders(<HistorialPage tipo="REPARACION" />, { sesion: SESION_TEC, ruta: '/reparaciones/historial', layout: <AppLayout /> })
     await screen.findByText('R20260915_133')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
@@ -424,7 +480,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
   })
   it('toggle Glass activo, sub-etiqueta "Llegó" del reparador y CSV historial_glass', async () => {
     server.use(http.get('*/api/glass/historial', () => HttpResponse.json([glass('2026-09-16T09:30:00')])))
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // Sesión SUPERTECNICO (por defecto): reutiliza el mismo AppLayout+mock de contadores que el resto del
     // fichero, así que es la más barata para probar aquí el nombre historial_glass; el cálculo de mis_glass
     // (TECNICO) es el mismo `global ? … : 'mis_' + tipo` ya cubierto por "mis_reparaciones" arriba.

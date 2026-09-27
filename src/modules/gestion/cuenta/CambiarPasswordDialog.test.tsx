@@ -30,6 +30,20 @@ async function rellenar(actual: string, nueva: string, confirmar: string) {
   if (confirmar) await userEvent.type(screen.getByLabelText('Confirmar nueva contraseña'), confirmar)
 }
 
+describe('CambiarPasswordDialog: doble clic', () => {
+  it('dos clics seguidos en Guardar envían una sola vez', async () => {
+    const cuerpos = registrarCambio()
+    abrir()
+    await rellenar('actual1', 'nueva123', 'nueva123')
+    const guardar = screen.getByRole('button', { name: 'Guardar' })
+    fireEvent.click(guardar)
+    fireEvent.click(guardar)
+    await waitFor(() => expect(cuerpos).toHaveLength(1))
+    await new Promise((r) => setTimeout(r, 50))
+    expect(cuerpos).toHaveLength(1)
+  })
+})
+
 describe('CambiarPasswordDialog: estructura (CambiarPasswordView.fxml)', () => {
   it('barra navy con el título, tres campos con sus etiquetas y placeholders, botones y 380 px', () => {
     abrir()
@@ -103,7 +117,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     expect(aviso).toHaveTextContent('Contraseña cambiada correctamente.')
     expect(cuerpos).toEqual([{ passwordActual: 'secreta1', passwordNueva: 'nueva123' }])
     expect(onCerrar).toHaveBeenCalledTimes(1)
-    expect(sessionStorage.getItem('fsgr.sesion')).not.toBeNull()
+    expect(localStorage.getItem('fsgr.sesion')).not.toBeNull()
   })
   it('Enter en un campo guarda', async () => {
     const cuerpos = registrarCambio()

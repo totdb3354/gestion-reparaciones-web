@@ -18,7 +18,7 @@ async function entrar(page: Page) {
 async function llamarApi(page: Page, metodo: 'GET' | 'POST' | 'DELETE', ruta: string, cuerpo?: unknown): Promise<{ status: number; json: unknown }> {
   return page.evaluate(
     async ({ metodo, ruta, cuerpo }) => {
-      const sesion = JSON.parse(sessionStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
+      const sesion = JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
       const headers: Record<string, string> = { Authorization: `Bearer ${sesion.token}` }
       if (cuerpo !== undefined) headers['Content-Type'] = 'application/json'
       const r = await fetch(ruta, { method: metodo, headers, body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo) })

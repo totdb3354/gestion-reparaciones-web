@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { Navigate, Route, RouterProvider, createMemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { RequireSesion } from '../session/RequireSesion'
+import { SesionDeOtraPestanaError } from '@/shared/api/errors'
 import { ErrorRuta } from './ErrorRuta'
 import { PendienteDeMigrar } from './PendienteDeMigrar'
 
@@ -23,6 +24,24 @@ describe('ErrorRuta', () => {
     expect(screen.getByText('404 Not Found')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/')
     expect(screen.queryByText('NUNCA')).not.toBeInTheDocument()
+  })
+
+  it('una petición que no salió porque la sesión guardada es de otra pestaña no pinta nada (la pestaña se recarga)', async () => {
+    const router = createMemoryRouter([
+      {
+        path: '/',
+        loader: () => {
+          throw new SesionDeOtraPestanaError()
+        },
+        element: <p>NUNCA</p>,
+        errorElement: <ErrorRuta />,
+      },
+    ])
+    const { container } = render(<RouterProvider router={router} />)
+    await waitFor(() => expect(router.state.errors).not.toBeNull())
+    expect(screen.queryByText('Error')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Volver al inicio' })).not.toBeInTheDocument()
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('con un error corriente muestra su mensaje', async () => {

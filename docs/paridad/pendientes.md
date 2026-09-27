@@ -64,5 +64,5 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación de desvanecido.
 - En la pestaña Pulidos el JavaFX copia la celda sin resaltarla (`PulidoTecnicoController`); la web la resalta igual que en Reparaciones y Glass.
 - El tooltip con los tipos de la solicitud cubre en el JavaFX toda la celda Estado (se instala en la caja que apila los badges); en la web, solo el badge de la solicitud y la línea de debajo.
-- El CSV es una descarga del navegador con nombre `<base>_yyyy-MM-dd_HH-mm.csv`.
+- El CSV propone el nombre `<base>_yyyy-MM-dd_HH-mm.csv`: "Guardar como" en Chrome y Edge, descarga del navegador en el resto (ficha `shell.md`, web 0.8.5).
 - El CSV del supertécnico del JavaFX escribe 11 valores bajo 10 cabeceras (añade "Reutilizado" a las filas pero no a la cabecera); el CSV de esta ficha exporta las 10 columnas coherentes.

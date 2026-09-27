@@ -22,6 +22,26 @@ export type EstadoFiltros = {
 
 export const FILTROS_VACIOS: EstadoFiltros = { imei: '', tecnicos: [], clientes: [], tipos: [], estados: [] }
 
+/**
+ * Calco de poblarFiltroCliente del JavaFX (`if (clientesConocidos.add(c)) clientesFiltro.add(c)`): un cliente que aparece
+ * por primera vez en una carga entra MARCADO en el filtro, también con el filtro aplicado a medias; los desmarcados a mano
+ * que ya se conocían siguen desmarcados. `conocidos` son los clientes vistos desde que se abrió la vista. Con el filtro sin
+ * aplicar (`clientes` vacío = todos) solo crece `conocidos`. Devuelve null si la carga no trae ningún cliente nuevo.
+ */
+export function incorporarClientesNuevos(
+  filtros: EstadoFiltros,
+  conocidos: readonly string[],
+  clientes: readonly string[],
+): { conocidos: string[]; filtros: EstadoFiltros } | null {
+  const vistos = new Set(conocidos)
+  const nuevos = clientes.filter((c) => !vistos.has(c))
+  if (nuevos.length === 0) return null
+  return {
+    conocidos: [...conocidos, ...nuevos],
+    filtros: filtros.clientes.length === 0 ? filtros : { ...filtros, clientes: [...filtros.clientes, ...nuevos] },
+  }
+}
+
 // Traduce EstadoAsignacion (API pública de este módulo, en mayúsculas) a TipoPendiente
 // (el vocabulario de pasaTipo en lib/filtros, en minúsculas). 'ASIGNACION' no tiene
 // equivalente en marcados: pasaTipo ya la trata como "ni solicitud ni incidencia".

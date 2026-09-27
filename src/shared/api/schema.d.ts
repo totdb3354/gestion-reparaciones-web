@@ -3752,7 +3752,9 @@ export interface operations {
     registrarTecnico: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -3966,7 +3968,9 @@ export interface operations {
     insertar_2: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -4034,7 +4038,9 @@ export interface operations {
     marcarIncidenciaYAsignar: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 idRep: string;
             };
@@ -4298,7 +4304,9 @@ export interface operations {
     insertar_5: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -4662,7 +4670,9 @@ export interface operations {
     insertar_9: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };

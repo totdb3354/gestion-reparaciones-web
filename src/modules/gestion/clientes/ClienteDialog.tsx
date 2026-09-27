@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
+import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
@@ -13,9 +14,11 @@ type Props = {
   onCancelar: () => void
 }
 
-/** Calco de los TextInputDialog de ClientesController. Acepta con Enter; nombre recortado; vacío no hace nada. */
+/** Calco de los TextInputDialog de ClientesController. Acepta con Enter; nombre recortado; vacío no hace nada. Un doble clic
+ *  en Aceptar no llama dos veces a `onAceptar` (cerrojo síncrono de useCerrojoEnvio). */
 export function ClienteDialog({ abierto, titulo, etiqueta, valorInicial = '', onAceptar, onCancelar }: Props) {
   const [nombre, setNombre] = useState(valorInicial)
+  const enviar = useCerrojoEnvio({ abierto, enviando: false })
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el campo al reabrir el diálogo con otro valor inicial (patrón "Adjusting state" de React); useLayoutEffect (no useEffect) evita un parpadeo de un frame con el nombre anterior; no hay alternativa sin efecto que no complique el componente
     if (abierto) setNombre(valorInicial)
@@ -28,7 +31,7 @@ export function ClienteDialog({ abierto, titulo, etiqueta, valorInicial = '', on
   return (
     <Dialog open={abierto} onOpenChange={(o) => !o && onCancelar()}>
       <DialogContent aria-describedby={undefined} className="max-w-[420px]">
-        <form onSubmit={(e) => { e.preventDefault(); aceptar() }}>
+        <form onSubmit={(e) => { e.preventDefault(); enviar(aceptar) }}>
           <DialogHeader>
             <DialogTitle>{titulo}</DialogTitle>
           </DialogHeader>

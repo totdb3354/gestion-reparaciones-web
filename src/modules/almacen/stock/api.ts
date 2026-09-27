@@ -69,10 +69,11 @@ export function useSetActivoComponente(): UseMutationResult<unknown, unknown, { 
   })
 }
 
-/** "Solicitar pieza": sin recarga ni aviso al terminar (calco, inventario §9.4). */
-export function useSolicitarPieza(): UseMutationResult<unknown, unknown, { idCom: number; descripcion: string | null }> {
+/** "Solicitar pieza": sin recarga ni aviso al terminar (calco, inventario §9.4). `clave` va en la cabecera
+ *  Idempotency-Key: la da la página con crearClavesIdempotencia (misma clave mientras el cuerpo no cambie). */
+export function useSolicitarPieza(): UseMutationResult<unknown, unknown, { idCom: number; descripcion: string | null; clave: string }> {
   return useMutation({
-    mutationFn: ({ idCom, descripcion }: { idCom: number; descripcion: string | null }) =>
-      api.POST('/api/solicitudes-stock', { body: { idCom, descripcion } }),
+    mutationFn: ({ idCom, descripcion, clave }: { idCom: number; descripcion: string | null; clave: string }) =>
+      api.POST('/api/solicitudes-stock', { params: { header: { 'Idempotency-Key': clave } }, body: { idCom, descripcion } }),
   })
 }

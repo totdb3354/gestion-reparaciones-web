@@ -1,19 +1,23 @@
 import { useLayoutEffect, useState } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
+import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
 import { Label } from '@/shared/ui/label'
 import { useTecnicos } from '../api'
 
-type Props = { rep: ReparacionResumen | null; onGuardar: (comentario: string, idTec: number) => void; onCerrar: () => void }
+type Props = { rep: ReparacionResumen | null; enviando: boolean; onGuardar: (comentario: string, idTec: number) => void; onCerrar: () => void }
 
 /** Calco de abrirDialogoIncidencia: comentario, técnico asignado (activos, preseleccionado el reparador si está entre
- *  ellos) y botón que solo se habilita con ambos. */
-export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
+ *  ellos) y botón que solo se habilita con ambos. Un doble clic en el botón no llama dos veces a `onGuardar` (useCerrojoEnvio).
+ *  Quien lo abre lo cierra cuando el guardado sale bien: mientras guarda (`enviando`) no se cierra y, si falla, sigue abierto
+ *  con lo escrito, como la ventana del JavaFX. */
+export function DialogoIncidencia({ rep, enviando, onGuardar, onCerrar }: Props) {
   const { data: tecnicos = [] } = useTecnicos(true)
   const [comentario, setComentario] = useState('')
   // Lo elegido a mano en el desplegable; null mientras no se toca, y entonces manda la preselección.
   const [elegido, setElegido] = useState<string | null>(null)
+  const enviar = useCerrojoEnvio({ abierto: rep !== null, enviando })
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el formulario al abrir con otra fila
     if (rep) { setComentario(rep.incidencia ?? ''); setElegido(null) }
@@ -27,7 +31,7 @@ export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
   // quita al elegido a mano, el desplegable enseña "Selecciona técnico" y el botón no puede publicar ese id invisible.
   const listo = comentario.trim() !== '' && tecnicos.some((t) => String(t.idTec) === idTec)
   return (
-    <Dialog open={rep !== null} onOpenChange={(o) => !o && onCerrar()}>
+    <Dialog open={rep !== null} onOpenChange={(o) => { if (!o && !enviando) onCerrar() }}>
       <DialogContent aria-describedby={undefined} className="max-w-[520px] gap-2 bg-fondo-input p-4">
         <DialogHeader><DialogTitle className="text-[14px] font-bold text-azul-medio">Añadir incidencia</DialogTitle></DialogHeader>
         <Label htmlFor="incidencia-comentario" className="text-[12px]">Comentario de incidencia</Label>
@@ -37,10 +41,10 @@ export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
           <option value="">Selecciona técnico</option>
           {tecnicos.map((t) => <option key={t.idTec} value={String(t.idTec)}>{t.nombre}</option>)}
         </select>
-        <Button disabled={!listo} onClick={() => onGuardar(comentario.trim(), Number(idTec))} className="h-auto w-full rounded bg-fila-reparado-ico py-2 text-[12px] text-superficie hover:bg-fila-reparado-ico/90 disabled:bg-gris-disabled disabled:text-gris-borde disabled:opacity-100">
+        <Button disabled={!listo || enviando} onClick={() => enviar(() => onGuardar(comentario.trim(), Number(idTec)))} className="h-auto w-full rounded bg-fila-reparado-ico py-2 text-[12px] text-superficie hover:bg-fila-reparado-ico/90 disabled:bg-gris-disabled disabled:text-gris-borde disabled:opacity-100">
           Añadir incidencia y asignar
         </Button>
-        <DialogFooter><Button variant="outline" onClick={onCerrar}>Cerrar</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" disabled={enviando} onClick={onCerrar}>Cerrar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   )

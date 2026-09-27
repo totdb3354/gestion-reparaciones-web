@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Proveedor } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError, ReglaNegocioError } from '@/shared/api/errors'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { descargarCsv } from '@/shared/lib/csv'
 import { useStore } from '@/shared/lib/store'
 import { useInteraccionesAbiertas } from '@/shared/lib/useInteraccionesAbiertas'
@@ -21,6 +22,8 @@ import { filtroProveedores, seleccionProveedores } from './estado'
 import { MenuProveedor } from './MenuProveedor'
 import { NuevoProveedorDialog } from './NuevoProveedorDialog'
 
+const OPERACION_ALTA = 'proveedores'
+
 type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; p: Proveedor } | { tipo: 'borrar'; p: Proveedor } | null
 
 /** Pestaña "Proveedores" de StockView.fxml (spec 4a §6): sin buscador ni "Limpiar filtros", filtro solo de activos. */
@@ -36,6 +39,8 @@ export function ProveedoresPage() {
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const { data = [], dataUpdatedAt, refetch } = useProveedoresComponentes({ activo: !hayAlguna })
   const crear = useCrearProveedor()
+  // Clave de reintento del alta: la misma mientras el nombre no cambie; nueva tras un alta correcta.
+  const [claves] = useState(() => crearClavesIdempotencia())
   const editar = useEditarProveedor()
   const setActivo = useSetActivoProveedor()
   const borrar = useBorrarProveedor()
@@ -93,7 +98,13 @@ export function ProveedoresPage() {
         enviando={crear.isPending}
         errorServidor={errorServidor}
         onCancelar={cerrarDialogo}
-        onConfirmar={(nombre) => { setErrorServidor(null); crear.mutate(nombre, { onSuccess: cerrarDialogo, onError: alFallarDialogo }) }}
+        onConfirmar={(nombre) => {
+          setErrorServidor(null)
+          crear.mutate({ nombre, clave: claves.para(OPERACION_ALTA, { nombre }) }, {
+            onSuccess: () => { claves.hecha(OPERACION_ALTA); cerrarDialogo() },
+            onError: alFallarDialogo,
+          })
+        }}
       />
       <EditarProveedorDialog
         proveedor={dialogo?.tipo === 'editar' ? dialogo.p : null}

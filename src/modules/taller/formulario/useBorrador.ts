@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type Dispatch } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch } from 'react'
 import { borrarBorrador, guardarBorrador, idsReparacionesDelImei } from './api'
 import { aplicarBorrador, leerBorrador, serializar, tieneGuardadas } from './borrador'
 import type { AccionFormulario, EstadoFormulario } from './estado'
@@ -21,8 +21,14 @@ type Args = { estado: EstadoFormulario; dispatch: Dispatch<AccionFormulario>; bo
 
 /** Borrador persistente del flujo nuevo y Glass: aplica el recuperado una sola vez, comprueba que sus filas guardadas
  *  sigan existiendo, autoguarda 2 s después del último cambio, vuelca al momento cuando sube `estado.volcados` y al
- *  desmontar, y deja de escribir tras un guardado real. Todos los fallos son silenciosos. */
-export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): { listo: boolean; volcarAhora: () => Promise<void>; descartar: () => Promise<void> } {
+ *  desmontar, y deja de escribir tras un guardado real. Todos los fallos son silenciosos. `sinVolcar` dice si hay cambios
+ *  de datos que aún no han llegado al borrador del servidor (los 2 s del autoguardado, o una escritura que falló). */
+export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
+  listo: boolean
+  sinVolcar: boolean
+  volcarAhora: () => Promise<void>
+  descartar: () => Promise<void>
+} {
   // Ilegible, vacío o inactivo → null: formulario limpio, sin banda y sin error.
   const recuperado = useMemo(() => (activo ? leerBorrador(borradorJson) : null), [activo, borradorJson])
   // Derivado, no estado: pasa a true en el mismo commit que el REEMPLAZAR (aplicarBorrador pone borradorRecuperado).
@@ -44,6 +50,8 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
   // Copia INMUTABLE de `volcados` al abrir (a diferencia de `volcadosVistos`, que el efecto 3 va actualizando): con ella el
   // desmontaje sabe si algo cambió DESDE que se abrió el formulario, sin importar si ya se procesó ese cambio.
   const volcadosInicial = useRef(estado.volcados)
+  // `revision` del último contenido que consta en el servidor (escrito ahora o igual al ya escrito).
+  const [revisionVolcada, setRevisionVolcada] = useState(estado.revision)
 
   const cancelar = useCallback(() => {
     if (temporizador.current !== null) {
@@ -67,11 +75,15 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
         }
         const contenido = serializar(e)
         // Mismo contenido que la última escritura buena (✕ y, acto seguido, el desmontaje): no se repite.
-        if (escrito.current !== undefined && contenido === escrito.current) return
+        if (escrito.current !== undefined && contenido === escrito.current) {
+          setRevisionVolcada(e.revision)
+          return
+        }
         try {
           if (contenido === null) await borrarBorrador(e.idAsignacion)
           else await guardarBorrador(e.idAsignacion, contenido)
           escrito.current = contenido
+          setRevisionVolcada(e.revision)
         } catch {
           // Silencioso. No se anota como escrito: el siguiente volcado (el de cerrar) lo reintenta.
         }
@@ -150,5 +162,6 @@ export function useBorrador({ estado, dispatch, borradorJson, activo }: Args): {
     })
   }, [cancelar])
 
-  return { listo, volcarAhora, descartar }
+  const sinVolcar = activo && listo && !estado.borradorDescartado && estado.revision !== revisionVolcada
+  return { listo, sinVolcar, volcarAhora, descartar }
 }

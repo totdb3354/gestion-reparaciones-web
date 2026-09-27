@@ -21,14 +21,17 @@ export function enlacesReparaciones(sesion: Sesion | null): EnlaceTaller[] {
   return enlaces
 }
 
-/** Entrada por rol (spec web-taller §4.1): TECNICO en Pendientes; ADMIN y SUPERTECNICO en Historial.
- *  Con la vista de Asignaciones ya migrada (sub-proyecto 3a) se revisó si el supertécnico debía entrar por ella, y el
- *  JavaFX de referencia no lo respalda: ReparacionViewSuperTecnico.fxml arranca con `pnlHistorial visible="true"` y el
- *  panel de Asignaciones oculto, igual que el del ADMIN (el del TECNICO arranca en `pnlMisPendientes`). Solo el clic en
- *  el logo (irAInicio) lleva al supertécnico a Asignaciones, y eso es otro gesto que la web no tiene. Se deja Historial;
- *  cambiarlo es una decisión del usuario, no del calco. */
+/** Entrada por rol al pulsar "Reparaciones" y tras el login, calco del JavaFX (hotfix/0.16.3): MainController.initialize()
+ *  abre la vista de Reparaciones del rol (MainController.java:111 → mostrarReparaciones :763-769).
+ *  - SUPERTECNICO → Asignaciones: `ReparacionControllerSuperTecnico.initialize()` termina con
+ *    `mostrarPanel(pnlPendientes, btnTabPendientes)` (ReparacionControllerSuperTecnico.java:229), y ese panel es la
+ *    pestaña "Asignaciones" (ReparacionViewSuperTecnico.fxml:28 y :115-116, PendientesSuperTecnicoView).
+ *  - ADMIN → Historial: `pnlHistorial visible="true"` (ReparacionViewAdmin.fxml:41; `irAInicio` :209 no cambia de panel).
+ *  - TECNICO → sus pendientes: `pnlMisPendientes visible="true"` (ReparacionViewTecnico.fxml:105).
+ *  Sin técnico en sesión (no debería ocurrir fuera del ADMIN) se va a Historial. */
 export function InicioReparaciones() {
   const { sesion } = useSession()
+  if (esSuperTecnico(sesion)) return <Navigate to="/reparaciones/asignaciones" replace />
   const aPendientes = !esAdminOSuperTecnico(sesion) && sesion?.idTec != null
   return <Navigate to={aPendientes ? '/reparaciones/pendientes' : '/reparaciones/historial'} replace />
 }

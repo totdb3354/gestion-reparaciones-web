@@ -158,6 +158,27 @@ describe('AsignacionesPage', () => {
  * `shouldAdvanceTime`: el reloj falso corre también con el tiempo real, o las promesas de msw (y las esperas de
  * Testing Library) se quedarían colgadas dentro de un reloj parado.
  */
+describe('AsignacionesPage · filtro Cliente tras una recarga (calco de poblarFiltroCliente)', () => {
+  it('con el filtro a medias, un cliente que llega en una recarga entra marcado y sus filas se ven', async () => {
+    const nuevo = resumen({ idRep: 'AP20260916_4', imei: '000000000000004', cliente: 'CLIENTE B' })
+    const { queryClient } = abrir()
+    await screen.findByText('AP20260916_3')
+    // Filtro a medias: se desmarca "CLIENTE A" y quedan solo las filas sin cliente.
+    await userEvent.click(screen.getByRole('button', { name: 'Todos' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'CLIENTE A' }))
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByText('AP20260916_3')).not.toBeInTheDocument())
+    server.use(http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([pulido, nuevo])))
+    await act(() => queryClient.refetchQueries())
+    expect(await screen.findByText('AP20260916_4')).toBeInTheDocument()
+    // El desmarcado a mano sigue desmarcado.
+    expect(screen.queryByText('AP20260916_3')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '2 clientes' }))
+    expect(screen.getByRole('checkbox', { name: 'CLIENTE B' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'CLIENTE A' })).not.toBeChecked()
+  })
+})
+
 describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4)', () => {
   it('el menú contextual congela el sondeo, y cerrarlo lo reanuda', async () => {
     const cargas = contarCargas()
@@ -383,7 +404,7 @@ describe('AsignacionesPage · CSV (spec SP6 §6.5)', () => {
   })
 
   it('"Descargar CSV" exporta reparaciones_pendientes con las 14 columnas y solo las filas visibles', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     const usuario = userEvent.setup()
     renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones', layout: <AppLayout /> })
     await screen.findByText('A20260916_1')

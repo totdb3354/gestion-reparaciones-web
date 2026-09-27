@@ -51,7 +51,7 @@ describe('Campana (ficha docs/paridad/notificaciones.md)', () => {
       expect(screen.queryByRole('button', { name: 'Notificaciones' })).not.toBeInTheDocument()
       expect(container.querySelector('button, img')).toBeNull()
       unmount()
-      sessionStorage.clear()
+      localStorage.clear()
     }
     expect(gets).toEqual([])
   })

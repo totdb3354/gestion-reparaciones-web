@@ -12,6 +12,7 @@ const destinos = (
   <>
     <Route path="/reparaciones/pendientes" element={<p>PENDIENTES</p>} />
     <Route path="/reparaciones/historial" element={<p>HISTORIAL</p>} />
+    <Route path="/reparaciones/asignaciones" element={<p>ASIGNACIONES</p>} />
   </>
 )
 
@@ -39,13 +40,13 @@ function montarRequiereTecnico(sesion: typeof SESION_ADMIN) {
 }
 
 describe('rutas del taller', () => {
-  it('/reparaciones entra en Pendientes para el técnico y en Historial para supertécnico y admin', () => {
+  it('/reparaciones entra como el JavaFX: técnico en Pendientes, supertécnico en Asignaciones y admin en Historial', () => {
     renderConProviders(<InicioReparaciones />, { sesion: SESION_TEC, ruta: '/reparaciones', rutas: destinos })
     expect(screen.getByText('PENDIENTES')).toBeInTheDocument()
     renderConProviders(<InicioReparaciones />, { sesion: SESION_SUPER, ruta: '/reparaciones', rutas: destinos })
-    expect(screen.getByText('HISTORIAL')).toBeInTheDocument()
+    expect(screen.getByText('ASIGNACIONES')).toBeInTheDocument()
     renderConProviders(<InicioReparaciones />, { sesion: SESION_ADMIN, ruta: '/reparaciones', rutas: destinos })
-    expect(screen.getAllByText('HISTORIAL')).toHaveLength(2)
+    expect(screen.getByText('HISTORIAL')).toBeInTheDocument()
   })
   it('RequiereTecnico deja pasar a quien tiene técnico y manda al admin a Historial', () => {
     montarRequiereTecnico(SESION_ADMIN)

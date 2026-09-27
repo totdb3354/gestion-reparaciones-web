@@ -189,12 +189,13 @@ export function useBorrarPulido() {
     onSettled: recargar,
   })
 }
-/** La vista muestra "No se pudo guardar: <mensaje>" (calco del JavaFX), de ahí meta.silenciarError. */
+/** La vista muestra "No se pudo guardar: <mensaje>" (calco del JavaFX), de ahí meta.silenciarError. `clave` va en la
+ *  cabecera Idempotency-Key (la da quien abre el diálogo con crearClavesIdempotencia). */
 export function useAnadirIncidencia() {
   const recargar = useRecargarSinEsperar(...HISTORIALES, ...PENDIENTES_AMBAS)
   return useMutation({
-    mutationFn: ({ idRep, comentario, imei, idTec }: { idRep: string; comentario: string; imei: string; idTec: number }) =>
-      api.POST('/api/reparaciones/{idRep}/incidencia', { params: { path: { idRep } }, body: { comentario, imei, idTec } }),
+    mutationFn: ({ idRep, comentario, imei, idTec, clave }: { idRep: string; comentario: string; imei: string; idTec: number; clave: string }) =>
+      api.POST('/api/reparaciones/{idRep}/incidencia', { params: { path: { idRep }, header: { 'Idempotency-Key': clave } }, body: { comentario, imei, idTec } }),
     meta: { silenciarError: true },
     onSettled: recargar,
   })

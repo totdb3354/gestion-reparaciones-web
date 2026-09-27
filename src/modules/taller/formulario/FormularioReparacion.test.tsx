@@ -1,11 +1,12 @@
-import { cleanup, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http, type RequestHandler } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { agrupados, asignacionActiva, componente, detalleEdicion, reparacion, solicitudAsignacion } from '../test/fabrica'
 import { FormularioReparacion } from './FormularioReparacion'
+import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { conRegistro, type EscenarioFormulario, type LlamadaRegistrada } from './test/handlers'
 import { borradorEnReposo } from './useBorrador'
 
@@ -312,6 +313,28 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     expect(botonZona().textContent).toBe('✓  Confirmar terminar')
   })
 
+  it('pantallas bajas: el formulario no pasa del alto de la ventana y solo el cuerpo se desplaza; cabecera y pie quedan fuera', async () => {
+    abrir()
+    const dialogo = await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await sumar('bat', 'Batería')
+    // Alto y ancho de la ventana menos el margen, sin mínimo de alto que lo saque por arriba y por abajo (antes min-h-[700px]).
+    expect(dialogo).toHaveClass('h-[calc(100vh-48px)]', 'max-h-[calc(100vh-48px)]', 'w-[calc(100vw-48px)]', 'overflow-y-hidden', 'overflow-x-auto')
+    expect(dialogo.className).not.toMatch(/min-h-\[/)
+    expect(dialogo.className).not.toMatch(/min-w-\[/)
+    // El mínimo de 960 px va en el marco interior: por debajo, desplazamiento horizontal dentro del formulario.
+    const marco = screen.getByTestId('formulario-marco')
+    expect(marco).toHaveClass('min-w-[960px]', 'min-h-0', 'flex-1', 'flex-col')
+    const cuerpo = screen.getByTestId('formulario-cuerpo')
+    expect(cuerpo).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto')
+    expect(cuerpo).toContainElement(screen.getByTestId('fila-bat'))
+    // Cabecera (IMEI y ✕) y pie (zona de guardar) fuera del área desplazable.
+    expect(cuerpo).not.toContainElement(screen.getByText('IMEI: 355400000000111'))
+    expect(cuerpo).not.toContainElement(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    expect(cuerpo).not.toContainElement(screen.getByTestId('zona-guardar'))
+    expect(marco).toContainElement(screen.getByTestId('zona-guardar'))
+  })
+
   it('orden de llamadas: agotar ×N en orden de filas, luego completa con las filas activas y las acciones pendientes; éxito: cierra', async () => {
     const { llamadas, onCerrar } = abrir()
     await screen.findByRole('dialog', { name: TITULO })
@@ -451,11 +474,24 @@ const BORRADOR_BAT_GUARDADA = JSON.stringify({
   otros: [],
 })
 
+/** El formulario nuevo abierto desde una lista (entrada previa en el historial), para probar Atrás. */
+function abrirNuevoDesdeLista(escenario: EscenarioFormulario = {}) {
+  const registro = conRegistro({ modeloTelefono: '13', ...escenario })
+  server.use(...registro.handlers)
+  const formulario = '/reparaciones/pendientes/reparar/A20260916_1'
+  const vista = renderConRouter(
+    [{ path: '/lista', element: <p>lista</p> }, { path: formulario, element: <FormularioReparacion modo="nuevo" idAsignacion="A20260916_1" onCerrar={vi.fn()} /> }],
+    { sesion: SESION_TEC, ruta: '/lista' },
+  )
+  void vista.router.navigate(formulario)
+  return { ...vista, ...registro }
+}
+
 function abrirNuevo(escenario: EscenarioFormulario = {}) {
   const registro = conRegistro({ modeloTelefono: '13', ...escenario })
   server.use(...registro.handlers)
   const onCerrar = vi.fn()
-  const vista = renderConProviders(<FormularioReparacion modo="nuevo" idAsignacion="A20260916_1" onCerrar={onCerrar} />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/reparar/A20260916_1' })
+  const vista = renderConRouter([{ path: '/reparaciones/pendientes/reparar/A20260916_1', element: <FormularioReparacion modo="nuevo" idAsignacion="A20260916_1" onCerrar={onCerrar} /> }], { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/reparar/A20260916_1' })
   return { ...vista, ...registro, onCerrar }
 }
 /** `conRegistro` anota `metodo` en mayúsculas (`request.method`), `ruta` = pathname y `cuerpo` = JSON recibido (null en un DELETE). */
@@ -494,6 +530,43 @@ describe('FormularioReparacion — borrador persistente', () => {
     await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
     expect(delBorrador(llamadas)[0]).toMatchObject({ metodo: 'PUT', ruta: '/api/reparaciones/A20260916_1/borrador' })
     expect(contenidoDe(delBorrador(llamadas)[0]).filas).toEqual([expect.objectContaining({ prefijo: 'bat', idCom: 101, cantidad: 1 })])
+  })
+
+  it('Atrás del navegador hace lo mismo que la ✕: vuelca el borrador en ese momento (PUT) y sale sin preguntar', async () => {
+    const { llamadas, router } = abrirNuevoDesdeLista()
+    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await act(async () => { await router.navigate(-1) })
+    expect(router.state.location.pathname).toBe('/lista')
+    await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
+    expect(delBorrador(llamadas)[0]).toMatchObject({ metodo: 'PUT', ruta: '/api/reparaciones/A20260916_1/borrador' })
+    expect(contenidoDe(delBorrador(llamadas)[0]).filas).toEqual([expect.objectContaining({ prefijo: 'bat', idCom: 101, cantidad: 1 })])
+  })
+  it('Atrás con el formulario vacío borra el borrador (DELETE), igual que la ✕', async () => {
+    const { llamadas, router } = abrirNuevoDesdeLista({ borrador: BORRADOR_BAT_2 })
+    await screen.findByTestId('banda-borrador')
+    await userEvent.click(screen.getByRole('button', { name: 'Restar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Restar Batería' }))
+    await act(async () => { await router.navigate(-1) })
+    await borradorEnReposo()
+    expect(router.state.location.pathname).toBe('/lista')
+    expect(delBorrador(llamadas).map((l) => l.metodo)).toEqual(['DELETE'])
+  })
+  it('Atrás sin tocar nada también vuelca, como la ✕ (sin borrador previo: DELETE)', async () => {
+    const { llamadas, router } = abrirNuevoDesdeLista()
+    await screen.findByTestId('fila-bat')
+    await act(async () => { await router.navigate(-1) })
+    await borradorEnReposo()
+    expect(router.state.location.pathname).toBe('/lista')
+    expect(delBorrador(llamadas).map((l) => l.metodo)).toEqual(['DELETE'])
+  })
+  it('aviso al salir (F5, cerrar la pestaña): solo con cambios que aún no han llegado al borrador', async () => {
+    abrirNuevo()
+    await screen.findByTestId('fila-bat')
+    expect(avisaAlSalir()).toBe(false)
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    expect(avisaAlSalir()).toBe(true)
+    // El autoguardado (2 s después del último cambio) lo vuelca: ya no hay nada que perder.
+    await waitFor(() => expect(avisaAlSalir()).toBe(false), { timeout: 4000 })
   })
 
   it('✕ con el formulario vacío borra el borrador (DELETE)', async () => {
@@ -550,7 +623,7 @@ function abrirGlass(escenario: EscenarioFormulario = {}) {
   const registro = conRegistro({ asignacion: { idRep: 'AG20260916_2', imei: '355400000000222' }, modeloTelefono: '13', ...escenario })
   server.use(...registro.handlers)
   const onCerrar = vi.fn()
-  const vista = renderConProviders(<FormularioReparacion modo="glass" idAsignacion="AG20260916_2" onCerrar={onCerrar} />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
+  const vista = renderConRouter([{ path: '/reparaciones/pendientes/glass/reparar/AG20260916_2', element: <FormularioReparacion modo="glass" idAsignacion="AG20260916_2" onCerrar={onCerrar} /> }], { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
   return { ...vista, ...registro, onCerrar }
 }
 
@@ -582,7 +655,7 @@ describe('FormularioReparacion — variante glass', () => {
       tipo = new URL(request.url).searchParams.get('tipo')
       return HttpResponse.json({ value: 'G20260910_4' })
     }))
-    renderConProviders(<FormularioReparacion modo="glass" idAsignacion="AG20260916_2" onCerrar={vi.fn()} />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
+    renderConRouter([{ path: '/reparaciones/pendientes/glass/reparar/AG20260916_2', element: <FormularioReparacion modo="glass" idAsignacion="AG20260916_2" onCerrar={vi.fn()} /> }], { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass/reparar/AG20260916_2' })
     expect((await screen.findByTestId('banda-incidencia')).textContent).toBe('⚠ Resuelve incidencia: G20260910_4')
     expect(tipo).toBe('G')
   })
@@ -656,6 +729,16 @@ describe('FormularioReparacion — modo edición', () => {
     expect(screen.getByTestId('boton-derecho-lcd').textContent).toBe('✓  Ya reparado')
     expect(within(screen.getByTestId('otras-acciones')).getByText('✓ Ya reparada')).toBeInTheDocument()
     expect(screen.getByTestId('otras-acciones-badge')).toHaveTextContent('1')
+  })
+
+  it('aviso al salir (F5, cerrar la pestaña): sin cambios no pregunta; con cambios sin guardar, sí', async () => {
+    abrirEditar()
+    await screen.findByTestId('fila-bat')
+    expect(avisaAlSalir()).toBe(false)
+    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    expect(avisaAlSalir()).toBe(true)
+    await userEvent.click(screen.getByRole('button', { name: 'Restar Batería' }))
+    expect(avisaAlSalir()).toBe(false)
   })
 
   it('cambio inválido: contador en rojo y sin zona de guardar; cambio válido: "Guardar cambios"', async () => {

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef, type RefObject } from 'react'
-import { useBlocker } from 'react-router'
+import { NavigationType, useBlocker } from 'react-router'
 import type { AsignacionActiva } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
+import { useAvisoAlSalir } from '@/shared/lib/useAvisoAlSalir'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
 import { useCargaEditar, useCargaNuevo, useRecargarAlCerrar } from './api'
@@ -85,10 +86,23 @@ function FormularioEditar({ idRep, onCerrar }: { idRep: string; onCerrar: () => 
 /** Todos los cierres de la edición son navegaciones (✕ y Escape navegan a la lista con replace; Atrás es un POP): un único
  *  bloqueo las cubre. Bloquea solo si la zona de guardar está visible ("hay cambios") y no se acaba de guardar. Un cambio
  *  inválido oculta la zona, así que cerrar en ese estado no pregunta y el cambio se pierde (calco de la referencia). Vive en
- *  un componente aparte que solo se monta en edición: `useBlocker` exige data router y el flujo nuevo no debe depender de él. */
+ *  un componente aparte que solo se monta en edición (`useBlocker` exige data router, como el de app/router.tsx). */
 function GuardiaSalida({ hayCambios, salidaLibre }: { hayCambios: boolean; salidaLibre: RefObject<boolean> }) {
   const blocker = useBlocker(() => hayCambios && !salidaLibre.current)
   return <DialogoSalirSinGuardar abierto={blocker.state === 'blocked'} onSalir={() => blocker.proceed?.()} onCancelar={() => blocker.reset?.()} />
+}
+
+/** Flujo nuevo y Glass: Atrás (y Adelante) del navegador hacen lo mismo que la ✕: se para la navegación, se vuelca el
+ *  borrador en ese momento y se sigue sin preguntar. ✕, Escape y el cierre tras guardar navegan con replace y no pasan por
+ *  aquí (ya han volcado o descartado el borrador). */
+function GuardiaAtras({ volcarAhora }: { volcarAhora: () => Promise<void> }) {
+  const blocker = useBlocker(({ historyAction }) => historyAction === NavigationType.Pop)
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    void volcarAhora()
+    blocker.proceed()
+  }, [blocker, volcarAhora])
+  return null
 }
 
 function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerrar: () => void }) {
@@ -98,7 +112,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
   // En edición no hay asignación propia ni activas: textoConflicto([], …) da null y la banda no se pinta.
   const conflicto = textoConflicto(carga.asignacionesActivas, estado.idAsignacion ?? '', sesion?.idTec ?? null)
   // Borrador: solo flujo nuevo y Glass; en edición el hook queda inactivo y no llama a nada.
-  const { volcarAhora, descartar } = useBorrador({ estado, dispatch, borradorJson: carga.borradorJson, activo: estado.modo !== 'editar' })
+  const { sinVolcar, volcarAhora, descartar } = useBorrador({ estado, dispatch, borradorJson: carga.borradorJson, activo: estado.modo !== 'editar' })
   /** ✕ y Escape. Flujo nuevo y Glass: nunca pregunta; vuelca el borrador YA y cierra sin esperar a la red. Edición: `volcarAhora`
    *  no hace nada y `onCerrar` navega; si hay cambios, GuardiaSalida intercepta esa navegación y abre "Salir sin guardar". */
   const cerrar = useCallback(() => {
@@ -113,6 +127,9 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
   }, [onCerrar])
   // Guardar de verdad no vuelca: borra el borrador (antesDeCerrar; en edición no llama a nada) y cierra con el onCerrar de las props.
   const guardado = useGuardado({ estado, dispatch, onGuardado: alGuardar, antesDeCerrar: descartar })
+  // F5, cerrar la pestaña o salir de la web: en edición, con cambios sin guardar; en flujo nuevo y Glass, con cambios que aún
+  // no han llegado al borrador (los 2 s del autoguardado).
+  useAvisoAlSalir(estado.modo === 'editar' ? hayCambiosSinGuardar(estado) : sinVolcar)
 
   // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había.
   useEffect(() => {
@@ -125,38 +142,42 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
 
   return (
     <Dialog open onOpenChange={(abierto) => { if (!abierto) cerrar() }}>
-      {/* max-w-none anula el max-w de DialogContent. Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕. */}
+      {/* max-w-none anula el max-w de DialogContent. Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕.
+          Nunca más alto ni más ancho que la ventana: la cabecera y la zona de guardar quedan siempre a la vista y lo que se
+          desplaza es el cuerpo (filas y OTRAS ACCIONES). Por debajo de 960 px de ancho, el marco se desplaza en horizontal. */}
       <DialogContent
         aria-label={titulo}
         aria-describedby={undefined}
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
-        className="flex h-[calc(100vh-48px)] min-h-[700px] w-[calc(100vw-48px)] max-w-none min-w-[960px] flex-col gap-0 overflow-hidden rounded-none border-0 bg-fondo-vista p-0"
+        className="flex h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] w-[calc(100vw-48px)] max-w-none flex-col gap-0 overflow-x-auto overflow-y-hidden rounded-none border-0 bg-fondo-vista p-0"
       >
         <DialogTitle className="sr-only">{titulo}</DialogTitle>
-        <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />
-        <div className="flex border-b border-form-cabecera-brd bg-form-cabecera-bg">
-          {COLUMNAS.map((c) => (
-            <span key={c.texto} className={`${c.clase} shrink-0 px-2.5 py-1.5 text-[12px] text-azul-gris`}>
-              {c.texto}
-            </span>
-          ))}
+        <div data-testid="formulario-marco" className="flex min-h-0 min-w-[960px] flex-1 flex-col">
+          <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />
+          <div className="flex border-b border-form-cabecera-brd bg-form-cabecera-bg">
+            {COLUMNAS.map((c) => (
+              <span key={c.texto} className={`${c.clase} shrink-0 px-2.5 py-1.5 text-[12px] text-azul-gris`}>
+                {c.texto}
+              </span>
+            ))}
+          </div>
+          {/* Filas y OTRAS ACCIONES desplazan juntas; el hueco flexible empuja la zona de guardar al fondo. */}
+          <div data-testid="formulario-cuerpo" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {filasVisibles(estado) ? (
+              estado.filas.map((fila) => (
+                <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila}>
+                  <SubFilaAgotado estado={estado} fila={fila} dispatch={dispatch} />
+                </FilaComponente>
+              ))
+            ) : (
+              <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
+            )}
+            <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
+          </div>
+          <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
         </div>
-        {/* Filas y OTRAS ACCIONES desplazan juntas; el hueco flexible empuja la zona de guardar al fondo. */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {filasVisibles(estado) ? (
-            estado.filas.map((fila) => (
-              <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila}>
-                <SubFilaAgotado estado={estado} fila={fila} dispatch={dispatch} />
-              </FilaComponente>
-            ))
-          ) : (
-            <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
-          )}
-          <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
-        </div>
-        <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
-        {estado.modo === 'editar' && <GuardiaSalida hayCambios={hayCambiosSinGuardar(estado)} salidaLibre={salidaLibre} />}
+        {estado.modo === 'editar' ? <GuardiaSalida hayCambios={hayCambiosSinGuardar(estado)} salidaLibre={salidaLibre} /> : <GuardiaAtras volcarAhora={volcarAhora} />}
       </DialogContent>
     </Dialog>
   )

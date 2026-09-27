@@ -161,6 +161,19 @@ describe('TecnicosPage', () => {
     expect(linea()).toBeEmptyDOMElement()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+  it('tras una validación fallida "Registrar técnico" sigue respondiendo', async () => {
+    let altas = 0
+    server.use(http.post('*/api/usuarios/tecnicos', () => { altas += 1; return new HttpResponse(null, { status: 201 }) }))
+    montar()
+    await screen.findByText('tecnico-a')
+    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1', confirmar: 'otra' })
+    await userEvent.click(botonRegistrar())
+    expect(linea()).not.toBeEmptyDOMElement()
+    await userEvent.clear(screen.getByLabelText('Confirmar'))
+    await rellenar({ confirmar: 'secreta1' })
+    await userEvent.click(botonRegistrar())
+    await waitFor(() => expect(altas).toBe(1))
+  })
   it.each([
     [409, () => HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }), 'Ese nombre de usuario ya existe.'],
     [422, () => HttpResponse.json({ message: 'El nombre de usuario no puede superar 50 caracteres.' }, { status: 422 }), 'El nombre de usuario no puede superar 50 caracteres.'],
@@ -175,6 +188,35 @@ describe('TecnicosPage', () => {
     expect(screen.getByLabelText('Nombre del técnico')).toHaveValue('tecnico-c')
     expect(cargas.n).toBe(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('alta con Idempotency-Key: el reintento del mismo formulario repite la clave; cambiar un campo o un alta correcta la cambian', async () => {
+    const envios: { tecnico: string; clave: string | null }[] = []
+    server.use(http.post('*/api/usuarios/tecnicos', async ({ request }) => {
+      const { nombreTecnico } = (await request.json()) as { nombreTecnico: string }
+      envios.push({ tecnico: nombreTecnico, clave: request.headers.get('Idempotency-Key') })
+      return envios.length < 3 ? HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }) : new HttpResponse(null, { status: 201 })
+    }))
+    montar()
+    await screen.findByText('tecnico-a')
+    const registrarY = async (n: number) => {
+      await userEvent.click(botonRegistrar())
+      await waitFor(() => expect(envios).toHaveLength(n))
+      if (n < 3) await screen.findByText('Ese nombre de usuario ya existe.')
+    }
+    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1', confirmar: 'secreta1' })
+    await registrarY(1)
+    await registrarY(2)
+    await rellenar({ tecnico: 'x' })
+    await registrarY(3)
+    await waitFor(() => expect(screen.getByLabelText('Nombre del técnico')).toHaveValue(''))
+    await rellenar({ tecnico: 'tecnico-cx', usuario: 'usuario-c', password: 'secreta1', confirmar: 'secreta1' })
+    await registrarY(4)
+    expect(envios.map((e) => e.tecnico)).toEqual(['tecnico-c', 'tecnico-c', 'tecnico-cx', 'tecnico-cx'])
+    const [a, b, c, d] = envios.map((e) => e.clave)
+    expect(a).toMatch(/^[0-9a-f-]{36}$/)
+    expect(b).toBe(a)
+    expect(c).not.toBe(a)
+    expect(d).not.toBe(c)
   })
   it('candado sin confirmación: desactiva al activo, activa al inactivo y recarga tras cada uno', async () => {
     const rutas: string[] = []

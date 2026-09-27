@@ -119,6 +119,22 @@ describe('editores de la vista de asignaciones', () => {
     await waitFor(() => expect(body).toEqual({ imei: '000000000000003', modelo: '14', idCli: null, clienteExplicito: null }))
   })
 
+  it('el editor de modelo sigue abierto con lo elegido si el guardado falla, y se cierra cuando sale bien', async () => {
+    let respuesta = () => HttpResponse.json({ message: 'No se pudo guardar el modelo.' }, { status: 422 })
+    server.use(http.post('*/api/telefonos', () => respuesta()))
+    await abrirEditor('Editar modelo', { fila: pulido })
+    const dlg = await screen.findByRole('dialog', { name: 'Editar modelo' })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'iPhone 15' }))
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    const error = await screen.findByRole('dialog', { name: 'Error' })
+    expect(dlg).toBeInTheDocument()
+    expect(within(dlg).getByRole('button', { name: 'iPhone 15', hidden: true })).toHaveClass('bg-azul-noche')
+    await userEvent.click(within(error).getByRole('button', { name: 'Aceptar' }))
+    respuesta = () => new HttpResponse(null, { status: 204 })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Editar modelo' })).not.toBeInTheDocument())
+  })
+
   it('el editor de cliente ofrece la opción de dejarlo sin cliente', async () => {
     let body: unknown = null
     server.use(http.patch('*/api/telefonos/000000000000003/cliente', async ({ request }) => {

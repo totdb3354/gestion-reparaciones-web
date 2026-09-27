@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query'
 import { api, type Componente, type SolicitudResumen, type SolicitudStock } from '@/shared/api/client'
-import { ConexionError, SesionExpiradaError, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
+import { ConexionError, SesionDeOtraPestanaError, SesionExpiradaError, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { emitirError } from '@/shared/ui/alertas'
 import { CLAVE_NOTIF } from '../formulario/api'
@@ -64,7 +64,8 @@ export function useComponentesGestionados(sondea: boolean): UseQueryResult<Compo
       } catch (e) {
         const estado = qc.getQueryState(CLAVE_NOTIF_COMPONENTES)
         const primerFallo = estado?.data === undefined && (estado?.errorUpdateCount ?? 0) === 0
-        if (primerFallo && !(e instanceof SesionExpiradaError)) emitirError(e instanceof ConexionError ? mensajeSinConexion(e) : mensajeDeError(e))
+        // Ni la sesión caducada ni la petición que no salió porque la sesión guardada ya es de otra pestaña avisan aquí.
+        if (primerFallo && !(e instanceof SesionExpiradaError) && !(e instanceof SesionDeOtraPestanaError)) emitirError(e instanceof ConexionError ? mensajeSinConexion(e) : mensajeDeError(e))
         throw e
       }
     },

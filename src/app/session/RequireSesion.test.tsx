@@ -1,9 +1,10 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { Navigate, Route } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { renderConProviders, SESION_TEC } from '@/test/render'
+import { borrarSesion } from '@/shared/session/storage'
 import { useSession } from '@/shared/session/SessionProvider'
 import { RequireSesion } from './RequireSesion'
 
@@ -37,6 +38,28 @@ describe('RequireSesion', () => {
     await waitFor(() => expect(screen.getByText('LOGIN')).toBeInTheDocument())
     expect(screen.queryByText('PRIVADO')).not.toBeInTheDocument()
   })
+
+  it('"Cerrar Sesión" en otra pestaña del navegador lleva esta a /login', async () => {
+    renderConProviders(<Navigate to="/privado" replace />, {
+      sesion: SESION_TEC,
+      rutas: (
+        <>
+          <Route path="/login" element={<p>LOGIN</p>} />
+          <Route element={<RequireSesion />}>
+            <Route path="/privado" element={<p>PRIVADO</p>} />
+          </Route>
+        </>
+      ),
+    })
+    await screen.findByText('PRIVADO')
+    // La otra pestaña borra la sesión compartida; a esta le llega el evento storage.
+    borrarSesion()
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'fsgr.sesion', newValue: null, storageArea: localStorage }))
+    })
+    expect(await screen.findByText('LOGIN')).toBeInTheDocument()
+    expect(screen.queryByText('PRIVADO')).not.toBeInTheDocument()
+  })
 })
 
 function ProbeLogout({ exponerQc }: { exponerQc: (qc: QueryClient) => void }) {
@@ -47,7 +70,7 @@ function ProbeLogout({ exponerQc }: { exponerQc: (qc: QueryClient) => void }) {
 }
 
 describe('logout', () => {
-  it('borra sessionStorage y limpia la caché de queries', async () => {
+  it('borra la sesión guardada y limpia la caché de queries', async () => {
     let qc: QueryClient | undefined
     renderConProviders(<ProbeLogout exponerQc={(c) => { qc = c }} />, { sesion: SESION_TEC, ruta: '/x' })
     qc!.setQueryData(['x'], 1)
@@ -55,7 +78,7 @@ describe('logout', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Salir' }))
 
-    expect(sessionStorage.getItem('fsgr.sesion')).toBeNull()
+    expect(localStorage.getItem('fsgr.sesion')).toBeNull()
     expect(qc!.getQueryCache().getAll()).toHaveLength(0)
   })
 })

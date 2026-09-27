@@ -1,7 +1,7 @@
 import { HttpResponse, delay, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { server } from '@/test/server'
-import { guardarSesion } from '@/shared/session/storage'
+import { borrarSesion, guardarSesion } from '@/shared/session/storage'
 import { onSesionExpirada, rearmarSesionExpirada } from '@/shared/session/expiracion'
 import { estaConectado, reportarExito, reportarFallo } from './conexion'
 import { TIMEOUT_MS, api } from './client'
@@ -11,7 +11,10 @@ import type {
   ReparacionResumen, SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico,
 } from './client'
 import type { paths } from './schema'
-import { ConexionError, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionExpiradaError, StaleDataError } from './errors'
+import {
+  ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_TIMEOUT, NoEncontradoError, ReglaNegocioError, SesionDeOtraPestanaError, SesionExpiradaError,
+  StaleDataError, esErrorGestionadoGlobalmente,
+} from './errors'
 
 /** El fetch real rechaza con el DOMException de Node, que hereda de Error; el DOMException global de jsdom
  *  no hereda (y no es el mismo objeto), así que estos dobles imitan al real: un Error con el `name` del corte. */
@@ -37,6 +40,46 @@ describe('cliente API', () => {
     const { data } = await api.GET('/api/clientes')
     expect(auth).toBe('Bearer jwt-1')
     expect(data?.[0]?.nombre).toBe('WEB')
+  })
+  it('cada petición sale con la sesión de su pestaña: si otra pestaña guardó otra, no sale', async () => {
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    const vistas: string[] = []
+    server.use(http.get('*/api/clientes', ({ request }) => {
+      vistas.push(request.headers.get('authorization') ?? '')
+      return HttpResponse.json([])
+    }))
+    await api.GET('/api/clientes')
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ idUsu: 2, nombreUsuario: 'b', rol: 'TECNICO', idTec: 2, token: 'jwt-2' }))
+    const error = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(SesionDeOtraPestanaError)
+    expect(esErrorGestionadoGlobalmente(error)).toBe(true)
+    expect(vistas).toEqual(['Bearer jwt-1'])
+    expect(estaConectado()).toBe(true)
+  })
+  it('el bearer es el token de la pestaña: la sesión guardada se lee una sola vez por petición', async () => {
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    let auth = ''
+    server.use(http.get('*/api/clientes', ({ request }) => {
+      auth = request.headers.get('authorization') ?? ''
+      return HttpResponse.json([])
+    }))
+    const lecturas = vi.spyOn(Storage.prototype, 'getItem')
+    await api.GET('/api/clientes')
+    expect(lecturas.mock.calls.filter(([clave]) => clave === 'fsgr.sesion')).toHaveLength(1)
+    expect(auth).toBe('Bearer jwt-1')
+  })
+  it('si otra pestaña cerró la sesión, la petición no sale; tras cerrarla también en esta, sale sin bearer', async () => {
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    const vistas: string[] = []
+    server.use(http.get('*/api/clientes', ({ request }) => {
+      vistas.push(request.headers.get('authorization') ?? 'sin')
+      return HttpResponse.json([])
+    }))
+    localStorage.removeItem('fsgr.sesion')
+    await expect(api.GET('/api/clientes')).rejects.toBeInstanceOf(SesionDeOtraPestanaError)
+    borrarSesion()
+    await api.GET('/api/clientes')
+    expect(vistas).toEqual(['sin'])
   })
   it('409 lanza StaleDataError con el mensaje del servidor', async () => {
     server.use(http.delete('*/api/clientes/5', () => HttpResponse.json({ message: 'Tiene teléfonos' }, { status: 409 })))
@@ -73,6 +116,24 @@ describe('cliente API', () => {
     const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ReglaNegocioError)
     expect(estaConectado()).toBe(true)
+  })
+  it.each([503, 429])('un %s del login es el límite de intentos: su mensaje, sin encender el banner', async (status) => {
+    server.use(http.post('*/api/auth/login', () => HttpResponse.text('<html>503</html>', { status })))
+    const err: unknown = await api.POST('/api/auth/login', { body: { usuario: 'u', password: 'p' } }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(LimiteLoginError)
+    expect(err).not.toBeInstanceOf(ConexionError)
+    expect((err as Error).message).toBe(MSG_LIMITE_LOGIN)
+    expect(MSG_LIMITE_LOGIN).toBe('Demasiados intentos de inicio de sesión. Espera unos segundos y vuelve a intentarlo.')
+    expect(estaConectado()).toBe(true)
+  })
+  it('fuera del login un 503 sigue siendo sin conexión y un 429 no es el límite', async () => {
+    server.use(
+      http.post('*/api/clientes', () => HttpResponse.text('<html>503</html>', { status: 503 })),
+      http.get('*/api/clientes', () => HttpResponse.text('', { status: 429 })),
+    )
+    await expect(api.POST('/api/clientes', { body: { nombre: 'x' } })).rejects.toBeInstanceOf(ConexionError)
+    const err: unknown = await api.GET('/api/clientes').catch((e: unknown) => e)
+    expect(err).not.toBeInstanceOf(LimiteLoginError)
   })
   it('un 4xx no toca el estado de conexión (y cura el banner)', async () => {
     reportarFallo()

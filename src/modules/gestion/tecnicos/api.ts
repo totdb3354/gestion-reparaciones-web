@@ -16,11 +16,12 @@ function useRecargaUsuarios(): () => void {
 
 /** Las tres escrituras silencian el diálogo global: el error va a la línea inline de la página (spec 6, G9). El corte de
  *  conexión lo sigue avisando el MutationCache. Recargan solo si salen bien (calco: el JavaFX recarga tras el éxito). */
-export function useRegistrar(): UseMutationResult<void, Error, CuerpoAlta> {
+/** `clave` va en la cabecera Idempotency-Key (la da la página con crearClavesIdempotencia). */
+export function useRegistrar(): UseMutationResult<void, Error, { cuerpo: CuerpoAlta; clave: string }> {
   const recargar = useRecargaUsuarios()
   return useMutation({
-    mutationFn: async (cuerpo: CuerpoAlta) => {
-      await api.POST('/api/usuarios/tecnicos', { body: cuerpo })
+    mutationFn: async ({ cuerpo, clave }: { cuerpo: CuerpoAlta; clave: string }) => {
+      await api.POST('/api/usuarios/tecnicos', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })
     },
     meta: { silenciarError: true },
     onSuccess: recargar,

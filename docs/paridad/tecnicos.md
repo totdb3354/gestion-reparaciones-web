@@ -18,6 +18,7 @@ Las de la spec §10:
 - **Línea de error inline que se vacía al empezar cada acción** (registrar, candado, papelera) y que muestra el `message` del servidor en 404/409/422 (G9); el JavaFX deja el último error hasta un alta correcta y usa textos fijos.
 - **Sin ordenación por cabecera** (G10).
 - **Toda escritura con éxito invalida las listas de usuarios y de técnicos** de toda la web: los combos de técnicos del resto de vistas ven altas y bajas (equivale a la recarga de la vista de fondo al cerrar el modal del JavaFX).
+- **"Registrar técnico" no se envía dos veces y lleva clave de reintento** (web 0.8.5): un doble clic registra una sola vez, y repetir el alta con el mismo formulario tras un fallo reutiliza la clave, así que el servidor no duplica el técnico; al cambiar un campo o tras un alta correcta, clave nueva. En el JavaFX la llamada bloqueaba la ventana (verificado por test: `TecnicosPage.cerrojo.test.tsx` "dos clics seguidos en \"Registrar técnico\" registran una sola vez", `TecnicosPage.test.tsx` "alta con Idempotency-Key: …").
 
 Decididas durante la ejecución y la comparación de capturas: se añaden aquí, cada una con la decisión del usuario.
 

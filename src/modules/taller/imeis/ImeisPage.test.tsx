@@ -200,8 +200,39 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     server.use(http.patch(`*/api/telefonos/${B}/observacion`, () => HttpResponse.json({ message: 'stale' }, { status: 409 })))
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText(B) })
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar observación' }))
+    let recargas = 0
+    server.use(http.get('*/api/reparaciones/historial', () => { recargas++; return HttpResponse.json(reps) }))
     await userEvent.click(within(await screen.findByRole('dialog', { name: 'Observación del teléfono' })).getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('El teléfono fue modificado por otro usuario. Se recargan los datos.')
+    // Calco de AgrupadoController (dialog.close(); cargar();): con datos de otro usuario el diálogo se cierra y la lista se
+    // recarga; dejarlo abierto obligaría a reintentar con el mismo updatedAt, que daría 409 siempre.
+    // Por etiqueta y no por rol: con el aviso de error encima, el diálogo de debajo queda aria-hidden y *ByRole no lo nombra.
+    await waitFor(() => expect(screen.queryByLabelText(`Observación — IMEI ${B}`)).not.toBeInTheDocument())
+    await waitFor(() => expect(recargas).toBeGreaterThan(0))
+  })
+  it('"Editar observación": si el guardado falla, el diálogo sigue abierto con lo escrito; si sale bien, se cierra', async () => {
+    let respuesta = () => HttpResponse.json({ message: 'No se pudo guardar la observación.' }, { status: 422 })
+    let patches = 0
+    server.use(http.patch(`*/api/telefonos/${B}/observacion`, () => { patches++; return respuesta() }))
+    abrir()
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText(B) })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Editar observación' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Observación del teléfono' })
+    const area = within(dlg).getByLabelText(`Observación — IMEI ${B}`)
+    await userEvent.clear(area)
+    await userEvent.type(area, 'pantalla con rayas')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    const error = await screen.findByRole('dialog', { name: 'Error' })
+    expect(error).toHaveTextContent('No se pudo guardar: No se pudo guardar la observación.')
+    expect(dlg).toBeInTheDocument()
+    expect(area).toHaveValue('pantalla con rayas')
+    await userEvent.click(within(error).getByRole('button', { name: 'Aceptar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument())
+    expect(screen.getByRole('dialog', { name: 'Observación del teléfono' })).toBe(dlg)
+    respuesta = () => new HttpResponse(null, { status: 204 })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Observación del teléfono' })).not.toBeInTheDocument())
+    expect(patches).toBe(2)
   })
   it('SUPERTECNICO, grupo sin fila Telefono (telefonoUpdatedAt null): solo Copiar celda', async () => {
     // Diferencia aceptada (docs/paridad/imeis.md, ImeisPage.tsx): "Editar observación"/"Editar cliente" exigen
@@ -252,7 +283,7 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
   })
   it('CSV agrupado_resumen con los grupos visibles', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockImplementation(() => {})
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
     // no solo la página: renderConProviders monta ImeisPage como ruta hija de <AppLayout/> (opción `layout`).
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis', layout: <AppLayout /> })

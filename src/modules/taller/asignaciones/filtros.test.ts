@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { FILTROS_VACIOS, SIN_CLIENTE, aplicarFiltros } from './filtros'
+import { FILTROS_VACIOS, SIN_CLIENTE, aplicarFiltros, incorporarClientesNuevos } from './filtros'
 
 const fila = (p: Partial<ReparacionResumen>) =>
   ({ idRep: 'A1', imei: '000000000000001', idTec: 1, cliente: null, esSolicitud: 0, esIncidencia: false, ...p }) as unknown as ReparacionResumen
@@ -69,5 +69,23 @@ describe('aplicarFiltros', () => {
     expect(ids(aplicarFiltros(filasConMixta, { ...FILTROS_VACIOS, estados: ['SOLICITUD'] }))).toEqual(['AP3', 'A5'])
     expect(ids(aplicarFiltros(filasConMixta, { ...FILTROS_VACIOS, estados: ['INCIDENCIA'] }))).toEqual(['A4', 'A5'])
     expect(ids(aplicarFiltros(filasConMixta, { ...FILTROS_VACIOS, estados: ['ASIGNACION'] }))).toEqual(['A1', 'AG2'])
+  })
+})
+
+describe('incorporarClientesNuevos (calco de poblarFiltroCliente)', () => {
+  it('sin clientes nuevos no cambia nada', () => {
+    expect(incorporarClientesNuevos(FILTROS_VACIOS, ['CLI_A'], ['CLI_A'])).toBeNull()
+  })
+  it('con el filtro sin aplicar solo anota los conocidos', () => {
+    expect(incorporarClientesNuevos(FILTROS_VACIOS, [], [SIN_CLIENTE, 'CLI_A'])).toEqual({ conocidos: [SIN_CLIENTE, 'CLI_A'], filtros: FILTROS_VACIOS })
+  })
+  it('con el filtro a medias, el cliente nuevo entra marcado y el desmarcado a mano sigue desmarcado', () => {
+    const f = { ...FILTROS_VACIOS, clientes: [SIN_CLIENTE] }
+    const r = incorporarClientesNuevos(f, [SIN_CLIENTE, 'CLI_A'], [SIN_CLIENTE, 'CLI_A', 'CLI_B'])
+    expect(r).toEqual({ conocidos: [SIN_CLIENTE, 'CLI_A', 'CLI_B'], filtros: { ...FILTROS_VACIOS, clientes: [SIN_CLIENTE, 'CLI_B'] } })
+  })
+  it('un cliente conocido que desaparece y vuelve no se vuelve a marcar', () => {
+    const f = { ...FILTROS_VACIOS, clientes: [SIN_CLIENTE] }
+    expect(incorporarClientesNuevos(f, [SIN_CLIENTE, 'CLI_A'], [SIN_CLIENTE, 'CLI_A'])).toBeNull()
   })
 })

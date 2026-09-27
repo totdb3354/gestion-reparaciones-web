@@ -43,8 +43,8 @@ test('el supertécnico asigna un trabajo desde el modal y lo borra', async ({ pa
   await page.getByPlaceholder('Usuario').fill(usuario)
   await page.getByPlaceholder('Contraseña').fill(clave)
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
-  await expect(page).toHaveURL(/\/reparaciones\/historial$/)
-  await page.goto('/reparaciones/asignaciones')
+  // El supertécnico entra en Asignaciones, como en el JavaFX (ReparacionControllerSuperTecnico.java:229).
+  await expect(page).toHaveURL(/\/reparaciones\/asignaciones$/)
 
   // La tabla tiene que estar CARGADA antes de mirar qué ids hay: "Actualizado HH:mm" solo aparece con datos
   // (EtiquetaActualizado pinta '' mientras dataUpdatedAt es 0). Con la tabla aún vacía, el conjunto de ids previos

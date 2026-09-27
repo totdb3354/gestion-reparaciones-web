@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError, ConexionError, NoEncontradoError, ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
+import { ApiError, ConexionError, NoEncontradoError, ReglaNegocioError, SesionDeOtraPestanaError, StaleDataError } from '@/shared/api/errors'
 import { mensajeInline } from './errores'
 
 /** Spec 6, G9 y §8: la línea inline enseña el message del servidor en los códigos que cada acción espera y el texto fijo
@@ -11,6 +11,9 @@ describe('mensajeInline', () => {
   })
   it('404 → "Técnico no encontrado." (clasificar descarta el message de los 404)', () => {
     expect(mensajeInline(new NoEncontradoError(404, 'Recurso no encontrado.'), 'fijo', [404])).toBe('Técnico no encontrado.')
+  })
+  it('petición que no salió porque la sesión guardada es de otra pestaña → ninguna línea (null)', () => {
+    expect(mensajeInline(new SesionDeOtraPestanaError(), 'fijo', [404, 409, 422])).toBeNull()
   })
   it('un código que la acción no espera → el texto fijo', () => {
     expect(mensajeInline(new NoEncontradoError(404, 'Recurso no encontrado.'), 'fijo', [409, 422])).toBe('fijo')
