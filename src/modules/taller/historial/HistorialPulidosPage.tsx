@@ -26,7 +26,7 @@ import { etiquetaContador, pasaFechas, pasaImeis, pasaTecnico } from '../lib/fil
 import { MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
 import { TOGGLES_HISTORIAL } from './constantes'
 
-const FMT = 'yyyy/MM/dd HH:mm' as const
+const FMT = 'dd/MM/yyyy HH:mm' as const
 const OPCIONES_MODELO = MODELOS_ORDENADOS.map((m) => ({ clave: m, etiqueta: traducirModelo(m) }))
 
 function textoCelda(rep: ReparacionResumen, columna: string): string | null {

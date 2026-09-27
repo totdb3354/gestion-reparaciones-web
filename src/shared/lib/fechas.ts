@@ -2,8 +2,6 @@
 const ZONA = 'Europe/Madrid'
 
 export type Patron =
-  | 'yyyy/MM/dd HH:mm'
-  | 'yyyy/MM/dd'
   | 'dd/MM HH:mm'
   | 'dd/MM'
   | 'HH:mm'
@@ -14,7 +12,7 @@ export type Patron =
 
 /** Patrón de "Fecha asignación" (Pendientes, Asignaciones): una sola constante para que la fecha que se pinta y la
  *  que copia "Copiar celda" no puedan divergir. */
-export const FMT_FECHA_ASIGNACION: Patron = 'yyyy/MM/dd HH:mm'
+export const FMT_FECHA_ASIGNACION: Patron = 'dd/MM/yyyy HH:mm'
 
 /** Patrón de la columna "Pedido" de las dos tablas de Pedidos (StockController `FMT` :153). */
 export const FMT_FECHA_PEDIDO: Patron = 'dd/MM/yy HH:mm'

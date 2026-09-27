@@ -62,8 +62,8 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     // El IMEI (negrita azul medio) pasa a blanco en la fila seleccionada, como el selListener de colImei; la píldora no.
     expect(within(filas[0]).getByText(B)).toHaveClass('font-bold', 'text-azul-medio', CREMA_EN_FILA_SELECCIONADA)
     expect(within(filas[0]).getByText('Normal')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
-    expect(within(filas[0]).getByText('2026/09/16 09:00')).toBeInTheDocument()
-    expect(within(filas[0]).getByText('→ 2026/09/16 09:30')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('16/09/2026 09:00')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('→ 16/09/2026 09:30')).toBeInTheDocument()
     expect(within(filas[0]).getByText('tapa rayada')).toBeInTheDocument()
     // tabla.setFixedCellSize(44)
     expect(filas[0]).toHaveStyle({ height: '44px' })

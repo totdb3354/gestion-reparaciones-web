@@ -151,4 +151,16 @@ describe('CampoAutocompletar', () => {
     expect(porDefecto).toHaveClass('w-[var(--radix-popover-trigger-width)]')
     expect(porDefecto.style.minWidth).toBe('')
   })
+  it('con `anchoLista` la lista también tiene un ancho máximo (un código largo no la ensancha sin límite); sin él, no', async () => {
+    const { unmount } = render(<CampoAutocompletar aria-label="Acción" placeholder="Acción..." valor={null} opciones={OPCIONES}
+      onElegir={vi.fn()} anchoLista={250} />)
+    await userEvent.type(screen.getByRole('combobox'), 'iphone')
+    const conAncho = screen.getByRole('listbox').parentElement!
+    expect(conAncho).toHaveClass('max-w-[min(480px,calc(100vw-32px))]')
+    unmount()
+    render(<Envoltorio />)
+    await userEvent.type(screen.getByRole('combobox'), 'iphone')
+    const sinAncho = screen.getByRole('listbox').parentElement!
+    expect(sinAncho).not.toHaveClass('max-w-[min(480px,calc(100vw-32px))]')
+  })
 })

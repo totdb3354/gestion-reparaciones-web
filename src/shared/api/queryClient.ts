@@ -3,10 +3,11 @@ import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSin
 import { emitirError } from '@/shared/ui/alertas'
 
 // Tipa `meta` de consultas y mutaciones: sin esto es `Record<string, unknown> | undefined` y `silenciarError` no está
-// comprobado por tsc (un typo como `silenciarErrores` compilaría sin avisar).
+// comprobado por tsc (un typo como `silenciarErrores` compilaría sin avisar). `sinCapa`: la carga inicial de la consulta no
+// enciende el overlay de carga del shell (sondeos propios del shell: campana y badges del lateral; ver AppLayout).
 declare module '@tanstack/react-query' {
   interface Register {
-    queryMeta: { silenciarError?: boolean }
+    queryMeta: { silenciarError?: boolean; sinCapa?: boolean }
     mutationMeta: { silenciarError?: boolean }
   }
 }

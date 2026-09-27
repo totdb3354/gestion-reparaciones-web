@@ -50,7 +50,7 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     const filas = screen.getAllByRole('row').slice(1)
     expect(filas.map((f) => within(f).getAllByRole('cell')[1].textContent)).toEqual(['R20260910_1', 'G20260912_1', 'P20260913_1'])
     expect(filas.map((f) => within(f).getAllByRole('cell')[0].textContent)).toEqual(['Reparación', 'Glass', 'Pulido'])
-    expect(within(filas[0]).getByText('2026/09/10 12:00')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('10/09/2026 12:00')).toBeInTheDocument()
     expect(within(filas[1]).getByText('Reutilizado')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'AP20260913_1' })).not.toBeInTheDocument()
     expect(filas[0]).toHaveClass('border-l-fila-incidencia-brd')

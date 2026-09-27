@@ -47,7 +47,7 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     const cabeceras = screen.getAllByRole('columnheader').map((c) => c.textContent)
     expect(cabeceras).toEqual(['Id Asignación', 'Tipo', 'IMEI', 'Modelo', 'Fecha asignación', 'Comentario', 'Cliente', 'Asignado por', 'Estado', ''])
     expect(screen.getByText('iPhone 14 Plus')).toBeInTheDocument()
-    expect(screen.getByText('2026/09/15 10:53')).toBeInTheDocument()
+    expect(screen.getByText('15/09/2026 10:53')).toBeInTheDocument()
   })
   it('orden urgente → con cliente → resto; borde por solicitud e incidencia; badges de estado', async () => {
     abrir()

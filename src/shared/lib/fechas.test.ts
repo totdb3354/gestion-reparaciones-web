@@ -4,8 +4,7 @@ import { FMT_FECHA_LOG, FMT_FECHA_PEDIDO, fechaLocal, formatear, horaLocal, hoyM
 describe('fechas (UTC del servidor → Madrid, calco de FechaUtils)', () => {
   it('formatea en hora de Madrid con los patrones del JavaFX', () => {
     expect(formatear('2026-08-28T08:42:00', 'dd/MM HH:mm')).toBe('28/08 10:42')          // CEST
-    expect(formatear('2026-01-15T10:00:00', 'yyyy/MM/dd HH:mm')).toBe('2026/01/15 11:00') // CET
-    expect(formatear('2026-08-28T08:42:00', 'yyyy/MM/dd')).toBe('2026/08/28')
+    expect(formatear('2026-01-15T10:00:00', 'dd/MM/yyyy HH:mm')).toBe('15/01/2026 11:00') // CET
     expect(formatear('2026-08-28T08:42:00', 'dd/MM')).toBe('28/08')
     expect(formatear('2026-08-28T08:42:00', 'HH:mm')).toBe('10:42')
     expect(formatear('2026-08-28T08:42:00', 'dd/MM/yyyy HH:mm')).toBe('28/08/2026 10:42')

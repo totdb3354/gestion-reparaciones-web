@@ -84,7 +84,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     // con color propio sin oyente de selección lo conservan: "Sin incidencia", el texto de la incidencia, las píldoras y
     // el enlace "Id Rep. Anterior".
     expect(screen.getByText('Reutilizado')).toHaveClass('italic', CREMA_EN_FILA_SELECCIONADA)
-    expect(screen.getByText('2026/09/16 09:00')).toBeInTheDocument()
+    expect(screen.getByText('16/09/2026 09:00')).toBeInTheDocument()
     expect(screen.getAllByText('Sin incidencia')).toHaveLength(1)
     expect(screen.getByText('Sin incidencia')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
     expect(screen.getByText('Resuelta')).toBeInTheDocument()
@@ -100,9 +100,9 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(screen.getByRole('row', { name: /R20260915_133/ })).toHaveStyle({ height: '44px' })
   })
   it.each([
-    { rol: 'SUPERTECNICO', sesion: SESION_SUPER, inicio: '2026/09/10 12:00', fin: '→ 2026/09/11 12:00', copiado: '2026/09/11 12:00' },
-    { rol: 'ADMIN', sesion: SESION_ADMIN, inicio: '2026/09/10 12:00', fin: '→ 2026/09/11 12:00', copiado: '2026/09/11 12:00' },
-    { rol: 'TECNICO', sesion: SESION_TEC, inicio: '2026/09/10', fin: '→ 2026/09/11', copiado: '2026/09/11' },
+    { rol: 'SUPERTECNICO', sesion: SESION_SUPER, inicio: '10/09/2026 12:00', fin: '→ 11/09/2026 12:00', copiado: '11/09/2026 12:00' },
+    { rol: 'ADMIN', sesion: SESION_ADMIN, inicio: '10/09/2026 12:00', fin: '→ 11/09/2026 12:00', copiado: '11/09/2026 12:00' },
+    { rol: 'TECNICO', sesion: SESION_TEC, inicio: '10/09/2026', fin: '→ 11/09/2026', copiado: '11/09/2026' },
   ])('Fechas del $rol en la celda y en "Copiar celda" (la de fin) con el FORMATO_FECHA de su controller: con hora en ReparacionController{SuperTecnico,Admin}, sin hora en ReparacionControllerTecnico', async ({ sesion, inicio, fin, copiado }) => {
     const escribir = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
@@ -435,7 +435,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     // CeldaReparador fija #8A94A6 a "Llegó…" sin oyente de selección: sigue gris en la fila seleccionada.
     expect(screen.getByText('Llegó 16/09 11:30')).not.toHaveClass(CREMA_EN_FILA_SELECCIONADA)
     // El toggle Glass es la misma tabla del controller del rol: fechas con hora para el supertécnico.
-    expect(screen.getByText('2026/09/16 09:02')).toBeInTheDocument()
+    expect(screen.getByText('16/09/2026 09:02')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [base] = descargar.mock.calls[0]

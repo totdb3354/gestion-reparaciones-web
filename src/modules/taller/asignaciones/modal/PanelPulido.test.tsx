@@ -23,6 +23,13 @@ describe('PanelPulido', () => {
     expect(screen.getByText('Nada añadido aún')).toBeInTheDocument()
     expect(screen.getByTestId('imei-pulido')).toHaveTextContent('—')
   })
+  it('a 720 px de modal la lista mide 280 px (no 300) para que el detalle quepa al lado', () => {
+    const { container } = render(<Harness />)
+    const lista = container.querySelector('[class~="max-h-[300px]"]')
+    expect(lista).toHaveClass('w-[280px]', 'min-w-[280px]')
+    expect(lista).not.toHaveClass('w-[300px]')
+  })
+
   it('sin técnico arriba la fila sale en rojo "(sin técnico) · —"', async () => {
     render(<Harness />)
     await userEvent.type(campo(), IMEI)

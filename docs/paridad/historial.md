@@ -4,6 +4,10 @@ Referencia: línea hotfix 0.16.2 del cliente JavaFX (idéntica a `hotfix/0.16.3`
 
 Capturas de referencia (documentación privada, fuera del repo): `taller/{historial-reparaciones-tecnico,historial-reparaciones-supertecnico,historial-reparaciones-admin,historial-glass-tecnico,historial-glass-supertecnico,historial-glass-admin,historial-pulidos-tecnico,historial-pulidos-supertecnico,historial-pulidos-admin,historial-filtro-pieza,historial-filtro-tecnico,historial-filtro-incidencias,historial-filtro-fecha-desde,historial-menu-contextual,historial-menu-contextual-supertecnico,historial-menu-contextual-admin,historial-pulidos-menu-contextual,historial-pulidos-menu-contextual-supertecnico,historial-pulidos-menu-contextual-admin,historial-dialogo-borrar,historial-observaciones-popup}.png` (los diálogos "Añadir incidencia" y "Borrar incidencia" son los mismos que en IMEIs: ver `imeis-dialogo-incidencia.png`).
 
+## Diferencias deliberadas respecto al JavaFX
+
+- **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm` (`dd/MM/yyyy` en el Historial de técnico); el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+
 ## Común a los tres toggles
 
 - [x] Roles: los tres. Es la vista de entrada de ADMIN y, hasta el sub-proyecto 3, también de SUPERTECNICO. Entrada "Historial" de la columna lateral.
@@ -26,7 +30,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 - [x] Columnas (ancho mínimo en px; se estiran proporcionalmente para llenar la tabla y aparece scroll horizontal si no caben): Id Reparación 110 · IMEI teléfono 130 · Modelo 100 · Reparador 100 · Asignado por 100 · Fechas 110 · Componente 150 · Observaciones 200 (máx. 320) · Estado 120 (máx. 150) · Incidencia 200 (máx. 360) · Id Rep. Anterior 150. Filas de 44 px.
 - [x] Reparador: nombre y, en glass con `entregadoAt`, debajo "Llegó dd/MM HH:mm" (10 px, #8A94A6; tooltip "Bajado por <quien>, dd/MM HH:mm").
 - [x] Asignado por = `nombreTecnicoAsigna` o "—".
-- [x] Fechas en dos líneas: asignación (10 px, #9AA0AA) y "→ fin" (11 px, azul medio); "—" si falta. Formato según el rol, también en "Copiar celda": `yyyy/MM/dd` (sin hora) para TECNICO; `yyyy/MM/dd HH:mm` para SUPERTECNICO y ADMIN.
+- [x] Fechas en dos líneas: asignación (10 px, #9AA0AA) y "→ fin" (11 px, azul medio); "—" si falta. Formato según el rol, también en "Copiar celda": `dd/MM/yyyy` (sin hora) para TECNICO; `dd/MM/yyyy HH:mm` para SUPERTECNICO y ADMIN.
 - [x] Componente = `tipoComponente` y debajo "Reutilizado" (10 px cursiva #9AA0AA) si `esReutilizado`.
 - [x] Observaciones: texto con elipsis; si hay texto, cursor de mano y el clic sobre el texto abre el popup "Observaciones" (título, área de texto de solo lectura, botón "Copiar" que copia y cierra, ✕).
 - [x] Estado: badge "Incidencia" (`fila-incidencia-bg` / `fila-incidencia-brd`) si abierta, "Resuelta" (`fila-reparado-bg` / `fila-reparado-ico`) si cerrada, "Normal" (#E8EAF0 / #586376) si no.
@@ -44,7 +48,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 
 - [x] Título "Historial de pulidos" + píldora "N pulidos" / "1 pulido" (sin tope).
 - [x] Filtros: IMEI · Técnico (activos, los tres roles) · Desde · Hasta · Limpiar filtros.
-- [x] Columnas y anchos (px): Id Pulido 110 · IMEI 130 · Modelo 120 · Técnico 110 · Fecha asignación 130 · Fecha fin 130 · Comentario 160 · Cliente 110 · Asignado por 120; son los mínimos: Modelo, Técnico, Comentario, Cliente y Asignado por se reparten el sobrante y las demás son fijas (diferencia aceptada, web 0.8.2). Fechas `yyyy/MM/dd HH:mm`. Comentario = `comentarioAsignacion`. Asignado por = `nombreTecnicoAsigna` o "—".
+- [x] Columnas y anchos (px): Id Pulido 110 · IMEI 130 · Modelo 120 · Técnico 110 · Fecha asignación 130 · Fecha fin 130 · Comentario 160 · Cliente 110 · Asignado por 120; son los mínimos: Modelo, Técnico, Comentario, Cliente y Asignado por se reparten el sobrante y las demás son fijas (diferencia aceptada, web 0.8.2). Fechas `dd/MM/yyyy HH:mm`. Comentario = `comentarioAsignacion`. Asignado por = `nombreTecnicoAsigna` o "—".
 - [x] Filas sin borde de estado.
 - [x] Menú contextual SUPERTECNICO: "Editar modelo" (icono `editar.png`), "Borrar", separador, "📋  Copiar celda". TECNICO y ADMIN: solo "Copiar celda".
 - [x] "Editar modelo": ventana "Editar modelo" con "Selecciona el modelo:", campo "Filtrar modelo…" (filtra por el nombre traducido, sin distinguir mayúsculas), lista de `MODELOS_ORDENADOS` traducidos con el modelo actual preseleccionado, botones "Cancelar" y "Guardar" (deshabilitado sin selección) → `POST /api/telefonos {imei, modelo}` (el código interno). Recarga.

@@ -40,14 +40,14 @@ async function pedirListas(): Promise<ListasSolicitudes> {
  *  foco (refetchOnWindowFocus del QueryClient). Un fallo se ignora en silencio y el badge se queda como estaba. */
 export function useContadorNotificaciones(activo: boolean): UseQueryResult<number> {
   const intervalo = useIntervaloRefresco(activo)
-  return useQuery({ queryKey: CLAVE_NOTIF_CONTADOR, queryFn: contar, enabled: activo, refetchInterval: intervalo, meta: { silenciarError: true } })
+  return useQuery({ queryKey: CLAVE_NOTIF_CONTADOR, queryFn: contar, enabled: activo, refetchInterval: intervalo, meta: { silenciarError: true, sinCapa: true } })
 }
 
 /** Las cuatro listas del panel. Solo con el panel abierto; sondea con el intervalo general. Errores: política general de
  *  las consultas (un corte de conexión con datos en pantalla deja solo el banner y se conserva la última lista). */
 export function useSolicitudesPanel(abierto: boolean): UseQueryResult<ListasSolicitudes> {
   const intervalo = useIntervaloRefresco(abierto)
-  return useQuery({ queryKey: CLAVE_NOTIF_SOLICITUDES, queryFn: pedirListas, enabled: abierto, refetchInterval: intervalo })
+  return useQuery({ queryKey: CLAVE_NOTIF_SOLICITUDES, queryFn: pedirListas, enabled: abierto, refetchInterval: intervalo, meta: { sinCapa: true } })
 }
 
 /** Componentes gestionados, de los que salen las alertas (alertas.ts). `sondea` = panel abierto. La primera carga (la del
@@ -69,7 +69,7 @@ export function useComponentesGestionados(sondea: boolean): UseQueryResult<Compo
       }
     },
     refetchInterval: intervalo,
-    meta: { silenciarError: true },
+    meta: { silenciarError: true, sinCapa: true },
   })
 }
 
