@@ -13,6 +13,11 @@ export type LineaBase = { id: number; idProv: number | null; cantidad: string; p
 
 export const MSG_SIN_LINEAS = 'Añade al menos una línea.'
 
+/** Cuerpo de la confirmación "Descartar" del Atrás del navegador con líneas en el pedido (decisión del usuario 2026-09-27). */
+export function textoDescartar(n: number): string {
+  return n === 1 ? 'Se descartará la línea del pedido.' : `Se descartarán las ${n} líneas del pedido.`
+}
+
 /** Cantidad 1, precio 0 (mostrado "0,00"), sin proveedor, sin urgente (LineaCompra del JavaFX). */
 export function lineaCompraVacia(id: number, idCom: number | null = null): LineaCompra {
   return { id, idCom, idProv: null, cantidad: '1', precio: '0,00', urgente: false }

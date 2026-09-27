@@ -1,11 +1,11 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { avisaAlSalir } from '@/test/avisoAlSalir'
-import { renderConProviders, SESION_SUPER } from '@/test/render'
+import { renderConRouter, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { CLAVE_COMPONENTES_GESTIONADOS } from '../../stock/api'
 import { COMPONENTES, PROVEEDORES, preventiva, urgente } from './datosPrueba'
@@ -32,7 +32,7 @@ beforeEach(() => {
 
 function abrir(precarga: PrecargaPedido = { modo: 'vacio' }) {
   const onCerrar = vi.fn()
-  renderConProviders(<NuevoPedidoDialog precarga={precarga} onCerrar={onCerrar} />, { sesion: SESION_SUPER })
+  renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={precarga} onCerrar={onCerrar} /> }], { sesion: SESION_SUPER })
   return onCerrar
 }
 
@@ -60,6 +60,46 @@ async function escribir(etiqueta: string, valor: string) {
 }
 
 describe('NuevoPedidoDialog', () => {
+  it('Atrás con líneas pide "Descartar": Cancelar se queda con las líneas intactas y Descartar cierra y sale', async () => {
+    const onCerrar = vi.fn()
+    const { router } = renderConRouter(
+      [{ path: '/lista', element: <p>lista</p> }, { path: '/pedido', element: <NuevoPedidoDialog precarga={{ modo: 'vacio' }} onCerrar={onCerrar} /> }],
+      { sesion: SESION_SUPER, ruta: '/lista' },
+    )
+    await act(async () => { await router.navigate('/pedido') })
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    await act(async () => { await router.navigate(-1) })
+    const confirmacion = await screen.findByRole('dialog', { name: 'Descartar' })
+    expect(confirmacion).toHaveTextContent('Se descartará la línea del pedido.')
+    // Mismo orden y aspecto que "Descartar" de "Asignar trabajos" (ConfirmDialog): la acción encima de "Cancelar".
+    expect(within(confirmacion).getAllByRole('button').map((b) => b.textContent)).toEqual(['Descartar', 'Cancelar', 'Close'])
+    expect(router.state.location.pathname).toBe('/pedido')
+    await userEvent.click(within(confirmacion).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Descartar' })).not.toBeInTheDocument())
+    expect(router.state.location.pathname).toBe('/pedido')
+    expect(screen.getByLabelText('Cantidad línea 1')).toBeInTheDocument()
+    expect(onCerrar).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    await act(async () => { await router.navigate(-1) })
+    const otra = await screen.findByRole('dialog', { name: 'Descartar' })
+    expect(otra).toHaveTextContent('Se descartarán las 2 líneas del pedido.')
+    await userEvent.click(within(otra).getByRole('button', { name: 'Descartar' }))
+    expect(onCerrar).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lista'))
+  })
+  it('Atrás sin líneas sale sin preguntar', async () => {
+    const { router } = renderConRouter(
+      [{ path: '/lista', element: <p>lista</p> }, { path: '/pedido', element: <NuevoPedidoDialog precarga={{ modo: 'vacio' }} onCerrar={vi.fn()} /> }],
+      { sesion: SESION_SUPER, ruta: '/lista' },
+    )
+    await act(async () => { await router.navigate('/pedido') })
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await act(async () => { await router.navigate(-1) })
+    expect(router.state.location.pathname).toBe('/lista')
+    expect(screen.queryByRole('dialog', { name: 'Descartar' })).not.toBeInTheDocument()
+  })
+
   it('aviso al salir (F5, cerrar la pestaña): sin líneas no pregunta; con una línea, sí; al quitarla, ya no', async () => {
     abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
@@ -114,7 +154,7 @@ describe('NuevoPedidoDialog', () => {
     const qc = crearQueryClient({ retry: false })
     qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, COMPONENTES)
     const onCerrar = vi.fn()
-    renderConProviders(<NuevoPedidoDialog precarga={{ modo: 'componentes', idsCom: [2] }} onCerrar={onCerrar} />, { sesion: SESION_SUPER, queryClient: qc })
+    renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'componentes', idsCom: [2] }} onCerrar={onCerrar} /> }], { sesion: SESION_SUPER, queryClient: qc })
     const campo = await screen.findByRole('combobox', { name: 'Componente línea 1' })
     expect(campo).toHaveValue('bat-x')
     expect(document.activeElement).not.toBe(campo)

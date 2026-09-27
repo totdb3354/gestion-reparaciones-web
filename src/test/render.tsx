@@ -52,10 +52,10 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
  *  (`await act(() => router.navigate(-1))`). */
 export function renderConRouter(
   rutas: RouteObject[],
-  { sesion = null, ruta = '/' }: { sesion?: Sesion | null; ruta?: string } = {},
+  { sesion = null, ruta = '/', queryClient }: { sesion?: Sesion | null; ruta?: string; queryClient?: QueryClient } = {},
 ): ReturnType<typeof render> & { queryClient: QueryClient; router: ReturnType<typeof createMemoryRouter> } {
   if (sesion) guardarSesion(sesion)
-  const qc = crearQueryClient({ retry: false })
+  const qc = queryClient ?? crearQueryClient({ retry: false })
   const router = createMemoryRouter(rutas, { initialEntries: [ruta] })
   const resultado = render(
     <QueryClientProvider client={qc}>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import {
   avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
-  precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, validarLineasCompra, validarLineasOtro,
+  precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
 
@@ -115,5 +115,12 @@ describe('edición de la lista', () => {
     expect(quitarLinea(ls, 1)).toEqual([lineaCompraVacia(3)])
     expect(siguienteId(ls)).toBe(4)
     expect(siguienteId([])).toBe(1)
+  })
+})
+
+describe('textoDescartar', () => {
+  it('singular con una línea y plural con N', () => {
+    expect(textoDescartar(1)).toBe('Se descartará la línea del pedido.')
+    expect(textoDescartar(3)).toBe('Se descartarán las 3 líneas del pedido.')
   })
 })

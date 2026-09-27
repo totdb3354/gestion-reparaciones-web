@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { abrirNuevoOtroPedido, abrirNuevoPedido, formularioPedido } from '@/shared/lib/formularioPedido'
-import { renderConProviders, SESION_SUPER } from '@/test/render'
+import { renderConRouter, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { COMPONENTES, PROVEEDORES } from './datosPrueba'
 import { FormulariosPedido } from './FormulariosPedido'
@@ -17,11 +17,11 @@ beforeEach(() => {
 
 describe('FormulariosPedido', () => {
   it('sin formulario abierto no pinta nada', () => {
-    renderConProviders(<FormulariosPedido />, { sesion: SESION_SUPER })
+    renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
   it('abrirNuevoPedido pinta "Nuevo pedido"; "Cancelar" vacía el store y lo quita', async () => {
-    renderConProviders(<FormulariosPedido />, { sesion: SESION_SUPER })
+    renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })
     act(() => abrirNuevoPedido({ modo: 'vacio' }))
     expect(await screen.findByRole('dialog', { name: 'Nuevo pedido' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
@@ -29,7 +29,7 @@ describe('FormulariosPedido', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
   it('una apertura nueva con el formulario abierto lo remonta con su precarga (key por apertura)', async () => {
-    renderConProviders(<FormulariosPedido />, { sesion: SESION_SUPER })
+    renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })
     act(() => abrirNuevoPedido({ modo: 'componentes', idsCom: [2] }))
     expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
     act(() => abrirNuevoPedido({ modo: 'componentes', idsCom: [1] }))
@@ -37,7 +37,7 @@ describe('FormulariosPedido', () => {
     expect(screen.queryByDisplayValue('bat-x')).not.toBeInTheDocument()
   })
   it('abrirNuevoOtroPedido pinta "Nuevo otro pedido"', async () => {
-    renderConProviders(<FormulariosPedido />, { sesion: SESION_SUPER })
+    renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })
     act(() => abrirNuevoOtroPedido())
     expect(await screen.findByRole('dialog', { name: 'Nuevo otro pedido' })).toBeInTheDocument()
   })
