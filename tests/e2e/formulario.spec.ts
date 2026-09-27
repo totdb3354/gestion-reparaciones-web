@@ -11,8 +11,8 @@ type RespuestaLote = { creadas: { idRep: string; imei: string; idTec: number; ca
 /** Contexto de API con la sesión del supertécnico (E2E_USER): crea la asignación de prueba y la borra en afterAll con el
  *  mismo token, sin gastar otro inicio de sesión (el entorno limita los inicios por minuto). */
 let api: { ctx: APIRequestContext; headers: Record<string, string> } | null = null
-/** Asignación de prueba creada por este fichero; afterAll la borra si sigue abierta. */
-let creada: { idRep: string } | null = null
+/** Asignación de prueba creada por este fichero (y su IMEI sintético); afterAll borra todo lo que cuelga de ese IMEI. */
+let creada: { idRep: string; imei: string } | null = null
 
 /** IMEI sintético de 15 dígitos, distinto en cada ejecución: "000000" + los 9 últimos dígitos de la marca de tiempo. */
 const imeiSintetico = () => `000000${String(Date.now()).slice(-9)}`
@@ -50,7 +50,7 @@ async function crearAsignacionDePrueba(page: Page): Promise<{ idRep: string; ime
   if (lote.creadas.length !== 1 || lote.creadas[0].imei !== imei || lote.creadas[0].categoria !== 'R') {
     throw new Error(`El lote no creó exactamente una Reparación para el IMEI de prueba: ${JSON.stringify(lote)}`)
   }
-  creada = { idRep: lote.creadas[0].idRep }
+  creada = { idRep: lote.creadas[0].idRep, imei }
   test.info().annotations.push({ type: 'e2e-creado', description: `asignación ${creada.idRep} / IMEI ${imei}` })
   return { idRep: creada.idRep, imei }
 }
@@ -204,8 +204,12 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
 })
 
 /**
- * Limpieza con la sesión de API del beforeAll: si la asignación de prueba sigue abierta (el test cayó antes de terminar),
- * se borra por su id; si ya se terminó, GET /api/reparaciones/asignaciones/{id} deja de encontrarla y no se toca nada.
+ * Limpieza con la sesión de API del beforeAll (supertécnico), de todo lo que cuelga del IMEI sintético:
+ * 1. si la asignación de prueba sigue abierta (el test cayó antes de terminar), se borra por su id;
+ * 2. después se borran por DELETE /api/reparaciones/{idRep} todas las reparaciones que queden del IMEI: primero las R… que
+ *    creó el test (la fila guardada devuelve su unidad al stock y con ellas se van sus Reparacion_componente, incluida la
+ *    solicitud de pieza) y al final la asignación ya cerrada;
+ * 3. se comprueba que no queda ninguna reparación del IMEI ni ninguna solicitud de pieza suya.
  * Los fallos se señalan con expect.soft nombrando la ruta, sin tapar el fallo original.
  */
 test.afterAll(async () => {
@@ -216,13 +220,39 @@ test.afterAll(async () => {
   if (!sesion) return
   try {
     if (!restante) return
+    const motivo = { motivo: 'Limpieza del smoke e2e' }
     const ruta = `/api/reparaciones/asignaciones/${restante.idRep}`
     const abierta = await sesion.ctx.get(ruta, { headers: sesion.headers })
-    if (abierta.status() === 404) return
-    expect.soft(abierta.status(), `limpieza GET ${ruta}`).toBe(200)
-    if (!abierta.ok()) return
-    const r = await sesion.ctx.delete(ruta, { headers: sesion.headers, data: { motivo: 'Limpieza del smoke e2e' } })
-    expect.soft(r.status(), `limpieza DELETE ${ruta}`).toBe(204)
+    if (abierta.status() !== 404) {
+      expect.soft(abierta.status(), `limpieza GET ${ruta}`).toBe(200)
+      if (abierta.ok()) {
+        const r = await sesion.ctx.delete(ruta, { headers: sesion.headers, data: motivo })
+        expect.soft(r.status(), `limpieza DELETE ${ruta}`).toBe(204)
+      }
+    }
+
+    const rutaImei = `/api/reparaciones/imei/${restante.imei}`
+    const delImei = await sesion.ctx.get(rutaImei, { headers: sesion.headers })
+    expect.soft(delImei.status(), `limpieza GET ${rutaImei}`).toBe(200)
+    if (delImei.ok()) {
+      const ids = ((await delImei.json()) as { idRep: string }[]).map((r) => r.idRep)
+      // Las R… antes que la asignación: así ninguna queda apuntando a una asignación ya borrada.
+      const orden = [...ids.filter((id) => id.startsWith('R')), ...ids.filter((id) => !id.startsWith('R'))]
+      for (const idRep of orden) {
+        const rutaRep = `/api/reparaciones/${idRep}`
+        const r = await sesion.ctx.delete(rutaRep, { headers: sesion.headers, data: motivo })
+        expect.soft(r.status(), `limpieza DELETE ${rutaRep}`).toBe(204)
+      }
+      const despues = await sesion.ctx.get(rutaImei, { headers: sesion.headers })
+      expect.soft(despues.ok() ? await despues.json() : null, `limpieza: sin reparaciones del IMEI ${restante.imei}`).toEqual([])
+    }
+
+    const solicitudes = await sesion.ctx.get('/api/solicitudes', { headers: sesion.headers })
+    expect.soft(solicitudes.status(), 'limpieza GET /api/solicitudes').toBe(200)
+    if (solicitudes.ok()) {
+      const suyas = ((await solicitudes.json()) as { imei: string }[]).filter((x) => x.imei === restante.imei)
+      expect.soft(suyas, `limpieza: sin solicitudes de pieza del IMEI ${restante.imei}`).toEqual([])
+    }
   } finally {
     await sesion.ctx.dispose()
   }
