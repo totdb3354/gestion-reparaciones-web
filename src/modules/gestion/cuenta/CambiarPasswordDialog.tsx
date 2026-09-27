@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
+import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { CampoPassword } from '@/shared/ui/CampoPassword'
@@ -53,6 +54,8 @@ function Cuerpo({ cambiar, onCerrar }: { cambiar: ReturnType<typeof useCambiarPa
   const [confirmar, setConfirmar] = useState('')
   const [error, setError] = useState<string | null>(null)
   const enviando = cambiar.isPending
+  // Cerrojo síncrono: `isPending` llega tarde y un doble clic en Guardar enviaría dos veces.
+  const enviar = useCerrojoEnvio({ abierto: true, enviando, error })
 
   /** Calco de `guardar` (:78-110): oculta el error, valida sin trim, envía y, con éxito, cierra y avisa. Un error deja
    *  los campos como estaban. 401 y conexión los lleva la política global (sesión caducada, banner y diálogo de
@@ -80,7 +83,7 @@ function Cuerpo({ cambiar, onCerrar }: { cambiar: ReturnType<typeof useCambiarPa
   }
 
   return (
-    <form noValidate onSubmit={(e) => { e.preventDefault(); guardar() }} className="flex flex-col gap-4 bg-superficie p-6">
+    <form noValidate onSubmit={(e) => { e.preventDefault(); enviar(guardar) }} className="flex flex-col gap-4 bg-superficie p-6">
       <Campo etiqueta="Contraseña actual">
         <CampoPassword valor={actual} onChange={setActual} placeholder="Contraseña actual" aria-label="Contraseña actual" autoComplete="current-password" autoFocus className={CLASE_CAMPO} />
       </Campo>

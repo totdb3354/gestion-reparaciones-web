@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState } from 'react'
 import type { ReparacionResumen } from '@/shared/api/client'
+import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
 import { Label } from '@/shared/ui/label'
@@ -8,12 +9,13 @@ import { useTecnicos } from '../api'
 type Props = { rep: ReparacionResumen | null; onGuardar: (comentario: string, idTec: number) => void; onCerrar: () => void }
 
 /** Calco de abrirDialogoIncidencia: comentario, técnico asignado (activos, preseleccionado el reparador si está entre
- *  ellos) y botón que solo se habilita con ambos. */
+ *  ellos) y botón que solo se habilita con ambos. Un doble clic en el botón no llama dos veces a `onGuardar` (useCerrojoEnvio). */
 export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
   const { data: tecnicos = [] } = useTecnicos(true)
   const [comentario, setComentario] = useState('')
   // Lo elegido a mano en el desplegable; null mientras no se toca, y entonces manda la preselección.
   const [elegido, setElegido] = useState<string | null>(null)
+  const enviar = useCerrojoEnvio({ abierto: rep !== null, enviando: false })
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia el formulario al abrir con otra fila
     if (rep) { setComentario(rep.incidencia ?? ''); setElegido(null) }
@@ -37,7 +39,7 @@ export function DialogoIncidencia({ rep, onGuardar, onCerrar }: Props) {
           <option value="">Selecciona técnico</option>
           {tecnicos.map((t) => <option key={t.idTec} value={String(t.idTec)}>{t.nombre}</option>)}
         </select>
-        <Button disabled={!listo} onClick={() => onGuardar(comentario.trim(), Number(idTec))} className="h-auto w-full rounded bg-fila-reparado-ico py-2 text-[12px] text-superficie hover:bg-fila-reparado-ico/90 disabled:bg-gris-disabled disabled:text-gris-borde disabled:opacity-100">
+        <Button disabled={!listo} onClick={() => enviar(() => onGuardar(comentario.trim(), Number(idTec)))} className="h-auto w-full rounded bg-fila-reparado-ico py-2 text-[12px] text-superficie hover:bg-fila-reparado-ico/90 disabled:bg-gris-disabled disabled:text-gris-borde disabled:opacity-100">
           Añadir incidencia y asignar
         </Button>
         <DialogFooter><Button variant="outline" onClick={onCerrar}>Cerrar</Button></DialogFooter>

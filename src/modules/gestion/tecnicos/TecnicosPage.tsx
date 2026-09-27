@@ -1,6 +1,7 @@
 import { useCallback, useId, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import type { Usuario } from '@/shared/api/client'
+import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { ComboNavy, type OpcionCombo } from '@/shared/ui/ComboNavy'
@@ -51,6 +52,8 @@ export function TecnicosPage() {
   const [errorCargaVisto, setErrorCargaVisto] = useState(0)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   const [aEliminar, setAEliminar] = useState<Usuario | null>(null)
+  // Cerrojo síncrono del alta: `registrar.isPending` llega tarde y un doble clic registraría dos veces.
+  const enviarAlta = useCerrojoEnvio({ abierto: true, enviando: registrar.isPending, error })
 
   // Cada fallo de carga (el inicial o la recarga tras una escritura) trae un errorUpdatedAt nuevo: se pinta
   // "Error al cargar los usuarios." en la línea aunque una acción la hubiera vaciado. Patrón "ajustar estado al cambiar
@@ -168,7 +171,7 @@ export function TecnicosPage() {
           <Button
             type="button"
             disabled={hayDuplicado || registrar.isPending}
-            onClick={onRegistrar}
+            onClick={() => enviarAlta(onRegistrar)}
             className="h-auto rounded-3xl bg-azul-noche px-6 py-2.5 text-[13px] font-bold text-crema hover:bg-azul-noche-hover"
           >
             Registrar técnico

@@ -161,6 +161,19 @@ describe('TecnicosPage', () => {
     expect(linea()).toBeEmptyDOMElement()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+  it('tras una validación fallida "Registrar técnico" sigue respondiendo', async () => {
+    let altas = 0
+    server.use(http.post('*/api/usuarios/tecnicos', () => { altas += 1; return new HttpResponse(null, { status: 201 }) }))
+    montar()
+    await screen.findByText('tecnico-a')
+    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1', confirmar: 'otra' })
+    await userEvent.click(botonRegistrar())
+    expect(linea()).not.toBeEmptyDOMElement()
+    await userEvent.clear(screen.getByLabelText('Confirmar'))
+    await rellenar({ confirmar: 'secreta1' })
+    await userEvent.click(botonRegistrar())
+    await waitFor(() => expect(altas).toBe(1))
+  })
   it.each([
     [409, () => HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }), 'Ese nombre de usuario ya existe.'],
     [422, () => HttpResponse.json({ message: 'El nombre de usuario no puede superar 50 caracteres.' }, { status: 422 }), 'El nombre de usuario no puede superar 50 caracteres.'],
