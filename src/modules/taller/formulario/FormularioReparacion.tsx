@@ -125,37 +125,41 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
 
   return (
     <Dialog open onOpenChange={(abierto) => { if (!abierto) cerrar() }}>
-      {/* max-w-none anula el max-w de DialogContent. Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕. */}
+      {/* max-w-none anula el max-w de DialogContent. Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕.
+          Nunca más alto ni más ancho que la ventana: la cabecera y la zona de guardar quedan siempre a la vista y lo que se
+          desplaza es el cuerpo (filas y OTRAS ACCIONES). Por debajo de 960 px de ancho, el marco se desplaza en horizontal. */}
       <DialogContent
         aria-label={titulo}
         aria-describedby={undefined}
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
-        className="flex h-[calc(100vh-48px)] min-h-[700px] w-[calc(100vw-48px)] max-w-none min-w-[960px] flex-col gap-0 overflow-hidden rounded-none border-0 bg-fondo-vista p-0"
+        className="flex h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] w-[calc(100vw-48px)] max-w-none flex-col gap-0 overflow-x-auto overflow-y-hidden rounded-none border-0 bg-fondo-vista p-0"
       >
         <DialogTitle className="sr-only">{titulo}</DialogTitle>
-        <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />
-        <div className="flex border-b border-form-cabecera-brd bg-form-cabecera-bg">
-          {COLUMNAS.map((c) => (
-            <span key={c.texto} className={`${c.clase} shrink-0 px-2.5 py-1.5 text-[12px] text-azul-gris`}>
-              {c.texto}
-            </span>
-          ))}
+        <div data-testid="formulario-marco" className="flex min-h-0 min-w-[960px] flex-1 flex-col">
+          <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />
+          <div className="flex border-b border-form-cabecera-brd bg-form-cabecera-bg">
+            {COLUMNAS.map((c) => (
+              <span key={c.texto} className={`${c.clase} shrink-0 px-2.5 py-1.5 text-[12px] text-azul-gris`}>
+                {c.texto}
+              </span>
+            ))}
+          </div>
+          {/* Filas y OTRAS ACCIONES desplazan juntas; el hueco flexible empuja la zona de guardar al fondo. */}
+          <div data-testid="formulario-cuerpo" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {filasVisibles(estado) ? (
+              estado.filas.map((fila) => (
+                <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila}>
+                  <SubFilaAgotado estado={estado} fila={fila} dispatch={dispatch} />
+                </FilaComponente>
+              ))
+            ) : (
+              <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
+            )}
+            <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
+          </div>
+          <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
         </div>
-        {/* Filas y OTRAS ACCIONES desplazan juntas; el hueco flexible empuja la zona de guardar al fondo. */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {filasVisibles(estado) ? (
-            estado.filas.map((fila) => (
-              <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila}>
-                <SubFilaAgotado estado={estado} fila={fila} dispatch={dispatch} />
-              </FilaComponente>
-            ))
-          ) : (
-            <p className="py-10 text-center text-[13px] text-azul-gris">Selecciona un modelo de iPhone para continuar</p>
-          )}
-          <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
-        </div>
-        <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
         {estado.modo === 'editar' && <GuardiaSalida hayCambios={hayCambiosSinGuardar(estado)} salidaLibre={salidaLibre} />}
       </DialogContent>
     </Dialog>

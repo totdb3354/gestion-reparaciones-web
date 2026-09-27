@@ -312,6 +312,28 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     expect(botonZona().textContent).toBe('✓  Confirmar terminar')
   })
 
+  it('pantallas bajas: el formulario no pasa del alto de la ventana y solo el cuerpo se desplaza; cabecera y pie quedan fuera', async () => {
+    abrir()
+    const dialogo = await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 13')
+    await sumar('bat', 'Batería')
+    // Alto y ancho de la ventana menos el margen, sin mínimo de alto que lo saque por arriba y por abajo (antes min-h-[700px]).
+    expect(dialogo).toHaveClass('h-[calc(100vh-48px)]', 'max-h-[calc(100vh-48px)]', 'w-[calc(100vw-48px)]', 'overflow-y-hidden', 'overflow-x-auto')
+    expect(dialogo.className).not.toMatch(/min-h-\[/)
+    expect(dialogo.className).not.toMatch(/min-w-\[/)
+    // El mínimo de 960 px va en el marco interior: por debajo, desplazamiento horizontal dentro del formulario.
+    const marco = screen.getByTestId('formulario-marco')
+    expect(marco).toHaveClass('min-w-[960px]', 'min-h-0', 'flex-1', 'flex-col')
+    const cuerpo = screen.getByTestId('formulario-cuerpo')
+    expect(cuerpo).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto')
+    expect(cuerpo).toContainElement(screen.getByTestId('fila-bat'))
+    // Cabecera (IMEI y ✕) y pie (zona de guardar) fuera del área desplazable.
+    expect(cuerpo).not.toContainElement(screen.getByText('IMEI: 355400000000111'))
+    expect(cuerpo).not.toContainElement(screen.getByRole('button', { name: 'Cerrar formulario' }))
+    expect(cuerpo).not.toContainElement(screen.getByTestId('zona-guardar'))
+    expect(marco).toContainElement(screen.getByTestId('zona-guardar'))
+  })
+
   it('orden de llamadas: agotar ×N en orden de filas, luego completa con las filas activas y las acciones pendientes; éxito: cierra', async () => {
     const { llamadas, onCerrar } = abrir()
     await screen.findByRole('dialog', { name: TITULO })
