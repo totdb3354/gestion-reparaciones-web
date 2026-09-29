@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.0] - 2026-09-29 — Sesiones y contraseñas
+
+- **Cierre por inactividad.** Tras dos horas sin usar el programa, la sesión se cierra sola. Un minuto antes sale el aviso "Vas a salir por inactividad" con el botón "Seguir trabajando". Cuenta como uso el ratón y el teclado en cualquier pestaña de la web; volver a la ventana y el refresco automático de las tablas no cuentan. Lo que esté sin guardar en un pedido o en el reparto de trabajos se pierde; las reparaciones a medias se guardan solas. Un PC suspendido con la web abierta más de dos horas vuelve a pedir usuario y contraseña al despertar.
+- **Aviso de versión nueva.** Cuando se publica una versión, las pestañas abiertas lo avisan abajo ("Hay una versión nueva del programa.") con un botón "Recargar". Nunca recarga sola, para no perder lo que haya escrito. Se comprueba al abrir la web y cada cinco minutos.
+- **Contraseña temporal.** En Técnicos, el administrador tiene "Restablecer contraseña" en cada fila: el programa genera una contraseña temporal y la muestra una sola vez, con un botón para copiarla. Al entrar con ella, la persona pasa a una pantalla en la que tiene que elegir una contraseña propia antes de seguir; desde ahí puede cerrar sesión. Los usuarios nuevos también entran con la contraseña del alta como temporal. Si se restablece la contraseña de alguien con la web abierta, su siguiente acción lo lleva a esa pantalla, y cambiarla en una pestaña vale para todas.
+- Requiere el servidor 0.9.0 y su migración (`sql/migracion-sp7b-auditoria-password.sql`).
+- Cambia la configuración del servidor web (`deploy/nginx/default.conf`, nueva ruta `/version.json` sin caché): hay que copiarla a la máquina y reiniciar nginx.
+
 ## [0.8.5] - 2026-09-27 — Arreglos de la verificación
 
 - Un doble clic en "Aceptar", "Guardar", "Registrar técnico" o "Añadir incidencia y asignar" de los diálogos de alta ya no crea el registro dos veces: el segundo clic se ignora mientras el primero se envía. Si el envío falla, o si falta un dato, se puede volver a pulsar.
