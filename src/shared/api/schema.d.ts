@@ -180,6 +180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/usuarios/{idUsu}/password-temporal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["entregarPasswordTemporal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/usuarios/tecnicos": {
         parameters: {
             query?: never;
@@ -2285,6 +2301,9 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ValorTexto: {
+            value: string | null;
+        };
         UsuarioRegistrarTecnicoRequest: {
             nombreTecnico: string;
             nombreUsuario: string;
@@ -2364,9 +2383,6 @@ export interface components {
             /** Format: int32 */
             idTec: number;
             idRepAnterior: string | null;
-        };
-        ValorTexto: {
-            value: string | null;
         };
         ReparacionAgotarRequest: {
             /** Format: int32 */
@@ -2593,6 +2609,7 @@ export interface components {
             /** Format: int32 */
             idTec: number | null;
             token: string;
+            passwordTemporal: boolean;
         };
         LoteAsignacionesAsignacionDelLote: {
             imei: string;
@@ -3729,6 +3746,35 @@ export interface operations {
             };
         };
     };
+    entregarPasswordTemporal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idUsu: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ValorTexto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getUsuariosTecnicos: {
         parameters: {
             query?: never;
@@ -4715,6 +4761,13 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5848,6 +5901,13 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
