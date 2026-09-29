@@ -1,7 +1,9 @@
 import { useIsFetching, useIsMutating, type Query } from '@tanstack/react-query'
 import { Outlet } from 'react-router'
 import { FormulariosPedido } from '@/modules/almacen/pedidos/formulario/FormulariosPedido'
+import { VigilanciaInactividad } from '@/shared/session/VigilanciaInactividad'
 import { CapaCarga } from '@/shared/ui/CapaCarga'
+import { AvisoVersion } from '@/shared/version/AvisoVersion'
 import { ExportableProvider } from '@/shared/ui/exportable'
 import { TopBar } from './TopBar'
 import { ConnectionBanner } from './ConnectionBanner'
@@ -35,6 +37,9 @@ export function AppLayout() {
       {/* Formularios de alta de pedido (P1): modal sobre la vista actual, abierto desde el store compartido. */}
       <FormulariosPedido />
       <CapaCarga activa={capaActiva} />
+      {/* Aquí y no en main.tsx: solo existe con sesión abierta, que es justo cuando hay algo que vigilar. */}
+      <VigilanciaInactividad />
+      <AvisoVersion />
     </ExportableProvider>
   )
 }

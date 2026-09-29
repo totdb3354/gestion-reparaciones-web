@@ -4,17 +4,23 @@ export type Sesion = {
   rol: string
   idTec: number | null
   token: string
+  /** La contraseña con la que se ha entrado la entregó el administrador: hay que cambiarla antes de usar la aplicación. */
+  passwordTemporal: boolean
 }
 
 /**
  * La sesión vive en `localStorage`: una sola para todas las pestañas del navegador (abrir otra pestaña o un enlace en
- * pestaña nueva entra sin pedir usuario). Que se cierre al cerrar el navegador lo decide la señal de actividad
- * (`CLAVE_LATIDO`, ver `latido.ts` y `arranque.ts`), no el navegador. Si el almacenamiento falla o está bloqueado, se
- * comporta como "sin sesión".
+ * pestaña nueva entra sin pedir usuario). Que se cierre al cerrar el navegador lo decide el latido de pestaña viva
+ * (`CLAVE_LATIDO`, ver `latido.ts` y `arranque.ts`), no el navegador; que se cierre tras dos horas sin nadie delante lo
+ * decide la marca de actividad de la persona (`CLAVE_ACTIVIDAD`, ver `actividad.ts`). Si el almacenamiento falla o está
+ * bloqueado, se comporta como "sin sesión".
  */
 export const CLAVE_SESION = 'fsgr.sesion'
 /** Hora (ms desde epoch, `String(Date.now())`) de la última señal de actividad de alguna pestaña con la sesión abierta. */
 export const CLAVE_LATIDO = 'fsgr.latido'
+/** Hora de la ultima senal de que hay ALGUIEN usando el ERP. La politica (que eventos cuentan, el tope de dos
+ *  horas) vive en `actividad.ts`; aqui solo la clave y el acceso al almacenamiento, como con el latido. */
+export const CLAVE_ACTIVIDAD = 'fsgr.actividad'
 
 /**
  * Token de la sesión con la que trabaja ESTA pestaña. Lo fija la pestaña al adoptar una sesión (al arrancar, al entrar) y
@@ -30,7 +36,9 @@ export function leerSesion(): Sesion | null {
     const s = JSON.parse(raw) as Partial<Sesion>
     if (typeof s.token !== 'string' || typeof s.nombreUsuario !== 'string') return null
     if (typeof s.idUsu !== 'number' || typeof s.rol !== 'string') return null
-    return s as Sesion
+    // La marca se normaliza a booleano: una sesión guardada antes de que existiera el campo no la trae, y entonces la
+    // contraseña es la de siempre (solo el login la enciende).
+    return { ...(s as Sesion), passwordTemporal: s.passwordTemporal === true }
   } catch {
     return null
   }
@@ -45,6 +53,30 @@ export function guardarSesion(s: Sesion) {
   }
   tokenDePestana = s.token
   escribirLatido()
+  // Entrar ES actividad. Sin esto, una marca rancia de la jornada anterior sobrevive al cierre de sesion y la
+  // vigilancia expulsa en el mismo instante de entrar, en bucle y sin salida desde la aplicacion.
+  escribirActividad()
+}
+
+/** Anota que hay alguien usando el ERP ahora mismo. */
+export function escribirActividad(ahora: number = Date.now()) {
+  try {
+    localStorage.setItem(CLAVE_ACTIVIDAD, String(ahora))
+  } catch {
+    // Almacenamiento no disponible: sin marca, la vigilancia trata la sesion como recien activa.
+  }
+}
+
+/** Hora de la ultima actividad, o null si no hay marca o no se puede leer. */
+export function leerActividad(): number | null {
+  try {
+    const raw = localStorage.getItem(CLAVE_ACTIVIDAD)
+    if (raw === null || raw.trim() === '') return null
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : null
+  } catch {
+    return null
+  }
 }
 /** Borra la sesión y la señal de actividad, y esta pestaña deja de tener sesión; las demás lo reciben por el evento
  *  `storage`. */
@@ -53,6 +85,8 @@ export function borrarSesion() {
   try {
     localStorage.removeItem(CLAVE_SESION)
     localStorage.removeItem(CLAVE_LATIDO)
+    // Una marca de actividad sin sesion no significa nada, y dejarla envenena el proximo inicio de sesion.
+    localStorage.removeItem(CLAVE_ACTIVIDAD)
   } catch {
     // Almacenamiento no disponible: no hay nada que borrar.
   }

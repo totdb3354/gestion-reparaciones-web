@@ -2,7 +2,8 @@ import createClient, { type Middleware } from 'openapi-fetch'
 import type { components, paths } from './schema'
 import { esSesionDeEstaPestana, tokenDeEstaPestana } from '@/shared/session/storage'
 import { dispararSesionExpirada } from '@/shared/session/expiracion'
-import { ConexionError, LimiteLoginError, MSG_LIMITE_LOGIN, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionDeOtraPestanaError, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
+import { dispararPasswordTemporalExigida } from '@/shared/session/passwordTemporal'
+import { ConexionError, LimiteLoginError, PasswordTemporalError, MSG_LIMITE_LOGIN, MSG_SIN_CONEXION, MSG_TIMEOUT, SesionDeOtraPestanaError, SesionExpiradaError, clasificar, extraerMensaje } from './errors'
 import { reportarExito, reportarFallo } from './conexion'
 
 /** Tipos del contrato tal cual los genera openapi-typescript: el servidor marca todas las propiedades como
@@ -100,6 +101,7 @@ const auth: Middleware = {
     if (err instanceof ConexionError) reportarFallo()
     else if (response.status >= 500) reportarExito()
     if (err instanceof SesionExpiradaError) dispararSesionExpirada()
+    else if (err instanceof PasswordTemporalError) dispararPasswordTemporalExigida()
     throw err
   },
 }

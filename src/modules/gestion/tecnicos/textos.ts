@@ -22,3 +22,13 @@ export const TEXTO_VACIO_TABLA = 'Tabla sin contenido'
 /** Tooltip del candado (:179); la papelera no tiene tooltip. */
 export const TOOLTIP_DESACTIVAR = 'Desactivar acceso'
 export const TOOLTIP_ACTIVAR = 'Activar acceso'
+
+/** Contraseña temporal (spec sp7b §5.4): confirmación, entrega y aviso de que se enseña una sola vez. */
+export const MSG_ERROR_RESTABLECER = 'Error al restablecer la contraseña del técnico.'
+export const TOOLTIP_RESTABLECER = 'Restablecer contraseña'
+export const TITULO_RESTABLECER = 'Restablecer contraseña'
+export const textoRestablecer = (n: string) =>
+  `¿Entregar una contraseña temporal a "${n}"?\nSu contraseña actual dejará de servir y tendrá que poner una propia al entrar.`
+export const TITULO_PASSWORD_ENTREGADA = 'Contraseña temporal'
+export const textoPasswordEntregada = (n: string) =>
+  `Entrégasela a "${n}" en persona. Solo se muestra ahora: al cerrar esta ventana no se vuelve a ver.\nAl entrar con ella tendrá que cambiarla por una propia.`

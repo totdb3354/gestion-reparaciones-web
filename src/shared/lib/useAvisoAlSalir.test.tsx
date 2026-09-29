@@ -6,7 +6,7 @@ import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { useAvisoAlSalir } from './useAvisoAlSalir'
 
 beforeEach(() => {
-  guardarSesion({ idUsu: 1, nombreUsuario: 'usuario-a', rol: 'TECNICO', idTec: 1, token: 'jwt' })
+  guardarSesion({ idUsu: 1, nombreUsuario: 'usuario-a', rol: 'TECNICO', idTec: 1, token: 'jwt', passwordTemporal: false })
 })
 afterEach(() => {
   vi.restoreAllMocks()

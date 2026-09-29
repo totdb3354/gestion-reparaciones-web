@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { borrarSesion } from '@/shared/session/storage'
 import { useSession } from '@/shared/session/SessionProvider'
-import { RequireSesion } from './RequireSesion'
+import { RequireSesion, RUTA_CAMBIO_OBLIGATORIO } from './RequireSesion'
 
 // La ruta fija de renderConProviders (path={ruta}) coincidiría con "/privado" si la usáramos también
 // para la ruta protegida (misma puntuación, gana la primera declarada): por eso `ui` navega hasta ahí
@@ -59,6 +59,43 @@ describe('RequireSesion', () => {
     })
     expect(await screen.findByText('LOGIN')).toBeInTheDocument()
     expect(screen.queryByText('PRIVADO')).not.toBeInTheDocument()
+  })
+})
+
+describe('RequireSesion con la contraseña temporal del administrador', () => {
+  const montar = (ruta: string) =>
+    renderConProviders(<Navigate to={ruta} replace />, {
+      sesion: { ...SESION_TEC, passwordTemporal: true },
+      rutas: (
+        <Route element={<RequireSesion />}>
+          <Route path="/privado" element={<p>PRIVADO</p>} />
+          <Route path={RUTA_CAMBIO_OBLIGATORIO} element={<p>CAMBIO</p>} />
+        </Route>
+      ),
+    })
+
+  it('cualquier ruta lleva al cambio obligatorio', async () => {
+    montar('/privado')
+    expect(await screen.findByText('CAMBIO')).toBeInTheDocument()
+    expect(screen.queryByText('PRIVADO')).not.toBeInTheDocument()
+  })
+
+  it('el propio cambio obligatorio sí se pinta (no hay bucle de redirecciones)', async () => {
+    montar(RUTA_CAMBIO_OBLIGATORIO)
+    expect(await screen.findByText('CAMBIO')).toBeInTheDocument()
+  })
+
+  it('sin la marca la aplicación se abre con normalidad', async () => {
+    renderConProviders(<Navigate to="/privado" replace />, {
+      sesion: SESION_TEC,
+      rutas: (
+        <Route element={<RequireSesion />}>
+          <Route path="/privado" element={<p>PRIVADO</p>} />
+          <Route path={RUTA_CAMBIO_OBLIGATORIO} element={<p>CAMBIO</p>} />
+        </Route>
+      ),
+    })
+    expect(await screen.findByText('PRIVADO')).toBeInTheDocument()
   })
 })
 

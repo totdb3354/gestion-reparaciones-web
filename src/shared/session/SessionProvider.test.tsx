@@ -6,9 +6,10 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { crearStore } from '@/shared/lib/store'
 import { server } from '@/test/server'
 import { SessionProvider, useSession } from './SessionProvider'
+import { dispararPasswordTemporalExigida, rearmarPasswordTemporalExigida } from './passwordTemporal'
 import { escribirLatido, guardarSesion, leerSesion, type Sesion } from './storage'
 
-const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1' }
+const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1', passwordTemporal: false }
 
 type Contexto = ReturnType<typeof useSession>
 
@@ -100,7 +101,7 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
   it('otro usuario entra en otra pestaña: recarga completa hacia la raíz', () => {
     const replace = espiarRecarga()
     montar()
-    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ idUsu: 91, nombreUsuario: 'tecnico2', rol: 'TECNICO', idTec: 2, token: 'jwt-tecnico2' }))
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ idUsu: 91, nombreUsuario: 'tecnico2', rol: 'TECNICO', idTec: 2, token: 'jwt-tecnico2', passwordTemporal: false }))
     expect(replace).toHaveBeenCalledWith('/')
   })
 
@@ -160,4 +161,58 @@ describe('SessionProvider: una sesión para todas las pestañas (evento storage)
     await act(() => ctx.actual!.login('tecnico1', 'clave'))
     expect(ctx.actual!.sesion).toBeNull()
   })
+})
+
+describe('SessionProvider: contraseña temporal entregada por el administrador', () => {
+  it('el login guarda la marca que envía el servidor', async () => {
+    server.use(http.post('*/api/auth/login', () => HttpResponse.json({ ...TECNICO, passwordTemporal: true })))
+    const ctx = montar({ sesion: null })
+    await act(() => ctx.actual!.login('tecnico1', 'clave'))
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(true)
+    expect(leerSesion()?.passwordTemporal).toBe(true)
+  })
+
+  it('un servidor que todavía no envía la marca deja la sesión normal, sin rechazar el login', async () => {
+    server.use(http.post('*/api/auth/login', () => HttpResponse.json({ ...TECNICO, passwordTemporal: undefined })))
+    const ctx = montar({ sesion: null })
+    await act(() => ctx.actual!.login('tecnico1', 'clave'))
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(false)
+  })
+
+  it('al cambiar la contraseña la marca se apaga, con el mismo token (las otras pestañas no recargan)', () => {
+    const ctx = montar({ sesion: { ...TECNICO, passwordTemporal: true } })
+    act(() => ctx.actual!.olvidarPasswordTemporal())
+    expect(ctx.actual!.sesion).toEqual(TECNICO)
+    expect(leerSesion()).toEqual(TECNICO)
+  })
+
+  it('sin la marca puesta, apagarla no reescribe nada', () => {
+    const ctx = montar()
+    const guardado = localStorage.getItem('fsgr.sesion')
+    act(() => ctx.actual!.olvidarPasswordTemporal())
+    expect(localStorage.getItem('fsgr.sesion')).toBe(guardado)
+    expect(ctx.actual!.sesion).toEqual(TECNICO)
+  })
+  it('el cambio de contrasena en otra pestana quita la marca en esta', () => {
+    // Mismo usuario y mismo token: lo unico que cambia es la marca. Sin propagarla, esta pestana seguiria en la
+    // pantalla de cambio obligatorio pidiendo una contrasena temporal que el servidor ya invalido.
+    const conTemporal: Sesion = { ...TECNICO, passwordTemporal: true }
+    const ctx = montar({ sesion: conTemporal })
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(true)
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ ...conTemporal, passwordTemporal: false }))
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(false)
+  })
+
+  it('un 403 de contrasena temporal enciende la marca sin expulsar', () => {
+    // El caso real: el administrador restablece la contrasena con la sesion ya abierta. Sin esto, cada consulta de la
+    // vista daria "No tienes permisos" en bucle y nadie deduciria que hay que poner una contrasena propia.
+    rearmarPasswordTemporalExigida()
+    const ctx = montar({ sesion: TECNICO })
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(false)
+    act(() => dispararPasswordTemporalExigida())
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(true)
+    expect(leerSesion()?.passwordTemporal).toBe(true)
+    expect(leerSesion()?.token).toBe(TECNICO.token)
+  })
+
 })

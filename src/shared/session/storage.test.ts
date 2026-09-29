@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerLatido, leerSesion, type Sesion } from './storage'
+import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerActividad, leerLatido, leerSesion, type Sesion } from './storage'
 
-const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt' }
+const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt', passwordTemporal: false }
 
 describe('storage de sesión', () => {
   beforeEach(() => localStorage.clear())
@@ -36,6 +36,14 @@ describe('storage de sesión', () => {
     expect(leerSesion()).toBeNull()
     localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, idUsu: '7' }))
     expect(leerSesion()).toBeNull()
+  })
+  it('la marca de contraseña temporal se normaliza a booleano y sin ella la sesión es normal', () => {
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, passwordTemporal: undefined }))
+    expect(leerSesion()).toEqual({ ...tecnicoF, passwordTemporal: false })
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, passwordTemporal: 'sí' }))
+    expect(leerSesion()?.passwordTemporal).toBe(false)
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, passwordTemporal: true }))
+    expect(leerSesion()?.passwordTemporal).toBe(true)
   })
   it('si el almacenamiento lanza al leer, sin sesión y sin señal', () => {
     localStorage.setItem('fsgr.sesion', JSON.stringify(tecnicoF))
@@ -102,4 +110,13 @@ describe('storage de sesión', () => {
     expect(esAdminOSuperTecnico(tec)).toBe(false)
     expect(esAdmin(null)).toBe(false)
   })
+  it('guardar la sesion anota actividad y borrarla retira la marca', () => {
+    // Entrar es actividad: si la marca de la jornada anterior sobreviviera, la vigilancia expulsaria al entrar.
+    localStorage.setItem('fsgr.actividad', String(Date.now() - 3 * 60 * 60 * 1000))
+    guardarSesion(tecnicoF)
+    expect(leerActividad()).toBeGreaterThan(Date.now() - 5_000)
+    borrarSesion()
+    expect(leerActividad()).toBeNull()
+  })
+
 })

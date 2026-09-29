@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { arrancarLatido, LATIDO_MS, UMBRAL_MS } from './latido'
 import { borrarSesion, guardarSesion, type Sesion } from './storage'
 
-const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1' }
+const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1', passwordTemporal: false }
 const INICIO = new Date(2026, 8, 27, 10, 0).getTime()
 
 function fijarVisibilidad(valor: DocumentVisibilityState) {

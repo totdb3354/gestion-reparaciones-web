@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ConexionError, MSG_SIN_CONEXION, NoEncontradoError, PermisoError, ReglaNegocioError, SesionExpiradaError,
-  StaleDataError, clasificar, extraerMensaje, mensajeSinConexion,
+  ConexionError, MSG_403_PASSWORD_TEMPORAL, MSG_SIN_CONEXION, NoEncontradoError, PasswordTemporalError, PermisoError,
+  ReglaNegocioError, SesionExpiradaError, StaleDataError, clasificar, esErrorGestionadoGlobalmente, extraerMensaje,
+  mensajeSinConexion,
 } from './errors'
 
 describe('clasificar (port de ApiClient.clasificar)', () => {
@@ -10,8 +11,20 @@ describe('clasificar (port de ApiClient.clasificar)', () => {
     expect(e).toBeInstanceOf(SesionExpiradaError)
     expect(e.message).toBe('Sesión expirada. Vuelve a iniciar sesión.')
   })
+  it('el texto del 403 de contrasena temporal es el que manda el servidor', () => {
+    // Contrato con el servidor: JwtAuthFilter.MSG_PASSWORD_TEMPORAL, fijado alli por su propio test. Si dejan de
+    // coincidir, ese 403 vuelve a verse como falta de permisos (degradacion segura, pero el desvio se pierde).
+    expect(MSG_403_PASSWORD_TEMPORAL).toBe('Tienes que cambiar la contraseña antes de seguir.')
+  })
+  it('403 con el mensaje de contrasena temporal no es falta de permisos y lo lleva el mecanismo global', () => {
+    const e = clasificar(403, MSG_403_PASSWORD_TEMPORAL)
+    expect(e).toBeInstanceOf(PasswordTemporalError)
+    expect(e).not.toBeInstanceOf(PermisoError)
+    expect(esErrorGestionadoGlobalmente(e)).toBe(true)
+  })
   it('403 → sin permisos', () => {
     expect(clasificar(403, 'lo que sea')).toBeInstanceOf(PermisoError)
+    expect(esErrorGestionadoGlobalmente(clasificar(403, 'lo que sea'))).toBe(false)
     expect(clasificar(403, null).message).toBe('No tienes permisos para realizar esta acción.')
   })
   it('404 → recurso no encontrado', () => {

@@ -4,6 +4,7 @@ import { api, type LoginResponse } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
 import { reiniciarStores } from '@/shared/lib/store'
 import { rearmarSesionExpirada } from '@/shared/session/expiracion'
+import { onPasswordTemporalExigida, rearmarPasswordTemporalExigida } from '@/shared/session/passwordTemporal'
 import { borrarSesion, CLAVE_SESION, guardarSesion, leerSesion, type Sesion } from '@/shared/session/storage'
 
 export const MSG_CREDENCIALES = 'Usuario o contraseña incorrectos.'
@@ -12,6 +13,8 @@ type Ctx = {
   sesion: Sesion | null
   login: (usuario: string, password: string) => Promise<void>
   logout: () => void
+  /** La persona ya ha puesto una contraseña propia: la sesión deja de estar retenida en el cambio obligatorio. */
+  olvidarPasswordTemporal: () => void
 }
 const SessionContext = createContext<Ctx | null>(null)
 
@@ -20,6 +23,8 @@ const SessionContext = createContext<Ctx | null>(null)
 function esLoginResponse(x: unknown): x is LoginResponse {
   if (typeof x !== 'object' || x === null) return false
   const r = x as Record<string, unknown>
+  // `passwordTemporal` no entra en la guarda: se normaliza a booleano al construir la sesión, así que un servidor que
+  // todavía no lo envíe deja la sesión normal en vez de rechazar el login.
   return typeof r.token === 'string' && typeof r.idUsu === 'number' && typeof r.nombreUsuario === 'string' && typeof r.rol === 'string'
 }
 
@@ -56,12 +61,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Nada de la sesión anterior pasa a esta: ni la caché de consultas ni los filtros que sobreviven al cambio de ruta.
     qc.clear()
     reiniciarStores()
-    const s: Sesion = { idUsu: data.idUsu, nombreUsuario: data.nombreUsuario, rol: data.rol, idTec: data.idTec ?? null, token: data.token }
+    const s: Sesion = {
+      idUsu: data.idUsu,
+      nombreUsuario: data.nombreUsuario,
+      rol: data.rol,
+      idTec: data.idTec ?? null,
+      token: data.token,
+      passwordTemporal: data.passwordTemporal === true,
+    }
     guardarSesion(s)
     rearmarSesionExpirada()
+    rearmarPasswordTemporalExigida()
     // El estado sigue a lo guardado: si el almacenamiento no la acepta, la pestaña queda sin sesión, igual que el cliente HTTP.
     setSesion(leerSesion())
   }, [qc])
+
+  /** Tras cambiar la contraseña en el cambio obligatorio: se reescribe la sesión guardada (mismo token, así que las otras
+   *  pestañas la reconocen como la suya y no recargan) y esta pestaña deja de estar retenida. */
+  const olvidarPasswordTemporal = useCallback(() => {
+    if (sesion === null || !sesion.passwordTemporal) return
+    guardarSesion({ ...sesion, passwordTemporal: false })
+    rearmarPasswordTemporalExigida()
+    // El estado sigue a lo guardado. Si el almacenamiento no acepta la escritura, lo guardado sigue con la marca puesta y
+    // el desvío devuelve a la pantalla de cambio (la temporal ya no vale en el servidor); de ahí se sale con "Cerrar
+    // sesión" y se entra con la contraseña nueva.
+    setSesion(leerSesion())
+  }, [sesion])
 
   const logout = useCallback(() => {
     borrarSesion()
@@ -69,6 +94,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     reiniciarStores()
     setSesion(null)
   }, [qc])
+
+  // El servidor ha rechazado una peticion por tener la contraseña temporal, y esta pestaña no lo sabia (por ejemplo, el
+  // administrador la restablecio con la sesion ya abierta). Se enciende la marca y `RequireSesion` lleva al cambio.
+  useEffect(() => {
+    return onPasswordTemporalExigida(() => {
+      const guardada = leerSesion()
+      if (guardada === null || guardada.passwordTemporal) return
+      guardarSesion({ ...guardada, passwordTemporal: true })
+      setSesion(leerSesion())
+    })
+  }, [])
 
   // Una sesión para todas las pestañas: el evento `storage` avisa de lo que cambian las OTRAS (nunca de lo que escribe esta,
   // así que no hay bucle; la señal de actividad `fsgr.latido` se ignora). Se decide por lo que hay guardado ahora.
@@ -85,13 +121,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       // Entró otra persona, u otra sesión de la misma: recarga completa hacia la raíz para no mezclar en pantalla datos
       // de una sesión con otra. Una pestaña en /login que recibe una sesión entra así en la aplicación.
-      if (sesion === null || guardada.idUsu !== sesion.idUsu || guardada.token !== sesion.token) window.location.replace('/')
+      if (sesion === null || guardada.idUsu !== sesion.idUsu || guardada.token !== sesion.token) {
+        window.location.replace('/')
+        return
+      }
+      // Misma sesión, mismo token: solo puede haber cambiado la marca de contraseña temporal, porque la cambió en otra
+      // pestaña. Sin esto esta pestaña seguiría pidiendo una contraseña temporal que el servidor ya ha invalidado.
+      if (guardada.passwordTemporal !== sesion.passwordTemporal) setSesion(guardada)
     }
     window.addEventListener('storage', alCambiarEnOtraPestana)
     return () => window.removeEventListener('storage', alCambiarEnOtraPestana)
   }, [sesion, logout])
 
-  const value = useMemo(() => ({ sesion, login, logout }), [sesion, login, logout])
+  const value = useMemo(
+    () => ({ sesion, login, logout, olvidarPasswordTemporal }),
+    [sesion, login, logout, olvidarPasswordTemporal],
+  )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
 

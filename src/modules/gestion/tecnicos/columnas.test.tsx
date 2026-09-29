@@ -10,11 +10,12 @@ const usuarios: Usuario[] = [
   { idUsu: 12, nombreUsuario: 'usuario-b', rol: 'SUPERTECNICO', idTec: 22, nombreTecnico: 'tecnico-b', activo: false },
 ]
 
-function montar() {
+function montar({ conRestablecer = true }: { conRestablecer?: boolean } = {}) {
   const onToggle = vi.fn()
   const onEliminar = vi.fn()
-  const r = render(<DataTable columns={columnasTecnicos({ onToggle, onEliminar })} data={usuarios} vacio="No hay contenido en la tabla" getRowId={(u) => String(u.idTec)} />)
-  return { ...r, onToggle, onEliminar }
+  const onRestablecer = vi.fn()
+  const r = render(<DataTable columns={columnasTecnicos({ onToggle, onEliminar, onRestablecer: conRestablecer ? onRestablecer : null })} data={usuarios} vacio="No hay contenido en la tabla" getRowId={(u) => String(u.idTec)} />)
+  return { ...r, onToggle, onEliminar, onRestablecer }
 }
 const celdas = (container: HTMLElement, columna: string) => Array.from(container.querySelectorAll(`[data-columna="${columna}"]`)).map((c) => c.textContent)
 const fila = (nombre: string) => screen.getByRole('row', { name: new RegExp(`^${nombre}`) })
@@ -32,7 +33,7 @@ describe('columnas de técnicos', () => {
     expect(cols[4]).toHaveStyle({ width: '80px' })
   })
   it('con ajuste "ultima" (el de la página) la de acciones absorbe el sobrante (FLEX_LAST_COLUMN) con los iconos centrados', () => {
-    const { container } = render(<DataTable columns={columnasTecnicos({ onToggle: vi.fn(), onEliminar: vi.fn() })} data={usuarios}
+    const { container } = render(<DataTable columns={columnasTecnicos({ onToggle: vi.fn(), onEliminar: vi.fn(), onRestablecer: vi.fn() })} data={usuarios}
       vacio="" getRowId={(u) => String(u.idTec)} ajuste="ultima" />)
     const cols = container.querySelectorAll('col')
     expect(cols[3]).toHaveStyle({ width: '90px' })
@@ -77,5 +78,19 @@ describe('columnas de técnicos', () => {
     expect(onEliminar).toHaveBeenCalledWith(usuarios[0])
     expect(onToggle).toHaveBeenCalledTimes(1)
     expect(onEliminar).toHaveBeenCalledTimes(1)
+  })
+  it('la llave de la contraseña temporal llama a onRestablecer con su fila, con tooltip y en todas las filas', async () => {
+    const { onRestablecer } = montar()
+    const llaves = screen.getAllByRole('button', { name: 'Restablecer contraseña' })
+    expect(llaves).toHaveLength(2)
+    expect(llaves[0]).toHaveAttribute('title', 'Restablecer contraseña')
+    await userEvent.click(within(fila('tecnico-b')).getByRole('button', { name: 'Restablecer contraseña' }))
+    expect(onRestablecer).toHaveBeenCalledWith(usuarios[1])
+    expect(onRestablecer).toHaveBeenCalledTimes(1)
+  })
+  it('sin acción de restablecer (quien no es administrador) la llave no se pinta', () => {
+    montar({ conRestablecer: false })
+    expect(screen.queryByRole('button', { name: 'Restablecer contraseña' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Eliminar' })).toHaveLength(2)
   })
 })

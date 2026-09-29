@@ -2,6 +2,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { useCallback } from 'react'
 import { api } from '@/shared/api/client'
 import { CLAVE_TECNICOS_LITERAL, CLAVE_USUARIOS } from '../api'
+import { MSG_ERROR_RESTABLECER } from './textos'
 import type { CuerpoAlta } from './validacion'
 
 /** Tras una escritura con éxito (spec 6, §7): la tabla de esta página (['usuarios', …]) y los combos y listas de técnicos
@@ -57,4 +58,17 @@ export function useEliminar(): UseMutationResult<void, Error, { idTec: number; i
 export async function consultarTieneReparaciones(idTec: number): Promise<boolean> {
   const { data } = await api.GET('/api/usuarios/tecnicos/{idTec}/tiene-reparaciones', { params: { path: { idTec } } })
   return data?.value === true
+}
+
+/**
+ * Contraseña temporal para otro usuario (spec sp7b §5.4). Función suelta y no `useMutation` a propósito: la contraseña
+ * entregada solo debe existir mientras la pantalla la enseña, y la caché de mutaciones la conservaría en memoria después.
+ * Tampoco invalida nada: la tabla de usuarios no muestra esta marca. Sin Idempotency-Key: cada llamada entrega una distinta,
+ * así que un reintento a ciegas no es lo que quiere quien la pide.
+ */
+export async function entregarPasswordTemporal(idUsu: number): Promise<string> {
+  const { data } = await api.POST('/api/usuarios/{idUsu}/password-temporal', { params: { path: { idUsu } } })
+  const password = data?.value
+  if (typeof password !== 'string' || password === '') throw new Error(MSG_ERROR_RESTABLECER)
+  return password
 }

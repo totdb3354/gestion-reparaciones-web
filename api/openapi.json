@@ -539,6 +539,36 @@
         }
       }
     },
+    "/api/usuarios/{idUsu}/password-temporal" : {
+      "post" : {
+        "tags" : [ "usuario-controller" ],
+        "operationId" : "entregarPasswordTemporal",
+        "parameters" : [ {
+          "name" : "idUsu",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValorTexto"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        }
+      }
+    },
     "/api/usuarios/tecnicos" : {
       "get" : {
         "tags" : [ "usuario-controller" ],
@@ -1671,6 +1701,9 @@
           },
           "401" : {
             "description" : "Unauthorized"
+          },
+          "429" : {
+            "description" : "Too Many Requests"
           }
         }
       }
@@ -2988,6 +3021,9 @@
           },
           "422" : {
             "description" : "Unprocessable Entity"
+          },
+          "429" : {
+            "description" : "Too Many Requests"
           }
         }
       }
@@ -4766,6 +4802,16 @@
           }
         }
       },
+      "ValorTexto" : {
+        "required" : [ "value" ],
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
       "UsuarioRegistrarTecnicoRequest" : {
         "required" : [ "nombreTecnico", "nombreUsuario", "password", "rol" ],
         "type" : "object",
@@ -4999,16 +5045,6 @@
             "format" : "int32"
           },
           "idRepAnterior" : {
-            "type" : "string",
-            "nullable" : true
-          }
-        }
-      },
-      "ValorTexto" : {
-        "required" : [ "value" ],
-        "type" : "object",
-        "properties" : {
-          "value" : {
             "type" : "string",
             "nullable" : true
           }
@@ -5638,7 +5674,7 @@
         }
       },
       "LoginResponse" : {
-        "required" : [ "idTec", "idUsu", "nombreUsuario", "rol", "token" ],
+        "required" : [ "idTec", "idUsu", "nombreUsuario", "passwordTemporal", "rol", "token" ],
         "type" : "object",
         "properties" : {
           "idUsu" : {
@@ -5658,6 +5694,9 @@
           },
           "token" : {
             "type" : "string"
+          },
+          "passwordTemporal" : {
+            "type" : "boolean"
           }
         }
       },
