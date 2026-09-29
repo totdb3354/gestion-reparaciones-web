@@ -1,3 +1,4 @@
+import { arrancarMarcaDeActividad } from './actividad'
 import { arrancarLatido, LATIDO_MS, UMBRAL_MS } from './latido'
 import { adoptarSesionGuardada, borrarSesion, CLAVE_SESION, escribirLatido, leerLatido, leerSesion } from './storage'
 
@@ -62,9 +63,10 @@ function sostenerCerrojoDePestana(): void {
  * - Una sesión guardada se conserva si otra pestaña de la aplicación sigue abierta (cerrojo `fsgr.pestana`, consultado
  *   antes de pedir el propio) o si la señal de actividad es válida (`latidoValido`); si no, se cierra: se cerró el
  *   navegador, o pasaron más de dos minutos y medio desde que se cerró la última pestaña. Sin Web Locks decide la señal.
- * - Después esta pestaña pide su cerrojo, escribe la señal si queda sesión, adopta la sesión que quede y arranca el latido. El latido arranca siempre
- *   (solo escribe mientras haya sesión), para que un inicio de sesión posterior en esta pestaña también lo mantenga.
- * Devuelve cómo detener el latido (pruebas).
+ * - Después esta pestaña pide su cerrojo, escribe la señal si queda sesión, adopta la sesión que quede y arranca el latido
+ *   y la marca de actividad de la persona. Los dos arrancan siempre (solo escriben mientras haya sesión), para que un
+ *   inicio de sesión posterior en esta pestaña también los mantenga.
+ * Devuelve cómo detener el latido y la marca de actividad (pruebas).
  */
 export async function comprobarSesionAlArrancar(ahora: number = Date.now()): Promise<() => void> {
   try {
@@ -79,13 +81,18 @@ export async function comprobarSesionAlArrancar(ahora: number = Date.now()): Pro
   sostenerCerrojoDePestana()
   if (leerSesion() !== null) escribirLatido(ahora)
   adoptarSesionGuardada()
-  return arrancarLatido()
+  const detenerLatido = arrancarLatido()
+  const detenerActividad = arrancarMarcaDeActividad()
+  return () => {
+    detenerLatido()
+    detenerActividad()
+  }
 }
 
 /**
  * Si la comprobación completa falla por lo que sea, decide solo la señal de actividad; si ni eso se puede evaluar, la
  * sesión se cierra (se pinta el login). Después, como siempre: escribe la señal si queda sesión, la adopta y arranca el
- * latido.
+ * latido y la marca de actividad.
  */
 function decidirSoloPorLatido(ahora: number): () => void {
   try {
@@ -96,7 +103,12 @@ function decidirSoloPorLatido(ahora: number): () => void {
   try {
     if (leerSesion() !== null) escribirLatido(ahora)
     adoptarSesionGuardada()
-    return arrancarLatido()
+    const detenerLatido = arrancarLatido()
+    const detenerActividad = arrancarMarcaDeActividad()
+    return () => {
+      detenerLatido()
+      detenerActividad()
+    }
   } catch {
     return () => {}
   }
@@ -104,7 +116,8 @@ function decidirSoloPorLatido(ahora: number): () => void {
 
 /**
  * Arranque de la aplicación (`main.tsx`): espera la comprobación de la sesión y después pinta. Pase lo que pase en la
- * comprobación, la aplicación se pinta: si falla, decide la señal de actividad. Devuelve cómo detener el latido (pruebas).
+ * comprobación, la aplicación se pinta: si falla, decide la señal de actividad. Devuelve cómo detener el latido y la
+ * marca de actividad (pruebas).
  */
 export async function arrancarTrasComprobarSesion(
   pintar: () => void,
