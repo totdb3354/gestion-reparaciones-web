@@ -49,12 +49,14 @@ describe('CambioObligatorioPage', () => {
     for (const etiqueta of ['Contraseña actual', 'Nueva contraseña', 'Confirmar nueva contraseña']) {
       expect(screen.getByLabelText(etiqueta)).toHaveAttribute('type', 'password')
     }
-    // Ni "Cancelar", ni volver, ni cerrar sesión: de aquí solo se sale cambiándola.
+    // Ni "Cancelar" ni volver: no se puede SALTAR el cambio. "Cerrar sesión" si esta, porque no lo salta (la barrera la
+    // pone el servidor y al reentrar la marca vuelve) y sin ella un equipo compartido se queda bloqueado para el siguiente.
     expect(screen.getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual([
       'Mostrar contraseña',
       'Mostrar contraseña',
       'Mostrar contraseña',
       'Guardar',
+      'Cerrar sesión',
     ])
     expect(screen.queryByText('APLICACIÓN')).not.toBeInTheDocument()
   })

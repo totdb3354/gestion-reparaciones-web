@@ -9,6 +9,9 @@ export class ApiError extends Error {
 }
 export class SesionExpiradaError extends ApiError {}
 export class PermisoError extends ApiError {}
+/** 403 porque la contraseña sigue siendo la temporal que entregó el administrador: la sesión es válida y solo falta
+ *  ese paso, así que no expulsa (a diferencia de un 401) sino que lleva a la pantalla de cambio obligatorio. */
+export class PasswordTemporalError extends ApiError {}
 export class NoEncontradoError extends ApiError {}
 /** 409: bloqueo optimista (updatedAt) o conflicto de negocio; el mensaje del servidor es el bueno. */
 export class StaleDataError extends ApiError {}
@@ -37,6 +40,10 @@ export class ConexionError extends ApiError {
 
 export const MSG_SESION_EXPIRADA = 'Sesión expirada. Vuelve a iniciar sesión.'
 export const MSG_SIN_PERMISOS = 'No tienes permisos para realizar esta acción.'
+/** Texto con el que el servidor distingue ese 403 de una falta de permisos de verdad. Vive en el servidor
+ *  (`JwtAuthFilter.MSG_PASSWORD_TEMPORAL`); si allí cambia, aquí deja de reconocerse y el 403 vuelve a verse como falta
+ *  de permisos, que es la degradación segura. Un test fija este texto a cada lado, y el javadoc del servidor avisa. */
+export const MSG_403_PASSWORD_TEMPORAL = 'Tienes que cambiar la contraseña antes de seguir.'
 export const MSG_NO_ENCONTRADO = 'Recurso no encontrado.'
 /** Mismo texto para el 409 del teléfono en ImeisPage y en los editores de la vista de asignaciones (calco del JavaFX). */
 export const MSG_TELEFONO_MODIFICADO = 'El teléfono fue modificado por otro usuario. Se recargan los datos.'
@@ -59,6 +66,9 @@ export function clasificar(status: number, msg: string | null): ApiError {
     case 401:
       return new SesionExpiradaError(401, MSG_SESION_EXPIRADA)
     case 403:
+      // El servidor responde así a TODO mientras la contraseña sea la temporal. Sin distinguirlo, cada consulta de la
+      // vista daría "No tienes permisos" en bucle y nadie deduciría que lo que falta es poner una contraseña propia.
+      if (msg !== null && msg.includes(MSG_403_PASSWORD_TEMPORAL)) return new PasswordTemporalError(403, msg)
       return new PermisoError(403, MSG_SIN_PERMISOS)
     case 404:
       return new NoEncontradoError(404, MSG_NO_ENCONTRADO)
@@ -96,5 +106,5 @@ export function mensajeDeError(e: unknown, opciones?: { staleData?: string }): s
  *  conexión, sesión cambiada en otra pestaña → login o recarga) y por tanto ningún `onError` propio de una mutación debe volver a mostrarlo (evita el aviso
  *  doble: banner + diálogo). Un 503 con mensaje es ReglaNegocioError y NO se gestiona globalmente. */
 export function esErrorGestionadoGlobalmente(e: unknown): boolean {
-  return e instanceof SesionExpiradaError || e instanceof ConexionError || e instanceof SesionDeOtraPestanaError
+  return e instanceof SesionExpiradaError || e instanceof PasswordTemporalError || e instanceof ConexionError || e instanceof SesionDeOtraPestanaError
 }

@@ -6,6 +6,7 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { crearStore } from '@/shared/lib/store'
 import { server } from '@/test/server'
 import { SessionProvider, useSession } from './SessionProvider'
+import { dispararPasswordTemporalExigida, rearmarPasswordTemporalExigida } from './passwordTemporal'
 import { escribirLatido, guardarSesion, leerSesion, type Sesion } from './storage'
 
 const TECNICO: Sesion = { idUsu: 90, nombreUsuario: 'tecnico1', rol: 'TECNICO', idTec: 1, token: 'jwt-tecnico1', passwordTemporal: false }
@@ -200,6 +201,18 @@ describe('SessionProvider: contraseña temporal entregada por el administrador',
     expect(ctx.actual!.sesion?.passwordTemporal).toBe(true)
     cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ ...conTemporal, passwordTemporal: false }))
     expect(ctx.actual!.sesion?.passwordTemporal).toBe(false)
+  })
+
+  it('un 403 de contrasena temporal enciende la marca sin expulsar', () => {
+    // El caso real: el administrador restablece la contrasena con la sesion ya abierta. Sin esto, cada consulta de la
+    // vista daria "No tienes permisos" en bucle y nadie deduciria que hay que poner una contrasena propia.
+    rearmarPasswordTemporalExigida()
+    const ctx = montar({ sesion: TECNICO })
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(false)
+    act(() => dispararPasswordTemporalExigida())
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(true)
+    expect(leerSesion()?.passwordTemporal).toBe(true)
+    expect(leerSesion()?.token).toBe(TECNICO.token)
   })
 
 })

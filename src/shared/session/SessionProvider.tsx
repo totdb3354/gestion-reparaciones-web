@@ -4,6 +4,7 @@ import { api, type LoginResponse } from '@/shared/api/client'
 import { ConexionError, SesionExpiradaError } from '@/shared/api/errors'
 import { reiniciarStores } from '@/shared/lib/store'
 import { rearmarSesionExpirada } from '@/shared/session/expiracion'
+import { onPasswordTemporalExigida, rearmarPasswordTemporalExigida } from '@/shared/session/passwordTemporal'
 import { borrarSesion, CLAVE_SESION, guardarSesion, leerSesion, type Sesion } from '@/shared/session/storage'
 
 export const MSG_CREDENCIALES = 'Usuario o contraseña incorrectos.'
@@ -70,6 +71,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
     guardarSesion(s)
     rearmarSesionExpirada()
+    rearmarPasswordTemporalExigida()
     // El estado sigue a lo guardado: si el almacenamiento no la acepta, la pestaña queda sin sesión, igual que el cliente HTTP.
     setSesion(leerSesion())
   }, [qc])
@@ -79,6 +81,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const olvidarPasswordTemporal = useCallback(() => {
     if (sesion === null || !sesion.passwordTemporal) return
     guardarSesion({ ...sesion, passwordTemporal: false })
+    rearmarPasswordTemporalExigida()
     // El estado sigue a lo guardado, como en el login: si el almacenamiento no la acepta, la pestaña queda sin sesión.
     setSesion(leerSesion())
   }, [sesion])
@@ -89,6 +92,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     reiniciarStores()
     setSesion(null)
   }, [qc])
+
+  // El servidor ha rechazado una peticion por tener la contraseña temporal, y esta pestaña no lo sabia (por ejemplo, el
+  // administrador la restablecio con la sesion ya abierta). Se enciende la marca y `RequireSesion` lleva al cambio.
+  useEffect(() => {
+    return onPasswordTemporalExigida(() => {
+      const guardada = leerSesion()
+      if (guardada === null || guardada.passwordTemporal) return
+      guardarSesion({ ...guardada, passwordTemporal: true })
+      setSesion(leerSesion())
+    })
+  }, [])
 
   // Una sesión para todas las pestañas: el evento `storage` avisa de lo que cambian las OTRAS (nunca de lo que escribe esta,
   // así que no hay bucle; la señal de actividad `fsgr.latido` se ignora). Se decide por lo que hay guardado ahora.

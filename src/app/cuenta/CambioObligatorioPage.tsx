@@ -33,7 +33,7 @@ function Campo({ etiqueta, children }: { etiqueta: string; children: ReactNode }
  * diálogo del menú de usuario; la contraseña temporal no se guarda en ninguna parte, solo viaja en este formulario.
  */
 export function CambioObligatorioPage() {
-  const { olvidarPasswordTemporal } = useSession()
+  const { olvidarPasswordTemporal, logout } = useSession()
   const navigate = useNavigate()
   const cambiar = useCambiarPassword()
   const [actual, setActual] = useState('')
@@ -98,6 +98,16 @@ export function CambioObligatorioPage() {
         <Button type="submit" disabled={enviando} className="h-auto w-full rounded-3xl bg-azul-noche py-3 text-[13px] font-bold text-crema hover:bg-azul-noche-hover">
           Guardar
         </Button>
+        {/* No permite saltarse el cambio —la barrera la pone el servidor y al volver a entrar la marca reaparece—, pero
+            sin esto quien no consiga cambiarla deja la pantalla puesta y en un equipo compartido el siguiente tampoco
+            puede entrar con su usuario. El menú de usuario no está aquí: esta pantalla va fuera del layout. */}
+        <button
+          type="button"
+          onClick={logout}
+          className="text-[12px] font-bold text-azul-gris underline hover:text-azul-medio"
+        >
+          Cerrar sesión
+        </button>
       </form>
     </div>
   )
