@@ -82,7 +82,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (sesion === null || !sesion.passwordTemporal) return
     guardarSesion({ ...sesion, passwordTemporal: false })
     rearmarPasswordTemporalExigida()
-    // El estado sigue a lo guardado, como en el login: si el almacenamiento no la acepta, la pestaña queda sin sesión.
+    // El estado sigue a lo guardado. Si el almacenamiento no acepta la escritura, lo guardado sigue con la marca puesta y
+    // el desvío devuelve a la pantalla de cambio (la temporal ya no vale en el servidor); de ahí se sale con "Cerrar
+    // sesión" y se entra con la contraseña nueva.
     setSesion(leerSesion())
   }, [sesion])
 

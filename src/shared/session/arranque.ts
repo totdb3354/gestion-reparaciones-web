@@ -57,8 +57,9 @@ function sostenerCerrojoDePestana(): void {
 
 /**
  * Se llama una sola vez en `main.tsx`, al cargar el documento desde cero, y se espera antes de crear la raíz de React y de
- * cualquier lectura de la sesión. Nunca durante la vida de la pestaña: un PC suspendido con la pestaña abierta conserva la
- * sesión.
+ * cualquier lectura de la sesión. Nunca durante la vida de la pestaña: esta comprobación no cierra la sesión de un PC
+ * suspendido con la pestaña abierta. Lo que sí la cierra, a las dos horas sin actividad de la persona, es la vigilancia de
+ * inactividad (`VigilanciaInactividad`), que es independiente de esto.
  * - Una sesión de la versión anterior (`sessionStorage`) se borra, no se migra.
  * - Una sesión guardada se conserva si otra pestaña de la aplicación sigue abierta (cerrojo `fsgr.pestana`, consultado
  *   antes de pedir el propio) o si la señal de actividad es válida (`latidoValido`); si no, se cierra: se cerró el

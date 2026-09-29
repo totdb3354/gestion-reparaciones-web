@@ -10,9 +10,10 @@ export type Sesion = {
 
 /**
  * La sesión vive en `localStorage`: una sola para todas las pestañas del navegador (abrir otra pestaña o un enlace en
- * pestaña nueva entra sin pedir usuario). Que se cierre al cerrar el navegador lo decide la señal de actividad
- * (`CLAVE_LATIDO`, ver `latido.ts` y `arranque.ts`), no el navegador. Si el almacenamiento falla o está bloqueado, se
- * comporta como "sin sesión".
+ * pestaña nueva entra sin pedir usuario). Que se cierre al cerrar el navegador lo decide el latido de pestaña viva
+ * (`CLAVE_LATIDO`, ver `latido.ts` y `arranque.ts`), no el navegador; que se cierre tras dos horas sin nadie delante lo
+ * decide la marca de actividad de la persona (`CLAVE_ACTIVIDAD`, ver `actividad.ts`). Si el almacenamiento falla o está
+ * bloqueado, se comporta como "sin sesión".
  */
 export const CLAVE_SESION = 'fsgr.sesion'
 /** Hora (ms desde epoch, `String(Date.now())`) de la última señal de actividad de alguna pestaña con la sesión abierta. */
