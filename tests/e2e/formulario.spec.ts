@@ -316,8 +316,14 @@ test.afterAll(async () => {
     const rutaTelefono = `/api/telefonos/${restante.imei}`
     const borrado = await sesion.ctx.delete(rutaTelefono, { headers: sesion.headers })
     expect.soft(borrado.status(), `limpieza DELETE ${rutaTelefono}`).toBe(204)
-    const existe = await sesion.ctx.get(`${rutaTelefono}/exists`, { headers: sesion.headers })
-    expect.soft(existe.ok() ? await existe.json() : null, `limpieza: sin teléfono ${restante.imei}`).toEqual({ value: false })
+    // Se comprueba en el inventario, que lista todos los teléfonos sin filtrar: el DELETE responde 204 también si ya no
+    // estaba, así que por sí solo no prueba que el teléfono se haya ido.
+    const inventario = await sesion.ctx.get('/api/telefonos/inventario', { headers: sesion.headers })
+    expect.soft(inventario.status(), 'limpieza GET /api/telefonos/inventario').toBe(200)
+    if (inventario.ok()) {
+      const quedan = ((await inventario.json()) as { imei: string }[]).filter((t) => t.imei === restante.imei)
+      expect.soft(quedan, `limpieza: sin teléfono ${restante.imei}`).toEqual([])
+    }
   } finally {
     await sesion.ctx.dispose()
   }

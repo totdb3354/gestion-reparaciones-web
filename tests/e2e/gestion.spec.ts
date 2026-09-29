@@ -24,6 +24,28 @@ async function entrarCon(page: Page, usuario: string, clave: string) {
   await expect(page).toHaveURL(/\/reparaciones\/(historial|pendientes)$/)
 }
 
+/**
+ * Primer inicio de sesión de un usuario recién dado de alta: el alta deja su contraseña como temporal, así que en vez de
+ * la aplicación llega la pantalla "Cambia tu contraseña", sin barra ni navegación. Se cambia ahí por `nueva` y se entra.
+ */
+async function entrarConTemporal(page: Page, usuario: string, temporal: string, nueva: string) {
+  await page.goto('/login')
+  await page.getByPlaceholder('Usuario').fill(usuario)
+  await page.getByPlaceholder('Contraseña').fill(temporal)
+  await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
+  await expect(page).toHaveURL(/\/cuenta\/cambiar-obligatorio$/)
+  await expect(page.getByRole('heading', { name: 'Cambia tu contraseña' })).toBeVisible()
+  await expect(page.getByText('FSGR:')).toBeHidden()
+  await page.getByLabel('Contraseña actual', { exact: true }).fill(temporal)
+  await page.getByLabel('Nueva contraseña', { exact: true }).fill(nueva)
+  await page.getByLabel('Confirmar nueva contraseña', { exact: true }).fill(nueva)
+  const respuesta = page.waitForResponse(esRespuesta('/api/auth/cambiar-password', 'PATCH'))
+  await page.getByRole('button', { name: 'Guardar' }).click()
+  expect((await respuesta).status(), 'PATCH /api/auth/cambiar-password').toBe(204)
+  await expect(page.getByText('FSGR:')).toBeVisible()
+  await expect(page).toHaveURL(/\/reparaciones\/(historial|pendientes)$/)
+}
+
 async function menuUsuario(page: Page, item: string) {
   await page.getByRole('button', { name: /Hola,/ }).click()
   await page.getByRole('menuitem', { name: item, exact: true }).click()
@@ -67,7 +89,8 @@ async function cambiarPassword(page: Page, actual: string, nueva: string) {
 /**
  * ESCRIBE en el entorno de destino: con ADMIN_USER registra un técnico de prueba `e2e-tecnico-<marca>` (usuario
  * `e2e-usuario-<marca>`, rol TECNICO, contraseña sintética), lo desactiva y lo activa, busca su CREAR_USUARIO en el visor de
- * logs, entra con él y cambia su contraseña por el diálogo (y la restaura), y por último lo borra como ADMIN desde la
+ * logs, entra con él (la contraseña del alta es temporal: la cambia en la pantalla obligatoria y la restaura por el diálogo
+ * del menú), vuelve a entrar ya directo en la aplicación, y por último lo borra como ADMIN desde la
  * papelera. Solo toca ese usuario: las escrituras de /api/usuarios/tecnicos/{id} a otro id se abortan.
  */
 test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en el log, con contraseña cambiada y borrado', async ({ page }) => {
@@ -182,13 +205,14 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
     await expect(popup).toBeHidden()
   })
 
-  await test.step('el usuario de prueba cambia su contraseña desde el menú y vuelve a entrar con la nueva', async () => {
+  await test.step('el usuario de prueba cambia la contraseña del alta al entrar, luego desde el menú, y vuelve a entrar', async () => {
     await cerrarSesion(page)
-    await entrarCon(page, nombreUsuario, clave) // inicio de sesión 2/4
-    await cambiarPassword(page, clave, claveNueva)
+    // La contraseña del alta es temporal: el primer inicio de sesión lleva a la pantalla de cambio obligatorio.
+    await entrarConTemporal(page, nombreUsuario, clave, claveNueva) // inicio de sesión 2/4
+    await cambiarPassword(page, claveNueva, clave) // restaurada desde el menú: si el borrado fallase, queda con la original
     await cerrarSesion(page)
-    await entrarCon(page, nombreUsuario, claveNueva) // inicio de sesión 3/4
-    await cambiarPassword(page, claveNueva, clave) // restaurada: si el borrado fallase, el usuario queda con la original
+    // Ya con una contraseña propia, entra directo en la aplicación: la marca de temporal se retiró al cambiarla.
+    await entrarCon(page, nombreUsuario, clave) // inicio de sesión 3/4
     await cerrarSesion(page)
   })
 
