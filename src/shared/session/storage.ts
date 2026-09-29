@@ -4,6 +4,8 @@ export type Sesion = {
   rol: string
   idTec: number | null
   token: string
+  /** La contraseña con la que se ha entrado la entregó el administrador: hay que cambiarla antes de usar la aplicación. */
+  passwordTemporal: boolean
 }
 
 /**
@@ -30,7 +32,9 @@ export function leerSesion(): Sesion | null {
     const s = JSON.parse(raw) as Partial<Sesion>
     if (typeof s.token !== 'string' || typeof s.nombreUsuario !== 'string') return null
     if (typeof s.idUsu !== 'number' || typeof s.rol !== 'string') return null
-    return s as Sesion
+    // La marca se normaliza a booleano: una sesión guardada antes de que existiera el campo no la trae, y entonces la
+    // contraseña es la de siempre (solo el login la enciende).
+    return { ...(s as Sesion), passwordTemporal: s.passwordTemporal === true }
   } catch {
     return null
   }

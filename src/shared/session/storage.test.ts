@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerLatido, leerSesion, type Sesion } from './storage'
 
-const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt' }
+const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt', passwordTemporal: false }
 
 describe('storage de sesión', () => {
   beforeEach(() => localStorage.clear())
@@ -36,6 +36,14 @@ describe('storage de sesión', () => {
     expect(leerSesion()).toBeNull()
     localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, idUsu: '7' }))
     expect(leerSesion()).toBeNull()
+  })
+  it('la marca de contraseña temporal se normaliza a booleano y sin ella la sesión es normal', () => {
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, passwordTemporal: undefined }))
+    expect(leerSesion()).toEqual({ ...tecnicoF, passwordTemporal: false })
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, passwordTemporal: 'sí' }))
+    expect(leerSesion()?.passwordTemporal).toBe(false)
+    localStorage.setItem('fsgr.sesion', JSON.stringify({ ...tecnicoF, passwordTemporal: true }))
+    expect(leerSesion()?.passwordTemporal).toBe(true)
   })
   it('si el almacenamiento lanza al leer, sin sesión y sin señal', () => {
     localStorage.setItem('fsgr.sesion', JSON.stringify(tecnicoF))

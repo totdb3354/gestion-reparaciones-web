@@ -69,6 +69,6 @@ export function renderConRouter(
   return { ...resultado, queryClient: qc, router }
 }
 
-export const SESION_SUPER: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super' }
-export const SESION_TEC: Sesion = { idUsu: 8, nombreUsuario: 'tecnico_n', rol: 'TECNICO', idTec: 4, token: 'jwt-tec' }
-export const SESION_ADMIN: Sesion = { idUsu: 1, nombreUsuario: 'admin', rol: 'ADMIN', idTec: null, token: 'jwt-admin' }
+export const SESION_SUPER: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super', passwordTemporal: false }
+export const SESION_TEC: Sesion = { idUsu: 8, nombreUsuario: 'tecnico_n', rol: 'TECNICO', idTec: 4, token: 'jwt-tec', passwordTemporal: false }
+export const SESION_ADMIN: Sesion = { idUsu: 1, nombreUsuario: 'admin', rol: 'ADMIN', idTec: null, token: 'jwt-admin', passwordTemporal: false }

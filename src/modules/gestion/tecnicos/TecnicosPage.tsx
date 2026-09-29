@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router'
 import type { Usuario } from '@/shared/api/client'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
+import { useSession } from '@/shared/session/SessionProvider'
+import { esAdmin } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { ComboNavy, type OpcionCombo } from '@/shared/ui/ComboNavy'
@@ -11,12 +13,13 @@ import { DataTable } from '@/shared/ui/DataTable'
 import { Input } from '@/shared/ui/input'
 import { useUsuariosTecnicos } from '../api'
 import { rutaVolverA } from '../navegacion'
-import { consultarTieneReparaciones, useCambiarActivo, useEliminar, useRegistrar } from './api'
+import { consultarTieneReparaciones, entregarPasswordTemporal, useCambiarActivo, useEliminar, useRegistrar } from './api'
 import { columnasTecnicos } from './columnas'
+import { DialogoPasswordTemporal } from './DialogoPasswordTemporal'
 import { mensajeInline } from './errores'
 import {
-  MSG_ERROR_CARGA, MSG_ERROR_COMPROBAR, MSG_ERROR_ELIMINAR, MSG_ERROR_ESTADO, MSG_ERROR_REGISTRO, TEXTO_VACIO_TABLA, TITULO_ELIMINAR,
-  TITULO_NO_ELIMINAR, textoEliminar, textoNoEliminar,
+  MSG_ERROR_CARGA, MSG_ERROR_COMPROBAR, MSG_ERROR_ELIMINAR, MSG_ERROR_ESTADO, MSG_ERROR_REGISTRO, MSG_ERROR_RESTABLECER,
+  TEXTO_VACIO_TABLA, TITULO_ELIMINAR, TITULO_NO_ELIMINAR, TITULO_RESTABLECER, textoEliminar, textoNoEliminar, textoRestablecer,
 } from './textos'
 import { cuerpoAlta, duplicadosEnVivo, rolDe, ROLES, validarAlta, type DatosAlta } from './validacion'
 
@@ -45,6 +48,7 @@ export function TecnicosPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { mostrarAviso } = useAlerta()
+  const { sesion } = useSession()
   const idBase = useId()
   const { data: usuarios = SIN_USUARIOS, isError, errorUpdatedAt } = useUsuariosTecnicos()
   const registrar = useRegistrar()
@@ -57,6 +61,10 @@ export function TecnicosPage() {
   const [errorCargaVisto, setErrorCargaVisto] = useState(0)
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   const [aEliminar, setAEliminar] = useState<Usuario | null>(null)
+  // Contraseña temporal: el usuario que se va a restablecer y, después, la contraseña entregada. Las dos viven solo aquí y
+  // se olvidan al cerrar el diálogo (nada de almacenamiento ni de caché: no debe poder recuperarse).
+  const [aRestablecer, setARestablecer] = useState<Usuario | null>(null)
+  const [entregada, setEntregada] = useState<{ nombreTecnico: string; password: string } | null>(null)
   // Cerrojo síncrono del alta: `registrar.isPending` llega tarde y un doble clic registraría dos veces.
   const enviarAlta = useCerrojoEnvio({ abierto: true, enviando: registrar.isPending, error })
 
@@ -97,8 +105,14 @@ export function TecnicosPage() {
   )
 
   const columnas = useMemo(
-    () => columnasTecnicos({ onToggle: alternarActivo, onEliminar: (u) => { void pedirEliminar(u) } }),
-    [alternarActivo, pedirEliminar],
+    () => columnasTecnicos({
+      onToggle: alternarActivo,
+      onEliminar: (u) => { void pedirEliminar(u) },
+      // Solo el administrador entrega contraseñas temporales (spec sp7b §5.4). La ruta ya es suya, pero la condición va
+      // aquí para que la acción no aparezca si algún día la página se monta en otro sitio.
+      onRestablecer: esAdmin(sesion) ? setARestablecer : null,
+    }),
+    [alternarActivo, pedirEliminar, sesion],
   )
 
   function cambiar(clave: CampoTexto, valor: string) {
@@ -117,6 +131,18 @@ export function TecnicosPage() {
       onSuccess: () => { claves.hecha(OPERACION_ALTA); setForm(FORMULARIO_VACIO) },
       onError: (e) => setError(mensajeInline(e, MSG_ERROR_REGISTRO, [409, 422])),
     })
+  }
+
+  /** Confirmada la entrega: pide la contraseña y la enseña una sola vez. Si falla, la línea inline y nada que enseñar. */
+  async function confirmarRestablecer(u: Usuario) {
+    setARestablecer(null)
+    setError(null)
+    try {
+      const password = await entregarPasswordTemporal(u.idUsu)
+      setEntregada({ nombreTecnico: u.nombreTecnico, password })
+    } catch (e) {
+      setError(mensajeInline(e, MSG_ERROR_RESTABLECER, [404]))
+    }
   }
 
   function confirmarEliminar() {
@@ -215,6 +241,21 @@ export function TecnicosPage() {
         textoAccion="Eliminar"
         onCancelar={() => setAEliminar(null)}
         onConfirmar={confirmarEliminar}
+      />
+
+      <ConfirmDialog
+        abierto={aRestablecer !== null}
+        titulo={TITULO_RESTABLECER}
+        descripcion={aRestablecer !== null ? textoRestablecer(aRestablecer.nombreTecnico) : ''}
+        textoAccion="Restablecer"
+        onCancelar={() => setARestablecer(null)}
+        onConfirmar={() => { if (aRestablecer !== null) void confirmarRestablecer(aRestablecer) }}
+      />
+
+      <DialogoPasswordTemporal
+        password={entregada?.password ?? null}
+        nombreTecnico={entregada?.nombreTecnico ?? ''}
+        onCerrar={() => setEntregada(null)}
       />
     </div>
   )

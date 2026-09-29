@@ -15,8 +15,9 @@ import { ImeisPage } from '@/modules/taller/imeis/ImeisPage'
 import { PendientesPage } from '@/modules/taller/pendientes/PendientesPage'
 import { PulidosPendientesPage } from '@/modules/taller/pendientes/PulidosPendientesPage'
 import { InicioReparaciones, RequiereSupertecnico, RequiereSupertecnicoOAdmin, RequiereTecnico } from '@/modules/taller/rutas'
+import { CambioObligatorioPage } from './cuenta/CambioObligatorioPage'
 import { LoginPage } from './login/LoginPage'
-import { RequireSesion } from './session/RequireSesion'
+import { RequireSesion, RUTA_CAMBIO_OBLIGATORIO } from './session/RequireSesion'
 import { AppLayout } from './shell/AppLayout'
 import { ErrorRuta } from './shell/ErrorRuta'
 import { PendienteDeMigrar } from './shell/PendienteDeMigrar'
@@ -28,6 +29,8 @@ export const router = createBrowserRouter([
     // Cualquier error no capturado dentro de la app (loader o render de una vista) acaba aquí.
     errorElement: <ErrorRuta />,
     children: [
+      // Fuera de AppLayout: mientras la contraseña sea la temporal no hay navegación, ni campana, ni menú de usuario.
+      { path: RUTA_CAMBIO_OBLIGATORIO, element: <CambioObligatorioPage /> },
       {
         element: <AppLayout />,
         children: [

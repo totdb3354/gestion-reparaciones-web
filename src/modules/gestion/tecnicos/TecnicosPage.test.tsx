@@ -1,11 +1,11 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Usuario } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { ExportableProvider, useExportable } from '@/shared/ui/exportable'
-import { renderConProviders, renderConRouter, SESION_ADMIN } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { TecnicosPage } from './TecnicosPage'
 
@@ -14,6 +14,14 @@ const usuarios: Usuario[] = [
   { idUsu: 12, nombreUsuario: 'usuario-b', rol: 'SUPERTECNICO', idTec: 22, nombreTecnico: 'tecnico-b', activo: false },
 ]
 const cargas = { n: 0 }
+
+// navigator.clipboard no existe en jsdom por defecto: mismo patrón que MenuCopiarCelda.test.tsx (Object.defineProperty
+// configurable, restaurado tras cada test a partir del descriptor original).
+const descriptorClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+afterEach(() => {
+  if (descriptorClipboard) Object.defineProperty(navigator, 'clipboard', descriptorClipboard)
+  else Reflect.deleteProperty(navigator, 'clipboard')
+})
 
 beforeEach(() => {
   cargas.n = 0
@@ -366,6 +374,72 @@ describe('TecnicosPage', () => {
     expect(await screen.findByText('PEDIDOS')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/stock/pedidos')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('"Restablecer contraseña": confirma, POST con el idUsu de la fila y enseña la contraseña una sola vez', async () => {
+    const pedidas: string[] = []
+    server.use(http.post('*/api/usuarios/:idUsu/password-temporal', ({ request }) => {
+      pedidas.push(new URL(request.url).pathname)
+      return HttpResponse.json({ value: 'Tmp-7k2Qw9' })
+    }))
+    montar()
+    await screen.findByText('tecnico-a')
+    await userEvent.click(within(fila('tecnico-a')).getByRole('button', { name: 'Restablecer contraseña' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Restablecer contraseña' })
+    expect(confirmacion).toHaveTextContent('¿Entregar una contraseña temporal a "tecnico-a"? Su contraseña actual dejará de servir y tendrá que poner una propia al entrar.')
+    expect(pedidas).toEqual([])
+    await userEvent.click(within(confirmacion).getByRole('button', { name: 'Restablecer' }))
+    const entrega = await screen.findByRole('dialog', { name: 'Contraseña temporal' })
+    expect(pedidas).toEqual(['/api/usuarios/11/password-temporal'])
+    expect(within(entrega).getByLabelText('Contraseña temporal')).toHaveValue('Tmp-7k2Qw9')
+    expect(entrega).toHaveTextContent('Solo se muestra ahora: al cerrar esta ventana no se vuelve a ver.')
+    expect(entrega).toHaveTextContent('Al entrar con ella tendrá que cambiarla por una propia.')
+    // Copiar deja la contraseña en el portapapeles y el diálogo abierto, para poder comprobarla.
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    await userEvent.click(within(entrega).getByRole('button', { name: 'Copiar' }))
+    await waitFor(() => expect(escribir).toHaveBeenCalledWith('Tmp-7k2Qw9'))
+    // Al cerrar no queda en ninguna parte: ni en pantalla, ni en el almacenamiento, ni en la caché de consultas.
+    await userEvent.click(within(entrega).getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(document.body.textContent).not.toContain('Tmp-7k2Qw9')
+    expect(JSON.stringify(localStorage)).not.toContain('Tmp-7k2Qw9')
+    expect(cargas.n).toBe(1)
+  })
+  it('"Cancelar" en la confirmación no entrega ninguna contraseña', async () => {
+    let pedidas = 0
+    server.use(http.post('*/api/usuarios/:idUsu/password-temporal', () => { pedidas += 1; return HttpResponse.json({ value: 'Tmp-7k2Qw9' }) }))
+    montar()
+    await screen.findByText('tecnico-a')
+    await userEvent.click(within(fila('tecnico-a')).getByRole('button', { name: 'Restablecer contraseña' }))
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Restablecer contraseña' })).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(pedidas).toBe(0)
+  })
+  it.each([
+    [404, () => HttpResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 }), 'Técnico no encontrado.'],
+    [400, () => new HttpResponse('boom', { status: 400 }), 'Error al restablecer la contraseña del técnico.'],
+  ])('restablecer con %s: texto inline y ninguna contraseña en pantalla', async (_codigo, respuesta, texto) => {
+    server.use(http.post('*/api/usuarios/:idUsu/password-temporal', respuesta))
+    montar()
+    await screen.findByText('tecnico-a')
+    await userEvent.click(within(fila('tecnico-a')).getByRole('button', { name: 'Restablecer contraseña' }))
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Restablecer contraseña' })).getByRole('button', { name: 'Restablecer' }))
+    expect(await screen.findByText(texto)).toBe(linea())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('una respuesta sin contraseña se trata como un fallo, no como una entrega vacía', async () => {
+    server.use(http.post('*/api/usuarios/:idUsu/password-temporal', () => HttpResponse.json({ value: null })))
+    montar()
+    await screen.findByText('tecnico-a')
+    await userEvent.click(within(fila('tecnico-a')).getByRole('button', { name: 'Restablecer contraseña' }))
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Restablecer contraseña' })).getByRole('button', { name: 'Restablecer' }))
+    expect(await screen.findByText('Error al restablecer la contraseña del técnico.')).toBe(linea())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('quien no es administrador no ve la acción de restablecer', async () => {
+    renderConProviders(<TecnicosPage />, { sesion: SESION_SUPER, ruta: '/gestion/tecnicos' })
+    await screen.findByText('tecnico-a')
+    expect(screen.queryByRole('button', { name: 'Restablecer contraseña' })).not.toBeInTheDocument()
   })
   it('"Cerrar" sin volverA (URL tecleada) va a /reparaciones', async () => {
     const { router } = renderConRouter(

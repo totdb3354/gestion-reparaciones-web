@@ -29,7 +29,7 @@ describe('cliente API', () => {
     vi.restoreAllMocks()
   })
   it('añade el bearer de la sesión y devuelve data tipada', async () => {
-    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1', passwordTemporal: false })
     let auth = ''
     server.use(
       http.get('*/api/clientes', ({ request }) => {
@@ -42,7 +42,7 @@ describe('cliente API', () => {
     expect(data?.[0]?.nombre).toBe('WEB')
   })
   it('cada petición sale con la sesión de su pestaña: si otra pestaña guardó otra, no sale', async () => {
-    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1', passwordTemporal: false })
     const vistas: string[] = []
     server.use(http.get('*/api/clientes', ({ request }) => {
       vistas.push(request.headers.get('authorization') ?? '')
@@ -57,7 +57,7 @@ describe('cliente API', () => {
     expect(estaConectado()).toBe(true)
   })
   it('el bearer es el token de la pestaña: la sesión guardada se lee una sola vez por petición', async () => {
-    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1', passwordTemporal: false })
     let auth = ''
     server.use(http.get('*/api/clientes', ({ request }) => {
       auth = request.headers.get('authorization') ?? ''
@@ -69,7 +69,7 @@ describe('cliente API', () => {
     expect(auth).toBe('Bearer jwt-1')
   })
   it('si otra pestaña cerró la sesión, la petición no sale; tras cerrarla también en esta, sale sin bearer', async () => {
-    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1', passwordTemporal: false })
     const vistas: string[] = []
     server.use(http.get('*/api/clientes', ({ request }) => {
       vistas.push(request.headers.get('authorization') ?? 'sin')
@@ -91,7 +91,7 @@ describe('cliente API', () => {
     await expect(api.POST('/api/clientes', { body: { nombre: 'x' } })).rejects.toBeInstanceOf(ReglaNegocioError)
   })
   it('401 con sesión dispara el hook de sesión expirada', async () => {
-    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1' })
+    guardarSesion({ idUsu: 1, nombreUsuario: 'a', rol: 'ADMIN', idTec: null, token: 'jwt-1', passwordTemporal: false })
     const h = vi.fn()
     onSesionExpirada(h)
     server.use(http.get('*/api/clientes', () => new HttpResponse(null, { status: 401 })))

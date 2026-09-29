@@ -12,6 +12,8 @@ type Ctx = {
   sesion: Sesion | null
   login: (usuario: string, password: string) => Promise<void>
   logout: () => void
+  /** La persona ya ha puesto una contraseña propia: la sesión deja de estar retenida en el cambio obligatorio. */
+  olvidarPasswordTemporal: () => void
 }
 const SessionContext = createContext<Ctx | null>(null)
 
@@ -20,6 +22,8 @@ const SessionContext = createContext<Ctx | null>(null)
 function esLoginResponse(x: unknown): x is LoginResponse {
   if (typeof x !== 'object' || x === null) return false
   const r = x as Record<string, unknown>
+  // `passwordTemporal` no entra en la guarda: se normaliza a booleano al construir la sesión, así que un servidor que
+  // todavía no lo envíe deja la sesión normal en vez de rechazar el login.
   return typeof r.token === 'string' && typeof r.idUsu === 'number' && typeof r.nombreUsuario === 'string' && typeof r.rol === 'string'
 }
 
@@ -56,12 +60,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Nada de la sesión anterior pasa a esta: ni la caché de consultas ni los filtros que sobreviven al cambio de ruta.
     qc.clear()
     reiniciarStores()
-    const s: Sesion = { idUsu: data.idUsu, nombreUsuario: data.nombreUsuario, rol: data.rol, idTec: data.idTec ?? null, token: data.token }
+    const s: Sesion = {
+      idUsu: data.idUsu,
+      nombreUsuario: data.nombreUsuario,
+      rol: data.rol,
+      idTec: data.idTec ?? null,
+      token: data.token,
+      passwordTemporal: data.passwordTemporal === true,
+    }
     guardarSesion(s)
     rearmarSesionExpirada()
     // El estado sigue a lo guardado: si el almacenamiento no la acepta, la pestaña queda sin sesión, igual que el cliente HTTP.
     setSesion(leerSesion())
   }, [qc])
+
+  /** Tras cambiar la contraseña en el cambio obligatorio: se reescribe la sesión guardada (mismo token, así que las otras
+   *  pestañas la reconocen como la suya y no recargan) y esta pestaña deja de estar retenida. */
+  const olvidarPasswordTemporal = useCallback(() => {
+    if (sesion === null || !sesion.passwordTemporal) return
+    guardarSesion({ ...sesion, passwordTemporal: false })
+    // El estado sigue a lo guardado, como en el login: si el almacenamiento no la acepta, la pestaña queda sin sesión.
+    setSesion(leerSesion())
+  }, [sesion])
 
   const logout = useCallback(() => {
     borrarSesion()
@@ -91,7 +111,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', alCambiarEnOtraPestana)
   }, [sesion, logout])
 
-  const value = useMemo(() => ({ sesion, login, logout }), [sesion, login, logout])
+  const value = useMemo(
+    () => ({ sesion, login, logout, olvidarPasswordTemporal }),
+    [sesion, login, logout, olvidarPasswordTemporal],
+  )
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
 
