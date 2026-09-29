@@ -1,11 +1,13 @@
-import { leerSesion } from './storage'
+import { escribirActividad, leerSesion } from './storage'
 
 /**
- * Hora (ms desde epoch) de la última señal de que hay ALGUIEN usando el ERP, en cualquier pestaña del navegador.
- * Es distinta de `fsgr.latido`, que dice que una pestaña sigue viva aunque no haya nadie delante: colgar el
- * cierre por inactividad del latido dejaría una pestaña olvidada abierta para siempre.
+ * La marca (clave, lectura y escritura) vive en `storage.ts`, con el resto de los accesos al almacenamiento: la
+ * escribe tambien `guardarSesion`, porque entrar es actividad. Aqui queda la politica: que cuenta como actividad
+ * de una persona y cuanto se aguanta sin ella. Es distinta de `fsgr.latido`, que dice que una pestaña sigue viva
+ * aunque no haya nadie delante: colgar el cierre por inactividad del latido dejaria una pestaña olvidada abierta
+ * para siempre.
  */
-export const CLAVE_ACTIVIDAD = 'fsgr.actividad'
+export { CLAVE_ACTIVIDAD, escribirActividad, leerActividad } from './storage'
 
 /** Tope de inactividad antes de cerrar la sesión: dos horas. */
 export const INACTIVIDAD_MS = 2 * 60 * 60 * 1000
@@ -21,24 +23,7 @@ const EVENTOS = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
 
 let detenerActual: (() => void) | null = null
 
-export function escribirActividad(ahora: number = Date.now()) {
-  try {
-    localStorage.setItem(CLAVE_ACTIVIDAD, String(ahora))
-  } catch {
-    // Almacenamiento no disponible: sin marca, la vigilancia trata la sesión como recién activa.
-  }
-}
 
-export function leerActividad(): number | null {
-  try {
-    const raw = localStorage.getItem(CLAVE_ACTIVIDAD)
-    if (raw === null || raw.trim() === '') return null
-    const n = Number(raw)
-    return Number.isFinite(n) ? n : null
-  } catch {
-    return null
-  }
-}
 
 /**
  * Escucha el ratón y el teclado y anota la hora mientras haya sesión. La marca vive en `localStorage`, así que la

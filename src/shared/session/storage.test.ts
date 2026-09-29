@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerLatido, leerSesion, type Sesion } from './storage'
+import { adoptarSesionGuardada, borrarSesion, esAdmin, esSesionDeEstaPestana, esAdminOSuperTecnico, esSuperTecnico, escribirLatido, guardarSesion, leerActividad, leerLatido, leerSesion, type Sesion } from './storage'
 
 const tecnicoF: Sesion = { idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt', passwordTemporal: false }
 
@@ -110,4 +110,13 @@ describe('storage de sesión', () => {
     expect(esAdminOSuperTecnico(tec)).toBe(false)
     expect(esAdmin(null)).toBe(false)
   })
+  it('guardar la sesion anota actividad y borrarla retira la marca', () => {
+    // Entrar es actividad: si la marca de la jornada anterior sobreviviera, la vigilancia expulsaria al entrar.
+    localStorage.setItem('fsgr.actividad', String(Date.now() - 3 * 60 * 60 * 1000))
+    guardarSesion(tecnicoF)
+    expect(leerActividad()).toBeGreaterThan(Date.now() - 5_000)
+    borrarSesion()
+    expect(leerActividad()).toBeNull()
+  })
+
 })

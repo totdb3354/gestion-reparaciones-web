@@ -105,7 +105,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       // Entró otra persona, u otra sesión de la misma: recarga completa hacia la raíz para no mezclar en pantalla datos
       // de una sesión con otra. Una pestaña en /login que recibe una sesión entra así en la aplicación.
-      if (sesion === null || guardada.idUsu !== sesion.idUsu || guardada.token !== sesion.token) window.location.replace('/')
+      if (sesion === null || guardada.idUsu !== sesion.idUsu || guardada.token !== sesion.token) {
+        window.location.replace('/')
+        return
+      }
+      // Misma sesión, mismo token: solo puede haber cambiado la marca de contraseña temporal, porque la cambió en otra
+      // pestaña. Sin esto esta pestaña seguiría pidiendo una contraseña temporal que el servidor ya ha invalidado.
+      if (guardada.passwordTemporal !== sesion.passwordTemporal) setSesion(guardada)
     }
     window.addEventListener('storage', alCambiarEnOtraPestana)
     return () => window.removeEventListener('storage', alCambiarEnOtraPestana)

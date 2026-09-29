@@ -192,4 +192,14 @@ describe('SessionProvider: contraseña temporal entregada por el administrador',
     expect(localStorage.getItem('fsgr.sesion')).toBe(guardado)
     expect(ctx.actual!.sesion).toEqual(TECNICO)
   })
+  it('el cambio de contrasena en otra pestana quita la marca en esta', () => {
+    // Mismo usuario y mismo token: lo unico que cambia es la marca. Sin propagarla, esta pestana seguiria en la
+    // pantalla de cambio obligatorio pidiendo una contrasena temporal que el servidor ya invalido.
+    const conTemporal: Sesion = { ...TECNICO, passwordTemporal: true }
+    const ctx = montar({ sesion: conTemporal })
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(true)
+    cambioEnOtraPestana('fsgr.sesion', () => escribirDesdeOtraPestana({ ...conTemporal, passwordTemporal: false }))
+    expect(ctx.actual!.sesion?.passwordTemporal).toBe(false)
+  })
+
 })

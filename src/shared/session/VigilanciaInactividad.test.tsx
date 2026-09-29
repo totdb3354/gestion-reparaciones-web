@@ -2,7 +2,7 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AVISO_MS, CLAVE_ACTIVIDAD, INACTIVIDAD_MS, leerActividad } from './actividad'
-import { CLAVE_SESION } from './storage'
+import { CLAVE_SESION, guardarSesion, type Sesion } from './storage'
 import { VigilanciaInactividad } from './VigilanciaInactividad'
 
 /**
@@ -95,4 +95,16 @@ describe('cierre por inactividad', () => {
     avanzar(INACTIVIDAD_MS - AVISO_MS - 5_000)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
+  // El fallo que esto fija: la marca sobrevivia al cierre de sesion y nadie la renovaba al entrar, asi que el
+  // primer inicio de sesion del dia expulsaba en el mismo instante, en bucle y sin salida desde la aplicacion.
+  it('entrar con una marca de hace tres horas no expulsa', () => {
+    localStorage.clear()
+    localStorage.setItem(CLAVE_ACTIVIDAD, String(-3 * 60 * 60 * 1000))
+    guardarSesion(JSON.parse(SESION) as Sesion)
+    render(<VigilanciaInactividad />)
+    avanzar(1_000)
+    expect(expulsar).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
 })
