@@ -1,9 +1,11 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { AVISO_MS, CLAVE_ACTIVIDAD, INACTIVIDAD_MS } from '@/shared/session/actividad'
 import { leerSesion, type Sesion } from '@/shared/session/storage'
+import { MSG_AVISO_TITULO } from '@/shared/session/VigilanciaInactividad'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { CambioObligatorioPage } from './CambioObligatorioPage'
@@ -118,4 +120,19 @@ describe('CambioObligatorioPage', () => {
     expect(await screen.findByText('APLICACIÓN')).toBeInTheDocument()
     expect(cuerpos).toHaveLength(1)
   })
+  // Esta pantalla vive fuera de AppLayout, donde se monta la vigilancia de inactividad; sin este test nadie
+  // notaria que quedarse aqui deja la sesion abierta indefinidamente en un PC compartido.
+  it('cierra por inactividad como el resto de la aplicacion', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(0)
+      localStorage.setItem(CLAVE_ACTIVIDAD, '0')
+      montar()
+      act(() => void vi.advanceTimersByTime(INACTIVIDAD_MS - AVISO_MS))
+      expect(screen.getByText(MSG_AVISO_TITULO)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
 })

@@ -5,6 +5,7 @@ import { validarCambioPassword } from '@/modules/gestion/cuenta/validacion'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { useSession } from '@/shared/session/SessionProvider'
+import { VigilanciaInactividad } from '@/shared/session/VigilanciaInactividad'
 import { Button } from '@/shared/ui/button'
 import { CampoPassword } from '@/shared/ui/CampoPassword'
 
@@ -70,6 +71,9 @@ export function CambioObligatorioPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-fondo-login px-4 py-10">
+      {/* Esta pantalla queda fuera de AppLayout, que es donde vive la vigilancia: se monta aqui tambien para que
+          quedarse en ella no deje la sesion abierta para siempre en un PC compartido (spec sp7b 6.1). */}
+      <VigilanciaInactividad />
       <form
         noValidate
         onSubmit={(e) => { e.preventDefault(); enviar(guardar) }}
