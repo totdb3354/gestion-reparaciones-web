@@ -35,6 +35,7 @@ describe('CambiarPasswordDialog: doble clic', () => {
     const cuerpos = registrarCambio()
     abrir()
     await rellenar('actual1', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     const guardar = screen.getByRole('button', { name: 'Guardar' })
     fireEvent.click(guardar)
     fireEvent.click(guardar)
@@ -98,6 +99,7 @@ describe('CambiarPasswordDialog: validación en la línea de error', () => {
     const cuerpos = registrarCambio()
     const onCerrar = abrir()
     await rellenar(actual, nueva, confirmar)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     const error = screen.getByRole('alert')
     expect(error).toHaveTextContent(mensaje)
@@ -112,6 +114,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     const cuerpos = registrarCambio()
     const onCerrar = abrir()
     await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     const aviso = await screen.findByRole('dialog', { name: 'Mensaje' })
     expect(aviso).toHaveTextContent('Contraseña cambiada correctamente.')
@@ -132,6 +135,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     registrarCambio(async () => { await espera; return new HttpResponse(null, { status: 204 }) })
     const onCerrar = abrir()
     await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled())
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
@@ -144,6 +148,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     registrarCambio(() => HttpResponse.json({ message: 'Contraseña actual incorrecta.' }, { status: 422 }))
     const onCerrar = abrir()
     await rellenar('mala1234', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Contraseña actual incorrecta.')
     expect(screen.getByLabelText('Contraseña actual')).toHaveValue('mala1234')
@@ -157,6 +162,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     registrarCambio(() => HttpResponse.json({ message: 'Contraseña actual incorrecta.' }, { status: 422 }))
     abrir()
     await rellenar('mala1234', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await screen.findByText('Contraseña actual incorrecta.')
     await userEvent.clear(screen.getByLabelText('Confirmar nueva contraseña'))
@@ -168,6 +174,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     registrarCambio(() => new HttpResponse(null, { status: 403 }))
     abrir()
     await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permisos para realizar esta acción.')
   })
@@ -175,6 +182,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     registrarCambio(() => new HttpResponse(null, { status: 500 }))
     abrir()
     await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('Sin conexión con el servidor: HTTP 500')
     // El diálogo de error deja el de contraseña con aria-hidden (fuera del árbol accesible): se mira el formulario por el DOM.
@@ -223,6 +231,7 @@ describe('CambiarPasswordDialog: cerrar', () => {
     }
     renderConProviders(<Arnes />, { sesion: SESION_TEC })
     await rellenar('secreta1', '123456789', '123456789')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(screen.getByRole('alert')).toHaveTextContent('La contraseña debe tener al menos 10 caracteres.')
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
@@ -232,5 +241,46 @@ describe('CambiarPasswordDialog: cerrar', () => {
     expect(within(dlg).getByLabelText('Contraseña actual')).toHaveValue('')
     expect(within(dlg).getByLabelText('Nueva contraseña')).toHaveValue('')
     expect(within(dlg).queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('CambiarPasswordDialog: barra de seguridad', () => {
+  it('la barra aparece bajo "Nueva contraseña" con la nota del servidor', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () => HttpResponse.json({ nota: 3, aceptable: true, mensaje: null })))
+    abrir()
+    await userEvent.type(screen.getByLabelText('Nueva contraseña'), 'nueva-larga-123')
+    expect(await screen.findByText('Segura')).toBeInTheDocument()
+    expect(screen.getByText('Mínimo 10 caracteres.')).toBeInTheDocument()
+  })
+
+  it('"Guardar" se desactiva si el servidor no la acepta y enseña el motivo', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () =>
+      HttpResponse.json({ nota: 1, aceptable: false, mensaje: 'La contraseña es poco segura. Añade otra palabra.' })))
+    abrir()
+    await rellenar('actual1', 'aaaaaaaaaa', 'aaaaaaaaaa')
+    expect(await screen.findByText('La contraseña es poco segura. Añade otra palabra.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+  })
+
+  it('si la comprobación falla, "Guardar" sigue disponible y decide el servidor', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () => new HttpResponse(null, { status: 500 })))
+    const cuerpos = registrarCambio()
+    abrir()
+    await rellenar('actual1', 'nueva-larga-123', 'nueva-larga-123')
+    expect(await screen.findByText('No se pudo comprobar')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(cuerpos).toHaveLength(1))
+  })
+
+  it('Enter no se salta el bloqueo si el servidor no la acepta', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () =>
+      HttpResponse.json({ nota: 1, aceptable: false, mensaje: 'La contraseña es poco segura.' })))
+    const cuerpos = registrarCambio()
+    abrir()
+    await rellenar('actual1', 'aaaaaaaaaa', '')
+    await userEvent.type(screen.getByLabelText('Confirmar nueva contraseña'), 'aaaaaaaaaa{Enter}')
+    await screen.findByText('La contraseña es poco segura.')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(cuerpos).toHaveLength(0)
   })
 })

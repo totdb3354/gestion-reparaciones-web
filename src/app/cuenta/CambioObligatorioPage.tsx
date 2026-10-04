@@ -1,10 +1,13 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useCambiarPassword } from '@/modules/gestion/cuenta/api'
+import { bloqueaGuardar, useNotaPassword } from '@/modules/gestion/cuenta/medidor'
+import { MedidorPassword } from '@/modules/gestion/cuenta/MedidorPassword'
 import { validarCambioPassword } from '@/modules/gestion/cuenta/validacion'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { useSession } from '@/shared/session/SessionProvider'
+import { esAdmin } from '@/shared/session/storage'
 import { VigilanciaInactividad } from '@/shared/session/VigilanciaInactividad'
 import { Button } from '@/shared/ui/button'
 import { CampoPassword } from '@/shared/ui/CampoPassword'
@@ -15,7 +18,7 @@ const CLASE_CAMPO =
 
 export const TITULO = 'Cambia tu contraseña'
 export const EXPLICACION =
-  'Has entrado con una contraseña temporal que te ha entregado el administrador. Elige una contraseña propia para seguir: es la que quedará asociada a tu nombre en el registro de actividad.'
+  'Para seguir tienes que elegir una contraseña nueva. Será la que quede asociada a tu nombre en el registro de actividad.'
 
 function Campo({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
@@ -33,12 +36,13 @@ function Campo({ etiqueta, children }: { etiqueta: string; children: ReactNode }
  * diálogo del menú de usuario; la contraseña temporal no se guarda en ninguna parte, solo viaja en este formulario.
  */
 export function CambioObligatorioPage() {
-  const { olvidarPasswordTemporal, logout } = useSession()
+  const { olvidarPasswordTemporal, logout, sesion } = useSession()
   const navigate = useNavigate()
   const cambiar = useCambiarPassword()
   const [actual, setActual] = useState('')
   const [nueva, setNueva] = useState('')
   const [confirmar, setConfirmar] = useState('')
+  const nota = useNotaPassword(nueva)
   const [error, setError] = useState<string | null>(null)
   const enviando = cambiar.isPending
   // Cerrojo síncrono: `isPending` llega tarde y un doble clic en Guardar enviaría dos veces.
@@ -49,6 +53,7 @@ export function CambioObligatorioPage() {
    *  los lleva la política global (sesión caducada, banner y diálogo del MutationCache). */
   const guardar = () => {
     if (enviando) return
+    if (bloqueaGuardar(nota)) return
     setError(null)
     const fallo = validarCambioPassword(actual, nueva, confirmar)
     if (fallo !== null) {
@@ -87,6 +92,7 @@ export function CambioObligatorioPage() {
         </Campo>
         <Campo etiqueta="Nueva contraseña">
           <CampoPassword valor={nueva} onChange={setNueva} placeholder="Nueva contraseña" aria-label="Nueva contraseña" autoComplete="new-password" className={CLASE_CAMPO} />
+          <MedidorPassword estado={nota} esAdmin={esAdmin(sesion)} />
         </Campo>
         <Campo etiqueta="Confirmar nueva contraseña">
           <CampoPassword valor={confirmar} onChange={setConfirmar} placeholder="Confirmar contraseña" aria-label="Confirmar nueva contraseña" autoComplete="new-password" className={CLASE_CAMPO} />
@@ -95,7 +101,7 @@ export function CambioObligatorioPage() {
         <p role="alert" className="min-h-4 w-full text-[12px] text-error-password">
           {error ?? ''}
         </p>
-        <Button type="submit" disabled={enviando} className="h-auto w-full rounded-3xl bg-azul-noche py-3 text-[13px] font-bold text-crema hover:bg-azul-noche-hover">
+        <Button type="submit" disabled={enviando || bloqueaGuardar(nota)} className="h-auto w-full rounded-3xl bg-azul-noche py-3 text-[13px] font-bold text-crema hover:bg-azul-noche-hover">
           Guardar
         </Button>
         {/* No permite saltarse el cambio —la barrera la pone el servidor y al volver a entrar la marca reaparece—, pero

@@ -6,9 +6,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { AVISO_MS, CLAVE_ACTIVIDAD, INACTIVIDAD_MS } from '@/shared/session/actividad'
 import { leerSesion, type Sesion } from '@/shared/session/storage'
 import { MSG_AVISO_TITULO } from '@/shared/session/VigilanciaInactividad'
-import { renderConProviders, SESION_TEC } from '@/test/render'
+import { renderConProviders, SESION_ADMIN, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { CambioObligatorioPage } from './CambioObligatorioPage'
+import { CambioObligatorioPage, EXPLICACION } from './CambioObligatorioPage'
 
 const SESION_CON_TEMPORAL: Sesion = { ...SESION_TEC, passwordTemporal: true }
 
@@ -45,7 +45,7 @@ describe('CambioObligatorioPage', () => {
   it('explica la situación, no ofrece ninguna salida y pide las tres contraseñas', () => {
     montar()
     expect(screen.getByRole('heading', { name: 'Cambia tu contraseña' })).toBeInTheDocument()
-    expect(screen.getByText(/temporal/i)).toBeInTheDocument()
+    expect(screen.getByText(EXPLICACION)).toBeInTheDocument()
     for (const etiqueta of ['Contraseña actual', 'Nueva contraseña', 'Confirmar nueva contraseña']) {
       expect(screen.getByLabelText(etiqueta)).toHaveAttribute('type', 'password')
     }
@@ -65,6 +65,7 @@ describe('CambioObligatorioPage', () => {
     const cuerpos = registrarCambio()
     montar()
     await rellenar('LaTemporal9', 'MiClaveNueva1', 'MiClaveNueva1')
+    await waitFor(() => expect(guardar()).toBeEnabled())
     await userEvent.click(guardar())
     expect(await screen.findByText('APLICACIÓN')).toBeInTheDocument()
     expect(cuerpos).toEqual([{ passwordActual: 'LaTemporal9', passwordNueva: 'MiClaveNueva1' }])
@@ -75,6 +76,7 @@ describe('CambioObligatorioPage', () => {
     const cuerpos = registrarCambio()
     montar()
     await rellenar('LaTemporal9', 'MiClaveNueva1', 'otra')
+    await waitFor(() => expect(guardar()).toBeEnabled())
     await userEvent.click(guardar())
     expect(linea()).toHaveTextContent('Las contraseñas nuevas no coinciden.')
     expect(cuerpos).toHaveLength(0)
@@ -85,6 +87,7 @@ describe('CambioObligatorioPage', () => {
     const cuerpos = registrarCambio()
     montar()
     await rellenar('LaTemporal9', '123456789', '123456789')
+    await waitFor(() => expect(guardar()).toBeEnabled())
     await userEvent.click(guardar())
     expect(linea()).toHaveTextContent('La contraseña debe tener al menos 10 caracteres.')
     expect(cuerpos).toHaveLength(0)
@@ -97,6 +100,7 @@ describe('CambioObligatorioPage', () => {
     registrarCambio(respuesta)
     montar()
     await rellenar('LaTemporal9', 'MiClaveNueva1', 'MiClaveNueva1')
+    await waitFor(() => expect(guardar()).toBeEnabled())
     await userEvent.click(guardar())
     expect(await screen.findByText(texto)).toBe(linea())
     expect(screen.queryByText('APLICACIÓN')).not.toBeInTheDocument()
@@ -107,6 +111,7 @@ describe('CambioObligatorioPage', () => {
     registrarCambio(() => new HttpResponse(null, { status: 503 }))
     montar()
     await rellenar('LaTemporal9', 'MiClaveNueva1', 'MiClaveNueva1')
+    await waitFor(() => expect(guardar()).toBeEnabled())
     await userEvent.click(guardar())
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
     // Con el diálogo abierto, Radix oculta el resto del documento: la línea de la página se busca incluyéndolo.
@@ -117,6 +122,7 @@ describe('CambioObligatorioPage', () => {
     const cuerpos = registrarCambio(async () => { await delay(20); return new HttpResponse(null, { status: 204 }) })
     montar()
     await rellenar('LaTemporal9', 'MiClaveNueva1', 'MiClaveNueva1')
+    await waitFor(() => expect(guardar()).toBeEnabled())
     fireEvent.click(guardar())
     fireEvent.click(guardar())
     expect(await screen.findByText('APLICACIÓN')).toBeInTheDocument()
@@ -137,4 +143,57 @@ describe('CambioObligatorioPage', () => {
     }
   })
 
+  it('la barra aparece bajo "Nueva contraseña" con la nota del servidor', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () => HttpResponse.json({ nota: 3, aceptable: true, mensaje: null })))
+    montar()
+    await userEvent.type(screen.getByLabelText('Nueva contraseña'), 'nueva-larga-123')
+    expect(await screen.findByText('Segura')).toBeInTheDocument()
+    expect(screen.getByText('Mínimo 10 caracteres.')).toBeInTheDocument()
+  })
+
+  it('"Guardar" se desactiva si el servidor no la acepta y enseña el motivo', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () =>
+      HttpResponse.json({ nota: 1, aceptable: false, mensaje: 'La contraseña es poco segura. Añade otra palabra.' })))
+    montar()
+    await rellenar('actual1', 'aaaaaaaaaa', 'aaaaaaaaaa')
+    expect(await screen.findByText('La contraseña es poco segura. Añade otra palabra.')).toBeInTheDocument()
+    expect(guardar()).toBeDisabled()
+  })
+
+  it('si la comprobación falla, "Guardar" sigue disponible y decide el servidor', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () => new HttpResponse(null, { status: 500 })))
+    const cuerpos = registrarCambio()
+    montar()
+    await rellenar('actual1', 'nueva-larga-123', 'nueva-larga-123')
+    expect(await screen.findByText('No se pudo comprobar')).toBeInTheDocument()
+    await userEvent.click(guardar())
+    await waitFor(() => expect(cuerpos).toHaveLength(1))
+  })
+
+  it('Enter no se salta el bloqueo si el servidor no la acepta', async () => {
+    server.use(http.post('*/api/auth/evaluar-password', () =>
+      HttpResponse.json({ nota: 1, aceptable: false, mensaje: 'La contraseña es poco segura.' })))
+    const cuerpos = registrarCambio()
+    montar()
+    await rellenar('actual1', 'aaaaaaaaaa', '')
+    await userEvent.type(screen.getByLabelText('Confirmar nueva contraseña'), 'aaaaaaaaaa{Enter}')
+    await screen.findByText('La contraseña es poco segura.')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(cuerpos).toHaveLength(0)
+  })
+
+  it('con sesión de administrador recuerda que se pide «Muy segura»', () => {
+    renderConProviders(<CambioObligatorioPage />, {
+      sesion: { ...SESION_ADMIN, passwordTemporal: true },
+      ruta: '/cuenta/cambiar-obligatorio',
+      rutas: <Route path="/" element={<p>APLICACIÓN</p>} />,
+    })
+    expect(screen.getByText('Para el administrador se pide «Muy segura».')).toBeInTheDocument()
+  })
+
+  it('la explicación vale tanto para la temporal como para la contraseña de siempre', () => {
+    montar()
+    expect(screen.getByText(EXPLICACION)).toBeInTheDocument()
+    expect(EXPLICACION).toBe('Para seguir tienes que elegir una contraseña nueva. Será la que quede asociada a tu nombre en el registro de actividad.')
+  })
 })
