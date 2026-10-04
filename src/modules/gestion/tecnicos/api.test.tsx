@@ -48,15 +48,16 @@ function registrar(patron: string, respuesta: () => Response = () => new HttpRes
 }
 
 describe('api de técnicos', () => {
-  it('useRegistrar: POST /api/usuarios/tecnicos con el cuerpo tal cual y la Idempotency-Key recibida; si sale bien, recarga usuarios y técnicos', async () => {
-    const peticiones = registrar('*/api/usuarios/tecnicos', () => new HttpResponse(null, { status: 201 }))
+  it('useRegistrar: POST /api/usuarios/tecnicos con el cuerpo tal cual y la Idempotency-Key recibida; devuelve la temporal y, si sale bien, recarga usuarios y técnicos', async () => {
+    const peticiones = registrar('*/api/usuarios/tecnicos', () => HttpResponse.json({ value: 'Temporal23' }, { status: 201 }))
     const { qc, wrapper } = envoltorio()
     const { result } = renderHook(() => useRegistrar(), { wrapper })
-    await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' }, clave: 'clave-alta' })
+    const temporal = await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', rol: 'SUPERTECNICO' }, clave: 'clave-alta' })
+    expect(temporal).toBe('Temporal23')
     expect(peticiones).toEqual([
       {
         metodo: 'POST', ruta: '/api/usuarios/tecnicos', query: '', clave: 'clave-alta',
-        cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' },
+        cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', rol: 'SUPERTECNICO' },
       },
     ])
     expect(caducadas(qc)).toEqual(RECARGADAS)
@@ -67,7 +68,7 @@ describe('api de técnicos', () => {
     registrar('*/api/usuarios/tecnicos', () => HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }))
     const { qc, wrapper } = envoltorio()
     const { result } = renderHook(() => useRegistrar(), { wrapper })
-    const error = await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-a', password: 'secreta1', rol: 'TECNICO' }, clave: 'clave-alta' }).catch((e: unknown) => e)
+    const error = await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-a', rol: 'TECNICO' }, clave: 'clave-alta' }).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(StaleDataError)
     expect((error as StaleDataError).message).toBe('Ese nombre de usuario ya existe.')
     expect(avisos).not.toHaveBeenCalled()

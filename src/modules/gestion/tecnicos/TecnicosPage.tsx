@@ -23,21 +23,19 @@ import {
 } from './textos'
 import { cuerpoAlta, duplicadosEnVivo, rolDe, ROLES, validarAlta, type DatosAlta } from './validacion'
 
-const FORMULARIO_VACIO: DatosAlta = { nombreTecnico: '', nombreUsuario: '', password: '', confirmar: '', rol: 'TECNICO' }
+const FORMULARIO_VACIO: DatosAlta = { nombreTecnico: '', nombreUsuario: '', rol: 'TECNICO' }
 const OPCIONES_ROL: OpcionCombo[] = ROLES.map((r) => ({ valor: r, etiqueta: r }))
 const SIN_USUARIOS: Usuario[] = []
 
 const OPERACION_ALTA = 'usuarios/tecnicos'
 
-type CampoTexto = 'nombreTecnico' | 'nombreUsuario' | 'password' | 'confirmar'
-/** Fila de campos de RegisterView.fxml :32-77 (etiqueta, prompt y tipo). Las contraseñas no llevan ojo (PasswordField). */
+type CampoTexto = 'nombreTecnico' | 'nombreUsuario'
+/** Fila de campos de RegisterView.fxml :32-77 (etiqueta, prompt y tipo). Las contraseñas ya no se escriben en el alta: la genera el servidor. */
 const CAMPOS: { clave: CampoTexto; etiqueta: string; placeholder: string; tipo: 'text' | 'password'; autoComplete: string }[] = [
   { clave: 'nombreTecnico', etiqueta: 'Nombre del técnico', placeholder: 'Nombre visible en reparaciones', tipo: 'text', autoComplete: 'off' },
   { clave: 'nombreUsuario', etiqueta: 'Nombre de usuario', placeholder: 'Credencial de login', tipo: 'text', autoComplete: 'off' },
-  { clave: 'password', etiqueta: 'Contraseña', placeholder: 'Contraseña', tipo: 'password', autoComplete: 'new-password' },
-  { clave: 'confirmar', etiqueta: 'Confirmar', placeholder: 'Repite la contraseña', tipo: 'password', autoComplete: 'new-password' },
 ]
-/** Estilo inline común de los cuatro campos: blanco, borde #D4D8DE, radio 8, padding 10 12, 13 px, texto #2C3B54,
+/** Estilo inline común de los campos: blanco, borde #D4D8DE, radio 8, padding 10 12, 13 px, texto #2C3B54,
  *  prompt #A0A8B4. El `md:text-[13px]` pisa el `md:text-sm` del Input de shadcn. */
 const CLASE_CAMPO = 'h-auto rounded-lg border-borde-input bg-superficie px-3 py-2.5 text-[13px] md:text-[13px] text-azul-medio placeholder:text-texto-suave'
 
@@ -128,7 +126,12 @@ export function TecnicosPage() {
     }
     const cuerpo = cuerpoAlta(form)
     registrar.mutate({ cuerpo, clave: claves.para(OPERACION_ALTA, cuerpo) }, {
-      onSuccess: () => { claves.hecha(OPERACION_ALTA); setForm(FORMULARIO_VACIO) },
+      onSuccess: (password) => {
+        claves.hecha(OPERACION_ALTA)
+        setForm(FORMULARIO_VACIO)
+        setEntregada({ nombreTecnico: cuerpo.nombreTecnico, password })
+        registrar.reset()
+      },
       onError: (e) => setError(mensajeInline(e, MSG_ERROR_REGISTRO, [409, 422])),
     })
   }
