@@ -34,7 +34,7 @@ describe('CambiarPasswordDialog: doble clic', () => {
   it('dos clics seguidos en Guardar envían una sola vez', async () => {
     const cuerpos = registrarCambio()
     abrir()
-    await rellenar('actual1', 'nueva123', 'nueva123')
+    await rellenar('actual1', 'nueva-larga-123', 'nueva-larga-123')
     const guardar = screen.getByRole('button', { name: 'Guardar' })
     fireEvent.click(guardar)
     fireEvent.click(guardar)
@@ -92,8 +92,8 @@ describe('CambiarPasswordDialog: estructura (CambiarPasswordView.fxml)', () => {
 describe('CambiarPasswordDialog: validación en la línea de error', () => {
   it.each([
     ['', '', '', 'Rellena todos los campos.'],
-    ['secreta1', 'nue12', 'nue12', 'La contraseña debe tener al menos 6 caracteres.'],
-    ['secreta1', 'nueva123', 'nueva124', 'Las contraseñas nuevas no coinciden.'],
+    ['secreta1', 'nue123456', 'nue123456', 'La contraseña debe tener al menos 10 caracteres.'],
+    ['secreta1', 'nueva-larga-123', 'nueva-larga-124', 'Las contraseñas nuevas no coinciden.'],
   ])('("%s", "%s", "%s") → "%s" sin llamar al servidor', async (actual, nueva, confirmar, mensaje) => {
     const cuerpos = registrarCambio()
     const onCerrar = abrir()
@@ -111,19 +111,19 @@ describe('CambiarPasswordDialog: guardado', () => {
   it('éxito: manda actual y nueva (sin la confirmación), cierra y avisa "Contraseña cambiada correctamente."; la sesión sigue', async () => {
     const cuerpos = registrarCambio()
     const onCerrar = abrir()
-    await rellenar('secreta1', 'nueva123', 'nueva123')
+    await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     const aviso = await screen.findByRole('dialog', { name: 'Mensaje' })
     expect(aviso).toHaveTextContent('Contraseña cambiada correctamente.')
-    expect(cuerpos).toEqual([{ passwordActual: 'secreta1', passwordNueva: 'nueva123' }])
+    expect(cuerpos).toEqual([{ passwordActual: 'secreta1', passwordNueva: 'nueva-larga-123' }])
     expect(onCerrar).toHaveBeenCalledTimes(1)
     expect(localStorage.getItem('fsgr.sesion')).not.toBeNull()
   })
   it('Enter en un campo guarda', async () => {
     const cuerpos = registrarCambio()
     abrir()
-    await rellenar('secreta1', 'nueva123', '')
-    await userEvent.type(screen.getByLabelText('Confirmar nueva contraseña'), 'nueva123{Enter}')
+    await rellenar('secreta1', 'nueva-larga-123', '')
+    await userEvent.type(screen.getByLabelText('Confirmar nueva contraseña'), 'nueva-larga-123{Enter}')
     await waitFor(() => expect(cuerpos).toHaveLength(1))
   })
   it('"Guardar" y "Cancelar" quedan deshabilitados mientras responde y Esc no cierra', async () => {
@@ -131,7 +131,7 @@ describe('CambiarPasswordDialog: guardado', () => {
     const espera = new Promise<void>((r) => { soltar = r })
     registrarCambio(async () => { await espera; return new HttpResponse(null, { status: 204 }) })
     const onCerrar = abrir()
-    await rellenar('secreta1', 'nueva123', 'nueva123')
+    await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled())
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
@@ -143,12 +143,12 @@ describe('CambiarPasswordDialog: guardado', () => {
   it('422: el message del servidor en la línea, los campos se conservan y no hay diálogo genérico', async () => {
     registrarCambio(() => HttpResponse.json({ message: 'Contraseña actual incorrecta.' }, { status: 422 }))
     const onCerrar = abrir()
-    await rellenar('mala1234', 'nueva123', 'nueva123')
+    await rellenar('mala1234', 'nueva-larga-123', 'nueva-larga-123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Contraseña actual incorrecta.')
     expect(screen.getByLabelText('Contraseña actual')).toHaveValue('mala1234')
-    expect(screen.getByLabelText('Nueva contraseña')).toHaveValue('nueva123')
-    expect(screen.getByLabelText('Confirmar nueva contraseña')).toHaveValue('nueva123')
+    expect(screen.getByLabelText('Nueva contraseña')).toHaveValue('nueva-larga-123')
+    expect(screen.getByLabelText('Confirmar nueva contraseña')).toHaveValue('nueva-larga-123')
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
     expect(onCerrar).not.toHaveBeenCalled()
@@ -156,7 +156,7 @@ describe('CambiarPasswordDialog: guardado', () => {
   it('un nuevo intento limpia el error anterior antes de validar', async () => {
     registrarCambio(() => HttpResponse.json({ message: 'Contraseña actual incorrecta.' }, { status: 422 }))
     abrir()
-    await rellenar('mala1234', 'nueva123', 'nueva123')
+    await rellenar('mala1234', 'nueva-larga-123', 'nueva-larga-123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await screen.findByText('Contraseña actual incorrecta.')
     await userEvent.clear(screen.getByLabelText('Confirmar nueva contraseña'))
@@ -167,14 +167,14 @@ describe('CambiarPasswordDialog: guardado', () => {
   it('otro error (403): el texto de la web en la línea', async () => {
     registrarCambio(() => new HttpResponse(null, { status: 403 }))
     abrir()
-    await rellenar('secreta1', 'nueva123', 'nueva123')
+    await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permisos para realizar esta acción.')
   })
   it('sin conexión: sin texto en la línea; lo avisa el diálogo global de conexión', async () => {
     registrarCambio(() => new HttpResponse(null, { status: 500 }))
     abrir()
-    await rellenar('secreta1', 'nueva123', 'nueva123')
+    await rellenar('secreta1', 'nueva-larga-123', 'nueva-larga-123')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('dialog', { name: 'Error' })).toHaveTextContent('Sin conexión con el servidor: HTTP 500')
     // El diálogo de error deja el de contraseña con aria-hidden (fuera del árbol accesible): se mira el formulario por el DOM.
@@ -186,7 +186,7 @@ describe('CambiarPasswordDialog: cerrar', () => {
   it('"Cancelar" cierra sin preguntar aunque haya texto, sin llamar al servidor', async () => {
     const cuerpos = registrarCambio()
     const onCerrar = abrir()
-    await rellenar('secreta1', 'nueva123', '')
+    await rellenar('secreta1', 'nueva-larga-123', '')
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(onCerrar).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog', { name: /Eliminar|Descartar/ })).not.toBeInTheDocument()
@@ -222,9 +222,9 @@ describe('CambiarPasswordDialog: cerrar', () => {
       )
     }
     renderConProviders(<Arnes />, { sesion: SESION_TEC })
-    await rellenar('secreta1', 'abc', 'abc')
+    await rellenar('secreta1', '123456789', '123456789')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
-    expect(screen.getByRole('alert')).toHaveTextContent('La contraseña debe tener al menos 6 caracteres.')
+    expect(screen.getByRole('alert')).toHaveTextContent('La contraseña debe tener al menos 10 caracteres.')
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Cambiar contraseña' })).not.toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: 'Abrir' }))

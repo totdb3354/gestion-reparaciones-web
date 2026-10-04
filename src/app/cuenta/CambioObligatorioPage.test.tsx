@@ -84,9 +84,9 @@ describe('CambioObligatorioPage', () => {
   it('una nueva demasiado corta tampoco sale de aquí', async () => {
     const cuerpos = registrarCambio()
     montar()
-    await rellenar('LaTemporal9', '12345', '12345')
+    await rellenar('LaTemporal9', '123456789', '123456789')
     await userEvent.click(guardar())
-    expect(linea()).toHaveTextContent('La contraseña debe tener al menos 6 caracteres.')
+    expect(linea()).toHaveTextContent('La contraseña debe tener al menos 10 caracteres.')
     expect(cuerpos).toHaveLength(0)
   })
 

@@ -1,41 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { MSG_EXITO, MSG_NUEVAS_NO_COINCIDEN, MSG_PASSWORD_CORTA, MSG_RELLENA, TITULO_EXITO, validarCambioPassword } from './validacion'
+import { MSG_IGUAL_ACTUAL, MSG_NUEVAS_NO_COINCIDEN, MSG_PASSWORD_CORTA, MSG_PASSWORD_LARGA, MSG_RELLENA, validarCambioPassword } from './validacion'
 
-describe('textos (CambiarPasswordController :84-105)', () => {
-  it('son exactos', () => {
-    expect(MSG_RELLENA).toBe('Rellena todos los campos.')
-    expect(MSG_PASSWORD_CORTA).toBe('La contraseña debe tener al menos 6 caracteres.')
-    expect(MSG_NUEVAS_NO_COINCIDEN).toBe('Las contraseñas nuevas no coinciden.')
-    expect(TITULO_EXITO).toBe('Mensaje')
-    expect(MSG_EXITO).toBe('Contraseña cambiada correctamente.')
+describe('validarCambioPassword (regla 0.9.2)', () => {
+  it('campos vacíos primero', () => {
+    expect(validarCambioPassword('', 'nueva-larga-1', 'nueva-larga-1')).toBe(MSG_RELLENA)
+    expect(validarCambioPassword('actual', '', '')).toBe(MSG_RELLENA)
   })
-})
-
-describe('validarCambioPassword (orden: vacíos → < 6 → no coinciden; sin trim)', () => {
-  it.each([
-    ['', 'nueva123', 'nueva123'],
-    ['secreta1', '', 'nueva123'],
-    ['secreta1', 'nueva123', ''],
-    ['', '', ''],
-  ])('algún campo vacío ("%s", "%s", "%s") → "Rellena todos los campos."', (actual, nueva, confirmar) => {
-    expect(validarCambioPassword(actual, nueva, confirmar)).toBe(MSG_RELLENA)
+  it('menos de 10 caracteres', () => {
+    expect(validarCambioPassword('actual', '123456789', '123456789')).toBe('La contraseña debe tener al menos 10 caracteres.')
+    expect(MSG_PASSWORD_CORTA).toBe('La contraseña debe tener al menos 10 caracteres.')
   })
-  it('vacío gana a corta y a no coinciden', () => {
-    expect(validarCambioPassword('', 'abc', 'xyz')).toBe(MSG_RELLENA)
+  it('más de 64 caracteres o más de 72 bytes', () => {
+    expect(validarCambioPassword('actual', 'a'.repeat(65), 'a'.repeat(65))).toBe('La contraseña es demasiado larga (máximo 64 caracteres).')
+    const conTildes = 'ñ'.repeat(37) + 'abc'
+    expect(validarCambioPassword('actual', conTildes, conTildes)).toBe(MSG_PASSWORD_LARGA)
+    expect(validarCambioPassword('actual', 'a'.repeat(64), 'a'.repeat(64))).toBeNull()
   })
-  it('nueva de menos de 6 caracteres → corta, antes que no coinciden', () => {
-    expect(validarCambioPassword('secreta1', 'nue12', 'nue12')).toBe(MSG_PASSWORD_CORTA)
-    expect(validarCambioPassword('secreta1', 'abc', 'xyz')).toBe(MSG_PASSWORD_CORTA)
+  it('distinta de la actual', () => {
+    expect(validarCambioPassword('misma-de-antes', 'misma-de-antes', 'misma-de-antes')).toBe('La nueva contraseña tiene que ser distinta de la actual.')
+    expect(MSG_IGUAL_ACTUAL).toBe('La nueva contraseña tiene que ser distinta de la actual.')
   })
-  it('nueva distinta de la confirmación (distingue mayúsculas) → no coinciden', () => {
-    expect(validarCambioPassword('secreta1', 'nueva123', 'NUEVA123')).toBe(MSG_NUEVAS_NO_COINCIDEN)
+  it('la repetida tiene que coincidir, y es la última comprobación', () => {
+    expect(validarCambioPassword('actual', 'nueva-larga-1', 'nueva-larga-2')).toBe(MSG_NUEVAS_NO_COINCIDEN)
+    expect(validarCambioPassword('actual', '123', '456')).toBe(MSG_PASSWORD_CORTA)
   })
-  it('sin trim: los espacios cuentan como relleno y como caracteres', () => {
-    expect(validarCambioPassword('   ', '      ', '      ')).toBeNull()
-    expect(validarCambioPassword('secreta1', ' nue1 ', ' nue1 ')).toBeNull()
-    expect(validarCambioPassword('secreta1', 'nue12 ', 'nue12')).toBe(MSG_NUEVAS_NO_COINCIDEN)
-  })
-  it('6 caracteres exactos e iguales → válido', () => {
-    expect(validarCambioPassword('secreta1', 'nueva1', 'nueva1')).toBeNull()
+  it('sin trim: diez espacios valen como 10 caracteres', () => {
+    expect(validarCambioPassword('actual', ' '.repeat(10), ' '.repeat(10))).toBeNull()
   })
 })

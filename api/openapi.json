@@ -612,7 +612,14 @@
         },
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValorTexto"
+                }
+              }
+            }
           },
           "409" : {
             "description" : "Conflict"
@@ -1704,6 +1711,34 @@
           },
           "429" : {
             "description" : "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/api/auth/evaluar-password" : {
+      "post" : {
+        "tags" : [ "auth-controller" ],
+        "operationId" : "evaluarPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AuthEvaluarPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluacionPassword"
+                }
+              }
+            }
           }
         }
       }
@@ -4813,16 +4848,13 @@
         }
       },
       "UsuarioRegistrarTecnicoRequest" : {
-        "required" : [ "nombreTecnico", "nombreUsuario", "password", "rol" ],
+        "required" : [ "nombreTecnico", "nombreUsuario", "rol" ],
         "type" : "object",
         "properties" : {
           "nombreTecnico" : {
             "type" : "string"
           },
           "nombreUsuario" : {
-            "type" : "string"
-          },
-          "password" : {
             "type" : "string"
           },
           "rol" : {
@@ -5697,6 +5729,32 @@
           },
           "passwordTemporal" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "AuthEvaluarPasswordRequest" : {
+        "required" : [ "password" ],
+        "type" : "object",
+        "properties" : {
+          "password" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EvaluacionPassword" : {
+        "required" : [ "aceptable", "mensaje", "nota" ],
+        "type" : "object",
+        "properties" : {
+          "nota" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "aceptable" : {
+            "type" : "boolean"
+          },
+          "mensaje" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
