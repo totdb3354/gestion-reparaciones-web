@@ -12,5 +12,10 @@ export function RequireSesion() {
   if (sesion.passwordTemporal && location.pathname !== RUTA_CAMBIO_OBLIGATORIO) {
     return <Navigate to={RUTA_CAMBIO_OBLIGATORIO} replace />
   }
+  // Y sin la marca no hay nada que cambiar: una pestaña que se quedó en esa pantalla cuando otra ya cambió la
+  // contraseña (o que llega a ella por la dirección) vuelve sola al inicio.
+  if (!sesion.passwordTemporal && location.pathname === RUTA_CAMBIO_OBLIGATORIO) {
+    return <Navigate to="/" replace />
+  }
   return <Outlet />
 }

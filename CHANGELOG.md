@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.1] - 2026-10-04 — Arreglos de sesión
+
+- Si dos pestañas estaban en la pantalla "Cambia tu contraseña" y se cambia en una, la otra sale sola al programa en vez de seguir pidiendo el cambio. Llegar a esa pantalla por su dirección sin tener que cambiar la contraseña también lleva al inicio.
+- Con el servidor 0.9.1, activar, desactivar o eliminar a un usuario y restablecer su contraseña surten efecto en su siguiente acción, sin esperar hasta medio minuto. Quien acaba de ser reactivado puede entrar y trabajar enseguida.
+- Es la primera versión que llega a una web 0.9.0 abierta: las pestañas avisan con "Hay una versión nueva del programa." y el botón "Recargar".
+- Sin cambios en la base de datos ni en la configuración de nginx.
+
 ## [0.9.0] - 2026-09-29 — Sesiones y contraseñas
 
 - **Cierre por inactividad.** Tras dos horas sin usar el programa, la sesión se cierra sola. Un minuto antes sale el aviso "Vas a salir por inactividad" con el botón "Seguir trabajando". Cuenta como uso el ratón y el teclado en cualquier pestaña de la web; volver a la ventana y el refresco automático de las tablas no cuentan. Lo que esté sin guardar en un pedido o en el reparto de trabajos se pierde; las reparaciones a medias se guardan solas. Un PC suspendido con la web abierta más de dos horas vuelve a pedir usuario y contraseña al despertar.

@@ -85,6 +85,45 @@ describe('RequireSesion con la contraseña temporal del administrador', () => {
     expect(await screen.findByText('CAMBIO')).toBeInTheDocument()
   })
 
+  it('sin la marca, el cambio obligatorio no se pinta: lleva al inicio', async () => {
+    renderConProviders(<Navigate to={RUTA_CAMBIO_OBLIGATORIO} replace />, {
+      sesion: SESION_TEC,
+      // El arranque no puede estar en '/', que es adonde lleva la guarda: se redirigirían el uno al otro en bucle.
+      ruta: '/entrada',
+      rutas: (
+        <Route element={<RequireSesion />}>
+          <Route path="/" element={<p>INICIO</p>} />
+          <Route path={RUTA_CAMBIO_OBLIGATORIO} element={<p>CAMBIO</p>} />
+        </Route>
+      ),
+    })
+    expect(await screen.findByText('INICIO')).toBeInTheDocument()
+    expect(screen.queryByText('CAMBIO')).not.toBeInTheDocument()
+  })
+
+  it('si otra pestaña cambia la contraseña, esta sale sola del cambio obligatorio', async () => {
+    const sesion = { ...SESION_TEC, passwordTemporal: true }
+    renderConProviders(<Navigate to={RUTA_CAMBIO_OBLIGATORIO} replace />, {
+      sesion,
+      ruta: '/entrada',
+      rutas: (
+        <Route element={<RequireSesion />}>
+          <Route path="/" element={<p>INICIO</p>} />
+          <Route path={RUTA_CAMBIO_OBLIGATORIO} element={<p>CAMBIO</p>} />
+        </Route>
+      ),
+    })
+    await screen.findByText('CAMBIO')
+    // La otra pestaña guarda la misma sesión (mismo token) ya sin la marca; a esta le llega el evento storage.
+    const nueva = JSON.stringify({ ...sesion, passwordTemporal: false })
+    localStorage.setItem('fsgr.sesion', nueva)
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'fsgr.sesion', newValue: nueva, storageArea: localStorage }))
+    })
+    expect(await screen.findByText('INICIO')).toBeInTheDocument()
+    expect(screen.queryByText('CAMBIO')).not.toBeInTheDocument()
+  })
+
   it('sin la marca la aplicación se abre con normalidad', async () => {
     renderConProviders(<Navigate to="/privado" replace />, {
       sesion: SESION_TEC,
