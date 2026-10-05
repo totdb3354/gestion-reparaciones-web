@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { api } from '@/shared/api/client'
 
 /** Nota de una contraseña propuesta, de 0 a 4, según el servidor (la misma regla que al guardar: PoliticaPassword). */
+export type NotaLista = { estado: 'listo'; nota: number; aceptable: boolean; mensaje: string | null }
+
+/** `previa`: la última nota recibida, que la barra sigue pintando mientras llega la nueva (así no parpadea al escribir). */
 export type EstadoNota =
   | { estado: 'vacio' }
-  | { estado: 'comprobando' }
-  | { estado: 'listo'; nota: number; aceptable: boolean; mensaje: string | null }
+  | { estado: 'comprobando'; previa?: NotaLista }
+  | NotaLista
   | { estado: 'error' }
 
 /** Pausa tras la última tecla antes de preguntar: una petición por pausa, no por letra. */
@@ -15,6 +18,8 @@ export const ETIQUETAS_NOTA = ['Muy débil', 'Débil', 'Poco segura', 'Segura', 
 export const AYUDA = 'Mínimo 10 caracteres.'
 export const AYUDA_ADMIN = 'Para el administrador se pide «Muy segura».'
 export const MSG_NO_COMPROBADA = 'No se pudo comprobar'
+/** Texto accesible de la barra cuando todavía no hay nota (campo vacío, primera comprobación o fallo). */
+export const SIN_NOTA = 'Sin nota'
 
 /**
  * Pide al servidor la nota de `password` cuando deja de cambiar durante PAUSA_MS. Cada cambio cancela la consulta
@@ -30,7 +35,10 @@ export function useNotaPassword(password: string): EstadoNota {
       setEstado({ estado: 'vacio' })
       return
     }
-    setEstado({ estado: 'comprobando' })
+    setEstado((antes) => {
+      const previa = antes.estado === 'listo' ? antes : antes.estado === 'comprobando' ? antes.previa : undefined
+      return previa ? { estado: 'comprobando', previa } : { estado: 'comprobando' }
+    })
     const control = new AbortController()
     const temporizador = window.setTimeout(() => {
       api
