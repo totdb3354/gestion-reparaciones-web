@@ -8,6 +8,7 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { onError } from '@/shared/ui/alertas'
 import { server } from '@/test/server'
 import { consultarTieneReparaciones, useCambiarActivo, useEliminar, useRegistrar } from './api'
+import { MSG_ERROR_REGISTRO } from './textos'
 
 function envoltorio() {
   const qc = crearQueryClient({ retry: false })
@@ -74,6 +75,14 @@ describe('api de técnicos', () => {
     expect(avisos).not.toHaveBeenCalled()
     expect(caducadas(qc)).toEqual(INTACTAS)
     quitar()
+  })
+  it('useRegistrar con 201 sin value: termina en error con MSG_ERROR_REGISTRO y sin recargar', async () => {
+    registrar('*/api/usuarios/tecnicos', () => HttpResponse.json({}, { status: 201 }))
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useRegistrar(), { wrapper })
+    const error = await result.current.mutateAsync({ cuerpo: { nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', rol: 'TECNICO' }, clave: 'clave-alta' }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(Error)
+    expect((error as Error).message).toBe(MSG_ERROR_REGISTRO)
   })
   it.each([
     [true, '/api/usuarios/tecnicos/21/activar'],

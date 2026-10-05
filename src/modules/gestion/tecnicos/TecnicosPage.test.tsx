@@ -167,13 +167,16 @@ describe('TecnicosPage', () => {
   })
   it('tras el alta enseña la temporal una sola vez, con el texto de entrega', async () => {
     server.use(http.post('*/api/usuarios/tecnicos', () => HttpResponse.json({ value: 'Temporal23' }, { status: 201 })))
-    montar()
+    const qc = crearQueryClient({ retry: false })
+    montar({ queryClient: qc })
     await screen.findByText('tecnico-a')
     await rellenar({ tecnico: 'Nuevo Técnico', usuario: 'usuario-n' })
     await userEvent.click(botonRegistrar())
     const dlg = await screen.findByRole('dialog', { name: 'Contraseña temporal' })
     expect(within(dlg).getByLabelText('Contraseña temporal')).toHaveValue('Temporal23')
     expect(dlg).toHaveTextContent('Entrégasela a "Nuevo Técnico" en persona')
+    // La temporal nunca se queda en la caché de mutaciones.
+    await waitFor(() => expect(qc.getMutationCache().getAll()).toHaveLength(0))
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: 'Contraseña temporal' })).toBeNull()
     expect(screen.queryByDisplayValue('Temporal23')).toBeNull()
@@ -223,6 +226,7 @@ describe('TecnicosPage', () => {
     await registrarY(2)
     await rellenar({ tecnico: 'x' })
     await registrarY(3)
+    await screen.findByRole('dialog', { name: 'Contraseña temporal' })
     await userEvent.keyboard('{Escape}') // cierra la ventana de la temporal
     await waitFor(() => expect(screen.getByLabelText('Nombre del técnico')).toHaveValue(''))
     await rellenar({ tecnico: 'tecnico-cx', usuario: 'usuario-c' })

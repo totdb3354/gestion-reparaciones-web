@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { MSG_IGUAL_ACTUAL, MSG_NUEVAS_NO_COINCIDEN, MSG_PASSWORD_CORTA, MSG_PASSWORD_LARGA, MSG_RELLENA, validarCambioPassword } from './validacion'
+import { MSG_EXITO, MSG_IGUAL_ACTUAL, MSG_NUEVAS_NO_COINCIDEN, MSG_PASSWORD_CORTA, MSG_PASSWORD_LARGA, MSG_RELLENA, TITULO_EXITO, validarCambioPassword } from './validacion'
 
 describe('validarCambioPassword (regla 0.9.2)', () => {
+  it('textos exactos', () => {
+    expect(MSG_RELLENA).toBe('Rellena todos los campos.')
+    expect(MSG_NUEVAS_NO_COINCIDEN).toBe('Las contraseñas nuevas no coinciden.')
+    expect(TITULO_EXITO).toBe('Mensaje')
+    expect(MSG_EXITO).toBe('Contraseña cambiada correctamente.')
+    expect(MSG_PASSWORD_LARGA).toBe('La contraseña es demasiado larga (máximo 64 caracteres).')
+  })
   it('campos vacíos primero', () => {
     expect(validarCambioPassword('', 'nueva-larga-1', 'nueva-larga-1')).toBe(MSG_RELLENA)
     expect(validarCambioPassword('actual', '', '')).toBe(MSG_RELLENA)
