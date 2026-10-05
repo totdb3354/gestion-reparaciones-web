@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.3] - 2026-10-05 — Barra de seguridad siempre visible
+
+- La barra de seguridad de la contraseña ("Cambiar contraseña" y "Cambia tu contraseña") se ve desde el principio, con los cinco tramos en gris, y se va coloreando según se escribe.
+- Ya no parpadea al escribir: mientras se comprueba lo último que se ha tecleado, sigue enseñando la nota anterior.
+- Solo cambia la web; el servidor sigue en la 0.9.2. Sin cambios en la base de datos ni en la configuración de nginx.
+
 ## [0.9.2] - 2026-10-05 — Contraseñas seguras
 
 - **Barra de seguridad.** Al elegir una contraseña nueva (menú de usuario → "Cambiar contraseña" y la pantalla "Cambia tu contraseña"), una barra dice lo fácil que es adivinarla: Muy débil, Débil, Poco segura, Segura o Muy segura. "Guardar" se activa a partir de "Segura"; para el administrador, solo con "Muy segura". Debajo sale el motivo cuando no vale ("La contraseña es poco segura. Añade otra palabra.").
