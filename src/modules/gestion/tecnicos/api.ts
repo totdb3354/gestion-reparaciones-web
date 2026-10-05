@@ -2,7 +2,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { useCallback } from 'react'
 import { api } from '@/shared/api/client'
 import { CLAVE_TECNICOS_LITERAL, CLAVE_USUARIOS } from '../api'
-import { MSG_ERROR_RESTABLECER } from './textos'
+import { MSG_ERROR_REGISTRO, MSG_ERROR_RESTABLECER } from './textos'
 import type { CuerpoAlta } from './validacion'
 
 /** Tras una escritura con éxito (spec 6, §7): la tabla de esta página (['usuarios', …]) y los combos y listas de técnicos
@@ -17,13 +17,19 @@ function useRecargaUsuarios(): () => void {
 
 /** Las tres escrituras silencian el diálogo global: el error va a la línea inline de la página (spec 6, G9). El corte de
  *  conexión lo sigue avisando el MutationCache. Recargan solo si salen bien (calco: el JavaFX recarga tras el éxito). */
-/** `clave` va en la cabecera Idempotency-Key (la da la página con crearClavesIdempotencia). */
-export function useRegistrar(): UseMutationResult<void, Error, { cuerpo: CuerpoAlta; clave: string }> {
+/** `clave` va en la cabecera Idempotency-Key (la da la página con crearClavesIdempotencia). Devuelve la contraseña
+ *  temporal generada por el servidor. `gcTime: 0` y el `reset()` de la página la sacan de la caché de mutaciones en
+ *  cuanto la ventana la recoge: solo debe existir mientras se enseña. */
+export function useRegistrar(): UseMutationResult<string, Error, { cuerpo: CuerpoAlta; clave: string }> {
   const recargar = useRecargaUsuarios()
   return useMutation({
     mutationFn: async ({ cuerpo, clave }: { cuerpo: CuerpoAlta; clave: string }) => {
-      await api.POST('/api/usuarios/tecnicos', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })
+      const { data } = await api.POST('/api/usuarios/tecnicos', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })
+      const password = data?.value
+      if (typeof password !== 'string' || password === '') throw new Error(MSG_ERROR_REGISTRO)
+      return password
     },
+    gcTime: 0,
     meta: { silenciarError: true },
     onSuccess: recargar,
   })

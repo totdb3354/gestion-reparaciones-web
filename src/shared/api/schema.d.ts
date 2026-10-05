@@ -660,6 +660,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/evaluar-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["evaluarPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/asignaciones/lote": {
         parameters: {
             query?: never;
@@ -2307,7 +2323,6 @@ export interface components {
         UsuarioRegistrarTecnicoRequest: {
             nombreTecnico: string;
             nombreUsuario: string;
-            password: string;
             rol: string;
         };
         TelefonoImeiRequest: {
@@ -2610,6 +2625,15 @@ export interface components {
             idTec: number | null;
             token: string;
             passwordTemporal: boolean;
+        };
+        AuthEvaluarPasswordRequest: {
+            password: string;
+        };
+        EvaluacionPassword: {
+            /** Format: int32 */
+            nota: number;
+            aceptable: boolean;
+            mensaje: string | null;
         };
         LoteAsignacionesAsignacionDelLote: {
             imei: string;
@@ -3815,7 +3839,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ValorTexto"];
+                };
             };
             /** @description Conflict */
             409: {
@@ -4772,6 +4798,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    evaluarPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthEvaluarPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluacionPassword"];
+                };
             };
         };
     };

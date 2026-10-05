@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.2] - 2026-10-05 — Contraseñas seguras
+
+- **Barra de seguridad.** Al elegir una contraseña nueva (menú de usuario → "Cambiar contraseña" y la pantalla "Cambia tu contraseña"), una barra dice lo fácil que es adivinarla: Muy débil, Débil, Poco segura, Segura o Muy segura. "Guardar" se activa a partir de "Segura"; para el administrador, solo con "Muy segura". Debajo sale el motivo cuando no vale ("La contraseña es poco segura. Añade otra palabra.").
+- **Reglas nuevas.** Mínimo 10 caracteres, máximo 64, distinta de la actual. No hace falta poner mayúsculas, números ni símbolos: una frase de varias palabras sueltas es de lo más seguro.
+- **Alta de técnicos sin contraseña.** El programa genera una contraseña temporal y la enseña una sola vez, como "Restablecer contraseña". Al entrar con ella hay que elegir una propia.
+- Requiere el servidor 0.9.2. Sin cambios en la base de datos ni en la configuración de nginx.
+
 ## [0.9.1] - 2026-10-04 — Arreglos de sesión
 
 - Si dos pestañas estaban en la pantalla "Cambia tu contraseña" y se cambia en una, la otra sale sola al programa en vez de seguir pidiendo el cambio. Llegar a esa pantalla por su dirección sin tener que cambiar la contraseña también lleva al inicio.

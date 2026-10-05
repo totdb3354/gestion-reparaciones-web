@@ -9,27 +9,22 @@ export function rolDe(valor: string): Rol {
   return valor === 'SUPERTECNICO' ? 'SUPERTECNICO' : 'TECNICO'
 }
 
-export type DatosAlta = { nombreTecnico: string; nombreUsuario: string; password: string; confirmar: string; rol: Rol }
-export type CuerpoAlta = { nombreTecnico: string; nombreUsuario: string; password: string; rol: Rol }
+export type DatosAlta = { nombreTecnico: string; nombreUsuario: string; rol: Rol }
+export type CuerpoAlta = { nombreTecnico: string; nombreUsuario: string; rol: Rol }
 
 export const MSG_CAMPOS = 'Todos los campos son obligatorios.'
-export const MSG_NO_COINCIDEN = 'Las contraseñas no coinciden.'
-export const MSG_PASSWORD_CORTA = 'La contraseña debe tener al menos 6 caracteres.'
 export const MSG_TECNICO_DUPLICADO = 'Ya existe un técnico con ese nombre.'
 export const MSG_USUARIO_DUPLICADO = 'Ese nombre de usuario ya existe.'
 
-/** Calco de RegisterController.registrar (:257-275): nombres con trim, contraseña y confirmación sin trim; para en el primer
- *  fallo. La confirmación vacía no cuenta como obligatoria: cae en "no coinciden". */
+/** Nombres con trim; para en el primer fallo. La contraseña ya no se escribe: la genera el servidor (0.9.2). */
 export function validarAlta(d: DatosAlta): string | null {
-  if (d.nombreTecnico.trim() === '' || d.nombreUsuario.trim() === '' || d.password === '') return MSG_CAMPOS
-  if (d.password !== d.confirmar) return MSG_NO_COINCIDEN
-  if (d.password.length < 6) return MSG_PASSWORD_CORTA
+  if (d.nombreTecnico.trim() === '' || d.nombreUsuario.trim() === '') return MSG_CAMPOS
   return null
 }
 
-/** Cuerpo de POST /api/usuarios/tecnicos con los nombres recortados (el servidor también recorta desde la Task 1). */
+/** Cuerpo de POST /api/usuarios/tecnicos con los nombres recortados (el servidor también recorta). */
 export function cuerpoAlta(d: DatosAlta): CuerpoAlta {
-  return { nombreTecnico: d.nombreTecnico.trim(), nombreUsuario: d.nombreUsuario.trim(), password: d.password, rol: d.rol }
+  return { nombreTecnico: d.nombreTecnico.trim(), nombreUsuario: d.nombreUsuario.trim(), rol: d.rol }
 }
 
 const normalizar = (s: string) => s.trim().toLowerCase()

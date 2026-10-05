@@ -21,8 +21,6 @@ describe('TecnicosPage: cerrojo del alta', () => {
     renderConProviders(<TecnicosPage />, { sesion: SESION_ADMIN, ruta: '/gestion/tecnicos' })
     await userEvent.type(screen.getByLabelText('Nombre del técnico'), 'tecnico-c')
     await userEvent.type(screen.getByLabelText('Nombre de usuario'), 'usuario-c')
-    await userEvent.type(screen.getByLabelText('Contraseña'), 'secreta1')
-    await userEvent.type(screen.getByLabelText('Confirmar'), 'secreta1')
     const boton = screen.getByRole('button', { name: 'Registrar técnico' })
     fireEvent.click(boton)
     fireEvent.click(boton)

@@ -34,11 +34,9 @@ const fila = (nombre: string) => screen.getByRole('row', { name: new RegExp(`^${
 const linea = () => screen.getByRole('alert')
 const botonRegistrar = () => screen.getByRole('button', { name: 'Registrar técnico' })
 
-async function rellenar({ tecnico = '', usuario = '', password = '', confirmar = '' }) {
+async function rellenar({ tecnico = '', usuario = '' }) {
   if (tecnico) await userEvent.type(screen.getByLabelText('Nombre del técnico'), tecnico)
   if (usuario) await userEvent.type(screen.getByLabelText('Nombre de usuario'), usuario)
-  if (password) await userEvent.type(screen.getByLabelText('Contraseña'), password)
-  if (confirmar) await userEvent.type(screen.getByLabelText('Confirmar'), confirmar)
 }
 
 /** Sonda del menú de usuario: "Descargar CSV" se habilita solo si la vista registra un exportable. */
@@ -48,7 +46,7 @@ function SondaCsv() {
 
 /** Calco de RegisterView.fxml y RegisterController (hotfix/0.16.3) como página del shell (spec 6, §6.1). */
 describe('TecnicosPage', () => {
-  it('cabecera con logo, cuatro campos con sus etiquetas y placeholders, fila de acción, tabla y "Cerrar"', async () => {
+  it('cabecera con logo, dos campos con sus etiquetas y placeholders, fila de acción, tabla y "Cerrar"', async () => {
     const { container } = montar()
     expect(screen.getByRole('heading', { name: 'Gestión de usuarios' })).toHaveClass('text-[18px]', 'font-bold', 'text-azul-medio')
     expect(screen.getByText('Registra o elimina accesos al sistema')).toHaveClass('text-[12px]', 'text-azul-gris')
@@ -56,8 +54,6 @@ describe('TecnicosPage', () => {
     const campos = [
       ['Nombre del técnico', 'Nombre visible en reparaciones', 'text'],
       ['Nombre de usuario', 'Credencial de login', 'text'],
-      ['Contraseña', 'Contraseña', 'password'],
-      ['Confirmar', 'Repite la contraseña', 'password'],
     ] as const
     for (const [etiqueta, placeholder, tipo] of campos) {
       const campo = screen.getByLabelText(etiqueta)
@@ -66,8 +62,8 @@ describe('TecnicosPage', () => {
       expect(campo).toHaveValue('')
     }
     expect(screen.getByText('Nombre del técnico')).toHaveClass('text-[11px]', 'font-bold', 'text-azul-gris')
-    // Sin ojo en los campos de contraseña del alta (calco: PasswordField simple).
-    expect(screen.queryByRole('button', { name: 'Mostrar contraseña' })).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Contraseña')).toBeNull()
+    expect(screen.queryByPlaceholderText('Repite la contraseña')).toBeNull()
     const combo = screen.getByRole('combobox', { name: 'Rol' })
     expect(combo).toHaveTextContent(/^TECNICO$/)
     expect(combo).toHaveStyle({ width: '130px' })
@@ -131,54 +127,68 @@ describe('TecnicosPage', () => {
     // Los avisos en vivo no van a la línea inline.
     expect(linea()).toBeEmptyDOMElement()
   })
-  it('valida en el orden del JavaFX sin llamar al servidor, y Enter no registra', async () => {
+  it('valida los nombres sin llamar al servidor, y Enter no registra', async () => {
     let posts = 0
-    server.use(http.post('*/api/usuarios/tecnicos', () => { posts += 1; return new HttpResponse(null, { status: 201 }) }))
+    server.use(http.post('*/api/usuarios/tecnicos', () => { posts += 1; return HttpResponse.json({ value: 'Temporal23' }, { status: 201 }) }))
     montar()
     await screen.findByText('tecnico-a')
-    await userEvent.type(screen.getByLabelText('Confirmar'), 'x{enter}')
+    await userEvent.type(screen.getByLabelText('Nombre de usuario'), 'x{enter}')
     expect(linea()).toBeEmptyDOMElement()
     await userEvent.click(botonRegistrar())
     expect(linea()).toHaveTextContent('Todos los campos son obligatorios.')
     expect(linea()).toHaveClass('text-[11px]', 'text-texto-error')
-    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1' })
-    await userEvent.click(botonRegistrar())
-    expect(linea()).toHaveTextContent('Las contraseñas no coinciden.')
-    await userEvent.clear(screen.getByLabelText('Contraseña'))
-    await userEvent.clear(screen.getByLabelText('Confirmar'))
-    await rellenar({ password: '12345', confirmar: '12345' })
-    await userEvent.click(botonRegistrar())
-    expect(linea()).toHaveTextContent('La contraseña debe tener al menos 6 caracteres.')
     expect(posts).toBe(0)
   })
   it('alta: POST con nombres recortados y el rol del combo; vacía el formulario, combo a TECNICO y recarga, sin mensaje de éxito', async () => {
     let cuerpo: unknown = null
-    server.use(http.post('*/api/usuarios/tecnicos', async ({ request }) => { cuerpo = await request.json(); return new HttpResponse(null, { status: 201 }) }))
+    server.use(http.post('*/api/usuarios/tecnicos', async ({ request }) => { cuerpo = await request.json(); return HttpResponse.json({ value: 'Temporal23' }, { status: 201 }) }))
     montar()
     await screen.findByText('tecnico-a')
-    await rellenar({ tecnico: '  tecnico-c ', usuario: ' usuario-c ', password: 'secreta1', confirmar: 'secreta1' })
+    await rellenar({ tecnico: '  tecnico-c ', usuario: ' usuario-c ' })
     await userEvent.click(screen.getByRole('combobox', { name: 'Rol' }))
     await userEvent.click(within(screen.getByRole('listbox', { name: 'Rol' })).getByRole('button', { name: 'SUPERTECNICO' }))
     await userEvent.click(botonRegistrar())
     await waitFor(() => expect(cargas.n).toBe(2))
-    expect(cuerpo).toEqual({ nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', password: 'secreta1', rol: 'SUPERTECNICO' })
-    for (const etiqueta of ['Nombre del técnico', 'Nombre de usuario', 'Contraseña', 'Confirmar']) {
+    expect(cuerpo).toEqual({ nombreTecnico: 'tecnico-c', nombreUsuario: 'usuario-c', rol: 'SUPERTECNICO' })
+    for (const etiqueta of ['Nombre del técnico', 'Nombre de usuario']) {
       await waitFor(() => expect(screen.getByLabelText(etiqueta)).toHaveValue(''))
     }
+    // Sin mensaje de éxito: lo único que se abre es la ventana de la contraseña temporal.
+    expect(await screen.findByRole('dialog', { name: 'Contraseña temporal' })).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
     expect(screen.getByRole('combobox', { name: 'Rol' })).toHaveTextContent(/^TECNICO$/)
     expect(linea()).toBeEmptyDOMElement()
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  it('el formulario ya no tiene campos de contraseña', async () => {
+    montar()
+    await screen.findByText('tecnico-a')
+    expect(screen.queryByPlaceholderText('Contraseña')).toBeNull()
+    expect(screen.queryByPlaceholderText('Repite la contraseña')).toBeNull()
+  })
+  it('tras el alta enseña la temporal una sola vez, con el texto de entrega', async () => {
+    server.use(http.post('*/api/usuarios/tecnicos', () => HttpResponse.json({ value: 'Temporal23' }, { status: 201 })))
+    const qc = crearQueryClient({ retry: false })
+    montar({ queryClient: qc })
+    await screen.findByText('tecnico-a')
+    await rellenar({ tecnico: 'Nuevo Técnico', usuario: 'usuario-n' })
+    await userEvent.click(botonRegistrar())
+    const dlg = await screen.findByRole('dialog', { name: 'Contraseña temporal' })
+    expect(within(dlg).getByLabelText('Contraseña temporal')).toHaveValue('Temporal23')
+    expect(dlg).toHaveTextContent('Entrégasela a "Nuevo Técnico" en persona')
+    // La temporal nunca se queda en la caché de mutaciones.
+    await waitFor(() => expect(qc.getMutationCache().getAll()).toHaveLength(0))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: 'Contraseña temporal' })).toBeNull()
+    expect(screen.queryByDisplayValue('Temporal23')).toBeNull()
   })
   it('tras una validación fallida "Registrar técnico" sigue respondiendo', async () => {
     let altas = 0
-    server.use(http.post('*/api/usuarios/tecnicos', () => { altas += 1; return new HttpResponse(null, { status: 201 }) }))
+    server.use(http.post('*/api/usuarios/tecnicos', () => { altas += 1; return HttpResponse.json({ value: 'Temporal23' }, { status: 201 }) }))
     montar()
     await screen.findByText('tecnico-a')
-    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1', confirmar: 'otra' })
     await userEvent.click(botonRegistrar())
     expect(linea()).not.toBeEmptyDOMElement()
-    await userEvent.clear(screen.getByLabelText('Confirmar'))
-    await rellenar({ confirmar: 'secreta1' })
+    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c' })
     await userEvent.click(botonRegistrar())
     await waitFor(() => expect(altas).toBe(1))
   })
@@ -190,7 +200,7 @@ describe('TecnicosPage', () => {
     server.use(http.post('*/api/usuarios/tecnicos', respuesta))
     montar()
     await screen.findByText('tecnico-a')
-    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1', confirmar: 'secreta1' })
+    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c' })
     await userEvent.click(botonRegistrar())
     expect(await screen.findByText(texto)).toBe(linea())
     expect(screen.getByLabelText('Nombre del técnico')).toHaveValue('tecnico-c')
@@ -202,7 +212,7 @@ describe('TecnicosPage', () => {
     server.use(http.post('*/api/usuarios/tecnicos', async ({ request }) => {
       const { nombreTecnico } = (await request.json()) as { nombreTecnico: string }
       envios.push({ tecnico: nombreTecnico, clave: request.headers.get('Idempotency-Key') })
-      return envios.length < 3 ? HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }) : new HttpResponse(null, { status: 201 })
+      return envios.length < 3 ? HttpResponse.json({ message: 'Ese nombre de usuario ya existe.' }, { status: 409 }) : HttpResponse.json({ value: 'Temporal23' }, { status: 201 })
     }))
     montar()
     await screen.findByText('tecnico-a')
@@ -211,13 +221,15 @@ describe('TecnicosPage', () => {
       await waitFor(() => expect(envios).toHaveLength(n))
       if (n < 3) await screen.findByText('Ese nombre de usuario ya existe.')
     }
-    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c', password: 'secreta1', confirmar: 'secreta1' })
+    await rellenar({ tecnico: 'tecnico-c', usuario: 'usuario-c' })
     await registrarY(1)
     await registrarY(2)
     await rellenar({ tecnico: 'x' })
     await registrarY(3)
+    await screen.findByRole('dialog', { name: 'Contraseña temporal' })
+    await userEvent.keyboard('{Escape}') // cierra la ventana de la temporal
     await waitFor(() => expect(screen.getByLabelText('Nombre del técnico')).toHaveValue(''))
-    await rellenar({ tecnico: 'tecnico-cx', usuario: 'usuario-c', password: 'secreta1', confirmar: 'secreta1' })
+    await rellenar({ tecnico: 'tecnico-cx', usuario: 'usuario-c' })
     await registrarY(4)
     expect(envios.map((e) => e.tecnico)).toEqual(['tecnico-c', 'tecnico-c', 'tecnico-cx', 'tecnico-cx'])
     const [a, b, c, d] = envios.map((e) => e.clave)

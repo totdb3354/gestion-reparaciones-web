@@ -39,6 +39,8 @@ async function entrarConTemporal(page: Page, usuario: string, temporal: string, 
   await page.getByLabel('Contraseña actual', { exact: true }).fill(temporal)
   await page.getByLabel('Nueva contraseña', { exact: true }).fill(nueva)
   await page.getByLabel('Confirmar nueva contraseña', { exact: true }).fill(nueva)
+  await expect(page.getByRole('meter', { name: 'Seguridad de la contraseña' })).toHaveAttribute('aria-valuenow', /^[34]$/)
+  await expect(page.getByRole('button', { name: 'Guardar' })).toBeEnabled()
   const respuesta = page.waitForResponse(esRespuesta('/api/auth/cambiar-password', 'PATCH'))
   await page.getByRole('button', { name: 'Guardar' }).click()
   expect((await respuesta).status(), 'PATCH /api/auth/cambiar-password').toBe(204)
@@ -76,6 +78,8 @@ async function cambiarPassword(page: Page, actual: string, nueva: string) {
   await dlg.getByPlaceholder('Contraseña actual', { exact: true }).fill(actual)
   await dlg.getByPlaceholder('Nueva contraseña', { exact: true }).fill(nueva)
   await dlg.getByPlaceholder('Confirmar contraseña', { exact: true }).fill(nueva)
+  await expect(dlg.getByRole('meter', { name: 'Seguridad de la contraseña' })).toHaveAttribute('aria-valuenow', /^[34]$/)
+  await expect(dlg.getByRole('button', { name: 'Guardar' })).toBeEnabled()
   const respuesta = page.waitForResponse(esRespuesta('/api/auth/cambiar-password', 'PATCH'))
   await dlg.getByRole('button', { name: 'Guardar' }).click()
   expect((await respuesta).status(), 'PATCH /api/auth/cambiar-password').toBe(204)
@@ -88,8 +92,8 @@ async function cambiarPassword(page: Page, actual: string, nueva: string) {
 
 /**
  * ESCRIBE en el entorno de destino: con ADMIN_USER registra un técnico de prueba `e2e-tecnico-<marca>` (usuario
- * `e2e-usuario-<marca>`, rol TECNICO, contraseña sintética), lo desactiva y lo activa, busca su CREAR_USUARIO en el visor de
- * logs, entra con él (la contraseña del alta es temporal: la cambia en la pantalla obligatoria y la restaura por el diálogo
+ * `e2e-usuario-<marca>`, rol TECNICO, contraseña temporal generada por el servidor), lo desactiva y lo activa, busca su CREAR_USUARIO en el visor de
+ * logs, entra con él (la contraseña del alta es temporal: la cambia en la pantalla obligatoria y otra vez por el diálogo
  * del menú), vuelve a entrar ya directo en la aplicación, y por último lo borra como ADMIN desde la
  * papelera. Solo toca ese usuario: las escrituras de /api/usuarios/tecnicos/{id} a otro id se abortan.
  */
@@ -99,14 +103,16 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
   const marca = Date.now()
   const nombreTecnico = `e2e-tecnico-${marca}`
   const nombreUsuario = `e2e-usuario-${marca}`
-  const clave = `e2e-clave-${marca}`
-  const claveNueva = `e2e-nueva-${marca}`
+  // Contraseñas del usuario de prueba: frases de palabras sueltas, para que la barra las dé por «Segura» o más.
+  const clave = `tortuga violeta ${marca} lampara`
+  const claveNueva = `nube marina ${marca} cuaderno`
 
   await entrarCon(page, admin.usuario, admin.clave) // inicio de sesión 1/4
   const origen = new URL(page.url()).pathname
 
   let idTec = 0
   let idUsu = 0
+  let temporal = ''
   await test.step('alta desde "Gestionar técnicos"', async () => {
     const lista = page.waitForResponse(esRespuesta('/api/usuarios/tecnicos', 'GET'))
     await menuUsuario(page, 'Gestionar técnicos')
@@ -116,8 +122,6 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
 
     await page.getByPlaceholder('Nombre visible en reparaciones').fill(nombreTecnico)
     await page.getByPlaceholder('Credencial de login').fill(nombreUsuario)
-    await page.getByPlaceholder('Contraseña', { exact: true }).fill(clave)
-    await page.getByPlaceholder('Repite la contraseña').fill(clave)
 
     // Se registra ANTES del clic: si el alta llega a escribir y el test cae después, afterAll sabe qué borrar.
     pendiente = { nombreUsuario }
@@ -126,7 +130,13 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
     await page.getByRole('button', { name: 'Registrar técnico' }).click()
     const respuesta = await alta
     expect(respuesta.status(), 'POST /api/usuarios/tecnicos').toBe(201)
-    expect(respuesta.request().postDataJSON()).toEqual({ nombreTecnico, nombreUsuario, password: clave, rol: 'TECNICO' })
+    expect(respuesta.request().postDataJSON()).toEqual({ nombreTecnico, nombreUsuario, rol: 'TECNICO' })
+    temporal = ((await respuesta.json()) as { value: string }).value
+    expect(temporal).toMatch(/^[A-Za-z0-9]{10}$/)
+    const ventana = page.getByRole('dialog', { name: 'Contraseña temporal' })
+    await expect(ventana.getByLabel('Contraseña temporal')).toHaveValue(temporal)
+    await page.keyboard.press('Escape')
+    await expect(ventana).toBeHidden()
     // Sin mensaje de éxito (calco): el formulario se vacía.
     await expect(page.getByPlaceholder('Nombre visible en reparaciones')).toHaveValue('')
 
@@ -208,11 +218,11 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
   await test.step('el usuario de prueba cambia la contraseña del alta al entrar, luego desde el menú, y vuelve a entrar', async () => {
     await cerrarSesion(page)
     // La contraseña del alta es temporal: el primer inicio de sesión lleva a la pantalla de cambio obligatorio.
-    await entrarConTemporal(page, nombreUsuario, clave, claveNueva) // inicio de sesión 2/4
-    await cambiarPassword(page, claveNueva, clave) // restaurada desde el menú: si el borrado fallase, queda con la original
+    await entrarConTemporal(page, nombreUsuario, temporal, clave) // inicio de sesión 2/4
+    await cambiarPassword(page, clave, claveNueva)
     await cerrarSesion(page)
     // Ya con una contraseña propia, entra directo en la aplicación: la marca de temporal se retiró al cambiarla.
-    await entrarCon(page, nombreUsuario, clave) // inicio de sesión 3/4
+    await entrarCon(page, nombreUsuario, claveNueva) // inicio de sesión 3/4
     await cerrarSesion(page)
   })
 

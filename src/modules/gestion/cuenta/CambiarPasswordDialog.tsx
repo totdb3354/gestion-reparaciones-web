@@ -1,11 +1,15 @@
 import { useState, type ReactNode } from 'react'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
+import { useSession } from '@/shared/session/SessionProvider'
+import { esAdmin } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Button } from '@/shared/ui/button'
 import { CampoPassword } from '@/shared/ui/CampoPassword'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
 import { useCambiarPassword } from './api'
+import { bloqueaGuardar, useNotaPassword } from './medidor'
+import { MedidorPassword } from './MedidorPassword'
 import { MSG_EXITO, TITULO_EXITO, validarCambioPassword } from './validacion'
 
 type Props = { abierto: boolean; onCerrar: () => void }
@@ -49,9 +53,11 @@ export function CambiarPasswordDialog({ abierto, onCerrar }: Props) {
 
 function Cuerpo({ cambiar, onCerrar }: { cambiar: ReturnType<typeof useCambiarPassword>; onCerrar: () => void }) {
   const { mostrarAviso } = useAlerta()
+  const { sesion } = useSession()
   const [actual, setActual] = useState('')
   const [nueva, setNueva] = useState('')
   const [confirmar, setConfirmar] = useState('')
+  const nota = useNotaPassword(nueva)
   const [error, setError] = useState<string | null>(null)
   const enviando = cambiar.isPending
   // Cerrojo síncrono: `isPending` llega tarde y un doble clic en Guardar enviaría dos veces.
@@ -62,6 +68,7 @@ function Cuerpo({ cambiar, onCerrar }: { cambiar: ReturnType<typeof useCambiarPa
    *  conexión del MutationCache): no se repiten en la línea. */
   const guardar = () => {
     if (enviando) return
+    if (bloqueaGuardar(nota)) return
     setError(null)
     const fallo = validarCambioPassword(actual, nueva, confirmar)
     if (fallo !== null) {
@@ -89,6 +96,7 @@ function Cuerpo({ cambiar, onCerrar }: { cambiar: ReturnType<typeof useCambiarPa
       </Campo>
       <Campo etiqueta="Nueva contraseña">
         <CampoPassword valor={nueva} onChange={setNueva} placeholder="Nueva contraseña" aria-label="Nueva contraseña" autoComplete="new-password" className={CLASE_CAMPO} />
+        <MedidorPassword estado={nota} esAdmin={esAdmin(sesion)} />
       </Campo>
       <Campo etiqueta="Confirmar nueva contraseña">
         {/* Placeholder "Confirmar contraseña", distinto de su etiqueta: calco (CambiarPasswordView.fxml :84, :89). */}
@@ -105,7 +113,7 @@ function Cuerpo({ cambiar, onCerrar }: { cambiar: ReturnType<typeof useCambiarPa
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={enviando} className="h-auto rounded-md bg-azul-noche px-[18px] py-2 text-[13px] font-bold text-white hover:bg-azul-noche-hover">
+        <Button type="submit" disabled={enviando || bloqueaGuardar(nota)} className="h-auto rounded-md bg-azul-noche px-[18px] py-2 text-[13px] font-bold text-white hover:bg-azul-noche-hover">
           Guardar
         </Button>
       </div>
