@@ -647,6 +647,17 @@ describe('FormularioReparacion — variante glass', () => {
     expect(within(screen.getByTestId('zona-guardar')).getByRole('button').textContent).toBe('Terminar asignación')
   })
 
+  it('en preproducción el título de la pestaña lleva "[PRE] " delante', async () => {
+    vi.stubEnv('VITE_ENTORNO', 'preproduccion')
+    try {
+      abrirGlass()
+      await screen.findByRole('dialog', { name: 'Nueva reparación — IMEI 355400000000222' })
+      expect(document.title).toBe('[PRE] Nueva reparación — IMEI 355400000000222')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('la incidencia se pide con tipo=G y se muestra igual', async () => {
     let tipo: string | null = null
     const { handlers } = conRegistro({ asignacion: { idRep: 'AG20260916_2', imei: '355400000000222' }, modeloTelefono: '13' })
