@@ -3,6 +3,7 @@ import { NavigationType, useBlocker } from 'react-router'
 import type { AsignacionActiva } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
+import { conEntorno } from '@/shared/lib/entorno'
 import { useAvisoAlSalir } from '@/shared/lib/useAvisoAlSalir'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
@@ -131,10 +132,10 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
   // no han llegado al borrador (los 2 s del autoguardado).
   useAvisoAlSalir(estado.modo === 'editar' ? hayCambiosSinGuardar(estado) : sinVolcar)
 
-  // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había.
+  // El título de la ventana del JavaFX pasa a ser el de la pestaña; al cerrar vuelve el que había. En preprod, con "[PRE] ".
   useEffect(() => {
     const anterior = document.title
-    document.title = titulo
+    document.title = conEntorno(titulo)
     return () => {
       document.title = anterior
     }

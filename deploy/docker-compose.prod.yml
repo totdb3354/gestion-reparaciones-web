@@ -24,6 +24,7 @@ services:
       JWT_EXPIRATION: "86400000"
       SERVER_ERROR_INCLUDE_MESSAGE: always
       SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      POLITICA_PASSWORD_PALABRAS_PROPIAS: "CAMBIAR_PALABRAS_PROPIAS"
     depends_on:
       - mariadb
     restart: unless-stopped

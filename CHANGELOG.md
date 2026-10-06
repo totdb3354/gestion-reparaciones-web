@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.4] - 2026-10-06 — Letrero de preproducción
+
+- La web construida para la máquina de pruebas (argumento `VITE_ENTORNO=preproduccion`) enseña arriba una franja «PREPRODUCCIÓN · datos de prueba» y pone «[PRE]» delante del título de la pestaña, para no confundirla con la de producción.
+- En producción no cambia nada: sin ese argumento no hay letrero ni cambia el título.
+- La plantilla `deploy/docker-compose.prod.yml` recoge la variable de las palabras propias de la regla de contraseñas (con marcador).
+- Solo cambia la web; el servidor sigue en la 0.9.2. Sin cambios en la base de datos ni en la configuración de nginx.
+
 ## [0.9.3] - 2026-10-05 — Barra de seguridad siempre visible
 
 - La barra de seguridad de la contraseña ("Cambiar contraseña" y "Cambia tu contraseña") se ve desde el principio, con los cinco tramos en gris, y se va coloreando según se escribe.
