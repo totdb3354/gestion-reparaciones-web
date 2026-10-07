@@ -499,4 +499,22 @@ describe('StockPage: tabla fluida', () => {
     expect(container.querySelector('[data-relleno]')).toBeNull()
     expect(screen.getByRole('table')).toHaveClass('w-full')
   })
+  it('"Parámetros de previsión" solo lo ve el ADMIN', async () => {
+    for (const [sesion, ve] of [[SESION_ADMIN, true], [SESION_SUPER, false], [SESION_TEC, false]] as const) {
+      const { unmount } = montar(sesion)
+      await screen.findByText('lcd-x')
+      expect(screen.queryByRole('button', { name: 'Parámetros de previsión' }) !== null).toBe(ve)
+      unmount()
+    }
+  })
+  it('el botón abre el diálogo con los pesos y congela el sondeo mientras está abierto', async () => {
+    server.use(http.get('*/api/parametros/prevision', () => HttpResponse.json({ peso1: 50, peso2: 30, peso3: 20 })))
+    montar(SESION_ADMIN)
+    await screen.findByText('lcd-x')
+    await userEvent.click(screen.getByRole('button', { name: 'Parámetros de previsión' }))
+    expect(await screen.findByRole('dialog', { name: 'Parámetros de previsión' })).toBeInTheDocument()
+    const antes = cargas.n
+    await act(() => new Promise((r) => setTimeout(r, 50)))
+    expect(cargas.n).toBe(antes)
+  })
 })

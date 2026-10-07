@@ -28,6 +28,7 @@ import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
 import { conteosDonut } from './graficos'
 import { MenuComponente } from './MenuComponente'
+import { ParametrosPrevisionDialog } from './ParametrosPrevisionDialog'
 import { SolicitarPiezaDialog } from './SolicitarPiezaDialog'
 
 const MSG_MODIFICADO = 'El componente fue modificado mientras editabas. Recarga los datos.'
@@ -51,6 +52,7 @@ export function StockPage() {
   // diálogo propio (spec 4b §7).
   const [formulario] = useStore(formularioPedido)
   const [dialogo, setDialogo] = useState<Dialogo>(null)
+  const [parametrosAbiertos, setParametrosAbiertos] = useState(false)
   // Texto de un 422 del servidor para el diálogo abierto (spec §8): se pinta dentro del diálogo, que sigue abierto.
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   // Cada llegada desde Pedidos pide a la tabla desplazarse hasta la fila seleccionada (contador, DataTable.tsx:52).
@@ -65,12 +67,12 @@ export function StockPage() {
 
   // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
   useEffect(() => { ultimaRutaStock.set('/stock') }, [])
-  // El diálogo cuenta como interacción abierta: el sondeo se congela mientras esté abierto (D4 del 3a).
+  // Un diálogo abierto (de fila o de parámetros) congela el sondeo (D4 del 3a).
   useEffect(() => {
-    if (!dialogo) return
+    if (!dialogo && !parametrosAbiertos) return
     marcar(true)
     return () => marcar(false)
-  }, [dialogo, marcar])
+  }, [dialogo, parametrosAbiertos, marcar])
 
   // Vuelta desde Pedidos (calco de navegarAComponente, StockController :233-246; spec 4b §6 "Vuelta a Stock"): con los
   // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente sigue
@@ -166,6 +168,7 @@ export function StockPage() {
         />
         <Input value={filtros.buscador} onChange={(e) => setFiltros({ ...filtros, buscador: e.target.value })} placeholder="Buscar componente…" className="w-[220px] bg-superficie" />
         <BotonSecundario onClick={() => setFiltros({ ...FILTROS_STOCK_VACIOS, estados: new Set() })}>Limpiar filtros</BotonSecundario>
+        {esAdmin(sesion) && <BotonSecundario onClick={() => setParametrosAbiertos(true)}>Parámetros de previsión</BotonSecundario>}
       </div>
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
@@ -256,6 +259,7 @@ export function StockPage() {
           })
         }}
       />
+      <ParametrosPrevisionDialog abierto={parametrosAbiertos} onCerrar={() => setParametrosAbiertos(false)} />
     </div>
   )
 }
