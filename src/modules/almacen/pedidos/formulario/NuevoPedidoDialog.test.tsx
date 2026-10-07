@@ -131,7 +131,7 @@ describe('NuevoPedidoDialog', () => {
 
   it('"Pedir" (un componente): una línea con él, cantidad 1, precio 0,00, sin proveedor ni urgente; "+ Añadir línea" añade una vacía (calco: añadirFila(null)) y la selecciona', async () => {
     abrir({ modo: 'componentes', idsCom: [2] })
-    expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
+    expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
     expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' }).textContent).toBe('')
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 1' })).toHaveValue('1')
     expect(screen.getByRole('textbox', { name: 'Precio línea 1' })).toHaveValue('0,00')
@@ -143,7 +143,7 @@ describe('NuevoPedidoDialog', () => {
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 2' })).toHaveValue('1')
     expect(screen.getByRole('textbox', { name: 'Precio línea 2' })).toHaveValue('0,00')
     expect(screen.getByRole('checkbox', { name: 'Urgente línea 2' })).not.toBeChecked()
-    expect(screen.getByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
+    expect(screen.getByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
     expect(filaDe(2)).toHaveAttribute('data-state', 'selected')
     expect(filaDe(1)).not.toHaveAttribute('data-state')
   })
@@ -156,7 +156,7 @@ describe('NuevoPedidoDialog', () => {
     const onCerrar = vi.fn()
     renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'componentes', idsCom: [2] }} onCerrar={onCerrar} /> }], { sesion: SESION_SUPER, queryClient: qc })
     const campo = await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    expect(campo).toHaveValue('bat-x')
+    expect(campo).toHaveValue('bat-x / bat-y')
     expect(document.activeElement).not.toBe(campo)
   })
 
@@ -171,7 +171,7 @@ describe('NuevoPedidoDialog', () => {
   it('"Pedir todas las piezas" (N componentes): una línea por componente en orden; "+ Añadir línea" añade una vacía', async () => {
     abrir({ modo: 'componentes', idsCom: [1, 2] })
     expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('lcd-x-negro')
-    expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('bat-x')
+    expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('bat-x / bat-y')
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 2' })).toHaveValue('1')
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
     expect(screen.getByRole('combobox', { name: 'Componente línea 3' })).toHaveValue('')
@@ -179,7 +179,7 @@ describe('NuevoPedidoDialog', () => {
 
   it('"Pedir piezas": agrupa por componente con urgentes primero, cantidad = nº de solicitudes, y avisa de las omitidas', async () => {
     abrir({ modo: 'solicitudes', urgentes: [urgente(10, 2), urgente(11, 4), urgente(12, 1)], preventivas: [preventiva(20, 2), preventiva(21, 4)] })
-    expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
+    expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 1' })).toHaveValue('2')
     expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('lcd-x-negro')
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 2' })).toHaveValue('1')
@@ -198,17 +198,18 @@ describe('NuevoPedidoDialog', () => {
     expect(onCerrar).toHaveBeenCalledTimes(1)
   })
 
-  it('autocompletar: solo activos (con los slaves de SKU compartido), filtro "contiene" y Enter elige el primero', async () => {
+  it('autocompletar: solo activos (una opción por grupo de stock compartido), filtro "contiene" y Enter elige el primero', async () => {
     abrir()
     await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))
     const campo = screen.getByRole('combobox', { name: 'Componente línea 1' })
     await userEvent.type(campo, 'x')
-    await waitFor(() => expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['lcd-x-negro', 'bat-x']))
+    await waitFor(() => expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['lcd-x-negro', 'bat-x / bat-y']))
     await userEvent.clear(campo)
     await userEvent.type(campo, 'bat')
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['bat-x', 'bat-y'])
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['bat-x / bat-y'])
+    expect(screen.queryByRole('option', { name: 'bat-y' })).not.toBeInTheDocument()
     await userEvent.type(campo, '{Enter}')
-    expect(campo).toHaveValue('bat-x')
+    expect(campo).toHaveValue('bat-x / bat-y')
   })
 
   it('con muchas líneas: la tabla de líneas tiene alto máximo con scroll propio y los botones siguen visibles (C24)', async () => {
@@ -225,7 +226,7 @@ describe('NuevoPedidoDialog', () => {
     await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))
     await confirmar()
     expect(screen.getByRole('alert')).toHaveTextContent('Línea 1: selecciona un componente.')
-    await elegirComponente(1, 'bat', 'bat-x')
+    await elegirComponente(1, 'bat', 'bat-x / bat-y')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     await confirmar()
     expect(screen.getByRole('alert')).toHaveTextContent('Línea 1: selecciona un proveedor.')
@@ -370,7 +371,7 @@ describe('NuevoPedidoDialog', () => {
     const papelera = screen.getByRole('button', { name: 'Quitar línea 1' })
     expect(papelera.querySelector('img')).toHaveAttribute('src', '/borrar.png')
     await userEvent.click(papelera)
-    expect(screen.getByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
+    expect(screen.getByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
     expect(screen.queryByRole('combobox', { name: 'Componente línea 2' })).not.toBeInTheDocument()
   })
 })

@@ -31,10 +31,10 @@ describe('FormulariosPedido', () => {
   it('una apertura nueva con el formulario abierto lo remonta con su precarga (key por apertura)', async () => {
     renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })
     act(() => abrirNuevoPedido({ modo: 'componentes', idsCom: [2] }))
-    expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x')
+    expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
     act(() => abrirNuevoPedido({ modo: 'componentes', idsCom: [1] }))
     expect(await screen.findByDisplayValue('lcd-x-negro')).toBeInTheDocument()
-    expect(screen.queryByDisplayValue('bat-x')).not.toBeInTheDocument()
+    expect(screen.queryByDisplayValue('bat-x / bat-y')).not.toBeInTheDocument()
   })
   it('abrirNuevoOtroPedido pinta "Nuevo otro pedido"', async () => {
     renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })

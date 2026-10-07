@@ -4,6 +4,7 @@ import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { CampoAutocompletar } from '@/shared/ui/CampoAutocompletar'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { useComponentesStock } from '../../stock/api'
+import { agruparCompartidos, nombreGrupo } from '../../stock/grupos'
 import { useGuardarLoteCompras } from '../api'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
@@ -23,7 +24,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const { data: proveedores } = useProveedoresComponentes({ activo: false })
   const activos = useMemo(() => (componentes.data ?? []).filter((c) => c.activo), [componentes.data])
   const proveedoresActivos = useMemo(() => (proveedores ?? []).filter((p) => p.activo), [proveedores])
-  const opciones = useMemo(() => activos.map((c) => ({ clave: String(c.idCom), etiqueta: c.tipo })), [activos])
+  const opciones = useMemo(() => agruparCompartidos(activos).map((f) => ({ clave: String(f.idCom), etiqueta: nombreGrupo(f) })), [activos])
   const [lineas, setLineas] = useState<LineaCompra[] | null>(precarga.modo === 'vacio' ? [] : null)
   const [omitidas, setOmitidas] = useState(0)
   const [error, setError] = useState<string | null>(null)

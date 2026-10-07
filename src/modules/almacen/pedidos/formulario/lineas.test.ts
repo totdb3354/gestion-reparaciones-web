@@ -19,7 +19,12 @@ describe('líneas vacías', () => {
 
 describe('precargas', () => {
   it('precargarComponentes: una línea por id, en orden, con el componente y cantidad 1', () => {
-    expect(precargarComponentes([2, 1, 5], COMPONENTES)).toEqual([lineaCompraVacia(1, 2), lineaCompraVacia(2, 1), lineaCompraVacia(3, 5)])
+    expect(precargarComponentes([2, 1, 5], COMPONENTES)).toEqual([lineaCompraVacia(1, 2), lineaCompraVacia(2, 1), lineaCompraVacia(3, 2)])
+  })
+  it('precargarComponentes: un slave lleva el id de su master; un slave con el master inactivo queda vacío', () => {
+    expect(precargarComponentes([5], COMPONENTES)).toEqual([lineaCompraVacia(1, 2)])
+    const inactivo = COMPONENTES.map((c) => (c.idCom === 2 ? { ...c, activo: false } : c))
+    expect(precargarComponentes([5], inactivo)).toEqual([lineaCompraVacia(1)])
   })
   it('precargarComponentes: inactivo o desconocido → línea vacía (calco)', () => {
     expect(precargarComponentes([4, 99], COMPONENTES)).toEqual([lineaCompraVacia(1), lineaCompraVacia(2)])
@@ -31,11 +36,15 @@ describe('precargas', () => {
       COMPONENTES,
     )
     expect(r.lineas).toEqual([
-      { ...lineaCompraVacia(1, 2), cantidad: '2' },
+      { ...lineaCompraVacia(1, 2), cantidad: '3' },
       { ...lineaCompraVacia(2, 1), cantidad: '2' },
-      { ...lineaCompraVacia(3, 5), cantidad: '1' },
     ])
     expect(r.omitidas).toBe(2)
+  })
+  it('precargarSolicitudes: master y slave del mismo grupo se juntan en una línea con la suma, en el orden de la primera aparición', () => {
+    const r = precargarSolicitudes([urgente(10, 1), urgente(11, 5)], [preventiva(20, 2)], COMPONENTES)
+    expect(r.lineas).toEqual([{ ...lineaCompraVacia(1, 1), cantidad: '1' }, { ...lineaCompraVacia(2, 2), cantidad: '2' }])
+    expect(r.omitidas).toBe(0)
   })
   it('precargarSolicitudes: sin inactivos no omite nada; listas vacías → sin líneas', () => {
     expect(precargarSolicitudes([urgente(10, 1)], [], COMPONENTES)).toEqual({ lineas: [lineaCompraVacia(1, 1)], omitidas: 0 })
