@@ -4,7 +4,7 @@ import { estadoStock, type EstadoStock } from '@/shared/lib/semaforoStock'
 export type ConteosDonut = { ok: number; bajo: number; sinStock: number; total: number }
 
 /** Calco de actualizarChart (:495-501): sobre TODA la lista (sin filtros), solo activos; el negativo no entra en ningún
- *  sector (los filtros del JavaFX son stock > min, 0 < stock ≤ min y stock == 0). Los compartidos cuentan como filas. */
+ *  sector (los filtros del JavaFX son stock > min, 0 < stock ≤ min y stock == 0). Se le pasan las filas agrupadas: un grupo cuenta una vez. */
 export function conteosDonut(lista: Componente[]): ConteosDonut {
   let ok = 0, bajo = 0, sinStock = 0
   for (const c of lista) {

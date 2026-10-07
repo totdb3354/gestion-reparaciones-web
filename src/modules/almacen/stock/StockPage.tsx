@@ -24,6 +24,7 @@ import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, pa
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
 import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
+import { agruparCompartidos, type FilaStock } from './grupos'
 import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
 import { conteosDonut } from './graficos'
@@ -35,8 +36,9 @@ const MSG_MODIFICADO = 'El componente fue modificado mientras editabas. Recarga 
 
 const OPERACION_SOLICITAR = 'solicitudes-stock'
 
-type Dialogo = { tipo: 'stock' | 'minimo' | 'solicitar'; c: Componente } | null
-type Grafico = { componente: Componente; enCamino: number }
+type Dialogo = { tipo: 'stock' | 'minimo'; c: FilaStock } | { tipo: 'solicitar'; c: FilaStock } | null
+/** Cantidad en camino ya recibida del servidor para la fila `idCom`; el componente se resuelve al pintar, con los datos vivos. */
+type Grafico = { idCom: number; enCamino: number }
 
 /** Pestaña "Stock actual" de StockView.fxml (spec 4a §6): una sola consulta para tabla, filtros, donut y pie. */
 export function StockPage() {
@@ -74,6 +76,9 @@ export function StockPage() {
     return () => marcar(false)
   }, [dialogo, parametrosAbiertos, marcar])
 
+  // Una fila por grupo de stock compartido (master + slaves): tabla, buscador, CSV, donut y desactivados salen de aquí.
+  const filas = useMemo(() => agruparCompartidos(data), [data])
+
   // Vuelta desde Pedidos (calco de navegarAComponente, StockController :233-246; spec 4b §6 "Vuelta a Stock"): con los
   // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente sigue
   // visible con esos filtros nuevos, lo selecciona y pide a la tabla que se desplace hasta él. Después limpia la URL con
@@ -87,38 +92,44 @@ export function StockPage() {
     if (Number.isInteger(id) && id > 0) {
       const nuevosFiltros = filtrosDesdePedidos(filtrosStock.get())
       setFiltros(nuevosFiltros)
-      if (aplicarFiltrosStock(data, nuevosFiltros).some((c) => c.idCom === id)) {
-        setSeleccionada(String(id))
+      // El id puede ser el de un slave: la fila es la de su grupo (la del master).
+      const fila = aplicarFiltrosStock(filas, nuevosFiltros).find((f) => f.miembros.some((m) => m.idCom === id))
+      if (fila) {
+        setSeleccionada(String(fila.idCom))
         // eslint-disable-next-line react-hooks/set-state-in-effect -- la llegada desde Pedidos se consume una sola vez, cuando ya hay datos; la petición de desplazamiento es la única forma de pedirle el scroll a DataTable
         setPeticionDesplazamiento((n) => n + 1)
       }
     }
     void navigate(pathname, { replace: true })
-  }, [componenteUrl, isSuccess, data, navigate, pathname, setFiltros, setSeleccionada])
+  }, [componenteUrl, isSuccess, filas, navigate, pathname, setFiltros, setSeleccionada])
 
-  const visibles = useMemo(() => aplicarFiltrosStock(data, filtros), [data, filtros])
-  const conteos = useMemo(() => conteosDonut(data), [data])
-  const nDesactivados = useMemo(() => data.filter((c) => !c.activo).length, [data])
-  const seleccionado = useMemo(() => data.find((c) => String(c.idCom) === seleccionada) ?? null, [data, seleccionada])
+  const visibles = useMemo(() => aplicarFiltrosStock(filas, filtros), [filas, filtros])
+  const conteos = useMemo(() => conteosDonut(filas), [filas])
+  const nDesactivados = useMemo(() => filas.filter((c) => !c.activo).length, [filas])
+  const seleccionado = useMemo(() => filas.find((c) => String(c.idCom) === seleccionada) ?? null, [filas, seleccionada])
 
   // Gráfico por SKU (spec §8): la barra "Pedido" solo la piden ADMIN y SUPERTECNICO (:547). El gráfico solo cambia cuando
   // llega la cantidad en camino; si la petición falla se avisa y el gráfico conserva el anterior, título incluido.
-  // `seleccionado` mantiene la referencia entre sondeos si no cambia (structural sharing de TanStack Query): el refresco
-  // no vuelve a pedir la cantidad.
+  // La petición depende del componente master tal como viene en `data` (no de la fila agrupada, que es un objeto nuevo en
+  // cada sondeo): TanStack Query conserva la referencia de lo que no cambia (structural sharing), así que un sondeo que
+  // solo toca otros componentes no vuelve a pedir la cantidad.
   const veEnCamino = esAdminOSuperTecnico(sesion)
+  const maestroSeleccionado = useMemo(() => data.find((c) => String(c.idCom) === seleccionada) ?? null, [data, seleccionada])
   const [grafico, setGrafico] = useState<Grafico | null>(null)
   useEffect(() => {
-    if (!veEnCamino || !seleccionado) return
+    if (!veEnCamino || !maestroSeleccionado) return
     // Guard de carrera: si cambia la selección antes de que llegue la respuesta, la de la fila anterior se descarta.
     let vigente = true
-    pedirCantidadEnCamino(seleccionado.idCom).then(
-      (enCamino) => { if (vigente) setGrafico({ componente: seleccionado, enCamino }) },
+    const idCom = maestroSeleccionado.idCom
+    pedirCantidadEnCamino(idCom).then(
+      (enCamino) => { if (vigente) setGrafico({ idCom, enCamino }) },
       (e: unknown) => { if (vigente && !esErrorGestionadoGlobalmente(e)) mostrarError(mensajeDeError(e)) },
     )
     return () => { vigente = false }
-  }, [seleccionado, veEnCamino, mostrarError])
+  }, [maestroSeleccionado, veEnCamino, mostrarError])
   // Sin selección, "Selecciona un componente"; el TECNICO no pide la cantidad y su barra "Pedido" va a 0 al momento.
-  const graficoSku: Grafico | null = !seleccionado ? null : veEnCamino ? grafico : { componente: seleccionado, enCamino: 0 }
+  const filaGrafico = veEnCamino ? (grafico ? filas.find((f) => f.idCom === grafico.idCom) ?? null : null) : seleccionado
+  const graficoSku = !seleccionado || !filaGrafico ? null : { componente: filaGrafico, enCamino: veEnCamino ? grafico?.enCamino ?? 0 : 0 }
 
   const irAPedidos = useCallback((c: Componente) => navigate(`/stock/pedidos?${parametrosPedidos(c)}`), [navigate])
   const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino }), [irAPedidos, veEnCamino])
@@ -190,10 +201,10 @@ export function StockPage() {
                 // "Pedir" abre "Nuevo pedido" como modal encima de Stock actual (calco del Stage modal, spec 4b P1): el
                 // host del shell lo pinta; la línea va vacía si el componente está desactivado (calco, T14).
                 onPedir={(x) => abrirNuevoPedido({ modo: 'componentes', idsCom: [x.idCom] })}
-                onEditarStock={(x) => setDialogo({ tipo: 'stock', c: x })}
-                onAjustarMinimo={(x) => setDialogo({ tipo: 'minimo', c: x })}
+                onEditarStock={() => setDialogo({ tipo: 'stock', c })}
+                onAjustarMinimo={() => setDialogo({ tipo: 'minimo', c })}
                 onToggleActivo={(x) => setActivo.mutate({ idCom: x.idCom, activo: !x.activo })}
-                onSolicitar={(x) => setDialogo({ tipo: 'solicitar', c: x })}
+                onSolicitar={() => setDialogo({ tipo: 'solicitar', c })}
                 onInteraccion={marcar}
               />
             )}
@@ -251,9 +262,8 @@ export function StockPage() {
         componente={dialogo?.tipo === 'solicitar' ? dialogo.c : null}
         enviando={solicitar.isPending}
         onCancelar={cerrarDialogo}
-        onConfirmar={(descripcion) => {
-          if (dialogo?.tipo !== 'solicitar') return
-          const cuerpo = { idCom: dialogo.c.idCom, descripcion }
+        onConfirmar={(idCom, descripcion) => {
+          const cuerpo = { idCom, descripcion }
           solicitar.mutate({ ...cuerpo, clave: claves.para(OPERACION_SOLICITAR, cuerpo) }, {
             onSuccess: () => { claves.hecha(OPERACION_SOLICITAR); cerrarDialogo() },
           })

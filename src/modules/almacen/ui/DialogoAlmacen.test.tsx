@@ -22,7 +22,7 @@ describe('DialogoAlmacen', () => {
   it('pinta título, subtítulo, los campos y los botones Cancelar / acción', () => {
     montar()
     const dlg = within(screen.getByRole('dialog', { name: 'Editar stock' }))
-    expect(dlg.getByText('Componente: lcd-x   ·   Stock actual: 3 ud(s).', SIN_COLAPSAR)).toHaveClass('text-[12px]', 'text-azul-gris', 'whitespace-pre')
+    expect(dlg.getByText('Componente: lcd-x   ·   Stock actual: 3 ud(s).', SIN_COLAPSAR)).toHaveClass('text-[12px]', 'text-azul-gris', 'whitespace-pre-wrap')
     // El subtítulo es la descripción accesible (Radix la enlaza sola; ver el spread de aria-describedby).
     expect(screen.getByRole('dialog')).toHaveAccessibleDescription(/^Componente: lcd-x\s+·\s+Stock actual: 3 ud\(s\)\.$/)
     expect(dlg.getByLabelText('Nueva cantidad')).toHaveValue('3')

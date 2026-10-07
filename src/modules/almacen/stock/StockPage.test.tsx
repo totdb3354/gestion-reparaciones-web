@@ -1,4 +1,4 @@
-import { act, getDefaultNormalizer, screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
@@ -22,7 +22,7 @@ const componentes = [
   { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir15: 2, pedir30: 7 },
   { ...base, idCom: 3, tipo: 'cam-x', stock: 0, stockMinimo: 1, activo: true, enCamino: 0 },
   { ...base, idCom: 4, tipo: 'mc-x', stock: 1, stockMinimo: 0, activo: false, enCamino: 0 },
-  { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 3, idComMaster: 1 },
+  { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 0, idComMaster: 1 },
 ]
 const cargas = { n: 0 }
 
@@ -37,6 +37,10 @@ afterEach(() => vi.useRealTimers())
 
 const rutasPedidos = <Route path="/stock/pedidos" element={<p data-testid="pedidos">Pedidos</p>} />
 const montar = (sesion = SESION_SUPER) => renderConProviders(<StockPage />, { sesion, ruta: '/stock', rutas: rutasPedidos })
+const elegirModelo = async (nombre: string) => {
+  await userEvent.click(within(screen.getByRole('dialog', { name: 'Solicitar pieza' })).getByRole('combobox', { name: 'Modelo' }))
+  await userEvent.click(within(screen.getByRole('listbox', { name: 'Modelo' })).getByRole('button', { name: nombre }))
+}
 const filaDe = (tipo: string) => screen.getByRole('row', { name: new RegExp(`^${tipo}`) })
 
 describe('StockPage', () => {
@@ -44,18 +48,35 @@ describe('StockPage', () => {
     montar()
     expect(await screen.findByRole('heading', { name: 'Stock actual' })).toBeInTheDocument()
     // El título se pinta antes de que llegue la consulta: se esperan los datos antes de leer las filas.
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     const filas = screen.getAllByRole('row').slice(1).map((r) => r.textContent ?? '')
     expect(filas[filas.length - 1]).toMatch(/^mc-x/)
-    expect(screen.getByText('lcd-y  (compartido)', { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) })).toBeInTheDocument()
+    expect(screen.getByText('lcd-x / lcd-y')).toBeInTheDocument()
     expect(screen.getByText('1 desactivado')).toHaveClass('text-[10px]', 'text-texto-vacio')
     expect(screen.getByText(/^Actualizado \d\d:\d\d$/)).toBeInTheDocument()
     // "Sin stock" también está en la leyenda del donut: se busca el badge dentro de la tabla.
     expect(within(screen.getByRole('table')).getByText('Sin stock')).toBeInTheDocument()
   })
+  it('un master y su slave son una sola fila "lcd-x / lcd-y" con "stock compartido"; el buscador la encuentra por el nombre del slave', async () => {
+    montar()
+    await screen.findByText('lcd-x / lcd-y')
+    expect(screen.getAllByRole('row').slice(1)).toHaveLength(4)
+    expect(screen.getAllByText('stock compartido')).toHaveLength(1)
+    expect(screen.queryByRole('row', { name: /^lcd-y/ })).not.toBeInTheDocument()
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'LCD-Y')
+    expect(screen.getAllByRole('row').slice(1)).toHaveLength(1)
+    expect(screen.getByText('lcd-x / lcd-y')).toBeInTheDocument()
+  })
+  it('el donut cuenta el grupo una vez', async () => {
+    montar()
+    await screen.findByText('lcd-x / lcd-y')
+    // Activos con stock: lcd-x/lcd-y (OK), bat-x (Bajo), cam-x (Sin stock); mc-x está desactivado.
+    expect(screen.getByTestId('donut-total')).toHaveTextContent('3')
+    expect(screen.getByTestId('donut-leyenda')).toHaveTextContent('OK1Bajo1Sin stock1')
+  })
   it('el pie va en una línea: "N desactivados" a la izquierda y "Actualizado" a la derecha, en el mismo contenedor', async () => {
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     const desactivados = screen.getByText('1 desactivado')
     const actualizado = screen.getByRole('button', { name: /^Actualizado \d\d:\d\d$/ })
     const pie = desactivados.parentElement
@@ -69,26 +90,26 @@ describe('StockPage', () => {
   it('al entrar guarda "/stock" como última pestaña de Stock (el botón "Stock" de la barra superior vuelve aquí)', async () => {
     ultimaRutaStock.set('/stock/proveedores')
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     expect(ultimaRutaStock.get()).toBe('/stock')
   })
-  it('el donut cuenta sobre todo (activos) y no cambia al filtrar; el buscador filtra "contiene" y vacío pinta "Sin componentes"', async () => {
+  it('el donut cuenta sobre todo (activos, un grupo una vez) y no cambia al filtrar; el buscador filtra "contiene" y vacío pinta "Sin componentes"', async () => {
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     const leyenda = within(screen.getByTestId('donut-leyenda'))
-    expect(leyenda.getByText('OK').nextSibling).toHaveTextContent('2')
+    expect(leyenda.getByText('OK').nextSibling).toHaveTextContent('1')
     expect(leyenda.getByText('Bajo').nextSibling).toHaveTextContent('1')
     expect(leyenda.getByText('Sin stock').nextSibling).toHaveTextContent('1')
     await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'LCD')
     expect(screen.queryByText('bat-x')).not.toBeInTheDocument()
-    expect(leyenda.getByText('OK').nextSibling).toHaveTextContent('2')
+    expect(leyenda.getByText('OK').nextSibling).toHaveTextContent('1')
     await userEvent.clear(screen.getByPlaceholderText('Buscar componente…'))
     await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'zzz')
     expect(screen.getByText('Sin componentes')).toBeInTheDocument()
   })
   it('filtro Estado: casillas sin cerrar el desplegable, texto "N estados", "Desactivado" solo si hay; Limpiar filtros', async () => {
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
     // MultiSelect pinta cada opción como checkbox con aria-label = etiqueta (MultiSelect.tsx)
     expect(screen.getAllByRole('checkbox').map((i) => i.getAttribute('aria-label'))).toEqual(['OK', 'Bajo', 'Sin stock', 'Desactivado'])
@@ -99,16 +120,16 @@ describe('StockPage', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: 'Sin stock' }))
     await userEvent.keyboard('{Escape}')
     expect(screen.getByRole('button', { name: '2 estados' })).toBeInTheDocument()
-    expect(screen.queryByText('lcd-x')).not.toBeInTheDocument()
+    expect(screen.queryByText('lcd-x / lcd-y')).not.toBeInTheDocument()
     expect(screen.getByText('bat-x')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
     expect(screen.getByRole('button', { name: 'Estado' })).toBeInTheDocument()
-    expect(screen.getByText('lcd-x')).toBeInTheDocument()
+    expect(screen.getByText('lcd-x / lcd-y')).toBeInTheDocument()
   })
   it('sin desactivados el check "Desactivado" no aparece ni el pie', async () => {
     server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(componentes.filter((c) => c.activo))))
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     expect(screen.queryByText(/desactivado/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
     expect(screen.getByRole('checkbox', { name: 'Sin stock' })).toBeInTheDocument()
@@ -124,6 +145,21 @@ describe('StockPage', () => {
     await waitFor(() => expect(cargas.n).toBe(2))
     expect(filaDe('bat-x')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
+  })
+  it('un sondeo que solo cambia OTRO componente no vuelve a pedir la cantidad en camino del seleccionado', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    let enCamino = 0
+    server.use(http.get('*/api/compras/cantidad-en-camino/:id', () => { enCamino += 1; return HttpResponse.json({ value: 4 }) }))
+    montar()
+    await screen.findByText('bat-x')
+    await userEvent.click(screen.getByText('bat-x'))
+    expect(await screen.findByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
+    expect(enCamino).toBe(1)
+    server.use(http.get('*/api/componentes/gestionados', () => { cargas.n += 1; return HttpResponse.json(componentes.map((c) => (c.idCom === 3 ? { ...c, stock: 9 } : c))) }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargas.n).toBe(2))
+    expect(await screen.findByText('9')).toBeInTheDocument()
+    expect(enCamino).toBe(1)
   })
   it('el TECNICO no pide la cantidad en camino: la barra Pedido va a 0', async () => {
     let pedida = false
@@ -170,7 +206,7 @@ describe('StockPage', () => {
       ],
       { sesion: SESION_SUPER, ruta: '/stock' },
     )
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Pedir' }))
     expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'componentes', idsCom: [1] } })
@@ -180,7 +216,7 @@ describe('StockPage', () => {
   })
   it('menú del supertécnico: cuatro ítems sin "Ajustar mínimo", con separadores; "Activar" en una desactivada', async () => {
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Pedir', 'Editar stock', 'Desactivar', 'Solicitar pieza'])
     expect(screen.getAllByRole('separator')).toHaveLength(2)
@@ -191,22 +227,38 @@ describe('StockPage', () => {
   })
   it('ADMIN solo ve "Ajustar mínimo"', async () => {
     montar(SESION_ADMIN)
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Ajustar mínimo'])
   })
   it('TECNICO solo ve "Solicitar pieza"', async () => {
     montar(SESION_TEC)
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Solicitar pieza'])
+  })
+  it('la fila de un grupo compartido usa el nombre del grupo en el subtítulo de Editar stock y en el título del gráfico', async () => {
+    montar()
+    await screen.findByText('lcd-x / lcd-y')
+    await userEvent.click(screen.getByText('lcd-x / lcd-y'))
+    expect(await screen.findByText('lcd-x / lcd-y', { selector: 'h2' })).toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
+    expect(within(screen.getByRole('dialog', { name: 'Editar stock' })).getByText(/^Componente: lcd-x \/ lcd-y/)).toBeInTheDocument()
+  })
+  it('la fila de un grupo compartido usa el nombre del grupo en el subtítulo de Ajustar mínimo', async () => {
+    montar(SESION_ADMIN)
+    await screen.findByText('lcd-x / lcd-y')
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
+    expect(within(screen.getByRole('dialog', { name: 'Ajustar mínimo' })).getByText(/^Componente: lcd-x \/ lcd-y/)).toBeInTheDocument()
   })
   it('"Editar stock" manda el PUT, recarga, y un 409 cierra el diálogo con el aviso y recarga', async () => {
     let cuerpo: unknown = null
     let estado = 200
     server.use(http.put('*/api/componentes/1', async ({ request }) => { cuerpo = await request.json(); return estado === 200 ? new HttpResponse(null, { status: 200 }) : HttpResponse.json({ message: 'Dato modificado por otro usuario' }, { status: 409 }) }))
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
     const campo = within(screen.getByRole('dialog', { name: 'Editar stock' })).getByLabelText('Nueva cantidad')
@@ -226,7 +278,7 @@ describe('StockPage', () => {
   it('un error que no es 409 ni 422 en Editar stock deja el diálogo abierto y avisa', async () => {
     server.use(http.put('*/api/componentes/1', () => HttpResponse.json({ message: 'Recurso no encontrado.' }, { status: 404 })))
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
     await userEvent.type(within(screen.getByRole('dialog', { name: 'Editar stock' })).getByLabelText('Nueva cantidad'), '{Enter}')
@@ -241,7 +293,7 @@ describe('StockPage', () => {
       http.put('*/api/componentes/1', () => HttpResponse.json({ message: 'Cantidad no válida (debe ser ≥ 0).' }, { status: 422 })),
     )
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
     const editar = screen.getByRole('dialog', { name: 'Editar stock' })
@@ -255,7 +307,7 @@ describe('StockPage', () => {
       http.patch('*/api/componentes/1/stock-minimo', () => HttpResponse.json({ message: 'Valor no válido (debe ser ≥ 0).' }, { status: 422 })),
     )
     montar(SESION_ADMIN)
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
     const minimo = screen.getByRole('dialog', { name: 'Ajustar mínimo' })
@@ -270,7 +322,7 @@ describe('StockPage', () => {
       http.patch('*/api/componentes/1/stock-minimo', async ({ request }) => { llamadas.push(`min ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
     )
     montar(SESION_ADMIN)
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
     const campo = within(screen.getByRole('dialog', { name: 'Ajustar mínimo' })).getByLabelText('Nuevo stock mínimo:')
@@ -285,7 +337,7 @@ describe('StockPage', () => {
       http.post('*/api/solicitudes-stock', async ({ request }) => { llamadas.push(`sol ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 201 }) }),
     )
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     const cargasAntesDeDesactivar = cargas.n
     await userEvent.click(screen.getByRole('menuitem', { name: 'Desactivar' }))
@@ -296,15 +348,16 @@ describe('StockPage', () => {
     const antes = cargas.n
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    await elegirModelo('lcd-y')
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Solicitar pieza' })).getByRole('button', { name: 'Solicitar' }))
-    await waitFor(() => expect(llamadas).toContain('sol {"idCom":1,"descripcion":null}'))
+    await waitFor(() => expect(llamadas).toContain('sol {"idCom":5,"descripcion":null}'))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(cargas.n).toBe(antes)
   }, 15_000)
   it('con un diálogo abierto el sondeo se congela', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
@@ -312,7 +365,7 @@ describe('StockPage', () => {
   })
   it('los filtros sobreviven a salir y volver a la vista (store)', async () => {
     const { unmount } = montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'bat')
     unmount()
     montar()
@@ -329,7 +382,7 @@ describe('StockPage', () => {
       http.get('*/api/solicitudes-stock', () => HttpResponse.json([])),
     )
     renderConProviders(<StockPage />, { sesion: SESION_SUPER, ruta: '/stock', layout: <AppLayout /> })
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'bat')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
@@ -349,7 +402,7 @@ describe('StockPage', () => {
       http.get('*/api/solicitudes-stock', () => HttpResponse.json([])),
     )
     renderConProviders(<StockPage />, { sesion: SESION_TEC, ruta: '/stock', layout: <AppLayout /> })
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [, cabeceras, filas] = descargar.mock.calls[0]
@@ -362,14 +415,14 @@ describe('StockPage', () => {
   it('las columnas de previsión las ven SUPERTECNICO y ADMIN, no el TECNICO', async () => {
     for (const [sesion, ve] of [[SESION_SUPER, true], [SESION_ADMIN, true], [SESION_TEC, false]] as const) {
       const { unmount } = montar(sesion)
-      await screen.findByText('lcd-x')
+      await screen.findByText('lcd-x / lcd-y')
       expect(screen.queryByRole('columnheader', { name: 'Pedir 30 d' }) !== null).toBe(ve)
       unmount()
     }
   })
   it('"Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección', async () => {
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'bat')
     await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
     await userEvent.click(screen.getByRole('checkbox', { name: 'Bajo' }))
@@ -381,14 +434,14 @@ describe('StockPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
     for (const casilla of screen.getAllByRole('checkbox')) expect(casilla).not.toBeChecked()
     await userEvent.keyboard('{Escape}')
-    expect(within(screen.getByRole('table')).getByText('lcd-x')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('lcd-x / lcd-y')).toBeInTheDocument()
     expect(filaDe('bat-x')).toHaveAttribute('aria-selected', 'true')
   })
   it('"Ajustar mínimo": tras el PATCH se cierra el diálogo y se recarga la lista de componentes', async () => {
     let patch = false
     server.use(http.patch('*/api/componentes/1/stock-minimo', () => { patch = true; return new HttpResponse(null, { status: 200 }) }))
     montar(SESION_ADMIN)
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     const antes = cargas.n
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
@@ -404,7 +457,7 @@ describe('StockPage', () => {
     server.use(http.get('*/api/proveedores', () => { proveedores.n += 1; return HttpResponse.json([]) }))
     vi.useFakeTimers({ shouldAdvanceTime: true })
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     expect(cargas.n).toBe(1)
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
     await waitFor(() => expect(cargas.n).toBe(2))
@@ -413,9 +466,10 @@ describe('StockPage', () => {
   it('un error de "Solicitar pieza" (403) deja el diálogo abierto y avisa con el mensaje mapeado', async () => {
     server.use(http.post('*/api/solicitudes-stock', () => HttpResponse.json({ message: 'Prohibido' }, { status: 403 })))
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    await elegirModelo('lcd-x')
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Solicitar pieza' })).getByRole('button', { name: 'Solicitar' }))
     expect(await screen.findByText('No tienes permisos para realizar esta acción.')).toBeInTheDocument()
     // El aviso es modal: el diálogo de fondo queda aria-hidden, se localiza por su título (patrón de "Editar stock").
@@ -429,9 +483,10 @@ describe('StockPage', () => {
       return claves.length < 3 ? HttpResponse.json({ message: 'Prohibido' }, { status: 403 }) : new HttpResponse(null, { status: 201 })
     }))
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    await elegirModelo('lcd-x')
     const solicitar = async () => {
       const titulo = screen.getByText('Solicitar pieza', { selector: 'h2' })
       await userEvent.click(within(titulo.closest('[role="dialog"]')!).getByRole('button', { name: 'Solicitar', hidden: true }))
@@ -465,6 +520,13 @@ describe('StockPage', () => {
     await waitFor(() => expect(screen.getByRole('table').parentElement).toHaveFocus())
     // La selección alimenta el gráfico por SKU como un clic.
     expect(await screen.findByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
+  })
+  it('?componente=<id de un slave> selecciona y desplaza hasta la fila de su grupo', async () => {
+    const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=5' })
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(seleccionStock.get()).toBe('1')
+    await waitFor(() => expect(filaDe('lcd-x')).toHaveAttribute('aria-selected', 'true'))
+    await waitFor(() => expect(screen.getByRole('table').parentElement).toHaveFocus())
   })
   it('?componente= conserva "Desactivado" marcado (calco) y selecciona una fila desactivada', async () => {
     filtrosStock.set({ estados: new Set<EstadoStock>(['Bajo', 'Desactivado']), buscador: 'zzz' })
@@ -510,7 +572,7 @@ describe('StockPage', () => {
   it('con el formulario de pedido abierto el sondeo se congela; al cerrarlo se reanuda', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Pedir' }))
     expect(formularioPedido.get()).not.toBeNull()
@@ -527,14 +589,14 @@ describe('StockPage', () => {
 describe('StockPage: tabla fluida', () => {
   it('la tabla ocupa todo el ancho sin columna de relleno (ajuste fluido)', async () => {
     const { container } = montar()
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     expect(container.querySelector('[data-relleno]')).toBeNull()
     expect(screen.getByRole('table')).toHaveClass('w-full')
   })
   it('"Parámetros de previsión" solo lo ve el ADMIN', async () => {
     for (const [sesion, ve] of [[SESION_ADMIN, true], [SESION_SUPER, false], [SESION_TEC, false]] as const) {
       const { unmount } = montar(sesion)
-      await screen.findByText('lcd-x')
+      await screen.findByText('lcd-x / lcd-y')
       expect(screen.queryByRole('button', { name: 'Parámetros de previsión' }) !== null).toBe(ve)
       unmount()
     }
@@ -543,7 +605,7 @@ describe('StockPage: tabla fluida', () => {
     server.use(http.get('*/api/parametros/prevision', () => HttpResponse.json({ peso1: 50, peso2: 30, peso3: 20 })))
     vi.useFakeTimers({ shouldAdvanceTime: true })
     montar(SESION_ADMIN)
-    await screen.findByText('lcd-x')
+    await screen.findByText('lcd-x / lcd-y')
     await userEvent.click(screen.getByRole('button', { name: 'Parámetros de previsión' }))
     const dialogo = await screen.findByRole('dialog', { name: 'Parámetros de previsión' })
     const antes = cargas.n
