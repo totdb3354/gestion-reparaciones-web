@@ -1,4 +1,4 @@
-import { act, getDefaultNormalizer, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, getDefaultNormalizer, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
@@ -177,22 +177,22 @@ describe('StockPage', () => {
     expect(router.state.location.search).toBe('')
     expect(screen.queryByTestId('pedidos')).not.toBeInTheDocument()
   })
-  it('menú del supertécnico: los cinco ítems con separadores; "Activar" en una desactivada; ADMIN sin menú; TECNICO solo "Solicitar pieza"', async () => {
+  it('menú del supertécnico: cuatro ítems sin "Ajustar mínimo", con separadores; "Activar" en una desactivada', async () => {
     montar()
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
-    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Pedir', 'Editar stock', 'Ajustar mínimo', 'Desactivar', 'Solicitar pieza'])
-    expect(screen.getAllByRole('separator')).toHaveLength(3)
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Pedir', 'Editar stock', 'Desactivar', 'Solicitar pieza'])
+    expect(screen.getAllByRole('separator')).toHaveLength(2)
     await userEvent.keyboard('{Escape}')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('mc-x') })
     expect(screen.getByRole('menuitem', { name: 'Activar' })).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
   })
-  it('ADMIN no tiene menú contextual', async () => {
+  it('ADMIN solo ve "Ajustar mínimo"', async () => {
     montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Ajustar mínimo'])
   })
   it('TECNICO solo ve "Solicitar pieza"', async () => {
     montar(SESION_TEC)
@@ -250,6 +250,9 @@ describe('StockPage', () => {
     expect(screen.getByRole('dialog', { name: 'Editar stock' })).toBeInTheDocument()
     expect(screen.getAllByText('Cantidad no válida (debe ser ≥ 0).')).toHaveLength(1)
     await userEvent.click(within(editar).getByRole('button', { name: 'Cancelar' }))
+    cleanup()
+    montar(SESION_ADMIN)
+    await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
     const minimo = screen.getByRole('dialog', { name: 'Ajustar mínimo' })
@@ -258,14 +261,12 @@ describe('StockPage', () => {
     expect(screen.getByRole('dialog', { name: 'Ajustar mínimo' })).toBeInTheDocument()
     expect(screen.getAllByText('Valor no válido (debe ser ≥ 0).')).toHaveLength(1)
   })
-  it('"Ajustar mínimo" hace el PATCH; "Desactivar" sin confirmación; "Solicitar pieza" hace el POST sin recargar', async () => {
+  it('"Ajustar mínimo" (ADMIN) hace el PATCH', async () => {
     const llamadas: string[] = []
     server.use(
       http.patch('*/api/componentes/1/stock-minimo', async ({ request }) => { llamadas.push(`min ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
-      http.patch('*/api/componentes/1/activo', async ({ request }) => { llamadas.push(`act ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
-      http.post('*/api/solicitudes-stock', async ({ request }) => { llamadas.push(`sol ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 201 }) }),
     )
-    montar()
+    montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
@@ -273,6 +274,15 @@ describe('StockPage', () => {
     await userEvent.clear(campo)
     await userEvent.type(campo, '7{Enter}')
     await waitFor(() => expect(llamadas).toContain('min {"stockMinimo":7}'))
+  })
+  it('"Desactivar" sin confirmación; "Solicitar pieza" hace el POST sin recargar', async () => {
+    const llamadas: string[] = []
+    server.use(
+      http.patch('*/api/componentes/1/activo', async ({ request }) => { llamadas.push(`act ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
+      http.post('*/api/solicitudes-stock', async ({ request }) => { llamadas.push(`sol ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 201 }) }),
+    )
+    montar()
+    await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     const cargasAntesDeDesactivar = cargas.n
     await userEvent.click(screen.getByRole('menuitem', { name: 'Desactivar' }))
@@ -355,7 +365,7 @@ describe('StockPage', () => {
   it('"Ajustar mínimo": tras el PATCH se cierra el diálogo y se recarga la lista de componentes', async () => {
     let patch = false
     server.use(http.patch('*/api/componentes/1/stock-minimo', () => { patch = true; return new HttpResponse(null, { status: 200 }) }))
-    montar()
+    montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     const antes = cargas.n
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })

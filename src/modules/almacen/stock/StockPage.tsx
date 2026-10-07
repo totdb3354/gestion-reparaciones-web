@@ -145,7 +145,7 @@ export function StockPage() {
     mostrarError(mensajeDeError(e, { staleData: MSG_MODIFICADO }))
   }
 
-  const rol = esSuperTecnico(sesion) ? 'SUPERTECNICO' : esAdmin(sesion) ? null : 'TECNICO'
+  const rol = esSuperTecnico(sesion) ? 'SUPERTECNICO' : esAdmin(sesion) ? 'ADMIN' : 'TECNICO'
   const estadosMenu = ESTADOS_STOCK.filter((e) => e !== 'Desactivado' || nDesactivados > 0)
   const pieDesactivados = textoDesactivados(nDesactivados)
 
@@ -183,7 +183,7 @@ export function StockPage() {
             pedirDesplazamiento={peticionDesplazamiento}
             filaClase={claseFilaStock}
             altoFila={35}
-            menuFila={rol ? (c) => (
+            menuFila={(c) => (
               <MenuComponente
                 c={c}
                 rol={rol}
@@ -196,7 +196,7 @@ export function StockPage() {
                 onSolicitar={(x) => setDialogo({ tipo: 'solicitar', c: x })}
                 onInteraccion={marcar}
               />
-            ) : undefined}
+            )}
           />
           {/* Pie en una línea (FXML :56-64): "N desactivados" a la izquierda y "Actualizado" a la derecha, sin estirar el botón. */}
           <div className="mt-1 flex items-center justify-between gap-4">
