@@ -15,10 +15,10 @@ import { ultimaRutaStock } from '../estado'
 import { filtrosStock, seleccionStock } from './estado'
 import { StockPage } from './StockPage'
 
-const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
 const componentes = [
   { ...base, idCom: 1, tipo: 'lcd-x', stock: 5, stockMinimo: 2, activo: true, enCamino: 0 },
-  { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4 },
+  { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir15: 2, pedir30: 7 },
   { ...base, idCom: 3, tipo: 'cam-x', stock: 0, stockMinimo: 1, activo: true, enCamino: 0 },
   { ...base, idCom: 4, tipo: 'mc-x', stock: 1, stockMinimo: 0, activo: false, enCamino: 0 },
   { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 3, idComMaster: 1 },

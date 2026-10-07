@@ -7,7 +7,7 @@ import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { repartoFluido } from '@/test/columnas'
 
-const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null }
+const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 
 function montar(filas: Componente[], onEnCamino = vi.fn()) {

@@ -261,6 +261,43 @@
         }
       }
     },
+    "/api/parametros/prevision" : {
+      "get" : {
+        "tags" : [ "parametro-controller" ],
+        "operationId" : "getPrevision",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PesosPrevision"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "parametro-controller" ],
+        "operationId" : "guardarPrevision",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PesosPrevision"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/modelos/equivalencias" : {
       "get" : {
         "tags" : [ "equivalencia-modelo-controller" ],
@@ -4708,6 +4745,24 @@
           }
         }
       },
+      "PesosPrevision" : {
+        "required" : [ "peso1", "peso2", "peso3" ],
+        "type" : "object",
+        "properties" : {
+          "peso1" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "peso2" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "peso3" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "EquivalenciaModeloEquivalenciaRequest" : {
         "required" : [ "modeloInterno", "textoExterno" ],
         "type" : "object",
@@ -7317,7 +7372,7 @@
         }
       },
       "Componente" : {
-        "required" : [ "activo", "enCamino", "fechaRegistro", "idCom", "idComMaster", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
+        "required" : [ "activo", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir15", "pedir30", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -7356,6 +7411,21 @@
             "nullable" : true
           },
           "idComMaster" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "consumoDiario" : {
+            "type" : "number",
+            "format" : "double",
+            "nullable" : true
+          },
+          "pedir15" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "pedir30" : {
             "type" : "integer",
             "format" : "int32",
             "nullable" : true

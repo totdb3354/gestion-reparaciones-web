@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/parametros/prevision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPrevision"];
+        put: operations["guardarPrevision"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/modelos/equivalencias": {
         parameters: {
             query?: never;
@@ -2260,6 +2276,14 @@ export interface components {
             divisa: string;
             comentario: string;
         };
+        PesosPrevision: {
+            /** Format: int32 */
+            peso1: number;
+            /** Format: int32 */
+            peso2: number;
+            /** Format: int32 */
+            peso3: number;
+        };
         EquivalenciaModeloEquivalenciaRequest: {
             textoExterno: string;
             modeloInterno: string;
@@ -3245,6 +3269,12 @@ export interface components {
             ultimoPedido: string | null;
             /** Format: int32 */
             idComMaster: number | null;
+            /** Format: double */
+            consumoDiario: number | null;
+            /** Format: int32 */
+            pedir15: number | null;
+            /** Format: int32 */
+            pedir30: number | null;
         };
         PuntoStock: {
             periodo: string;
@@ -3499,6 +3529,48 @@ export interface operations {
         responses: {
             /** @description No Content */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getPrevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PesosPrevision"];
+                };
+            };
+        };
+    };
+    guardarPrevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PesosPrevision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

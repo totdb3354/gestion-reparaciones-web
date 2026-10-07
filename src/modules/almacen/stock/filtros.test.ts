@@ -3,7 +3,7 @@ import type { Componente } from '@/shared/api/client'
 import type { EstadoStock } from '@/shared/lib/semaforoStock'
 import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, nombreComponente, ordenarStock, textoDesactivados } from './filtros'
 
-const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null }
+const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 const ok = c({ idCom: 1, tipo: 'lcd-x' })
 const bajo = c({ idCom: 2, tipo: 'bat-x', stock: 2 })
