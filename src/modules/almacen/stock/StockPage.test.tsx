@@ -322,10 +322,18 @@ describe('StockPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('stock_actual')
-    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro'])
+    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
-    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00']])
+    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '2', '7']])
     descargar.mockRestore()
+  })
+  it('las columnas de previsión las ven SUPERTECNICO y ADMIN, no el TECNICO', async () => {
+    for (const [sesion, ve] of [[SESION_SUPER, true], [SESION_ADMIN, true], [SESION_TEC, false]] as const) {
+      const { unmount } = montar(sesion)
+      await screen.findByText('lcd-x')
+      expect(screen.queryByRole('columnheader', { name: 'Pedir 30 d' }) !== null).toBe(ve)
+      unmount()
+    }
   })
   it('"Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección', async () => {
     montar()

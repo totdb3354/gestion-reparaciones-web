@@ -20,7 +20,7 @@ import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { ultimaRutaStock } from '../estado'
 import { AjustarMinimoDialog } from './AjustarMinimoDialog'
 import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditarStock, useSetActivoComponente, useSolicitarPieza } from './api'
-import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
+import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
 import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
@@ -119,9 +119,9 @@ export function StockPage() {
   const graficoSku: Grafico | null = !seleccionado ? null : veEnCamino ? grafico : { componente: seleccionado, enCamino: 0 }
 
   const irAPedidos = useCallback((c: Componente) => navigate(`/stock/pedidos?${parametrosPedidos(c)}`), [navigate])
-  const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos }), [irAPedidos])
+  const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino }), [irAPedidos, veEnCamino])
 
-  useRegistrarExportable(() => descargarCsv('stock_actual', CABECERAS_CSV_STOCK, visibles.map(filaCsvStock)))
+  useRegistrarExportable(() => descargarCsv('stock_actual', cabecerasCsvStock(veEnCamino), visibles.map((c) => filaCsvStock(c, veEnCamino))))
 
   function cerrarDialogo() {
     setDialogo(null)
