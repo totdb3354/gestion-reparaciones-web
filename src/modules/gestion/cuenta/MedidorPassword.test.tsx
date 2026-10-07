@@ -57,7 +57,7 @@ describe('useNotaPassword', () => {
     expect(result.current).toEqual({ estado: 'comprobando', previa: { estado: 'listo', nota: 2, aceptable: false, mensaje: null } })
     rerender({ p: 'corta-1234567' })
     expect(result.current).toMatchObject({ estado: 'comprobando', previa: { nota: 2 } })
-    expect(bloqueaGuardar(result.current)).toBe(true)
+    expect(bloqueaGuardar(result.current)).toBe(false)
     await waitFor(() => expect(result.current).toEqual({ estado: 'listo', nota: 4, aceptable: true, mensaje: null }))
     rerender({ p: '' })
     expect(result.current).toEqual({ estado: 'vacio' })
@@ -72,8 +72,9 @@ describe('useNotaPassword', () => {
 })
 
 describe('bloqueaGuardar', () => {
-  it('bloquea mientras comprueba y si no se acepta; no bloquea vacía, aceptada ni con error', () => {
-    expect(bloqueaGuardar({ estado: 'comprobando' })).toBe(true)
+  it('solo bloquea una nota recibida y no aceptable; mientras comprueba decide el servidor (spec 0.9.5 §6)', () => {
+    expect(bloqueaGuardar({ estado: 'comprobando' })).toBe(false)
+    expect(bloqueaGuardar({ estado: 'comprobando', previa: { estado: 'listo', nota: 2, aceptable: false, mensaje: 'x' } })).toBe(false)
     expect(bloqueaGuardar({ estado: 'listo', nota: 2, aceptable: false, mensaje: 'x' })).toBe(true)
     expect(bloqueaGuardar({ estado: 'listo', nota: 3, aceptable: true, mensaje: null })).toBe(false)
     expect(bloqueaGuardar({ estado: 'vacio' })).toBe(false)
