@@ -61,8 +61,9 @@ export function useNotaPassword(password: string): EstadoNota {
   return estado
 }
 
-/** "Guardar" espera a la nota y no deja guardar una que el servidor no acepta. Vacía no bloquea (al pulsar sale "Rellena
- *  todos los campos.") y un fallo de la consulta tampoco: al guardar decide el servidor. */
+/** "Guardar" solo se bloquea con una nota ya recibida que el servidor no acepta. Vacía no bloquea (al pulsar sale
+ *  "Rellena todos los campos."), un fallo de la consulta tampoco, y mientras se comprueba tampoco: un Enter pulsado
+ *  antes de que llegue la nota envía y decide el servidor, que aplica la misma regla (spec 0.9.5 §6). */
 export function bloqueaGuardar(e: EstadoNota): boolean {
-  return e.estado === 'comprobando' || (e.estado === 'listo' && !e.aceptable)
+  return e.estado === 'listo' && !e.aceptable
 }

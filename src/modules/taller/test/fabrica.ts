@@ -41,7 +41,7 @@ export function glass(entregadoAt: string | null): ReparacionResumen {
 export function componente(parcial: Partial<Componente> = {}): Componente {
   return {
     idCom: 101, tipo: 'bati13', fechaRegistro: '2026-09-01T08:00:00', stock: 5, stockMinimo: 2, activo: true,
-    updatedAt: '2026-09-01T08:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null,
+    updatedAt: '2026-09-01T08:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null,
     ...parcial,
   }
 }

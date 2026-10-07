@@ -6,9 +6,25 @@ import { cn } from '@/shared/lib/utils'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { nombreComponente } from './filtros'
+import { formatearConsumo, formatearPedir } from './prevision'
 
-/** prefWidth de StockView.fxml :46-53. */
-export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, ultimoPedido: 120, estado: 100 } as const
+/** prefWidth de StockView.fxml :46-53; las tres de la previsión son de la 0.9.5. */
+export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, consumoDia: 95, pedir15: 90, pedir30: 90, ultimoPedido: 120, estado: 100 } as const
+
+/** Un 0 en gris (no hay que pedir) y el resto en negrita, para que salten las piezas que sí. */
+function celdaPedir(valor: number | null) {
+  if (valor === null) return formatearPedir(valor)
+  return <span className={cn(valor === 0 ? 'text-texto-vacio' : 'font-bold', CREMA_EN_FILA_SELECCIONADA)}>{valor}</span>
+}
+
+/** Previsión de pedidos (spec 0.9.5 §3.4): solo para SUPERTECNICO y ADMIN. */
+function columnasPrevision(): ColumnDef<Componente>[] {
+  return [
+    { id: 'consumoDia', header: 'Consumo/día', size: ANCHOS_STOCK.consumoDia, maxSize: ANCHOS_STOCK.consumoDia, accessorFn: (c) => formatearConsumo(c.consumoDiario) },
+    { id: 'pedir15', header: 'Pedir 15 d', size: ANCHOS_STOCK.pedir15, maxSize: ANCHOS_STOCK.pedir15, cell: ({ row }) => celdaPedir(row.original.pedir15) },
+    { id: 'pedir30', header: 'Pedir 30 d', size: ANCHOS_STOCK.pedir30, maxSize: ANCHOS_STOCK.pedir30, cell: ({ row }) => celdaPedir(row.original.pedir30) },
+  ]
+}
 
 const BORDE_POR_ESTADO: Record<EstadoStock, string> = {
   OK: 'border-l-transparent',
@@ -32,7 +48,7 @@ export function parametrosPedidos(c: Componente): string {
   return new URLSearchParams({ estados: 'pendiente,en camino,parcial', buscar: c.tipo }).toString()
 }
 
-export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente) => void }): ColumnDef<Componente>[] {
+export function crearColumnasStock({ onEnCamino, conPrevision = false }: { onEnCamino: (c: Componente) => void; conPrevision?: boolean }): ColumnDef<Componente>[] {
   return [
     // whitespace-pre: el sufijo "  (compartido)" lleva dos espacios, que HTML colapsaría (la celda ya es whitespace-nowrap).
     {
@@ -54,6 +70,7 @@ export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente)
       },
     },
     { id: 'stockMinimo', header: 'Stock Mínimo', size: ANCHOS_STOCK.stockMinimo, maxSize: ANCHOS_STOCK.stockMinimo, accessorFn: (c) => String(c.stockMinimo) },
+    ...(conPrevision ? columnasPrevision() : []),
     {
       id: 'ultimoPedido', header: 'Último pedido', size: ANCHOS_STOCK.ultimoPedido, maxSize: ANCHOS_STOCK.ultimoPedido,
       // formatear pasa de UTC a hora de Madrid, como el resto de la web y el CSV del JavaFX; la tabla del JavaFX pinta el día UTC
@@ -67,6 +84,11 @@ export function crearColumnasStock({ onEnCamino }: { onEnCamino: (c: Componente)
 /** Calco de exportarStock (:1937-1959): la lista filtrada, tipo SIN "(compartido)", sin "Último pedido" y con "Fecha
  *  registro" (que la tabla no muestra); cabecera "Stock mínimo" en minúscula, como el JavaFX. */
 export const CABECERAS_CSV_STOCK = ['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro']
-export function filaCsvStock(c: Componente): string[] {
-  return [c.tipo, String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
+export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 15 d', 'Pedir 30 d']
+export function cabecerasCsvStock(conPrevision: boolean): string[] {
+  return conPrevision ? [...CABECERAS_CSV_STOCK, ...CABECERAS_CSV_PREVISION] : CABECERAS_CSV_STOCK
+}
+export function filaCsvStock(c: Componente, conPrevision = false): string[] {
+  const fila = [c.tipo, String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
+  return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir15), formatearPedir(c.pedir30)] : fila
 }

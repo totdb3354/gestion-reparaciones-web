@@ -9,7 +9,7 @@ import { SessionProvider } from '@/shared/session/SessionProvider'
 import { arrancarTrasComprobarSesion } from '@/shared/session/arranque'
 import { onSesionExpirada } from '@/shared/session/expiracion'
 import { borrarSesion } from '@/shared/session/storage'
-import { MSG_SESION_EXPIRADA_UI } from '@/app/session/mensajes'
+import { mensajeSesionCerrada } from '@/app/session/mensajes'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 
@@ -20,11 +20,11 @@ function pintar() {
   const queryClient = crearQueryClient()
 
   // 401 con sesión: se borra la sesión (en todas las pestañas: vive en localStorage) y se recarga la app en /login con el
-  // mensaje (equivale a volver al login del JavaFX, que descarta las vistas cacheadas). LoginPage lee y borra
-  // 'fsgr.mensajeLogin', que es de esta pestaña (sessionStorage).
-  onSesionExpirada(() => {
+  // mensaje del motivo (inactividad o sesión caducada) (equivale a volver al login del JavaFX, que descarta las vistas cacheadas).
+  // LoginPage lee y borra 'fsgr.mensajeLogin', que es de esta pestaña (sessionStorage).
+  onSesionExpirada((motivo) => {
     borrarSesion()
-    sessionStorage.setItem('fsgr.mensajeLogin', MSG_SESION_EXPIRADA_UI)
+    sessionStorage.setItem('fsgr.mensajeLogin', mensajeSesionCerrada(motivo))
     window.location.assign('/login')
   })
 

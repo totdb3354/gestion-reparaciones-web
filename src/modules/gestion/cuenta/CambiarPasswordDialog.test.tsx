@@ -286,4 +286,12 @@ describe('CambiarPasswordDialog: barra de seguridad', () => {
     await new Promise((r) => setTimeout(r, 50))
     expect(cuerpos).toHaveLength(0)
   })
+
+  it('Enter pulsado justo después de teclear la nueva (sin esperar a la nota) guarda', async () => {
+    const cuerpos = registrarCambio()
+    abrir()
+    await rellenar('secreta1', '', 'nueva-larga-123')
+    await userEvent.type(screen.getByLabelText('Nueva contraseña'), 'nueva-larga-123{Enter}')
+    await waitFor(() => expect(cuerpos).toEqual([{ passwordActual: 'secreta1', passwordNueva: 'nueva-larga-123' }]))
+  })
 })

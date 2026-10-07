@@ -1,13 +1,13 @@
-import { getDefaultNormalizer, render, screen } from '@testing-library/react'
+import { getDefaultNormalizer, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Componente } from '@/shared/api/client'
 import { CREMA_EN_FILA_SELECCIONADA, DataTable } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
-import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
+import { CABECERAS_CSV_STOCK, cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { repartoFluido } from '@/test/columnas'
 
-const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null }
+const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 
 function montar(filas: Componente[], onEnCamino = vi.fn()) {
@@ -99,5 +99,30 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
       absorben: ['componente'],
       otras: [],
     })
+  })
+  it('con previsión: tres columnas entre "Stock Mínimo" y "Último pedido"; el 0 en gris y "—" en desactivadas', () => {
+    render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn(), conPrevision: true })} data={[
+      c({ consumoDiario: 0.31, pedir15: 0, pedir30: 7 }),
+      c({ idCom: 2, tipo: 'bat-x', activo: false }),
+    ]} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
+      ['Componente', 'En Stock', 'En Camino', 'Stock Mínimo', 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d', 'Último pedido', 'Estado'])
+    const [fila1, fila2] = screen.getAllByRole('row').slice(1)
+    expect(within(fila1).getByText('0,31')).toBeInTheDocument()
+    expect(within(fila1).getByText('0')).toHaveClass('text-texto-vacio')
+    expect(within(fila1).getByText('7')).toHaveClass('font-bold')
+    expect(fila2.querySelector('[data-columna="pedir30"]')).toHaveTextContent('—')
+  })
+  it('sin previsión (TECNICO) las columnas son las de siempre', () => {
+    render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn() })} data={[base]} vacio="Sin componentes" />)
+    expect(screen.queryByRole('columnheader', { name: 'Consumo/día' })).not.toBeInTheDocument()
+  })
+  it('CSV: con previsión añade las tres columnas al final', () => {
+    expect(cabecerasCsvStock(false)).toEqual(CABECERAS_CSV_STOCK)
+    expect(cabecerasCsvStock(true)).toEqual([...CABECERAS_CSV_STOCK, 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d'])
+    const fila = filaCsvStock(c({ consumoDiario: 0.31, pedir15: 2, pedir30: 7 }), true)
+    expect(fila.slice(-3)).toEqual(['0,31', '2', '7'])
+    expect(filaCsvStock(c({ activo: false }), true).slice(-3)).toEqual(['—', '—', '—'])
+    expect(filaCsvStock(base)).toHaveLength(CABECERAS_CSV_STOCK.length)
   })
 })

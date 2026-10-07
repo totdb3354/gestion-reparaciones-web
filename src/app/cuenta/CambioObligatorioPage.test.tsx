@@ -183,6 +183,15 @@ describe('CambioObligatorioPage', () => {
     expect(cuerpos).toHaveLength(0)
   })
 
+  it('Enter pulsado justo después de teclear la nueva (sin esperar a la nota) guarda', async () => {
+    const cuerpos = registrarCambio()
+    montar()
+    await rellenar('LaTemporal9', '', 'MiClaveNueva1')
+    await userEvent.type(screen.getByLabelText('Nueva contraseña'), 'MiClaveNueva1{Enter}')
+    expect(await screen.findByText('APLICACIÓN')).toBeInTheDocument()
+    expect(cuerpos).toEqual([{ passwordActual: 'LaTemporal9', passwordNueva: 'MiClaveNueva1' }])
+  })
+
   it('con sesión de administrador recuerda que se pide «Muy segura»', () => {
     renderConProviders(<CambioObligatorioPage />, {
       sesion: { ...SESION_ADMIN, passwordTemporal: true },

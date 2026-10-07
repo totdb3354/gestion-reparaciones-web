@@ -20,7 +20,7 @@ import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { ultimaRutaStock } from '../estado'
 import { AjustarMinimoDialog } from './AjustarMinimoDialog'
 import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditarStock, useSetActivoComponente, useSolicitarPieza } from './api'
-import { CABECERAS_CSV_STOCK, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
+import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
 import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
@@ -28,6 +28,7 @@ import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
 import { conteosDonut } from './graficos'
 import { MenuComponente } from './MenuComponente'
+import { ParametrosPrevisionDialog } from './ParametrosPrevisionDialog'
 import { SolicitarPiezaDialog } from './SolicitarPiezaDialog'
 
 const MSG_MODIFICADO = 'El componente fue modificado mientras editabas. Recarga los datos.'
@@ -51,6 +52,7 @@ export function StockPage() {
   // diálogo propio (spec 4b §7).
   const [formulario] = useStore(formularioPedido)
   const [dialogo, setDialogo] = useState<Dialogo>(null)
+  const [parametrosAbiertos, setParametrosAbiertos] = useState(false)
   // Texto de un 422 del servidor para el diálogo abierto (spec §8): se pinta dentro del diálogo, que sigue abierto.
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   // Cada llegada desde Pedidos pide a la tabla desplazarse hasta la fila seleccionada (contador, DataTable.tsx:52).
@@ -65,12 +67,12 @@ export function StockPage() {
 
   // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
   useEffect(() => { ultimaRutaStock.set('/stock') }, [])
-  // El diálogo cuenta como interacción abierta: el sondeo se congela mientras esté abierto (D4 del 3a).
+  // Un diálogo abierto (de fila o de parámetros) congela el sondeo (D4 del 3a).
   useEffect(() => {
-    if (!dialogo) return
+    if (!dialogo && !parametrosAbiertos) return
     marcar(true)
     return () => marcar(false)
-  }, [dialogo, marcar])
+  }, [dialogo, parametrosAbiertos, marcar])
 
   // Vuelta desde Pedidos (calco de navegarAComponente, StockController :233-246; spec 4b §6 "Vuelta a Stock"): con los
   // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente sigue
@@ -119,9 +121,9 @@ export function StockPage() {
   const graficoSku: Grafico | null = !seleccionado ? null : veEnCamino ? grafico : { componente: seleccionado, enCamino: 0 }
 
   const irAPedidos = useCallback((c: Componente) => navigate(`/stock/pedidos?${parametrosPedidos(c)}`), [navigate])
-  const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos }), [irAPedidos])
+  const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino }), [irAPedidos, veEnCamino])
 
-  useRegistrarExportable(() => descargarCsv('stock_actual', CABECERAS_CSV_STOCK, visibles.map(filaCsvStock)))
+  useRegistrarExportable(() => descargarCsv('stock_actual', cabecerasCsvStock(veEnCamino), visibles.map((c) => filaCsvStock(c, veEnCamino))))
 
   function cerrarDialogo() {
     setDialogo(null)
@@ -143,7 +145,7 @@ export function StockPage() {
     mostrarError(mensajeDeError(e, { staleData: MSG_MODIFICADO }))
   }
 
-  const rol = esSuperTecnico(sesion) ? 'SUPERTECNICO' : esAdmin(sesion) ? null : 'TECNICO'
+  const rol = esSuperTecnico(sesion) ? 'SUPERTECNICO' : esAdmin(sesion) ? 'ADMIN' : 'TECNICO'
   const estadosMenu = ESTADOS_STOCK.filter((e) => e !== 'Desactivado' || nDesactivados > 0)
   const pieDesactivados = textoDesactivados(nDesactivados)
 
@@ -166,6 +168,7 @@ export function StockPage() {
         />
         <Input value={filtros.buscador} onChange={(e) => setFiltros({ ...filtros, buscador: e.target.value })} placeholder="Buscar componente…" className="w-[220px] bg-superficie" />
         <BotonSecundario onClick={() => setFiltros({ ...FILTROS_STOCK_VACIOS, estados: new Set() })}>Limpiar filtros</BotonSecundario>
+        {esAdmin(sesion) && <BotonSecundario onClick={() => setParametrosAbiertos(true)}>Parámetros de previsión</BotonSecundario>}
       </div>
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
@@ -180,7 +183,7 @@ export function StockPage() {
             pedirDesplazamiento={peticionDesplazamiento}
             filaClase={claseFilaStock}
             altoFila={35}
-            menuFila={rol ? (c) => (
+            menuFila={(c) => (
               <MenuComponente
                 c={c}
                 rol={rol}
@@ -193,7 +196,7 @@ export function StockPage() {
                 onSolicitar={(x) => setDialogo({ tipo: 'solicitar', c: x })}
                 onInteraccion={marcar}
               />
-            ) : undefined}
+            )}
           />
           {/* Pie en una línea (FXML :56-64): "N desactivados" a la izquierda y "Actualizado" a la derecha, sin estirar el botón. */}
           <div className="mt-1 flex items-center justify-between gap-4">
@@ -256,6 +259,7 @@ export function StockPage() {
           })
         }}
       />
+      <ParametrosPrevisionDialog abierto={parametrosAbiertos} onCerrar={() => setParametrosAbiertos(false)} />
     </div>
   )
 }

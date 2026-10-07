@@ -13,12 +13,13 @@ import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION
 import { server } from '@/test/server'
 import { ultimaRutaStock } from '../estado'
 import { filtrosStock, seleccionStock } from './estado'
+import { CABECERAS_CSV_STOCK } from './columnas'
 import { StockPage } from './StockPage'
 
-const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
 const componentes = [
   { ...base, idCom: 1, tipo: 'lcd-x', stock: 5, stockMinimo: 2, activo: true, enCamino: 0 },
-  { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4 },
+  { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir15: 2, pedir30: 7 },
   { ...base, idCom: 3, tipo: 'cam-x', stock: 0, stockMinimo: 1, activo: true, enCamino: 0 },
   { ...base, idCom: 4, tipo: 'mc-x', stock: 1, stockMinimo: 0, activo: false, enCamino: 0 },
   { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 3, idComMaster: 1 },
@@ -177,22 +178,22 @@ describe('StockPage', () => {
     expect(router.state.location.search).toBe('')
     expect(screen.queryByTestId('pedidos')).not.toBeInTheDocument()
   })
-  it('menú del supertécnico: los cinco ítems con separadores; "Activar" en una desactivada; ADMIN sin menú; TECNICO solo "Solicitar pieza"', async () => {
+  it('menú del supertécnico: cuatro ítems sin "Ajustar mínimo", con separadores; "Activar" en una desactivada', async () => {
     montar()
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
-    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Pedir', 'Editar stock', 'Ajustar mínimo', 'Desactivar', 'Solicitar pieza'])
-    expect(screen.getAllByRole('separator')).toHaveLength(3)
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Pedir', 'Editar stock', 'Desactivar', 'Solicitar pieza'])
+    expect(screen.getAllByRole('separator')).toHaveLength(2)
     await userEvent.keyboard('{Escape}')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('mc-x') })
     expect(screen.getByRole('menuitem', { name: 'Activar' })).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
   })
-  it('ADMIN no tiene menú contextual', async () => {
+  it('ADMIN solo ve "Ajustar mínimo"', async () => {
     montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Ajustar mínimo'])
   })
   it('TECNICO solo ve "Solicitar pieza"', async () => {
     montar(SESION_TEC)
@@ -235,10 +236,9 @@ describe('StockPage', () => {
     expect(screen.getByText('Editar stock', { selector: 'h2' })).toBeInTheDocument()
     expect(within(screen.getByText('Editar stock', { selector: 'h2' }).closest('[role="dialog"]')!).getByLabelText('Nueva cantidad')).toBeInTheDocument()
   })
-  it('un 422 del servidor se muestra inline y el diálogo sigue abierto (Editar stock y Ajustar mínimo), sin aviso global', async () => {
+  it('un 422 del servidor se muestra inline en Editar stock (supertécnico)', async () => {
     server.use(
       http.put('*/api/componentes/1', () => HttpResponse.json({ message: 'Cantidad no válida (debe ser ≥ 0).' }, { status: 422 })),
-      http.patch('*/api/componentes/1/stock-minimo', () => HttpResponse.json({ message: 'Valor no válido (debe ser ≥ 0).' }, { status: 422 })),
     )
     montar()
     await screen.findByText('lcd-x')
@@ -249,7 +249,13 @@ describe('StockPage', () => {
     expect(await within(editar).findByRole('alert')).toHaveTextContent('Cantidad no válida (debe ser ≥ 0).')
     expect(screen.getByRole('dialog', { name: 'Editar stock' })).toBeInTheDocument()
     expect(screen.getAllByText('Cantidad no válida (debe ser ≥ 0).')).toHaveLength(1)
-    await userEvent.click(within(editar).getByRole('button', { name: 'Cancelar' }))
+  })
+  it('un 422 del servidor se muestra inline en Ajustar mínimo (admin)', async () => {
+    server.use(
+      http.patch('*/api/componentes/1/stock-minimo', () => HttpResponse.json({ message: 'Valor no válido (debe ser ≥ 0).' }, { status: 422 })),
+    )
+    montar(SESION_ADMIN)
+    await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
     const minimo = screen.getByRole('dialog', { name: 'Ajustar mínimo' })
@@ -258,14 +264,12 @@ describe('StockPage', () => {
     expect(screen.getByRole('dialog', { name: 'Ajustar mínimo' })).toBeInTheDocument()
     expect(screen.getAllByText('Valor no válido (debe ser ≥ 0).')).toHaveLength(1)
   })
-  it('"Ajustar mínimo" hace el PATCH; "Desactivar" sin confirmación; "Solicitar pieza" hace el POST sin recargar', async () => {
+  it('"Ajustar mínimo" (ADMIN) hace el PATCH', async () => {
     const llamadas: string[] = []
     server.use(
       http.patch('*/api/componentes/1/stock-minimo', async ({ request }) => { llamadas.push(`min ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
-      http.patch('*/api/componentes/1/activo', async ({ request }) => { llamadas.push(`act ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
-      http.post('*/api/solicitudes-stock', async ({ request }) => { llamadas.push(`sol ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 201 }) }),
     )
-    montar()
+    montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
@@ -273,6 +277,15 @@ describe('StockPage', () => {
     await userEvent.clear(campo)
     await userEvent.type(campo, '7{Enter}')
     await waitFor(() => expect(llamadas).toContain('min {"stockMinimo":7}'))
+  })
+  it('"Desactivar" sin confirmación; "Solicitar pieza" hace el POST sin recargar', async () => {
+    const llamadas: string[] = []
+    server.use(
+      http.patch('*/api/componentes/1/activo', async ({ request }) => { llamadas.push(`act ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 200 }) }),
+      http.post('*/api/solicitudes-stock', async ({ request }) => { llamadas.push(`sol ${JSON.stringify(await request.json())}`); return new HttpResponse(null, { status: 201 }) }),
+    )
+    montar()
+    await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     const cargasAntesDeDesactivar = cargas.n
     await userEvent.click(screen.getByRole('menuitem', { name: 'Desactivar' }))
@@ -322,10 +335,37 @@ describe('StockPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('stock_actual')
-    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro'])
+    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
-    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00']])
+    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '2', '7']])
     descargar.mockRestore()
+  })
+  it('Descargar CSV del TECNICO exporta solo las cabeceras base, sin previsión', async () => {
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
+    server.use(
+      http.get('*/api/solicitudes/count', () => HttpResponse.json({ value: 0 })),
+      http.get('*/api/solicitudes-stock/count', () => HttpResponse.json({ value: 0 })),
+      http.get('*/api/solicitudes', () => HttpResponse.json([])),
+      http.get('*/api/solicitudes-stock', () => HttpResponse.json([])),
+    )
+    renderConProviders(<StockPage />, { sesion: SESION_TEC, ruta: '/stock', layout: <AppLayout /> })
+    await screen.findByText('lcd-x')
+    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
+    const [, cabeceras, filas] = descargar.mock.calls[0]
+    expect(cabeceras).toEqual(CABECERAS_CSV_STOCK)
+    expect(cabeceras).not.toContain('Consumo/día')
+    expect(filas.length).toBeGreaterThan(0)
+    for (const fila of filas) expect(fila).toHaveLength(CABECERAS_CSV_STOCK.length)
+    descargar.mockRestore()
+  })
+  it('las columnas de previsión las ven SUPERTECNICO y ADMIN, no el TECNICO', async () => {
+    for (const [sesion, ve] of [[SESION_SUPER, true], [SESION_ADMIN, true], [SESION_TEC, false]] as const) {
+      const { unmount } = montar(sesion)
+      await screen.findByText('lcd-x')
+      expect(screen.queryByRole('columnheader', { name: 'Pedir 30 d' }) !== null).toBe(ve)
+      unmount()
+    }
   })
   it('"Limpiar filtros" desmarca las casillas y vacía el buscador sin tocar la selección', async () => {
     montar()
@@ -347,7 +387,7 @@ describe('StockPage', () => {
   it('"Ajustar mínimo": tras el PATCH se cierra el diálogo y se recarga la lista de componentes', async () => {
     let patch = false
     server.use(http.patch('*/api/componentes/1/stock-minimo', () => { patch = true; return new HttpResponse(null, { status: 200 }) }))
-    montar()
+    montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     const antes = cargas.n
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
@@ -490,5 +530,28 @@ describe('StockPage: tabla fluida', () => {
     await screen.findByText('lcd-x')
     expect(container.querySelector('[data-relleno]')).toBeNull()
     expect(screen.getByRole('table')).toHaveClass('w-full')
+  })
+  it('"Parámetros de previsión" solo lo ve el ADMIN', async () => {
+    for (const [sesion, ve] of [[SESION_ADMIN, true], [SESION_SUPER, false], [SESION_TEC, false]] as const) {
+      const { unmount } = montar(sesion)
+      await screen.findByText('lcd-x')
+      expect(screen.queryByRole('button', { name: 'Parámetros de previsión' }) !== null).toBe(ve)
+      unmount()
+    }
+  })
+  it('el botón abre el diálogo con los pesos y congela el sondeo mientras está abierto; al cerrarlo se reanuda', async () => {
+    server.use(http.get('*/api/parametros/prevision', () => HttpResponse.json({ peso1: 50, peso2: 30, peso3: 20 })))
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    montar(SESION_ADMIN)
+    await screen.findByText('lcd-x')
+    await userEvent.click(screen.getByRole('button', { name: 'Parámetros de previsión' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Parámetros de previsión' })
+    const antes = cargas.n
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
+    expect(cargas.n).toBe(antes)
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
   })
 })

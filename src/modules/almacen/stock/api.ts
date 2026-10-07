@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query'
-import { api, type Componente } from '@/shared/api/client'
+import { api, type Componente, type PesosPrevision } from '@/shared/api/client'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { ordenarStock } from './filtros'
 
@@ -75,5 +75,33 @@ export function useSolicitarPieza(): UseMutationResult<unknown, unknown, { idCom
   return useMutation({
     mutationFn: ({ idCom, descripcion, clave }: { idCom: number; descripcion: string | null; clave: string }) =>
       api.POST('/api/solicitudes-stock', { params: { header: { 'Idempotency-Key': clave } }, body: { idCom, descripcion } }),
+  })
+}
+
+export const CLAVE_PARAMETROS_PREVISION = ['parametros', 'prevision'] as const
+
+/** GET /api/parametros/prevision (solo ADMIN): se pide al abrir el diálogo, siempre fresco. Sin refetch por foco: una
+ *  recarga con el diálogo abierto pisaría lo que el administrador está tecleando. */
+export function useParametrosPrevision(abierto: boolean): UseQueryResult<PesosPrevision | null> {
+  return useQuery({
+    queryKey: CLAVE_PARAMETROS_PREVISION,
+    queryFn: async () => (await api.GET('/api/parametros/prevision')).data ?? null,
+    enabled: abierto,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+/** Su 422 se pinta dentro del diálogo; al terminar se recarga Stock (la previsión cambia con los pesos). */
+export function useGuardarParametrosPrevision(): UseMutationResult<unknown, unknown, PesosPrevision> {
+  const recargar = useRecarga()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (pesos: PesosPrevision) => api.PUT('/api/parametros/prevision', { body: pesos }),
+    meta: { silenciarError: true },
+    onSettled: () => {
+      recargar()
+      void qc.invalidateQueries({ queryKey: CLAVE_PARAMETROS_PREVISION })
+    },
   })
 }

@@ -18,8 +18,8 @@ export const MSG_AVISO_CUERPO =
  * (spec sp7b §6.1). Cuenta el ratón y el teclado, nunca el refresco de las tablas ni volver a la ventana; la
  * marca vive en `localStorage`, así que la actividad de cualquier pestaña cuenta para todas.
  *
- * Expulsa por `dispararSesionExpirada`, el mismo camino que un 401: borra la sesión en todas las pestañas y lleva
- * al login con su mensaje. Se monta dentro del layout de la aplicación, así que solo vive con sesión abierta.
+ * Expulsa por `dispararSesionExpirada('inactividad')`, el mismo camino que un 401 pero con su propio mensaje en el login.
+ * Se monta dentro del layout de la aplicación, así que solo vive con sesión abierta.
  */
 export function VigilanciaInactividad() {
   const [avisando, setAvisando] = useState(false)
@@ -54,7 +54,7 @@ export function VigilanciaInactividad() {
       if (inactivo >= INACTIVIDAD_MS) {
         expulsado.current = true
         avisar(false)
-        dispararSesionExpirada()
+        dispararSesionExpirada('inactividad')
         return
       }
       avisar(inactivo >= INACTIVIDAD_MS - AVISO_MS)

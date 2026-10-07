@@ -16,7 +16,7 @@ const SESION = JSON.stringify({ idUsu: 8, nombreUsuario: 'ana', rol: 'TECNICO', 
 
 const expulsar = vi.fn()
 vi.mock('./expiracion', () => ({
-  dispararSesionExpirada: () => expulsar(),
+  dispararSesionExpirada: (...args: unknown[]) => expulsar(...args),
 }))
 
 describe('cierre por inactividad', () => {
@@ -59,6 +59,7 @@ describe('cierre por inactividad', () => {
     render(<VigilanciaInactividad />)
     avanzar(INACTIVIDAD_MS)
     expect(expulsar).toHaveBeenCalledTimes(1)
+    expect(expulsar).toHaveBeenCalledWith('inactividad')
   })
 
   it('el botón de seguir renueva la marca y cierra el aviso', async () => {

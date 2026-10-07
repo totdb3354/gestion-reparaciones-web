@@ -31,6 +31,7 @@ export type LogActividad = components['schemas']['LogActividad']
 /** Formulario de reparación y campana (sub-proyecto 2). `ComponentesAgrupados` es la respuesta de
  *  GET /api/componentes/agrupados: prefijo del tipo → sus componentes, en el orden de claves del servidor. */
 export type Componente = components['schemas']['Componente']
+export type PesosPrevision = components['schemas']['PesosPrevision']
 export type ComponentesAgrupados = Record<string, Componente[]>
 export type FilaReparacion = components['schemas']['FilaReparacion']
 /** Lo que devuelve GET …/asignaciones/{idAsignacion}/solicitudes: mismo esquema que una fila. */
