@@ -9,6 +9,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - **Previsión de pedidos en Stock** (supertécnicos y administrador). Tres columnas nuevas: **Consumo/día** (lo que se gasta al día de cada pieza, con más peso lo de los últimos 30 días: 50 %, 30 % y 20 % para los días 1-30, 31-60 y 61-90) y **Pedir 15 d** / **Pedir 30 d** (cuánto pedir para cubrir 15 o 30 días, contando el stock y lo que ya está en camino, sin bajar nunca del stock mínimo). Un 0 sale en gris. También van en el CSV.
 - **El stock mínimo es el suelo y solo lo cambia el administrador** (clic derecho → "Ajustar mínimo"). Los supertécnicos ya no tienen esa opción; "Editar stock" no toca el mínimo.
 - **Parámetros de previsión** (solo administrador): botón en Stock para cambiar los tres pesos; tienen que sumar 100.
+- **Stock compartido en una sola fila**: los SKU que comparten stock (p. ej. `cami13 / cami13pro`) salen en una fila con «stock compartido», el buscador los encuentra por cualquier nombre, «Solicitar pieza» pide elegir el modelo y «Nuevo pedido» los ofrece una vez.
 - Al cerrarse la sesión por dos horas sin uso, el login lo dice: "Se cerró la sesión tras dos horas sin uso."
 - En "Cambiar contraseña" y "Cambia tu contraseña", un Enter pulsado justo después de escribir ya guarda (decide el servidor).
 - Requiere el servidor 0.9.5 y la migración `migracion-parametros-prevision.sql` (tabla `Parametro`). Sin cambios en la configuración de nginx.
