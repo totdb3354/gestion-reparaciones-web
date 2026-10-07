@@ -24,6 +24,7 @@ import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, pa
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
 import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
+import { agruparCompartidos } from './grupos'
 import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
 import { conteosDonut } from './graficos'
@@ -74,6 +75,9 @@ export function StockPage() {
     return () => marcar(false)
   }, [dialogo, parametrosAbiertos, marcar])
 
+  // Una fila por grupo de stock compartido (master + slaves): tabla, buscador, CSV, donut y desactivados salen de aquí.
+  const filas = useMemo(() => agruparCompartidos(data), [data])
+
   // Vuelta desde Pedidos (calco de navegarAComponente, StockController :233-246; spec 4b §6 "Vuelta a Stock"): con los
   // datos ya cargados, desmarca OK, Bajo y Sin stock (conserva Desactivado), vacía el buscador y, si el componente sigue
   // visible con esos filtros nuevos, lo selecciona y pide a la tabla que se desplace hasta él. Después limpia la URL con
@@ -87,19 +91,21 @@ export function StockPage() {
     if (Number.isInteger(id) && id > 0) {
       const nuevosFiltros = filtrosDesdePedidos(filtrosStock.get())
       setFiltros(nuevosFiltros)
-      if (aplicarFiltrosStock(data, nuevosFiltros).some((c) => c.idCom === id)) {
-        setSeleccionada(String(id))
+      // El id puede ser el de un slave: la fila es la de su grupo (la del master).
+      const fila = aplicarFiltrosStock(filas, nuevosFiltros).find((f) => f.miembros.some((m) => m.idCom === id))
+      if (fila) {
+        setSeleccionada(String(fila.idCom))
         // eslint-disable-next-line react-hooks/set-state-in-effect -- la llegada desde Pedidos se consume una sola vez, cuando ya hay datos; la petición de desplazamiento es la única forma de pedirle el scroll a DataTable
         setPeticionDesplazamiento((n) => n + 1)
       }
     }
     void navigate(pathname, { replace: true })
-  }, [componenteUrl, isSuccess, data, navigate, pathname, setFiltros, setSeleccionada])
+  }, [componenteUrl, isSuccess, filas, navigate, pathname, setFiltros, setSeleccionada])
 
-  const visibles = useMemo(() => aplicarFiltrosStock(data, filtros), [data, filtros])
-  const conteos = useMemo(() => conteosDonut(data), [data])
-  const nDesactivados = useMemo(() => data.filter((c) => !c.activo).length, [data])
-  const seleccionado = useMemo(() => data.find((c) => String(c.idCom) === seleccionada) ?? null, [data, seleccionada])
+  const visibles = useMemo(() => aplicarFiltrosStock(filas, filtros), [filas, filtros])
+  const conteos = useMemo(() => conteosDonut(filas), [filas])
+  const nDesactivados = useMemo(() => filas.filter((c) => !c.activo).length, [filas])
+  const seleccionado = useMemo(() => filas.find((c) => String(c.idCom) === seleccionada) ?? null, [filas, seleccionada])
 
   // Gráfico por SKU (spec §8): la barra "Pedido" solo la piden ADMIN y SUPERTECNICO (:547). El gráfico solo cambia cuando
   // llega la cantidad en camino; si la petición falla se avisa y el gráfico conserva el anterior, título incluido.

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Componente } from '@/shared/api/client'
 import type { EstadoStock } from '@/shared/lib/semaforoStock'
-import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, nombreComponente, ordenarStock, textoDesactivados } from './filtros'
+import { agruparCompartidos } from './grupos'
+import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, ordenarStock, textoDesactivados } from './filtros'
 
 const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
@@ -17,7 +18,7 @@ describe('ordenarStock', () => {
 })
 
 describe('aplicarFiltrosStock', () => {
-  const todos = [ok, bajo, sinStock, desactivado]
+  const todos = agruparCompartidos([ok, bajo, sinStock, desactivado])
   it('sin ningún estado marcado muestra todos', () => {
     expect(aplicarFiltrosStock(todos, FILTROS_STOCK_VACIOS)).toHaveLength(4)
   })
@@ -25,10 +26,17 @@ describe('aplicarFiltrosStock', () => {
     const f = { ...FILTROS_STOCK_VACIOS, estados: new Set(['Bajo', 'Sin stock'] as const) }
     expect(aplicarFiltrosStock(todos, f).map((x) => x.tipo)).toEqual(['bat-x', 'cam-x'])
   })
-  it('el buscador es "contiene", sin mayúsculas, recortado y sobre el tipo sin el sufijo (compartido)', () => {
+  it('el buscador es "contiene", sin mayúsculas y recortado', () => {
     const compartido = c({ idCom: 5, tipo: 'lcd-y', idComMaster: 1 })
-    expect(aplicarFiltrosStock([...todos, compartido], { ...FILTROS_STOCK_VACIOS, buscador: '  LCD ' }).map((x) => x.tipo)).toEqual(['lcd-x', 'lcd-y'])
-    expect(aplicarFiltrosStock([compartido], { ...FILTROS_STOCK_VACIOS, buscador: 'compartido' })).toHaveLength(0)
+    const filas = agruparCompartidos([...todos, compartido])
+    expect(aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, buscador: '  LCD ' }).map((x) => x.tipo)).toEqual(['lcd-x'])
+  })
+  it('el buscador encuentra el grupo por el nombre del slave y por el del master, y no por un texto que no está en ninguno', () => {
+    const filas = agruparCompartidos([ok, bajo, c({ idCom: 5, tipo: 'lcd-y', idComMaster: 1 })])
+    expect(aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, buscador: 'lcd-y' }).map((x) => x.idCom)).toEqual([1])
+    expect(aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, buscador: 'LCD-X' }).map((x) => x.idCom)).toEqual([1])
+    expect(aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, buscador: 'compartido' })).toHaveLength(0)
+    expect(aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, buscador: 'zzz' })).toHaveLength(0)
   })
   it('estado y buscador se combinan con Y', () => {
     const f = { estados: new Set(['OK'] as const), buscador: 'bat' }
@@ -41,10 +49,6 @@ describe('textos', () => {
     expect(textoDesactivados(0)).toBeNull()
     expect(textoDesactivados(1)).toBe('1 desactivado')
     expect(textoDesactivados(3)).toBe('3 desactivados')
-  })
-  it('nombre con el sufijo "(compartido)" de dos espacios', () => {
-    expect(nombreComponente({ tipo: 'lcd-y', idComMaster: 1 })).toBe('lcd-y  (compartido)')
-    expect(nombreComponente({ tipo: 'lcd-x', idComMaster: null })).toBe('lcd-x')
   })
 })
 

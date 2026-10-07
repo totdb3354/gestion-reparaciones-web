@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Componente } from '@/shared/api/client'
+import { agruparCompartidos } from './grupos'
 import { colorBarraStock, conteosDonut, ticksEjeY } from './graficos'
 
 const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
@@ -13,8 +14,8 @@ describe('conteosDonut', () => {
     ])
     expect(conteos).toEqual({ ok: 1, bajo: 1, sinStock: 1, total: 3 })
   })
-  it('un grupo compartido cuenta cada fila (calco)', () => {
-    expect(conteosDonut([c({ idCom: 1, stock: 0 }), c({ idCom: 2, stock: 0, idComMaster: 1 })]).sinStock).toBe(2)
+  it('un grupo compartido cuenta una vez (una fila por grupo)', () => {
+    expect(conteosDonut(agruparCompartidos([c({ idCom: 1, stock: 0 }), c({ idCom: 2, stock: 0, idComMaster: 1 })])).sinStock).toBe(1)
   })
   it('color de la barra Stock según el semáforo', () => {
     expect(colorBarraStock('Sin stock')).toBe('#B03040')

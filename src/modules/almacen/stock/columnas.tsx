@@ -5,7 +5,7 @@ import { estadoStock, type EstadoStock } from '@/shared/lib/semaforoStock'
 import { cn } from '@/shared/lib/utils'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
-import { nombreComponente } from './filtros'
+import { esGrupo, nombreGrupo, type FilaStock } from './grupos'
 import { formatearConsumo, formatearPedir } from './prevision'
 
 /** prefWidth de StockView.fxml :46-53; las tres de la previsión son de la 0.9.5. */
@@ -18,7 +18,7 @@ function celdaPedir(valor: number | null) {
 }
 
 /** Previsión de pedidos (spec 0.9.5 §3.4): solo para SUPERTECNICO y ADMIN. */
-function columnasPrevision(): ColumnDef<Componente>[] {
+function columnasPrevision(): ColumnDef<FilaStock>[] {
   return [
     { id: 'consumoDia', header: 'Consumo/día', size: ANCHOS_STOCK.consumoDia, maxSize: ANCHOS_STOCK.consumoDia, accessorFn: (c) => formatearConsumo(c.consumoDiario) },
     { id: 'pedir15', header: 'Pedir 15 d', size: ANCHOS_STOCK.pedir15, maxSize: ANCHOS_STOCK.pedir15, cell: ({ row }) => celdaPedir(row.original.pedir15) },
@@ -48,12 +48,18 @@ export function parametrosPedidos(c: Componente): string {
   return new URLSearchParams({ estados: 'pendiente,en camino,parcial', buscar: c.tipo }).toString()
 }
 
-export function crearColumnasStock({ onEnCamino, conPrevision = false }: { onEnCamino: (c: Componente) => void; conPrevision?: boolean }): ColumnDef<Componente>[] {
+export function crearColumnasStock({ onEnCamino, conPrevision = false }: { onEnCamino: (c: Componente) => void; conPrevision?: boolean }): ColumnDef<FilaStock>[] {
   return [
-    // whitespace-pre: el sufijo "  (compartido)" lleva dos espacios, que HTML colapsaría (la celda ya es whitespace-nowrap).
+    // La celda de DataTable es whitespace-nowrap con recorte: el nombre del grupo puede ser largo, así que el contenedor
+    // vuelve a permitir el salto de línea (y parte palabras sin espacios) en vez de cortarse con "…".
     {
-      id: 'componente', header: 'Componente', size: ANCHOS_STOCK.componente, accessorFn: nombreComponente,
-      cell: ({ row }) => <span className="whitespace-pre">{nombreComponente(row.original)}</span>,
+      id: 'componente', header: 'Componente', size: ANCHOS_STOCK.componente, accessorFn: nombreGrupo,
+      cell: ({ row }) => (
+        <div className="whitespace-normal break-words">
+          <span>{nombreGrupo(row.original)}</span>
+          {esGrupo(row.original) && <div className={cn('text-[11px] text-azul-gris', CREMA_EN_FILA_SELECCIONADA)}>stock compartido</div>}
+        </div>
+      ),
     },
     { id: 'enStock', header: 'En Stock', size: ANCHOS_STOCK.enStock, maxSize: ANCHOS_STOCK.enStock, accessorFn: (c) => String(c.stock) },
     {
@@ -81,14 +87,14 @@ export function crearColumnasStock({ onEnCamino, conPrevision = false }: { onEnC
   ]
 }
 
-/** Calco de exportarStock (:1937-1959): la lista filtrada, tipo SIN "(compartido)", sin "Último pedido" y con "Fecha
+/** Calco de exportarStock (:1937-1959): la lista filtrada (una fila por grupo, "Tipo" con el nombre del grupo), sin "Último pedido" y con "Fecha
  *  registro" (que la tabla no muestra); cabecera "Stock mínimo" en minúscula, como el JavaFX. */
 export const CABECERAS_CSV_STOCK = ['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro']
 export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 15 d', 'Pedir 30 d']
 export function cabecerasCsvStock(conPrevision: boolean): string[] {
   return conPrevision ? [...CABECERAS_CSV_STOCK, ...CABECERAS_CSV_PREVISION] : CABECERAS_CSV_STOCK
 }
-export function filaCsvStock(c: Componente, conPrevision = false): string[] {
-  const fila = [c.tipo, String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
+export function filaCsvStock(c: FilaStock, conPrevision = false): string[] {
+  const fila = [nombreGrupo(c), String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
   return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir15), formatearPedir(c.pedir30)] : fila
 }
