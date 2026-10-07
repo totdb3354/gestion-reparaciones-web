@@ -24,7 +24,7 @@ import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, pa
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
 import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
-import { agruparCompartidos } from './grupos'
+import { agruparCompartidos, type FilaStock } from './grupos'
 import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
 import { conteosDonut } from './graficos'
@@ -36,7 +36,7 @@ const MSG_MODIFICADO = 'El componente fue modificado mientras editabas. Recarga 
 
 const OPERACION_SOLICITAR = 'solicitudes-stock'
 
-type Dialogo = { tipo: 'stock' | 'minimo' | 'solicitar'; c: Componente } | null
+type Dialogo = { tipo: 'stock' | 'minimo'; c: Componente } | { tipo: 'solicitar'; c: FilaStock } | null
 type Grafico = { componente: Componente; enCamino: number }
 
 /** Pestaña "Stock actual" de StockView.fxml (spec 4a §6): una sola consulta para tabla, filtros, donut y pie. */
@@ -199,7 +199,7 @@ export function StockPage() {
                 onEditarStock={(x) => setDialogo({ tipo: 'stock', c: x })}
                 onAjustarMinimo={(x) => setDialogo({ tipo: 'minimo', c: x })}
                 onToggleActivo={(x) => setActivo.mutate({ idCom: x.idCom, activo: !x.activo })}
-                onSolicitar={(x) => setDialogo({ tipo: 'solicitar', c: x })}
+                onSolicitar={() => setDialogo({ tipo: 'solicitar', c })}
                 onInteraccion={marcar}
               />
             )}
@@ -257,9 +257,8 @@ export function StockPage() {
         componente={dialogo?.tipo === 'solicitar' ? dialogo.c : null}
         enviando={solicitar.isPending}
         onCancelar={cerrarDialogo}
-        onConfirmar={(descripcion) => {
-          if (dialogo?.tipo !== 'solicitar') return
-          const cuerpo = { idCom: dialogo.c.idCom, descripcion }
+        onConfirmar={(idCom, descripcion) => {
+          const cuerpo = { idCom, descripcion }
           solicitar.mutate({ ...cuerpo, clave: claves.para(OPERACION_SOLICITAR, cuerpo) }, {
             onSuccess: () => { claves.hecha(OPERACION_SOLICITAR); cerrarDialogo() },
           })

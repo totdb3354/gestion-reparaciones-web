@@ -37,6 +37,10 @@ afterEach(() => vi.useRealTimers())
 
 const rutasPedidos = <Route path="/stock/pedidos" element={<p data-testid="pedidos">Pedidos</p>} />
 const montar = (sesion = SESION_SUPER) => renderConProviders(<StockPage />, { sesion, ruta: '/stock', rutas: rutasPedidos })
+const elegirModelo = async (nombre: string) => {
+  await userEvent.click(within(screen.getByRole('dialog', { name: 'Solicitar pieza' })).getByRole('combobox', { name: 'Modelo' }))
+  await userEvent.click(within(screen.getByRole('listbox', { name: 'Modelo' })).getByRole('button', { name: nombre }))
+}
 const filaDe = (tipo: string) => screen.getByRole('row', { name: new RegExp(`^${tipo}`) })
 
 describe('StockPage', () => {
@@ -313,8 +317,9 @@ describe('StockPage', () => {
     const antes = cargas.n
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    await elegirModelo('lcd-y')
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Solicitar pieza' })).getByRole('button', { name: 'Solicitar' }))
-    await waitFor(() => expect(llamadas).toContain('sol {"idCom":1,"descripcion":null}'))
+    await waitFor(() => expect(llamadas).toContain('sol {"idCom":5,"descripcion":null}'))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(cargas.n).toBe(antes)
   }, 15_000)
@@ -433,6 +438,7 @@ describe('StockPage', () => {
     await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    await elegirModelo('lcd-x')
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Solicitar pieza' })).getByRole('button', { name: 'Solicitar' }))
     expect(await screen.findByText('No tienes permisos para realizar esta acción.')).toBeInTheDocument()
     // El aviso es modal: el diálogo de fondo queda aria-hidden, se localiza por su título (patrón de "Editar stock").
@@ -449,6 +455,7 @@ describe('StockPage', () => {
     await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Solicitar pieza' }))
+    await elegirModelo('lcd-x')
     const solicitar = async () => {
       const titulo = screen.getByText('Solicitar pieza', { selector: 'h2' })
       await userEvent.click(within(titulo.closest('[role="dialog"]')!).getByRole('button', { name: 'Solicitar', hidden: true }))
