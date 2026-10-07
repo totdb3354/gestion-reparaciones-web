@@ -1,4 +1,4 @@
-import { act, cleanup, getDefaultNormalizer, screen, waitFor, within } from '@testing-library/react'
+import { act, getDefaultNormalizer, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route } from 'react-router'
@@ -13,6 +13,7 @@ import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION
 import { server } from '@/test/server'
 import { ultimaRutaStock } from '../estado'
 import { filtrosStock, seleccionStock } from './estado'
+import { CABECERAS_CSV_STOCK } from './columnas'
 import { StockPage } from './StockPage'
 
 const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
@@ -235,10 +236,9 @@ describe('StockPage', () => {
     expect(screen.getByText('Editar stock', { selector: 'h2' })).toBeInTheDocument()
     expect(within(screen.getByText('Editar stock', { selector: 'h2' }).closest('[role="dialog"]')!).getByLabelText('Nueva cantidad')).toBeInTheDocument()
   })
-  it('un 422 del servidor se muestra inline y el diálogo sigue abierto (Editar stock y Ajustar mínimo), sin aviso global', async () => {
+  it('un 422 del servidor se muestra inline en Editar stock (supertécnico)', async () => {
     server.use(
       http.put('*/api/componentes/1', () => HttpResponse.json({ message: 'Cantidad no válida (debe ser ≥ 0).' }, { status: 422 })),
-      http.patch('*/api/componentes/1/stock-minimo', () => HttpResponse.json({ message: 'Valor no válido (debe ser ≥ 0).' }, { status: 422 })),
     )
     montar()
     await screen.findByText('lcd-x')
@@ -249,8 +249,11 @@ describe('StockPage', () => {
     expect(await within(editar).findByRole('alert')).toHaveTextContent('Cantidad no válida (debe ser ≥ 0).')
     expect(screen.getByRole('dialog', { name: 'Editar stock' })).toBeInTheDocument()
     expect(screen.getAllByText('Cantidad no válida (debe ser ≥ 0).')).toHaveLength(1)
-    await userEvent.click(within(editar).getByRole('button', { name: 'Cancelar' }))
-    cleanup()
+  })
+  it('un 422 del servidor se muestra inline en Ajustar mínimo (admin)', async () => {
+    server.use(
+      http.patch('*/api/componentes/1/stock-minimo', () => HttpResponse.json({ message: 'Valor no válido (debe ser ≥ 0).' }, { status: 422 })),
+    )
     montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
@@ -335,6 +338,25 @@ describe('StockPage', () => {
     expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
     expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '2', '7']])
+    descargar.mockRestore()
+  })
+  it('Descargar CSV del TECNICO exporta solo las cabeceras base, sin previsión', async () => {
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
+    server.use(
+      http.get('*/api/solicitudes/count', () => HttpResponse.json({ value: 0 })),
+      http.get('*/api/solicitudes-stock/count', () => HttpResponse.json({ value: 0 })),
+      http.get('*/api/solicitudes', () => HttpResponse.json([])),
+      http.get('*/api/solicitudes-stock', () => HttpResponse.json([])),
+    )
+    renderConProviders(<StockPage />, { sesion: SESION_TEC, ruta: '/stock', layout: <AppLayout /> })
+    await screen.findByText('lcd-x')
+    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
+    const [, cabeceras, filas] = descargar.mock.calls[0]
+    expect(cabeceras).toEqual(CABECERAS_CSV_STOCK)
+    expect(cabeceras).not.toContain('Consumo/día')
+    expect(filas.length).toBeGreaterThan(0)
+    for (const fila of filas) expect(fila).toHaveLength(CABECERAS_CSV_STOCK.length)
     descargar.mockRestore()
   })
   it('las columnas de previsión las ven SUPERTECNICO y ADMIN, no el TECNICO', async () => {
@@ -517,14 +539,19 @@ describe('StockPage: tabla fluida', () => {
       unmount()
     }
   })
-  it('el botón abre el diálogo con los pesos y congela el sondeo mientras está abierto', async () => {
+  it('el botón abre el diálogo con los pesos y congela el sondeo mientras está abierto; al cerrarlo se reanuda', async () => {
     server.use(http.get('*/api/parametros/prevision', () => HttpResponse.json({ peso1: 50, peso2: 30, peso3: 20 })))
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     montar(SESION_ADMIN)
     await screen.findByText('lcd-x')
     await userEvent.click(screen.getByRole('button', { name: 'Parámetros de previsión' }))
-    expect(await screen.findByRole('dialog', { name: 'Parámetros de previsión' })).toBeInTheDocument()
+    const dialogo = await screen.findByRole('dialog', { name: 'Parámetros de previsión' })
     const antes = cargas.n
-    await act(() => new Promise((r) => setTimeout(r, 50)))
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
     expect(cargas.n).toBe(antes)
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargas.n).toBeGreaterThan(antes))
   })
 })
