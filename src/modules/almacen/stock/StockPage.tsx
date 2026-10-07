@@ -36,8 +36,9 @@ const MSG_MODIFICADO = 'El componente fue modificado mientras editabas. Recarga 
 
 const OPERACION_SOLICITAR = 'solicitudes-stock'
 
-type Dialogo = { tipo: 'stock' | 'minimo'; c: Componente } | { tipo: 'solicitar'; c: FilaStock } | null
-type Grafico = { componente: Componente; enCamino: number }
+type Dialogo = { tipo: 'stock' | 'minimo'; c: FilaStock } | { tipo: 'solicitar'; c: FilaStock } | null
+/** Cantidad en camino ya recibida del servidor para la fila `idCom`; el componente se resuelve al pintar, con los datos vivos. */
+type Grafico = { idCom: number; enCamino: number }
 
 /** Pestaña "Stock actual" de StockView.fxml (spec 4a §6): una sola consulta para tabla, filtros, donut y pie. */
 export function StockPage() {
@@ -109,22 +110,26 @@ export function StockPage() {
 
   // Gráfico por SKU (spec §8): la barra "Pedido" solo la piden ADMIN y SUPERTECNICO (:547). El gráfico solo cambia cuando
   // llega la cantidad en camino; si la petición falla se avisa y el gráfico conserva el anterior, título incluido.
-  // `seleccionado` mantiene la referencia entre sondeos si no cambia (structural sharing de TanStack Query): el refresco
-  // no vuelve a pedir la cantidad.
+  // La petición depende del componente master tal como viene en `data` (no de la fila agrupada, que es un objeto nuevo en
+  // cada sondeo): TanStack Query conserva la referencia de lo que no cambia (structural sharing), así que un sondeo que
+  // solo toca otros componentes no vuelve a pedir la cantidad.
   const veEnCamino = esAdminOSuperTecnico(sesion)
+  const maestroSeleccionado = useMemo(() => data.find((c) => String(c.idCom) === seleccionada) ?? null, [data, seleccionada])
   const [grafico, setGrafico] = useState<Grafico | null>(null)
   useEffect(() => {
-    if (!veEnCamino || !seleccionado) return
+    if (!veEnCamino || !maestroSeleccionado) return
     // Guard de carrera: si cambia la selección antes de que llegue la respuesta, la de la fila anterior se descarta.
     let vigente = true
-    pedirCantidadEnCamino(seleccionado.idCom).then(
-      (enCamino) => { if (vigente) setGrafico({ componente: seleccionado, enCamino }) },
+    const idCom = maestroSeleccionado.idCom
+    pedirCantidadEnCamino(idCom).then(
+      (enCamino) => { if (vigente) setGrafico({ idCom, enCamino }) },
       (e: unknown) => { if (vigente && !esErrorGestionadoGlobalmente(e)) mostrarError(mensajeDeError(e)) },
     )
     return () => { vigente = false }
-  }, [seleccionado, veEnCamino, mostrarError])
+  }, [maestroSeleccionado, veEnCamino, mostrarError])
   // Sin selección, "Selecciona un componente"; el TECNICO no pide la cantidad y su barra "Pedido" va a 0 al momento.
-  const graficoSku: Grafico | null = !seleccionado ? null : veEnCamino ? grafico : { componente: seleccionado, enCamino: 0 }
+  const filaGrafico = veEnCamino ? (grafico ? filas.find((f) => f.idCom === grafico.idCom) ?? null : null) : seleccionado
+  const graficoSku = !seleccionado || !filaGrafico ? null : { componente: filaGrafico, enCamino: veEnCamino ? grafico?.enCamino ?? 0 : 0 }
 
   const irAPedidos = useCallback((c: Componente) => navigate(`/stock/pedidos?${parametrosPedidos(c)}`), [navigate])
   const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino }), [irAPedidos, veEnCamino])
@@ -196,8 +201,8 @@ export function StockPage() {
                 // "Pedir" abre "Nuevo pedido" como modal encima de Stock actual (calco del Stage modal, spec 4b P1): el
                 // host del shell lo pinta; la línea va vacía si el componente está desactivado (calco, T14).
                 onPedir={(x) => abrirNuevoPedido({ modo: 'componentes', idsCom: [x.idCom] })}
-                onEditarStock={(x) => setDialogo({ tipo: 'stock', c: x })}
-                onAjustarMinimo={(x) => setDialogo({ tipo: 'minimo', c: x })}
+                onEditarStock={() => setDialogo({ tipo: 'stock', c })}
+                onAjustarMinimo={() => setDialogo({ tipo: 'minimo', c })}
                 onToggleActivo={(x) => setActivo.mutate({ idCom: x.idCom, activo: !x.activo })}
                 onSolicitar={() => setDialogo({ tipo: 'solicitar', c })}
                 onInteraccion={marcar}

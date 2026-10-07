@@ -41,7 +41,7 @@ export function DialogoAlmacen({ abierto, titulo, subtitulo, error, textoAccion,
         <form onSubmit={(e) => { e.preventDefault(); enviar(onConfirmar) }} className="flex flex-col gap-3">
           <DialogHeader>
             <DialogTitle className={cn(estilo.titulo, 'font-bold text-azul-medio')}>{titulo}</DialogTitle>
-            {subtitulo ? <DialogDescription className="whitespace-pre text-[12px] text-azul-gris">{subtitulo}</DialogDescription> : null}
+            {subtitulo ? <DialogDescription className="whitespace-pre-wrap text-[12px] text-azul-gris">{subtitulo}</DialogDescription> : null}
           </DialogHeader>
           {children}
           {error !== null && <p role="alert" className="text-[11px] text-texto-error">{error}</p>}

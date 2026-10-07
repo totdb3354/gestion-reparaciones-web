@@ -22,7 +22,7 @@ const componentes = [
   { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir15: 2, pedir30: 7 },
   { ...base, idCom: 3, tipo: 'cam-x', stock: 0, stockMinimo: 1, activo: true, enCamino: 0 },
   { ...base, idCom: 4, tipo: 'mc-x', stock: 1, stockMinimo: 0, activo: false, enCamino: 0 },
-  { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 3, idComMaster: 1 },
+  { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 0, idComMaster: 1 },
 ]
 const cargas = { n: 0 }
 
@@ -146,6 +146,21 @@ describe('StockPage', () => {
     expect(filaDe('bat-x')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
   })
+  it('un sondeo que solo cambia OTRO componente no vuelve a pedir la cantidad en camino del seleccionado', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    let enCamino = 0
+    server.use(http.get('*/api/compras/cantidad-en-camino/:id', () => { enCamino += 1; return HttpResponse.json({ value: 4 }) }))
+    montar()
+    await screen.findByText('bat-x')
+    await userEvent.click(screen.getByText('bat-x'))
+    expect(await screen.findByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
+    expect(enCamino).toBe(1)
+    server.use(http.get('*/api/componentes/gestionados', () => { cargas.n += 1; return HttpResponse.json(componentes.map((c) => (c.idCom === 3 ? { ...c, stock: 9 } : c))) }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargas.n).toBe(2))
+    expect(await screen.findByText('9')).toBeInTheDocument()
+    expect(enCamino).toBe(1)
+  })
   it('el TECNICO no pide la cantidad en camino: la barra Pedido va a 0', async () => {
     let pedida = false
     server.use(http.get('*/api/compras/cantidad-en-camino/:id', () => { pedida = true; return HttpResponse.json({ value: 4 }) }))
@@ -221,6 +236,22 @@ describe('StockPage', () => {
     await screen.findByText('lcd-x / lcd-y')
     await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Solicitar pieza'])
+  })
+  it('la fila de un grupo compartido usa el nombre del grupo en el subtítulo de Editar stock y en el título del gráfico', async () => {
+    montar()
+    await screen.findByText('lcd-x / lcd-y')
+    await userEvent.click(screen.getByText('lcd-x / lcd-y'))
+    expect(await screen.findByText('lcd-x / lcd-y', { selector: 'h2' })).toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Editar stock' }))
+    expect(within(screen.getByRole('dialog', { name: 'Editar stock' })).getByText(/^Componente: lcd-x \/ lcd-y/)).toBeInTheDocument()
+  })
+  it('la fila de un grupo compartido usa el nombre del grupo en el subtítulo de Ajustar mínimo', async () => {
+    montar(SESION_ADMIN)
+    await screen.findByText('lcd-x / lcd-y')
+    await userEvent.pointer({ keys: '[MouseRight]', target: filaDe('lcd-x') })
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Ajustar mínimo' }))
+    expect(within(screen.getByRole('dialog', { name: 'Ajustar mínimo' })).getByText(/^Componente: lcd-x \/ lcd-y/)).toBeInTheDocument()
   })
   it('"Editar stock" manda el PUT, recarga, y un 409 cierra el diálogo con el aviso y recarga', async () => {
     let cuerpo: unknown = null

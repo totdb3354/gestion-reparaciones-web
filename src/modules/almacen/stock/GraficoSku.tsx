@@ -1,13 +1,14 @@
 import { Bar, BarChart, Cell, Tooltip, XAxis, YAxis } from 'recharts'
 import type { Componente } from '@/shared/api/client'
 import { estadoStock } from '@/shared/lib/semaforoStock'
+import { nombreFila } from './grupos'
 import { COLOR_BARRA_PEDIDO, colorBarraStock, ticksEjeY } from './graficos'
 
 /** Calco de mostrarPlaceholderSku / cargarChartSku (:537-598): título "Selecciona un componente" y "↑ Haz clic en una
- *  fila" sin selección; con ella, el tipo (sin "(compartido)") y dos barras, "Stock" del color del semáforo y "Pedido"
+ *  fila" sin selección; con ella, el nombre de la fila (el tipo, o los de todo el grupo compartido) y dos barras, "Stock" del color del semáforo y "Pedido"
  *  azul, eje Y "Unidades" de 0 al máximo (1 si ambos 0) con las marcas del JavaFX (ticksEjeY), tooltip con el valor.
  *  La rejilla discontinua y el fondo alterno de columnas del BarChart no se reproducen (diferencia aceptada). */
-export function GraficoSku({ componente, enCamino }: { componente: Componente | null; enCamino: number }) {
+export function GraficoSku({ componente, enCamino }: { componente: (Componente & { miembros?: Componente[] }) | null; enCamino: number }) {
   if (!componente) {
     return (
       <div className="flex flex-col gap-2">
@@ -21,7 +22,7 @@ export function GraficoSku({ componente, enCamino }: { componente: Componente | 
   const maximo = ticks[ticks.length - 1]
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-[13px] font-bold text-azul-medio">{componente.tipo}</h2>
+      <h2 className="text-[13px] font-bold text-azul-medio">{nombreFila(componente)}</h2>
       <div role="img" aria-label={`Stock ${componente.stock}, Pedido ${enCamino}`}>
         <BarChart width={208} height={260} data={datos} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <XAxis dataKey="nombre" tick={{ fontSize: 10 }} />

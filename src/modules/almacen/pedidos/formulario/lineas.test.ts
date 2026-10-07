@@ -26,6 +26,10 @@ describe('precargas', () => {
     const inactivo = COMPONENTES.map((c) => (c.idCom === 2 ? { ...c, activo: false } : c))
     expect(precargarComponentes([5], inactivo)).toEqual([lineaCompraVacia(1)])
   })
+  it('precargarComponentes: un slave cuyo master es a su vez slave (cadena) no es pedible: línea vacía', () => {
+    const cadena = [...COMPONENTES, { ...COMPONENTES[3], idCom: 6, tipo: 'bat-z', idComMaster: 5 }]
+    expect(precargarComponentes([6], cadena)).toEqual([lineaCompraVacia(1)])
+  })
   it('precargarComponentes: inactivo o desconocido → línea vacía (calco)', () => {
     expect(precargarComponentes([4, 99], COMPONENTES)).toEqual([lineaCompraVacia(1), lineaCompraVacia(2)])
   })
@@ -99,7 +103,7 @@ describe('cuerpos de lote', () => {
   it('cuerpoLoteCompras: convierte los textos ("12,5" → 12.5, "3" → 3) y lleva solo las solicitudes cuyo componente tiene línea', () => {
     const lineas = [completa({ idCom: 2, cantidad: '3', urgente: true }), completa({ id: 2, idCom: 5, idProv: 2, cantidad: '1', precio: '0' })]
     const origen = { urgentes: [urgente(10, 2), urgente(11, 1), urgente(12, 2)], preventivas: [preventiva(20, 5), preventiva(21, 1)] }
-    expect(cuerpoLoteCompras(lineas, origen)).toEqual({
+    expect(cuerpoLoteCompras(lineas, origen, COMPONENTES)).toEqual({
       lineas: [
         { idCom: 2, idProv: 1, cantidad: 3, esUrgente: true, precioUnidad: 12.5 },
         { idCom: 5, idProv: 2, cantidad: 1, esUrgente: false, precioUnidad: 0 },
@@ -107,8 +111,13 @@ describe('cuerpos de lote', () => {
       solicitudes: { urgentes: [10, 12], preventivas: [20] },
     })
   })
+  it('cuerpoLoteCompras: las solicitudes de un slave viajan si su master tiene línea y no si su grupo no tiene ninguna', () => {
+    const origen = { urgentes: [urgente(10, 5), urgente(11, 1)], preventivas: [preventiva(20, 5), preventiva(21, 1)] }
+    expect(cuerpoLoteCompras([completa({ idCom: 2 })], origen, COMPONENTES).solicitudes).toEqual({ urgentes: [10], preventivas: [20] })
+    expect(cuerpoLoteCompras([completa({ idCom: 1 })], origen, COMPONENTES).solicitudes).toEqual({ urgentes: [11], preventivas: [21] })
+  })
   it('cuerpoLoteCompras: sin origen, solicitudes vacías', () => {
-    expect(cuerpoLoteCompras([completa()], null).solicitudes).toEqual({ urgentes: [], preventivas: [] })
+    expect(cuerpoLoteCompras([completa()], null, COMPONENTES).solicitudes).toEqual({ urgentes: [], preventivas: [] })
   })
   it('cuerpoLoteOtros: concepto recortado y números convertidos', () => {
     expect(cuerpoLoteOtros([otra({ concepto: '  Cinta de embalar  ', urgente: true })])).toEqual({

@@ -67,7 +67,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
       return
     }
     const origen = precarga.modo === 'solicitudes' ? { urgentes: precarga.urgentes, preventivas: precarga.preventivas } : null
-    const cuerpo = cuerpoLoteCompras(lineas, origen)
+    const cuerpo = cuerpoLoteCompras(lineas, origen, activos)
     setError(null)
     try {
       await guardar.mutateAsync({ cuerpo, clave: claves.para(OPERACION, cuerpo) })

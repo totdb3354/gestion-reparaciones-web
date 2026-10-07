@@ -28,23 +28,26 @@ export function lineaOtroVacia(id: number): LineaOtro {
 }
 
 /** Id del master al que se pide un componente: el de su master si es slave, el suyo si no. Devuelve null si el id es
- *  desconocido o su master no está entre los activos (el pedido siempre va al master). */
-function idPedible(idCom: number, activos: Componente[]): number | null {
+ *  desconocido, si su master no está entre los activos (el pedido siempre va al master) o si su "master" es a su vez un
+ *  slave (cadena, dato inválido): como en Stock, ese componente es una fila suelta y no se pide a un slave. */
+export function idPedible(idCom: number, activos: Componente[]): number | null {
   const c = activos.find((x) => x.idCom === idCom)
   if (c === undefined) return null
   const idMaster = c.idComMaster ?? c.idCom
-  return activos.some((x) => x.idCom === idMaster && x.activo) ? idMaster : null
+  return activos.some((x) => x.idCom === idMaster && x.activo && x.idComMaster == null) ? idMaster : null
 }
 
-/** "Pedir" (1 id) y "Pedir todas las piezas" (N ids, orden de la campana): una línea por id con cantidad 1. Un id que no
- *  está entre los activos deja la línea vacía, como el JavaFX (buscaba en `componentesDisponibles` y no rellenaba). */
+/** "Pedir" (1 id) y "Pedir todas las piezas" (N ids, orden de la campana): una línea por id con cantidad 1. El id de un
+ *  slave se sustituye por el de su master (el pedido va al master). Un id que no está entre los activos, o cuyo master
+ *  no lo está, deja la línea vacía, como el JavaFX (buscaba en `componentesDisponibles` y no rellenaba). */
 export function precargarComponentes(idsCom: number[], activos: Componente[]): LineaCompra[] {
   return idsCom.map((idCom, i) => lineaCompraVacia(i + 1, idPedible(idCom, activos)))
 }
 
-/** "Pedir piezas" (initConSolicitudes, FC :606-621): agrupa por componente (los slaves, en su master) con el orden de un LinkedHashMap (urgentes en su
- *  orden, luego preventivas) y la cantidad es el número de solicitudes. Diferencia D10: las de un componente no activo no
- *  generan línea y se cuentan en `omitidas` para avisar (el JavaFX las omitía en silencio y aun así las marcaba). */
+/** "Pedir piezas" (initConSolicitudes, FC :606-621): agrupa por componente, con los slaves sumados en su master, en el
+ *  orden de un LinkedHashMap (urgentes en su orden, luego preventivas); la cantidad es el número de solicitudes.
+ *  Diferencia D10: las de un componente no activo (o de un slave cuyo master no lo está) no generan línea y se cuentan
+ *  en `omitidas` para avisar (el JavaFX las omitía en silencio y aun así las marcaba). */
 export function precargarSolicitudes(urgentes: SolicitudResumen[], preventivas: SolicitudStock[], activos: Componente[]): { lineas: LineaCompra[]; omitidas: number } {
   const porComponente = new Map<number, number>()
   let omitidas = 0
@@ -112,10 +115,13 @@ export function validarLineasOtro(lineas: LineaOtro[]): string | null {
 }
 
 /** Cuerpo de POST /api/compras/lote. Solo se llama con `validarLineasCompra(lineas) === null` (por eso los `as number`).
- *  Las solicitudes que viajan son las de componentes que siguen teniendo línea al confirmar (spec §6): si el usuario quitó
+ *  Las solicitudes que viajan son las de componentes (o de su master, si son slaves) que siguen teniendo línea al confirmar (spec §6): si el usuario quitó
  *  la línea o le cambió el componente, esas solicitudes siguen PENDIENTE. */
-export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] } | null): CuerpoLoteCompras {
+export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] } | null, activos: Componente[]): CuerpoLoteCompras {
   const conLinea = new Set(lineas.map((l) => l.idCom))
+  // Las líneas llevan el id del master: la solicitud de un slave se resuelve a él antes de comprobar si su grupo tiene línea
+  // (el servidor marca GESTIONADA exactamente las solicitudes que recibe).
+  const tieneLinea = (idCom: number) => conLinea.has(idPedible(idCom, activos) ?? idCom)
   return {
     lineas: lineas.map((l) => ({
       idCom: l.idCom as number,
@@ -127,8 +133,8 @@ export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: Sol
     solicitudes: origen === null
       ? { urgentes: [], preventivas: [] }
       : {
-          urgentes: origen.urgentes.filter((s) => conLinea.has(s.idCom)).map((s) => s.idRc),
-          preventivas: origen.preventivas.filter((s) => conLinea.has(s.idCom)).map((s) => s.idSol),
+          urgentes: origen.urgentes.filter((s) => tieneLinea(s.idCom)).map((s) => s.idRc),
+          preventivas: origen.preventivas.filter((s) => tieneLinea(s.idCom)).map((s) => s.idSol),
         },
   }
 }

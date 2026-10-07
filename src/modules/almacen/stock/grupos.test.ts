@@ -28,6 +28,13 @@ describe('agruparCompartidos', () => {
     expect(filas).toHaveLength(1)
     expect(filas[0].miembros).toEqual([huerfano])
   })
+  it('un slave cuyo master es a su vez slave (cadena) queda como fila suelta, sin desaparecer', () => {
+    const lista = [c({ idCom: 1, tipo: 'a' }), c({ idCom: 2, tipo: 'b', idComMaster: 1 }), c({ idCom: 3, tipo: 'c', idComMaster: 2 })]
+    const filas = agruparCompartidos(lista)
+    expect(filas.map((f) => f.idCom)).toEqual([1, 3])
+    expect(filas[0].miembros.map((m) => m.idCom)).toEqual([1, 2])
+    expect(filas[1].miembros.map((m) => m.idCom)).toEqual([3])
+  })
   it('conserva el orden de la lista y el slave puede ir antes que su master', () => {
     const lista = [c({ idCom: 4, tipo: 'd' }), c({ idCom: 2, tipo: 'b', idComMaster: 1 }), c({ idCom: 1, tipo: 'a' }), c({ idCom: 3, tipo: 'c', idComMaster: 1 }), c({ idCom: 6, tipo: 'f' })]
     const filas = agruparCompartidos(lista)

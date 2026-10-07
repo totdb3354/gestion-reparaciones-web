@@ -299,6 +299,19 @@ describe('NuevoPedidoDialog', () => {
     })
   })
 
+  it('"Pedir piezas" con solicitudes de un slave (bat-y, id 5): su id viaja en el lote junto a la línea de su master', async () => {
+    abrir({ modo: 'solicitudes', urgentes: [urgente(10, 5), urgente(11, 1)], preventivas: [preventiva(20, 5)] })
+    await screen.findByRole('combobox', { name: 'Componente línea 2' })
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar línea 2' }))
+    await elegirProveedor(1, 'ACME')
+    await confirmar()
+    await waitFor(() => expect(lotes).toHaveLength(1))
+    expect(lotes[0].cuerpo).toMatchObject({
+      lineas: [{ idCom: 2, cantidad: 2 }],
+      solicitudes: { urgentes: [10], preventivas: [20] },
+    })
+  })
+
   it('422: su mensaje en la línea de error con el formulario abierto; el reintento usa la MISMA clave', async () => {
     respuestaLote = () => HttpResponse.json({ message: 'Línea 1: el proveedor está desactivado.' }, { status: 422 })
     const onCerrar = abrir({ modo: 'componentes', idsCom: [2] })
