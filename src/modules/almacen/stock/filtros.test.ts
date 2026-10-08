@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Componente } from '@/shared/api/client'
 import type { EstadoStock } from '@/shared/lib/semaforoStock'
 import { agruparCompartidos } from './grupos'
-import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, ordenarStock, textoDesactivados } from './filtros'
+import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, ordenarStock, textoDesactivados, type ModoPedido } from './filtros'
 
 const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
@@ -39,8 +39,20 @@ describe('aplicarFiltrosStock', () => {
     expect(aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, buscador: 'zzz' })).toHaveLength(0)
   })
   it('estado y buscador se combinan con Y', () => {
-    const f = { estados: new Set(['OK'] as const), buscador: 'bat' }
+    const f = { ...FILTROS_STOCK_VACIOS, estados: new Set(['OK'] as const), buscador: 'bat' }
     expect(aplicarFiltrosStock(todos, f)).toHaveLength(0)
+  })
+  it('modo (Auto / Manual) se combina con Y con el estado; los dos modos = todos (spec 0.9.6)', () => {
+    const filas = agruparCompartidos([c({ ...ok, autoPedido: true }), c({ ...bajo, autoPedido: false }), c({ ...sinStock, autoPedido: true })])
+    const con = (modos: ModoPedido[], estados: EstadoStock[] = []) =>
+      aplicarFiltrosStock(filas, { ...FILTROS_STOCK_VACIOS, estados: new Set(estados), modos: new Set(modos) }).map((x) => x.tipo)
+    expect(con(['Auto'])).toEqual(['lcd-x', 'cam-x'])
+    expect(con(['Manual'])).toEqual(['bat-x'])
+    expect(con(['Auto', 'Manual'])).toEqual(['lcd-x', 'bat-x', 'cam-x'])
+    expect(con(['Auto'], ['Sin stock'])).toEqual(['cam-x'])
+  })
+  it('sin marca (TECNICO, autoPedido nulo) el modo no filtra', () => {
+    expect(aplicarFiltrosStock(todos, { ...FILTROS_STOCK_VACIOS, modos: new Set<ModoPedido>(['Auto']) })).toHaveLength(4)
   })
 })
 
@@ -54,12 +66,13 @@ describe('textos', () => {
 
 describe('filtrosDesdePedidos', () => {
   it('desmarca OK, Bajo y Sin stock, conserva Desactivado y vacía el buscador (calco de navegarAComponente :233-246)', () => {
-    const f = filtrosDesdePedidos({ estados: new Set<EstadoStock>(['OK', 'Bajo', 'Sin stock', 'Desactivado']), buscador: 'lcd' })
+    const f = filtrosDesdePedidos({ estados: new Set<EstadoStock>(['OK', 'Bajo', 'Sin stock', 'Desactivado']), modos: new Set<ModoPedido>(['Auto']), buscador: 'lcd' })
     expect([...f.estados]).toEqual(['Desactivado'])
+    expect(f.modos.size).toBe(0)
     expect(f.buscador).toBe('')
   })
   it('sin Desactivado marcado deja los estados vacíos (todos) y no modifica los filtros de entrada', () => {
-    const antes = { estados: new Set<EstadoStock>(['Bajo']), buscador: 'bat' }
+    const antes = { estados: new Set<EstadoStock>(['Bajo']), modos: new Set<ModoPedido>(), buscador: 'bat' }
     const f = filtrosDesdePedidos(antes)
     expect(f.estados.size).toBe(0)
     expect(f.buscador).toBe('')

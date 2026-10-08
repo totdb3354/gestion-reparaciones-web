@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { Fragment, useId } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import { Checkbox } from './checkbox'
@@ -24,11 +24,14 @@ type Props<T> = {
    *  refresco periódico de una tabla, que al recargar movería las filas bajo el cursor). Opcional: sin ella el
    *  Popover se comporta igual que siempre. */
   onOpenChange?: (abierta: boolean) => void
+  /** Clave de la opción antes de la que se pinta una línea horizontal: separa un grupo de opciones de otra naturaleza
+   *  (en Stock, Auto / Manual bajo los estados del semáforo). */
+  separadorAntes?: string
   className?: string
 }
 
 /** Desplegable con checkboxes, calco de MultiSelectDropdown: la etiqueta del botón resume la selección. */
-export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, textoTodas, onOpenChange, className }: Props<T>) {
+export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange, textoVacio, textoPlural, textoTodas, onOpenChange, separadorAntes, className }: Props<T>) {
   // La etiqueta de una única selección es el nombre de la opción, no su clave (los técnicos van por id)
   const nombres = [...seleccion].map((k) => { const o = opciones.find((x) => clave(x) === k); return o ? etiqueta(o) : k })
   const texto = textoMultiSelect(nombres, textoVacio, textoPlural, opciones.length, textoTodas)
@@ -56,10 +59,13 @@ export function MultiSelect<T>({ opciones, clave, etiqueta, seleccion, onChange,
           const k = clave(o)
           const id = `${idBase}-${i}`
           return (
-            <label key={k} htmlFor={id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[12px] hover:bg-pill-bg">
-              <Checkbox id={id} checked={seleccion.has(k)} onCheckedChange={(v) => toggle(k, v === true)} aria-label={etiqueta(o)} />
-              {etiqueta(o)}
-            </label>
+            <Fragment key={k}>
+              {k === separadorAntes && i > 0 && <div role="separator" className="my-1 border-t border-fila-sep" />}
+              <label htmlFor={id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[12px] hover:bg-pill-bg">
+                <Checkbox id={id} checked={seleccion.has(k)} onCheckedChange={(v) => toggle(k, v === true)} aria-label={etiqueta(o)} />
+                {etiqueta(o)}
+              </label>
+            </Fragment>
           )
         })}
       </PopoverContent>

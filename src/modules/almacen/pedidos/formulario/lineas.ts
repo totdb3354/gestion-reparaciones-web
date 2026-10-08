@@ -93,8 +93,9 @@ export function cuantasPrevision(activos: Componente[]): number {
 
 /** «Añadir previsión» (spec 0.9.6 §4.4). Marcada sin línea: línea nueva con «Pedir 60 d» y el proveedor general, o
  *  nada si no hay que pedir (cuenta en `sinPedido`). Marcada con línea: cantidad = máx(la de la línea, la previsión, 1)
- *  y el proveedor general solo si la línea no tenía. Las líneas de piezas no marcadas no se tocan. Idempotente. */
-export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number): { lineas: LineaCompra[]; sinPedido: number } {
+ *  y el proveedor general solo si la línea no tenía. Las líneas de piezas no marcadas no se tocan. Idempotente.
+ *  El proveedor general es opcional: sin él (`null`) las líneas nuevas van sin proveedor y se elige después. */
+export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number | null): { lineas: LineaCompra[]; sinPedido: number } {
   let resultado = lineas
   let sinPedido = 0
   for (const c of marcadas(activos)) {

@@ -168,6 +168,15 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     expect(r.sinPedido).toBe(1)
   })
 
+  it('sin proveedor general añade las líneas sin proveedor y no toca el de las que ya estaban', () => {
+    const r = aplicarPrevision([{ id: 1, idCom: 1, idProv: null, cantidad: '3', precio: '0,00', urgente: false }],
+      [...ACTIVOS, comp({ idCom: 6, tipo: 'mc', autoPedido: true, pedir60: 2 })], null)
+    expect(r.lineas).toEqual([
+      { id: 1, idCom: 1, idProv: null, cantidad: '16', precio: '0,00', urgente: false },
+      { id: 2, idCom: 6, idProv: null, cantidad: '2', precio: '0,00', urgente: false },
+    ])
+  })
+
   it('en una línea que ya estaba sube la cantidad sin bajarla y solo rellena el proveedor vacío', () => {
     const lineas: LineaCompra[] = [
       { id: 1, idCom: 1, idProv: null, cantidad: '3', precio: '0,00', urgente: true },
