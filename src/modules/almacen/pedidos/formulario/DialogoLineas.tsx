@@ -33,6 +33,7 @@ const ANCHO_COMBO_PROVEEDOR = 140
 type Props<L extends LineaBase> = {
   titulo: string
   primera: { cabecera: string; ancho: number; celda: (linea: L, n: number) => ReactNode }
+  barra?: ReactNode
   lineas: L[]
   proveedores: Proveedor[]
   info: string | null
@@ -47,10 +48,10 @@ type Props<L extends LineaBase> = {
 }
 
 /** Armazón de "Nuevo pedido" y "Nuevo otro pedido" (FormularioCompraView.fxml / FormularioOtroPedidoView.fxml): modal de
- *  700 px, título de 24 px, tabla de líneas con celdas siempre editables (P8), "+ Añadir línea", línea de información,
+ *  700 px, título de 24 px, barra opcional (proveedor general de "Nuevo pedido"), tabla de líneas con celdas siempre editables (P8), "+ Añadir línea", línea de información,
  *  línea de error (P6) y "Cancelar" / "Confirmar pedido". La divisa de cada línea es la de su proveedor; sin proveedor la
  *  línea se calcula como EUR (tasa 1.0 por defecto de LineaCompra). Sin atajos de teclado (el JavaFX no tenía). */
-export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
+export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   const [anadida, setAnadida] = useState<number | null>(null)
   // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
@@ -100,6 +101,7 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, pr
         className="max-h-[calc(100vh-24px)] w-[700px] max-w-[min(700px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7"
       >
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
+        {barra}
         {/* Alto máximo con scroll propio (calco del ListView a prefHeight 220 de FormularioCompraView.fxml, C24): con
             muchas líneas la tabla desplaza y "Cancelar"/"Confirmar pedido" quedan siempre a la vista. El popup del
             autocompletar de Componente va en un portal (CampoAutocompletar), así que el recorte de esta caja no lo

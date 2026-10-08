@@ -80,6 +80,47 @@ export function avisoOmitidas(n: number): string | null {
   return n > 0 ? `${n} solicitud(es) de componentes desactivados no se han añadido y siguen pendientes.` : null
 }
 
+/** Piezas del pedido automático (spec 0.9.6 §4.4): activas, marcadas y que son master o sueltas. Los slaves traen la
+ *  marca y la previsión de su master (el listado las copia), así que contarlos duplicaría el grupo; el pedido va al master. */
+function marcadas(activos: Componente[]): Componente[] {
+  return activos.filter((c) => c.activo && c.autoPedido === true && c.idComMaster == null)
+}
+
+/** N del botón «Añadir previsión (N)»: marcadas con algo que pedir. */
+export function cuantasPrevision(activos: Componente[]): number {
+  return marcadas(activos).filter((c) => (c.pedir60 ?? 0) > 0).length
+}
+
+/** «Añadir previsión» (spec 0.9.6 §4.4). Marcada sin línea: línea nueva con «Pedir 60 d» y el proveedor general, o
+ *  nada si no hay que pedir (cuenta en `sinPedido`). Marcada con línea: cantidad = máx(la de la línea, la previsión, 1)
+ *  y el proveedor general solo si la línea no tenía. Las líneas de piezas no marcadas no se tocan. Idempotente. */
+export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number): { lineas: LineaCompra[]; sinPedido: number } {
+  let resultado = lineas
+  let sinPedido = 0
+  for (const c of marcadas(activos)) {
+    const pedir = c.pedir60 ?? 0
+    const existente = resultado.find((l) => l.idCom === c.idCom)
+    if (existente === undefined) {
+      if (pedir > 0) resultado = [...resultado, { ...lineaCompraVacia(siguienteId(resultado), c.idCom), idProv, cantidad: String(pedir) }]
+      else sinPedido += 1
+      continue
+    }
+    const cantidad = Math.max(parsearEntero(existente.cantidad) ?? 0, pedir, 1)
+    resultado = cambiarLinea(resultado, existente.id, { cantidad: String(cantidad), idProv: existente.idProv ?? idProv })
+  }
+  return { lineas: resultado, sinPedido }
+}
+
+/** «Aplicar a todas»: el proveedor general en todas las líneas, también en las que ya tenían uno. */
+export function aplicarProveedorATodas<T extends { idProv: number | null }>(lineas: T[], idProv: number): T[] {
+  return lineas.map((l) => ({ ...l, idProv }))
+}
+
+export function avisoSinPedido(n: number): string | null {
+  if (n <= 0) return null
+  return n === 1 ? '1 pieza marcada no necesita pedido.' : `${n} piezas marcadas no necesitan pedido.`
+}
+
 /** Proveedor → cantidad → precio (FC :528-538, FO :452-466). */
 function errorComun(l: LineaBase, n: number): string | null {
   if (l.idProv === null) return `Línea ${n}: selecciona un proveedor.`

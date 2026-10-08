@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
+import type { Componente } from '@/shared/api/client'
 import {
-  avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
+  aplicarPrevision, aplicarProveedorATodas, avisoSinPedido, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
@@ -140,5 +141,78 @@ describe('textoDescartar', () => {
   it('singular con una línea y plural con N', () => {
     expect(textoDescartar(1)).toBe('Se descartará la línea del pedido.')
     expect(textoDescartar(3)).toBe('Se descartarán las 3 líneas del pedido.')
+  })
+})
+
+describe('pedido automático (spec 0.9.6 §4.4)', () => {
+  const comp = (o: Partial<Componente>): Componente => ({
+    idCom: 1, tipo: 'x', fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', stock: 0, stockMinimo: 1,
+    activo: true, enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: 0.3, pedir60: 0, autoPedido: false, ...o,
+  })
+  // lcd (1) marcada y pide 16; bat (2) marcada sin pedido; cam (3) sin marcar; bat-y (5) slave de bat, hereda la marca.
+  const ACTIVOS = [
+    comp({ idCom: 1, tipo: 'lcd', autoPedido: true, pedir60: 16 }),
+    comp({ idCom: 2, tipo: 'bat', autoPedido: true, pedir60: 0 }),
+    comp({ idCom: 3, tipo: 'cam', autoPedido: false, pedir60: 9 }),
+    comp({ idCom: 5, tipo: 'bat-y', autoPedido: true, pedir60: 0, idComMaster: 2 }),
+  ]
+
+  it('cuenta las marcadas que necesitan pedido, una vez por grupo', () => {
+    expect(cuantasPrevision(ACTIVOS)).toBe(1)
+    expect(cuantasPrevision([...ACTIVOS, comp({ idCom: 6, tipo: 'mc', autoPedido: true, pedir60: 2 })])).toBe(2)
+  })
+
+  it('añade las marcadas sin línea con su cantidad y el proveedor general, y salta las que no necesitan pedido', () => {
+    const r = aplicarPrevision([], ACTIVOS, 7)
+    expect(r.lineas).toEqual([{ id: 1, idCom: 1, idProv: 7, cantidad: '16', precio: '0,00', urgente: false }])
+    expect(r.sinPedido).toBe(1)
+  })
+
+  it('en una línea que ya estaba sube la cantidad sin bajarla y solo rellena el proveedor vacío', () => {
+    const lineas: LineaCompra[] = [
+      { id: 1, idCom: 1, idProv: null, cantidad: '3', precio: '0,00', urgente: true },
+      { id: 2, idCom: 2, idProv: 9, cantidad: '4', precio: '1,50', urgente: false },
+      { id: 3, idCom: 3, idProv: null, cantidad: '1', precio: '0,00', urgente: false },
+    ]
+    const r = aplicarPrevision(lineas, ACTIVOS, 7)
+    expect(r.lineas).toEqual([
+      { id: 1, idCom: 1, idProv: 7, cantidad: '16', precio: '0,00', urgente: true },
+      { id: 2, idCom: 2, idProv: 9, cantidad: '4', precio: '1,50', urgente: false },
+      { id: 3, idCom: 3, idProv: null, cantidad: '1', precio: '0,00', urgente: false },
+    ])
+    expect(r.sinPedido).toBe(0)
+  })
+
+  it('una cantidad no válida en una línea marcada pasa a la previsión, o a 1 si la previsión es 0', () => {
+    const r = aplicarPrevision([
+      { id: 1, idCom: 1, idProv: 7, cantidad: 'abc', precio: '0,00', urgente: false },
+      { id: 2, idCom: 2, idProv: 7, cantidad: '', precio: '0,00', urgente: false },
+    ], ACTIVOS, 7)
+    expect(r.lineas.map((l) => l.cantidad)).toEqual(['16', '1'])
+  })
+
+  it('pulsar dos veces deja lo mismo', () => {
+    const una = aplicarPrevision([], ACTIVOS, 7)
+    expect(aplicarPrevision(una.lineas, ACTIVOS, 7)).toEqual(una)
+  })
+
+  it('las desactivadas y las no marcadas no entran', () => {
+    const desactivada = comp({ idCom: 4, activo: false, autoPedido: true, pedir60: 5 })
+    expect(aplicarPrevision([], [desactivada, comp({ idCom: 3, autoPedido: false, pedir60: 9 })], 7)).toEqual({ lineas: [], sinPedido: 0 })
+    expect(cuantasPrevision([desactivada])).toBe(0)
+  })
+
+  it('«Aplicar a todas» pone el proveedor en todas las líneas', () => {
+    const lineas: LineaCompra[] = [
+      { id: 1, idCom: 1, idProv: null, cantidad: '1', precio: '0,00', urgente: false },
+      { id: 2, idCom: 2, idProv: 9, cantidad: '1', precio: '0,00', urgente: false },
+    ]
+    expect(aplicarProveedorATodas(lineas, 7).map((l) => l.idProv)).toEqual([7, 7])
+  })
+
+  it('aviso de las marcadas sin pedido', () => {
+    expect(avisoSinPedido(0)).toBeNull()
+    expect(avisoSinPedido(1)).toBe('1 pieza marcada no necesita pedido.')
+    expect(avisoSinPedido(3)).toBe('3 piezas marcadas no necesitan pedido.')
   })
 })

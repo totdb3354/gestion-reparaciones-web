@@ -3,7 +3,7 @@ import type { Componente } from '@/shared/api/client'
 import { agruparCompartidos } from './grupos'
 import { colorBarraStock, conteosDonut, ticksEjeY } from './graficos'
 
-const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
+const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 
 describe('conteosDonut', () => {

@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Componente } from '@/shared/api/client'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { avisaAlSalir } from '@/test/avisoAlSalir'
@@ -117,8 +118,8 @@ describe('NuevoPedidoDialog', () => {
     expect(screen.getByRole('dialog')).toHaveClass('w-[700px]', 'bg-fondo-vista', 'p-7')
     expect(dlg.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
     expect(dlg.getByText('Añade al menos una línea')).toBeInTheDocument()
-    // La ✕ de DialogContent ("Close", sr-only) va la última.
-    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['+ Añadir línea', 'Cancelar', 'Confirmar pedido', 'Close'])
+    // Barra del proveedor general primero; la ✕ de DialogContent ("Close", sr-only) va la última.
+    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Aplicar a todas', 'Añadir previsión (0)', '+ Añadir línea', 'Cancelar', 'Confirmar pedido', 'Close'])
   })
 
   it('sin líneas: "Añade al menos una línea." y no envía nada', async () => {
@@ -386,5 +387,69 @@ describe('NuevoPedidoDialog', () => {
     await userEvent.click(papelera)
     expect(screen.getByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
     expect(screen.queryByRole('combobox', { name: 'Componente línea 2' })).not.toBeInTheDocument()
+  })
+})
+
+describe('pedido automático (spec 0.9.6 §4.4)', () => {
+  // lcd-x-negro (1) marcada y pide 16; bat-x (2) marcada sin pedido; el resto sin marcar.
+  const CON_PREVISION: Componente[] = COMPONENTES.map((c) =>
+    c.idCom === 1 ? { ...c, autoPedido: true, pedir60: 16 } : c.idCom === 2 ? { ...c, autoPedido: true, pedir60: 0 } : c)
+
+  beforeEach(() => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(CON_PREVISION)))
+  })
+
+  async function elegirProveedorGeneral(nombre: string) {
+    await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor general' }))
+    await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor general' })).findByRole('button', { name: nombre }))
+  }
+
+  it('sin proveedor general los dos botones están deshabilitados', async () => {
+    abrir()
+    expect(await screen.findByRole('button', { name: 'Añadir previsión (1)' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Aplicar a todas' })).toBeDisabled()
+  })
+
+  it('«Añadir previsión» mete la marcada con su cantidad y el proveedor general, avisa de la que no necesita pedido y se confirma', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+    expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+    await confirmar()
+    await waitFor(() => expect(lotes).toHaveLength(1))
+  })
+
+  it('con la pieza ya en el pedido sube la cantidad y no la duplica', async () => {
+    abrir({ modo: 'componentes', idsCom: [1] })
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+    expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+  })
+
+  it('«Aplicar a todas» cambia también el proveedor que ya tenía una línea', async () => {
+    abrir({ modo: 'componentes', idsCom: [1] })
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
+    await elegirProveedor(1, 'Proveedor B')
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Aplicar a todas' }))
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+  })
+
+  it('el aviso de piezas sin pedido se borra al editar las líneas', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
+    await escribir('Cantidad línea 1', '5')
+    expect(screen.queryByText('1 pieza marcada no necesita pedido.')).not.toBeInTheDocument()
   })
 })

@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
+import { BotonSecundario } from '@/shared/ui/Botones'
 import { CampoAutocompletar } from '@/shared/ui/CampoAutocompletar'
+import { ComboNavy } from '@/shared/ui/ComboNavy'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { useComponentesStock } from '../../stock/api'
 import { agruparCompartidos, nombreGrupo } from '../../stock/grupos'
@@ -9,7 +11,7 @@ import { useGuardarLoteCompras } from '../api'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  avisoOmitidas, cambiarLinea, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
+  aplicarPrevision, aplicarProveedorATodas, avisoOmitidas, avisoSinPedido, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
   validarLineasCompra, type LineaCompra,
 } from './lineas'
 
@@ -28,6 +30,11 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const [lineas, setLineas] = useState<LineaCompra[] | null>(precarga.modo === 'vacio' ? [] : null)
   const [omitidas, setOmitidas] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  // Pedido automático (spec 0.9.6 §4.4): proveedor general y cuántas marcadas hay que pedir.
+  const [idProvGeneral, setIdProvGeneral] = useState<number | null>(null)
+  const [sinPedido, setSinPedido] = useState(0)
+  const nPrevision = useMemo(() => cuantasPrevision(activos), [activos])
+  const opcionesProveedor = useMemo(() => proveedoresActivos.map((p) => ({ valor: String(p.idProv), etiqueta: p.nombre })), [proveedoresActivos])
   // Una instancia por apertura: el host remonta el diálogo en cada apertura (key), así que no sobrevive a un éxito.
   const [claves] = useState(() => crearClavesIdempotencia())
   const guardar = useGuardarLoteCompras()
@@ -46,17 +53,32 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   function cambiar(id: number, cambio: Partial<LineaCompra>) {
     setLineas((ls) => cambiarLinea(ls ?? [], id, cambio))
     setError(null)
+    setSinPedido(0)
   }
   function quitar(id: number) {
     setLineas((ls) => quitarLinea(ls ?? [], id))
     setError(null)
+    setSinPedido(0)
   }
   function anadir(): number {
     const id = siguienteId(lineas ?? [])
     // Siempre vacía, también si se abrió con "Pedir": calco de anadirLinea() { añadirFila(null); } (FormularioCompraController :496).
     setLineas((ls) => [...(ls ?? []), lineaCompraVacia(id)])
     setError(null)
+    setSinPedido(0)
     return id
+  }
+  function anadirPrevision() {
+    if (idProvGeneral === null) return
+    const r = aplicarPrevision(lineas ?? [], activos, idProvGeneral)
+    setLineas(r.lineas)
+    setSinPedido(r.sinPedido)
+    setError(null)
+  }
+  function aplicarATodas() {
+    if (idProvGeneral === null) return
+    setLineas((ls) => aplicarProveedorATodas(ls ?? [], idProvGeneral))
+    setError(null)
   }
 
   async function confirmar() {
@@ -78,6 +100,9 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     }
   }
 
+  const bloqueado = guardar.isPending || lineas === null
+  const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido)].filter((t) => t !== null).join(' ') || null
+
   return (
     <DialogoLineas<LineaCompra>
       titulo="Nuevo pedido"
@@ -91,11 +116,19 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
           </div>
         ),
       }}
+      barra={
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-[12px] font-bold text-azul-medio">Proveedor:</span>
+          <ComboNavy valor={idProvGeneral === null ? null : String(idProvGeneral)} opciones={opcionesProveedor} onChange={(v) => setIdProvGeneral(Number(v))} textoVacio="" ancho={160} visibles={8} aria-label="Proveedor general" />
+          <BotonSecundario type="button" disabled={bloqueado || idProvGeneral === null || (lineas ?? []).length === 0} onClick={aplicarATodas}>Aplicar a todas</BotonSecundario>
+          <BotonSecundario type="button" disabled={bloqueado || idProvGeneral === null || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión ({nPrevision})</BotonSecundario>
+        </div>
+      }
       lineas={lineas ?? []}
       proveedores={proveedoresActivos}
-      info={avisoOmitidas(omitidas)}
+      info={info}
       error={error}
-      bloqueado={guardar.isPending || lineas === null}
+      bloqueado={bloqueado}
       enviando={guardar.isPending}
       onCambiar={cambiar}
       onQuitar={quitar}
