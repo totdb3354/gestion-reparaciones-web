@@ -19,7 +19,7 @@ import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { ultimaRutaStock } from '../estado'
 import { AjustarMinimoDialog } from './AjustarMinimoDialog'
-import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditarStock, useSetActivoComponente, useSolicitarPieza } from './api'
+import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditarStock, useMarcarAutoPedido, useSetActivoComponente, useSolicitarPieza } from './api'
 import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
@@ -62,6 +62,7 @@ export function StockPage() {
   const { data = [], dataUpdatedAt, refetch, isSuccess } = useComponentesStock({ activo: !hayAlguna && formulario === null })
   const editarStock = useEditarStock()
   const ajustarMinimo = useAjustarMinimo()
+  const { mutate: marcarAutoPedido } = useMarcarAutoPedido()
   const setActivo = useSetActivoComponente()
   const solicitar = useSolicitarPieza()
   // Clave de reintento de "Solicitar pieza": la misma mientras el cuerpo no cambie; nueva tras un envío correcto.
@@ -132,7 +133,9 @@ export function StockPage() {
   const graficoSku = !seleccionado || !filaGrafico ? null : { componente: filaGrafico, enCamino: veEnCamino ? grafico?.enCamino ?? 0 : 0 }
 
   const irAPedidos = useCallback((c: Componente) => navigate(`/stock/pedidos?${parametrosPedidos(c)}`), [navigate])
-  const columnas = useMemo(() => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino }), [irAPedidos, veEnCamino])
+  const columnas = useMemo(
+    () => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino, onAutoPedido: (c, autoPedido) => marcarAutoPedido({ idCom: c.idCom, autoPedido }) }),
+    [irAPedidos, veEnCamino, marcarAutoPedido])
 
   useRegistrarExportable(() => descargarCsv('stock_actual', cabecerasCsvStock(veEnCamino), visibles.map((c) => filaCsvStock(c, veEnCamino))))
 

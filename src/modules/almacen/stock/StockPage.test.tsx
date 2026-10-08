@@ -112,7 +112,7 @@ describe('StockPage', () => {
     await screen.findByText('lcd-x / lcd-y')
     await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
     // MultiSelect pinta cada opción como checkbox con aria-label = etiqueta (MultiSelect.tsx)
-    expect(screen.getAllByRole('checkbox').map((i) => i.getAttribute('aria-label'))).toEqual(['OK', 'Bajo', 'Sin stock', 'Desactivado'])
+    expect(screen.getAllByRole('checkbox').map((i) => i.getAttribute('aria-label')).filter((n) => !n?.startsWith('Pedido automático'))).toEqual(['OK', 'Bajo', 'Sin stock', 'Desactivado'])
     await userEvent.click(screen.getByRole('checkbox', { name: 'Bajo' }))
     // marcar no cierra el desplegable (calco de hideOnClick=false)
     expect(screen.getByRole('checkbox', { name: 'Sin stock' })).toBeInTheDocument()
@@ -388,10 +388,27 @@ describe('StockPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('stock_actual')
-    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 60 d'])
+    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 60 d', 'Auto'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
-    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '16']])
+    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '16', '—']])
     descargar.mockRestore()
+  })
+  // La vuelta atrás si el PATCH falla la cubre api.test.tsx (Task 3): aquí el diálogo global de error dejaría la
+  // tabla aria-hidden y el test dependería del orden de las recargas.
+  it('la casilla «Auto» manda el PATCH con la marca nueva', async () => {
+    const cuerpos: unknown[] = []
+    server.use(http.patch('*/api/componentes/2/auto-pedido', async ({ request }) => {
+      cuerpos.push(await request.json())
+      return new HttpResponse(null, { status: 200 })
+    }))
+    montar()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Pedido automático bat-x' }))
+    await waitFor(() => expect(cuerpos).toEqual([{ autoPedido: true }]))
+  })
+  it('el TECNICO no ve la columna «Auto»', async () => {
+    montar(SESION_TEC)
+    await screen.findByText('lcd-x / lcd-y')
+    expect(screen.queryByRole('columnheader', { name: 'Auto' })).not.toBeInTheDocument()
   })
   it('Descargar CSV del TECNICO exporta solo las cabeceras base, sin previsión', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
