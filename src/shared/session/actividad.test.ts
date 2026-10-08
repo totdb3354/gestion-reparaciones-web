@@ -52,6 +52,22 @@ describe('marca de actividad', () => {
     detener()
   })
 
+  it('cuenta también lo que un elemento no deja subir (la rueda dentro de un desplegable, que para su propagación)', () => {
+    localStorage.setItem(CLAVE_SESION, SESION)
+    const detener = arrancarMarcaDeActividad()
+    const lista = document.createElement('ul')
+    document.body.appendChild(lista)
+    lista.addEventListener('wheel', (e) => e.stopPropagation())
+    vi.setSystemTime(3_000)
+    lista.dispatchEvent(new Event('wheel', { bubbles: true }))
+    expect(leerActividad()).toBe(3_000)
+    detener()
+    vi.setSystemTime(4_000)
+    lista.dispatchEvent(new Event('wheel', { bubbles: true }))
+    expect(leerActividad()).toBe(3_000)
+    lista.remove()
+  })
+
   it('sin sesión no escribe nada', () => {
     const detener = arrancarMarcaDeActividad()
     document.dispatchEvent(new Event('pointerdown'))

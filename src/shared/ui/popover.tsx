@@ -16,15 +16,27 @@ function PopoverTrigger({
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
 
+/** Un desplegable dentro de un modal se pinta en un portal (fuera del DOM del modal) pero sigue en su árbol de React, y
+ *  el bloqueo de scroll del modal (react-remove-scroll) cancela la rueda y el arrastre táctil que no ocurren en el DOM
+ *  del modal: la lista no se movía con la rueda y, en Mac (barra que se oculta), de ninguna forma. Parar la
+ *  propagación aquí impide que llegue a su oyente de `document`; el navegador desplaza la lista con normalidad. */
+function noCancelarDesplazamiento(e: React.SyntheticEvent) {
+  e.stopPropagation()
+}
+
 function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  onWheel,
+  onTouchMove,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
+        onWheel={(e) => { noCancelarDesplazamiento(e); onWheel?.(e) }}
+        onTouchMove={(e) => { noCancelarDesplazamiento(e); onTouchMove?.(e) }}
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}

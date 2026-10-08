@@ -35,11 +35,12 @@ export function arrancarMarcaDeActividad(): () => void {
   const anotar = () => {
     if (leerSesion() !== null) escribirActividad()
   }
+  // En captura: cuenta aunque un elemento pare la propagación (la rueda dentro de un desplegable, ver PopoverContent).
   for (const evento of EVENTOS) {
-    document.addEventListener(evento, anotar, { passive: true })
+    document.addEventListener(evento, anotar, { passive: true, capture: true })
   }
   const detener = () => {
-    for (const evento of EVENTOS) document.removeEventListener(evento, anotar)
+    for (const evento of EVENTOS) document.removeEventListener(evento, anotar, { capture: true })
     if (detenerActual === detener) detenerActual = null
   }
   detenerActual = detener
