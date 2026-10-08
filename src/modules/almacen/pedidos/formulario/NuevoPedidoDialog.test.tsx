@@ -404,10 +404,15 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor general' })).findByRole('button', { name: nombre }))
   }
 
-  it('sin proveedor general los dos botones están deshabilitados', async () => {
+  it('sin proveedor general «Añadir previsión» funciona y deja las líneas sin proveedor; «Aplicar a todas» espera al proveedor', async () => {
     abrir()
-    expect(await screen.findByRole('button', { name: 'Añadir previsión (1)' })).toBeDisabled()
+    await userEvent.click(await screen.findByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('')
     expect(screen.getByRole('button', { name: 'Aplicar a todas' })).toBeDisabled()
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Aplicar a todas' }))
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
   })
 
   it('«Añadir previsión» mete la marcada con su cantidad y el proveedor general, avisa de la que no necesita pedido y se confirma', async () => {

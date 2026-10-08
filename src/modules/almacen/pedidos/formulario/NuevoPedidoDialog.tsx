@@ -69,7 +69,6 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     return id
   }
   function anadirPrevision() {
-    if (idProvGeneral === null) return
     const r = aplicarPrevision(lineas ?? [], activos, idProvGeneral)
     setLineas(r.lineas)
     setSinPedido(r.sinPedido)
@@ -121,7 +120,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
           <span className="text-[12px] font-bold text-azul-medio">Proveedor:</span>
           <ComboNavy valor={idProvGeneral === null ? null : String(idProvGeneral)} opciones={opcionesProveedor} onChange={(v) => setIdProvGeneral(Number(v))} textoVacio="" ancho={160} visibles={8} aria-label="Proveedor general" />
           <BotonSecundario type="button" disabled={bloqueado || idProvGeneral === null || (lineas ?? []).length === 0} onClick={aplicarATodas}>Aplicar a todas</BotonSecundario>
-          <BotonSecundario type="button" disabled={bloqueado || idProvGeneral === null || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión ({nPrevision})</BotonSecundario>
+          <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión ({nPrevision})</BotonSecundario>
         </div>
       }
       lineas={lineas ?? []}
