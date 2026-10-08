@@ -442,4 +442,14 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Aplicar a todas' }))
     expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
   })
+
+  it('el aviso de piezas sin pedido se borra al editar las líneas', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
+    await escribir('Cantidad línea 1', '5')
+    expect(screen.queryByText('1 pieza marcada no necesita pedido.')).not.toBeInTheDocument()
+  })
 })

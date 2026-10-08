@@ -53,16 +53,19 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   function cambiar(id: number, cambio: Partial<LineaCompra>) {
     setLineas((ls) => cambiarLinea(ls ?? [], id, cambio))
     setError(null)
+    setSinPedido(0)
   }
   function quitar(id: number) {
     setLineas((ls) => quitarLinea(ls ?? [], id))
     setError(null)
+    setSinPedido(0)
   }
   function anadir(): number {
     const id = siguienteId(lineas ?? [])
     // Siempre vacía, también si se abrió con "Pedir": calco de anadirLinea() { añadirFila(null); } (FormularioCompraController :496).
     setLineas((ls) => [...(ls ?? []), lineaCompraVacia(id)])
     setError(null)
+    setSinPedido(0)
     return id
   }
   function anadirPrevision() {
