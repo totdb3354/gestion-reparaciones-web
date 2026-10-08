@@ -48,7 +48,7 @@ type Props<L extends LineaBase> = {
 }
 
 /** Armazón de "Nuevo pedido" y "Nuevo otro pedido" (FormularioCompraView.fxml / FormularioOtroPedidoView.fxml): modal de
- *  700 px, título de 24 px, barra opcional (proveedor general de "Nuevo pedido"), tabla de líneas con celdas siempre editables (P8), "+ Añadir línea", línea de información,
+ *  880 px (700 en el JavaFX; más grande desde la 0.9.6), título de 24 px, barra opcional (proveedor general de "Nuevo pedido"), tabla de líneas con celdas siempre editables (P8), "+ Añadir línea", línea de información,
  *  línea de error (P6) y "Cancelar" / "Confirmar pedido". La divisa de cada línea es la de su proveedor; sin proveedor la
  *  línea se calcula como EUR (tasa 1.0 por defecto de LineaCompra). Sin atajos de teclado (el JavaFX no tenía). */
 export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
@@ -98,15 +98,15 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lin
         // Sin seleccionar texto en una precarga (C25): igual de accesible que el comportamiento por defecto de Radix
         // (el propio diálogo recibe el foco, sin tocar ningún campo), pero sin pisar lo precargado al teclear.
         onOpenAutoFocus={huboPrecarga ? (e) => { e.preventDefault(); (e.target as HTMLElement).focus() } : undefined}
-        className="max-h-[calc(100vh-24px)] w-[700px] max-w-[min(700px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7"
+        className="max-h-[calc(100vh-24px)] w-[880px] max-w-[min(880px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7"
       >
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
         {barra}
-        {/* Alto máximo con scroll propio (calco del ListView a prefHeight 220 de FormularioCompraView.fxml, C24): con
+        {/* Alto máximo con scroll propio (ListView a prefHeight 220 de FormularioCompraView.fxml, C24; 300-420 desde la 0.9.6): con
             muchas líneas la tabla desplaza y "Cancelar"/"Confirmar pedido" quedan siempre a la vista. El popup del
             autocompletar de Componente va en un portal (CampoAutocompletar), así que el recorte de esta caja no lo
             afecta: no hace falta que el scroll lo traiga a la vista. */}
-        <div className="min-h-[220px] max-h-[260px] overflow-y-auto rounded-md bg-superficie">
+        <div className="min-h-[300px] max-h-[420px] overflow-y-auto rounded-md bg-superficie">
           <table className="w-full table-fixed text-sm">
             <colgroup>
               {anchos.map((a, i) => <col key={i} style={{ width: `${(a / suma) * 100}%` }} />)}

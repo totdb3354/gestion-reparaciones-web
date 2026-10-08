@@ -115,7 +115,7 @@ describe('NuevoPedidoDialog', () => {
     abrir()
     const dlg = within(await screen.findByRole('dialog', { name: 'Nuevo pedido' }))
     expect(dlg.getByRole('heading', { name: 'Nuevo pedido' })).toHaveClass('text-2xl', 'font-bold', 'text-azul-medio')
-    expect(screen.getByRole('dialog')).toHaveClass('w-[700px]', 'bg-fondo-vista', 'p-7')
+    expect(screen.getByRole('dialog')).toHaveClass('w-[880px]', 'bg-fondo-vista', 'p-7')
     expect(dlg.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
     expect(dlg.getByText('Añade al menos una línea')).toBeInTheDocument()
     // Barra del proveedor general primero; la ✕ de DialogContent ("Close", sr-only) va la última.
@@ -218,7 +218,7 @@ describe('NuevoPedidoDialog', () => {
     const boton = await screen.findByRole('button', { name: '+ Añadir línea' })
     for (let i = 0; i < 8; i += 1) await userEvent.click(boton)
     const tabla = screen.getByRole('table').parentElement as HTMLElement
-    expect(tabla).toHaveClass('max-h-[260px]', 'overflow-y-auto')
+    expect(tabla).toHaveClass('max-h-[420px]', 'overflow-y-auto')
     expect(screen.getByRole('button', { name: 'Confirmar pedido' })).toBeInTheDocument()
   })
 
@@ -445,6 +445,23 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     await elegirProveedor(1, 'Proveedor B')
     await elegirProveedorGeneral('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Aplicar a todas' }))
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+  })
+
+  it('elegir el proveedor general rellena al momento las líneas sin proveedor y no toca las que ya tienen', async () => {
+    abrir({ modo: 'componentes', idsCom: [1, 2] })
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 2')).toHaveValue('1'))
+    await elegirProveedor(2, 'Proveedor B')
+    await elegirProveedorGeneral('ACME')
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+    expect(screen.getByRole('combobox', { name: 'Proveedor línea 2' })).toHaveTextContent('Proveedor B')
+  })
+
+  it('con proveedor general elegido, «+ Añadir línea» la añade ya con ese proveedor', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await elegirProveedorGeneral('ACME')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
     expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
   })
 
