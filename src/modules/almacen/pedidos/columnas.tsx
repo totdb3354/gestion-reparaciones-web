@@ -3,12 +3,13 @@ import type { CompraComponente, CompraOtro } from '@/shared/api/client'
 import { FMT_FECHA_PEDIDO, formatear } from '@/shared/lib/fechas'
 import { formatearImporte, formatearNumero, simboloDivisa } from '@/shared/lib/importes'
 import { cn } from '@/shared/lib/utils'
+import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoPedido } from './BadgeEstadoPedido'
 import { marcaPrecioCero, marcaTotalCero, textoCantidad, totalFila, type Pedido } from './reglas'
 
-/** prefWidth de StockView.fxml :141-149 (componentes) y :156-163 (otros). */
-export const ANCHOS_PEDIDOS = { fecha: 115, componente: 190, proveedor: 130, cantidad: 50, precio: 68, eur: 68, estado: 110 } as const
-export const ANCHOS_OTROS = { fecha: 115, concepto: 220, proveedor: 130, cantidad: 60, precio: 80, eur: 80, estado: 110 } as const
+/** prefWidth de StockView.fxml :141-149 (componentes) y :156-163 (otros); el ID es de la 0.9.6 (no estaba en el JavaFX). */
+export const ANCHOS_PEDIDOS = { id: 55, fecha: 115, componente: 190, proveedor: 130, cantidad: 50, precio: 68, eur: 68, estado: 110 } as const
+export const ANCHOS_OTROS = { id: 55, fecha: 115, concepto: 220, proveedor: 130, cantidad: 60, precio: 80, eur: 80, estado: 110 } as const
 
 /** Celdas P.Unit. y EUR (:797-849): el importe y, si hay marca, el importe en ámbar negrita y un "!" de 12 px a 4 px. */
 function celdaImporte(texto: string, marca: boolean) {
@@ -23,9 +24,12 @@ function celdaImporte(texto: string, marca: boolean) {
 const precio = (p: Pedido) => celdaImporte(formatearImporte(p.precioUnidadPedido, simboloDivisa(p.divisa)), marcaPrecioCero(p))
 const eur = (p: Pedido) => celdaImporte(formatearImporte(totalFila(p), '€'), marcaTotalCero(p))
 const fecha = (p: Pedido) => formatear(p.fechaPedido, FMT_FECHA_PEDIDO)
+/** Número del pedido en la base de datos (0.9.6), en gris para que no compita con la fecha. */
+const celdaId = (id: number) => <span className={cn('text-azul-gris', CREMA_EN_FILA_SELECCIONADA)}>{id}</span>
 
 export function crearColumnasPedidos({ onComponente }: { onComponente: (p: CompraComponente) => void }): ColumnDef<CompraComponente>[] {
   return [
+    { id: 'id', header: 'ID', size: ANCHOS_PEDIDOS.id, maxSize: ANCHOS_PEDIDOS.id, cell: ({ row }) => celdaId(row.original.idCompra) },
     { id: 'fecha', header: 'Pedido', size: ANCHOS_PEDIDOS.fecha, maxSize: ANCHOS_PEDIDOS.fecha, accessorFn: fecha },
     {
       id: 'componente', header: 'Componente', size: ANCHOS_PEDIDOS.componente,
@@ -49,6 +53,7 @@ export function crearColumnasPedidos({ onComponente }: { onComponente: (p: Compr
 /** Tabla de otros (:1046-1126): Concepto es un Label sin enlace. */
 export function crearColumnasOtros(): ColumnDef<CompraOtro>[] {
   return [
+    { id: 'id', header: 'ID', size: ANCHOS_OTROS.id, maxSize: ANCHOS_OTROS.id, cell: ({ row }) => celdaId(row.original.idCompraOtro) },
     { id: 'fecha', header: 'Pedido', size: ANCHOS_OTROS.fecha, maxSize: ANCHOS_OTROS.fecha, accessorFn: fecha },
     { id: 'concepto', header: 'Concepto', size: ANCHOS_OTROS.concepto, accessorFn: (p) => p.concepto },
     { id: 'proveedor', header: 'Proveedor', size: ANCHOS_OTROS.proveedor, accessorFn: (p) => p.nombreProveedor },
@@ -83,19 +88,19 @@ export function claseFilaPedido(p: Pedido): string {
 /** Calco de exportarPedidos (:1961-1983): las filas filtradas en el orden mostrado; Cantidad = pedida; total con la regla
  *  de unidades de la columna EUR; importes con `%.2f` (coma, sin símbolo); Estado = `name()`. Fecha en Madrid con año
  *  completo. */
-export const CABECERAS_CSV_PEDIDOS = ['Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
+export const CABECERAS_CSV_PEDIDOS = ['ID', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
 export function filaCsvPedido(p: CompraComponente): string[] {
   return [
-    formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.tipoComponente, String(p.cantidad), p.esUrgente ? 'Sí' : 'No', p.nombreProveedor,
+    String(p.idCompra), formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.tipoComponente, String(p.cantidad), p.esUrgente ? 'Sí' : 'No', p.nombreProveedor,
     formatearNumero(p.precioUnidadPedido), p.divisa, formatearNumero(totalFila(p)), p.estado,
   ]
 }
 
 /** Calco de exportarOtros (:1985-2006): sin Urgente. */
-export const CABECERAS_CSV_OTROS = ['Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
+export const CABECERAS_CSV_OTROS = ['ID', 'Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
 export function filaCsvOtro(p: CompraOtro): string[] {
   return [
-    formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.concepto, String(p.cantidad), p.nombreProveedor,
+    String(p.idCompraOtro), formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.concepto, String(p.cantidad), p.nombreProveedor,
     formatearNumero(p.precioUnidadPedido), p.divisa, formatearNumero(totalFila(p)), p.estado,
   ]
 }
