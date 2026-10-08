@@ -112,6 +112,11 @@ export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], i
   return { lineas: resultado, sinPedido }
 }
 
+/** Elegir el proveedor general: lo pone en las líneas sin proveedor y deja las demás como estén. */
+export function rellenarProveedorVacio<T extends { idProv: number | null }>(lineas: T[], idProv: number): T[] {
+  return lineas.map((l) => (l.idProv === null ? { ...l, idProv } : l))
+}
+
 /** «Aplicar a todas»: el proveedor general en todas las líneas, también en las que ya tenían uno. */
 export function aplicarProveedorATodas<T extends { idProv: number | null }>(lineas: T[], idProv: number): T[] {
   return lineas.map((l) => ({ ...l, idProv }))

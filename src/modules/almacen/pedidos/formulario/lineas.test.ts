@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
-  aplicarPrevision, aplicarProveedorATodas, avisoSinPedido, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
+  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoSinPedido, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
@@ -217,6 +217,14 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
       { id: 2, idCom: 2, idProv: 9, cantidad: '1', precio: '0,00', urgente: false },
     ]
     expect(aplicarProveedorATodas(lineas, 7).map((l) => l.idProv)).toEqual([7, 7])
+  })
+
+  it('elegir el proveedor general rellena solo las líneas sin proveedor', () => {
+    const lineas: LineaCompra[] = [
+      { id: 1, idCom: 1, idProv: null, cantidad: '1', precio: '0,00', urgente: false },
+      { id: 2, idCom: 2, idProv: 9, cantidad: '1', precio: '0,00', urgente: false },
+    ]
+    expect(rellenarProveedorVacio(lineas, 7).map((l) => l.idProv)).toEqual([7, 9])
   })
 
   it('aviso de las marcadas sin pedido', () => {

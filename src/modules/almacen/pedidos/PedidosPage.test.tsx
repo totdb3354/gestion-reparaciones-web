@@ -66,7 +66,7 @@ function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
 /** Por texto y no por rol: con un diálogo abierto Radix deja el resto aria-hidden. */
 const filaDe = (texto: string) => screen.getByText(texto).closest('tr') as HTMLElement
 const abrirMenu = (texto: string) => userEvent.pointer({ keys: '[MouseRight]', target: filaDe(texto) })
-const nombresEnTabla = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[1].textContent)
+const nombresEnTabla = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[2].textContent)
 /** Registra "id acción cuerpo" de cada PATCH de transición y responde con `respuesta`. */
 function registrarPatch(ruta: string, respuesta: () => Response = () => new HttpResponse(null, { status: 200 })) {
   const llamadas: string[] = []
@@ -92,7 +92,7 @@ describe('PedidosPage: vista', () => {
     await screen.findByText('lcd-x-negro')
     expect(screen.getByRole('link', { name: 'Componentes' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Otros' })).not.toHaveAttribute('aria-current')
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
     expect(nombresEnTabla()).toEqual(['lcd-x-negro', 'bat-x', 'bat-y', 'cam-x', 'mc-x'])
     expect(within(filaDe('bat-x')).getByText('en_camino')).toBeInTheDocument()
     expect(within(filaDe('bat-x')).getByText('⚠')).toBeInTheDocument()
@@ -115,7 +115,7 @@ describe('PedidosPage: vista', () => {
     expect(router.state.location.pathname).toBe('/stock/pedidos/otros')
     expect(screen.getByPlaceholderText('Buscar componente…')).toHaveValue('bat')
     expect(await screen.findByText('Sin otros pedidos')).toBeInTheDocument()
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Pedido', 'Concepto', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Pedido', 'Concepto', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
     expect(screen.getByRole('button', { name: 'Nuevo otro pedido' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nuevo pedido' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Otros' })).toHaveAttribute('aria-current', 'page')
@@ -350,7 +350,7 @@ describe('PedidosPage: refresco y CSV', () => {
     montar()
     await screen.findByText('cam-x')
     // Clic en Proveedor: en Componente está el enlace, que navega.
-    await userEvent.click(within(filaDe('cam-x')).getAllByRole('cell')[2])
+    await userEvent.click(within(filaDe('cam-x')).getAllByRole('cell')[3])
     expect(filaDe('cam-x')).toHaveAttribute('aria-selected', 'true')
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
     await waitFor(() => expect(cargas.compras).toBe(2))
@@ -395,10 +395,10 @@ describe('PedidosPage: refresco y CSV', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('pedidos')
-    expect(cabeceras).toEqual(['Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
+    expect(cabeceras).toEqual(['ID', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filas).toEqual([
-      ['19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
-      ['17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
+      ['2', '19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
+      ['3', '17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
     ])
     descargar.mockRestore()
   })
@@ -411,10 +411,10 @@ describe('PedidosPage: refresco y CSV', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('pedidos_otros')
-    expect(cabeceras).toEqual(['Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
+    expect(cabeceras).toEqual(['ID', 'Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filas).toEqual([
-      ['20/09/2026 10:30', 'Cinta de embalar', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'],
-      ['20/09/2026 10:30', 'Bolsas', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'pendiente'],
+      ['7', '20/09/2026 10:30', 'Cinta de embalar', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'],
+      ['8', '20/09/2026 10:30', 'Bolsas', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'pendiente'],
     ])
     descargar.mockRestore()
   })

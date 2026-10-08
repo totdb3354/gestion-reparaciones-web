@@ -117,7 +117,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       const fila = page.getByRole('row').filter({ hasText: nombreProv })
       await expect(fila).toHaveCount(1)
       await expect(fila.getByText('pendiente', { exact: true })).toBeVisible()
-      await expect(fila.getByRole('cell').nth(3)).toHaveText('1')
+      await expect(fila.getByRole('cell').nth(4)).toHaveText('1')
 
       await fila.click({ button: 'right' })
       await page.getByRole('menuitem', { name: 'Editar' }).click()
@@ -128,7 +128,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await editor.getByRole('button', { name: 'Guardar' }).click()
       expect((await guardado).ok()).toBe(true)
       await expect(editor).toBeHidden()
-      await expect(fila.getByRole('cell').nth(3)).toHaveText('2')
+      await expect(fila.getByRole('cell').nth(4)).toHaveText('2')
 
       await soloBorrar(page, '**/api/compras/*', `/api/compras/${id}`)
       const borrado = page.waitForResponse(esRespuesta(`/api/compras/${id}`, 'DELETE'))
@@ -183,7 +183,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await editor.getByRole('button', { name: 'Guardar' }).click()
       expect((await guardado).ok()).toBe(true)
       await expect(editor).toBeHidden()
-      await expect(fila.getByRole('cell').nth(3)).toHaveText('2')
+      await expect(fila.getByRole('cell').nth(4)).toHaveText('2')
 
       await soloBorrar(page, '**/api/compras-otros/*', `/api/compras-otros/${id}`)
       const borrado = page.waitForResponse(esRespuesta(`/api/compras-otros/${id}`, 'DELETE'))

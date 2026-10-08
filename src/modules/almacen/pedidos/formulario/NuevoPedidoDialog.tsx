@@ -11,7 +11,7 @@ import { useGuardarLoteCompras } from '../api'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  aplicarPrevision, aplicarProveedorATodas, avisoOmitidas, avisoSinPedido, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
+  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoOmitidas, avisoSinPedido, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
   validarLineasCompra, type LineaCompra,
 } from './lineas'
 
@@ -62,8 +62,9 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   }
   function anadir(): number {
     const id = siguienteId(lineas ?? [])
-    // Siempre vacía, también si se abrió con "Pedir": calco de anadirLinea() { añadirFila(null); } (FormularioCompraController :496).
-    setLineas((ls) => [...(ls ?? []), lineaCompraVacia(id)])
+    // Vacía, también si se abrió con "Pedir": calco de anadirLinea() { añadirFila(null); } (FormularioCompraController :496);
+    // con el proveedor general si hay uno elegido (0.9.6).
+    setLineas((ls) => [...(ls ?? []), { ...lineaCompraVacia(id), idProv: idProvGeneral }])
     setError(null)
     setSinPedido(0)
     return id
@@ -72,6 +73,12 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     const r = aplicarPrevision(lineas ?? [], activos, idProvGeneral)
     setLineas(r.lineas)
     setSinPedido(r.sinPedido)
+    setError(null)
+  }
+  /** Elegirlo rellena al momento las líneas sin proveedor; las que ya tienen uno solo cambian con «Aplicar a todas». */
+  function elegirProveedorGeneral(idProv: number) {
+    setIdProvGeneral(idProv)
+    setLineas((ls) => rellenarProveedorVacio(ls ?? [], idProv))
     setError(null)
   }
   function aplicarATodas() {
@@ -118,7 +125,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
       barra={
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-[12px] font-bold text-azul-medio">Proveedor:</span>
-          <ComboNavy valor={idProvGeneral === null ? null : String(idProvGeneral)} opciones={opcionesProveedor} onChange={(v) => setIdProvGeneral(Number(v))} textoVacio="" ancho={160} visibles={8} aria-label="Proveedor general" />
+          <ComboNavy valor={idProvGeneral === null ? null : String(idProvGeneral)} opciones={opcionesProveedor} onChange={(v) => elegirProveedorGeneral(Number(v))} textoVacio="" ancho={160} visibles={8} aria-label="Proveedor general" />
           <BotonSecundario type="button" disabled={bloqueado || idProvGeneral === null || (lineas ?? []).length === 0} onClick={aplicarATodas}>Aplicar a todas</BotonSecundario>
           <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión ({nPrevision})</BotonSecundario>
         </div>
