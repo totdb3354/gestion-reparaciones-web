@@ -4,9 +4,10 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [Sin publicar]
+## [0.9.6] - 2026-10-08 — Pedir para 60 días
 
 - **Previsión de pedidos: una sola columna "Pedir 60 d"** en lugar de "Pedir 15 d" y "Pedir 30 d": cuánto pedir para cubrir 60 días, con la misma regla (contando el stock y lo que ya está en camino, sin bajar nunca del stock mínimo). También en el CSV.
+- Requiere el servidor 0.9.6 (campo `pedir60` en el listado de Stock). Sin migración ni cambios en nginx.
 
 ## [0.9.5] - 2026-10-07 — Previsión de pedidos
 
