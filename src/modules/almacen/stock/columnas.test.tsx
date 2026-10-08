@@ -121,7 +121,7 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
       c({ idCom: 2, tipo: 'bat-x', activo: false }),
     ])} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
-      ['Componente', 'En Stock', 'En Camino', 'Stock Mínimo', 'Consumo/día', 'Pedir 60 d', 'Auto', 'Último pedido', 'Estado'])
+      ['Componente', 'En Stock', 'En Camino', 'Stock Mínimo', 'Consumo/día', 'Pedir 60 d', 'Modo', 'Último pedido', 'Estado'])
     const pedir = (id: string) => screen.getAllByRole('row').slice(1).find((f) => within(f).queryByText(id))!.querySelector('[data-columna="pedir60"]')!
     expect(within(screen.getAllByRole('row')[1]).getByText('0,31')).toBeInTheDocument()
     expect(within(pedir('lcd-x') as HTMLElement).getByText('16')).toHaveClass('font-bold')
@@ -134,22 +134,28 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
   })
   it('CSV: con previsión añade las tres columnas al final', () => {
     expect(cabecerasCsvStock(false)).toEqual(CABECERAS_CSV_STOCK)
-    expect(cabecerasCsvStock(true)).toEqual([...CABECERAS_CSV_STOCK, 'Consumo/día', 'Pedir 60 d', 'Auto'])
+    expect(cabecerasCsvStock(true)).toEqual([...CABECERAS_CSV_STOCK, 'Consumo/día', 'Pedir 60 d', 'Modo'])
     const fila = filaCsvStock(filas([c({ consumoDiario: 0.31, pedir60: 16, autoPedido: true })])[0], true)
-    expect(fila.slice(-3)).toEqual(['0,31', '16', 'Sí'])
-    expect(filaCsvStock(filas([c({ autoPedido: false })])[0], true).slice(-1)).toEqual(['No'])
+    expect(fila.slice(-3)).toEqual(['0,31', '16', 'Auto'])
+    expect(filaCsvStock(filas([c({ autoPedido: false })])[0], true).slice(-1)).toEqual(['Manual'])
     expect(filaCsvStock(filas([c({ activo: false })])[0], true).slice(-3)).toEqual(['—', '—', '—'])
     expect(filaCsvStock(filas([base])[0])).toHaveLength(CABECERAS_CSV_STOCK.length)
   })
-  it('casilla «Auto»: marcada según la marca, deshabilitada en desactivadas y avisa al cambiar', async () => {
+  it('interruptor Auto / Manual: verde en Auto, gris en Manual, deshabilitado en desactivadas y avisa al cambiar', async () => {
     const onAutoPedido = vi.fn()
     render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn(), conPrevision: true, onAutoPedido })} data={filas([
       c({ autoPedido: true }),
       c({ idCom: 2, tipo: 'bat-x', activo: false, autoPedido: false }),
     ])} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
-    const lcd = screen.getByRole('checkbox', { name: 'Pedido automático lcd-x' })
-    expect(lcd).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Pedido automático bat-x' })).toBeDisabled()
+    const lcd = screen.getByRole('switch', { name: 'Pedido automático lcd-x' })
+    expect(lcd).toHaveAttribute('aria-checked', 'true')
+    expect(lcd).toHaveTextContent('Auto')
+    expect(lcd).toHaveClass('bg-recibido-bg')
+    const bat = screen.getByRole('switch', { name: 'Pedido automático bat-x' })
+    expect(bat).toHaveAttribute('aria-checked', 'false')
+    expect(bat).toHaveTextContent('Manual')
+    expect(bat).toHaveClass('bg-pill-bg')
+    expect(bat).toBeDisabled()
     await userEvent.click(lcd)
     expect(onAutoPedido).toHaveBeenCalledWith(expect.objectContaining({ idCom: 1 }), false)
   })

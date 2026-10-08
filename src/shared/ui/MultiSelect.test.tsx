@@ -28,6 +28,14 @@ function Demo({ textoVacio = 'Cliente' }: { textoVacio?: string }) {
 }
 
 describe('MultiSelect', () => {
+  it('con separadorAntes pinta una línea horizontal antes de esa opción', async () => {
+    render(<MultiSelect opciones={['OK', 'Bajo', 'Auto', 'Manual']} clave={(o) => o} etiqueta={(o) => o} seleccion={new Set()} onChange={vi.fn()}
+      textoVacio="Estado" textoPlural={(n) => `${n} estados`} separadorAntes="Auto" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
+    const separador = screen.getByRole('separator')
+    expect(separador.previousElementSibling).toHaveTextContent('Bajo')
+    expect(separador.nextElementSibling).toHaveTextContent('Auto')
+  })
   it('marca y desmarca con checkboxes y actualiza la etiqueta', async () => {
     render(<Demo />)
     await userEvent.click(screen.getByRole('button', { name: 'Cliente' }))

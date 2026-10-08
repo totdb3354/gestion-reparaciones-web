@@ -23,7 +23,7 @@ import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditar
 import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
 import { EditarStockDialog } from './EditarStockDialog'
 import { filtrosStock, seleccionStock } from './estado'
-import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, textoDesactivados } from './filtros'
+import { aplicarFiltrosStock, FILTROS_STOCK_VACIOS, filtrosDesdePedidos, MODOS_PEDIDO, textoDesactivados, type ModoPedido } from './filtros'
 import { agruparCompartidos, type FilaStock } from './grupos'
 import { GraficoEstado } from './GraficoEstado'
 import { GraficoSku } from './GraficoSku'
@@ -161,6 +161,9 @@ export function StockPage() {
 
   const rol = esSuperTecnico(sesion) ? 'SUPERTECNICO' : esAdmin(sesion) ? 'ADMIN' : 'TECNICO'
   const estadosMenu = ESTADOS_STOCK.filter((e) => e !== 'Desactivado' || nDesactivados > 0)
+  // Auto / Manual (0.9.6) bajo una línea: es otra condición (con Y) y solo para quien ve la previsión.
+  const opcionesFiltro: string[] = veEnCamino ? [...estadosMenu, ...MODOS_PEDIDO] : estadosMenu
+  const esModo = (k: string): k is ModoPedido => (MODOS_PEDIDO as string[]).includes(k)
   const pieDesactivados = textoDesactivados(nDesactivados)
 
   return (
@@ -170,18 +173,23 @@ export function StockPage() {
         {/* Calco del MenuButton "Estado" con CustomMenuItem(hideOnClick=false) con el MultiSelect compartido (spec §5,
             decisión 9): marcar no cierra el desplegable y abrirlo congela el refresco (onOpenChange → marcar). */}
         <MultiSelect
-          opciones={estadosMenu}
+          opciones={opcionesFiltro}
           clave={(e) => e}
           etiqueta={(e) => e}
-          seleccion={filtros.estados}
-          onChange={(estados) => setFiltros({ ...filtros, estados: estados as Set<EstadoStock> })}
+          seleccion={new Set<string>([...filtros.estados, ...filtros.modos])}
+          onChange={(s) => setFiltros({
+            ...filtros,
+            estados: new Set([...s].filter((k) => !esModo(k)) as EstadoStock[]),
+            modos: new Set([...s].filter(esModo)),
+          })}
+          separadorAntes={veEnCamino ? MODOS_PEDIDO[0] : undefined}
           textoVacio="Estado"
           textoPlural={(n) => `${n} estados`}
           onOpenChange={marcar}
           className="min-w-[130px]"
         />
         <Input value={filtros.buscador} onChange={(e) => setFiltros({ ...filtros, buscador: e.target.value })} placeholder="Buscar componente…" className="w-[220px] bg-superficie" />
-        <BotonSecundario onClick={() => setFiltros({ ...FILTROS_STOCK_VACIOS, estados: new Set() })}>Limpiar filtros</BotonSecundario>
+        <BotonSecundario onClick={() => setFiltros({ ...FILTROS_STOCK_VACIOS, estados: new Set(), modos: new Set() })}>Limpiar filtros</BotonSecundario>
         {esAdmin(sesion) && <BotonSecundario onClick={() => setParametrosAbiertos(true)}>Parámetros de previsión</BotonSecundario>}
       </div>
       <div className="flex gap-4">

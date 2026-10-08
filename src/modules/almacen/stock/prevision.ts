@@ -10,9 +10,9 @@ export function formatearPedir(v: number | null | undefined): string {
   return typeof v === 'number' ? String(v) : '—'
 }
 
-/** Marca del pedido automático en el CSV (spec 0.9.6 §4.3). Sin dato (TECNICO), "—". */
-export function formatearAuto(v: boolean | null | undefined): string {
-  return v === true ? 'Sí' : v === false ? 'No' : '—'
+/** Modo de pedido en el CSV (spec 0.9.6 §4.3). Sin dato (TECNICO o desactivada), "—". */
+export function formatearModo(v: boolean | null | undefined): string {
+  return v === true ? 'Auto' : v === false ? 'Manual' : '—'
 }
 
 export const AYUDA_PESOS = 'Lo reciente pesa más. Los tres tienen que sumar 100.'

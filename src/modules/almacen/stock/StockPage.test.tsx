@@ -112,7 +112,7 @@ describe('StockPage', () => {
     await screen.findByText('lcd-x / lcd-y')
     await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
     // MultiSelect pinta cada opción como checkbox con aria-label = etiqueta (MultiSelect.tsx)
-    expect(screen.getAllByRole('checkbox').map((i) => i.getAttribute('aria-label')).filter((n) => !n?.startsWith('Pedido automático'))).toEqual(['OK', 'Bajo', 'Sin stock', 'Desactivado'])
+    expect(screen.getAllByRole('checkbox').map((i) => i.getAttribute('aria-label'))).toEqual(['OK', 'Bajo', 'Sin stock', 'Desactivado', 'Auto', 'Manual'])
     await userEvent.click(screen.getByRole('checkbox', { name: 'Bajo' }))
     // marcar no cierra el desplegable (calco de hideOnClick=false)
     expect(screen.getByRole('checkbox', { name: 'Sin stock' })).toBeInTheDocument()
@@ -388,21 +388,21 @@ describe('StockPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('stock_actual')
-    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 60 d', 'Auto'])
+    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 60 d', 'Modo'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
     expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '16', '—']])
     descargar.mockRestore()
   })
   // La vuelta atrás si el PATCH falla la cubre api.test.tsx (Task 3): aquí el diálogo global de error dejaría la
   // tabla aria-hidden y el test dependería del orden de las recargas.
-  it('la casilla «Auto» manda el PATCH con la marca nueva', async () => {
+  it('el interruptor Auto / Manual manda el PATCH con la marca nueva', async () => {
     const cuerpos: unknown[] = []
     server.use(http.patch('*/api/componentes/2/auto-pedido', async ({ request }) => {
       cuerpos.push(await request.json())
       return new HttpResponse(null, { status: 200 })
     }))
     montar()
-    const casilla = await screen.findByRole('checkbox', { name: 'Pedido automático bat-x' })
+    const casilla = await screen.findByRole('switch', { name: 'Pedido automático bat-x' })
     await userEvent.click(casilla)
     await waitFor(() => expect(cuerpos).toEqual([{ autoPedido: true }]))
     // Marcar la casilla no selecciona la fila (el click no sube a la fila): aquí la tabla sí tiene selección real.
@@ -411,10 +411,28 @@ describe('StockPage', () => {
     expect(fila).toHaveAttribute('aria-selected', 'false')
     expect(fila).not.toHaveAttribute('data-state', 'selected')
   })
-  it('el TECNICO no ve la columna «Auto»', async () => {
+  it('el TECNICO no ve la columna «Modo» ni Auto / Manual en el filtro', async () => {
     montar(SESION_TEC)
     await screen.findByText('lcd-x / lcd-y')
-    expect(screen.queryByRole('columnheader', { name: 'Auto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Modo' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
+    expect(screen.queryByRole('checkbox', { name: 'Auto' })).not.toBeInTheDocument()
+    const menu = screen.getByRole('checkbox', { name: 'OK' }).closest('[role="dialog"]') as HTMLElement
+    expect(within(menu).queryByRole('separator')).not.toBeInTheDocument()
+  })
+  it('filtro Auto / Manual bajo una línea en el desplegable de Estado; Limpiar filtros lo quita', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(componentes.map((c) => ({ ...c, autoPedido: c.idCom === 2 })))))
+    montar()
+    await screen.findByText('lcd-x / lcd-y')
+    await userEvent.click(screen.getByRole('button', { name: 'Estado' }))
+    const menu = screen.getByRole('checkbox', { name: 'OK' }).closest('[role="dialog"]') as HTMLElement
+    expect(within(menu).getByRole('separator').nextElementSibling).toHaveTextContent('Auto')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Auto' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getByText('bat-x')).toBeInTheDocument()
+    expect(screen.queryByText('lcd-x / lcd-y')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(screen.getByText('lcd-x / lcd-y')).toBeInTheDocument()
   })
   it('Descargar CSV del TECNICO exporta solo las cabeceras base, sin previsión', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
@@ -530,7 +548,7 @@ describe('StockPage', () => {
     expect(claves[2]).not.toBe(claves[0])
   })
   it('?componente=<id> al llegar desde Pedidos: desmarca OK, Bajo y Sin stock, vacía el buscador, selecciona y desplaza hasta la fila y limpia la URL', async () => {
-    filtrosStock.set({ estados: new Set<EstadoStock>(['OK', 'Bajo']), buscador: 'lcd' })
+    filtrosStock.set({ estados: new Set<EstadoStock>(['OK', 'Bajo']), modos: new Set(), buscador: 'lcd' })
     const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=2' })
     await waitFor(() => expect(router.state.location.search).toBe(''))
     expect(router.state.location.pathname).toBe('/stock')
@@ -552,7 +570,7 @@ describe('StockPage', () => {
     await waitFor(() => expect(screen.getByRole('table').parentElement).toHaveFocus())
   })
   it('?componente= conserva "Desactivado" marcado (calco) y selecciona una fila desactivada', async () => {
-    filtrosStock.set({ estados: new Set<EstadoStock>(['Bajo', 'Desactivado']), buscador: 'zzz' })
+    filtrosStock.set({ estados: new Set<EstadoStock>(['Bajo', 'Desactivado']), modos: new Set(), buscador: 'zzz' })
     const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=4' })
     await waitFor(() => expect(router.state.location.search).toBe(''))
     expect([...filtrosStock.get().estados]).toEqual(['Desactivado'])
@@ -562,7 +580,7 @@ describe('StockPage', () => {
   })
   it('?componente= de un componente activo con solo "Desactivado" marcado: aplica los filtros y limpia la URL, pero no selecciona ni pide desplazamiento (T19 #12)', async () => {
     seleccionStock.set(null)
-    filtrosStock.set({ estados: new Set<EstadoStock>(['Desactivado']), buscador: 'zzz' })
+    filtrosStock.set({ estados: new Set<EstadoStock>(['Desactivado']), modos: new Set(), buscador: 'zzz' })
     // id 2 = bat-x, activo: con solo "Desactivado" marcado no está en la lista visible (solo lo está mc-x).
     const { router } = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=2' })
     await screen.findByText('mc-x')
@@ -578,7 +596,7 @@ describe('StockPage', () => {
   })
   it('?componente= de un componente que no está en la lista aplica los filtros y limpia la URL sin tocar la selección; un id no numérico solo limpia la URL', async () => {
     seleccionStock.set('1')
-    filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), buscador: 'lcd' })
+    filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), modos: new Set(), buscador: 'lcd' })
     const primero = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=99' })
     await waitFor(() => expect(primero.router.state.location.search).toBe(''))
     expect(filtrosStock.get().estados.size).toBe(0)
@@ -586,7 +604,7 @@ describe('StockPage', () => {
     expect(seleccionStock.get()).toBe('1')
     primero.unmount()
 
-    filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), buscador: 'lcd' })
+    filtrosStock.set({ estados: new Set<EstadoStock>(['OK']), modos: new Set(), buscador: 'lcd' })
     const segundo = renderConRouter([{ path: '/stock', element: <StockPage /> }], { sesion: SESION_SUPER, ruta: '/stock?componente=abc' })
     await waitFor(() => expect(segundo.router.state.location.search).toBe(''))
     expect([...filtrosStock.get().estados]).toEqual(['OK'])

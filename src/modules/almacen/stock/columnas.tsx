@@ -3,14 +3,13 @@ import type { Componente } from '@/shared/api/client'
 import { formatear } from '@/shared/lib/fechas'
 import { estadoStock, type EstadoStock } from '@/shared/lib/semaforoStock'
 import { cn } from '@/shared/lib/utils'
-import { Checkbox } from '@/shared/ui/checkbox'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { esGrupo, nombreGrupo, type FilaStock } from './grupos'
-import { formatearAuto, formatearConsumo, formatearPedir } from './prevision'
+import { formatearConsumo, formatearModo, formatearPedir } from './prevision'
 
 /** prefWidth de StockView.fxml :46-53; las tres de la previsión son de la 0.9.5 y 0.9.6. */
-export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, consumoDia: 95, pedir60: 90, auto: 60, ultimoPedido: 120, estado: 100 } as const
+export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, consumoDia: 95, pedir60: 90, modo: 80, ultimoPedido: 120, estado: 100 } as const
 
 /** Un 0 en gris (no hay que pedir) y el resto en negrita, para que salten las piezas que sí. */
 function celdaPedir(valor: number | null) {
@@ -25,15 +24,20 @@ function columnasPrevision(onAutoPedido?: (c: Componente, valor: boolean) => voi
     { id: 'consumoDia', header: 'Consumo/día', size: ANCHOS_STOCK.consumoDia, maxSize: ANCHOS_STOCK.consumoDia, accessorFn: (c) => formatearConsumo(c.consumoDiario) },
     { id: 'pedir60', header: 'Pedir 60 d', size: ANCHOS_STOCK.pedir60, maxSize: ANCHOS_STOCK.pedir60, cell: ({ row }) => celdaPedir(row.original.pedir60) },
     {
-      id: 'auto', header: 'Auto', size: ANCHOS_STOCK.auto, maxSize: ANCHOS_STOCK.auto,
+      id: 'modo', header: 'Modo', size: ANCHOS_STOCK.modo, maxSize: ANCHOS_STOCK.modo,
       cell: ({ row }) => {
         const c = row.original
-        // El clic no llega a la fila: marcar no la selecciona (DataTable selecciona en el onClick de la fila).
+        const auto = c.autoPedido === true
+        // El clic no llega a la fila: cambiar el modo no la selecciona (DataTable selecciona en el onClick de la fila).
+        // Auto en verde y Manual en gris (no rojo: el rojo es "Sin stock" y casi todas las piezas van en Manual).
         return (
           <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-            <Checkbox aria-label={`Pedido automático ${nombreGrupo(c)}`} checked={c.autoPedido === true}
-              disabled={!c.activo || onAutoPedido === undefined}
-              onCheckedChange={(v) => onAutoPedido?.(c, v === true)} className="bg-superficie" />
+            <button type="button" role="switch" aria-checked={auto} aria-label={`Pedido automático ${nombreGrupo(c)}`}
+              disabled={!c.activo || onAutoPedido === undefined} onClick={() => onAutoPedido?.(c, !auto)}
+              className={cn('cursor-pointer rounded-[10px] border px-2.5 py-0.5 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-50',
+                auto ? 'border-fila-recibido-brd bg-recibido-bg text-recibido-text' : 'border-pill-borde bg-pill-bg text-azul-gris')}>
+              {auto ? 'Auto' : 'Manual'}
+            </button>
           </div>
         )
       },
@@ -105,11 +109,11 @@ export function crearColumnasStock({ onEnCamino, conPrevision = false, onAutoPed
 /** Calco de exportarStock (:1937-1959): la lista filtrada (una fila por grupo, "Tipo" con el nombre del grupo), sin "Último pedido" y con "Fecha
  *  registro" (que la tabla no muestra); cabecera "Stock mínimo" en minúscula, como el JavaFX. */
 export const CABECERAS_CSV_STOCK = ['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro']
-export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 60 d', 'Auto']
+export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 60 d', 'Modo']
 export function cabecerasCsvStock(conPrevision: boolean): string[] {
   return conPrevision ? [...CABECERAS_CSV_STOCK, ...CABECERAS_CSV_PREVISION] : CABECERAS_CSV_STOCK
 }
 export function filaCsvStock(c: FilaStock, conPrevision = false): string[] {
   const fila = [nombreGrupo(c), String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
-  return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir60), formatearAuto(c.activo ? c.autoPedido : null)] : fila
+  return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir60), formatearModo(c.activo ? c.autoPedido : null)] : fila
 }
