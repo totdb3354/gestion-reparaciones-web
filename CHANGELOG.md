@@ -4,6 +4,10 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [Sin publicar]
+
+- **Previsión de pedidos: una sola columna "Pedir 60 d"** en lugar de "Pedir 15 d" y "Pedir 30 d": cuánto pedir para cubrir 60 días, con la misma regla (contando el stock y lo que ya está en camino, sin bajar nunca del stock mínimo). También en el CSV.
+
 ## [0.9.5] - 2026-10-07 — Previsión de pedidos
 
 - **Previsión de pedidos en Stock** (supertécnicos y administrador). Tres columnas nuevas: **Consumo/día** (lo que se gasta al día de cada pieza, con más peso lo de los últimos 30 días: 50 %, 30 % y 20 % para los días 1-30, 31-60 y 61-90) y **Pedir 15 d** / **Pedir 30 d** (cuánto pedir para cubrir 15 o 30 días, contando el stock y lo que ya está en camino, sin bajar nunca del stock mínimo). Un 0 sale en gris. También van en el CSV.

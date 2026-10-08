@@ -8,7 +8,7 @@ import { CABECERAS_CSV_STOCK, cabecerasCsvStock, claseFilaStock, crearColumnasSt
 import { agruparCompartidos, type FilaStock } from './grupos'
 import { repartoFluido } from '@/test/columnas'
 
-const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
+const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 
 const filas = (l: Componente[]): FilaStock[] => agruparCompartidos(l)
@@ -114,29 +114,30 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
       otras: [],
     })
   })
-  it('con previsión: tres columnas entre "Stock Mínimo" y "Último pedido"; el 0 en gris y "—" en desactivadas', () => {
+  it('con previsión: dos columnas entre "Stock Mínimo" y "Último pedido"; el 0 en gris y "—" en desactivadas', () => {
     render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn(), conPrevision: true })} data={filas([
-      c({ consumoDiario: 0.31, pedir15: 0, pedir30: 7 }),
+      c({ consumoDiario: 0.31, pedir60: 16 }),
+      c({ idCom: 3, tipo: 'bat-z', consumoDiario: 0, pedir60: 0 }),
       c({ idCom: 2, tipo: 'bat-x', activo: false }),
     ])} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
-      ['Componente', 'En Stock', 'En Camino', 'Stock Mínimo', 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d', 'Último pedido', 'Estado'])
-    const [fila1, fila2] = screen.getAllByRole('row').slice(1)
-    expect(within(fila1).getByText('0,31')).toBeInTheDocument()
-    expect(within(fila1).getByText('0')).toHaveClass('text-texto-vacio')
-    expect(within(fila1).getByText('7')).toHaveClass('font-bold')
-    expect(fila2.querySelector('[data-columna="pedir30"]')).toHaveTextContent('—')
+      ['Componente', 'En Stock', 'En Camino', 'Stock Mínimo', 'Consumo/día', 'Pedir 60 d', 'Último pedido', 'Estado'])
+    const pedir = (id: string) => screen.getAllByRole('row').slice(1).find((f) => within(f).queryByText(id))!.querySelector('[data-columna="pedir60"]')!
+    expect(within(screen.getAllByRole('row')[1]).getByText('0,31')).toBeInTheDocument()
+    expect(within(pedir('lcd-x') as HTMLElement).getByText('16')).toHaveClass('font-bold')
+    expect(within(pedir('bat-z') as HTMLElement).getByText('0')).toHaveClass('text-texto-vacio')
+    expect(pedir('bat-x')).toHaveTextContent('—')
   })
   it('sin previsión (TECNICO) las columnas son las de siempre', () => {
     render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn() })} data={filas([base])} vacio="Sin componentes" />)
     expect(screen.queryByRole('columnheader', { name: 'Consumo/día' })).not.toBeInTheDocument()
   })
-  it('CSV: con previsión añade las tres columnas al final', () => {
+  it('CSV: con previsión añade las dos columnas al final', () => {
     expect(cabecerasCsvStock(false)).toEqual(CABECERAS_CSV_STOCK)
-    expect(cabecerasCsvStock(true)).toEqual([...CABECERAS_CSV_STOCK, 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d'])
-    const fila = filaCsvStock(filas([c({ consumoDiario: 0.31, pedir15: 2, pedir30: 7 })])[0], true)
-    expect(fila.slice(-3)).toEqual(['0,31', '2', '7'])
-    expect(filaCsvStock(filas([c({ activo: false })])[0], true).slice(-3)).toEqual(['—', '—', '—'])
+    expect(cabecerasCsvStock(true)).toEqual([...CABECERAS_CSV_STOCK, 'Consumo/día', 'Pedir 60 d'])
+    const fila = filaCsvStock(filas([c({ consumoDiario: 0.31, pedir60: 16 })])[0], true)
+    expect(fila.slice(-2)).toEqual(['0,31', '16'])
+    expect(filaCsvStock(filas([c({ activo: false })])[0], true).slice(-2)).toEqual(['—', '—'])
     expect(filaCsvStock(filas([base])[0])).toHaveLength(CABECERAS_CSV_STOCK.length)
   })
 })

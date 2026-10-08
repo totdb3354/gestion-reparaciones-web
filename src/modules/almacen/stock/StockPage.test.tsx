@@ -16,10 +16,10 @@ import { filtrosStock, seleccionStock } from './estado'
 import { CABECERAS_CSV_STOCK } from './columnas'
 import { StockPage } from './StockPage'
 
-const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
 const componentes = [
   { ...base, idCom: 1, tipo: 'lcd-x', stock: 5, stockMinimo: 2, activo: true, enCamino: 0 },
-  { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir15: 2, pedir30: 7 },
+  { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir60: 16 },
   { ...base, idCom: 3, tipo: 'cam-x', stock: 0, stockMinimo: 1, activo: true, enCamino: 0 },
   { ...base, idCom: 4, tipo: 'mc-x', stock: 1, stockMinimo: 0, activo: false, enCamino: 0 },
   { ...base, idCom: 5, tipo: 'lcd-y', stock: 5, stockMinimo: 2, activo: true, enCamino: 0, idComMaster: 1 },
@@ -388,9 +388,9 @@ describe('StockPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('stock_actual')
-    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 15 d', 'Pedir 30 d'])
+    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 60 d'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
-    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '2', '7']])
+    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '16']])
     descargar.mockRestore()
   })
   it('Descargar CSV del TECNICO exporta solo las cabeceras base, sin previsión', async () => {
@@ -416,7 +416,7 @@ describe('StockPage', () => {
     for (const [sesion, ve] of [[SESION_SUPER, true], [SESION_ADMIN, true], [SESION_TEC, false]] as const) {
       const { unmount } = montar(sesion)
       await screen.findByText('lcd-x / lcd-y')
-      expect(screen.queryByRole('columnheader', { name: 'Pedir 30 d' }) !== null).toBe(ve)
+      expect(screen.queryByRole('columnheader', { name: 'Pedir 60 d' }) !== null).toBe(ve)
       unmount()
     }
   })

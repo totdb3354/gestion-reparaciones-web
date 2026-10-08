@@ -3272,9 +3272,7 @@ export interface components {
             /** Format: double */
             consumoDiario: number | null;
             /** Format: int32 */
-            pedir15: number | null;
-            /** Format: int32 */
-            pedir30: number | null;
+            pedir60: number | null;
         };
         PuntoStock: {
             periodo: string;
