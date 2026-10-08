@@ -1,6 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import { HttpResponse, http } from 'msw'
+import { HttpResponse, delay, http } from 'msw'
 import type { ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
 import { crearQueryClient } from '@/shared/api/queryClient'
@@ -64,6 +64,24 @@ describe('api de Stock', () => {
     await promesa
     expect(cuerpo).toEqual({ autoPedido: true })
     expect(qc.getQueryState(['componentes', 'gestionados'])?.isInvalidated).toBe(true)
+  })
+  it('useMarcarAutoPedido manda los PATCH en el orden de los clics aunque el primero tarde más', async () => {
+    guardarSesion(SESION_SUPER)
+    const llegadas: unknown[] = []
+    let n = 0
+    server.use(http.patch('*/api/componentes/1/auto-pedido', async ({ request }) => {
+      const esElPrimero = n++ === 0
+      if (esElPrimero) await delay(150)
+      llegadas.push((await request.json() as { autoPedido: boolean }).autoPedido)
+      return new HttpResponse(null, { status: 200 })
+    }))
+    const { qc, wrapper } = envoltorio()
+    qc.setQueryData(['componentes', 'gestionados'], [{ ...base, idCom: 1, tipo: 'lcd-x', stock: 5, activo: true, autoPedido: false }])
+    const { result } = renderHook(() => useMarcarAutoPedido(), { wrapper })
+    const a = result.current.mutateAsync({ idCom: 1, autoPedido: true })
+    const b = result.current.mutateAsync({ idCom: 1, autoPedido: false })
+    await Promise.all([a, b])
+    expect(llegadas).toEqual([true, false])
   })
   it('useMarcarAutoPedido vuelve atrás si el servidor falla', async () => {
     guardarSesion(SESION_SUPER)

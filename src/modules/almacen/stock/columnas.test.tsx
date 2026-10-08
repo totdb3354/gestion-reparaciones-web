@@ -141,7 +141,7 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
     expect(filaCsvStock(filas([c({ activo: false })])[0], true).slice(-3)).toEqual(['—', '—', '—'])
     expect(filaCsvStock(filas([base])[0])).toHaveLength(CABECERAS_CSV_STOCK.length)
   })
-  it('casilla «Auto»: marcada según la marca, deshabilitada en desactivadas, avisa al cambiar y no selecciona la fila', async () => {
+  it('casilla «Auto»: marcada según la marca, deshabilitada en desactivadas y avisa al cambiar', async () => {
     const onAutoPedido = vi.fn()
     render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn(), conPrevision: true, onAutoPedido })} data={filas([
       c({ autoPedido: true }),
@@ -152,6 +152,5 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
     expect(screen.getByRole('checkbox', { name: 'Pedido automático bat-x' })).toBeDisabled()
     await userEvent.click(lcd)
     expect(onAutoPedido).toHaveBeenCalledWith(expect.objectContaining({ idCom: 1 }), false)
-    expect(lcd.closest('tr')).not.toHaveAttribute('data-state', 'selected')
   })
 })

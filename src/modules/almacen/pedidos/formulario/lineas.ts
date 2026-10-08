@@ -80,10 +80,10 @@ export function avisoOmitidas(n: number): string | null {
   return n > 0 ? `${n} solicitud(es) de componentes desactivados no se han añadido y siguen pendientes.` : null
 }
 
-/** Piezas del pedido automático (spec 0.9.6 §4.4): marcadas y que son master o sueltas. Los slaves traen la marca y
- *  la previsión de su master (el listado las copia), así que contarlos duplicaría el grupo; el pedido va al master. */
+/** Piezas del pedido automático (spec 0.9.6 §4.4): activas, marcadas y que son master o sueltas. Los slaves traen la
+ *  marca y la previsión de su master (el listado las copia), así que contarlos duplicaría el grupo; el pedido va al master. */
 function marcadas(activos: Componente[]): Componente[] {
-  return activos.filter((c) => c.autoPedido === true && c.idComMaster == null)
+  return activos.filter((c) => c.activo && c.autoPedido === true && c.idComMaster == null)
 }
 
 /** N del botón «Añadir previsión (N)»: marcadas con algo que pedir. */

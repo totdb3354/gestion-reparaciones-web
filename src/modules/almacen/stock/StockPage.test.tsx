@@ -402,8 +402,14 @@ describe('StockPage', () => {
       return new HttpResponse(null, { status: 200 })
     }))
     montar()
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Pedido automático bat-x' }))
+    const casilla = await screen.findByRole('checkbox', { name: 'Pedido automático bat-x' })
+    await userEvent.click(casilla)
     await waitFor(() => expect(cuerpos).toEqual([{ autoPedido: true }]))
+    // Marcar la casilla no selecciona la fila (el click no sube a la fila): aquí la tabla sí tiene selección real.
+    const fila = casilla.closest('tr')
+    expect(fila).not.toBeNull()
+    expect(fila).toHaveAttribute('aria-selected', 'false')
+    expect(fila).not.toHaveAttribute('data-state', 'selected')
   })
   it('el TECNICO no ve la columna «Auto»', async () => {
     montar(SESION_TEC)

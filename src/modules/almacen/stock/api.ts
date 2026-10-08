@@ -68,6 +68,9 @@ export function useMarcarAutoPedido(): UseMutationResult<unknown, unknown, Marca
   const qc = useQueryClient()
   const recargar = useRecarga()
   return useMutation({
+    // Mismo scope = TanStack Query las ejecuta en serie: con dos clics seguidos los PATCH llegan al servidor en el orden
+    // de los clics y la BD acaba con el último valor (sin scope irían en paralelo y podrían cruzarse).
+    scope: { id: 'auto-pedido' },
     mutationFn: ({ idCom, autoPedido }: MarcaAutoPedido) =>
       api.PATCH('/api/componentes/{idCom}/auto-pedido', { params: { path: { idCom } }, body: { autoPedido } }),
     onMutate: async ({ idCom, autoPedido }: MarcaAutoPedido) => {

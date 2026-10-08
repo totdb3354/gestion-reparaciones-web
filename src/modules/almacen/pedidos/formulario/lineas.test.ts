@@ -196,8 +196,10 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     expect(aplicarPrevision(una.lineas, ACTIVOS, 7)).toEqual(una)
   })
 
-  it('las desactivadas no entran (la lista de activos ya viene filtrada) y las no marcadas no se tocan', () => {
-    expect(aplicarPrevision([], [comp({ idCom: 3, autoPedido: false, pedir60: 9 })], 7)).toEqual({ lineas: [], sinPedido: 0 })
+  it('las desactivadas y las no marcadas no entran', () => {
+    const desactivada = comp({ idCom: 4, activo: false, autoPedido: true, pedir60: 5 })
+    expect(aplicarPrevision([], [desactivada, comp({ idCom: 3, autoPedido: false, pedir60: 9 })], 7)).toEqual({ lineas: [], sinPedido: 0 })
+    expect(cuantasPrevision([desactivada])).toBe(0)
   })
 
   it('«Aplicar a todas» pone el proveedor en todas las líneas', () => {
