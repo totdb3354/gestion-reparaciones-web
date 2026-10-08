@@ -7372,7 +7372,7 @@
         }
       },
       "Componente" : {
-        "required" : [ "activo", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir15", "pedir30", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
+        "required" : [ "activo", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir60", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -7420,12 +7420,7 @@
             "format" : "double",
             "nullable" : true
           },
-          "pedir15" : {
-            "type" : "integer",
-            "format" : "int32",
-            "nullable" : true
-          },
-          "pedir30" : {
+          "pedir60" : {
             "type" : "integer",
             "format" : "int32",
             "nullable" : true

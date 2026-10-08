@@ -8,8 +8,8 @@ import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { esGrupo, nombreGrupo, type FilaStock } from './grupos'
 import { formatearConsumo, formatearPedir } from './prevision'
 
-/** prefWidth de StockView.fxml :46-53; las tres de la previsión son de la 0.9.5. */
-export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, consumoDia: 95, pedir15: 90, pedir30: 90, ultimoPedido: 120, estado: 100 } as const
+/** prefWidth de StockView.fxml :46-53; las dos de la previsión son de la 0.9.5. */
+export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, consumoDia: 95, pedir60: 90, ultimoPedido: 120, estado: 100 } as const
 
 /** Un 0 en gris (no hay que pedir) y el resto en negrita, para que salten las piezas que sí. */
 function celdaPedir(valor: number | null) {
@@ -21,8 +21,7 @@ function celdaPedir(valor: number | null) {
 function columnasPrevision(): ColumnDef<FilaStock>[] {
   return [
     { id: 'consumoDia', header: 'Consumo/día', size: ANCHOS_STOCK.consumoDia, maxSize: ANCHOS_STOCK.consumoDia, accessorFn: (c) => formatearConsumo(c.consumoDiario) },
-    { id: 'pedir15', header: 'Pedir 15 d', size: ANCHOS_STOCK.pedir15, maxSize: ANCHOS_STOCK.pedir15, cell: ({ row }) => celdaPedir(row.original.pedir15) },
-    { id: 'pedir30', header: 'Pedir 30 d', size: ANCHOS_STOCK.pedir30, maxSize: ANCHOS_STOCK.pedir30, cell: ({ row }) => celdaPedir(row.original.pedir30) },
+    { id: 'pedir60', header: 'Pedir 60 d', size: ANCHOS_STOCK.pedir60, maxSize: ANCHOS_STOCK.pedir60, cell: ({ row }) => celdaPedir(row.original.pedir60) },
   ]
 }
 
@@ -90,11 +89,11 @@ export function crearColumnasStock({ onEnCamino, conPrevision = false }: { onEnC
 /** Calco de exportarStock (:1937-1959): la lista filtrada (una fila por grupo, "Tipo" con el nombre del grupo), sin "Último pedido" y con "Fecha
  *  registro" (que la tabla no muestra); cabecera "Stock mínimo" en minúscula, como el JavaFX. */
 export const CABECERAS_CSV_STOCK = ['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro']
-export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 15 d', 'Pedir 30 d']
+export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 60 d']
 export function cabecerasCsvStock(conPrevision: boolean): string[] {
   return conPrevision ? [...CABECERAS_CSV_STOCK, ...CABECERAS_CSV_PREVISION] : CABECERAS_CSV_STOCK
 }
 export function filaCsvStock(c: FilaStock, conPrevision = false): string[] {
   const fila = [nombreGrupo(c), String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
-  return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir15), formatearPedir(c.pedir30)] : fila
+  return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir60)] : fila
 }

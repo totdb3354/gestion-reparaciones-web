@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Componente } from '@/shared/api/client'
 import { agruparCompartidos, esGrupo, nombreGrupo } from './grupos'
 
-const base: Componente = { idCom: 1, tipo: 'a', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
+const base: Componente = { idCom: 1, tipo: 'a', fechaRegistro: '2026-09-01T10:00:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 
 describe('agruparCompartidos', () => {

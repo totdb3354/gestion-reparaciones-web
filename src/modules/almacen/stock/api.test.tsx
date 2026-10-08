@@ -9,7 +9,7 @@ import { SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { pedirCantidadEnCamino, useComponentesStock, useEditarStock } from './api'
 
-const base = { fechaRegistro: '2026-09-01T10:00:00', stockMinimo: 2, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir15: null, pedir30: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', stockMinimo: 2, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
 
 function envoltorio() {
   const qc = crearQueryClient({ retry: false })

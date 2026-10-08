@@ -1,7 +1,7 @@
 import type { Componente, CompraComponente, CompraOtro, Proveedor, SolicitudResumen, SolicitudStock } from '@/shared/api/client'
 
 /** Datos SINTÉTICOS de los tests de los formularios de pedido (T14-T17). Nunca datos del taller. */
-const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, enCamino: 0, stock: 0, stockMinimo: 1, consumoDiario: null, pedir15: null, pedir30: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, enCamino: 0, stock: 0, stockMinimo: 1, consumoDiario: null, pedir60: null }
 
 /** Orden del servidor (ORDER BY TIPO no importa aquí): un inactivo (4) y un slave de SKU compartido (5, master 2). */
 export const COMPONENTES: Componente[] = [
