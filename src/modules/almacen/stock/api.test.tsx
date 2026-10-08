@@ -7,9 +7,9 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { guardarSesion } from '@/shared/session/storage'
 import { SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
-import { pedirCantidadEnCamino, useComponentesStock, useEditarStock } from './api'
+import { pedirCantidadEnCamino, useComponentesStock, useEditarStock, useMarcarAutoPedido } from './api'
 
-const base = { fechaRegistro: '2026-09-01T10:00:00', stockMinimo: 2, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', stockMinimo: 2, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null }
 
 function envoltorio() {
   const qc = crearQueryClient({ retry: false })
@@ -47,5 +47,32 @@ describe('api de Stock', () => {
     expect(cuerpo).toEqual({ tipo: 'lcd-x', stock: 9, stockMinimo: 2, updatedAt: '2026-09-01T10:00:00' })
     expect(qc.getQueryState(['componentes', 'gestionados'])?.isInvalidated).toBe(true)
     expect(qc.getQueryState(['notificaciones', 'componentes'])?.isInvalidated).toBe(true)
+  })
+  it('useMarcarAutoPedido pinta la marca al momento en el master y sus slaves, manda el PATCH e invalida', async () => {
+    guardarSesion(SESION_SUPER)
+    let cuerpo: unknown = null
+    server.use(http.patch('*/api/componentes/1/auto-pedido', async ({ request }) => { cuerpo = await request.json(); return new HttpResponse(null, { status: 200 }) }))
+    const { qc, wrapper } = envoltorio()
+    qc.setQueryData(['componentes', 'gestionados'], [
+      { ...base, idCom: 1, tipo: 'lcd-x', stock: 5, activo: true, autoPedido: false },
+      { ...base, idCom: 2, tipo: 'lcd-y', stock: 5, activo: true, idComMaster: 1, autoPedido: false },
+      { ...base, idCom: 3, tipo: 'bat-x', stock: 5, activo: true, autoPedido: false },
+    ])
+    const { result } = renderHook(() => useMarcarAutoPedido(), { wrapper })
+    const promesa = result.current.mutateAsync({ idCom: 1, autoPedido: true })
+    await waitFor(() => expect(qc.getQueryData<{ idCom: number; autoPedido: boolean }[]>(['componentes', 'gestionados'])?.map((c) => c.autoPedido)).toEqual([true, true, false]))
+    await promesa
+    expect(cuerpo).toEqual({ autoPedido: true })
+    expect(qc.getQueryState(['componentes', 'gestionados'])?.isInvalidated).toBe(true)
+  })
+  it('useMarcarAutoPedido vuelve atrás si el servidor falla', async () => {
+    guardarSesion(SESION_SUPER)
+    server.use(http.patch('*/api/componentes/3/auto-pedido', () => HttpResponse.json({ message: 'fallo' }, { status: 500 })))
+    const { qc, wrapper } = envoltorio()
+    const antes = [{ ...base, idCom: 3, tipo: 'bat-x', stock: 5, activo: true, autoPedido: false }]
+    qc.setQueryData(['componentes', 'gestionados'], antes)
+    const { result } = renderHook(() => useMarcarAutoPedido(), { wrapper })
+    await expect(result.current.mutateAsync({ idCom: 3, autoPedido: true })).rejects.toBeDefined()
+    expect(qc.getQueryData<{ autoPedido: boolean }[]>(['componentes', 'gestionados'])?.[0].autoPedido).toBe(false)
   })
 })

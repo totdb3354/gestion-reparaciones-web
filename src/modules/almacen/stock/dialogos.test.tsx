@@ -8,7 +8,7 @@ import { parseEnteroNoNegativo, subtituloComponente } from './dialogos'
 import { EditarStockDialog } from './EditarStockDialog'
 import { SolicitarPiezaDialog } from './SolicitarPiezaDialog'
 
-const comp: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 3, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
+const comp: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:00:00', stock: 3, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null }
 
 describe('helpers', () => {
   it('subtítulo con los tres espacios a cada lado del punto medio', () => {

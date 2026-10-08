@@ -1332,6 +1332,22 @@ export interface paths {
         patch: operations["setStockMinimo"];
         trace?: never;
     };
+    "/api/componentes/{idCom}/auto-pedido": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["setAutoPedido"];
+        trace?: never;
+    };
     "/api/componentes/{idCom}/activo": {
         parameters: {
             query?: never;
@@ -2817,6 +2833,9 @@ export interface components {
             /** Format: int32 */
             stockMinimo: number;
         };
+        ComponenteAutoPedidoRequest: {
+            autoPedido: boolean;
+        };
         ComponenteActivoRequest: {
             activo: boolean;
         };
@@ -3273,6 +3292,7 @@ export interface components {
             consumoDiario: number | null;
             /** Format: int32 */
             pedir60: number | null;
+            autoPedido: boolean | null;
         };
         PuntoStock: {
             periodo: string;
@@ -5939,6 +5959,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ComponenteStockMinimoRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setAutoPedido: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idCom: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponenteAutoPedidoRequest"];
             };
         };
         responses: {

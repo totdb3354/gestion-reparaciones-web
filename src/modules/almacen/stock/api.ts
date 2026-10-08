@@ -60,6 +60,30 @@ export function useAjustarMinimo(): UseMutationResult<unknown, unknown, { idCom:
   })
 }
 
+type MarcaAutoPedido = { idCom: number; autoPedido: boolean }
+
+/** Casilla «Auto» de Stock (spec 0.9.6 §4.3): se ve marcada al momento (en la fila del master y en sus slaves, que
+ *  comparten la marca); si el PATCH falla vuelve a como estaba y el error lo enseña el diálogo global. */
+export function useMarcarAutoPedido(): UseMutationResult<unknown, unknown, MarcaAutoPedido, { antes: Componente[] | undefined }> {
+  const qc = useQueryClient()
+  const recargar = useRecarga()
+  return useMutation({
+    mutationFn: ({ idCom, autoPedido }: MarcaAutoPedido) =>
+      api.PATCH('/api/componentes/{idCom}/auto-pedido', { params: { path: { idCom } }, body: { autoPedido } }),
+    onMutate: async ({ idCom, autoPedido }: MarcaAutoPedido) => {
+      await qc.cancelQueries({ queryKey: CLAVE_COMPONENTES_GESTIONADOS })
+      const antes = qc.getQueryData<Componente[]>(CLAVE_COMPONENTES_GESTIONADOS)
+      qc.setQueryData<Componente[]>(CLAVE_COMPONENTES_GESTIONADOS, (ls) =>
+        ls?.map((c) => (c.idCom === idCom || c.idComMaster === idCom ? { ...c, autoPedido } : c)))
+      return { antes }
+    },
+    onError: (_e, _v, contexto) => {
+      if (contexto?.antes !== undefined) qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, contexto.antes)
+    },
+    onSettled: recargar,
+  })
+}
+
 export function useSetActivoComponente(): UseMutationResult<unknown, unknown, { idCom: number; activo: boolean }> {
   const recargar = useRecarga()
   return useMutation({

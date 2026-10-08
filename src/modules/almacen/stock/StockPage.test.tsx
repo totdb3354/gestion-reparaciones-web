@@ -16,7 +16,7 @@ import { filtrosStock, seleccionStock } from './estado'
 import { CABECERAS_CSV_STOCK } from './columnas'
 import { StockPage } from './StockPage'
 
-const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null }
+const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null }
 const componentes = [
   { ...base, idCom: 1, tipo: 'lcd-x', stock: 5, stockMinimo: 2, activo: true, enCamino: 0 },
   { ...base, idCom: 2, tipo: 'bat-x', stock: 2, stockMinimo: 3, activo: true, enCamino: 4, consumoDiario: 0.31, pedir60: 16 },

@@ -3013,6 +3013,36 @@
         }
       }
     },
+    "/api/componentes/{idCom}/auto-pedido" : {
+      "patch" : {
+        "tags" : [ "componente-controller" ],
+        "operationId" : "setAutoPedido",
+        "parameters" : [ {
+          "name" : "idCom",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ComponenteAutoPedidoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/componentes/{idCom}/activo" : {
       "patch" : {
         "tags" : [ "componente-controller" ],
@@ -6253,6 +6283,15 @@
           }
         }
       },
+      "ComponenteAutoPedidoRequest" : {
+        "required" : [ "autoPedido" ],
+        "type" : "object",
+        "properties" : {
+          "autoPedido" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "ComponenteActivoRequest" : {
         "required" : [ "activo" ],
         "type" : "object",
@@ -7372,7 +7411,7 @@
         }
       },
       "Componente" : {
-        "required" : [ "activo", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir60", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
+        "required" : [ "activo", "autoPedido", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir60", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -7423,6 +7462,10 @@
           "pedir60" : {
             "type" : "integer",
             "format" : "int32",
+            "nullable" : true
+          },
+          "autoPedido" : {
+            "type" : "boolean",
             "nullable" : true
           }
         }
