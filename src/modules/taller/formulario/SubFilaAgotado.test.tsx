@@ -29,7 +29,7 @@ const montar = (acciones: AccionFormulario[], solicitudes: SolicitudAsignacion[]
 // Modelo 14: batería bati14 (idCom 102) con stock 0. Modelo 13: chasis chai13negro (idCom 131) con stock 2.
 const MODELO_13: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '13' }
 const MODELO_14: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '14' }
-const CHASIS_AL_LIMITE: AccionFormulario[] = [MODELO_13, { tipo: 'SUMAR', prefijo: 'cha' }, { tipo: 'SUMAR', prefijo: 'cha' }]
+const CHASIS_AL_LIMITE: AccionFormulario[] = [MODELO_13, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'SUMAR', prefijo: 'cha' }, { tipo: 'SUMAR', prefijo: 'cha' }]
 
 describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotado y solicitud de pieza)', () => {
   it('variante sin stock: texto literal y botón "Solicitar pieza"', () => {

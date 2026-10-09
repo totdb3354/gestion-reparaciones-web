@@ -1,4 +1,4 @@
-import { componenteDe, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
+import { componenteDe, controlesIniciales, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
 
 /** Borrador del formulario con el MISMO JSON que escribe el cliente de escritorio (BorradorContenido, campo a campo): los dos
  *  clientes leen y escriben el mismo borrador de una asignación. El servidor lo guarda opaco. */
@@ -113,10 +113,13 @@ const CONTROLES_BLOQUEADOS: ControlesFila = { mas: false, menos: false, reutiliz
 /** Una fila del borrador sobre la fila del formulario (calco de FilaUI.aplicarBorrador). */
 function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
   // Una solicitud ya guardada en el servidor manda sobre el borrador; sin SKU para el modelo no hay nada que restaurar.
-  if (fila.solicitud !== null || fila.idCom === null) return fila
-  // El SKU solo se preselecciona si está entre las opciones actuales; si no, queda el SKU por defecto.
+  if (fila.solicitud !== null || fila.opciones.length === 0) return fila
+  // El SKU solo se preselecciona si está entre las opciones actuales; si no, queda el SKU por defecto (en chasis y tapa,
+  // ninguno: spec 0.9.7 §9). Sobre una fila sin elegir, los controles salen como recién puesta sobre ese SKU.
   const elegido = f.idCom > 0 ? fila.opciones.find((c) => c.idCom === f.idCom) : undefined
-  const base: FilaEstado = elegido ? { ...fila, idCom: elegido.idCom, controles: { ...fila.controles, mas: elegido.stock > 0 } } : fila
+  const base: FilaEstado = elegido === undefined ? fila
+    : fila.idCom === null ? { ...fila, idCom: elegido.idCom, controles: controlesIniciales(elegido) }
+    : { ...fila, idCom: elegido.idCom, controles: { ...fila.controles, mas: elegido.stock > 0 } }
   if (f.guardada) {
     return {
       ...base, cantidad: f.cantidad > 0 ? f.cantidad : base.cantidad, reutilizado: f.reutilizado || base.reutilizado, controles: CONTROLES_BLOQUEADOS,
@@ -132,6 +135,8 @@ function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
       agotado: { descripcion: f.descripcionAgotado ?? null, registrado: false }, confirmandoGuardar: false, recibidoPendienteUso: false,
     }
   }
+  // Chasis o tapa sin SKU recuperable: no hay pieza a la que devolver cantidad ni "Reutilizado".
+  if (base.idCom === null) return base
   // Normal: "Reutilizado", cantidad (mínimo 0, SIN revalidar contra el stock) y observación. De los controles solo se
   // recalcula "-", como en la referencia.
   const cantidad = Math.max(0, f.cantidad)

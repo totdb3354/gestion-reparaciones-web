@@ -2,6 +2,7 @@ import type {
   AgotarRequest, AsignacionActiva, Componente, ComponentesAgrupados, DetalleEdicion, EditarReparacionRequest, FilaReparacion,
   GuardarFilaRequest, InsertarCompletaRequest, SolicitudAsignacion,
 } from '@/shared/api/client'
+import { PREFIJO_CHASIS, PREFIJO_TAPA, PREFIJOS_CON_COLOR, leerSku, mismoColor } from '../lib/colores'
 import { MODELOS_ORDENADOS, extraerModelo, modelosDisponibles } from '../lib/modelos'
 import { PREFIJO_OTRO, nombreTipo, prefijosDeFila } from '../lib/piezas'
 
@@ -33,7 +34,7 @@ export type FilaEstado = {
   nombre: string // nombreTipo(prefijo)
   skus: Componente[] // todos los ACTIVOS del tipo
   opciones: Componente[] // skus filtrados por el modelo (todos si no hay modelo)
-  idCom: number | null // SKU elegido; null si opciones está vacío
+  idCom: number | null // SKU elegido; null si opciones está vacío o, en chasis y tapa, hasta que se elige (spec 0.9.7 §9)
   cantidad: number
   reutilizado: boolean
   observacion: string | null
@@ -160,6 +161,8 @@ export type AccionFormulario =
 // ───────────────────────────── Filas: construcción ─────────────────────────────
 
 const CONTROLES_APAGADOS: ControlesFila = { mas: false, menos: false, reutilizado: false, sku: false, observacion: false }
+/** Chasis o tapa con opciones pero sin SKU elegido: solo el combo encendido (spec 0.9.7 §9). */
+const CONTROLES_SOLO_SKU: ControlesFila = { ...CONTROLES_APAGADOS, sku: true }
 
 type BaseFila = Pick<FilaEstado, 'prefijo' | 'nombre' | 'skus'>
 
@@ -168,7 +171,7 @@ function opcionesPara(base: BaseFila, modelo: string | null): Componente[] {
 }
 
 /** Controles de una fila recién puesta sobre un SKU: "-" apagado, "+" según stock, el resto encendido. */
-function controlesIniciales(c: Componente | null): ControlesFila {
+export function controlesIniciales(c: Componente | null): ControlesFila {
   if (c === null) return CONTROLES_APAGADOS
   return { mas: c.stock > 0, menos: false, reutilizado: true, sku: true, observacion: true }
 }
@@ -176,7 +179,8 @@ function controlesIniciales(c: Componente | null): ControlesFila {
 /** Fila en su estado inicial para un modelo: SKU por defecto = el primero con stock o, si ninguno, el primero. */
 function filaLimpia(base: BaseFila, modelo: string | null): FilaEstado {
   const opciones = opcionesPara(base, modelo)
-  const elegido = opciones.find((c) => c.stock > 0) ?? opciones[0] ?? null
+  // Chasis y tapa no se preseleccionan (spec 0.9.7 §9): el técnico elige el color a conciencia.
+  const elegido = PREFIJOS_CON_COLOR.includes(base.prefijo) ? null : (opciones.find((c) => c.stock > 0) ?? opciones[0] ?? null)
   return {
     prefijo: base.prefijo,
     nombre: base.nombre,
@@ -186,7 +190,7 @@ function filaLimpia(base: BaseFila, modelo: string | null): FilaEstado {
     cantidad: 0,
     reutilizado: false,
     observacion: null,
-    controles: controlesIniciales(elegido),
+    controles: elegido ? controlesIniciales(elegido) : opciones.length > 0 ? CONTROLES_SOLO_SKU : CONTROLES_APAGADOS,
     rol: 'normal',
     guardada: null,
     confirmandoGuardar: false,
@@ -436,7 +440,7 @@ function inicialEditar(datos: DatosEditar): EstadoFormulario {
 }
 
 export function estadoInicial(datos: DatosNuevo | DatosEditar): EstadoFormulario {
-  return datos.modo === 'editar' ? inicialEditar(datos) : inicialNuevo(datos)
+  return enlazarAlAbrir(datos.modo === 'editar' ? inicialEditar(datos) : inicialNuevo(datos))
 }
 
 // ───────────────────────────── Selectores de fila ─────────────────────────────
@@ -524,6 +528,8 @@ function restar(fila: FilaEstado): FilaEstado | null {
 function cambiarSku(fila: FilaEstado, idCom: number): FilaEstado | null {
   const c = fila.opciones.find((o) => o.idCom === idCom)
   if (bloqueada(fila) || fila.solicitud !== null || !fila.controles.sku || c === undefined || idCom === fila.idCom) return null
+  // Primera elección de chasis o tapa: controles como una fila recién puesta sobre ese SKU.
+  if (fila.idCom === null) return { ...fila, idCom, controles: controlesIniciales(c) }
   // En la fila en edición, volver al componente original ni pone a 0 ni toca "+".
   const esElOriginal = fila.original !== null && fila.original.idCom === idCom
   const seVacia = !esElOriginal && fila.cantidad > c.stock
@@ -710,6 +716,60 @@ function desbloquearBorradas(estado: EstadoFormulario, idsExistentes: string[]):
   return cambio ? { ...estado, filas, otros, volcados: estado.volcados + 1 } : estado
 }
 
+/** El enlace de color nunca cambia la fila en edición ni una ya reparada (spec 0.9.7 §9.3); las bloqueadas y las de
+ *  solicitud ya las rechaza cambiarSku. */
+function enlazable(fila: FilaEstado): boolean {
+  return fila.rol === 'normal'
+}
+
+/** Enlace de color tras elegir a mano el SKU del chasis o de la tapa (spec 0.9.7 §9.1). Chasis → tapa del mismo color.
+ *  Tapa → chasis del mismo color conservando su SIM/eSIM, solo si el chasis ya estaba elegido (si no, sigue sin elegir y
+ *  chasisResaltados marca las opciones). Solo cambia el SKU (cambiarSku), nunca cantidad ni "Reutilizado". */
+function enlazarColor(estado: EstadoFormulario, origen: string): EstadoFormulario {
+  const chasis = estado.filas.find((f) => f.prefijo === PREFIJO_CHASIS)
+  const tapa = estado.filas.find((f) => f.prefijo === PREFIJO_TAPA)
+  if (chasis === undefined || tapa === undefined) return estado
+  if (origen === PREFIJO_CHASIS) {
+    const c = componenteDe(chasis)
+    if (c === null || !enlazable(tapa)) return estado
+    const color = leerSku(c.tipo, PREFIJO_CHASIS)
+    const destino = tapa.opciones.find((o) => mismoColor(leerSku(o.tipo, PREFIJO_TAPA), color))
+    return destino ? cambiarFila(estado, PREFIJO_TAPA, (f) => cambiarSku(f, destino.idCom)) : estado
+  }
+  if (origen === PREFIJO_TAPA) {
+    const t = componenteDe(tapa)
+    const actual = componenteDe(chasis)
+    if (t === null || actual === null || !enlazable(chasis)) return estado
+    const color = leerSku(t.tipo, PREFIJO_TAPA)
+    const esim = leerSku(actual.tipo, PREFIJO_CHASIS).esim
+    const destino = chasis.opciones.find((o) => {
+      const lectura = leerSku(o.tipo, PREFIJO_CHASIS)
+      return lectura.esim === esim && mismoColor(lectura, color)
+    })
+    return destino ? cambiarFila(estado, PREFIJO_CHASIS, (f) => cambiarSku(f, destino.idCom)) : estado
+  }
+  return estado
+}
+
+/** Al abrir: si el chasis ya trae SKU (edición, solicitud o rechazada) y la tapa no, la tapa toma su color. Sin subir
+ *  revision: abrir no es un cambio que reprograme el autoguardado. */
+function enlazarAlAbrir(estado: EstadoFormulario): EstadoFormulario {
+  const tapa = estado.filas.find((f) => f.prefijo === PREFIJO_TAPA)
+  if (tapa === undefined || tapa.idCom !== null) return estado
+  const enlazado = enlazarColor(estado, PREFIJO_CHASIS)
+  return enlazado === estado ? estado : { ...enlazado, revision: estado.revision }
+}
+
+/** Opciones del chasis del color de la tapa elegida, mientras el chasis está sin elegir (spec 0.9.7 §9.1, opción A). */
+export function chasisResaltados(e: EstadoFormulario): Set<number> {
+  const chasis = e.filas.find((f) => f.prefijo === PREFIJO_CHASIS)
+  const tapa = e.filas.find((f) => f.prefijo === PREFIJO_TAPA)
+  const t = tapa === undefined ? null : componenteDe(tapa)
+  if (chasis === undefined || chasis.idCom !== null || t === null) return new Set()
+  const color = leerSku(t.tipo, PREFIJO_TAPA)
+  return new Set(chasis.opciones.filter((o) => mismoColor(leerSku(o.tipo, PREFIJO_CHASIS), color)).map((o) => o.idCom))
+}
+
 export function reducir(estado: EstadoFormulario, accion: AccionFormulario): EstadoFormulario {
   switch (accion.tipo) {
     case 'CAMBIAR_MODELO':
@@ -718,8 +778,10 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
       return cambiarFila(estado, accion.prefijo, sumar)
     case 'RESTAR':
       return cambiarFila(estado, accion.prefijo, restar)
-    case 'CAMBIAR_SKU':
-      return cambiarFila(estado, accion.prefijo, (f) => cambiarSku(f, accion.idCom))
+    case 'CAMBIAR_SKU': {
+      const tras = cambiarFila(estado, accion.prefijo, (f) => cambiarSku(f, accion.idCom))
+      return tras === estado ? estado : enlazarColor(tras, accion.prefijo)
+    }
     case 'MARCAR_REUTILIZADO':
       return cambiarFila(estado, accion.prefijo, (f) => marcarReutilizado(f, accion.valor))
     case 'PONER_OBSERVACION':
@@ -861,6 +923,7 @@ function conDescripcion(texto: string, descripcion: string | null): string {
  *  STOCK del SKU, no el contador. El lápiz solo funciona sobre la solicitud local aún sin registrar. */
 export function subFila(e: EstadoFormulario, fila: FilaEstado): SubFila {
   if (e.modo === 'editar' || fila.guardada !== null || filaSinSku(fila)) return { tipo: 'oculta' }
+  if (fila.idCom === null) return { tipo: 'oculta' } // chasis o tapa sin elegir: no hay SKU del que hablar
   if (fila.solicitud !== null) {
     return { tipo: 'confirmada', texto: conDescripcion(TEXTO_SOLICITUD_PENDIENTE, fila.solicitud.descripcion), lapizHabilitado: false }
   }

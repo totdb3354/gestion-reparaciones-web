@@ -259,7 +259,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
       imei: IMEI, idTec: 4, idRepAnterior: 'R20260910_2',
     })
     // sin incidencia, sin observación: null
-    const sinNada = reducir(conModelo('13'), { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })
+    const sinNada = aplicar(conModelo('13'), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })
     expect(cuerpoGuardarFila(sinNada, 'cha', 4)).toEqual({
       filas: [{ idCom: 131, cantidad: 0, reutilizado: true, observacion: null, prefijo: 'cha', ...FILA_VACIA }],
       imei: IMEI, idTec: 4, idRepAnterior: null,

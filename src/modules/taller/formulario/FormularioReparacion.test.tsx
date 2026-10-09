@@ -245,6 +245,11 @@ async function terminar() {
   await userEvent.click(botonZona())
   await userEvent.click(botonZona())
 }
+/** Elige el SKU de la fila en su combo (chasis y tapa no vienen preseleccionados, spec 0.9.7 §9). */
+async function elegirSku(prefijo: string, tipo: string, sku: string) {
+  await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('combobox', { name: `SKU de ${tipo}` }))
+  await userEvent.click(await screen.findByRole('button', { name: sku }))
+}
 async function sumar(prefijo: string, tipo: string, veces = 1) {
   for (let i = 0; i < veces; i++) await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('button', { name: `Sumar ${tipo}` }))
 }
@@ -350,6 +355,7 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     // Se preparan al revés (pantalla antes que chasis) para comprobar que manda el orden de filas.
     await sumar('lcd', 'Pantalla')
     await solicitar('lcd', 'Solicitar y descontar stock')
+    await elegirSku('cha', 'Chasis', 'chai13negro')
     await sumar('cha', 'Chasis', 2)
     await solicitar('cha', 'Solicitar y descontar stock', 'Marco doblado')
     await sumar('bat', 'Batería')
@@ -396,6 +402,7 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     }))
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
+    await elegirSku('cha', 'Chasis', 'chai13negro')
     await sumar('cha', 'Chasis', 2)
     await solicitar('cha', 'Solicitar y descontar stock')
     await sumar('lcd', 'Pantalla')
