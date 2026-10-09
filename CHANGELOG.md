@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.7] - 2026-10-09 — Tapa trasera
+
+- **Tapa trasera como pieza propia.** Nueva fila **"Tapa trasera"** en el formulario de reparación, justo después de Chasis, con un SKU por modelo y color (los mismos colores que el chasis) para el 14, el 14 Plus, toda la serie 15, toda la serie 16, el 17, el Air, el 17 Pro y el 17 Pro Max. Descuenta stock y sale en Stock, en la previsión, en los pedidos y en el filtro "Pieza" del historial como el resto de piezas. Puntúa 1 punto en las estadísticas (hasta ahora se apuntaba como "otro" y valía 0,5).
+- **Formulario más limpio:** con el modelo elegido, la fila de un tipo de pieza que no existe para ese modelo ya no se pinta (por ejemplo, "Tapa trasera" en un iPhone 13). Si el tipo existe pero todos sus SKU de ese modelo están desactivados, la fila sigue saliendo en gris.
+- Requiere el servidor 0.9.7 y el script `datos-tapa-trasera.sql` (puntos de la tapa y las tapas), que se aplica después de desplegar. Sin cambios en el esquema de la base ni en nginx.
+
 ## [0.9.6] - 2026-10-08 — Pedir para 60 días y pedido automático
 
 - **Previsión de pedidos: una sola columna "Pedir 60 d"** en lugar de "Pedir 15 d" y "Pedir 30 d": cuánto pedir para cubrir 60 días, con la misma regla (contando el stock y lo que ya está en camino, sin bajar nunca del stock mínimo). También en el CSV.

@@ -2,9 +2,9 @@ import type { Componente, ComponentesAgrupados } from '@/shared/api/client'
 import { estadoStock } from '@/shared/lib/semaforoStock'
 
 /** Calco de Piezas: categoría legible a partir del prefijo del SKU (prefijos largos antes para no confundir cha/cam con g). */
-const PREFIJOS = ['otro', 'cha', 'cam', 'bat', 'lcd', 'mc', 'g'] as const
+const PREFIJOS = ['otro', 'tapa', 'cha', 'cam', 'bat', 'lcd', 'mc', 'g'] as const
 const ETIQUETAS: Record<(typeof PREFIJOS)[number], string> = {
-  bat: 'Batería', cha: 'Chasis', g: 'Glass', cam: 'Cámara', lcd: 'Pantalla', mc: 'Marco', otro: 'Otros',
+  bat: 'Batería', cha: 'Chasis', tapa: 'Tapa trasera', g: 'Glass', cam: 'Cámara', lcd: 'Pantalla', mc: 'Marco', otro: 'Otros',
 }
 
 export function categoriaPieza(sku: string | null | undefined): string {
@@ -21,7 +21,7 @@ export const PREFIJO_OTRO = 'otro'
 /** Los dos tipos de la variante Glass. */
 export const PREFIJOS_GLASS: readonly string[] = ['g', 'mc']
 
-const NOMBRES_TIPO: Record<string, string> = { bat: 'Batería', cha: 'Chasis', g: 'Glass', cam: 'Cámara', lcd: 'Pantalla', mc: 'Marco' }
+const NOMBRES_TIPO: Record<string, string> = { bat: 'Batería', cha: 'Chasis', tapa: 'Tapa trasera', g: 'Glass', cam: 'Cámara', lcd: 'Pantalla', mc: 'Marco' }
 
 /** Nombre de la fila para un prefijo del servidor. Distinta de categoriaPieza a propósito: aquí se parte del prefijo exacto
  *  (no del SKU) y un prefijo desconocido se muestra tal cual. */

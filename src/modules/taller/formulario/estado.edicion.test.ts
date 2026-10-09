@@ -3,7 +3,7 @@ import { agrupados, componente, detalleEdicion, solicitudAsignacion } from '../t
 import {
   type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario, type FilaEstado,
   accionEditadaInvalida, anadirAccionHabilitado, botonDerecho, contadorAcciones, cuerpoGuardarAccion, cuerpoGuardarFila, estadoInicial,
-  etiquetaImei, filaDeAccion, filaDeCuerpo, filaEditadaInvalida, filasVisibles, hayCambioEnFilaEditada, hayCambiosSinGuardar,
+  etiquetaImei, filaDeAccion, filaDeCuerpo, filaEditadaInvalida, filaSinSku, filaVisible, filasVisibles, hayCambioEnFilaEditada, hayCambiosSinGuardar,
   planGuardarCambios, planTerminar, previsionStock, reducir, subFila, textoBotonGuardar, tituloPestana, zonaGuardarVisible,
 } from './estado'
 
@@ -399,5 +399,35 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
     expect(planGuardarCambios(yaReparadas).completaAcciones).toBeNull()
     // fuera de edición no hay plan
     expect(planGuardarCambios(conModelo('13'))).toEqual({ editarAccion: null, editarFila: null, completaFilas: null, completaAcciones: null })
+  })
+})
+
+describe('filas de tipos que no existen para el modelo (spec 0.9.7 §5.2)', () => {
+  const visibles = (e: EstadoFormulario) => e.filas.filter((f) => filaVisible(e, f)).map((f) => f.prefijo)
+
+  it('sin modelo se pintan todas', () => {
+    expect(visibles(estadoInicial(datosNuevo()))).toEqual(['bat', 'cha', 'lcd', 'cam'])
+  })
+
+  it('con modelo, un tipo sin ningún SKU de ese modelo no se pinta', () => {
+    // agrupados(): no hay chasis ni cámara del 14
+    expect(visibles(conModelo('14'))).toEqual(['bat', 'lcd'])
+    expect(visibles(conModelo('13'))).toEqual(['bat', 'cha', 'lcd', 'cam'])
+  })
+
+  it('un tipo con SKU del modelo pero todos desactivados se pinta, atenuado', () => {
+    const a = agrupados()
+    a.cam = [componente({ idCom: 121, tipo: 'cami13', activo: false })]
+    const e = conModelo('13', { agrupados: a })
+    expect(visibles(e)).toEqual(['bat', 'cha', 'lcd', 'cam'])
+    expect(filaSinSku(fila(e, 'cam'))).toBe(true)
+  })
+
+  it('una fila con estado propio no se oculta aunque su tipo no exista para el modelo', () => {
+    // Edición de lcdi14 (modelo 14) en un IMEI con la cámara cami13 ya reparada: no hay cámara del 14, pero es "ya reparada".
+    const e = estadoInicial(datosEditar({ detalle: detalleEdicion({ idCom: 112 }), yaReparados: [121] }))
+    expect(e.modelo).toBe('14')
+    expect(fila(e, 'cam').rol).toBe('yaReparado')
+    expect(visibles(e)).toEqual(['bat', 'lcd', 'cam'])
   })
 })

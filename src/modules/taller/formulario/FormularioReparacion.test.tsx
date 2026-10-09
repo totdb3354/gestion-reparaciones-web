@@ -63,6 +63,14 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toHaveTextContent('iPhone 13')
   })
 
+  it('con el modelo elegido no se pintan los tipos sin ningún SKU de ese modelo (spec 0.9.7 §5.2)', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 14')
+    // agrupados(): no hay chasis ni cámara del 14
+    expect(screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))).toEqual(['fila-bat', 'fila-lcd'])
+  })
+
   it('las opciones del combo son los modelos con SKU activo, traducidos y en orden de tienda', async () => {
     abrir()
     await screen.findByRole('dialog', { name: TITULO })

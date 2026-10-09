@@ -48,7 +48,7 @@ Los dobles espacios dentro de los textos entre comillas son literales. `<tipo>` 
 - [x] Combo SKU: 170 px fijo, 8 opciones visibles, 11 px, mismo estilo navy; cada opción es el SKU; sin valor muestra "—". Opciones = SKU activos del tipo cuyo modelo coincide con el elegido (todos los activos si no hay modelo). Valor por defecto: el primero con stock > 0 o, si ninguno, el primero.
 - [x] Color del SKU, en la lista y en el botón: #B03040 si stock 0; #C07800 si 0 < stock ≤ mínimo; color normal en otro caso.
 - [x] Stock: 70 px centrado, 12 px, padding 0 10; el stock del SKU seleccionado, o "—" si el tipo no tiene SKU para el modelo.
-- [x] Tipo sin SKU para el modelo: la fila **no se oculta**; queda con opacidad 0,4, combo vacío y deshabilitado, y "+", "-", "Reutilizado" y observación deshabilitados.
+- [x] Tipo sin SKU para el modelo, con modelo elegido (0.9.7, spec `docs/superpowers/specs/2026-10-09-v097-tapa-trasera-design.md` §5.2 del repo raíz): si el tipo no tiene **ningún** SKU para ese modelo (ni activo ni desactivado), la fila no se pinta (sigue en el estado, solo es presentación). Si tiene SKU del modelo pero todos desactivados, la fila se mantiene con opacidad 0,4, combo vacío y deshabilitado, y "+", "-", "Reutilizado" y observación deshabilitados. Una fila con estado propio (editada, ya reparada, guardada, solicitud, agotado o "✓ Recibido") nunca se oculta. Sin modelo se pintan todas.
 - [x] Estado inicial de una fila con SKU: "-" deshabilitado; "+" deshabilitado si el stock es ≤ 0; "Reutilizado" y observación habilitados; opacidad 1.
 - [x] "+": solo suma si cantidad < stock; tras sumar se deshabilita si cantidad ≥ stock y deshabilita "Reutilizado". "-": resta si > 0, recalcula "+", y al llegar a 0 rehabilita "Reutilizado" y se deshabilita.
 - [x] "Reutilizado" (casilla con ese texto, 110 px, 12 px, padding 0 10): al marcar deshabilita "+" y "-"; al desmarcar habilita "+" **sin mirar el stock** (con stock 0 el clic no hace nada) y "-" vuelve a deshabilitado por estar a 0. Cantidad > 0 y "Reutilizado" son excluyentes.
@@ -88,7 +88,7 @@ Los dobles espacios dentro de los textos entre comillas son literales. `<tipo>` 
 - [x] Marcar "Reutilizado" en una fila con solicitud pendiente la activa: al terminar se envía como fila normal (`reutilizado: true`, `esSolicitud: false`) y el servidor resuelve la solicitud de ese componente.
 - [x] Una fila con solicitud activa ignora lo que traiga el borrador para su tipo.
 - [x] El lápiz solo funciona sobre la solicitud local aún sin guardar. En una solicitud ya guardada en el servidor (pendiente o en camino) se muestra deshabilitado, sin cursor de mano y sin abrir ningún diálogo: desde el formulario no se cambia su descripción ni se cancela.
-- [x] Fila con "✓ Recibido" visible y cambio a un modelo sin SKU para ese tipo: el botón derecho se oculta junto con el reseteo de la fila (que queda atenuada y deshabilitada); "✓ Recibido" ya no vuelve.
+- [x] Fila con "✓ Recibido" visible y cambio a un modelo sin SKU para ese tipo: el botón derecho se oculta junto con el reseteo de la fila (que queda atenuada y deshabilitada si el tipo tiene SKU desactivados para el nuevo modelo, y no se pinta si no tiene ninguno, 0.9.7); "✓ Recibido" ya no vuelve.
 
 ## Otras acciones
 
@@ -209,6 +209,7 @@ En flujo nuevo y Glass (llamadas con `idAsignacion`) el técnico de cada escritu
 - "✓ Recibido" y cambio a un modelo sin SKU para ese tipo: en el JavaFX el botón derecho quedaba visible en la fila atenuada. En la web se oculta.
 - Agotado confirmado en la variante «límite» recuperado del borrador: el JavaFX dejaba la cantidad a 0 y el descuento de esas unidades se perdía al terminar. La web conserva la cantidad del borrador, acotada al stock actual del SKU (0 si ya no queda stock).
 - Reintentos seguros: cada guardado (fila, acción, agotado, terminar y cada paso de "Guardar cambios") viaja con una clave de idempotencia que se reutiliza al reintentar la misma petición; el servidor devuelve el resultado de la primera ejecución en vez de repetirla. En el JavaFX, reintentar tras una respuesta perdida o un fallo a medias podía registrar el trabajo dos veces.
+- Tipo sin ningún SKU para el modelo (0.9.7): con modelo elegido, la fila de un tipo que no tiene SKU alguno para ese modelo ya no se pinta (el JavaFX la dejaba atenuada al 40 %). Si el tipo solo tiene SKU desactivados, la fila sigue atenuada; las filas con estado propio (editada, ya reparada, guardada, solicitud, agotado o "✓ Recibido") nunca se ocultan.
 - Guardados solapados: mientras "Terminar asignación" o "Guardar cambios" está en curso no se guarda una fila ni una acción por separado, y al revés. En el JavaFX no podían solaparse porque las llamadas bloqueaban la interfaz; en la web, sin esta regla, la misma fila podría registrarse dos veces.
 
 ## Comportamientos del JavaFX calcados a propósito
@@ -219,7 +220,7 @@ En flujo nuevo y Glass (llamadas con `idAsignacion`) el técnico de cada escritu
 - Un 409 en edición solo avisa ("…Cierra y vuelve a abrir el formulario para ver los cambios actuales."): el formulario no se recarga solo.
 - El estado "Guardada" de filas y acciones vive solo en el borrador: sin borrador, esas filas salen editables.
 - Cambiar de modelo resetea todas las filas no guardadas sin avisar, incluidos los agotados confirmados.
-- Las filas sin SKU para el modelo se atenúan al 40 % en vez de ocultarse; la cabecera de columnas sigue visible con "Selecciona un modelo…".
+- Sin modelo, la cabecera de columnas sigue visible con "Selecciona un modelo…" (las filas con SKU desactivados para el modelo siguen atenuándose al 40 %; ver «Correcciones deliberadas» para las que no tienen ninguno).
 - Una observación no se puede editar: se borra y se añade de nuevo; "Guardar" con texto vacío no borra la existente; confirmar una solicitud borra la observación de la fila.
 - Tras desmarcar "Reutilizado", "+" queda habilitado aunque el stock sea 0 (sin efecto).
 - El borrador restaura la cantidad sin revalidarla contra el stock actual (salvo en un agotado confirmado: ver «Correcciones deliberadas»), y "Guardar descripción" no dispara el autoguardado.

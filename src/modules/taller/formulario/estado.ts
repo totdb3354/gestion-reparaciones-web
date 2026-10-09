@@ -85,8 +85,11 @@ export type EstadoFormulario = {
   modelo: string | null
   modeloBloqueado: boolean
   modelos: string[] // opciones del combo, en el orden de MODELOS_ORDENADOS
-  tieneSolicitudesIniciales: boolean // hubo solicitudes (de cualquier estado): las filas nunca se ocultan
+  tieneSolicitudesIniciales: boolean // hubo solicitudes (de cualquier estado): nunca sale "Selecciona un modelo…" (filasVisibles)
   filas: FilaEstado[]
+  /** Por tipo de fila, los modelos con algún SKU del tipo, ACTIVO O NO (spec 0.9.7 §5.2): un tipo sin ningún SKU del modelo
+   *  elegido no se pinta (filaVisible). */
+  modelosPorTipo: Record<string, string[]>
   componentesOtro: Componente[] // grupo 'otro' completo (no se mira 'activo')
   otros: OtraAccion[]
   siguienteIdAccion: number
@@ -207,6 +210,16 @@ type DatosBase = {
   glass: boolean
 }
 
+/** Modelos con algún SKU (activo o no) de cada tipo de fila, sin repetir. */
+function modelosDeCadaTipo(agrupados: ComponentesAgrupados, prefijos: string[]): Record<string, string[]> {
+  const mapa: Record<string, string[]> = {}
+  for (const prefijo of prefijos) {
+    const modelos = (agrupados[prefijo] ?? []).map((c) => extraerModelo(c.tipo, prefijo)).filter((m): m is string => m !== null)
+    mapa[prefijo] = [...new Set(modelos)]
+  }
+  return mapa
+}
+
 /** Estado sin modelo: una fila por tipo (orden de prefijosDeFila), todos los SKU activos como opciones. */
 function estadoBase(d: DatosBase): EstadoFormulario {
   const bases: BaseFila[] = prefijosDeFila(d.agrupados, d.glass).map((prefijo) => ({
@@ -225,6 +238,7 @@ function estadoBase(d: DatosBase): EstadoFormulario {
     modelos: modelosDisponibles(bases.map((b) => ({ prefijo: b.prefijo, skus: b.skus }))),
     tieneSolicitudesIniciales: false,
     filas: bases.map((b) => filaLimpia(b, null)),
+    modelosPorTipo: modelosDeCadaTipo(d.agrupados, bases.map((b) => b.prefijo)),
     componentesOtro: d.agrupados[PREFIJO_OTRO] ?? [],
     otros: [],
     siguienteIdAccion: 1,
@@ -446,6 +460,16 @@ export function stockDe(fila: FilaEstado): number | null {
 /** Tipo sin SKU para el modelo: opacidad 0,4 y todo deshabilitado. */
 export function filaSinSku(fila: FilaEstado): boolean {
   return fila.opciones.length === 0
+}
+
+/** La fila se pinta (spec 0.9.7 §5.2). Sin modelo, todas. Con modelo: si tiene SKU activos del modelo; si trae estado propio
+ *  (editada, ya reparada, guardada, solicitud, agotado o "✓ Recibido"), siempre; si no, solo si el tipo tiene algún SKU
+ *  DESACTIVADO del modelo (sale atenuada, como filaSinSku). Un tipo que no existe para el modelo no se pinta. Solo es
+ *  presentación: la fila sigue en el estado, así que borrador, guardado y edición no cambian. */
+export function filaVisible(e: EstadoFormulario, fila: FilaEstado): boolean {
+  if (e.modelo === null || !filaSinSku(fila)) return true
+  if (fila.rol !== 'normal' || fila.guardada !== null || fila.solicitud !== null || fila.agotado !== null || fila.recibidoPendienteUso) return true
+  return (e.modelosPorTipo[fila.prefijo] ?? []).includes(e.modelo)
 }
 
 export function filaActiva(fila: FilaEstado): boolean {

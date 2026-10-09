@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
 import { useCargaEditar, useCargaNuevo, useRecargarAlCerrar } from './api'
 import { CabeceraFormulario } from './CabeceraFormulario'
 import { DialogoSalirSinGuardar } from './DialogoSalirSinGuardar'
-import { estadoInicial, filasVisibles, hayCambiosSinGuardar, reducir, textoConflicto, tituloPestana, type DatosEditar, type DatosNuevo } from './estado'
+import { estadoInicial, filaVisible, filasVisibles, hayCambiosSinGuardar, reducir, textoConflicto, tituloPestana, type DatosEditar, type DatosNuevo } from './estado'
 import { FilaComponente } from './FilaComponente'
 import { OtrasAcciones } from './OtrasAcciones'
 import { SubFilaAgotado } from './SubFilaAgotado'
@@ -166,7 +166,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
           {/* Filas y OTRAS ACCIONES desplazan juntas; el hueco flexible empuja la zona de guardar al fondo. */}
           <div data-testid="formulario-cuerpo" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
             {filasVisibles(estado) ? (
-              estado.filas.map((fila) => (
+              estado.filas.filter((fila) => filaVisible(estado, fila)).map((fila) => (
                 <FilaComponente key={fila.prefijo} estado={estado} fila={fila} dispatch={dispatch} onGuardarFila={guardado.guardarFila}>
                   <SubFilaAgotado estado={estado} fila={fila} dispatch={dispatch} />
                 </FilaComponente>
