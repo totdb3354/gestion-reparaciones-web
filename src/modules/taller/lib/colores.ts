@@ -12,7 +12,7 @@ type Color = { nombre: string; tono: string; porModelo?: Record<string, string> 
 
 /** Nombre oficial de Apple y tono aproximado de cada color de SKU (spec 0.9.7 §9.2). Solo orientativo: sirve para
  *  distinguir los colores de un mismo modelo. `porModelo` corrige los nombres que Apple repite con otro tono. */
-const COLORES = new Map<string, Color>(Object.entries({
+const TABLA: Record<string, Color> = {
   black: { nombre: 'Black', tono: '#232426', porModelo: { '15': '#3B3D3F', '15plus': '#3B3D3F', '16': '#3C3C3E', '16plus': '#3C3C3E', '16e': '#3C3C3E' } },
   white: { nombre: 'White', tono: '#F4F4F0' },
   red: { nombre: '(PRODUCT)RED', tono: '#BF0013' },
@@ -46,7 +46,8 @@ const COLORES = new Map<string, Color>(Object.entries({
   skyblue: { nombre: 'Sky Blue', tono: '#C5DCEF' },
   deepblue: { nombre: 'Deep Blue', tono: '#2F3B57' },
   cosmicorange: { nombre: 'Cosmic Orange', tono: '#F2782F' },
-} as const as Record<string, Color>))
+}
+const COLORES = new Map<string, Color>(Object.entries(TABLA))
 
 /** Modelo, variante eSIM y token de color de un SKU de chasis o tapa: lo que queda entre el modelo y un `esim` final
  *  (`chai16ultramarineesim` → 16, eSIM, `ultramarine`). */

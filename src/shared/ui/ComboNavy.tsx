@@ -135,7 +135,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
             return (
               <Fragment key={o.valor}>
                 {tituloBloque !== null && (
-                  <li role="presentation" className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold tracking-wide text-azul-gris uppercase">
+                  <li role="presentation" className="px-3 pt-1.5 pb-0.5 text-[10px] leading-[14px] font-bold tracking-wide text-azul-gris uppercase">
                     {tituloBloque}
                   </li>
                 )}

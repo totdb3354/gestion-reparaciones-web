@@ -114,7 +114,7 @@ export function FilaComponente({ estado, fila, dispatch, onGuardarFila, children
             valor={fila.idCom === null ? null : String(fila.idCom)}
             opciones={opcionesSku(fila, prefijo === PREFIJO_CHASIS ? chasisResaltados(estado) : new Set())}
             onChange={(valor) => dispatch({ tipo: 'CAMBIAR_SKU', prefijo, idCom: Number(valor) })}
-            textoVacio={PREFIJOS_CON_COLOR.includes(prefijo) ? TEXTO_SIN_COLOR : '—'}
+            textoVacio={PREFIJOS_CON_COLOR.includes(prefijo) && fila.opciones.length > 0 ? TEXTO_SIN_COLOR : '—'}
             ancho={170}
             tamanoTexto={11}
             visibles={8}

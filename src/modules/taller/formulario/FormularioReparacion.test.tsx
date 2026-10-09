@@ -97,6 +97,55 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.getByRole('button', { name: 'Sumar Chasis' })).toBeEnabled()
   })
 
+  it('con la tapa elegida y el chasis sin elegir, las opciones del chasis del color de la tapa salen resaltadas (spec 0.9.7 §9)', async () => {
+    const a = agrupados()
+    const sku = (idCom: number, tipo: string) => componente({ idCom, tipo, stock: 9999, stockMinimo: 2 })
+    abrir({
+      agrupados: {
+        ...a,
+        bat: [...a.bat, sku(205, 'bati16')],
+        cha: [sku(201, 'chai16black'), sku(202, 'chai16blackesim'), sku(203, 'chai16teal'), sku(204, 'chai16tealesim'), ...a.cha],
+        tapa: [sku(211, 'tapai16black'), sku(212, 'tapai16teal')],
+      },
+    })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 16')
+    await userEvent.click(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' }))
+    await userEvent.click(within(screen.getByRole('listbox', { name: 'SKU de Tapa trasera' })).getByRole('button', { name: 'Teal' }))
+    expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('tapai16teal')
+    const chasis = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(chasis).toHaveTextContent('— Elige color —')
+    await userEvent.click(chasis)
+    const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
+    const teal = within(lista).getAllByRole('button', { name: 'Teal' })
+    const black = within(lista).getAllByRole('button', { name: 'Black' })
+    expect(teal).toHaveLength(2)
+    expect(black).toHaveLength(2)
+    for (const b of teal) {
+      expect(b.closest('li')).toHaveAttribute('data-resaltada', 'true')
+      expect(b).toHaveClass('ring-verde-ok')
+    }
+    for (const b of black) {
+      expect(b.closest('li')).not.toHaveAttribute('data-resaltada')
+      expect(b).not.toHaveClass('ring-verde-ok')
+    }
+  })
+
+  it('fila de chasis atenuada (solo SKU desactivados para el modelo): el combo enseña «—», no «— Elige color —»', async () => {
+    const a = agrupados()
+    abrir({
+      agrupados: {
+        ...a,
+        bat: [...a.bat, componente({ idCom: 205, tipo: 'bati16', stock: 9999, stockMinimo: 2 })],
+        cha: [componente({ idCom: 201, tipo: 'chai16black', stock: 9999, stockMinimo: 2, activo: false }), ...a.cha],
+      },
+    })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 16')
+    expect(screen.getByTestId('fila-cha')).toHaveAttribute('data-estado', 'sinSku')
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent(/^—$/)
+  })
+
   it('las opciones del combo son los modelos con SKU activo, traducidos y en orden de tienda', async () => {
     abrir()
     await screen.findByRole('dialog', { name: TITULO })
