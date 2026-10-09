@@ -1,4 +1,4 @@
-import { componenteDe, controlesIniciales, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
+import { componenteDe, controlesIniciales, enlazarAlAbrir, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
 
 /** Borrador del formulario con el MISMO JSON que escribe el cliente de escritorio (BorradorContenido, campo a campo): los dos
  *  clientes leen y escriben el mismo borrador de una asignación. El servidor lo guarda opaco. */
@@ -120,6 +120,9 @@ function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
   const base: FilaEstado = elegido === undefined ? fila
     : fila.idCom === null ? { ...fila, idCom: elegido.idCom, controles: controlesIniciales(elegido) }
     : { ...fila, idCom: elegido.idCom, controles: { ...fila.controles, mas: elegido.stock > 0 } }
+  // Chasis o tapa sin SKU recuperable: vuelven sin elegir y sin cantidad, "Reutilizado", "guardada" ni "agotado" (spec 0.9.7
+  // §9.3); no hay pieza a la que atarlos. En las demás filas base.idCom nunca es null.
+  if (base.idCom === null) return base
   if (f.guardada) {
     return {
       ...base, cantidad: f.cantidad > 0 ? f.cantidad : base.cantidad, reutilizado: f.reutilizado || base.reutilizado, controles: CONTROLES_BLOQUEADOS,
@@ -135,8 +138,6 @@ function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
       agotado: { descripcion: f.descripcionAgotado ?? null, registrado: false }, confirmandoGuardar: false, recibidoPendienteUso: false,
     }
   }
-  // Chasis o tapa sin SKU recuperable: no hay pieza a la que devolver cantidad ni "Reutilizado".
-  if (base.idCom === null) return base
   // Normal: "Reutilizado", cantidad (mínimo 0, SIN revalidar contra el stock) y observación. De los controles solo se
   // recalcula "-", como en la referencia.
   const cantidad = Math.max(0, f.cantidad)
@@ -170,8 +171,10 @@ export function aplicarBorrador(e: EstadoFormulario, b: BorradorContenido): Esta
       guardada: a.guardada ? { idRep: a.idRepGenerado ?? '?', fecha: a.fechaGuardado ?? '' } : null, confirmando: false, guardando: false,
     })
   }
-  return {
+  // La tapa sigue al color del chasis recuperado (capturar descarta las filas inactivas, así que la tapa puede no venir en el
+  // borrador); enlazarAlAbrir no sube revision.
+  return enlazarAlAbrir({
     ...estado, filas, otros: [...estado.otros, ...recuperadas], siguienteIdAccion, borradorRecuperado: true, revision: e.revision,
     volcados: e.volcados,
-  }
+  })
 }

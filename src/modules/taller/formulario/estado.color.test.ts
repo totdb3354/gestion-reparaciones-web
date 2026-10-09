@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { agrupados, componente, detalleEdicion, solicitudAsignacion } from '../test/fabrica'
-import { aplicarBorrador, capturar } from './borrador'
+import { aplicarBorrador, capturar, type BorradorFila } from './borrador'
 import {
   type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario, type FilaEstado,
   chasisResaltados, estadoInicial, reducir, subFila,
@@ -27,6 +27,9 @@ const fila = (e: EstadoFormulario, prefijo: string): FilaEstado => {
   return f
 }
 const modelo16 = () => aplicar(estadoInicial(datosNuevo()), { tipo: 'CAMBIAR_MODELO', modelo: '16' })
+const filaBorrador = (parcial: Partial<BorradorFila> & { prefijo: string }): BorradorFila => ({
+  idCom: -1, cantidad: 0, reutilizado: false, solicitudNueva: false, agotadoConfirmado: false, guardada: false, ...parcial,
+})
 
 describe('chasis y tapa sin SKU preseleccionado (spec 0.9.7 §9.1)', () => {
   it('al elegir el modelo, chasis y tapa quedan sin elegir; el resto se preselecciona como siempre', () => {
@@ -80,6 +83,21 @@ describe('enlace de color chasis ↔ tapa (spec 0.9.7 §9.1)', () => {
     const e = aplicar(e0, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 203 })
     expect(fila(e, 'tapa').idCom).toBe(211)
   })
+  it('no toca la tapa con una solicitud pendiente: elegir el chasis la deja como estaba', () => {
+    const e0 = estadoInicial(datosNuevo({ solicitudes: [solicitudAsignacion({ idCom: 211 })] }))
+    expect(fila(e0, 'tapa').idCom).toBe(211)
+    const e = aplicar(e0, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 203 })
+    expect(fila(e, 'cha').idCom).toBe(203)
+    expect(fila(e, 'tapa').idCom).toBe(211)
+  })
+  it('no toca el chasis en edición: elegir la tapa lo deja como estaba', () => {
+    // Edición de un chasis (202, modelo 16): elegir la tapa teal no cambia el chasis editado.
+    const e0 = estadoInicial(datosEditar({ detalle: detalleEdicion({ idCom: 202 }) }))
+    expect(fila(e0, 'cha').rol).toBe('editada')
+    const e = aplicar(e0, { tipo: 'CAMBIAR_SKU', prefijo: 'tapa', idCom: 212 })
+    expect(fila(e, 'tapa').idCom).toBe(212)
+    expect(fila(e, 'cha').idCom).toBe(202)
+  })
 })
 
 describe('al abrir y con el borrador (spec 0.9.7 §9.3)', () => {
@@ -103,5 +121,31 @@ describe('al abrir y con el borrador (spec 0.9.7 §9.3)', () => {
   it('una fila de chasis sin SKU en el borrador no recupera cantidad', () => {
     const recuperado = aplicarBorrador(estadoInicial(datosNuevo()), capturar(modelo16()))
     expect(fila(recuperado, 'cha')).toMatchObject({ idCom: null, cantidad: 0, reutilizado: false })
+  })
+  it('un chasis AGOTADO cuyo SKU ya no está entre las opciones vuelve sin elegir y sin agotado ni cantidad', () => {
+    const borrador = {
+      modelo: '16', otros: [],
+      filas: [filaBorrador({ prefijo: 'cha', idCom: 999, cantidad: 2, agotadoConfirmado: true, descripcionAgotado: 'sin stock' })],
+    }
+    const recuperado = aplicarBorrador(estadoInicial(datosNuevo()), borrador)
+    expect(fila(recuperado, 'cha')).toMatchObject({ idCom: null, agotado: null, cantidad: 0 })
+  })
+  it('un chasis GUARDADO cuyo SKU ya no está entre las opciones vuelve sin elegir y sin marca de guardada', () => {
+    const borrador = {
+      modelo: '16', otros: [],
+      filas: [filaBorrador({ prefijo: 'cha', idCom: 999, cantidad: 1, guardada: true, idRepGenerado: 'R20261009_7', fechaGuardado: '2026-10-09 10:00' })],
+    }
+    const recuperado = aplicarBorrador(estadoInicial(datosNuevo()), borrador)
+    expect(fila(recuperado, 'cha')).toMatchObject({ idCom: null, guardada: null, cantidad: 0 })
+  })
+  it('la tapa sigue al chasis recuperado aunque no venga en el borrador, sin subir revision', () => {
+    const usado = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 204 }, { tipo: 'SUMAR', prefijo: 'cha' })
+    const borrador = capturar(usado)
+    expect(borrador.filas.map((f) => f.prefijo)).not.toContain('tapa')
+    const antes = estadoInicial(datosNuevo())
+    const recuperado = aplicarBorrador(antes, borrador)
+    expect(fila(recuperado, 'cha')).toMatchObject({ idCom: 204, cantidad: 1 })
+    expect(fila(recuperado, 'tapa')).toMatchObject({ idCom: 212, cantidad: 0 })
+    expect(recuperado.revision).toBe(antes.revision)
   })
 })

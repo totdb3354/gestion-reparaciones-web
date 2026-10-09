@@ -751,9 +751,9 @@ function enlazarColor(estado: EstadoFormulario, origen: string): EstadoFormulari
   return estado
 }
 
-/** Al abrir: si el chasis ya trae SKU (edición, solicitud o rechazada) y la tapa no, la tapa toma su color. Sin subir
- *  revision: abrir no es un cambio que reprograme el autoguardado. */
-function enlazarAlAbrir(estado: EstadoFormulario): EstadoFormulario {
+/** Al abrir (o tras restaurar un borrador): si el chasis ya trae SKU (edición, solicitud, rechazada o borrador) y la tapa no,
+ *  la tapa toma su color. Sin subir revision: abrir no es un cambio que reprograme el autoguardado. */
+export function enlazarAlAbrir(estado: EstadoFormulario): EstadoFormulario {
   const tapa = estado.filas.find((f) => f.prefijo === PREFIJO_TAPA)
   if (tapa === undefined || tapa.idCom !== null) return estado
   const enlazado = enlazarColor(estado, PREFIJO_CHASIS)

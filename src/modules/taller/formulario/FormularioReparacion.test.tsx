@@ -785,7 +785,10 @@ describe('FormularioReparacion — modo edición', () => {
     expect(screen.queryByTestId('subfila-cam')).not.toBeInTheDocument()
     expect(screen.queryByText('Solicitar pieza')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
+    // En edición el chasis también sale sin elegir: se elige para que la fila nueva esté realmente activa.
+    await elegirSku('cha', 'Chasis', 'chai13negro')
     await userEvent.click(screen.getByRole('button', { name: 'Sumar Chasis' }))
+    expect(screen.getByTestId('contador-cha')).toHaveTextContent('1')
     expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
     expect(screen.queryByTestId('subfila-cha')).not.toBeInTheDocument()
   })
