@@ -2,12 +2,13 @@ import { useState, type Dispatch, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { ComboNavy } from '@/shared/ui/ComboNavy'
-import { claseStock } from '../lib/piezas'
+import { PREFIJO_CHASIS, PREFIJOS_CON_COLOR } from '../lib/colores'
 import { DialogoObservacionFila } from './DialogoObservacionFila'
 import {
-  botonDerecho, filaEditadaInvalida, filaSinSku, previsionStock, stockDe,
+  botonDerecho, chasisResaltados, filaEditadaInvalida, filaSinSku, previsionStock, stockDe,
   type AccionFormulario, type BotonDerecho, type EstadoFormulario, type FilaEstado, type PrevisionStock,
 } from './estado'
+import { TEXTO_SIN_COLOR, opcionesSku } from './opcionesSku'
 
 type Props = { estado: EstadoFormulario; fila: FilaEstado; dispatch: Dispatch<AccionFormulario>; onGuardarFila: (prefijo: string) => void; children?: ReactNode }
 
@@ -111,9 +112,9 @@ export function FilaComponente({ estado, fila, dispatch, onGuardarFila, children
           <ComboNavy
             aria-label={`SKU de ${tipo}`}
             valor={fila.idCom === null ? null : String(fila.idCom)}
-            opciones={fila.opciones.map((c) => ({ valor: String(c.idCom), etiqueta: c.tipo, clase: claseStock(c) }))}
+            opciones={opcionesSku(fila, prefijo === PREFIJO_CHASIS ? chasisResaltados(estado) : new Set())}
             onChange={(valor) => dispatch({ tipo: 'CAMBIAR_SKU', prefijo, idCom: Number(valor) })}
-            textoVacio="—"
+            textoVacio={PREFIJOS_CON_COLOR.includes(prefijo) ? TEXTO_SIN_COLOR : '—'}
             ancho={170}
             tamanoTexto={11}
             visibles={8}

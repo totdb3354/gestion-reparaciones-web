@@ -71,6 +71,32 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))).toEqual(['fila-bat', 'fila-lcd'])
   })
 
+  it('chasis y tapa: «— Elige color —», bloques SIM/eSIM y elegir el chasis pone la tapa (spec 0.9.7 §9)', async () => {
+    const a = agrupados()
+    const sku = (idCom: number, tipo: string) => componente({ idCom, tipo, stock: 9999, stockMinimo: 2 })
+    abrir({
+      agrupados: {
+        ...a,
+        bat: [...a.bat, sku(205, 'bati16')],
+        cha: [sku(201, 'chai16black'), sku(202, 'chai16blackesim'), sku(203, 'chai16teal'), sku(204, 'chai16tealesim'), ...a.cha],
+        tapa: [sku(211, 'tapai16black'), sku(212, 'tapai16teal')],
+      },
+    })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 16')
+    const chasis = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(chasis).toHaveTextContent('— Elige color —')
+    expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('— Elige color —')
+    expect(screen.getByRole('button', { name: 'Sumar Chasis' })).toBeDisabled()
+    await userEvent.click(chasis)
+    const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
+    expect(Array.from(lista.querySelectorAll('li')).map((li) => li.textContent)).toEqual(['SIM', 'Black', 'Teal', 'eSIM', 'Black', 'Teal'])
+    await userEvent.click(within(lista).getAllByRole('button', { name: 'Teal' })[1])
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent('chai16tealesim')
+    expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('tapai16teal')
+    expect(screen.getByRole('button', { name: 'Sumar Chasis' })).toBeEnabled()
+  })
+
   it('las opciones del combo son los modelos con SKU activo, traducidos y en orden de tienda', async () => {
     abrir()
     await screen.findByRole('dialog', { name: TITULO })
@@ -245,10 +271,12 @@ async function terminar() {
   await userEvent.click(botonZona())
   await userEvent.click(botonZona())
 }
-/** Elige el SKU de la fila en su combo (chasis y tapa no vienen preseleccionados, spec 0.9.7 §9). */
+/** Elige el SKU de la fila en su combo (chasis y tapa no vienen preseleccionados, spec 0.9.7 §9). La lista de chasis y
+ *  tapa enseña el nombre del color, no el SKU: la opción se localiza por su `title`, que es el SKU completo. */
 async function elegirSku(prefijo: string, tipo: string, sku: string) {
   await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('combobox', { name: `SKU de ${tipo}` }))
-  await userEvent.click(await screen.findByRole('button', { name: sku }))
+  const lista = await screen.findByRole('listbox', { name: `SKU de ${tipo}` })
+  await userEvent.click(within(lista).getByTitle(sku))
 }
 async function sumar(prefijo: string, tipo: string, veces = 1) {
   for (let i = 0; i < veces; i++) await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('button', { name: `Sumar ${tipo}` }))
