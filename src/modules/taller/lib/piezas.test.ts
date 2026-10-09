@@ -11,6 +11,7 @@ describe('categoriaPieza (calco de Piezas.categoria)', () => {
     expect(categoriaPieza('cami12')).toBe('Cámara')
     expect(categoriaPieza('chai12negro')).toBe('Chasis')
     expect(categoriaPieza('otroi8')).toBe('Otros')
+    expect(categoriaPieza('tapai15black')).toBe('Tapa trasera')
   })
   it('vacía si nulo o desconocido', () => {
     expect(categoriaPieza(null)).toBe('')
@@ -19,9 +20,10 @@ describe('categoriaPieza (calco de Piezas.categoria)', () => {
 })
 
 describe('nombreTipo (nombre de la fila del formulario)', () => {
-  it('traduce los seis tipos conocidos', () => {
+  it('traduce los siete tipos conocidos', () => {
     expect(nombreTipo('bat')).toBe('Batería')
     expect(nombreTipo('cha')).toBe('Chasis')
+    expect(nombreTipo('tapa')).toBe('Tapa trasera')
     expect(nombreTipo('g')).toBe('Glass')
     expect(nombreTipo('cam')).toBe('Cámara')
     expect(nombreTipo('lcd')).toBe('Pantalla')
@@ -49,6 +51,15 @@ describe('prefijosDeFila (una fila por tipo, en el orden del servidor)', () => {
     a.mc = []
     expect(prefijosDeFila(a, false)).toEqual(['bat', 'lcd', 'cam'])
     expect(prefijosDeFila(a, true)).toEqual(['g'])
+  })
+  it('la tapa trasera es fila de reparación, en el orden del servidor, y nunca de glass', () => {
+    const base = agrupados()
+    const a = {
+      bat: base.bat, cha: base.cha, tapa: [componente({ idCom: 181, tipo: 'tapai13black' })],
+      g: base.g, mc: base.mc, lcd: base.lcd, cam: base.cam, otro: base.otro,
+    }
+    expect(prefijosDeFila(a, false)).toEqual(['bat', 'cha', 'tapa', 'lcd', 'cam'])
+    expect(prefijosDeFila(a, true)).toEqual(['g', 'mc'])
   })
   it('conserva un prefijo desconocido en su sitio', () => {
     const a = { bat: agrupados().bat, alt: [componente({ idCom: 171, tipo: 'alti13' })], g: agrupados().g, cam: agrupados().cam, otro: agrupados().otro }
