@@ -1,9 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
-export type OpcionCombo = { valor: string; etiqueta: string; clase?: string }
+/** `color`: tono del círculo de muestra (null = color desconocido, círculo gris discontinuo; sin el campo, no hay
+ *  círculo). `grupo`: título del bloque, que se pinta antes de su primera opción. `resaltada`: anillo verde (p. ej. los
+ *  chasis del color de la tapa). `titulo`: `title` de la opción. `etiquetaBoton`: lo que enseña el botón cerrado cuando
+ *  esta opción es la elegida (por defecto `etiqueta`). Todos opcionales: sin ellos el combo se pinta como siempre. */
+export type OpcionCombo = {
+  valor: string
+  etiqueta: string
+  clase?: string
+  color?: string | null
+  grupo?: string
+  resaltada?: boolean
+  titulo?: string
+  etiquetaBoton?: string
+}
 
 type Props = {
   valor: string | null
@@ -34,6 +47,15 @@ const CLASE_TEXTO: Record<11 | 12, string> = { 11: 'text-[11px]', 12: 'text-[12p
 export function siguienteAbiertoOMismo(abrir: boolean, disabled: boolean, actual: boolean): boolean | null {
   const siguiente = abrir && !disabled
   return siguiente === actual ? null : siguiente
+}
+
+/** Círculo de color con borde fino en todos (para que blanco, starlight o plata se vean sobre fondo blanco); el color
+ *  desconocido, gris y discontinuo. */
+function MuestraColor({ color }: { color: string | null }) {
+  if (color === null) {
+    return <span aria-hidden="true" data-testid="muestra-color" data-desconocido="true" className="inline-block size-3 shrink-0 rounded-full border border-dashed border-gris-borde bg-superficie" />
+  }
+  return <span aria-hidden="true" data-testid="muestra-color" className="inline-block size-3 shrink-0 rounded-full border border-black/25" style={{ backgroundColor: color }} />
 }
 
 /** Combo navy de selección única (modelo y SKU del formulario): píldora navy con la etiqueta de la opción elegida y lista
@@ -90,7 +112,10 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
           actual?.clase || 'text-texto-nav-activo',
         )}
       >
-        <span className="truncate">{actual ? actual.etiqueta : textoVacio}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {actual?.color !== undefined && <MuestraColor color={actual.color} />}
+          <span className="truncate">{actual ? (actual.etiquetaBoton ?? actual.etiqueta) : textoVacio}</span>
+        </span>
         <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-texto-nav-activo" />
       </PopoverTrigger>
       <PopoverContent align="start" style={ancho === 'full' ? undefined : { minWidth: ancho }} className={cn(ancho === 'full' && 'min-w-(--radix-popover-trigger-width)', 'w-auto rounded-lg border border-fila-sep bg-superficie p-0 shadow-md')}>
@@ -100,25 +125,35 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
           style={visibles !== undefined ? { maxHeight: visibles * ALTO_OPCION_PX + RELLENO_LISTA_PX } : undefined}
           className={cn('overflow-auto py-1', visibles === undefined && 'max-h-72')}
         >
-          {opciones.map((o) => {
+          {opciones.map((o, i) => {
             const activa = o.valor === valor
+            const tituloBloque = o.grupo !== undefined && o.grupo !== opciones[i - 1]?.grupo ? o.grupo : null
             return (
-              <li key={o.valor} role="option" aria-selected={activa}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    cambiarAbierto(false)
-                    if (!activa) onChange(o.valor)
-                  }}
-                  className={cn(
-                    'mx-1 block h-7 w-[calc(100%-8px)] truncate rounded-lg px-3 text-left font-bold',
-                    tamano,
-                    activa ? 'bg-azul-noche text-superficie' : cn('hover:bg-seleccion-suave', o.clase || 'text-azul-noche'),
-                  )}
-                >
-                  {o.etiqueta}
-                </button>
-              </li>
+              <Fragment key={o.valor}>
+                {tituloBloque !== null && (
+                  <li role="presentation" className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold tracking-wide text-azul-gris uppercase">
+                    {tituloBloque}
+                  </li>
+                )}
+                <li role="option" aria-selected={activa} data-resaltada={o.resaltada ? 'true' : undefined}>
+                  <button
+                    type="button"
+                    title={o.titulo}
+                    onClick={() => {
+                      cambiarAbierto(false)
+                      if (!activa) onChange(o.valor)
+                    }}
+                    className={cn(
+                      'mx-1 flex h-7 w-[calc(100%-8px)] items-center gap-1.5 rounded-lg px-3 text-left font-bold',
+                      tamano,
+                      activa ? 'bg-azul-noche text-superficie' : cn('hover:bg-seleccion-suave', o.clase || 'text-azul-noche', o.resaltada && 'ring-2 ring-verde-ok ring-inset'),
+                    )}
+                  >
+                    {o.color !== undefined && <MuestraColor color={o.color} />}
+                    <span className="truncate">{o.etiqueta}</span>
+                  </button>
+                </li>
+              </Fragment>
             )
           })}
         </ul>

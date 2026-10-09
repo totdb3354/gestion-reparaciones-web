@@ -112,6 +112,49 @@ describe('ComboNavy (combo navy de selección única)', () => {
     render(<ComboNavy valor="99" opciones={MODELOS} onChange={() => {}} textoVacio="— Selecciona modelo —" ancho={180} aria-label="Filtrar por modelo" />)
     expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toHaveTextContent('— Selecciona modelo —')
   })
+  it('muestra de color con borde en la lista y en el botón; title y etiqueta propia del botón', async () => {
+    const opciones: OpcionCombo[] = [
+      { valor: '1', etiqueta: 'Ultramarine', etiquetaBoton: 'chai16ultramarine', titulo: 'chai16ultramarine', color: '#9AADF6' },
+      { valor: '2', etiqueta: 'fucsia', titulo: 'chai16fucsia', color: null },
+    ]
+    render(<ComboNavy valor="1" opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={170} aria-label="SKU de Chasis" />)
+    const combo = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(combo).toHaveTextContent('chai16ultramarine')
+    expect(within(combo).getByTestId('muestra-color')).toHaveStyle({ backgroundColor: '#9AADF6' })
+    await userEvent.click(combo)
+    const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
+    const ultra = within(lista).getByRole('button', { name: 'Ultramarine' })
+    expect(ultra).toHaveAttribute('title', 'chai16ultramarine')
+    expect(within(ultra).getByTestId('muestra-color')).toHaveClass('border-black/25')
+    const desconocido = within(lista).getByRole('button', { name: 'fucsia' })
+    expect(within(desconocido).getByTestId('muestra-color')).toHaveAttribute('data-desconocido', 'true')
+  })
+  it('bloques con título antes de la primera opción de cada grupo, y opciones resaltadas', async () => {
+    const opciones: OpcionCombo[] = [
+      { valor: '1', etiqueta: 'Black', grupo: 'SIM', color: '#232426' },
+      { valor: '2', etiqueta: 'Teal', grupo: 'SIM', color: '#B0D4D2', resaltada: true },
+      { valor: '3', etiqueta: 'Black', grupo: 'eSIM', color: '#232426' },
+      { valor: '4', etiqueta: 'Teal', grupo: 'eSIM', color: '#B0D4D2', resaltada: true },
+    ]
+    render(<ComboNavy valor={null} opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={170} aria-label="SKU de Chasis" />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'SKU de Chasis' }))
+    const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
+    expect(Array.from(lista.querySelectorAll('li')).map((li) => li.textContent)).toEqual(['SIM', 'Black', 'Teal', 'eSIM', 'Black', 'Teal'])
+    expect(within(lista).getAllByRole('option')).toHaveLength(4)
+    const resaltadas = within(lista).getAllByRole('option').filter((o) => o.getAttribute('data-resaltada') === 'true')
+    expect(resaltadas.map((o) => o.textContent)).toEqual(['Teal', 'Teal'])
+    expect(within(resaltadas[0]).getByRole('button')).toHaveClass('ring-verde-ok')
+  })
+  it('sin los campos nuevos se pinta igual: sin muestras, sin títulos ni resaltado', async () => {
+    render(<ComboNavy valor="101" opciones={SKUS} onChange={() => {}} textoVacio="—" ancho={170} aria-label="SKU de Batería" />)
+    const combo = screen.getByRole('combobox', { name: 'SKU de Batería' })
+    expect(within(combo).queryByTestId('muestra-color')).not.toBeInTheDocument()
+    await userEvent.click(combo)
+    const lista = screen.getByRole('listbox', { name: 'SKU de Batería' })
+    expect(within(lista).queryAllByTestId('muestra-color')).toHaveLength(0)
+    expect(lista.querySelectorAll('li')).toHaveLength(3)
+    expect(lista.querySelector('[data-resaltada]')).toBeNull()
+  })
 })
 
 describe('siguienteAbiertoOMismo (el guardia de cambiarAbierto)', () => {
