@@ -315,7 +315,7 @@ describe('estado del formulario (2): guardar fila', () => {
     expect(reducir(base, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' })).toBe(base) // fila inactiva
     const activa = reducir(base, { tipo: 'SUMAR', prefijo: 'bat' })
     expect(botonDerecho(activa, fila(activa, 'bat'))).toEqual({ tipo: 'guardarFila', texto: '✓ Guardar fila', deshabilitado: false })
-    const reutilizada = reducir(base, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })
+    const reutilizada = aplicar(base, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })
     expect(botonDerecho(reutilizada, fila(reutilizada, 'cha'))).toMatchObject({ tipo: 'guardarFila', texto: '✓ Guardar fila' })
     // convive con la sub-fila de stock agotado cuando cantidad = stock
     const enLimite = reducir(base, { tipo: 'SUMAR', prefijo: 'lcd' })
@@ -336,7 +336,7 @@ describe('estado del formulario (2): guardar fila', () => {
       expect(botonDerecho(e, fila(e, 'bat'))).toEqual({ tipo: 'guardarFila', texto: '✓ Guardar fila', deshabilitado: false })
     }
     // un cambio en OTRA fila no lo toca
-    const otra = reducir(confirmando, { tipo: 'SUMAR', prefijo: 'cha' })
+    const otra = aplicar(confirmando, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'SUMAR', prefijo: 'cha' })
     expect(fila(otra, 'bat').confirmandoGuardar).toBe(true)
     // segundo clic: en vuelo, botón deshabilitado y la fila no admite cambios
     const enVuelo = reducir(confirmando, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' })
@@ -352,7 +352,7 @@ describe('estado del formulario (2): guardar fila', () => {
   it('fila guardada ignora sumar, SKU, Reutilizado, observación y cambio de modelo', () => {
     const conNota = aplicar(conModelo('13'),
       { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
-      { tipo: 'SUMAR', prefijo: 'cha' },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'SUMAR', prefijo: 'cha' },
       { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' }, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' },
       { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_9', fecha: '16/09 09:15' })
     const bat = fila(conNota, 'bat')
@@ -374,7 +374,7 @@ describe('estado del formulario (2): guardar fila', () => {
     expect(fila(otroModelo, 'cha').cantidad).toBe(0)
     // una guardada con "Reutilizado": contador 0 y casilla marcada (y apagada)
     const reutilizada = aplicar(conModelo('13'),
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true },
       { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'cha' }, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'cha' },
       { tipo: 'FILA_GUARDADA', prefijo: 'cha', idRep: 'R20260916_11', fecha: '16/09 09:30' })
     expect(fila(reutilizada, 'cha')).toMatchObject({ cantidad: 0, reutilizado: true, controles: { reutilizado: false } })

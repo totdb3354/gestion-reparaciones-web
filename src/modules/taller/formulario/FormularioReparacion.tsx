@@ -30,7 +30,7 @@ type CargaFormulario = { datos: DatosNuevo | DatosEditar; asignacionesActivas: A
 const COLUMNAS = [
   { texto: 'Unit (+/-)', clase: 'w-[70px]' },
   { texto: 'Componente', clase: 'w-[100px]' },
-  { texto: 'SKU', clase: 'w-[170px]' },
+  { texto: 'SKU', clase: 'w-[240px]' },
   { texto: 'Stock', clase: 'w-[70px] text-center' },
   { texto: '¿Reutilizado?', clase: 'w-[110px]' },
   { texto: 'Observación', clase: 'w-[280px]' },
@@ -145,7 +145,8 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
     <Dialog open onOpenChange={(abierto) => { if (!abierto) cerrar() }}>
       {/* max-w-none anula el max-w de DialogContent. Pulsar fuera no cierra: la ventana del JavaFX solo se cerraba con su ✕.
           Nunca más alto ni más ancho que la ventana: la cabecera y la zona de guardar quedan siempre a la vista y lo que se
-          desplaza es el cuerpo (filas y OTRAS ACCIONES). Por debajo de 960 px de ancho, el marco se desplaza en horizontal. */}
+          desplaza es el cuerpo (filas y OTRAS ACCIONES). Por debajo de 1030 px de ancho (columnas 870 px +
+          190 px para el botón derecho; antes 960 con la columna SKU de 170), el marco se desplaza en horizontal. */}
       <DialogContent
         aria-label={titulo}
         aria-describedby={undefined}
@@ -154,7 +155,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
         className="flex h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] w-[calc(100vw-48px)] max-w-none flex-col gap-0 overflow-x-auto overflow-y-hidden rounded-none border-0 bg-fondo-vista p-0"
       >
         <DialogTitle className="sr-only">{titulo}</DialogTitle>
-        <div data-testid="formulario-marco" className="flex min-h-0 min-w-[960px] flex-1 flex-col">
+        <div data-testid="formulario-marco" className="flex min-h-0 min-w-[1030px] flex-1 flex-col">
           <CabeceraFormulario estado={estado} conflicto={conflicto} dispatch={dispatch} onCerrar={cerrar} />
           <div className="flex border-b border-form-cabecera-brd bg-form-cabecera-bg">
             {COLUMNAS.map((c) => (

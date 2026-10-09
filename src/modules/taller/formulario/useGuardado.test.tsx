@@ -542,6 +542,7 @@ function ArnesTerminarDosAgotados({ onGuardado }: { onGuardado: () => void }) {
     dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'Sin stock' })
   }
   const agotarCha = () => {
+    dispatch({ tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 })
     dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
     dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
     dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'cha', descripcion: 'Sin stock' })

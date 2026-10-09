@@ -1,4 +1,4 @@
-import { componenteDe, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
+import { componenteDe, controlesIniciales, enlazarAlAbrir, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
 
 /** Borrador del formulario con el MISMO JSON que escribe el cliente de escritorio (BorradorContenido, campo a campo): los dos
  *  clientes leen y escriben el mismo borrador de una asignación. El servidor lo guarda opaco. */
@@ -113,10 +113,16 @@ const CONTROLES_BLOQUEADOS: ControlesFila = { mas: false, menos: false, reutiliz
 /** Una fila del borrador sobre la fila del formulario (calco de FilaUI.aplicarBorrador). */
 function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
   // Una solicitud ya guardada en el servidor manda sobre el borrador; sin SKU para el modelo no hay nada que restaurar.
-  if (fila.solicitud !== null || fila.idCom === null) return fila
-  // El SKU solo se preselecciona si está entre las opciones actuales; si no, queda el SKU por defecto.
+  if (fila.solicitud !== null || fila.opciones.length === 0) return fila
+  // El SKU solo se preselecciona si está entre las opciones actuales; si no, queda el SKU por defecto (en chasis y tapa,
+  // ninguno: spec 0.9.7 §9). Sobre una fila sin elegir, los controles salen como recién puesta sobre ese SKU.
   const elegido = f.idCom > 0 ? fila.opciones.find((c) => c.idCom === f.idCom) : undefined
-  const base: FilaEstado = elegido ? { ...fila, idCom: elegido.idCom, controles: { ...fila.controles, mas: elegido.stock > 0 } } : fila
+  const base: FilaEstado = elegido === undefined ? fila
+    : fila.idCom === null ? { ...fila, idCom: elegido.idCom, controles: controlesIniciales(elegido) }
+    : { ...fila, idCom: elegido.idCom, controles: { ...fila.controles, mas: elegido.stock > 0 } }
+  // Chasis o tapa sin SKU recuperable: vuelven sin elegir y sin cantidad, "Reutilizado", "guardada" ni "agotado" (spec 0.9.7
+  // §9.3); no hay pieza a la que atarlos. En las demás filas base.idCom nunca es null.
+  if (base.idCom === null) return base
   if (f.guardada) {
     return {
       ...base, cantidad: f.cantidad > 0 ? f.cantidad : base.cantidad, reutilizado: f.reutilizado || base.reutilizado, controles: CONTROLES_BLOQUEADOS,
@@ -165,8 +171,10 @@ export function aplicarBorrador(e: EstadoFormulario, b: BorradorContenido): Esta
       guardada: a.guardada ? { idRep: a.idRepGenerado ?? '?', fecha: a.fechaGuardado ?? '' } : null, confirmando: false, guardando: false,
     })
   }
-  return {
+  // La tapa sigue al color del chasis recuperado (capturar descarta las filas inactivas, así que la tapa puede no venir en el
+  // borrador); enlazarAlAbrir no sube revision.
+  return enlazarAlAbrir({
     ...estado, filas, otros: [...estado.otros, ...recuperadas], siguienteIdAccion, borradorRecuperado: true, revision: e.revision,
     volcados: e.volcados,
-  }
+  })
 }

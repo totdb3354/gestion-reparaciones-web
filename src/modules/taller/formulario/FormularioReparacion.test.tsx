@@ -71,6 +71,87 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))).toEqual(['fila-bat', 'fila-lcd'])
   })
 
+  it('chasis y tapa: «— Elige color —», bloques SIM/eSIM y elegir el chasis pone la tapa (spec 0.9.7 §9)', async () => {
+    const a = agrupados()
+    const sku = (idCom: number, tipo: string) => componente({ idCom, tipo, stock: 9999, stockMinimo: 2 })
+    abrir({
+      agrupados: {
+        ...a,
+        bat: [...a.bat, sku(205, 'bati16')],
+        cha: [sku(201, 'chai16black'), sku(202, 'chai16blackesim'), sku(203, 'chai16teal'), sku(204, 'chai16tealesim'), ...a.cha],
+        tapa: [sku(211, 'tapai16black'), sku(212, 'tapai16teal')],
+      },
+    })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 16')
+    const chasis = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(chasis).toHaveTextContent('— Elige color —')
+    expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('— Elige color —')
+    expect(screen.getByRole('button', { name: 'Sumar Chasis' })).toBeDisabled()
+    await userEvent.click(chasis)
+    const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
+    expect(Array.from(lista.querySelectorAll('li')).map((li) => li.textContent)).toEqual(['SIM', 'Black', 'Teal', 'eSIM', 'Black', 'Teal'])
+    await userEvent.click(within(lista).getAllByRole('button', { name: 'Teal' })[1])
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent('chai16tealesim')
+    expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('tapai16teal')
+    expect(screen.getByRole('button', { name: 'Sumar Chasis' })).toBeEnabled()
+    // Columna SKU de 240 px (0.9.7): cabecera, celda y combo; el botón cerrado enseña el SKU completo y lo lleva también en el title.
+    const elegido = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(elegido).toHaveStyle({ width: '240px' })
+    expect(elegido).toHaveAttribute('title', 'chai16tealesim')
+    expect(elegido.parentElement).toHaveClass('w-[240px]')
+    expect(screen.getByText('SKU')).toHaveClass('w-[240px]')
+  })
+
+  it('con la tapa elegida y el chasis sin elegir, las opciones del chasis del color de la tapa salen resaltadas (spec 0.9.7 §9)', async () => {
+    const a = agrupados()
+    const sku = (idCom: number, tipo: string) => componente({ idCom, tipo, stock: 9999, stockMinimo: 2 })
+    abrir({
+      agrupados: {
+        ...a,
+        bat: [...a.bat, sku(205, 'bati16')],
+        cha: [sku(201, 'chai16black'), sku(202, 'chai16blackesim'), sku(203, 'chai16teal'), sku(204, 'chai16tealesim'), ...a.cha],
+        tapa: [sku(211, 'tapai16black'), sku(212, 'tapai16teal')],
+      },
+    })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 16')
+    await userEvent.click(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' }))
+    await userEvent.click(within(screen.getByRole('listbox', { name: 'SKU de Tapa trasera' })).getByRole('button', { name: 'Teal' }))
+    expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('tapai16teal')
+    const chasis = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(chasis).toHaveTextContent('— Elige color —')
+    await userEvent.click(chasis)
+    const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
+    const teal = within(lista).getAllByRole('button', { name: 'Teal' })
+    const black = within(lista).getAllByRole('button', { name: 'Black' })
+    expect(teal).toHaveLength(2)
+    expect(black).toHaveLength(2)
+    for (const b of teal) {
+      expect(b.closest('li')).toHaveAttribute('data-resaltada', 'true')
+      expect(b).toHaveClass('ring-verde-ok')
+    }
+    for (const b of black) {
+      expect(b.closest('li')).not.toHaveAttribute('data-resaltada')
+      expect(b).not.toHaveClass('ring-verde-ok')
+    }
+  })
+
+  it('fila de chasis atenuada (solo SKU desactivados para el modelo): el combo enseña «—», no «— Elige color —»', async () => {
+    const a = agrupados()
+    abrir({
+      agrupados: {
+        ...a,
+        bat: [...a.bat, componente({ idCom: 205, tipo: 'bati16', stock: 9999, stockMinimo: 2 })],
+        cha: [componente({ idCom: 201, tipo: 'chai16black', stock: 9999, stockMinimo: 2, activo: false }), ...a.cha],
+      },
+    })
+    await screen.findByRole('dialog', { name: TITULO })
+    await elegirModelo('iPhone 16')
+    expect(screen.getByTestId('fila-cha')).toHaveAttribute('data-estado', 'sinSku')
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent(/^—$/)
+  })
+
   it('las opciones del combo son los modelos con SKU activo, traducidos y en orden de tienda', async () => {
     abrir()
     await screen.findByRole('dialog', { name: TITULO })
@@ -245,6 +326,13 @@ async function terminar() {
   await userEvent.click(botonZona())
   await userEvent.click(botonZona())
 }
+/** Elige el SKU de la fila en su combo (chasis y tapa no vienen preseleccionados, spec 0.9.7 §9). La lista de chasis y
+ *  tapa enseña el nombre del color, no el SKU: la opción se localiza por su `title`, que es el SKU completo. */
+async function elegirSku(prefijo: string, tipo: string, sku: string) {
+  await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('combobox', { name: `SKU de ${tipo}` }))
+  const lista = await screen.findByRole('listbox', { name: `SKU de ${tipo}` })
+  await userEvent.click(within(lista).getByTitle(sku))
+}
 async function sumar(prefijo: string, tipo: string, veces = 1) {
   for (let i = 0; i < veces; i++) await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('button', { name: `Sumar ${tipo}` }))
 }
@@ -330,9 +418,9 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     expect(dialogo).toHaveClass('h-[calc(100vh-48px)]', 'max-h-[calc(100vh-48px)]', 'w-[calc(100vw-48px)]', 'overflow-y-hidden', 'overflow-x-auto')
     expect(dialogo.className).not.toMatch(/min-h-\[/)
     expect(dialogo.className).not.toMatch(/min-w-\[/)
-    // El mínimo de 960 px va en el marco interior: por debajo, desplazamiento horizontal dentro del formulario.
+    // El mínimo de 1030 px va en el marco interior: por debajo, desplazamiento horizontal dentro del formulario.
     const marco = screen.getByTestId('formulario-marco')
-    expect(marco).toHaveClass('min-w-[960px]', 'min-h-0', 'flex-1', 'flex-col')
+    expect(marco).toHaveClass('min-w-[1030px]', 'min-h-0', 'flex-1', 'flex-col')
     const cuerpo = screen.getByTestId('formulario-cuerpo')
     expect(cuerpo).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto')
     expect(cuerpo).toContainElement(screen.getByTestId('fila-bat'))
@@ -350,6 +438,7 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     // Se preparan al revés (pantalla antes que chasis) para comprobar que manda el orden de filas.
     await sumar('lcd', 'Pantalla')
     await solicitar('lcd', 'Solicitar y descontar stock')
+    await elegirSku('cha', 'Chasis', 'chai13negro')
     await sumar('cha', 'Chasis', 2)
     await solicitar('cha', 'Solicitar y descontar stock', 'Marco doblado')
     await sumar('bat', 'Batería')
@@ -396,6 +485,7 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     }))
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
+    await elegirSku('cha', 'Chasis', 'chai13negro')
     await sumar('cha', 'Chasis', 2)
     await solicitar('cha', 'Solicitar y descontar stock')
     await sumar('lcd', 'Pantalla')
@@ -778,7 +868,10 @@ describe('FormularioReparacion — modo edición', () => {
     expect(screen.queryByTestId('subfila-cam')).not.toBeInTheDocument()
     expect(screen.queryByText('Solicitar pieza')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
+    // En edición el chasis también sale sin elegir: se elige para que la fila nueva esté realmente activa.
+    await elegirSku('cha', 'Chasis', 'chai13negro')
     await userEvent.click(screen.getByRole('button', { name: 'Sumar Chasis' }))
+    expect(screen.getByTestId('contador-cha')).toHaveTextContent('1')
     expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
     expect(screen.queryByTestId('subfila-cha')).not.toBeInTheDocument()
   })
