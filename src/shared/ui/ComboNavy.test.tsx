@@ -147,6 +147,18 @@ describe('ComboNavy (combo navy de selección única)', () => {
     const desconocido = within(lista).getByRole('button', { name: 'fucsia' })
     expect(within(desconocido).getByTestId('muestra-color')).toHaveAttribute('data-desconocido', 'true')
   })
+  it('el botón cerrado lleva como title el titulo de la opción elegida; sin titulo, sin atributo title', () => {
+    const opciones: OpcionCombo[] = [
+      { valor: '1', etiqueta: 'Black', etiquetaBoton: 'chai16problacktitaniumesim', titulo: 'chai16problacktitaniumesim' },
+      { valor: '2', etiqueta: 'bati13' },
+    ]
+    const { rerender } = render(<ComboNavy valor="1" opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={240} aria-label="SKU de Chasis" />)
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveAttribute('title', 'chai16problacktitaniumesim')
+    rerender(<ComboNavy valor="2" opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={240} aria-label="SKU de Chasis" />)
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).not.toHaveAttribute('title')
+    rerender(<ComboNavy valor={null} opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={240} aria-label="SKU de Chasis" />)
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).not.toHaveAttribute('title')
+  })
   it('bloques con título antes de la primera opción de cada grupo, y opciones resaltadas', async () => {
     const opciones: OpcionCombo[] = [
       { valor: '1', etiqueta: 'Black', grupo: 'SIM', color: '#232426' },

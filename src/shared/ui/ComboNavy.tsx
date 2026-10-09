@@ -107,6 +107,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         role="combobox"
         aria-haspopup="listbox"
         aria-label={etiquetaAccesible}
+        title={actual?.titulo}
         disabled={disabled}
         style={ancho === 'full' ? undefined : { width: ancho }}
         className={cn(

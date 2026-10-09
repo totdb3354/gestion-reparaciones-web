@@ -292,4 +292,14 @@ describe('FilaComponente — modo edición', () => {
     expect(fila).not.toHaveClass('opacity-40')
     expect(screen.getByTestId('boton-derecho-cha').textContent).toBe('✓  Ya reparado')
   })
+
+  it('fila de chasis ya reparada del mismo modelo (con opciones y sin SKU elegido): el combo enseña «—», no «— Elige color —»', () => {
+    // Se edita una batería del modelo 13; el chasis chai13negro (131) ya está reparado: la fila tiene opciones pero está bloqueada.
+    const estado = estadoEditar({ yaReparados: [131] })
+    const chasis = estado.filas.find((f) => f.prefijo === 'cha')!
+    expect(chasis).toMatchObject({ rol: 'yaReparado', idCom: null })
+    expect(chasis.opciones.length).toBeGreaterThan(0)
+    pintarFila(estado, 'cha')
+    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent(/^—$/)
+  })
 })

@@ -716,10 +716,11 @@ function desbloquearBorradas(estado: EstadoFormulario, idsExistentes: string[]):
   return cambio ? { ...estado, filas, otros, volcados: estado.volcados + 1 } : estado
 }
 
-/** El enlace de color nunca cambia la fila en edición ni una ya reparada (spec 0.9.7 §9.3); las bloqueadas y las de
+/** El enlace de color nunca cambia la fila en edición ni una ya reparada (spec 0.9.7 §9.3), ni una con "✓ Recibido"
+ *  pendiente de uso (la pieza que llegó por una solicitud ya está elegida y no se retarga); las bloqueadas y las de
  *  solicitud ya las rechaza cambiarSku. */
 function enlazable(fila: FilaEstado): boolean {
-  return fila.rol === 'normal'
+  return fila.rol === 'normal' && !fila.recibidoPendienteUso
 }
 
 /** Enlace de color tras elegir a mano el SKU del chasis o de la tapa (spec 0.9.7 §9.1). Chasis → tapa del mismo color.

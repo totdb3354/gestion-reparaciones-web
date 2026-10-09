@@ -90,6 +90,14 @@ describe('enlace de color chasis ↔ tapa (spec 0.9.7 §9.1)', () => {
     expect(fila(e, 'cha').idCom).toBe(203)
     expect(fila(e, 'tapa').idCom).toBe(211)
   })
+  it('no toca la tapa con "✓ Recibido" pendiente de uso: elegir el chasis de otro color la deja como estaba', () => {
+    // Solicitud GESTIONADA de la tapa negra con stock: la fila queda normal con "✓ Recibido" aún visible y sin solicitud.
+    const e0 = estadoInicial(datosNuevo({ solicitudes: [solicitudAsignacion({ idCom: 211, estadoSolicitud: 'GESTIONADA' })] }))
+    expect(fila(e0, 'tapa')).toMatchObject({ idCom: 211, rol: 'normal', recibidoPendienteUso: true, solicitud: null })
+    const e = aplicar(e0, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 203 })
+    expect(fila(e, 'cha').idCom).toBe(203)
+    expect(fila(e, 'tapa')).toMatchObject({ idCom: 211, recibidoPendienteUso: true })
+  })
   it('no toca el chasis en edición: elegir la tapa lo deja como estaba', () => {
     // Edición de un chasis (202, modelo 16): elegir la tapa teal no cambia el chasis editado.
     const e0 = estadoInicial(datosEditar({ detalle: detalleEdicion({ idCom: 202 }) }))

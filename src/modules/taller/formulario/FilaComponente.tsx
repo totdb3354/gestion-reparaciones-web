@@ -108,14 +108,14 @@ export function FilaComponente({ estado, fila, dispatch, onGuardarFila, children
           </div>
         </div>
         <span className="w-[100px] shrink-0 px-2.5 text-[12px]">{tipo}</span>
-        <div className="w-[170px] shrink-0">
+        <div className="w-[240px] shrink-0">
           <ComboNavy
             aria-label={`SKU de ${tipo}`}
             valor={fila.idCom === null ? null : String(fila.idCom)}
             opciones={opcionesSku(fila, prefijo === PREFIJO_CHASIS ? chasisResaltados(estado) : new Set())}
             onChange={(valor) => dispatch({ tipo: 'CAMBIAR_SKU', prefijo, idCom: Number(valor) })}
-            textoVacio={PREFIJOS_CON_COLOR.includes(prefijo) && fila.opciones.length > 0 ? TEXTO_SIN_COLOR : '—'}
-            ancho={170}
+            textoVacio={PREFIJOS_CON_COLOR.includes(prefijo) && fila.opciones.length > 0 && fila.rol === 'normal' ? TEXTO_SIN_COLOR : '—'}
+            ancho={240}
             tamanoTexto={11}
             visibles={8}
             disabled={inerte || !fila.controles.sku}

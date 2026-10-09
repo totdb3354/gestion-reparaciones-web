@@ -95,6 +95,12 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent('chai16tealesim')
     expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('tapai16teal')
     expect(screen.getByRole('button', { name: 'Sumar Chasis' })).toBeEnabled()
+    // Columna SKU de 240 px (0.9.7): cabecera, celda y combo; el botón cerrado enseña el SKU completo y lo lleva también en el title.
+    const elegido = screen.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(elegido).toHaveStyle({ width: '240px' })
+    expect(elegido).toHaveAttribute('title', 'chai16tealesim')
+    expect(elegido.parentElement).toHaveClass('w-[240px]')
+    expect(screen.getByText('SKU')).toHaveClass('w-[240px]')
   })
 
   it('con la tapa elegida y el chasis sin elegir, las opciones del chasis del color de la tapa salen resaltadas (spec 0.9.7 §9)', async () => {
@@ -412,9 +418,9 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     expect(dialogo).toHaveClass('h-[calc(100vh-48px)]', 'max-h-[calc(100vh-48px)]', 'w-[calc(100vw-48px)]', 'overflow-y-hidden', 'overflow-x-auto')
     expect(dialogo.className).not.toMatch(/min-h-\[/)
     expect(dialogo.className).not.toMatch(/min-w-\[/)
-    // El mínimo de 960 px va en el marco interior: por debajo, desplazamiento horizontal dentro del formulario.
+    // El mínimo de 1030 px va en el marco interior: por debajo, desplazamiento horizontal dentro del formulario.
     const marco = screen.getByTestId('formulario-marco')
-    expect(marco).toHaveClass('min-w-[960px]', 'min-h-0', 'flex-1', 'flex-col')
+    expect(marco).toHaveClass('min-w-[1030px]', 'min-h-0', 'flex-1', 'flex-col')
     const cuerpo = screen.getByTestId('formulario-cuerpo')
     expect(cuerpo).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto')
     expect(cuerpo).toContainElement(screen.getByTestId('fila-bat'))
