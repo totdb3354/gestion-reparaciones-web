@@ -16,17 +16,18 @@ export function pasaIncidenciasGrupo(g: GrupoImei, marcados: Set<EstadoIncidenci
  *  muestra si ALGUNO de sus trabajos pasa el filtro de técnico (y conserva todos sus trabajos); orden por actividad. */
 export function agruparVisibles(trabajos: ReparacionResumen[], f: FiltrosImeis): GrupoImei[] {
   const imeis = imeisValidos(f.imei)
-  const previos = trabajos.filter((t) => pasaImeis(t.imei, imeis) && pasaFechas(t, f.desde, f.hasta) && pasaCliente(t.cliente, f.clientes))
+  const previos = trabajos.filter((t) => pasaImeis(t.imei, imeis) && pasaFechas(t, f.desde, f.hasta) && pasaCliente(t.clienteTelefono, f.clientes))
   const grupos = agruparPorImei(previos).filter((g) => g.trabajos.some((t) => pasaTecnico(t.idTec, f.tecnicos)) && pasaIncidenciasGrupo(g, f.incidencias))
   return ordenarPorActividad(grupos)
 }
 
-/** Clientes presentes en los trabajos cargados, alfabéticos, con "(Sin cliente)" delante si hay trabajos sin cliente. */
+/** Clientes actuales de los teléfonos cargados (spec 0.9.8 §5), alfabéticos, con "(Sin cliente)" delante si alguno no
+ *  tiene. */
 export function opcionesCliente(trabajos: ReparacionResumen[]): string[] {
   const nombres = new Set<string>()
   let sinCliente = false
   for (const t of trabajos) {
-    if (t.cliente) nombres.add(t.cliente)
+    if (t.clienteTelefono) nombres.add(t.clienteTelefono)
     else sinCliente = true
   }
   const lista = [...nombres].sort((a, b) => a.localeCompare(b, 'es'))

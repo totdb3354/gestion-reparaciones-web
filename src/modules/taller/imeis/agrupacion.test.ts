@@ -40,6 +40,15 @@ describe('agrupación del maestro (calco de AgrupadoController.cargar)', () => {
     expect(opcionesCliente(trabajos)).toEqual([SIN_CLIENTE, 'AMAZON', 'WEB'])
     expect(opcionesCliente(trabajos.filter((t) => t.cliente))).toEqual(['AMAZON', 'WEB'])
   })
+  it('el filtro y las opciones de cliente usan el cliente actual del teléfono (0.9.8)', () => {
+    const t = [
+      resumen({ idRep: 'R20260901_1', imei: A, cliente: 'Incidencias A', clienteTelefono: 'WEB', fechaAsig: '2026-09-01T08:00:00', fechaFin: '2026-09-01T09:00:00' }),
+      resumen({ idRep: 'R20260902_1', imei: B, cliente: 'WEB', clienteTelefono: null, fechaAsig: '2026-09-02T08:00:00', fechaFin: '2026-09-02T09:00:00' }),
+    ]
+    expect(agruparVisibles(t, f({ clientes: new Set(['WEB']) })).map((g) => g.imei)).toEqual([A])
+    expect(agruparVisibles(t, f({ clientes: new Set([SIN_CLIENTE]) })).map((g) => g.imei)).toEqual([B])
+    expect(opcionesCliente(t)).toEqual([SIN_CLIENTE, 'WEB'])
+  })
 })
 
 describe('detalle de un IMEI', () => {
