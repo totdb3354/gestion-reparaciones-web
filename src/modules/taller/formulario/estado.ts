@@ -85,7 +85,7 @@ export type EstadoFormulario = {
   modelo: string | null
   modeloBloqueado: boolean
   modelos: string[] // opciones del combo, en el orden de MODELOS_ORDENADOS
-  tieneSolicitudesIniciales: boolean // hubo solicitudes (de cualquier estado): las filas nunca se ocultan
+  tieneSolicitudesIniciales: boolean // hubo solicitudes (de cualquier estado): nunca sale "Selecciona un modelo…" (filasVisibles)
   filas: FilaEstado[]
   /** Por tipo de fila, los modelos con algún SKU del tipo, ACTIVO O NO (spec 0.9.7 §5.2): un tipo sin ningún SKU del modelo
    *  elegido no se pinta (filaVisible). */
@@ -467,7 +467,7 @@ export function filaSinSku(fila: FilaEstado): boolean {
  *  DESACTIVADO del modelo (sale atenuada, como filaSinSku). Un tipo que no existe para el modelo no se pinta. Solo es
  *  presentación: la fila sigue en el estado, así que borrador, guardado y edición no cambian. */
 export function filaVisible(e: EstadoFormulario, fila: FilaEstado): boolean {
-  if (e.modelo === null || fila.opciones.length > 0) return true
+  if (e.modelo === null || !filaSinSku(fila)) return true
   if (fila.rol !== 'normal' || fila.guardada !== null || fila.solicitud !== null || fila.agotado !== null || fila.recibidoPendienteUso) return true
   return (e.modelosPorTipo[fila.prefijo] ?? []).includes(e.modelo)
 }
