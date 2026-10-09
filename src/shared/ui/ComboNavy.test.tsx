@@ -67,6 +67,17 @@ describe('ComboNavy (combo navy de selección única)', () => {
     expect(lista).toHaveStyle({ maxHeight: '64px' })
     expect(lista.closest('[data-slot="popover-content"]')).toHaveClass('border-fila-sep', 'bg-superficie', 'rounded-lg')
   })
+  it('con títulos de bloque, el alto de la lista cuenta también las filas de título (2·28 + 2·22 + 8)', async () => {
+    const opciones: OpcionCombo[] = [
+      { valor: '1', etiqueta: 'Black', grupo: 'SIM' },
+      { valor: '2', etiqueta: 'Teal', grupo: 'SIM' },
+      { valor: '3', etiqueta: 'Black', grupo: 'eSIM' },
+      { valor: '4', etiqueta: 'Teal', grupo: 'eSIM' },
+    ]
+    render(<ComboNavy valor={null} opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={170} visibles={2} aria-label="SKU de Chasis" />)
+    await userEvent.click(screen.getByRole('combobox', { name: 'SKU de Chasis' }))
+    expect(screen.getByRole('listbox', { name: 'SKU de Chasis' }).style.maxHeight).toBe('108px')
+  })
   it('con ancho="full" llena el contenedor (w-full) en vez de un ancho fijo en px', async () => {
     render(<ComboNavy valor={null} opciones={MODELOS} onChange={() => {}} textoVacio="—" ancho="full" aria-label="Filtrar por modelo" />)
     const combo = screen.getByRole('combobox', { name: 'Filtrar por modelo' })
@@ -116,16 +127,23 @@ describe('ComboNavy (combo navy de selección única)', () => {
     const opciones: OpcionCombo[] = [
       { valor: '1', etiqueta: 'Ultramarine', etiquetaBoton: 'chai16ultramarine', titulo: 'chai16ultramarine', color: '#9AADF6' },
       { valor: '2', etiqueta: 'fucsia', titulo: 'chai16fucsia', color: null },
+      { valor: '3', etiqueta: 'Teal', titulo: 'chai16teal', color: '#B0D4D2' },
     ]
     render(<ComboNavy valor="1" opciones={opciones} onChange={() => {}} textoVacio="— Elige color —" ancho={170} aria-label="SKU de Chasis" />)
     const combo = screen.getByRole('combobox', { name: 'SKU de Chasis' })
     expect(combo).toHaveTextContent('chai16ultramarine')
+    // el botón y la opción activa son navy: el círculo lleva el borde claro para que un negro no se pierda
     expect(within(combo).getByTestId('muestra-color')).toHaveStyle({ backgroundColor: '#9AADF6' })
+    expect(within(combo).getByTestId('muestra-color')).toHaveClass('border-white/70')
     await userEvent.click(combo)
     const lista = screen.getByRole('listbox', { name: 'SKU de Chasis' })
     const ultra = within(lista).getByRole('button', { name: 'Ultramarine' })
     expect(ultra).toHaveAttribute('title', 'chai16ultramarine')
-    expect(within(ultra).getByTestId('muestra-color')).toHaveClass('border-black/25')
+    expect(within(ultra).getByTestId('muestra-color')).toHaveClass('border-white/70')
+    expect(within(ultra).getByTestId('muestra-color')).not.toHaveClass('border-black/25')
+    // una opción con color que no es la activa va sobre fondo blanco: borde oscuro fino
+    const teal = within(lista).getByRole('button', { name: 'Teal' })
+    expect(within(teal).getByTestId('muestra-color')).toHaveClass('border-black/25')
     const desconocido = within(lista).getByRole('button', { name: 'fucsia' })
     expect(within(desconocido).getByTestId('muestra-color')).toHaveAttribute('data-desconocido', 'true')
   })

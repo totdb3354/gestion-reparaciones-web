@@ -37,6 +37,7 @@ type Props = {
 }
 
 const ALTO_OPCION_PX = 28
+const ALTO_TITULO_PX = 22
 const RELLENO_LISTA_PX = 8
 const CLASE_TEXTO: Record<11 | 12, string> = { 11: 'text-[11px]', 12: 'text-[12px]' }
 
@@ -50,12 +51,13 @@ export function siguienteAbiertoOMismo(abrir: boolean, disabled: boolean, actual
 }
 
 /** Círculo de color con borde fino en todos (para que blanco, starlight o plata se vean sobre fondo blanco); el color
- *  desconocido, gris y discontinuo. */
-function MuestraColor({ color }: { color: string | null }) {
+ *  desconocido, gris y discontinuo. `sobreOscuro`: el círculo va sobre navy (botón cerrado, opción activa), donde un
+ *  borde oscuro no se ve y un negro desaparecería: borde claro. */
+function MuestraColor({ color, sobreOscuro = false }: { color: string | null; sobreOscuro?: boolean }) {
   if (color === null) {
     return <span aria-hidden="true" data-testid="muestra-color" data-desconocido="true" className="inline-block size-3 shrink-0 rounded-full border border-dashed border-gris-borde bg-superficie" />
   }
-  return <span aria-hidden="true" data-testid="muestra-color" className="inline-block size-3 shrink-0 rounded-full border border-black/25" style={{ backgroundColor: color }} />
+  return <span aria-hidden="true" data-testid="muestra-color" className={cn('inline-block size-3 shrink-0 rounded-full border', sobreOscuro ? 'border-white/70' : 'border-black/25')} style={{ backgroundColor: color }} />
 }
 
 /** Combo navy de selección única (modelo y SKU del formulario): píldora navy con la etiqueta de la opción elegida y lista
@@ -65,6 +67,8 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
   const [abierto, setAbierto] = useState(false)
   const actual = opciones.find((o) => o.valor === valor) ?? null
   const tamano = CLASE_TEXTO[tamanoTexto]
+  // Las filas de título de bloque también ocupan alto en la lista: sin contarlas se verían menos opciones de las pedidas.
+  const titulos = opciones.filter((o, i) => o.grupo !== undefined && o.grupo !== opciones[i - 1]?.grupo).length
   // Simetría del aviso: si la celda se desmonta con la lista abierta (la fila sale del sondeo, un cambio de ruta),
   // `cambiarAbierto` ya no vuelve a llamarse y quien escucha `onOpenChange` se queda con el `true` sin su `false`.
   // Para quien lo usa para congelar algo mientras el desplegable está abierto (D4), eso lo deja congelado para
@@ -113,7 +117,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         )}
       >
         <span className="flex min-w-0 items-center gap-1.5">
-          {actual?.color !== undefined && <MuestraColor color={actual.color} />}
+          {actual?.color !== undefined && <MuestraColor color={actual.color} sobreOscuro />}
           <span className="truncate">{actual ? (actual.etiquetaBoton ?? actual.etiqueta) : textoVacio}</span>
         </span>
         <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-texto-nav-activo" />
@@ -122,7 +126,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         <ul
           role="listbox"
           aria-label={etiquetaAccesible}
-          style={visibles !== undefined ? { maxHeight: visibles * ALTO_OPCION_PX + RELLENO_LISTA_PX } : undefined}
+          style={visibles !== undefined ? { maxHeight: visibles * ALTO_OPCION_PX + titulos * ALTO_TITULO_PX + RELLENO_LISTA_PX } : undefined}
           className={cn('overflow-auto py-1', visibles === undefined && 'max-h-72')}
         >
           {opciones.map((o, i) => {
@@ -149,7 +153,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
                       activa ? 'bg-azul-noche text-superficie' : cn('hover:bg-seleccion-suave', o.clase || 'text-azul-noche', o.resaltada && 'ring-2 ring-verde-ok ring-inset'),
                     )}
                   >
-                    {o.color !== undefined && <MuestraColor color={o.color} />}
+                    {o.color !== undefined && <MuestraColor color={o.color} sobreOscuro={activa} />}
                     <span className="truncate">{o.etiqueta}</span>
                   </button>
                 </li>
