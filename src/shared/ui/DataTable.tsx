@@ -16,7 +16,8 @@ import { cn } from '@/shared/lib/utils'
 /** Qué columna se pulsó con el botón derecho y cómo resaltarla ("📋 Copiar celda"). */
 export type CeldaPulsada = { columnaId: string; resaltar: () => void }
 
-/** Agrupación opcional (0.9.9, Pedidos por bloques). `data` llega ordenada: las filas de cada grupo, seguidas. */
+/** Agrupación opcional (0.9.9, Pedidos por bloques). `data` llega ordenada: las filas de cada grupo, seguidas.
+ *  La página debe memoizar el objeto `grupos` (o al menos sus funciones `clave`, `desplegado`, `cabecera` y `menuCabecera`): una nueva identidad en cada render recomputa `elementos` y re-ejecuta el efecto de medición del borde de las filas. */
 export type GruposTabla<T> = {
   clave: (fila: T) => string
   desplegado: (clave: string) => boolean
@@ -288,9 +289,9 @@ export function DataTable<T>({
     // Sin estilo de borde no hay borde, aunque el ancho calculado diga otra cosa (jsdom devuelve el 'medium' por defecto).
     const borde = estilo && estilo.borderLeftStyle !== 'none' && estilo.borderLeftStyle !== 'hidden' ? parseFloat(estilo.borderLeftWidth) || 0 : 0
     const desborde = Math.ceil(borde / 2)
-    // Solo cambia el estado cuando cambia el borde; se vuelve a medir cuando cambian las filas pintadas.
+    // Solo cambia el estado cuando cambia el borde; se vuelve a medir cuando cambian los elementos pintados (filas de datos o cabeceras de grupo).
     if (desborde !== desbordeFilas) setDesbordeFilas(desborde)
-  }, [fluido, filas, desbordeFilas])
+  }, [fluido, elementos, desbordeFilas])
   const disponible = fluido ? anchoContenedor - desbordeFilas : anchoContenedor
   const anchosPx =
     medir && anchoContenedor > 0 ? (fluido ? anchosFluidos : anchosEstirados)(anchos, topes, disponible) : null
