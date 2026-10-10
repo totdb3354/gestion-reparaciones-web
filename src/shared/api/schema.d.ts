@@ -3093,6 +3093,7 @@ export interface components {
             /** Format: date-time */
             telefonoUpdatedAt: string | null;
             cliente: string | null;
+            clienteTelefono: string | null;
             /** Format: date-time */
             entregadoAt: string | null;
             entregadoPorNombre: string | null;

@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.8] - 2026-10-09 — Cliente guardado en cada trabajo
+
+- **Cada trabajo recuerda para qué cliente se hizo.** Al terminar una reparación, un glass o un pulido se guarda el cliente que tenía el teléfono en ese momento. Si después se cambia el cliente del teléfono (por ejemplo, porque se vende a otro), los trabajos ya hechos no cambian: el Historial, sus filtros y sus CSV siguen mostrando el cliente con el que se hicieron. Los trabajos pendientes siguen al cliente del teléfono, como siempre (urgente, orden de la cola, barra de Pedidos y predicción de glass sin cambios).
+- **Vista IMEIs:** la columna Cliente, su filtro y su CSV muestran el cliente **actual** del teléfono (el que cambia «Editar cliente»).
+- **Clientes:** un cliente que aparece en trabajos ya no ofrece «Borrar»; se desactiva.
+- Requiere el servidor 0.9.8, la migración `migracion-cliente-por-trabajo.sql` (columna `ID_CLI` en `Reparacion`) antes de desplegar y, después, el relleno `relleno-cliente-por-trabajo.sql` en consola (los trabajos anteriores se completan con el registro de cambios de cliente). Sin cambios en nginx.
+
 ## [0.9.7] - 2026-10-09 — Tapa trasera
 
 - **Tapa trasera como pieza propia.** Nueva fila **"Tapa trasera"** en el formulario de reparación, justo después de Chasis, con un SKU por modelo y color (los mismos colores que el chasis) para el 14, el 14 Plus, toda la serie 15, toda la serie 16, el 17, el Air, el 17 Pro y el 17 Pro Max. Descuenta stock y sale en Stock, en la previsión, en los pedidos y en el filtro "Pieza" del historial como el resto de piezas. Puntúa 1 punto en las estadísticas (hasta ahora se apuntaba como "otro" y valía 0,5).
