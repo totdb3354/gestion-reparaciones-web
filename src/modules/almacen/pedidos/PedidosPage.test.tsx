@@ -13,6 +13,7 @@ import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION
 import { server } from '@/test/server'
 import { ultimaRutaStock } from '../estado'
 import { PedidosPage } from './PedidosPage'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const U1 = '2026-09-20T08:30:00'
 const U2 = '2026-09-19T08:00:00'
@@ -20,6 +21,7 @@ const MSG_MODIFICADO = 'Este pedido fue modificado por otro usuario. Los datos s
 const sinColapsar = { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) }
 
 const base: CompraComponente = {
+  ...BLOQUE_PRUEBA,
   idCompra: 1, idCom: 11, tipoComponente: 'lcd-x-negro', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 2, cantidadRecibida: null,
   esUrgente: false, fechaPedido: U1, fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR', precioEur: 12.5, estado: 'pendiente',
   updatedAt: U1,

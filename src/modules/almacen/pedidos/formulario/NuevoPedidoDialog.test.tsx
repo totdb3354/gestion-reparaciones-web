@@ -297,6 +297,7 @@ describe('NuevoPedidoDialog', () => {
     expect(lotes[0].cuerpo).toEqual({
       lineas: [{ idCom: 2, idProv: 1, cantidad: 2, esUrgente: true, precioUnidad: 12.5 }],
       solicitudes: { urgentes: [10], preventivas: [20] },
+      destinos: null,
     })
   })
 

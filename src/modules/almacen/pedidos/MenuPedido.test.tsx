@@ -6,8 +6,10 @@ import type { CompraComponente } from '@/shared/api/client'
 import { DataTable } from '@/shared/ui/DataTable'
 import { MenuPedido } from './MenuPedido'
 import { idPedido, nombrePedido, type AccionMenu, type Pedido } from './reglas'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const pedido = (o: Partial<CompraComponente> = {}): CompraComponente => ({
+  ...BLOQUE_PRUEBA,
   idCompra: 1, idCom: 11, tipoComponente: 'lcd-x-negro', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 5, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR', precioEur: 12.5,
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,

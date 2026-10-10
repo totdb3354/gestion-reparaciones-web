@@ -244,7 +244,7 @@
       },
       "delete" : {
         "tags" : [ "proveedor-controller" ],
-        "operationId" : "borrar_1",
+        "operationId" : "borrar_2",
         "parameters" : [ {
           "name" : "idProv",
           "in" : "path",
@@ -372,7 +372,7 @@
       },
       "delete" : {
         "tags" : [ "compra-controller" ],
-        "operationId" : "borrar_2",
+        "operationId" : "borrar_3",
         "parameters" : [ {
           "name" : "idCompra",
           "in" : "path",
@@ -420,7 +420,7 @@
       },
       "delete" : {
         "tags" : [ "compra-otro-controller" ],
-        "operationId" : "borrar_3",
+        "operationId" : "borrar_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -559,7 +559,7 @@
       },
       "delete" : {
         "tags" : [ "cliente-controller" ],
-        "operationId" : "borrar_4",
+        "operationId" : "borrar_5",
         "parameters" : [ {
           "name" : "idCli",
           "in" : "path",
@@ -1718,6 +1718,193 @@
         }
       }
     },
+    "/api/bloques-compra/{idBloque}/separar" : {
+      "post" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "separar",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraLineasRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BloqueCompraSepararRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bloques-compra/{idBloque}/recibir" : {
+      "post" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "recibir",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraLineasRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/bloques-compra/{idBloque}/juntar" : {
+      "post" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "juntar",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraJuntarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/bloques-compra/{idBloque}/confirmar" : {
+      "post" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "confirmar",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraLineasRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/bloques-compra/{idBloque}/cancelar" : {
+      "post" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "cancelar",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraLineasRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/bloques-compra/{idBloque}/borrar" : {
+      "post" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "borrar",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraLineasRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/auth/login" : {
       "post" : {
         "tags" : [ "auth-controller" ],
@@ -2596,7 +2783,7 @@
     "/api/compras/{idCompra}/confirmar" : {
       "patch" : {
         "tags" : [ "compra-controller" ],
-        "operationId" : "confirmar",
+        "operationId" : "confirmar_1",
         "parameters" : [ {
           "name" : "idCompra",
           "in" : "path",
@@ -2716,7 +2903,7 @@
     "/api/compras/{idCompra}/cancelar" : {
       "patch" : {
         "tags" : [ "compra-controller" ],
-        "operationId" : "cancelar",
+        "operationId" : "cancelar_1",
         "parameters" : [ {
           "name" : "idCompra",
           "in" : "path",
@@ -2731,6 +2918,36 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/CompraUpdatedAtRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/compras/{idCompra}/bloque" : {
+      "patch" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "mover",
+        "parameters" : [ {
+          "name" : "idCompra",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraMoverRequest"
               }
             }
           },
@@ -2806,7 +3023,7 @@
     "/api/compras-otros/{id}/confirmar" : {
       "patch" : {
         "tags" : [ "compra-otro-controller" ],
-        "operationId" : "confirmar_1",
+        "operationId" : "confirmar_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -2926,7 +3143,7 @@
     "/api/compras-otros/{id}/cancelar" : {
       "patch" : {
         "tags" : [ "compra-otro-controller" ],
-        "operationId" : "cancelar_1",
+        "operationId" : "cancelar_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -3099,6 +3316,36 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/bloques-compra/{idBloque}/nota" : {
+      "patch" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "nota",
+        "parameters" : [ {
+          "name" : "idBloque",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraNotaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
           }
         }
       }
@@ -4597,7 +4844,7 @@
     "/api/solicitudes-stock/{idSol}" : {
       "delete" : {
         "tags" : [ "solicitud-stock-controller" ],
-        "operationId" : "borrar",
+        "operationId" : "borrar_1",
         "parameters" : [ {
           "name" : "idSol",
           "in" : "path",
@@ -4806,7 +5053,7 @@
         }
       },
       "CompraEditarRequest" : {
-        "required" : [ "cantidad", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
+        "required" : [ "cantidad", "destino", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idProv" : {
@@ -4836,8 +5083,25 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "destino" : {
+            "$ref" : "#/components/schemas/DestinoPedido"
           }
         }
+      },
+      "DestinoPedido" : {
+        "required" : [ "idBloque" ],
+        "type" : "object",
+        "properties" : {
+          "idBloque" : {
+            "type" : "integer",
+            "description" : "Nulo = bloque nuevo",
+            "format" : "int32",
+            "nullable" : true
+          }
+        },
+        "description" : "0.9.9: bloque destino si cambia el proveedor; nulo = regla por defecto",
+        "nullable" : true
       },
       "CompraOtroEditarRequest" : {
         "required" : [ "cantidad", "concepto", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
@@ -5606,6 +5870,22 @@
           }
         }
       },
+      "LoteComprasDestino" : {
+        "required" : [ "idBloque", "idProv" ],
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "idBloque" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          }
+        },
+        "nullable" : true
+      },
       "LoteComprasLinea" : {
         "required" : [ "cantidad", "esUrgente", "idCom", "idProv", "precioUnidad" ],
         "type" : "object",
@@ -5634,7 +5914,7 @@
         }
       },
       "LoteComprasPeticion" : {
-        "required" : [ "lineas", "solicitudes" ],
+        "required" : [ "destinos", "lineas", "solicitudes" ],
         "type" : "object",
         "properties" : {
           "lineas" : {
@@ -5645,6 +5925,13 @@
           },
           "solicitudes" : {
             "$ref" : "#/components/schemas/LoteComprasSolicitudes"
+          },
+          "destinos" : {
+            "type" : "array",
+            "nullable" : true,
+            "items" : {
+              "$ref" : "#/components/schemas/LoteComprasDestino"
+            }
           }
         }
       },
@@ -5775,6 +6062,58 @@
         "properties" : {
           "nombre" : {
             "type" : "string"
+          }
+        }
+      },
+      "BloqueCompraLineasRequest" : {
+        "required" : [ "lineas" ],
+        "type" : "object",
+        "properties" : {
+          "lineas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LineaVista"
+            }
+          }
+        }
+      },
+      "LineaVista" : {
+        "required" : [ "idCompra", "updatedAt" ],
+        "type" : "object",
+        "properties" : {
+          "idCompra" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "BloqueCompraSepararRespuesta" : {
+        "required" : [ "idBloque" ],
+        "type" : "object",
+        "properties" : {
+          "idBloque" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "BloqueCompraJuntarRequest" : {
+        "required" : [ "destino", "lineas" ],
+        "type" : "object",
+        "properties" : {
+          "destino" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lineas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LineaVista"
+            }
           }
         }
       },
@@ -6225,6 +6564,22 @@
           }
         }
       },
+      "BloqueCompraMoverRequest" : {
+        "required" : [ "idBloque", "updatedAt" ],
+        "type" : "object",
+        "properties" : {
+          "idBloque" : {
+            "type" : "integer",
+            "description" : "Nulo = bloque nuevo",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "CompraOtroRecibirRestoRequest" : {
         "required" : [ "cantidadExtra", "updatedAt" ],
         "type" : "object",
@@ -6307,6 +6662,21 @@
         "properties" : {
           "activo" : {
             "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "BloqueCompraNotaRequest" : {
+        "required" : [ "nota", "updatedAt" ],
+        "type" : "object",
+        "properties" : {
+          "nota" : {
+            "type" : "string",
+            "description" : "VacÃ­a o nula = sin nota",
+            "nullable" : true
           },
           "updatedAt" : {
             "type" : "string",
@@ -7289,7 +7659,7 @@
         }
       },
       "CompraComponente" : {
-        "required" : [ "cantidad", "cantidadRecibida", "divisa", "esUrgente", "estado", "fechaLlegada", "fechaPedido", "idCom", "idCompra", "idProv", "nombreProveedor", "precioEur", "precioUnidadPedido", "tipoComponente", "updatedAt" ],
+        "required" : [ "bloqueAntiguo", "bloqueUpdatedAt", "cantidad", "cantidadRecibida", "divisa", "esUrgente", "estado", "fechaBloque", "fechaLlegada", "fechaPedido", "idBloque", "idCom", "idCompra", "idProv", "nombreProveedor", "notaBloque", "precioEur", "precioUnidadPedido", "tipoComponente", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCompra" : {
@@ -7348,6 +7718,28 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "idBloque" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "fechaBloque" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "notaBloque" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "bloqueUpdatedAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "bloqueAntiguo" : {
+            "type" : "boolean"
           }
         }
       },

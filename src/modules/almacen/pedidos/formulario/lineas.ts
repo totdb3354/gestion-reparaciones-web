@@ -183,6 +183,7 @@ export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: Sol
           urgentes: origen.urgentes.filter((s) => tieneLinea(s.idCom)).map((s) => s.idRc),
           preventivas: origen.preventivas.filter((s) => tieneLinea(s.idCom)).map((s) => s.idSol),
         },
+    destinos: null,
   }
 }
 

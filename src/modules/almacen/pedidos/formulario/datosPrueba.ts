@@ -1,5 +1,10 @@
 import type { Componente, CompraComponente, CompraOtro, Proveedor, SolicitudResumen, SolicitudStock } from '@/shared/api/client'
 
+/** Campos del bloque (0.9.9) para los literales de CompraComponente de los tests: todas las líneas en el bloque 1. */
+export const BLOQUE_PRUEBA = {
+  idBloque: 1, fechaBloque: '2026-09-20T10:00:00', notaBloque: null, bloqueUpdatedAt: '2026-09-20T10:00:00', bloqueAntiguo: false,
+} as const
+
 /** Datos SINTÉTICOS de los tests de los formularios de pedido (T14-T17). Nunca datos del taller. */
 const base = { fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', ultimoPedido: null, enCamino: 0, stock: 0, stockMinimo: 1, consumoDiario: null, pedir60: null, autoPedido: null }
 
@@ -26,6 +31,7 @@ export function preventiva(idSol: number, idCom: number): SolicitudStock {
 }
 
 export const COMPRA: CompraComponente = {
+  ...BLOQUE_PRUEBA,
   idCompra: 7, idCom: 2, tipoComponente: 'bat-x', idProv: 1, nombreProveedor: 'ACME', cantidad: 3, cantidadRecibida: null,
   esUrgente: true, fechaPedido: '2026-09-20T10:00:00', fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR',
   precioEur: 12.5, estado: 'pendiente', updatedAt: '2026-09-20T10:00:00',
