@@ -8,7 +8,7 @@ import { BadgeEstadoPedido } from './BadgeEstadoPedido'
 import { marcaPrecioCero, marcaTotalCero, textoCantidad, totalFila, type Pedido } from './reglas'
 
 /** prefWidth de StockView.fxml :141-149 (componentes) y :156-163 (otros); el ID es de la 0.9.6 (no estaba en el JavaFX). */
-export const ANCHOS_PEDIDOS = { id: 55, fecha: 115, componente: 190, proveedor: 130, cantidad: 50, precio: 68, eur: 68, estado: 110 } as const
+export const ANCHOS_PEDIDOS = { id: 55, bloque: 64, fecha: 115, componente: 190, proveedor: 130, cantidad: 50, precio: 68, eur: 68, estado: 110 } as const
 export const ANCHOS_OTROS = { id: 55, fecha: 115, concepto: 220, proveedor: 130, cantidad: 60, precio: 80, eur: 80, estado: 110 } as const
 
 /** Celdas P.Unit. y EUR (:797-849): el importe y, si hay marca, el importe en ámbar negrita y un "!" de 12 px a 4 px. */
@@ -27,9 +27,15 @@ const fecha = (p: Pedido) => formatear(p.fechaPedido, FMT_FECHA_PEDIDO)
 /** Número del pedido en la base de datos (0.9.6), en gris para que no compita con la fecha. */
 const celdaId = (id: number) => <span className={cn('text-azul-gris', CREMA_EN_FILA_SELECCIONADA)}>{id}</span>
 
-export function crearColumnasPedidos({ onComponente }: { onComponente: (p: CompraComponente) => void }): ColumnDef<CompraComponente>[] {
-  return [
-    { id: 'id', header: 'ID', size: ANCHOS_PEDIDOS.id, maxSize: ANCHOS_PEDIDOS.id, cell: ({ row }) => celdaId(row.original.idCompra) },
+/** `vista` (0.9.9, spec §6.2): en la agrupada no va «Proveedor» (está en la cabecera del bloque); en la plana va
+ *  «Bloque» tras «ID». */
+export function crearColumnasPedidos({ onComponente, vista = 'plana' }: { onComponente: (p: CompraComponente) => void; vista?: 'agrupada' | 'plana' }): ColumnDef<CompraComponente>[] {
+  const id: ColumnDef<CompraComponente> = { id: 'id', header: 'ID', size: ANCHOS_PEDIDOS.id, maxSize: ANCHOS_PEDIDOS.id, cell: ({ row }) => celdaId(row.original.idCompra) }
+  const bloque: ColumnDef<CompraComponente> = {
+    id: 'bloque', header: 'Bloque', size: ANCHOS_PEDIDOS.bloque, maxSize: ANCHOS_PEDIDOS.bloque,
+    cell: ({ row }) => <span className={cn('text-azul-gris', CREMA_EN_FILA_SELECCIONADA)}>{row.original.idBloque ?? ''}</span>,
+  }
+  const resto: ColumnDef<CompraComponente>[] = [
     { id: 'fecha', header: 'Pedido', size: ANCHOS_PEDIDOS.fecha, maxSize: ANCHOS_PEDIDOS.fecha, accessorFn: fecha },
     {
       id: 'componente', header: 'Componente', size: ANCHOS_PEDIDOS.componente,
@@ -48,6 +54,7 @@ export function crearColumnasPedidos({ onComponente }: { onComponente: (p: Compr
     { id: 'eur', header: 'EUR', size: ANCHOS_PEDIDOS.eur, maxSize: ANCHOS_PEDIDOS.eur, cell: ({ row }) => eur(row.original) },
     { id: 'estado', header: 'Estado', size: ANCHOS_PEDIDOS.estado, maxSize: ANCHOS_PEDIDOS.estado, cell: ({ row }) => <BadgeEstadoPedido pedido={row.original} /> },
   ]
+  return vista === 'agrupada' ? [id, ...resto.filter((c) => c.id !== 'proveedor')] : [id, bloque, ...resto]
 }
 
 /** Tabla de otros (:1046-1126): Concepto es un Label sin enlace. */
@@ -88,10 +95,11 @@ export function claseFilaPedido(p: Pedido): string {
 /** Calco de exportarPedidos (:1961-1983): las filas filtradas en el orden mostrado; Cantidad = pedida; total con la regla
  *  de unidades de la columna EUR; importes con `%.2f` (coma, sin símbolo); Estado = `name()`. Fecha en Madrid con año
  *  completo. */
-export const CABECERAS_CSV_PEDIDOS = ['ID', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
+export const CABECERAS_CSV_PEDIDOS = ['ID', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
 export function filaCsvPedido(p: CompraComponente): string[] {
   return [
-    String(p.idCompra), formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.tipoComponente, String(p.cantidad), p.esUrgente ? 'Sí' : 'No', p.nombreProveedor,
+    String(p.idCompra), p.idBloque == null ? '' : String(p.idBloque), p.notaBloque ?? '',
+    formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.tipoComponente, String(p.cantidad), p.esUrgente ? 'Sí' : 'No', p.nombreProveedor,
     formatearNumero(p.precioUnidadPedido), p.divisa, formatearNumero(totalFila(p)), p.estado,
   ]
 }

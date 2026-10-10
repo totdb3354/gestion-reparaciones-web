@@ -72,6 +72,8 @@ export function precargaInicial(precarga: PrecargaPedido, activos: Componente[])
       return { lineas: precargarComponentes(precarga.idsCom, activos), omitidas: 0 }
     case 'solicitudes':
       return precargarSolicitudes(precarga.urgentes, precarga.preventivas, activos)
+    case 'bloque':
+      return { lineas: [], omitidas: 0 }
   }
 }
 
