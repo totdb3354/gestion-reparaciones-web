@@ -14,6 +14,12 @@ function clasesBadge(p: Pedido): string {
   return CLASES[p.estado] ?? NEUTRO
 }
 
+/** Chip de un estado en la cabecera de un bloque (0.9.9): los colores del badge, con «en camino» siempre neutro (el
+ *  aviso de urgente va aparte, en el ⚠ de la cabecera). */
+export function clasesEstado(estado: string): string {
+  return estado === 'en_camino' ? NEUTRO : CLASES[estado] ?? NEUTRO
+}
+
 /** Calco del badge de cpEstado (StockController :885-919): el estado tal cual (`en_camino` con guion bajo), radio 12,
  *  padding 3 10, 11 px negrita; "⚠" de 13 px a 6 px a la derecha si es urgente y está en camino o parcial. Conserva sus
  *  colores en la fila seleccionada, como en el JavaFX. */
