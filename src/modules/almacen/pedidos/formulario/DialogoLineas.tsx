@@ -34,6 +34,10 @@ type Props<L extends LineaBase> = {
   titulo: string
   primera: { cabecera: string; ancho: number; celda: (linea: L, n: number) => ReactNode }
   barra?: ReactNode
+  /** 0.9.9: resumen «Bloques» de «Nuevo pedido», encima de los botones. */
+  pie?: ReactNode
+  /** 0.9.9 («Añadir líneas» de un bloque): proveedor fijo de todas las líneas, sin desplegable. */
+  proveedorFijo?: string
   lineas: L[]
   proveedores: Proveedor[]
   info: string | null
@@ -51,7 +55,7 @@ type Props<L extends LineaBase> = {
  *  880 px (700 en el JavaFX; más grande desde la 0.9.6), título de 24 px, barra opcional (proveedor general de "Nuevo pedido"), tabla de líneas con celdas siempre editables (P8), "+ Añadir línea", línea de información,
  *  línea de error (P6) y "Cancelar" / "Confirmar pedido". La divisa de cada línea es la de su proveedor; sin proveedor la
  *  línea se calcula como EUR (tasa 1.0 por defecto de LineaCompra). Sin atajos de teclado (el JavaFX no tenía). */
-export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
+export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, pie, proveedorFijo, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   const [anadida, setAnadida] = useState<number | null>(null)
   // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
@@ -138,7 +142,11 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lin
                   >
                     <TableCell className="px-1 py-1">{primera.celda(l, n)}</TableCell>
                     <TableCell className="px-1 py-1">
-                      <ComboNavy valor={l.idProv === null ? null : String(l.idProv)} opciones={opciones} onChange={(v) => onCambiar(l.id, { idProv: Number(v) })} textoVacio="" ancho={ANCHO_COMBO_PROVEEDOR} visibles={8} aria-label={`Proveedor línea ${n}`} />
+                      {proveedorFijo !== undefined ? (
+                        <span className="inline-block rounded-full bg-nav-switch px-2.5 py-1 text-[12px] font-bold text-azul-medio">{proveedorFijo}</span>
+                      ) : (
+                        <ComboNavy valor={l.idProv === null ? null : String(l.idProv)} opciones={opciones} onChange={(v) => onCambiar(l.id, { idProv: Number(v) })} textoVacio="" ancho={ANCHO_COMBO_PROVEEDOR} visibles={8} aria-label={`Proveedor línea ${n}`} />
+                      )}
                     </TableCell>
                     <TableCell className="px-1 py-1">
                       <input aria-label={`Cantidad línea ${n}`} value={l.cantidad} onChange={(e) => onCambiar(l.id, { cantidad: e.target.value })} className={CLASE_EDITABLE} />
@@ -168,6 +176,7 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lin
           <BotonSecundario type="button" disabled={bloqueado} onClick={anadir}>+ Añadir línea</BotonSecundario>
         </div>
         {info !== null && <p role="status" className="text-[11px] text-azul-gris">{info}</p>}
+        {pie}
         {error !== null && <p role="alert" className="text-[11px] text-texto-error">{error}</p>}
         <div className="flex justify-end gap-2.5">
           <BotonSecundario type="button" disabled={enviando} onClick={onCerrar}>Cancelar</BotonSecundario>
