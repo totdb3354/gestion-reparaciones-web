@@ -13,6 +13,8 @@ type Props = {
   enviando?: boolean
   /** Desactiva el botón de acción (p. ej. pesos que no suman 100); Enter tampoco confirma porque onConfirmar valida. */
   accionDeshabilitada?: boolean
+  /** 0.9.9: acción destructiva (cancelar o borrar un bloque): botón en rojo. */
+  peligro?: boolean
   /** 360 (por defecto): ventanas de StockController, título de 20 px. 520: editores de pedido
    *  (FormularioCompraEditar.fxml, FormularioOtroPedidoEditar.fxml), título `vista-titulo` de 24 px. */
   ancho?: 360 | 520
@@ -32,7 +34,7 @@ const ESTILO_ANCHO: Record<360 | 520, { caja: string; titulo: string }> = {
  *  mínimo", "Nuevo proveedor") también pasan por aquí (spec 4a, S5). Enter confirma porque los campos van en un form.
  *  Con `ancho={520}` sirve a los editores de pedido (spec 4b §6). El envío pasa por un cerrojo síncrono (useCerrojoEnvio):
  *  un doble clic no llama dos veces a `onConfirmar`. */
-export function DialogoAlmacen({ abierto, titulo, subtitulo, error, textoAccion, enviando = false, accionDeshabilitada = false, ancho = 360, onConfirmar, onCancelar, children }: Props) {
+export function DialogoAlmacen({ abierto, titulo, subtitulo, error, textoAccion, enviando = false, accionDeshabilitada = false, peligro = false, ancho = 360, onConfirmar, onCancelar, children }: Props) {
   const estilo = ESTILO_ANCHO[ancho]
   const enviar = useCerrojoEnvio({ abierto, enviando, error })
   return (
@@ -47,7 +49,7 @@ export function DialogoAlmacen({ abierto, titulo, subtitulo, error, textoAccion,
           {error !== null && <p role="alert" className="text-[11px] text-texto-error">{error}</p>}
           <DialogFooter className="flex-row justify-end gap-2.5 sm:flex-row sm:justify-end">
             <BotonSecundario type="button" disabled={enviando} onClick={onCancelar}>Cancelar</BotonSecundario>
-            <BotonPrimario type="submit" disabled={enviando || accionDeshabilitada}>{textoAccion}</BotonPrimario>
+            <BotonPrimario type="submit" disabled={enviando || accionDeshabilitada} className={peligro ? 'bg-rojo-accion hover:bg-rojo-accion/90' : undefined}>{textoAccion}</BotonPrimario>
           </DialogFooter>
         </form>
       </DialogContent>
