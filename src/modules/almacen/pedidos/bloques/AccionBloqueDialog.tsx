@@ -39,7 +39,7 @@ export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
   return (
     <DialogoAlmacen abierto ancho={520} titulo={`${t.titulo} · Bloque ${bloque.idBloque}`}
       subtitulo={`${bloque.nombreProveedor} · ${formatear(bloque.fecha, 'dd/MM/yyyy')}`} error={error}
-      textoAccion={t.boton(cambian.length)} peligro={t.peligro} enviando={aplicar.isPending}
+      textoAccion={t.boton(cambian.length)} accionDeshabilitada={accion !== 'borrar' && cambian.length === 0} peligro={t.peligro} enviando={aplicar.isPending}
       onConfirmar={() => void confirmar()} onCancelar={onCerrar}>
       <div className="flex max-h-[50vh] flex-col gap-2.5 overflow-y-auto">
         <ListaLineas titulo={`${t.cambian} (${cambian.length})`} lineas={cambian} />

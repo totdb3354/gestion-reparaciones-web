@@ -59,6 +59,32 @@ describe('AccionBloqueDialog (spec §6.5)', () => {
     renderConProviders(<AccionBloqueDialog bloque={mezclado()} accion="cancelar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
     expect(await screen.findByRole('button', { name: 'Cancelar líneas (1)' })).toHaveClass('bg-rojo-accion')
   })
+
+  it('«Borrar bloque» lleva el botón en rojo', async () => {
+    const b = agruparEnBloques([l({ idCompra: 1 }), l({ idCompra: 2 })]).get('41')!
+    renderConProviders(<AccionBloqueDialog bloque={b} accion="borrar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    expect(await screen.findByRole('button', { name: 'Borrar bloque' })).toHaveClass('bg-rojo-accion')
+  })
+
+  it('sin lineas que cambien el boton queda deshabilitado y no manda nada', async () => {
+    const b = agruparEnBloques([l({ idCompra: 2, estado: 'en_camino' })]).get('41')!
+    renderConProviders(<AccionBloqueDialog bloque={b} accion="confirmar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const boton = await screen.findByRole('button', { name: 'Confirmar (0)' })
+    expect(boton).toBeDisabled()
+    await userEvent.click(boton)
+    expect(peticiones).toEqual([])
+  })
+
+  it('un 422 se muestra dentro del dialogo, no lo cierra y deja reintentar', async () => {
+    respuesta = () => HttpResponse.json({ message: 'Regla de negocio sintetica incumplida.' }, { status: 422 })
+    const onCerrar = vi.fn()
+    renderConProviders(<AccionBloqueDialog bloque={mezclado()} accion="confirmar" onCerrar={onCerrar} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Confirmar bloque · Bloque 41' })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Confirmar (1)' }))
+    expect(await within(dlg).findByRole('alert')).toHaveTextContent('Regla de negocio sintetica incumplida.')
+    expect(onCerrar).not.toHaveBeenCalled()
+    expect(within(dlg).getByRole('button', { name: 'Confirmar (1)' })).toBeEnabled()
+  })
 })
 
 describe('SepararDialog', () => {
