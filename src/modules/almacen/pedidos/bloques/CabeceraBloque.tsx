@@ -50,7 +50,7 @@ export function CabeceraBloque({ bloque, visibles, desplegado, onAlternar, menu 
         <span title="Reconstruido al migrar: mismo proveedor y mismo día"
           className="shrink-0 rounded-lg border border-dashed border-texto-sub px-1.5 text-[10.5px] text-texto-sub">antiguo</span>
       )}
-      <span className="flex shrink-0 gap-1">
+      <span className="flex min-w-0 gap-1 overflow-hidden">
         {resumenEstados(bloque).map(({ estado, n }) => (
           <span key={estado} className={cn('rounded-[12px] px-2 py-0.5 text-[11px] font-bold', clasesEstado(estado))}>{n} {chipDeEstado(estado)}</span>
         ))}
