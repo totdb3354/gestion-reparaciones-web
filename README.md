@@ -62,10 +62,14 @@ activa con el candado, comprueba su `CREAR_USUARIO` en "Ver logs" (filtro de acc
 entra con él, cambia su contraseña desde el menú y la restaura, y lo borra como administrador desde la papelera. Solo deja
 escribir sobre ese usuario; si el test cae antes del borrado, lo borra por la API buscándolo por su nombre exacto. Hace
 cuatro inicios de sesión (el límite es de 5 por minuto): no lo lances pegado a otra ejecución.
-`cliente-historial.spec.ts` también **escribe**: con `E2E_USER` corrige desde «Corregir cliente» el cliente guardado de UN
-trabajo cerrado de reparación del entorno (el primero del Historial cuyo cliente sigue activo) a otro cliente activo y lo
-devuelve al suyo; si cae a medias, lo devuelve por la API. Quedan dos líneas `CORREGIR_CLIENTE_TRABAJO` en el registro. Con
-`ADMIN_USER`/`ADMIN_PASS` solo abre el menú y el modal (solo lectura). Solo contra un entorno de pruebas.
+`cliente-historial.spec.ts` también **escribe**: con `E2E_USER` (un supertécnico con técnico propio) corrige desde «Corregir
+cliente» el cliente guardado de una reparación cerrada (desde el Historial) y de un pulido cerrado (desde el detalle de su
+IMEI), los primeros cuyo cliente sigue activo, a otro cliente activo y los devuelve al suyo (si cae a medias, por la API).
+Además crea por la API una asignación de un IMEI sintético para ese mismo supertécnico, con dos piezas solicitadas y luego
+reparadas (consume una unidad de dos SKU con stock), la corrige desde el modal y, al final, borra todo lo del IMEI (las
+reparaciones devuelven su unidad al stock). Quedan líneas `CORREGIR_CLIENTE_TRABAJO` en el registro. Con
+`ADMIN_USER`/`ADMIN_PASS` comprueba el menú y busca esas líneas en «Ver logs» (solo lectura). Solo contra un entorno de
+pruebas.
 Sin credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso
 de `asignar.spec.ts`, sin `E2E_SKU_PRUEBA` en el de `stock.spec.ts` y `pedidos.spec.ts`, o sin `ADMIN_USER`/`ADMIN_PASS` en el de
 `gestion.spec.ts`) en el entorno, los tests se saltan.
