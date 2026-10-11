@@ -208,3 +208,11 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 - [x] Sin conexión: banner amarillo, sin ventana de error (`stock-banner-sin-conexion`: no reproducible en el JavaFX; simulado en la web).
 - [x] Fallo de la cantidad en camino: el gráfico por SKU conserva lo anterior y se avisa por el mapeo común. (verificado por test: `StockPage.test.tsx` "si falla la cantidad en camino, el gráfico por SKU conserva el anterior (título incluido) y avisa")
 - [x] Errores de "Solicitar pieza" con el diálogo abierto. (verificado por test: `src/modules/almacen/stock/StockPage.test.tsx` "un error de "Solicitar pieza" (403) deja el diálogo abierto y avisa con el mensaje mapeado")
+
+## 0.9.9 — Piezas por proveedor (sin equivalente en el JavaFX)
+
+Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (raíz):
+
+- Proveedores: clic derecho → «Piezas que vende…» (supertécnicos) abre «Piezas que vende · <proveedor>» con buscador, «Marcar las que se ven», «Quitar las que se ven» y «Solo las marcadas»; arranca rellenada con el historial de pedidos.
+- Stock gana la columna «Pendiente» (también en el CSV): lo apuntado en cualquier bloque y aún sin pedir.
+- «Pedir 60 d» descuenta lo pendiente.

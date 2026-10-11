@@ -250,3 +250,10 @@ Diferencias deliberadas, decididas en la spec `2026-10-09-v099-bloques-pedidos-d
 - Menú del bloque (⋮ y clic derecho en la cabecera) y entrada «Mover a bloque ▸» en el menú de cada línea; los cancelados, que no tenían menú, tienen solo esa entrada.
 - «Nuevo pedido» con el resumen «Bloques» al pie y modo «Añadir líneas» de un bloque; «Editar pedido» con el campo «Bloque» al cambiar el proveedor.
 - CSV de componentes con «Bloque» y «Nota del bloque» tras «ID».
+
+## 0.9.9 — Piezas por proveedor (sin equivalente en el JavaFX)
+
+Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (raíz):
+
+- Buscar un bloque por su número: en Componentes, escribir solo cifras en «Buscar componente o nº de bloque…» enseña ese bloque.
+- «Nuevo pedido»: al elegir el proveedor, «Añadir previsión de <X> (N)» añade las piezas en Auto que vende X; también «Añadir previsión…» en el menú del bloque.

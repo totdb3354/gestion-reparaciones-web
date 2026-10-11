@@ -10,8 +10,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - **Pedidos agrupada por bloques** (Componentes): cabeceras plegables con número, proveedor, fecha, líneas, total, ⚠, resumen de estados y nota. Los bloques con algo por hacer salen desplegados; los terminados, plegados; con filtros, solo las líneas que cumplen («mostrando k de n»). El interruptor **«Agrupar por bloque»** vuelve a la vista plana de siempre (con columna «Bloque»), y el navegador lo recuerda.
 - **Menú del bloque** (⋮ o clic derecho en la cabecera, supertécnicos): Confirmar bloque, Recibir todo, Añadir líneas…, Separar líneas…, Juntar con…, Nota, Cancelar bloque y Borrar bloque. Cada acción se aplica a las líneas que pueden recibirla y la confirmación lista lo que cambia y lo que no. Si otra persona cambia el bloque a la vez, no se aplica nada y se avisa.
 - **Mover a bloque** en el menú de cada línea (también en las canceladas): una pendiente se mueve sin preguntar; una ya pedida pide confirmación y queda en el registro. «Editar» con otro proveedor lleva la línea a un bloque de ese proveedor.
+- **Piezas que vende cada proveedor** (Proveedores → clic derecho → «Piezas que vende…», supertécnicos): lista de piezas con buscador, «Marcar las que se ven» y «Quitar las que se ven». Arranca rellenada con el historial de pedidos.
+- **Previsión por proveedor** en «Nuevo pedido»: se elige el proveedor arriba y «Añadir previsión de X (N)» añade las piezas en Auto que vende X con su cantidad. Avisa de las piezas en Auto con algo que pedir que no están en la lista de ningún proveedor. También desde el menú del bloque: «Añadir previsión…».
+- **«Pedir 60 d» descuenta lo pendiente** (lo apuntado en cualquier bloque y aún sin pedir), y Stock tiene la columna **«Pendiente»** (también en el CSV).
+- **Buscar un bloque por su número**: en Pedidos (Componentes), escribir solo cifras en el buscador enseña ese bloque.
 - CSV de pedidos con las columnas «Bloque» y «Nota del bloque». Los pedidos anteriores se agrupan en bloques «antiguos» (mismo proveedor y día).
-- Requiere el servidor 0.9.9 y las migraciones `migracion-bloques-compra.sql` y `reconstruir-bloques-compra.sql`. Sin cambios en nginx.
+- Requiere el servidor 0.9.9 y las migraciones `migracion-bloques-compra.sql`, `reconstruir-bloques-compra.sql`, `migracion-catalogo-proveedores.sql` y `rellenar-catalogo-proveedores.sql`. Sin cambios en nginx.
 
 ## [0.9.8] - 2026-10-09 — Cliente guardado en cada trabajo
 
