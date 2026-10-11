@@ -1,7 +1,7 @@
 import type { ReparacionResumen } from '@/shared/api/client'
 import { imeisValidos } from '@/shared/lib/filtroImei'
 import type { FiltrosImeis } from '../estado'
-import { SIN_CLIENTE, pasaCliente, pasaFechas, pasaImeis, pasaIncidencias, pasaTecnico, type EstadoIncidencia } from '../lib/filtros'
+import { opcionesClientes, pasaCliente, pasaFechas, pasaImeis, pasaIncidencias, pasaTecnico, type EstadoIncidencia } from '../lib/filtros'
 import { agruparPorImei, ordenarPorActividad, type GrupoImei } from '../lib/grupoImei'
 
 /** Maestro: "Incidencia" = alguna abierta, "Normal" = ninguna. "cerradas" solo existe en el detalle y aquí no cuenta. */
@@ -24,14 +24,7 @@ export function agruparVisibles(trabajos: ReparacionResumen[], f: FiltrosImeis):
 /** Clientes actuales de los teléfonos cargados (spec 0.9.8 §5), alfabéticos, con "(Sin cliente)" delante si alguno no
  *  tiene. */
 export function opcionesCliente(trabajos: ReparacionResumen[]): string[] {
-  const nombres = new Set<string>()
-  let sinCliente = false
-  for (const t of trabajos) {
-    if (t.clienteTelefono) nombres.add(t.clienteTelefono)
-    else sinCliente = true
-  }
-  const lista = [...nombres].sort((a, b) => a.localeCompare(b, 'es'))
-  return sinCliente ? [SIN_CLIENTE, ...lista] : lista
+  return opcionesClientes(trabajos.map((t) => t.clienteTelefono))
 }
 
 export type FilasDetalle = { filas: ReparacionResumen[]; deFiltrados: number; deOtros: number }

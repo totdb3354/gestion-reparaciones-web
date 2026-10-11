@@ -4,7 +4,7 @@ import { descargarCsv } from '@/shared/lib/csv'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
-import { esSuperTecnico } from '@/shared/session/storage'
+import { esAdminOSuperTecnico, esSuperTecnico } from '@/shared/session/storage'
 import { BotonSecundario } from '@/shared/ui/Botones'
 import { DataTable } from '@/shared/ui/DataTable'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
@@ -75,7 +75,7 @@ export function ImeiDetallePage() {
         onSeleccionar={setSeleccionada}
         pedirDesplazamiento={peticionDesplazamiento}
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent', esAjeno(r, filtros) && 'opacity-45')}
-        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} acciones={accionesMenu} />}
+        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} puedeCorregirCliente={esAdminOSuperTecnico(sesion)} acciones={accionesMenu} />}
       />
       {dialogos}
       <Outlet />

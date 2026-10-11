@@ -12,6 +12,7 @@ import { reportarExito, reportarFallo } from './conexion'
 export type Cliente = components['schemas']['Cliente']
 export type LoginResponse = components['schemas']['LoginResponse']
 export type ReparacionResumen = components['schemas']['ReparacionResumen']
+export type TrabajoCerrado = components['schemas']['TrabajoCerrado']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 

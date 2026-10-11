@@ -8,6 +8,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 - **Cada trabajo recuerda para qué cliente se hizo.** Al terminar una reparación, un glass o un pulido se guarda el cliente que tenía el teléfono en ese momento. Si después se cambia el cliente del teléfono (por ejemplo, porque se vende a otro), los trabajos ya hechos no cambian: el Historial, sus filtros y sus CSV siguen mostrando el cliente con el que se hicieron. Los trabajos pendientes siguen al cliente del teléfono, como siempre (urgente, orden de la cola, barra de Pedidos y predicción de glass sin cambios).
 - **Vista IMEIs:** la columna Cliente, su filtro y su CSV muestran el cliente **actual** del teléfono (el que cambia «Editar cliente»).
+- **Historial con el cliente de cada trabajo:** columna **Cliente** (también en el detalle de un IMEI), filtro «Cliente» y columna en el CSV.
+- **Corregir cliente** (supertécnicos y administrador): clic derecho en un trabajo cerrado → «Corregir cliente». Se elige el cliente correcto y qué trabajos cerrados del mismo IMEI con ese cliente se corrigen (de entrada, los del mismo día). El cliente actual del teléfono no cambia. Queda en el registro.
 - **Clientes:** un cliente que aparece en trabajos ya no ofrece «Borrar»; se desactiva.
 - Requiere el servidor 0.9.8, la migración `migracion-cliente-por-trabajo.sql` (columna `ID_CLI` en `Reparacion`) antes de desplegar y, después, el relleno `relleno-cliente-por-trabajo.sql` en consola (los trabajos anteriores se completan con el registro de cambios de cliente). Sin cambios en nginx.
 

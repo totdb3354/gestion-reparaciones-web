@@ -5,6 +5,7 @@ import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { referenciadora, useAnadirIncidencia, useBorrarReparacion, useCancelarIncidencia } from '../api'
+import { CorregirClienteDialog } from './CorregirClienteDialog'
 import { DialogoIncidencia } from './DialogoIncidencia'
 import type { AccionesHistorial } from './MenuHistorial'
 
@@ -31,6 +32,7 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
   const [aCancelar, setACancelar] = useState<ReparacionResumen | null>(null)
   const [conIncidencia, setConIncidencia] = useState<ReparacionResumen | null>(null)
+  const [aCorregir, setACorregir] = useState<ReparacionResumen | null>(null)
   const borrar = useBorrarReparacion()
   const anadir = useAnadirIncidencia()
   // Clave de reintento de "Añadir incidencia": la misma mientras el cuerpo (con el idRep) no cambie; nueva tras guardar bien.
@@ -50,9 +52,10 @@ export function useAccionesTrabajo({ tituloBorrar, avisoReferencia }: Opciones):
     }
   }
 
-  const acciones: Omit<AccionesHistorial, 'editar'> = { borrar: (r) => void pedirBorrado(r), anadirIncidencia: setConIncidencia, cancelarIncidencia: setACancelar }
+  const acciones: Omit<AccionesHistorial, 'editar'> = { borrar: (r) => void pedirBorrado(r), anadirIncidencia: setConIncidencia, cancelarIncidencia: setACancelar, corregirCliente: setACorregir }
   const dialogos = (
     <>
+      <CorregirClienteDialog rep={aCorregir} onCerrar={() => setACorregir(null)} />
       <ConfirmDialog abierto={aBorrar !== null} conMotivo titulo={tituloBorrar} descripcion={aBorrar ? descripcionBorrado(aBorrar.idRep) : ''} textoAccion={tituloBorrar}
         onCancelar={() => setABorrar(null)} onConfirmar={(motivo) => { if (aBorrar && motivo) borrar.mutate({ idRep: aBorrar.idRep, motivo }); setABorrar(null) }} />
       <ConfirmDialog abierto={aCancelar !== null} titulo="Borrar incidencia" descripcion="Esta acción solo es válida si fue un error al añadirla." textoAccion="Borrar incidencia"

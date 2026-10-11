@@ -15,12 +15,12 @@ export function filaResumen(g: GrupoImei): string[] {
 }
 
 /** CSV del detalle (agrupado_<imei>): recorrido cronológico del IMEI con columna Tipo; "ID Rep. anterior" vacío en pulidos. */
-export const CABECERAS_DETALLE = ['Tipo', 'ID', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior']
+export const CABECERAS_DETALLE = ['Tipo', 'ID', 'IMEI', 'Cliente', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior']
 export function filaDetalle(r: ReparacionResumen): string[] {
   const tipo = tipoDe(r.idRep)
   const etiqueta = tipo === 'GLASS' ? 'Glass' : tipo === 'PULIDO' ? 'Pulido' : 'Reparación'
   return [
-    etiqueta, r.idRep, textoForzado(r.imei), r.nombreTecnico ?? '', formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'), formatear(r.fechaFin, 'dd/MM/yyyy HH:mm'),
+    etiqueta, r.idRep, textoForzado(r.imei), r.cliente ?? '', r.nombreTecnico ?? '', formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'), formatear(r.fechaFin, 'dd/MM/yyyy HH:mm'),
     r.tipoComponente ?? '', r.esReutilizado ? 'Sí' : 'No', r.observaciones ?? '', r.esIncidencia ? (r.incidencia ?? 'Sí') : 'No', r.esResuelto ? 'Sí' : 'No',
     tipo === 'PULIDO' ? '' : (r.idRepAnterior ?? ''),
   ]
