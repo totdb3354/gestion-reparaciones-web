@@ -70,10 +70,11 @@ const lineas = () => lineasDelProveedor(sup!, idProv!)
 const linea = async (id: number) => (await lineas()).find((l) => l.idCompra === id)
 const bloquesDe = async () => [...new Set((await lineas()).map((l) => l.idBloque).filter((b): b is number => b !== null))]
 
-/** Stock del SKU de prueba (E2E_SKU_PRUEBA: activo y sin master, como dice .env.e2e.example). */
+/** Stock del SKU de prueba (E2E_SKU_PRUEBA: activo y sin master, como dice .env.e2e.example). Se lee del listado de
+ *  Stock: `GET /api/componentes` está retirado (403 «Esta operación ya no está disponible»). */
 async function stockDelSku(page: Page): Promise<number> {
-  const r = await llamarApi(page, 'GET', '/api/componentes')
-  expect(r.status, `GET /api/componentes respondió ${r.status}`).toBe(200)
+  const r = await llamarApi(page, 'GET', '/api/componentes/gestionados')
+  expect(r.status, `GET /api/componentes/gestionados respondió ${r.status}`).toBe(200)
   const c = (r.json as { tipo: string; stock: number }[]).find((x) => x.tipo === sku)
   expect(c, `No hay componente ${sku}`).toBeTruthy()
   return c!.stock
