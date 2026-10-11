@@ -37,6 +37,8 @@ export function CorregirClienteDialog({ rep, onCerrar }: Props) {
   const diaElegido = fechaLocal(elegido?.fechaFin)
   const seleccion = marcados ?? new Set(candidatos.filter((t) => t.idRep === rep?.idRep || fechaLocal(t.fechaFin) === diaElegido).map((t) => t.idRep))
 
+  const guardadoAhora = cerrados === undefined ? 'cargando…' : elegido ? (elegido.cliente ?? '— Sin cliente —') : '—'
+
   const idCliNuevo = cliente === SIN ? null : cliente === '' ? undefined : Number(cliente)
   const listo = idCliNuevo !== undefined && idCliNuevo !== idCliGuardado && seleccion.size > 0
 
@@ -60,26 +62,32 @@ export function CorregirClienteDialog({ rep, onCerrar }: Props) {
     <Dialog open={rep !== null} onOpenChange={(o) => { if (!o && !corregir.isPending) onCerrar() }}>
       <DialogContent aria-describedby={undefined} className="max-w-[560px] gap-2 bg-fondo-input p-4">
         <DialogHeader><DialogTitle className="text-[14px] font-bold text-azul-medio">Corregir cliente</DialogTitle></DialogHeader>
-        <p className="text-[12px] text-azul-medio">IMEI {rep?.imei} · guardado ahora: {elegido?.cliente ?? '— Sin cliente —'}</p>
+        <p className="text-[12px] text-azul-medio">IMEI {rep?.imei} · guardado ahora: {guardadoAhora}</p>
         <Label htmlFor="corregir-cliente" className="text-[12px]">Cliente correcto</Label>
         <select id="corregir-cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} className="h-9 w-full rounded border border-gris-borde bg-superficie px-2 text-[13px]">
           <option value="">Selecciona cliente</option>
           <option value={SIN}>— Sin cliente —</option>
           {activos.map((c) => <option key={c.idCli} value={String(c.idCli)}>{c.nombre}</option>)}
         </select>
-        <p className="text-[12px] text-azul-medio">Trabajos cerrados de este IMEI con {elegido?.cliente ?? 'sin cliente'}:</p>
-        <ul className="max-h-[240px] overflow-y-auto rounded border border-gris-borde bg-superficie p-2">
-          {candidatos.map((t) => (
-            <li key={t.idRep}>
-              <label className="flex items-center gap-2 text-[12px]">
-                <input type="checkbox" checked={seleccion.has(t.idRep)} onChange={() => alternar(t.idRep)} />
-                <span className="font-mono">{t.idRep}</span>
-                <span>{formatear(t.fechaFin, 'dd/MM/yyyy')}</span>
-                <span className="text-azul-gris">{t.descripcion ?? ''}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        {cerrados !== undefined && !elegido ? (
+          <p className="text-[12px] text-azul-medio">Este trabajo ya no está cerrado o no es de este teléfono.</p>
+        ) : elegido && (
+          <>
+          <p className="text-[12px] text-azul-medio">Trabajos cerrados de este IMEI {elegido.cliente ? `con ${elegido.cliente}` : 'sin cliente'}:</p>
+          <ul className="max-h-[240px] overflow-y-auto rounded border border-gris-borde bg-superficie p-2">
+            {candidatos.map((t) => (
+              <li key={t.idRep}>
+                <label className="flex items-center gap-2 text-[12px]">
+                  <input type="checkbox" checked={seleccion.has(t.idRep)} onChange={() => alternar(t.idRep)} />
+                  <span className="font-mono">{t.idRep}</span>
+                  <span>{formatear(t.fechaFin, 'dd/MM/yyyy')}</span>
+                  <span className="text-azul-gris">{t.descripcion ?? ''}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          </>
+        )}
         <Button disabled={!listo || corregir.isPending} onClick={() => enviar(confirmar)} className="h-auto w-full rounded bg-fila-reparado-ico py-2 text-[12px] text-superficie hover:bg-fila-reparado-ico/90 disabled:bg-gris-disabled disabled:text-gris-borde disabled:opacity-100">
           Corregir {seleccion.size}
         </Button>

@@ -183,7 +183,7 @@ export function useTrabajosCerrados(imei: string | null) {
 }
 /** «Corregir cliente» (spec 0.9.8 añadido): el error lo muestra el modal (meta.silenciarError). */
 export function useCorregirCliente() {
-  const recargar = useRecargarSinEsperar(...HISTORIALES)
+  const recargar = useRecargarSinEsperar(...HISTORIALES, ['trabajos-cerrados'])
   return useMutation({
     mutationFn: ({ imei, idReps, idCli }: { imei: string; idReps: string[]; idCli: number | null }) =>
       api.PATCH('/api/reparaciones/cliente', { body: { imei, idReps, idCli } }),

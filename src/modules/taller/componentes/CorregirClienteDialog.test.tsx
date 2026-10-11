@@ -84,6 +84,47 @@ describe('CorregirClienteDialog', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: 'Corregir 3' }))
     expect(await screen.findByText(/No se pudo corregir: Algún trabajo ya no está cerrado/)).toBeInTheDocument()
     expect(onCerrar).not.toHaveBeenCalled()
-    expect(screen.getByText(/Trabajos cerrados de este IMEI/)).toBeInTheDocument() // el modal sigue montado (el aviso lo tapa)
+  })
+  it('mientras carga la cabecera dice "cargando…" y no hay lista', async () => {
+    server.use(http.get(`*/api/reparaciones/imei/${IMEI}/cerrados`, () => new Promise(() => {})))
+    renderConProviders(<CorregirClienteDialog rep={rep} onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Corregir cliente' })
+    expect(within(dlg).getByText(/guardado ahora: cargando…/)).toBeInTheDocument()
+    expect(within(dlg).queryByText(/Trabajos cerrados de este IMEI/)).not.toBeInTheDocument()
+    expect(within(dlg).getByRole('button', { name: 'Corregir 0' })).toBeDisabled()
+  })
+  it('si el trabajo elegido no está en la lista avisa en vez de mostrar la lista', async () => {
+    server.use(http.get(`*/api/reparaciones/imei/${IMEI}/cerrados`, () => HttpResponse.json(cerrados.slice(1))))
+    renderConProviders(<CorregirClienteDialog rep={rep} onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Corregir cliente' })
+    expect(await within(dlg).findByText('Este trabajo ya no está cerrado o no es de este teléfono.')).toBeInTheDocument()
+    expect(within(dlg).getByText(/guardado ahora: —$/)).toBeInTheDocument()
+    expect(within(dlg).queryByText(/Trabajos cerrados de este IMEI/)).not.toBeInTheDocument()
+    expect(within(dlg).queryAllByRole('checkbox')).toHaveLength(0)
+    expect(within(dlg).getByRole('button', { name: 'Corregir 0' })).toBeDisabled()
+  })
+  it('con el cliente guardado null el rótulo dice "sin cliente" y la cabecera "— Sin cliente —"', async () => {
+    const sinCliente = [{ idRep: 'R20261002_1', fechaFin: '2026-10-02T09:30:00', descripcion: 'lcdi16', idCli: null, cliente: null }]
+    server.use(http.get(`*/api/reparaciones/imei/${IMEI}/cerrados`, () => HttpResponse.json(sinCliente)))
+    const { dlg } = await abrir()
+    expect(within(dlg).getByText('Trabajos cerrados de este IMEI sin cliente:')).toBeInTheDocument()
+    expect(within(dlg).getByText(/guardado ahora: — Sin cliente —/)).toBeInTheDocument()
+  })
+  it('con cliente guardado el rótulo dice "con AMAZON"', async () => {
+    const { dlg } = await abrir()
+    expect(within(dlg).getByText('Trabajos cerrados de este IMEI con AMAZON:')).toBeInTheDocument()
+  })
+  it('tras corregir con éxito la lista de cerrados se vuelve a pedir', async () => {
+    let gets = 0
+    server.use(
+      http.get(`*/api/reparaciones/imei/${IMEI}/cerrados`, () => { gets++; return HttpResponse.json(cerrados) }),
+      http.patch('*/api/reparaciones/cliente', () => new HttpResponse(null, { status: 204 })),
+    )
+    const { dlg, onCerrar } = await abrir()
+    expect(gets).toBe(1)
+    await userEvent.selectOptions(within(dlg).getByLabelText('Cliente correcto'), 'WEB')
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Corregir 3' }))
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    await waitFor(() => expect(gets).toBe(2))
   })
 })
