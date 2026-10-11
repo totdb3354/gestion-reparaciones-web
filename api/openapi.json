@@ -2390,6 +2390,27 @@
         }
       }
     },
+    "/api/reparaciones/cliente" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "corregirCliente",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionCorregirClienteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/reparaciones/asignaciones/{idRep}" : {
       "get" : {
         "tags" : [ "reparacion-controller" ],
@@ -3955,6 +3976,35 @@
                   "type" : "object",
                   "additionalProperties" : {
                     "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/cerrados" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getCerradosPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TrabajoCerrado"
                   }
                 }
               }
@@ -6445,6 +6495,26 @@
           }
         }
       },
+      "ReparacionCorregirClienteRequest" : {
+        "required" : [ "idCli", "idReps", "imei" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idReps" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          }
+        }
+      },
       "ReparacionActualizarAsignacionRequest" : {
         "required" : [ "comentarioAsignacion", "idTec", "updatedAt" ],
         "type" : "object",
@@ -7203,6 +7273,32 @@
           }
         }
       },
+      "TrabajoCerrado" : {
+        "required" : [ "cliente", "descripcion", "fechaFin", "idCli", "idRep" ],
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "fechaFin" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "descripcion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "cliente" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
       "ReparacionDAOAsignacionActiva" : {
         "required" : [ "idRep", "idTec", "nombreTecnico" ],
         "type" : "object",
@@ -7220,7 +7316,7 @@
         }
       },
       "ReparacionResumen" : {
-        "required" : [ "cliente", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
+        "required" : [ "cliente", "clienteTelefono", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -7336,6 +7432,10 @@
             "nullable" : true
           },
           "cliente" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "clienteTelefono" : {
             "type" : "string",
             "nullable" : true
           },

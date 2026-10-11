@@ -33,7 +33,8 @@ function construir(imei: string, trabajos: ReparacionResumen[]): GrupoImei {
     imei,
     modelo: primero(trabajos.map((t) => t.modelo)) ?? '',
     observacion: primero(trabajos.map((t) => t.observacionTelefono)),
-    cliente: primero(trabajos.map((t) => t.cliente)),
+    // La vista IMEIs es por teléfono: su cliente es el actual (el que cambia «Editar cliente»), no el de cada trabajo.
+    cliente: primero(trabajos.map((t) => t.clienteTelefono)),
     fechaMasAntigua: asignaciones.length ? asignaciones.reduce((a, b) => (a < b ? a : b)) : null,
     fechaMasReciente: fines.length ? fines.reduce((a, b) => (a > b ? a : b)) : null,
     trabajos,

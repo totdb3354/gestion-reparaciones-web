@@ -1028,6 +1028,22 @@ export interface paths {
         patch: operations["completar"];
         trace?: never;
     };
+    "/api/reparaciones/cliente": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["corregirCliente"];
+        trace?: never;
+    };
     "/api/reparaciones/asignaciones/{idRep}": {
         parameters: {
             query?: never;
@@ -1836,6 +1852,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["countByImei"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reparaciones/imei/{imei}/cerrados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCerradosPorImei"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2926,6 +2958,12 @@ export interface components {
         SolicitudStockEstadoRequest: {
             estado: string;
         };
+        ReparacionCorregirClienteRequest: {
+            imei: string;
+            idReps: string[];
+            /** Format: int32 */
+            idCli: number | null;
+        };
         ReparacionActualizarAsignacionRequest: {
             /** Format: int32 */
             idTec: number;
@@ -3225,6 +3263,15 @@ export interface components {
             /** Format: int32 */
             pulidos: number;
         };
+        TrabajoCerrado: {
+            idRep: string;
+            /** Format: date-time */
+            fechaFin: string;
+            descripcion: string | null;
+            /** Format: int32 */
+            idCli: number | null;
+            cliente: string | null;
+        };
         ReparacionDAOAsignacionActiva: {
             idRep: string;
             nombreTecnico: string;
@@ -3270,6 +3317,7 @@ export interface components {
             /** Format: date-time */
             telefonoUpdatedAt: string | null;
             cliente: string | null;
+            clienteTelefono: string | null;
             /** Format: date-time */
             entregadoAt: string | null;
             entregadoPorNombre: string | null;
@@ -5622,6 +5670,28 @@ export interface operations {
             };
         };
     };
+    corregirCliente: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReparacionCorregirClienteRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getAsignacionById: {
         parameters: {
             query?: never;
@@ -6925,6 +6995,28 @@ export interface operations {
                     "*/*": {
                         [key: string]: Record<string, never>;
                     };
+                };
+            };
+        };
+    };
+    getCerradosPorImei: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imei: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TrabajoCerrado"][];
                 };
             };
         };

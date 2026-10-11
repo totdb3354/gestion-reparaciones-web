@@ -5,13 +5,15 @@ import type {
 
 /** Fila completa con valores por defecto; cada test sobrescribe lo que le importa. */
 export function resumen(parcial: Partial<ReparacionResumen> = {}): ReparacionResumen {
+  // Por defecto el cliente del teléfono coincide con el del trabajo, como en un trabajo abierto (spec 0.9.8 §2).
+  const cliente = parcial.cliente !== undefined ? parcial.cliente : 'AMAZON'
   return {
     idRep: 'A20260916_1', imei: '355400000000111', nombreTecnico: 'Técnico A', fechaAsig: '2026-09-16T07:02:00', fechaFin: null,
     tipoComponente: null, observaciones: null, esIncidencia: false, esResuelto: false, esReutilizado: false, incidencia: null,
     idRepAnterior: null, idTec: 4, esSolicitud: 0, descripcionSolicitud: null, estadoSolicitud: null, tipoSolicitud: null,
     stockSolicitud: 0, enCamino: false, tiposSolicitud: null, updatedAt: '2026-09-16T07:02:00', modelo: '14',
     comentarioAsignacion: null, observacionTelefono: null, urgente: false, esChasis: false, porCerrar: false,
-    tieneAsignaciones: false, nombreTecnicoAsigna: 'Técnico F', telefonoUpdatedAt: '2026-09-16T07:02:00', cliente: 'AMAZON',
+    tieneAsignaciones: false, nombreTecnicoAsigna: 'Técnico F', telefonoUpdatedAt: '2026-09-16T07:02:00', cliente, clienteTelefono: cliente,
     entregadoAt: null, entregadoPorNombre: null, entregadoPor: null, glassAbierta: false, glassEntregadoAt: null,
     glassEntregadoPorNombre: null, glassEntregadoPor: null, glassTecnicoNombre: null, normalAbierta: false, normalTecnicoNombre: null,
     ...parcial,

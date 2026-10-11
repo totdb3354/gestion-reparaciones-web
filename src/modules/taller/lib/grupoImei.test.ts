@@ -32,6 +32,13 @@ describe('grupoImei (calco de GrupoImei)', () => {
     expect(g.telefonoUpdatedAt).toBe('2026-09-01T00:00:00')
     expect(g.trabajos).toHaveLength(3)
   })
+  it('el cliente del grupo es el actual del teléfono, no el guardado en cada trabajo (0.9.8)', () => {
+    const [g] = agruparPorImei([
+      rr('R1', { cliente: 'Incidencias A', clienteTelefono: 'WEB' }),
+      rr('R2', { cliente: null, clienteTelefono: 'WEB' }),
+    ])
+    expect(g.cliente).toBe('WEB')
+  })
   it('un grupo por IMEI en orden de aparición, y ordenarPorActividad pone la más reciente arriba y las sin fecha al final', () => {
     const grupos = agruparPorImei([
       resumen({ idRep: 'R1', imei: '111111111111111', fechaFin: '2026-09-01T00:00:00' }),
