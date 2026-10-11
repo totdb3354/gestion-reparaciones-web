@@ -98,11 +98,19 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
   it('con el buscador: solo las líneas que cumplen, desplegadas y con «mostrando k de n»', async () => {
     montar()
     await screen.findByText('lcd-x-negro')
-    await userEvent.type(screen.getByPlaceholderText('Buscar componente…'), 'lcd')
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'lcd')
     expect(screen.getByText('mostrando 1 de 2')).toBeInTheDocument()
     expect(screen.getByText('lcd-y')).toBeInTheDocument()
     expect(screen.queryByText('bat-x')).not.toBeInTheDocument()
     expect(screen.queryByText('mc-x')).not.toBeInTheDocument()
+  })
+
+  it('con solo cifras en el buscador: una sola cabecera, la del bloque con ese número', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), '41')
+    await waitFor(() => expect(document.querySelectorAll('tr[data-cabecera]')).toHaveLength(1))
+    expect(document.querySelector('tr[data-cabecera]')).toHaveTextContent('41')
   })
 
   it('mover una pendiente va sin preguntar; una en camino pide confirmación', async () => {

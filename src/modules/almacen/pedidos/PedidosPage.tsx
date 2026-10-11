@@ -368,8 +368,9 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
           onOpenChange={marcar}
           className="min-w-[140px]"
         />
-        {/* "Buscar componente…" también en Otros (calco, inventario §1). */}
-        <Input value={filtros.buscador} onChange={(e) => setFiltros((f) => ({ ...f, buscador: e.target.value }))} placeholder="Buscar componente…" className="w-[180px] bg-superficie" />
+        {/* "Buscar componente…" también en Otros (calco, inventario §1); en Componentes, también el nº de bloque (0.9.9). */}
+        <Input value={filtros.buscador} onChange={(e) => setFiltros((f) => ({ ...f, buscador: e.target.value }))}
+          placeholder={componentes ? 'Buscar componente o nº de bloque…' : 'Buscar componente…'} className="w-[200px] bg-superficie" />
         <RangoFechas desde={filtros.desde} hasta={filtros.hasta} onChange={(desde, hasta) => setFiltros((f) => ({ ...f, desde, hasta }))} />
         {/* No toca el toggle ni la selección (:270-278). */}
         <BotonSecundario onClick={() => setFiltros({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(), proveedores: new Set() })}>Limpiar filtros</BotonSecundario>
