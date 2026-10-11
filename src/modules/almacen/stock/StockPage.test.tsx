@@ -388,9 +388,9 @@ describe('StockPage', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('stock_actual')
-    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro', 'Consumo/día', 'Pedir 60 d', 'Modo'])
+    expect(cabeceras).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Pendiente', 'Fecha registro', 'Consumo/día', 'Pedir 60 d', 'Modo'])
     // fechaRegistro 10:00 UTC → 12:00 en Madrid (formatear, como el CSV del JavaFX).
-    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '01/09/2026 12:00', '0,31', '16', '—']])
+    expect(filas).toEqual([['bat-x', '2', '3', 'Bajo', '4', '0', '01/09/2026 12:00', '0,31', '16', '—']])
     descargar.mockRestore()
   })
   // La vuelta atrás si el PATCH falla la cubre api.test.tsx (Task 3): aquí el diálogo global de error dejaría la
