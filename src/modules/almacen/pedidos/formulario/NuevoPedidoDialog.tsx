@@ -14,7 +14,7 @@ import { destinosDelCuerpo } from './destinos'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoOmitidas, avisoSinPedido, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
+  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoNadaQuePedir, avisoOmitidas, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
   validarLineasCompra, type LineaCompra,
 } from './lineas'
 import { ResumenBloques } from './ResumenBloques'
@@ -45,13 +45,19 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const [sinPedido, setSinPedido] = useState(0)
   // 0.9.9: destino elegido a mano por proveedor (idBloque o null = bloque nuevo).
   const [elegidos, setElegidos] = useState<Record<number, number | null>>({})
-  const nPrevision = useMemo(() => cuantasPrevision(activos), [activos])
+  const nPrevision = useMemo(() => cuantasPrevision(activos, idProvGeneral), [activos, idProvGeneral])
+  const [sinListaVistas, setSinListaVistas] = useState(0)
+  const [nadaQuePedir, setNadaQuePedir] = useState(false)
+  // «Añadir previsión…» de un bloque: se aplica una vez, cuando el listado de Stock ha cargado (bien o mal).
+  const [previsionPendiente, setPrevisionPendiente] = useState(fijo?.prevision === true)
   const opcionesProveedor = useMemo(() => proveedoresActivos.map((p) => ({ valor: String(p.idProv), etiqueta: p.nombre })), [proveedoresActivos])
   // Una instancia por apertura: el host remonta el diálogo en cada apertura (key), así que no sobrevive a un éxito.
   const [claves] = useState(() => crearClavesIdempotencia())
   const guardar = useGuardarLoteCompras()
   const bloqueFijo = fijo ? bloques.get(String(fijo.idBloque)) : undefined
   const nombreFijo = fijo ? proveedoresActivos.find((p) => p.idProv === fijo.idProv)?.nombre ?? bloqueFijo?.nombreProveedor ?? '' : ''
+
+  const nombrePrevision = fijo ? nombreFijo : proveedoresActivos.find((p) => p.idProv === idProvGeneral)?.nombre ?? ''
 
   // Precarga una sola vez, cuando la lista de componentes termina de cargar (bien o mal): patrón "ajustar el estado
   // durante el render" (CampoAutocompletar, useErrorServidor), sin useEffect + setState.
@@ -63,16 +69,30 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setLineas(inicial.lineas)
     setOmitidas(componentes.isError ? 0 : inicial.omitidas)
   }
+  if (previsionPendiente && fijo && lineas !== null && (componentes.isSuccess || componentes.isError)) {
+    setPrevisionPendiente(false)
+    if (componentes.isSuccess) {
+      const r = aplicarPrevision(lineas, activos, fijo.idProv)
+      setLineas(r.lineas)
+      setSinPedido(r.sinPedido)
+      setSinListaVistas(sinLista(activos))
+      setNadaQuePedir(r.lineas.length === lineas.length)
+    }
+  }
 
   function cambiar(id: number, cambio: Partial<LineaCompra>) {
     setLineas((ls) => cambiarLinea(ls ?? [], id, cambio))
     setError(null)
     setSinPedido(0)
+    setSinListaVistas(0)
+    setNadaQuePedir(false)
   }
   function quitar(id: number) {
     setLineas((ls) => quitarLinea(ls ?? [], id))
     setError(null)
     setSinPedido(0)
+    setSinListaVistas(0)
+    setNadaQuePedir(false)
   }
   function anadir(): number {
     const id = siguienteId(lineas ?? [])
@@ -81,12 +101,17 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setLineas((ls) => [...(ls ?? []), { ...lineaCompraVacia(id), idProv: idProvGeneral }])
     setError(null)
     setSinPedido(0)
+    setSinListaVistas(0)
+    setNadaQuePedir(false)
     return id
   }
   function anadirPrevision() {
+    if (idProvGeneral === null) return
     const r = aplicarPrevision(lineas ?? [], activos, idProvGeneral)
     setLineas(r.lineas)
     setSinPedido(r.sinPedido)
+    setSinListaVistas(sinLista(activos))
+    setNadaQuePedir(false)
     setError(null)
   }
   /** Elegirlo rellena al momento las líneas sin proveedor; las que ya tienen uno solo cambian con «Aplicar a todas». */
@@ -125,8 +150,10 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   }
 
   const bloqueado = guardar.isPending || lineas === null
-  const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido)].filter((t) => t !== null).join(' ') || null
-  const botonPrevision = <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión ({nPrevision})</BotonSecundario>
+  const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido), avisoSinLista(sinListaVistas), nadaQuePedir ? avisoNadaQuePedir(nombrePrevision) : null].filter((t) => t !== null).join(' ') || null
+  const botonPrevision = idProvGeneral === null
+    ? <BotonSecundario type="button" disabled title="Elige antes el proveedor">Añadir previsión</BotonSecundario>
+    : <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión de {nombrePrevision} ({nPrevision})</BotonSecundario>
 
   return (
     <DialogoLineas<LineaCompra>

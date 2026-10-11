@@ -229,6 +229,9 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
       case 'anadir':
         abrirNuevoPedido({ modo: 'bloque', idBloque: b.idBloque as number, idProv: b.idProv })
         return
+      case 'prevision':
+        abrirNuevoPedido({ modo: 'bloque', idBloque: b.idBloque as number, idProv: b.idProv, prevision: true })
+        return
       case 'separar':
         setSeparando(b)
         return

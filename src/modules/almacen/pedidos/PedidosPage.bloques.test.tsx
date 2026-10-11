@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CompraComponente, Proveedor } from '@/shared/api/client'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
+import { cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import type { Sesion } from '@/shared/session/storage'
 import { renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
@@ -128,6 +129,15 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
     await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (1)' }))
     await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}"}]}`]))
+  })
+
+  it('⋮ del bloque → «Añadir previsión…» abre el formulario en modo bloque con la previsión', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Añadir previsión…' }))
+    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, prevision: true } })
+    cerrarFormularioPedido()
   })
 
   it('el administrador ve los bloques sin ⋮', async () => {
