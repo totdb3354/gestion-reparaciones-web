@@ -32,7 +32,7 @@ export function CabeceraBloque({ bloque, visibles, desplegado, onAlternar, menu 
         className="w-5 shrink-0 cursor-pointer text-[11px]">
         {desplegado ? '▼' : '▶'}
       </button>
-      <button type="button" onClick={onAlternar} tabIndex={-1} className="shrink-0 cursor-pointer text-left">
+      <button type="button" onClick={onAlternar} tabIndex={-1} className="min-w-0 cursor-pointer truncate text-left">
         {sinBloque ? (
           <b>Sin bloque</b>
         ) : (

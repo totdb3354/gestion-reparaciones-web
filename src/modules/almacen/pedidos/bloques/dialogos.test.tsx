@@ -114,7 +114,7 @@ describe('JuntarDialog', () => {
     ])
     renderConProviders(<JuntarDialog bloque={bloques.get('41')!} candidatos={[bloques.get('40')!]} onCerrar={onCerrar} />, { sesion: SESION_SUPER })
     const dlg = await screen.findByRole('dialog', { name: 'Juntar Bloque 41 con…' })
-    expect(dlg).toHaveTextContent('Sus 1 línea pasan al bloque que elijas y el Bloque 41 desaparece. Su nota se añade a la del destino.')
+    expect(dlg).toHaveTextContent('Su línea pasa al bloque que elijas y el Bloque 41 desaparece. Su nota se añade a la del destino.')
     expect(within(dlg).getByText('El Bloque 41 tiene 1 línea ya pedida: el movimiento quedará apuntado en el registro.')).toBeInTheDocument()
     expect(within(dlg).getByRole('button', { name: 'Juntar' })).toBeDisabled()
     await userEvent.click(within(dlg).getByRole('radio', { name: /Bloque 40/ }))
@@ -142,5 +142,15 @@ describe('NotaBloqueDialog', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(peticiones).toHaveLength(2))
     expect(peticiones.map((p) => p.cuerpo)).toEqual([{ nota: 'Ped. 9', updatedAt: U }, { nota: null, updatedAt: U }])
+  })
+
+  it('con varias líneas el subtítulo va en plural', async () => {
+    const bloques = agruparEnBloques([
+      l({ idCompra: 1 }), l({ idCompra: 3 }),
+      l({ idCompra: 2, idBloque: 40, fechaBloque: '2026-10-08T10:00:00' }),
+    ])
+    renderConProviders(<JuntarDialog bloque={bloques.get('41')!} candidatos={[bloques.get('40')!]} onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Juntar Bloque 41 con…' })
+    expect(dlg).toHaveTextContent('Sus 2 líneas pasan al bloque que elijas y el Bloque 41 desaparece.')
   })
 })

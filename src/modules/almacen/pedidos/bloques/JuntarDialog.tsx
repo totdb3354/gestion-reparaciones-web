@@ -27,7 +27,8 @@ export function JuntarDialog({ bloque, candidatos, onCerrar }: Props) {
     }
   }
 
-  const subtitulo = `Sus ${textoLineas(bloque.lineas.length)} pasan al bloque que elijas y el Bloque ${bloque.idBloque} desaparece.`
+  const lineas = bloque.lineas.length === 1 ? 'Su línea pasa' : `Sus ${textoLineas(bloque.lineas.length)} pasan`
+  const subtitulo = `${lineas} al bloque que elijas y el Bloque ${bloque.idBloque} desaparece.`
     + (bloque.nota ? ' Su nota se añade a la del destino.' : '')
   return (
     <DialogoAlmacen abierto ancho={520} titulo={`Juntar Bloque ${bloque.idBloque} con…`} subtitulo={subtitulo} error={error}

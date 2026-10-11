@@ -7,7 +7,7 @@ import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoPedido } from './BadgeEstadoPedido'
 import { marcaPrecioCero, marcaTotalCero, textoCantidad, totalFila, type Pedido } from './reglas'
 
-/** prefWidth de StockView.fxml :141-149 (componentes) y :156-163 (otros); el ID es de la 0.9.6 (no estaba en el JavaFX). */
+/** prefWidth de StockView.fxml :141-149 (componentes) y :156-163 (otros); el ID es de la 0.9.6 y el bloque de la 0.9.9 (no estaban en el JavaFX). */
 export const ANCHOS_PEDIDOS = { id: 55, bloque: 64, fecha: 115, componente: 190, proveedor: 130, cantidad: 50, precio: 68, eur: 68, estado: 110 } as const
 export const ANCHOS_OTROS = { id: 55, fecha: 115, concepto: 220, proveedor: 130, cantidad: 60, precio: 80, eur: 80, estado: 110 } as const
 

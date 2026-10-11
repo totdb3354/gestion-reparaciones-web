@@ -27,7 +27,7 @@ function montarPedidos(filas: CompraComponente[], onComponente = vi.fn(), onSele
 const celdas = (container: HTMLElement, columna: string) => Array.from(container.querySelectorAll(`[data-columna="${columna}"]`)).map((c) => c.textContent)
 
 describe('tabla de componentes', () => {
-  it('ID estrecho a la izquierda (0.9.6) y las siete cabeceras del FXML en orden, sin Div., con sus anchos', () => {
+  it('ID estrecho a la izquierda (0.9.6) y las nueve cabeceras en orden (las siete del FXML más ID y Bloque), sin Div., con sus anchos', () => {
     const { container } = montarPedidos([compra()])
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Bloque', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
     expect(screen.getAllByRole('row')[1].querySelector('[data-columna="id"]')).toHaveTextContent('1')

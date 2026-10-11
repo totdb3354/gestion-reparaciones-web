@@ -20,4 +20,14 @@ describe('BotonMenuBloque (spec §6.4)', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Recibir todo (1)' }))
     expect(onAccion).toHaveBeenCalledWith('recibir')
   })
+
+  it('si se desmonta con el menú abierto, el sondeo se descongela (última llamada false)', async () => {
+    const onInteraccion = vi.fn()
+    const b = agruparEnBloques([l({ idCompra: 1 })]).get('41')!
+    const { unmount } = render(<BotonMenuBloque idBloque={41} entradas={entradasMenuBloque(b, 0)} onAccion={vi.fn()} onInteraccion={onInteraccion} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    expect(onInteraccion).toHaveBeenLastCalledWith(true)
+    unmount()
+    expect(onInteraccion).toHaveBeenLastCalledWith(false)
+  })
 })

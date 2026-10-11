@@ -1,12 +1,15 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CompraComponente, Proveedor } from '@/shared/api/client'
+import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import type { Sesion } from '@/shared/session/storage'
 import { renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { lineaDePrueba as l } from './bloques/datosPrueba'
+import { FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros } from './filtros'
+import { filtrosPedidos, plegadoBloques } from './estado'
 import { PedidosPage } from './PedidosPage'
 
 const U = '2026-10-09T10:00:00'
@@ -22,12 +25,14 @@ const compras: CompraComponente[] = [
 ]
 const proveedores: Proveedor[] = [{ idProv: 1, nombre: 'Proveedor A', activo: true, divisa: 'EUR', comentario: '', tipo: 'COMPONENTES' }]
 let escrituras: string[]
+let cargasCompras = 0
 
 beforeEach(() => {
   escrituras = []
+  cargasCompras = 0
   localStorage.removeItem('pedidos.agruparPorBloque')
   server.use(
-    http.get('*/api/compras', () => HttpResponse.json(compras)),
+    http.get('*/api/compras', () => { cargasCompras += 1; return HttpResponse.json(compras) }),
     http.get('*/api/proveedores', () => HttpResponse.json(proveedores)),
     http.patch('*/api/compras/:id/bloque', async ({ params, request }) => {
       escrituras.push(`PATCH ${String(params.id)} ${JSON.stringify(await request.json())}`)
@@ -39,10 +44,13 @@ beforeEach(() => {
     }),
   )
 })
-afterEach(() => localStorage.removeItem('pedidos.agruparPorBloque'))
+afterEach(() => {
+  vi.useRealTimers()
+  localStorage.removeItem('pedidos.agruparPorBloque')
+})
 
-function montar(sesion: Sesion = SESION_SUPER) {
-  return renderConRouter([{ path: '/stock/pedidos', element: <PedidosPage tipo="componentes" /> }], { sesion, ruta: '/stock/pedidos' })
+function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
+  return renderConRouter([{ path: '/stock/pedidos', element: <PedidosPage tipo="componentes" /> }], { sesion, ruta })
 }
 const filas = () => screen.getAllByRole('row').slice(1).map((r) => r.textContent ?? '')
 const abrirMenu = (texto: string) => userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText(texto).closest('tr') as HTMLElement })
@@ -127,5 +135,53 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await screen.findByText('lcd-x-negro')
     expect(screen.getByText('Bloque 41')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Acciones del bloque/ })).not.toBeInTheDocument()
+  })
+
+  it('con el ⋮ de un bloque abierto el sondeo se congela y vuelve al cerrarlo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
+    expect(cargasCompras).toBe(1)
+    await userEvent.keyboard('{Escape}')
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargasCompras).toBeGreaterThan(1))
+  })
+
+  it('con un diálogo de bloque abierto («Añadir nota…») el sondeo se congela y vuelve al cerrarlo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Añadir nota…' }))
+    const dlg = await screen.findByRole('dialog')
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
+    expect(cargasCompras).toBe(1)
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Cancelar' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
+    await waitFor(() => expect(cargasCompras).toBeGreaterThan(1))
+  })
+
+  it('llegada desde Stock con el bloque de la línea plegado: lo despliega y deja la fila seleccionada', async () => {
+    const ruta = '/stock/pedidos?buscar=lcd-y'
+    const llegada = filtrosDesdeStock(new URLSearchParams('buscar=lcd-y'))
+    const firma = firmaFiltros({ ...FILTROS_PEDIDOS_VACIOS, ...filtrosPedidos.get(), ...llegada })
+    plegadoBloques.set((p) => ({ ...p, filtrado: { firma, mapa: { '39': false } } }))
+    montar(SESION_SUPER, ruta)
+    await waitFor(() => expect(document.querySelector('tr[aria-selected="true"]')).toHaveTextContent('lcd-y'))
+    expect(screen.getByText('Bloque 39')).toBeInTheDocument()
+  })
+
+  it('mover a un bloque que ya no existe: el aviso lleva el texto del servidor, no el genérico', async () => {
+    server.use(http.patch('*/api/compras/:id/bloque', () => HttpResponse.json({ message: 'El bloque 40 ya no existe; elige otro destino.' }, { status: 409 })))
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await abrirMenu('lcd-x-negro')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mover a bloque' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Bloque 40/ }))
+    const aviso = await screen.findByRole('dialog')
+    expect(aviso).toHaveTextContent('El bloque 40 ya no existe; elige otro destino.')
+    expect(aviso).not.toHaveTextContent('Este pedido fue modificado')
   })
 })

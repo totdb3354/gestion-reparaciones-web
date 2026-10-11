@@ -46,15 +46,26 @@ export function MenuBloqueContextual({ entradas, onAccion, onInteraccion }: Prop
   )
 }
 
+/** Avisa de menú abierto mientras está montado: Radix no llama a onOpenChange(false) si el desplegable se desmonta abierto. */
+function AvisoAbierto({ onInteraccion }: { onInteraccion?: (abierto: boolean) => void }) {
+  useEffect(() => {
+    if (!onInteraccion) return
+    onInteraccion(true)
+    return () => onInteraccion(false)
+  }, [onInteraccion])
+  return null
+}
+
 /** Botón ⋮ de la cabecera con el mismo menú (spec §6.3). */
 export function BotonMenuBloque({ idBloque, entradas, onAccion, onInteraccion }: Props & { idBloque: number }) {
   return (
-    <DropdownMenu onOpenChange={onInteraccion}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" aria-label={`Acciones del bloque ${idBloque}`}
           className="h-[30px] w-[30px] shrink-0 cursor-pointer rounded-full text-[18px] leading-none hover:bg-fondo-vista">⋮</button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[230px]">
+        <AvisoAbierto onInteraccion={onInteraccion} />
         {entradas.map((e, i) =>
           e === 'separador' ? (
             <DropdownMenuSeparator key={`sep-${i}`} />

@@ -14,7 +14,7 @@ import { agruparEnBloques, bloquesDelProveedor, destinoSugeridoEdicion, fechaCor
 import { useTasa } from '../tasa'
 import { VALOR_NUEVO } from './destinos'
 import { CLASE_CAMPO, CLASE_ETIQUETA, DIVISAS_EDICION, MSG_PEDIDO_MODIFICADO, textoTotalEdicion, validarEdicion } from './edicion'
-import { mensajeErrorGuardado } from './errores'
+import { esBloqueInexistente, mensajeErrorGuardado, staleDataDe } from './errores'
 
 type Props = { pedido: CompraComponente | null; onCerrar: () => void }
 
@@ -84,7 +84,12 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
       })
       onCerrar()
     } catch (e) {
-      setError(mensajeErrorGuardado(e, { staleData: MSG_PEDIDO_MODIFICADO }))
+      setError(mensajeErrorGuardado(e, { staleData: staleDataDe(e, MSG_PEDIDO_MODIFICADO) }))
+      if (esBloqueInexistente(e) && cambiaProveedor) {
+        // El bloque elegido ya no existe: se vuelve a sugerir con los datos recargados.
+        const r = await compras.refetch()
+        setDestino(destinoSugeridoEdicion(pedido, v.valor.idProv, agruparEnBloques(r.data ?? [])))
+      }
     }
   }
 

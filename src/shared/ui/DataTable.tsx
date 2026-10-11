@@ -302,6 +302,8 @@ export function DataTable<T>({
     estimateSize: () => altoFila ?? ALTO_FILA_ESTIMADO,
     overscan: 8,
     enabled: virtual,
+    // Con grupos, plegar desplaza los índices: la caché de alturas va por clave de elemento, no por índice. Sin grupos, como siempre.
+    ...(grupos ? { getItemKey: (i: number) => idElemento(elementos[i]) } : {}),
     // Sin layout (jsdom, o la tabla aún oculta) el contenedor mide 0 y la fila también: con el rectángulo de
     // reserva y el alto estimado la virtualización pinta un puñado de filas en vez de ninguna o las 500.
     initialRect: RECT_DE_RESERVA,

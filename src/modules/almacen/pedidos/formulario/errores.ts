@@ -9,3 +9,10 @@ export function mensajeErrorGuardado(e: unknown, opciones?: { staleData?: string
   if (e instanceof ReglaNegocioError) return e.message
   return 'Error al guardar: ' + mensajeDeError(e)
 }
+
+/** 409 de un bloque destino que ya no existe («El bloque N ya no existe; elige otro destino.»): el servidor dice qué pasó
+ *  y el aviso genérico de "modificado por otro usuario" lo taparía. */
+export const esBloqueInexistente = (e: unknown): boolean => e instanceof StaleDataError && e.message.startsWith('El bloque')
+
+/** Texto de `staleData` para un 409: el del servidor si es de un bloque inexistente; si no, el genérico de la vista. */
+export const staleDataDe = (e: unknown, generico: string): string => (esBloqueInexistente(e) ? (e as StaleDataError).message : generico)

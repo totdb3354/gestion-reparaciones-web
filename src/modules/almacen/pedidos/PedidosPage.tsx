@@ -39,6 +39,7 @@ import { filtrosPedidos, plegadoBloques, seleccionPedidos } from './estado'
 import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros, hayFiltros } from './filtros'
 import { EditarOtroPedidoDialog } from './formulario/EditarOtroPedidoDialog'
 import { EditarPedidoDialog } from './formulario/EditarPedidoDialog'
+import { staleDataDe } from './formulario/errores'
 import { MenuPedido } from './MenuPedido'
 import { guardarAgrupar, leerAgrupar } from './preferencias'
 import { chipDeEstado, entradasMenu, esCompra, ESTADOS_PEDIDO, idPedido, type AccionMenu, type EstadoPedido, type Pedido, type TipoPedido } from './reglas'
@@ -199,7 +200,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
    *  StockController.mostrarConflicto :1851), calco del JavaFX. El resto de errores sigue como "Error". */
   function avisarFallo(accion: AccionTransicion | 'mover', e: unknown) {
     if (esErrorGestionadoGlobalmente(e)) return
-    const mensaje = accion === 'desrecibir' ? mensajeDeError(e) : mensajeDeError(e, { staleData: MSG_MODIFICADO })
+    const mensaje = accion === 'desrecibir' ? mensajeDeError(e) : mensajeDeError(e, { staleData: staleDataDe(e, MSG_MODIFICADO) })
     if (e instanceof StaleDataError) mostrarAviso('Advertencia', mensaje)
     else mostrarError(mensaje)
   }
@@ -258,7 +259,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
       menuCabecera: (clave) => {
         const b = bloques.get(clave)
         return conMenuBloque(b) ? <MenuBloqueContextual entradas={entradasDe(b)} onAccion={(a) => alElegirBloque(a, b)} onInteraccion={marcar} /> : null
-        },
+      },
     }
   }, [vistaAgrupada, bloques, puedeEditar, desplegado, fijarPlegado, alElegirBloque, marcar])
 

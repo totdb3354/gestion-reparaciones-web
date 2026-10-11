@@ -65,4 +65,23 @@ describe('«Editar pedido» cambiando el proveedor (0.9.9, spec §6.6)', () => {
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
     expect(puts[0]).toMatchObject({ idProv: 2, destino: { idBloque: null } })
   })
+
+  it('409 de un bloque destino que ya no existe: enseña el texto del servidor y vuelve a sugerir con los datos recargados', async () => {
+    let borrado = false
+    server.use(
+      http.get('*/api/compras', () => HttpResponse.json(borrado ? [COMPRA] : [COMPRA, l({ idCompra: 20, idProv: 2, nombreProveedor: 'Proveedor B', idBloque: 60 })])),
+      http.put('*/api/compras/:id', () => {
+        borrado = true
+        return HttpResponse.json({ message: 'El bloque 60 ya no existe; elige otro destino.' }, { status: 409 })
+      }),
+    )
+    const onCerrar = abrir(COMPRA)
+    await screen.findByRole('dialog', { name: 'Editar pedido #7' })
+    await elegirProveedor('Proveedor B')
+    expect(await screen.findByRole('combobox', { name: 'Bloque' })).toHaveTextContent('Bloque 60')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('El bloque 60 ya no existe; elige otro destino.')
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Bloque' })).toHaveTextContent('Bloque nuevo'))
+    expect(onCerrar).not.toHaveBeenCalled()
+  })
 })
