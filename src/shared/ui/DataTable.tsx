@@ -8,13 +8,50 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { measureElement as medirElementoPorDefecto, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type SyntheticEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type SyntheticEvent } from 'react'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './context-menu'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { cn } from '@/shared/lib/utils'
 
 /** Qué columna se pulsó con el botón derecho y cómo resaltarla ("📋 Copiar celda"). */
 export type CeldaPulsada = { columnaId: string; resaltar: () => void }
+
+/** Agrupación opcional (0.9.9, Pedidos por bloques). `data` llega ordenada: las filas de cada grupo, seguidas.
+ *  La página debe memoizar el objeto `grupos` (o al menos sus funciones `clave`, `desplegado`, `cabecera` y `menuCabecera`): una nueva identidad en cada render recomputa `elementos` y re-ejecuta el efecto de medición del borde de las filas. */
+export type GruposTabla<T> = {
+  clave: (fila: T) => string
+  desplegado: (clave: string) => boolean
+  /** Contenido de la fila cabecera (una celda a todo el ancho); `filas` = las de ese grupo que hay en `data`. */
+  cabecera: (clave: string, filas: T[]) => ReactNode
+  /** Menú contextual de la cabecera; null = sin menú. */
+  menuCabecera?: (clave: string, filas: T[]) => ReactNode | null
+}
+
+/** Lo que pinta la tabla: filas de datos y, con `grupos`, cabeceras. */
+type ElementoTabla<T> = { tipo: 'fila'; row: Row<T> } | { tipo: 'cabecera'; clave: string; filas: T[] }
+
+/** Sin `grupos`, exactamente las filas (mismos índices que antes). Con `grupos`, una cabecera por grupo y, si está
+ *  desplegado, sus filas. */
+function construirElementos<T>(filas: Row<T>[], grupos: GruposTabla<T> | undefined): ElementoTabla<T>[] {
+  if (!grupos) return filas.map((row) => ({ tipo: 'fila' as const, row }))
+  const elementos: ElementoTabla<T>[] = []
+  let i = 0
+  while (i < filas.length) {
+    const clave = grupos.clave(filas[i].original)
+    const delGrupo: Row<T>[] = []
+    while (i < filas.length && grupos.clave(filas[i].original) === clave) {
+      delGrupo.push(filas[i])
+      i += 1
+    }
+    elementos.push({ tipo: 'cabecera', clave, filas: delGrupo.map((r) => r.original) })
+    if (grupos.desplegado(clave)) for (const row of delGrupo) elementos.push({ tipo: 'fila', row })
+  }
+  return elementos
+}
+
+function idElemento<T>(e: ElementoTabla<T>): string {
+  return e.tipo === 'fila' ? e.row.id : `cabecera:${e.clave}`
+}
 
 /** Para los textos de celda con color propio que el JavaFX repinta en blanco al seleccionar la fila (el IMEI, las dos
  *  fechas, "Reutilizado"): el `text-crema` de la fila no les llega porque fijan su color. Los que el JavaFX deja con el
@@ -68,6 +105,8 @@ type Props<T> = {
   /** Alto de cada fila de datos en px (calco de `setFixedCellSize`); también es el alto que usa la virtualización.
    *  En una tabla CSS el alto de un `<tr>` es un mínimo: una celda más alta estira la fila en vez de recortarse. */
   altoFila?: number
+  /** 0.9.9 (Pedidos por bloques): cabeceras de grupo intercaladas y plegables. Sin ella la tabla no cambia. */
+  grupos?: GruposTabla<T>
 }
 
 /** Borra el `size: 150` que ColumnSizing inyecta por defecto: así `columnDef.size` refleja lo que declaró el consumidor. */
@@ -179,6 +218,7 @@ export function DataTable<T>({
   alturaMax = 'calc(100dvh - 330px)',
   umbralVirtual = 200,
   altoFila,
+  grupos,
 }: Props<T>) {
   const [orden, setOrden] = useState<SortingState>([])
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table 8 devuelve funciones no memoizables; aviso conocido del React Compiler
@@ -206,6 +246,10 @@ export function DataTable<T>({
   // Anchos medidos en px: 'estirar' con topes y 'fluido' (este siempre, para repartir lo que ceden las topadas).
   const medir = conTopes || fluido
   const filas = table.getRowModel().rows
+  // 0.9.9: lo que se pinta (cabeceras y filas de los grupos desplegados) y las filas que recorren las flechas. Sin
+  // `grupos`, `elementos` son las mismas filas con los mismos índices: el resto de la tabla no cambia.
+  const elementos = useMemo(() => construirElementos(filas, grupos), [filas, grupos])
+  const navegables = useMemo(() => elementos.flatMap((e) => (e.tipo === 'fila' ? [e.row] : [])), [elementos])
   // Columna de relleno del ajuste 'fijo': una celda más por fila, sin <col> (en una tabla table-fixed al 100 % se queda
   // con lo que dejan las columnas de ancho fijo, 0 si no sobra nada) y fuera del árbol accesible. La banda de la
   // cabecera (el fondo del <thead>) y la línea de fila (el borde del <tr>) la cubren como al resto de celdas.
@@ -240,24 +284,26 @@ export function DataTable<T>({
   const [desbordeFilas, setDesbordeFilas] = useState(0)
   useLayoutEffect(() => {
     if (!fluido) return
-    const fila = contenedorRef.current?.querySelector('tbody tr[data-index]')
+    const fila = contenedorRef.current?.querySelector('tbody tr[data-index]:not([data-cabecera])')
     const estilo = fila ? getComputedStyle(fila) : null
     // Sin estilo de borde no hay borde, aunque el ancho calculado diga otra cosa (jsdom devuelve el 'medium' por defecto).
     const borde = estilo && estilo.borderLeftStyle !== 'none' && estilo.borderLeftStyle !== 'hidden' ? parseFloat(estilo.borderLeftWidth) || 0 : 0
     const desborde = Math.ceil(borde / 2)
-    // Solo cambia el estado cuando cambia el borde; se vuelve a medir cuando cambian las filas pintadas.
+    // Solo cambia el estado cuando cambia el borde; se vuelve a medir cuando cambian los elementos pintados (filas de datos o cabeceras de grupo).
     if (desborde !== desbordeFilas) setDesbordeFilas(desborde)
-  }, [fluido, filas, desbordeFilas])
+  }, [fluido, elementos, desbordeFilas])
   const disponible = fluido ? anchoContenedor - desbordeFilas : anchoContenedor
   const anchosPx =
     medir && anchoContenedor > 0 ? (fluido ? anchosFluidos : anchosEstirados)(anchos, topes, disponible) : null
-  const virtual = filas.length > umbralVirtual
+  const virtual = elementos.length > umbralVirtual
   const virtualizador = useVirtualizer({
-    count: filas.length,
+    count: elementos.length,
     getScrollElement: () => contenedorRef.current,
     estimateSize: () => altoFila ?? ALTO_FILA_ESTIMADO,
     overscan: 8,
     enabled: virtual,
+    // Con grupos, plegar desplaza los índices: la caché de alturas va por clave de elemento, no por índice. Sin grupos, como siempre.
+    ...(grupos ? { getItemKey: (i: number) => idElemento(elementos[i]) } : {}),
     // Sin layout (jsdom, o la tabla aún oculta) el contenedor mide 0 y la fila también: con el rectángulo de
     // reserva y el alto estimado la virtualización pinta un puñado de filas en vez de ninguna o las 500.
     initialRect: RECT_DE_RESERVA,
@@ -284,7 +330,7 @@ export function DataTable<T>({
     const contenedor = contenedorRef.current
     if (!contenedor) return
     const altoCabecera = cabeceraRef.current?.offsetHeight ?? 0
-    const fila = filaRefs.current.get(filas[indice].id)
+    const fila = filaRefs.current.get(idElemento(elementos[indice]))
     let posicion: PosicionFila | undefined
     if (fila) {
       posicion = posicionDe(fila)
@@ -328,35 +374,36 @@ export function DataTable<T>({
       return
     }
     if (pedida || !interna) {
-      const idx = filas.findIndex((r) => r.id === seleccionada)
+      const idx = elementos.findIndex((e) => e.tipo === 'fila' && e.row.id === seleccionada)
       if (idx < 0) return
       const arriba = Math.max(0, idx - filasContexto)
       if (virtual) {
         virtualizador.scrollToIndex(arriba, { align: 'start' })
       } else {
         const contenedor = contenedorRef.current
-        const fila = filaRefs.current.get(filas[arriba].id)
+        const fila = filaRefs.current.get(idElemento(elementos[arriba]))
         if (contenedor && fila) desplazarContenedor(contenedor, posicionDe(fila), cabeceraRef.current?.offsetHeight ?? 0, 'arriba')
       }
       // requestFocus() del TableView: el foco pasa a la tabla (las flechas siguen desde esa fila) sin mover la página.
       if (pedida) contenedorRef.current?.focus({ preventScroll: true })
     }
     desplazadaRef.current = seleccionada
-  }, [seleccionada, filas, virtual, virtualizador, filasContexto, pedirDesplazamiento])
+  }, [seleccionada, elementos, virtual, virtualizador, filasContexto, pedirDesplazamiento])
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     // Ni las teclas que ya ha gestionado otro (un ítem de menú, una casilla) ni las de un portal (el menú contextual).
-    if (!onSeleccionar || filas.length === 0 || e.defaultPrevented || !nacioDentro(e)) return
-    const idx = seleccionada === null ? -1 : filas.findIndex((r) => r.id === seleccionada)
+    if (!onSeleccionar || navegables.length === 0 || e.defaultPrevented || !nacioDentro(e)) return
+    const idx = seleccionada === null ? -1 : navegables.findIndex((r) => r.id === seleccionada)
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
-      const nuevo = e.key === 'ArrowDown' ? Math.min(idx + 1, filas.length - 1) : Math.max(idx - 1, 0)
-      seleccionarDesdeTabla(filas[nuevo].id)
-      desplazarA(nuevo)
+      const nuevo = e.key === 'ArrowDown' ? Math.min(idx + 1, navegables.length - 1) : Math.max(idx - 1, 0)
+      const id = navegables[nuevo].id
+      seleccionarDesdeTabla(id)
+      desplazarA(elementos.findIndex((el) => el.tipo === 'fila' && el.row.id === id))
     } else if (e.key === 'Enter' && e.target === e.currentTarget && idx >= 0 && onAbrir) {
       // Solo con el foco en la propia tabla: con el foco en un botón de una celda, Enter es de ese botón.
       e.preventDefault()
-      onAbrir(filas[idx].original)
+      onAbrir(navegables[idx].original)
     }
   }
 
@@ -424,6 +471,41 @@ export function DataTable<T>({
         <ContextMenuContent>{contenido}</ContextMenuContent>
       </ContextMenu>
     )
+  }
+
+  /** Fila cabecera de un grupo: una celda a todo el ancho con lo que pinte la página. No selecciona nada al pulsarla. */
+  function pintarCabecera(e: Extract<ElementoTabla<T>, { tipo: 'cabecera' }>, indice: number) {
+    const id = idElemento(e)
+    const tr = (
+      <TableRow
+        key={id}
+        data-index={indice}
+        data-cabecera=""
+        ref={(el: HTMLTableRowElement | null) => {
+          if (el) {
+            filaRefs.current.set(id, el)
+            if (virtual) virtualizador.measureElement(el)
+          } else {
+            filaRefs.current.delete(id)
+          }
+        }}
+        className="border-b border-fila-sep bg-fila-maestro-bg hover:bg-fila-maestro-bg"
+      >
+        <TableCell colSpan={columnasPintadas} className="p-0">{grupos?.cabecera(e.clave, e.filas)}</TableCell>
+      </TableRow>
+    )
+    const contenido = grupos?.menuCabecera?.(e.clave, e.filas) ?? null
+    if (contenido === null) return tr
+    return (
+      <ContextMenu key={id}>
+        <ContextMenuTrigger asChild>{tr}</ContextMenuTrigger>
+        <ContextMenuContent>{contenido}</ContextMenuContent>
+      </ContextMenu>
+    )
+  }
+
+  function pintarElemento(e: ElementoTabla<T>, indice: number) {
+    return e.tipo === 'fila' ? pintarFila(e.row, indice) : pintarCabecera(e, indice)
   }
 
   const items = virtual ? virtualizador.getVirtualItems() : null
@@ -497,11 +579,11 @@ export function DataTable<T>({
               <TableCell colSpan={columnasPintadas} className="py-8 text-center text-azul-gris">{vacio}</TableCell>
             </TableRow>
           )}
-          {!virtual && filas.map((r, i) => pintarFila(r, i))}
+          {!virtual && elementos.map((e, i) => pintarElemento(e, i))}
           {virtual && items && (
             <>
               {arriba > 0 && <tr aria-hidden style={{ height: arriba }}><td colSpan={columnasPintadas} /></tr>}
-              {items.map((vi) => pintarFila(filas[vi.index], vi.index))}
+              {items.map((vi) => pintarElemento(elementos[vi.index], vi.index))}
               {abajo > 0 && <tr aria-hidden style={{ height: abajo }}><td colSpan={columnasPintadas} /></tr>}
             </>
           )}

@@ -4,8 +4,10 @@ import {
   cantidadARevertir, chipDeEstado, entradasMenu, esCompra, estadoDeChip, ESTADOS_PEDIDO, idPedido, llevaAviso, marcaPrecioCero,
   marcaTotalCero, nombrePedido, restante, textoCantidad, totalFila, unidadesFila, validarParcial, validarResto,
 } from './reglas'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
+  ...BLOQUE_PRUEBA,
   idCompra: 2, idCom: 12, tipoComponente: 'bat-x', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 10, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR', precioEur: 12.5,
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,

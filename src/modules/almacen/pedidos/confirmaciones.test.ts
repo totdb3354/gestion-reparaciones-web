@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { CompraComponente, CompraOtro } from '@/shared/api/client'
 import { confirmacionDe } from './confirmaciones'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const compra: CompraComponente = {
+  ...BLOQUE_PRUEBA,
   idCompra: 4, idCom: 14, tipoComponente: 'cam-x', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 5, cantidadRecibida: 2,
   esUrgente: false, fechaPedido: '2026-09-16T08:00:00', fechaLlegada: '2026-09-18T08:00:00', precioUnidadPedido: 12.5, divisa: 'EUR',
   precioEur: 12.5, estado: 'recibido', updatedAt: '2026-09-18T08:00:00',

@@ -13,6 +13,7 @@ import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION
 import { server } from '@/test/server'
 import { ultimaRutaStock } from '../estado'
 import { PedidosPage } from './PedidosPage'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const U1 = '2026-09-20T08:30:00'
 const U2 = '2026-09-19T08:00:00'
@@ -20,6 +21,7 @@ const MSG_MODIFICADO = 'Este pedido fue modificado por otro usuario. Los datos s
 const sinColapsar = { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) }
 
 const base: CompraComponente = {
+  ...BLOQUE_PRUEBA,
   idCompra: 1, idCom: 11, tipoComponente: 'lcd-x-negro', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 2, cantidadRecibida: null,
   esUrgente: false, fechaPedido: U1, fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR', precioEur: 12.5, estado: 'pendiente',
   updatedAt: U1,
@@ -43,6 +45,7 @@ const proveedores = [proveedor(1, 'Proveedor A', true), proveedor(2, 'Proveedor 
 const cargas = { compras: 0, otros: 0 }
 
 beforeEach(() => {
+  localStorage.setItem('pedidos.agruparPorBloque', 'no')
   cargas.compras = 0
   cargas.otros = 0
   server.use(
@@ -51,7 +54,10 @@ beforeEach(() => {
     http.get('*/api/proveedores', () => HttpResponse.json(proveedores)),
   )
 })
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.useRealTimers()
+  localStorage.removeItem('pedidos.agruparPorBloque')
+})
 
 function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
   return renderConRouter(
@@ -66,7 +72,11 @@ function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
 /** Por texto y no por rol: con un diálogo abierto Radix deja el resto aria-hidden. */
 const filaDe = (texto: string) => screen.getByText(texto).closest('tr') as HTMLElement
 const abrirMenu = (texto: string) => userEvent.pointer({ keys: '[MouseRight]', target: filaDe(texto) })
-const nombresEnTabla = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[2].textContent)
+const nombresEnTabla = () => {
+  const cabeceras = screen.getAllByRole('columnheader').map((c) => c.textContent)
+  const i = cabeceras.findIndex((t) => t === 'Componente' || t === 'Concepto')
+  return screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[i].textContent)
+}
 /** Registra "id acción cuerpo" de cada PATCH de transición y responde con `respuesta`. */
 function registrarPatch(ruta: string, respuesta: () => Response = () => new HttpResponse(null, { status: 200 })) {
   const llamadas: string[] = []
@@ -92,7 +102,7 @@ describe('PedidosPage: vista', () => {
     await screen.findByText('lcd-x-negro')
     expect(screen.getByRole('link', { name: 'Componentes' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Otros' })).not.toHaveAttribute('aria-current')
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Bloque', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
     expect(nombresEnTabla()).toEqual(['lcd-x-negro', 'bat-x', 'bat-y', 'cam-x', 'mc-x'])
     expect(within(filaDe('bat-x')).getByText('en_camino')).toBeInTheDocument()
     expect(within(filaDe('bat-x')).getByText('⚠')).toBeInTheDocument()
@@ -182,18 +192,18 @@ describe('PedidosPage: vista', () => {
 })
 
 describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
-  it('menú por estado; un cancelado no tiene menú', async () => {
+  it('menú por estado (0.9.9: más «Mover a bloque»); un cancelado solo tiene «Mover a bloque»', async () => {
     montar()
     await screen.findByText('lcd-x-negro')
     await abrirMenu('lcd-x-negro')
-    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Confirmar pedido', 'Editar', 'Borrar'])
-    expect(screen.getAllByRole('separator')).toHaveLength(1)
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Confirmar pedido', 'Editar', 'Borrar', 'Mover a bloque'])
+    expect(screen.getAllByRole('separator')).toHaveLength(2)
     await userEvent.keyboard('{Escape}')
     await abrirMenu('bat-x')
-    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Recepción parcial', 'Confirmar recibido', 'Editar', 'Cancelar pedido'])
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Recepción parcial', 'Confirmar recibido', 'Editar', 'Cancelar pedido', 'Mover a bloque'])
     await userEvent.keyboard('{Escape}')
     await abrirMenu('mc-x')
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Mover a bloque'])
   })
   it('"Confirmar pedido" escribe al pulsar, sin diálogo, y recarga', async () => {
     const llamadas = registrarPatch('*/api/compras/:id/:accion')
@@ -350,7 +360,7 @@ describe('PedidosPage: refresco y CSV', () => {
     montar()
     await screen.findByText('cam-x')
     // Clic en Proveedor: en Componente está el enlace, que navega.
-    await userEvent.click(within(filaDe('cam-x')).getAllByRole('cell')[3])
+    await userEvent.click(within(filaDe('cam-x')).getAllByRole('cell')[4])
     expect(filaDe('cam-x')).toHaveAttribute('aria-selected', 'true')
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
     await waitFor(() => expect(cargas.compras).toBe(2))
@@ -395,10 +405,10 @@ describe('PedidosPage: refresco y CSV', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('pedidos')
-    expect(cabeceras).toEqual(['ID', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
+    expect(cabeceras).toEqual(['ID', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filas).toEqual([
-      ['2', '19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
-      ['3', '17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
+      ['2', '1', '', '19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
+      ['3', '1', '', '17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
     ])
     descargar.mockRestore()
   })

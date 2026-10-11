@@ -4,9 +4,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CompraComponente, CompraOtro } from '@/shared/api/client'
 import { renderConProviders } from '@/test/render'
 import { CantidadDialog } from './CantidadDialog'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const sinColapsar = { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) }
 const enCamino: CompraComponente = {
+  ...BLOQUE_PRUEBA,
   idCompra: 2, idCom: 12, tipoComponente: 'bat-x', idProv: 2, nombreProveedor: 'Proveedor B', cantidad: 10, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-19T08:00:00', fechaLlegada: null, precioUnidadPedido: 10, divisa: 'USD', precioEur: 8.8,
   estado: 'en_camino', updatedAt: '2026-09-19T08:00:00',

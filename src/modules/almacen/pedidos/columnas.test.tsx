@@ -6,8 +6,10 @@ import { DataTable } from '@/shared/ui/DataTable'
 import { BadgeEstadoPedido } from './BadgeEstadoPedido'
 import { CABECERAS_CSV_OTROS, CABECERAS_CSV_PEDIDOS, claseFilaPedido, crearColumnasOtros, crearColumnasPedidos, filaCsvOtro, filaCsvPedido } from './columnas'
 import { repartoFluido } from '@/test/columnas'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
+  ...BLOQUE_PRUEBA,
   idCompra: 1, idCom: 11, tipoComponente: 'lcd-x-negro', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 5, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR', precioEur: 12.5,
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,
@@ -25,15 +27,16 @@ function montarPedidos(filas: CompraComponente[], onComponente = vi.fn(), onSele
 const celdas = (container: HTMLElement, columna: string) => Array.from(container.querySelectorAll(`[data-columna="${columna}"]`)).map((c) => c.textContent)
 
 describe('tabla de componentes', () => {
-  it('ID estrecho a la izquierda (0.9.6) y las siete cabeceras del FXML en orden, sin Div., con sus anchos', () => {
+  it('ID estrecho a la izquierda (0.9.6) y las nueve cabeceras en orden (las siete del FXML más ID y Bloque), sin Div., con sus anchos', () => {
     const { container } = montarPedidos([compra()])
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Bloque', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
     expect(screen.getAllByRole('row')[1].querySelector('[data-columna="id"]')).toHaveTextContent('1')
     const cols = container.querySelectorAll('col')
     expect(cols[0]).toHaveStyle({ width: '55px' })
-    expect(cols[1]).toHaveStyle({ width: '115px' })
-    expect(cols[2]).toHaveStyle({ width: '190px' })
-    expect(cols[7]).toHaveStyle({ width: '110px' })
+    expect(cols[1]).toHaveStyle({ width: '64px' })
+    expect(cols[2]).toHaveStyle({ width: '115px' })
+    expect(cols[3]).toHaveStyle({ width: '190px' })
+    expect(cols[8]).toHaveStyle({ width: '110px' })
   })
   it('Pedido en dd/MM/yy HH:mm de Madrid y Cant. según el estado', () => {
     const { container } = montarPedidos([
@@ -79,6 +82,13 @@ describe('tabla de componentes', () => {
     montarPedidos([compra({ idCompra: 2, idCom: 12, tipoComponente: 'bat-x' })], vi.fn(), onSeleccionar)
     await userEvent.click(screen.getByRole('button', { name: 'bat-x' }))
     expect(onSeleccionar).toHaveBeenCalledWith('2')
+  })
+})
+
+describe('vista agrupada (0.9.9)', () => {
+  it('0.9.9: la vista agrupada no lleva Proveedor ni Bloque', () => {
+    const cabeceras = crearColumnasPedidos({ onComponente: () => {}, vista: 'agrupada' }).map((c) => c.header)
+    expect(cabeceras).toEqual(['ID', 'Pedido', 'Componente', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
   })
 })
 
@@ -139,9 +149,9 @@ describe('badge, "⚠" y clase de fila', () => {
 
 describe('CSV (StockController :1961-2006)', () => {
   it('componentes: cabeceras exactas, fecha con año completo, cantidad pedida, Sí/No, coma decimal, total con recibidas y estado con guion bajo', () => {
-    expect(CABECERAS_CSV_PEDIDOS).toEqual(['ID', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
-    expect(filaCsvPedido(compra({ estado: 'recibido', cantidadRecibida: 2, esUrgente: true }))).toEqual(['1', '20/09/2026 10:30', 'lcd-x-negro', '5', 'Sí', 'Proveedor A', '12,50', 'EUR', '25,00', 'recibido'])
-    expect(filaCsvPedido(compra({ estado: 'en_camino', divisa: 'USD', precioUnidadPedido: 10, precioEur: 8.8 }))).toEqual(['1', '20/09/2026 10:30', 'lcd-x-negro', '5', 'No', 'Proveedor A', '10,00', 'USD', '44,00', 'en_camino'])
+    expect(CABECERAS_CSV_PEDIDOS).toEqual(['ID', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
+    expect(filaCsvPedido(compra({ estado: 'recibido', cantidadRecibida: 2, esUrgente: true }))).toEqual(['1', '1', '', '20/09/2026 10:30', 'lcd-x-negro', '5', 'Sí', 'Proveedor A', '12,50', 'EUR', '25,00', 'recibido'])
+    expect(filaCsvPedido(compra({ estado: 'en_camino', divisa: 'USD', precioUnidadPedido: 10, precioEur: 8.8 }))).toEqual(['1', '1', '', '20/09/2026 10:30', 'lcd-x-negro', '5', 'No', 'Proveedor A', '10,00', 'USD', '44,00', 'en_camino'])
   })
   it('otros: sin Urgente', () => {
     expect(CABECERAS_CSV_OTROS).toEqual(['ID', 'Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
@@ -152,7 +162,7 @@ describe('CSV (StockController :1961-2006)', () => {
 describe('columnas de Pedidos en ajuste fluido (adaptación a web)', () => {
   it('componentes: Componente y Proveedor absorben el ancho sobrante; fecha, cantidad, importes y estado son fijas', () => {
     expect(repartoFluido(crearColumnasPedidos({ onComponente: vi.fn() }))).toEqual({
-      fijas: ['id', 'fecha', 'cantidad', 'precio', 'eur', 'estado'],
+      fijas: ['id', 'bloque', 'fecha', 'cantidad', 'precio', 'eur', 'estado'],
       absorben: ['componente', 'proveedor'],
       otras: [],
     })

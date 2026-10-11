@@ -137,7 +137,7 @@ describe('EditarPedidoDialog', () => {
     await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
     expect(puts).toHaveLength(1)
     expect(puts[0].id).toBe('7')
-    expect(puts[0].cuerpo).toMatchObject({ idProv: 1, cantidad: 5, esUrgente: false, precioUnidad: 10.5, divisa: 'EUR', updatedAt: '2026-09-20T10:00:00' })
+    expect(puts[0].cuerpo).toMatchObject({ idProv: 1, cantidad: 5, esUrgente: false, precioUnidad: 10.5, divisa: 'EUR', updatedAt: '2026-09-20T10:00:00', destino: null })
   })
 
   it('409: "El pedido fue modificado por otro usuario. Cierra y recarga los datos." inline, formulario abierto', async () => {

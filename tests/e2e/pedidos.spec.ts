@@ -106,6 +106,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       expect(peticion.postDataJSON()).toEqual({
         lineas: [{ idCom: expect.any(Number), idProv, cantidad: 1, esUrgente: false, precioUnidad: 0 }],
         solicitudes: { urgentes: [], preventivas: [] },
+        destinos: null,
       })
       const { idsCreados } = (await respuesta.json()) as RespuestaLote
       expect(idsCreados).toHaveLength(1)
@@ -114,10 +115,13 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
 
       await page.getByPlaceholder('Buscar componente…').fill(sku!)
       // El proveedor es nuevo y solo tiene este pedido: su nombre identifica la fila.
+      // 0.9.9: por defecto agrupada; su bloque nuevo sale con el proveedor en la cabecera. El resto del test, en la plana.
+      await expect(page.locator('tr[data-cabecera]').filter({ hasText: nombreProv })).toHaveCount(1)
+      await page.getByRole('switch', { name: 'Agrupar por bloque' }).click()
       const fila = page.getByRole('row').filter({ hasText: nombreProv })
       await expect(fila).toHaveCount(1)
       await expect(fila.getByText('pendiente', { exact: true })).toBeVisible()
-      await expect(fila.getByRole('cell').nth(4)).toHaveText('1')
+      await expect(fila.getByRole('cell').nth(5)).toHaveText('1')
 
       await fila.click({ button: 'right' })
       await page.getByRole('menuitem', { name: 'Editar' }).click()
@@ -128,7 +132,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await editor.getByRole('button', { name: 'Guardar' }).click()
       expect((await guardado).ok()).toBe(true)
       await expect(editor).toBeHidden()
-      await expect(fila.getByRole('cell').nth(4)).toHaveText('2')
+      await expect(fila.getByRole('cell').nth(5)).toHaveText('2')
 
       await soloBorrar(page, '**/api/compras/*', `/api/compras/${id}`)
       const borrado = page.waitForResponse(esRespuesta(`/api/compras/${id}`, 'DELETE'))

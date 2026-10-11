@@ -10,3 +10,8 @@ export const seleccionPedidos: Record<TipoPedido, Store<string | null>> = {
   componentes: crearStore<string | null>(null),
   otros: crearStore<string | null>(null),
 }
+
+/** 0.9.9 (spec §6.2): bloques plegados o desplegados a mano durante la sesión. Con filtros va aparte (`filtrado`) y solo
+ *  vale para la firma de filtros con la que se guardó: cambiar los filtros lo olvida. Se reinicia al cerrar sesión. */
+export type PlegadoBloques = { normal: Record<string, boolean>; filtrado: { firma: string; mapa: Record<string, boolean> } }
+export const plegadoBloques = crearStore<PlegadoBloques>({ normal: {}, filtrado: { firma: '', mapa: {} } })

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { CompraComponente, CompraOtro } from '@/shared/api/client'
-import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, ordenarCanceladosAlFinal, type FiltrosPedidos } from './filtros'
+import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros, hayFiltros, ordenarCanceladosAlFinal, type FiltrosPedidos } from './filtros'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const compra = (o: Partial<CompraComponente>): CompraComponente => ({
+  ...BLOQUE_PRUEBA,
   idCompra: 1, idCom: 11, tipoComponente: 'lcd-x-negro', idProv: 1, nombreProveedor: 'Proveedor A', cantidad: 2, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 12.5, divisa: 'EUR', precioEur: 12.5,
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,
@@ -68,5 +70,16 @@ describe('filtrosDesdeStock (llegada desde "En Camino", S8)', () => {
     expect(filtrosDesdeStock(new URLSearchParams('componente=12'))).toBeNull()
     expect(filtrosDesdeStock(new URLSearchParams('estados=parcial,otro'))).toEqual({ estados: new Set(['parcial']) })
     expect(filtrosDesdeStock(new URLSearchParams('buscar=lcd'))).toEqual({ buscador: 'lcd' })
+  })
+})
+
+describe('hayFiltros y firmaFiltros (0.9.9)', () => {
+  it('cualquier filtro cuenta y la firma no depende del orden ni de mayúsculas o espacios del buscador', () => {
+    expect(hayFiltros(FILTROS_PEDIDOS_VACIOS)).toBe(false)
+    expect(hayFiltros({ ...FILTROS_PEDIDOS_VACIOS, buscador: '  ' })).toBe(false)
+    expect(hayFiltros({ ...FILTROS_PEDIDOS_VACIOS, desde: '2026-10-01' })).toBe(true)
+    const a = firmaFiltros({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(['pendiente', 'en_camino']), buscador: 'LCD ' })
+    const b = firmaFiltros({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(['en_camino', 'pendiente']), buscador: 'lcd' })
+    expect(a).toBe(b)
   })
 })

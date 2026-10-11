@@ -78,7 +78,7 @@ export interface paths {
         get?: never;
         put: operations["editar"];
         post?: never;
-        delete: operations["borrar_1"];
+        delete: operations["borrar_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -126,7 +126,7 @@ export interface paths {
         get?: never;
         put: operations["editar_1"];
         post?: never;
-        delete: operations["borrar_2"];
+        delete: operations["borrar_3"];
         options?: never;
         head?: never;
         patch?: never;
@@ -142,7 +142,7 @@ export interface paths {
         get?: never;
         put: operations["editar_2"];
         post?: never;
-        delete: operations["borrar_3"];
+        delete: operations["borrar_4"];
         options?: never;
         head?: never;
         patch?: never;
@@ -190,7 +190,7 @@ export interface paths {
         get?: never;
         put: operations["editar_3"];
         post?: never;
-        delete: operations["borrar_4"];
+        delete: operations["borrar_5"];
         options?: never;
         head?: never;
         patch?: never;
@@ -654,6 +654,102 @@ export interface paths {
         get: operations["getAll_11"];
         put?: never;
         post: operations["insertar_9"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/separar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["separar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/recibir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recibir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/juntar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["juntar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/confirmar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirmar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/borrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["borrar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1137,7 +1233,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["confirmar"];
+        patch: operations["confirmar_1"];
         trace?: never;
     };
     "/api/compras/{idCompra}/confirmar-recibido": {
@@ -1201,7 +1297,23 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["cancelar"];
+        patch: operations["cancelar_1"];
+        trace?: never;
+    };
+    "/api/compras/{idCompra}/bloque": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["mover"];
         trace?: never;
     };
     "/api/compras-otros/{id}/recibir-resto": {
@@ -1249,7 +1361,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["confirmar_1"];
+        patch: operations["confirmar_2"];
         trace?: never;
     };
     "/api/compras-otros/{id}/confirmar-recibido": {
@@ -1313,7 +1425,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["cancelar_1"];
+        patch: operations["cancelar_2"];
         trace?: never;
     };
     "/api/componentes/{idCom}/stock": {
@@ -1394,6 +1506,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["setActivo_2"];
+        trace?: never;
+    };
+    "/api/bloques-compra/{idBloque}/nota": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["nota"];
         trace?: never;
     };
     "/api/auth/cambiar-password": {
@@ -2238,7 +2366,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["borrar"];
+        delete: operations["borrar_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2352,7 +2480,16 @@ export interface components {
             precioEur: number | null;
             /** Format: date-time */
             updatedAt: string;
+            destino: components["schemas"]["DestinoPedido"];
         };
+        /** @description 0.9.9: bloque destino si cambia el proveedor; nulo = regla por defecto */
+        DestinoPedido: {
+            /**
+             * Format: int32
+             * @description Nulo = bloque nuevo
+             */
+            idBloque: number | null;
+        } | null;
         CompraOtroEditarRequest: {
             /** Format: int32 */
             idProv: number;
@@ -2623,6 +2760,12 @@ export interface components {
              */
             precioEur: number | null;
         };
+        LoteComprasDestino: {
+            /** Format: int32 */
+            idProv: number;
+            /** Format: int32 */
+            idBloque: number | null;
+        } | null;
         LoteComprasLinea: {
             /** Format: int32 */
             idCom: number | null;
@@ -2637,6 +2780,7 @@ export interface components {
         LoteComprasPeticion: {
             lineas: components["schemas"]["LoteComprasLinea"][];
             solicitudes: components["schemas"]["LoteComprasSolicitudes"];
+            destinos: components["schemas"]["LoteComprasDestino"][] | null;
         };
         LoteComprasSolicitudes: {
             urgentes: number[];
@@ -2683,6 +2827,24 @@ export interface components {
         };
         ClienteNombreRequest: {
             nombre: string;
+        };
+        BloqueCompraLineasRequest: {
+            lineas: components["schemas"]["LineaVista"][];
+        };
+        LineaVista: {
+            /** Format: int32 */
+            idCompra: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        BloqueCompraSepararRespuesta: {
+            /** Format: int32 */
+            idBloque: number;
+        };
+        BloqueCompraJuntarRequest: {
+            /** Format: int32 */
+            destino: number;
+            lineas: components["schemas"]["LineaVista"][];
         };
         AuthLoginRequest: {
             usuario: string;
@@ -2847,6 +3009,15 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        BloqueCompraMoverRequest: {
+            /**
+             * Format: int32
+             * @description Nulo = bloque nuevo
+             */
+            idBloque: number | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         CompraOtroRecibirRestoRequest: {
             /** Format: int32 */
             cantidadExtra: number;
@@ -2879,6 +3050,12 @@ export interface components {
         };
         ClienteActivoRequest: {
             activo: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        BloqueCompraNotaRequest: {
+            /** @description VacÃ­a o nula = sin nota */
+            nota: string | null;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -3291,6 +3468,14 @@ export interface components {
             estado: string;
             /** Format: date-time */
             updatedAt: string;
+            /** Format: int32 */
+            idBloque: number | null;
+            /** Format: date-time */
+            fechaBloque: string | null;
+            notaBloque: string | null;
+            /** Format: date-time */
+            bloqueUpdatedAt: string | null;
+            bloqueAntiguo: boolean;
         };
         CompraOtro: {
             /** Format: int32 */
@@ -3582,7 +3767,7 @@ export interface operations {
             };
         };
     };
-    borrar_1: {
+    borrar_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3712,7 +3897,7 @@ export interface operations {
             };
         };
     };
-    borrar_2: {
+    borrar_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -3756,7 +3941,7 @@ export interface operations {
             };
         };
     };
-    borrar_3: {
+    borrar_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -3888,7 +4073,7 @@ export interface operations {
             };
         };
     };
-    borrar_4: {
+    borrar_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4901,6 +5086,152 @@ export interface operations {
             };
         };
     };
+    separar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraLineasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BloqueCompraSepararRespuesta"];
+                };
+            };
+        };
+    };
+    recibir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraLineasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    juntar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraJuntarRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraLineasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraLineasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    borrar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraLineasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -5705,7 +6036,7 @@ export interface operations {
             };
         };
     };
-    confirmar: {
+    confirmar_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -5801,7 +6132,7 @@ export interface operations {
             };
         };
     };
-    cancelar: {
+    cancelar_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -5813,6 +6144,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CompraUpdatedAtRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idCompra: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraMoverRequest"];
             };
         };
         responses: {
@@ -5873,7 +6228,7 @@ export interface operations {
             };
         };
     };
-    confirmar_1: {
+    confirmar_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5969,7 +6324,7 @@ export interface operations {
             };
         };
     };
-    cancelar_1: {
+    cancelar_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6106,6 +6461,30 @@ export interface operations {
         responses: {
             /** @description No Content */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    nota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idBloque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraNotaRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7312,7 +7691,7 @@ export interface operations {
             };
         };
     };
-    borrar: {
+    borrar_1: {
         parameters: {
             query?: never;
             header?: never;

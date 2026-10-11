@@ -241,3 +241,12 @@ Lo que no se ve en una captura o no se puede provocar en la toma:
 - [x] "Pedir piezas" sin pendientes y "Pedir todas las piezas" sin alertas no hacen nada (`PanelNotificaciones.test.tsx`).
 - [x] El enlace Componente selecciona la fila; un cancelado seleccionado anula la opacidad (`columnas.test.tsx` "clic en el enlace Componente también selecciona la fila (calco: no lleva stopPropagation)", "cancelado seleccionado: la fila lleva la clase que anula la opacidad con data-state=\"selected\"").
 - [x] La vuelta a Stock no selecciona un componente que los filtros dejan oculto (`StockPage.test.tsx` "?componente= de un componente activo con solo \"Desactivado\" marcado: aplica los filtros y limpia la URL, pero no selecciona ni pide desplazamiento (T19 #12)").
+
+## 0.9.9 — Bloques (sin equivalente en el JavaFX)
+
+Diferencias deliberadas, decididas en la spec `2026-10-09-v099-bloques-pedidos-design.md` (raíz):
+
+- Componentes agrupada por bloques por defecto, con cabeceras plegables e interruptor «Agrupar por bloque» a la vista plana (que gana la columna «Bloque» tras «ID»; en la agrupada, «Proveedor» va en la cabecera).
+- Menú del bloque (⋮ y clic derecho en la cabecera) y entrada «Mover a bloque ▸» en el menú de cada línea; los cancelados, que no tenían menú, tienen solo esa entrada.
+- «Nuevo pedido» con el resumen «Bloques» al pie y modo «Añadir líneas» de un bloque; «Editar pedido» con el campo «Bloque» al cambiar el proveedor.
+- CSV de componentes con «Bloque» y «Nota del bloque» tras «ID».

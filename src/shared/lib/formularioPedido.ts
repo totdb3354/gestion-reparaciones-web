@@ -10,6 +10,7 @@ export type PrecargaPedido =
   | { modo: 'vacio' }
   | { modo: 'componentes'; idsCom: number[] }
   | { modo: 'solicitudes'; urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] }
+  | { modo: 'bloque'; idBloque: number; idProv: number }
 
 export type FormularioPedidoAbierto = { tipo: 'compra'; precarga: PrecargaPedido } | { tipo: 'otro' }
 

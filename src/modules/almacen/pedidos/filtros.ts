@@ -48,3 +48,13 @@ export function filtrosDesdeStock(search: URLSearchParams): Partial<Pick<Filtros
   if (buscar !== null) filtros.buscador = buscar
   return filtros
 }
+
+/** Algún filtro activo (0.9.9): con filtros, los bloques con coincidencias salen desplegados. */
+export function hayFiltros(f: FiltrosPedidos): boolean {
+  return f.estados.size > 0 || f.proveedores.size > 0 || f.buscador.trim() !== '' || f.desde !== '' || f.hasta !== ''
+}
+
+/** Identifica unos filtros para olvidar el plegado a mano al cambiarlos. */
+export function firmaFiltros(f: FiltrosPedidos): string {
+  return JSON.stringify([[...f.estados].sort(), [...f.proveedores].sort(), f.buscador.trim().toLowerCase(), f.desde, f.hasta])
+}

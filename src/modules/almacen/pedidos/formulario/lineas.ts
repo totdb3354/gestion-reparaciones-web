@@ -72,6 +72,8 @@ export function precargaInicial(precarga: PrecargaPedido, activos: Componente[])
       return { lineas: precargarComponentes(precarga.idsCom, activos), omitidas: 0 }
     case 'solicitudes':
       return precargarSolicitudes(precarga.urgentes, precarga.preventivas, activos)
+    case 'bloque':
+      return { lineas: [], omitidas: 0 }
   }
 }
 
@@ -164,7 +166,8 @@ export function validarLineasOtro(lineas: LineaOtro[]): string | null {
 /** Cuerpo de POST /api/compras/lote. Solo se llama con `validarLineasCompra(lineas) === null` (por eso los `as number`).
  *  Las solicitudes que viajan son las de componentes (o de su master, si son slaves) que siguen teniendo línea al confirmar (spec §6): si el usuario quitó
  *  la línea o le cambió el componente, esas solicitudes siguen PENDIENTE. */
-export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] } | null, activos: Componente[]): CuerpoLoteCompras {
+export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] } | null, activos: Componente[],
+                                  destinos: CuerpoLoteCompras['destinos'] = null): CuerpoLoteCompras {
   const conLinea = new Set(lineas.map((l) => l.idCom))
   // Las líneas llevan el id del master: la solicitud de un slave se resuelve a él antes de comprobar si su grupo tiene línea
   // (el servidor marca GESTIONADA exactamente las solicitudes que recibe).
@@ -183,6 +186,7 @@ export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: Sol
           urgentes: origen.urgentes.filter((s) => tieneLinea(s.idCom)).map((s) => s.idRc),
           preventivas: origen.preventivas.filter((s) => tieneLinea(s.idCom)).map((s) => s.idSol),
         },
+    destinos,
   }
 }
 

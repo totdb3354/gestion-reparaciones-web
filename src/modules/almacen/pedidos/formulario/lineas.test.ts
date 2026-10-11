@@ -110,6 +110,7 @@ describe('cuerpos de lote', () => {
         { idCom: 5, idProv: 2, cantidad: 1, esUrgente: false, precioUnidad: 0 },
       ],
       solicitudes: { urgentes: [10, 12], preventivas: [20] },
+      destinos: null,
     })
   })
   it('cuerpoLoteCompras: las solicitudes de un slave viajan si su master tiene línea y no si su grupo no tiene ninguna', () => {

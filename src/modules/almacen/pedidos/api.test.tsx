@@ -8,12 +8,14 @@ import { ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { server } from '@/test/server'
 import {
-  useCompras, useComprasOtros, useEditarCompra, useEditarOtro, useGuardarLoteCompras, useGuardarLoteOtros, useRecargaPedidos,
-  useTransicionPedido, type AccionTransicion,
+  useAccionBloque, useCompras, useComprasOtros, useEditarCompra, useEditarOtro, useGuardarLoteCompras, useGuardarLoteOtros, useJuntarBloque, useMoverLinea, useNotaBloque, useRecargaPedidos, useSepararBloque,
+  useTransicionPedido, vistaDe, type AccionTransicion,
 } from './api'
+import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const U = '2026-09-19T08:00:00'
 const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
+  ...BLOQUE_PRUEBA,
   idCompra: 2, idCom: 12, tipoComponente: 'bat-x', idProv: 2, nombreProveedor: 'Proveedor B', cantidad: 5, cantidadRecibida: null,
   esUrgente: false, fechaPedido: U, fechaLlegada: null, precioUnidadPedido: 10, divisa: 'USD', precioEur: 8.8, estado: 'en_camino',
   updatedAt: U, ...o,
@@ -115,8 +117,8 @@ describe('editar (PUT, spec 4b §6 y P3)', () => {
     const { qc, wrapper } = envoltorio()
     qc.setQueryData(['compras', 'componentes'], [])
     const { result } = renderHook(() => useEditarCompra(), { wrapper })
-    await result.current.mutateAsync({ idCompra: 2, cuerpo })
-    expect(peticiones).toEqual([{ metodo: 'PUT', ruta: '/api/compras/2', cuerpo: { ...cuerpo, precioEur: null }, clave: null }])
+    await result.current.mutateAsync({ idCompra: 2, cuerpo: { ...cuerpo, destino: null } })
+    expect(peticiones).toEqual([{ metodo: 'PUT', ruta: '/api/compras/2', cuerpo: { ...cuerpo, destino: null, precioEur: null }, clave: null }])
     expect(qc.getQueryState(['compras', 'componentes'])?.isInvalidated).toBe(true)
   })
   it('useEditarOtro manda también el concepto a /api/compras-otros/{id}', async () => {
@@ -140,6 +142,7 @@ describe('lotes (spec 4b P5)', () => {
         { idCom: 12, idProv: 2, cantidad: 1, esUrgente: true, precioUnidad: 10 },
       ],
       solicitudes: { urgentes: [31], preventivas: [41] },
+      destinos: null,
     }
     expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-1' })).toEqual({ idsCreados: [21, 22] })
     expect(peticiones).toEqual([{ metodo: 'POST', ruta: '/api/compras/lote', cuerpo, clave: 'clave-1' }])
@@ -177,5 +180,55 @@ describe('useRecargaPedidos', () => {
     expect(qc.getQueryState(['componentes', 'gestionados'])?.isInvalidated).toBe(true)
     expect(qc.getQueryState(['notificaciones', 'componentes'])?.isInvalidated).toBe(true)
     expect(qc.getQueryState(['proveedores', 'COMPONENTES'])?.isInvalidated).toBe(false)
+  })
+})
+
+describe('bloques (0.9.9)', () => {
+  it('useMoverLinea: PATCH /api/compras/{id}/bloque con el destino y el updatedAt de la línea', async () => {
+    const peticiones = registrar('*/api/compras/:id/bloque')
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useMoverLinea(), { wrapper })
+    await result.current.mutateAsync({ pedido: compra({ idCompra: 2 }), idBloque: null })
+    expect(peticiones).toEqual([{ metodo: 'PATCH', ruta: '/api/compras/2/bloque', cuerpo: { idBloque: null, updatedAt: U }, clave: null }])
+  })
+
+  it.each([
+    ['confirmar', '/api/bloques-compra/41/confirmar'],
+    ['recibir', '/api/bloques-compra/41/recibir'],
+    ['cancelar', '/api/bloques-compra/41/cancelar'],
+    ['borrar', '/api/bloques-compra/41/borrar'],
+  ] as const)('useAccionBloque %s: POST %s con las líneas vistas', async (accion, ruta) => {
+    const peticiones = registrar('*/api/bloques-compra/:id/:accion')
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useAccionBloque(), { wrapper })
+    await result.current.mutateAsync({ idBloque: 41, accion, lineas: [vistaDe(compra({ idCompra: 2 }))] })
+    expect(peticiones).toEqual([{ metodo: 'POST', ruta, cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }] }, clave: null }])
+  })
+
+  it('useSepararBloque devuelve el número del bloque nuevo', async () => {
+    registrar('*/api/bloques-compra/:id/separar', () => HttpResponse.json({ idBloque: 90 }))
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useSepararBloque(), { wrapper })
+    expect(await result.current.mutateAsync({ idBloque: 41, lineas: [{ idCompra: 2, updatedAt: U }] })).toEqual({ idBloque: 90 })
+  })
+
+  it('useJuntarBloque y useNotaBloque mandan su cuerpo', async () => {
+    const peticiones = registrar('*/api/bloques-compra/:id/:accion')
+    const { wrapper } = envoltorio()
+    const juntar = renderHook(() => useJuntarBloque(), { wrapper }).result
+    const nota = renderHook(() => useNotaBloque(), { wrapper }).result
+    await juntar.current.mutateAsync({ idBloque: 41, destino: 40, lineas: [{ idCompra: 2, updatedAt: U }] })
+    await nota.current.mutateAsync({ idBloque: 41, nota: 'Ped. 123', updatedAt: U })
+    expect(peticiones).toEqual([
+      { metodo: 'POST', ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 2, updatedAt: U }] }, clave: null },
+      { metodo: 'PATCH', ruta: '/api/bloques-compra/41/nota', cuerpo: { nota: 'Ped. 123', updatedAt: U }, clave: null },
+    ])
+  })
+
+  it('un 409 de una acción de bloque llega como StaleDataError', async () => {
+    registrar('*/api/bloques-compra/:id/:accion', () => HttpResponse.json({ message: 'Este bloque fue modificado por otro usuario.' }, { status: 409 }))
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useAccionBloque(), { wrapper })
+    await expect(result.current.mutateAsync({ idBloque: 41, accion: 'recibir', lineas: [] })).rejects.toBeInstanceOf(StaleDataError)
   })
 })

@@ -122,8 +122,10 @@ export function useTransicionPedido(tipo: TipoPedido): UseMutationResult<unknown
   })
 }
 
-export type CuerpoEditarCompra = { idProv: number; cantidad: number; esUrgente: boolean; precioUnidad: number; divisa: string; updatedAt: string }
-export type CuerpoEditarOtro = CuerpoEditarCompra & { concepto: string }
+type CamposEditar = { idProv: number; cantidad: number; esUrgente: boolean; precioUnidad: number; divisa: string; updatedAt: string }
+/** `destino` (0.9.9): solo cuando cambia el proveedor (`idBloque` null = bloque nuevo); null = regla por defecto del servidor. */
+export type CuerpoEditarCompra = CamposEditar & { destino: { idBloque: number | null } | null }
+export type CuerpoEditarOtro = CamposEditar & { concepto: string }
 
 /** PUT del editor (spec 4b §6). `precioEur` va a null: el servidor lo calcula e ignora el de la petición (P3). */
 export function useEditarCompra(): UseMutationResult<unknown, unknown, { idCompra: number; cuerpo: CuerpoEditarCompra }> {
@@ -149,6 +151,9 @@ export function useEditarOtro(): UseMutationResult<unknown, unknown, { idCompraO
 export type CuerpoLoteCompras = {
   lineas: { idCom: number; idProv: number; cantidad: number; esUrgente: boolean; precioUnidad: number }[]
   solicitudes: { urgentes: number[]; preventivas: number[] }
+  /** 0.9.9 (spec «Pedidos por bloques» §5.2): bloque de cada proveedor (`idBloque` null = bloque nuevo); null = el
+   *  servidor aplica su regla por defecto (abierto más reciente del proveedor o uno nuevo). */
+  destinos: { idProv: number; idBloque: number | null }[] | null
 }
 export type CuerpoLoteOtros = { lineas: { idProv: number; concepto: string; cantidad: number; esUrgente: boolean; precioUnidad: number }[] }
 
@@ -171,5 +176,80 @@ export function useGuardarLoteOtros(): UseMutationResult<{ idsCreados: number[] 
       (await api.POST('/api/compras-otros/lote', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })).data ?? { idsCreados: [] },
     meta: { silenciarError: true },
     onSuccess: recargar,
+  })
+}
+
+// ── 0.9.9: bloques de pedido (spec «Pedidos por bloques» §5.3) ─────────────────────────────────────────────
+
+/** Una línea tal como la ve la tabla: el servidor la comprueba antes de aplicar una acción de bloque (todo o nada). */
+export type LineaVista = { idCompra: number; updatedAt: string }
+export function vistaDe(p: CompraComponente): LineaVista {
+  return { idCompra: p.idCompra, updatedAt: p.updatedAt }
+}
+export type AccionBloque = 'confirmar' | 'recibir' | 'cancelar' | 'borrar'
+
+/** «Mover a bloque ▸»: `idBloque` null = bloque nuevo. La página traduce el 409 y el 422; recarga siempre. */
+export function useMoverLinea(): UseMutationResult<unknown, unknown, { pedido: CompraComponente; idBloque: number | null }> {
+  const recargar = useRecargaPedidos()
+  return useMutation({
+    mutationFn: ({ pedido, idBloque }: { pedido: CompraComponente; idBloque: number | null }) =>
+      api.PATCH('/api/compras/{idCompra}/bloque', { params: { path: { idCompra: pedido.idCompra } }, body: { idBloque, updatedAt: pedido.updatedAt } }),
+    meta: { silenciarError: true },
+    onSettled: recargar,
+  })
+}
+
+/** Una llamada por ruta literal para que openapi-fetch tipe cada una. */
+async function accionBloque(idBloque: number, accion: AccionBloque, lineas: LineaVista[]) {
+  const params = { path: { idBloque } }
+  const body = { lineas }
+  switch (accion) {
+    case 'confirmar':
+      return api.POST('/api/bloques-compra/{idBloque}/confirmar', { params, body })
+    case 'recibir':
+      return api.POST('/api/bloques-compra/{idBloque}/recibir', { params, body })
+    case 'cancelar':
+      return api.POST('/api/bloques-compra/{idBloque}/cancelar', { params, body })
+    case 'borrar':
+      return api.POST('/api/bloques-compra/{idBloque}/borrar', { params, body })
+  }
+}
+
+export function useAccionBloque(): UseMutationResult<unknown, unknown, { idBloque: number; accion: AccionBloque; lineas: LineaVista[] }> {
+  const recargar = useRecargaPedidos()
+  return useMutation({
+    mutationFn: ({ idBloque, accion, lineas }: { idBloque: number; accion: AccionBloque; lineas: LineaVista[] }) => accionBloque(idBloque, accion, lineas),
+    meta: { silenciarError: true },
+    onSettled: recargar,
+  })
+}
+
+export function useSepararBloque(): UseMutationResult<{ idBloque: number } | undefined, unknown, { idBloque: number; lineas: LineaVista[] }> {
+  const recargar = useRecargaPedidos()
+  return useMutation({
+    mutationFn: async ({ idBloque, lineas }: { idBloque: number; lineas: LineaVista[] }) =>
+      (await api.POST('/api/bloques-compra/{idBloque}/separar', { params: { path: { idBloque } }, body: { lineas } })).data,
+    meta: { silenciarError: true },
+    onSettled: recargar,
+  })
+}
+
+export function useJuntarBloque(): UseMutationResult<unknown, unknown, { idBloque: number; destino: number; lineas: LineaVista[] }> {
+  const recargar = useRecargaPedidos()
+  return useMutation({
+    mutationFn: ({ idBloque, destino, lineas }: { idBloque: number; destino: number; lineas: LineaVista[] }) =>
+      api.POST('/api/bloques-compra/{idBloque}/juntar', { params: { path: { idBloque } }, body: { destino, lineas } }),
+    meta: { silenciarError: true },
+    onSettled: recargar,
+  })
+}
+
+export function useNotaBloque(): UseMutationResult<unknown, unknown, { idBloque: number; nota: string | null; updatedAt: string }> {
+  const recargar = useRecargaPedidos()
+  return useMutation({
+    mutationFn: ({ idBloque, nota, updatedAt }: { idBloque: number; nota: string | null; updatedAt: string }) =>
+      api.PATCH('/api/bloques-compra/{idBloque}/nota', { params: { path: { idBloque } }, body: { nota, updatedAt } }),
+    meta: { silenciarError: true },
+    onSettled: recargar,
   })
 }
