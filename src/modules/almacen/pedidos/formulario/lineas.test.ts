@@ -148,7 +148,7 @@ describe('textoDescartar', () => {
 describe('pedido automático (spec 0.9.6 §4.4)', () => {
   const comp = (o: Partial<Componente>): Componente => ({
     idCom: 1, tipo: 'x', fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', stock: 0, stockMinimo: 1,
-    activo: true, enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: 0.3, pedir60: 0, autoPedido: false, ...o,
+    activo: true, enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: 0.3, pedir60: 0, autoPedido: false, pendiente: null, proveedores: null, ...o,
   })
   // lcd (1) marcada y pide 16; bat (2) marcada sin pedido; cam (3) sin marcar; bat-y (5) slave de bat, hereda la marca.
   const ACTIVOS = [

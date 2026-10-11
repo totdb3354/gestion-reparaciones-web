@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/proveedores/{idProv}/componentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["reemplazar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parametros/prevision": {
         parameters: {
             query?: never;
@@ -2452,6 +2468,9 @@ export interface components {
             divisa: string;
             comentario: string;
         };
+        ProveedorPiezasRequest: {
+            idsCom: number[];
+        };
         PesosPrevision: {
             /** Format: int32 */
             peso1: number;
@@ -3526,6 +3545,9 @@ export interface components {
             /** Format: int32 */
             pedir60: number | null;
             autoPedido: boolean | null;
+            /** Format: int32 */
+            pendiente: number | null;
+            proveedores: number[] | null;
         };
         PuntoStock: {
             periodo: string;
@@ -3777,6 +3799,30 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reemplazar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idProv: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProveedorPiezasRequest"];
+            };
+        };
         responses: {
             /** @description No Content */
             204: {
