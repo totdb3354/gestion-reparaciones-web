@@ -88,21 +88,36 @@ test.beforeEach(() => {
 
 test.afterAll(async () => {
   if (!sup) return
-  try {
-    for (const id of lineasCreadas) {
-      const r = await llamarApi(sup, 'DELETE', `/api/compras/${id}`)
-      if (r.status !== 200 && r.status !== 204) console.warn(`catalogo.spec: no se pudo borrar la línea ${id} (${r.status})`)
+  const fallos: string[] = []
+  /** Cada paso de limpieza va aislado: si uno lanza o responde mal, los demás se intentan igual y el fallo se apunta. */
+  async function paso(nombre: string, f: () => Promise<{ status: number } | void>, aceptados: number[] = [200, 204]) {
+    try {
+      const r = await f()
+      if (r && !aceptados.includes(r.status)) fallos.push(`${nombre} (${r.status})`)
+    } catch (e) {
+      fallos.push(`${nombre} (${e instanceof Error ? e.message : String(e)})`)
     }
-    if (antes !== null && adm !== null) {
-      await llamarApi(adm, 'PATCH', `/api/componentes/${antes.idCom}/stock-minimo`, { stockMinimo: antes.stockMinimo })
-      await llamarApi(sup, 'PATCH', `/api/componentes/${antes.idCom}/auto-pedido`, { autoPedido: antes.autoPedido === true })
+  }
+  try {
+    const s1 = sup
+    for (const id of lineasCreadas) await paso(`borrar línea ${id}`, () => llamarApi(s1, 'DELETE', `/api/compras/${id}`))
+    if (antes !== null) {
+      const a1 = antes
+      if (adm !== null) {
+        const a2 = adm
+        await paso(`restaurar stockMinimo de ${a1.tipo} a ${a1.stockMinimo}`, () => llamarApi(a2, 'PATCH', `/api/componentes/${a1.idCom}/stock-minimo`, { stockMinimo: a1.stockMinimo }))
+      } else fallos.push('restaurar stockMinimo (sin sesión admin)')
+      await paso(`restaurar autoPedido de ${a1.tipo} a ${a1.autoPedido === true}`, () => llamarApi(s1, 'PATCH', `/api/componentes/${a1.idCom}/auto-pedido`, { autoPedido: a1.autoPedido === true }))
     }
     if (idProv !== null) {
-      const borrado = await llamarApi(sup, 'DELETE', `/api/proveedores/${idProv}`)
-      if (borrado.status !== 204 && borrado.status !== 200) {
-        const baja = await llamarApi(sup, 'PATCH', `/api/proveedores/${idProv}/activo`, { activo: false })
-        console.warn(`catalogo.spec: proveedor ${idProv} «${nombreProv}» sin borrar (DELETE ${borrado.status}; desactivado: ${baja.status})`)
-      }
+      const id = idProv
+      await paso(`borrar proveedor ${id} «${nombreProv}»`, async () => {
+        const borrado = await llamarApi(s1, 'DELETE', `/api/proveedores/${id}`)
+        if (borrado.status === 204 || borrado.status === 200) return borrado
+        const baja = await llamarApi(s1, 'PATCH', `/api/proveedores/${id}/activo`, { activo: false })
+        console.warn(`catalogo.spec: proveedor ${id} sin borrar (DELETE ${borrado.status}); desactivado: ${baja.status}`)
+        return borrado
+      })
     }
     if (antes !== null) expect((await pieza(sup)).stock, 'el stock del SKU de prueba debe quedar como estaba').toBe(antes.stock)
   } finally {
@@ -111,6 +126,7 @@ test.afterAll(async () => {
     await adm?.close()
     adm = null
   }
+  if (fallos.length > 0) throw new Error(`catalogo.spec: preprod NO queda como estaba: ${fallos.join('; ')}`)
 })
 
 test('«Piezas que vende…» guarda la pieza en la lista del proveedor', async () => {
@@ -158,13 +174,15 @@ test('con algo que pedir, «Añadir previsión de X (1)» la mete con su cantida
   expect(despues.pedir60).toBe(0)
 })
 
-test('el buscador con el número del bloque enseña ese bloque', async () => {
+test('el buscador con el número del bloque enseña solo ese bloque', async () => {
   const page = sup as Page
   const compras = await llamarApi(page, 'GET', '/api/compras')
   const idBloque = (compras.json as { idCompra: number; idBloque: number | null }[]).find((l) => l.idCompra === lineasCreadas[0])?.idBloque
   expect(idBloque, 'la línea creada debe tener bloque').toBeTruthy()
   await page.goto('/stock/pedidos')
   await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(String(idBloque))
+  // Una búsqueda solo de dígitos devuelve las líneas cuyo idBloque es ese número: queda una única cabecera.
+  await expect(page.locator('tr[data-cabecera]')).toHaveCount(1)
   // «Bloque n» sin casar con «Bloque n0» (como bloques.spec.ts).
   const nuestra = page.locator('tr[data-cabecera]').filter({ hasText: new RegExp(`Bloque ${idBloque}(?!\\d)`) })
   await expect(nuestra).toHaveCount(1)
