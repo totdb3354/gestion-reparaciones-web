@@ -160,7 +160,7 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     await screen.findByText(`IMEI: ${A}`)
     await screen.findByText('G20260912_1')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('G20260912_1') })
-    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['Editar', 'Borrar', '📋  Copiar celda', 'Añadir incidencia'])
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['Editar', 'Borrar', 'Corregir cliente', '📋  Copiar celda', 'Añadir incidencia'])
     await userEvent.click(screen.getByRole('menuitem', { name: 'Borrar' }))
     const dlg = await screen.findByRole('dialog', { name: 'Borrar trabajo' })
     await userEvent.type(within(dlg).getByPlaceholderText('Escribe el motivo del borrado...'), 'error')

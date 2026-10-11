@@ -245,7 +245,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     abrir()
     await screen.findByText('R20260915_133')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('R20260915_133') })
-    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['Editar', 'Borrar', '📋  Copiar celda', 'Cancelar incidencia'])
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['Editar', 'Borrar', 'Corregir cliente', '📋  Copiar celda', 'Cancelar incidencia'])
     await userEvent.click(screen.getByRole('menuitem', { name: 'Borrar' }))
     const dlg = await screen.findByRole('dialog', { name: 'Borrar reparación' })
     expect(within(dlg).getByText('Se borrará R20260915_133. Los componentes usados volverán a stock y, si resolvía una incidencia, esta quedará activa de nuevo. Escribe el motivo.')).toBeInTheDocument()
@@ -447,11 +447,29 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(tecnicoAsignado).toHaveDisplayValue('Selecciona técnico')
     expect(boton).toBeDisabled()
   })
-  it('el admin y el técnico solo tienen "Copiar celda"', async () => {
+  it('el admin tiene "Copiar celda" y "Corregir cliente" (sin Editar ni Borrar) en una fila cerrada', async () => {
     abrir(SESION_ADMIN)
     await screen.findByText('R20260915_133')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda', 'Corregir cliente'])
+  })
+  it('el técnico solo tiene "Copiar celda"', async () => {
+    abrir(SESION_TEC)
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
     expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['📋  Copiar celda'])
+  })
+  it('"Corregir cliente" del supertécnico abre el modal con los cerrados del IMEI', async () => {
+    server.use(
+      http.get('*/api/reparaciones/imei/358800000000131/cerrados', () => HttpResponse.json([{ idRep: 'R20260916_6', fechaFin: '2026-09-16T07:00:00', descripcion: 'otroi14', idCli: 2, cliente: 'WEB' }])),
+      http.get('*/api/clientes/activos', () => HttpResponse.json([])),
+    )
+    abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getAllByText('R20260916_6')[0] })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Corregir cliente' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Corregir cliente' })
+    expect(await within(dlg).findByRole('checkbox', { name: /R20260916_6/ })).toBeChecked()
   })
   it('"Asignado por" no se copia, pero el resto de columnas sí (docs/paridad/historial.md no la lista entre las columnas copiables; el JavaFX de este historial no tiene ese case en textoDeCelda)', async () => {
     const escribir = vi.fn().mockResolvedValue(undefined)

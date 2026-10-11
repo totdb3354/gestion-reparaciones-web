@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type Cliente, type ContadoresPendientes, type ReparacionResumen, type Tecnico } from '@/shared/api/client'
+import { api, type Cliente, type ContadoresPendientes, type ReparacionResumen, type Tecnico, type TrabajoCerrado } from '@/shared/api/client'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin, esSuperTecnico } from '@/shared/session/storage'
@@ -78,8 +78,8 @@ export function useTecnicos(soloActivos = false) {
   })
 }
 
-export function useClientesActivos() {
-  return useQuery({ queryKey: CLAVE_CLIENTES_ACTIVOS, queryFn: async (): Promise<Cliente[]> => (await api.GET('/api/clientes/activos')).data ?? [] })
+export function useClientesActivos(habilitado = true) {
+  return useQuery({ queryKey: CLAVE_CLIENTES_ACTIVOS, enabled: habilitado, queryFn: async (): Promise<Cliente[]> => (await api.GET('/api/clientes/activos')).data ?? [] })
 }
 
 export async function referenciadora(idRep: string): Promise<string | null> {
@@ -170,6 +170,24 @@ export function useBorrarAsignacionPulido() {
   const recargar = useRecargarSinEsperar(...PENDIENTES_PUL)
   return useMutation({
     mutationFn: (idAP: string) => api.DELETE('/api/pulidos/asignaciones/{idAP}', { params: { path: { idAP } } }),
+    onSettled: recargar,
+  })
+}
+export function useTrabajosCerrados(imei: string | null) {
+  return useQuery({
+    queryKey: ['trabajos-cerrados', imei],
+    enabled: imei !== null,
+    queryFn: async (): Promise<TrabajoCerrado[]> =>
+      (await api.GET('/api/reparaciones/imei/{imei}/cerrados', { params: { path: { imei: imei ?? '' } } })).data ?? [],
+  })
+}
+/** «Corregir cliente» (spec 0.9.8 añadido): el error lo muestra el modal (meta.silenciarError). */
+export function useCorregirCliente() {
+  const recargar = useRecargarSinEsperar(...HISTORIALES)
+  return useMutation({
+    mutationFn: ({ imei, idReps, idCli }: { imei: string; idReps: string[]; idCli: number | null }) =>
+      api.PATCH('/api/reparaciones/cliente', { body: { imei, idReps, idCli } }),
+    meta: { silenciarError: true },
     onSettled: recargar,
   })
 }

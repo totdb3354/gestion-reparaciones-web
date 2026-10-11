@@ -101,7 +101,7 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
         // la lista entre las columnas copiables: ReparacionControllerSuperTecnico.textoDeCelda no tiene ese case).
         // Sí lo es en el Agrupado de IMEIs (Task 18), que reutiliza este mismo textoCeldaTrabajo: se suprime aquí,
         // en la llamada, en vez de en la función compartida.
-        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, patronFechas)} puedeEditar={puedeEditar} acciones={accionesMenu} />}
+        menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={celda.columnaId === 'asignadoPor' ? null : textoCeldaTrabajo(r, celda.columnaId, patronFechas)} puedeEditar={puedeEditar} puedeCorregirCliente={global} acciones={accionesMenu} />}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
       {dialogos}
