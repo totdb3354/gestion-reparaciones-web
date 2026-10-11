@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Componente, Proveedor } from '@/shared/api/client'
+import { crearQueryClient } from '@/shared/api/queryClient'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { COMPONENTES } from '../pedidos/formulario/datosPrueba'
+import { CLAVE_COMPONENTES_GESTIONADOS } from '../stock/api'
 import { PiezasProveedorDialog } from './PiezasProveedorDialog'
 
 const ACME: Proveedor = { idProv: 1, nombre: 'ACME', activo: true, divisa: 'EUR', comentario: '', tipo: 'COMPONENTES' }
@@ -74,5 +76,25 @@ describe('PiezasProveedorDialog (spec 2026-10-11 §5.1)', () => {
     await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
     expect(await within(dlg).findByRole('alert')).toHaveTextContent('Alguna pieza ya no existe.')
     expect(onCerrar).not.toHaveBeenCalled()
+  })
+
+  it('con la caché de Stock ya cargada y vieja, espera a la lista fresca para marcar', async () => {
+    const qc = crearQueryClient({ retry: false })
+    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, COMPONENTES.map((c) => ({ ...c, proveedores: c.idCom === 1 ? [1] : [] })))
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(COMPONENTES.map((c) => ({ ...c, proveedores: c.idCom === 2 ? [1] : [] })))))
+    renderConProviders(<PiezasProveedorDialog proveedor={ACME} onCerrar={vi.fn()} />, { sesion: SESION_SUPER, queryClient: qc })
+    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
+    const bat = await within(dlg).findByRole('checkbox', { name: 'Vende bat-x / bat-y' })
+    await waitFor(() => expect(bat).toBeChecked())
+    expect(within(dlg).getByRole('checkbox', { name: 'Vende lcd-x-negro' })).not.toBeChecked()
+    expect(dlg).toHaveTextContent('1 pieza marcada')
+  })
+
+  it('mientras carga avisa, y si la lista no carga lo dice y Guardar queda deshabilitado', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
+    abrir()
+    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
+    expect(await within(dlg).findByText('No se ha podido cargar la lista de piezas.')).toBeInTheDocument()
+    expect(within(dlg).getByRole('button', { name: 'Guardar', hidden: true })).toBeDisabled()
   })
 })

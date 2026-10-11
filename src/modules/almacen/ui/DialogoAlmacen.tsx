@@ -16,7 +16,8 @@ type Props = {
   /** 0.9.9: acción destructiva (cancelar o borrar un bloque): botón en rojo. */
   peligro?: boolean
   /** 360 (por defecto): ventanas de StockController, título de 20 px. 520: editores de pedido
-   *  (FormularioCompraEditar.fxml, FormularioOtroPedidoEditar.fxml), título `vista-titulo` de 24 px. */
+   *  (FormularioCompraEditar.fxml, FormularioOtroPedidoEditar.fxml), título `vista-titulo` de 24 px. 640: listas largas con
+   *  buscador («Piezas que vende…»), mismo título de 24 px. */
   ancho?: 360 | 520 | 640
   onConfirmar: () => void
   onCancelar: () => void

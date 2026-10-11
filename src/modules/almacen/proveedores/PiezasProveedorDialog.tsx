@@ -28,7 +28,8 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   // Las de la lista al abrir (masters, activas o no), una sola vez cuando carga el listado.
-  if (marcadas === null && componentes.isSuccess) {
+  // Con la caché de Stock ya cargada, `isSuccess` es true al montar con datos viejos: se espera a que acabe la recarga.
+  if (marcadas === null && componentes.isSuccess && !componentes.isFetching) {
     setMarcadas(new Set((componentes.data ?? [])
       .filter((c) => c.idComMaster == null && (c.proveedores ?? []).includes(proveedor.idProv))
       .map((c) => c.idCom)))
@@ -76,6 +77,11 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
         </label>
       </div>
       <p className="text-[12px] text-azul-gris">{textoMarcadas(marcadas?.size ?? 0)}</p>
+      {marcadas === null ? (
+        <p role="status" className="text-[12px] text-azul-gris">
+          {componentes.isError ? 'No se ha podido cargar la lista de piezas.' : 'Cargando piezas…'}
+        </p>
+      ) : (
       <div className="flex max-h-[50vh] flex-col overflow-y-auto rounded border border-fila-sep">
         {visibles.map((f) => (
           <label key={f.idCom} className="flex items-center gap-2 border-b border-fila-sep px-2 py-1 text-[13px] text-azul-medio last:border-b-0">
@@ -84,6 +90,7 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
           </label>
         ))}
       </div>
+      )}
     </DialogoAlmacen>
   )
 }
