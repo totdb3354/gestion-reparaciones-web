@@ -37,6 +37,7 @@ export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA
     { id: 'id', accessorKey: 'idRep', header: tituloId, size: 110 },
     { id: 'imei', accessorKey: 'imei', header: 'IMEI teléfono', size: 130 },
     { id: 'modelo', header: 'Modelo', size: 100, accessorFn: (r) => traducirModelo(r.modelo) },
+    { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '—' },
     { id: 'reparador', header: 'Reparador', size: 100, cell: ({ row }) => <CeldaReparador rep={row.original} /> },
     { id: 'asignadoPor', header: 'Asignado por', size: 100, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
     { id: 'fechas', header: 'Fechas', size: 110, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaAsig} fin={row.original.fechaFin} patron={patronFechas} /> },
@@ -76,6 +77,7 @@ export function textoCeldaTrabajo(rep: ReparacionResumen, columna: string, patro
     case 'id': return rep.idRep
     case 'imei': return rep.imei
     case 'modelo': return traducirModelo(rep.modelo)
+    case 'cliente': return rep.cliente ?? ''
     case 'reparador': return rep.nombreTecnico ?? ''
     case 'asignadoPor': return rep.nombreTecnicoAsigna ?? ''
     case 'fechas': return formatear(rep.fechaFin, patronFechas)

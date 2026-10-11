@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { resumen } from '../test/fabrica'
 import {
-  SIN_CLIENTE, estadoIncidencia, etiquetaContador, ordenarPendientes, pasaCliente, pasaFechas, pasaImeis, pasaIncidencias,
+  SIN_CLIENTE, estadoIncidencia, etiquetaContador, opcionesClientes, ordenarPendientes, pasaCliente, pasaFechas, pasaImeis, pasaIncidencias,
   pasaPieza, pasaTecnico, pasaTipo, sufijoToggle, textoBadgeLateral,
 } from './filtros'
 
 describe('filtros del taller', () => {
+  it('opcionesClientes: alfabetico, sin repetidos y "(Sin cliente)" delante solo si hay vacios', () => {
+    expect(opcionesClientes(['WEB', 'AMAZON', 'WEB'])).toEqual(['AMAZON', 'WEB'])
+    expect(opcionesClientes(['WEB', null, '', 'AMAZON'])).toEqual([SIN_CLIENTE, 'AMAZON', 'WEB'])
+  })
   it('filtro Tipo: las tres casillas se evalúan por separado (calco de las checkboxes del JavaFX)', () => {
     expect(pasaTipo(resumen(), new Set())).toBe(true)
     expect(pasaTipo(resumen(), new Set(['asignacion']))).toBe(true)

@@ -25,8 +25,8 @@ afterEach(async () => {
 })
 
 const filas = [
-  resumen({ idRep: 'R20260916_6', imei: '358800000000131', modelo: '14', nombreTecnico: 'tecnico_i', idTec: 5, nombreTecnicoAsigna: 'Técnico M', fechaAsig: '2026-09-16T07:00:00', fechaFin: '2026-09-16T07:00:00', tipoComponente: 'otroi14', observaciones: 'cerrar' }),
-  resumen({ idRep: 'R20260915_133', imei: '351900000000041', modelo: '16', nombreTecnico: 'tecnico_b', idTec: 6, fechaAsig: '2026-09-15T15:00:00', fechaFin: '2026-09-15T15:00:00', tipoComponente: 'bati16', esReutilizado: true, esIncidencia: true, incidencia: 'no enciende' }),
+  resumen({ idRep: 'R20260916_6', imei: '358800000000131', modelo: '14', cliente: 'WEB', nombreTecnico: 'tecnico_i', idTec: 5, nombreTecnicoAsigna: 'Técnico M', fechaAsig: '2026-09-16T07:00:00', fechaFin: '2026-09-16T07:00:00', tipoComponente: 'otroi14', observaciones: 'cerrar' }),
+  resumen({ idRep: 'R20260915_133', imei: '351900000000041', modelo: '16', cliente: null, nombreTecnico: 'tecnico_b', idTec: 6, fechaAsig: '2026-09-15T15:00:00', fechaFin: '2026-09-15T15:00:00', tipoComponente: 'bati16', esReutilizado: true, esIncidencia: true, incidencia: 'no enciende' }),
   resumen({ idRep: 'R20260910_1', imei: '351900000000041', modelo: '16', nombreTecnico: 'tecnico_i', idTec: 5, fechaAsig: '2026-09-10T10:00:00', fechaFin: '2026-09-11T10:00:00', tipoComponente: 'lcdi16negra', esIncidencia: true, esResuelto: true, incidencia: 'pantalla', idRepAnterior: 'R20260916_6' }),
 ]
 const tecnicos = [tecnico({ idTec: 5, nombre: 'tecnico_i' }), tecnico({ idTec: 6, nombre: 'tecnico_b' }), tecnico({ idTec: 7, nombre: 'tecnico_n', activo: false })]
@@ -61,24 +61,25 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(await screen.findByText('3 reparaciones')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Reparaciones' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Pulidos' })).toHaveAttribute('href', '/reparaciones/historial/pulidos')
-    expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Id Reparación', 'IMEI teléfono', 'Modelo', 'Reparador', 'Asignado por', 'Fechas', 'Componente', 'Observaciones', 'Estado', 'Incidencia', 'Id Rep. Anterior'])
+    expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Id Reparación', 'IMEI teléfono', 'Modelo', 'Cliente', 'Reparador', 'Asignado por', 'Fechas', 'Componente', 'Observaciones', 'Estado', 'Incidencia', 'Id Rep. Anterior'])
     expect(screen.getByRole('table')).toHaveClass('w-full')
-    // Pesos de aplicarAnchosDetalle (`Math.max(w, w * u)`; docs/paridad/historial.md): 110·130·100·100·100·110·150·
+    // Pesos de aplicarAnchosDetalle (`Math.max(w, w * u)`; docs/paridad/historial.md): 110·130·100·110·100·100·110·150·
     // 200·120·200·150 (Estado 120: su minWidth 110 del FXML nunca llega a pintarse). En ajuste "estirar" DataTable los
-    // reparte en % sobre la suma (1470), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
+    // reparte en % sobre la suma (1580), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
     const anchos = Array.from(container.querySelectorAll('col')).map((c) => c.style.width)
     expect(anchos).toEqual([
-      expect.stringMatching(/^7\.4829/), // Id Reparación 110
-      expect.stringMatching(/^8\.8435/), // IMEI teléfono 130
-      expect.stringMatching(/^6\.8027/), // Modelo 100
-      expect.stringMatching(/^6\.8027/), // Reparador 100
-      expect.stringMatching(/^6\.8027/), // Asignado por 100
-      expect.stringMatching(/^7\.4829/), // Fechas 110
-      expect.stringMatching(/^10\.2040/), // Componente 150
-      expect.stringMatching(/^13\.6054/), // Observaciones 200
-      expect.stringMatching(/^8\.1632/), // Estado 120
-      expect.stringMatching(/^13\.6054/), // Incidencia 200
-      expect.stringMatching(/^10\.2040/), // Id Rep. Anterior 150
+      expect.stringMatching(/^6\.9620/), // Id Reparación 110
+      expect.stringMatching(/^8\.2278/), // IMEI teléfono 130
+      expect.stringMatching(/^6\.3291/), // Modelo 100
+      expect.stringMatching(/^6\.9620/), // Cliente 110
+      expect.stringMatching(/^6\.3291/), // Reparador 100
+      expect.stringMatching(/^6\.3291/), // Asignado por 100
+      expect.stringMatching(/^6\.9620/), // Fechas 110
+      expect.stringMatching(/^9\.4936/), // Componente 150
+      expect.stringMatching(/^12\.6582/), // Observaciones 200
+      expect.stringMatching(/^7\.5949/), // Estado 120
+      expect.stringMatching(/^12\.6582/), // Incidencia 200
+      expect.stringMatching(/^9\.4936/), // Id Rep. Anterior 150
     ])
     // En la fila seleccionada el JavaFX repinta en blanco "Reutilizado" (y las fechas, CeldaFechas.test.tsx); los textos
     // con color propio sin oyente de selección lo conservan: "Sin incidencia", el texto de la incidencia, las píldoras y
@@ -184,6 +185,19 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.keyboard('{Escape}')
     expect(screen.getByRole('button', { name: 'Cerradas' })).toBeInTheDocument()
     expect(screen.getAllByRole('row')).toHaveLength(2)
+  })
+  it('filtro Cliente: clientes de lo cargado con "(Sin cliente)" delante; marcar uno deja solo sus filas; Limpiar filtros lo vacia', async () => {
+    abrir()
+    await screen.findByText('R20260915_133')
+    await userEvent.click(screen.getByRole('button', { name: 'Cliente' }))
+    expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-label'))).toEqual(['(Sin cliente)', 'AMAZON', 'WEB'])
+    await userEvent.click(screen.getByRole('checkbox', { name: 'WEB' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getAllByRole('row')).toHaveLength(2)
+    expect(screen.getByText('R20260916_6')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(screen.getAllByRole('row')).toHaveLength(4)
+    expect(screen.getByRole('button', { name: 'Cliente' })).toBeInTheDocument()
   })
   it('el enlace Id Rep. Anterior selecciona esa fila', async () => {
     abrir()
@@ -463,8 +477,8 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [base, cabeceras, filasCsv] = descargar.mock.calls[0]
     expect(base).toBe('historial_reparaciones')
-    expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
-    expect(filasCsv[1]).toEqual(['R20260915_133', '="351900000000041"', 'tecnico_b', '15/09/2026 17:00', '15/09/2026 17:00', 'bati16', 'Sí', '', 'no enciende', 'No', ''])
+    expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Cliente', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
+    expect(filasCsv[1]).toEqual(['R20260915_133', '="351900000000041"', '', 'tecnico_b', '15/09/2026 17:00', '15/09/2026 17:00', 'bati16', 'Sí', '', 'no enciende', 'No', ''])
     descargar.mockRestore()
   })
   it('CSV del técnico con nombre mis_reparaciones y sin columna Técnico', async () => {
@@ -475,7 +489,7 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [base, cabeceras] = descargar.mock.calls[0]
     expect(base).toBe('mis_reparaciones')
-    expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
+    expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Cliente', 'Fecha asig.', 'Fecha fin', 'Componente', 'Reutilizado', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
     descargar.mockRestore()
   })
   it('toggle Glass activo, sub-etiqueta "Llegó" del reparador y CSV historial_glass', async () => {

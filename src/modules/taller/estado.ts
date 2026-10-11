@@ -9,8 +9,8 @@ export const tipoPendientes = {
   GLASS: crearStore(tipoVacio()),
 }
 
-export type FiltrosHistorial = { tecnicos: Set<number>; piezas: Set<string>; desde: string; hasta: string; incidencias: Set<EstadoIncidencia> }
-const historialVacio = (): FiltrosHistorial => ({ tecnicos: new Set(), piezas: new Set(), desde: '', hasta: '', incidencias: new Set() })
+export type FiltrosHistorial = { tecnicos: Set<number>; piezas: Set<string>; clientes: Set<string>; desde: string; hasta: string; incidencias: Set<EstadoIncidencia> }
+const historialVacio = (): FiltrosHistorial => ({ tecnicos: new Set(), piezas: new Set(), clientes: new Set(), desde: '', hasta: '', incidencias: new Set() })
 export const filtroImeiHistorial = crearStore('')
 export const filtrosHistorial = {
   REPARACION: crearStore<FiltrosHistorial>(historialVacio()),

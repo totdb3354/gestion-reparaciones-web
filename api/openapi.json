@@ -2203,6 +2203,27 @@
         }
       }
     },
+    "/api/reparaciones/cliente" : {
+      "patch" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "corregirCliente",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReparacionCorregirClienteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/reparaciones/asignaciones/{idRep}" : {
       "get" : {
         "tags" : [ "reparacion-controller" ],
@@ -3708,6 +3729,35 @@
                   "type" : "object",
                   "additionalProperties" : {
                     "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reparaciones/imei/{imei}/cerrados" : {
+      "get" : {
+        "tags" : [ "reparacion-controller" ],
+        "operationId" : "getCerradosPorImei",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TrabajoCerrado"
                   }
                 }
               }
@@ -6106,6 +6156,26 @@
           }
         }
       },
+      "ReparacionCorregirClienteRequest" : {
+        "required" : [ "idCli", "idReps", "imei" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "idReps" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          }
+        }
+      },
       "ReparacionActualizarAsignacionRequest" : {
         "required" : [ "comentarioAsignacion", "idTec", "updatedAt" ],
         "type" : "object",
@@ -6830,6 +6900,32 @@
           "pulidos" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }
+      },
+      "TrabajoCerrado" : {
+        "required" : [ "cliente", "descripcion", "fechaFin", "idCli", "idRep" ],
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "fechaFin" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "descripcion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idCli" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "cliente" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

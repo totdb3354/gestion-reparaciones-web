@@ -41,6 +41,18 @@ export function pasaCliente(cliente: string | null | undefined, marcados: Set<st
   if (marcados.size === 0) return true
   return !cliente || cliente === '' ? marcados.has(SIN_CLIENTE) : marcados.has(cliente)
 }
+/** Opciones del filtro «Cliente»: nombres distintos en orden alfabético, con "(Sin cliente)" delante si hay vacíos. */
+export function opcionesClientes(nombres: (string | null | undefined)[]): string[] {
+  const unicos = new Set<string>()
+  let sinCliente = false
+  for (const n of nombres) {
+    if (n) unicos.add(n)
+    else sinCliente = true
+  }
+  const lista = [...unicos].sort((a, b) => a.localeCompare(b, 'es'))
+  return sinCliente ? [SIN_CLIENTE, ...lista] : lista
+}
+
 
 export function pasaPieza(tipoComponente: string | null | undefined, marcadas: Set<string>): boolean {
   return marcadas.size === 0 || marcadas.has(categoriaPieza(tipoComponente))

@@ -20,7 +20,7 @@ import { useHistorial, useTecnicos } from '../api'
 import { MenuHistorial, type AccionesHistorial } from '../componentes/MenuHistorial'
 import { TITULOS_BORRAR, useAccionesTrabajo } from '../componentes/useAccionesTrabajo'
 import { filtroImeiHistorial, filtrosHistorial } from '../estado'
-import { estadoIncidencia, etiquetaContador, pasaFechas, pasaImeis, pasaIncidencias, pasaPieza, pasaTecnico, type EstadoIncidencia } from '../lib/filtros'
+import { estadoIncidencia, etiquetaContador, opcionesClientes, pasaCliente, pasaFechas, pasaImeis, pasaIncidencias, pasaPieza, pasaTecnico, type EstadoIncidencia } from '../lib/filtros'
 import { categoriaPieza } from '../lib/piezas'
 import { columnasTrabajo, textoCeldaTrabajo } from './columnasTrabajo'
 import { OPCIONES_INCIDENCIAS, TOGGLES_HISTORIAL } from './constantes'
@@ -43,10 +43,11 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
   const listaBase = tipo === 'GLASS' ? '/reparaciones/historial/glass' : '/reparaciones/historial'
   const accionesMenu: AccionesHistorial = { ...acciones, editar: (rep) => void navigate(`${listaBase}/editar/${rep.idRep}`) }
 
+  const clientes = useMemo(() => opcionesClientes(data.map((r) => r.cliente)), [data])
   const piezas = useMemo(() => [...new Set(data.map((r) => categoriaPieza(r.tipoComponente)).filter((c) => c !== ''))].sort((a, b) => a.localeCompare(b, 'es')), [data])
   const visibles = useMemo(() => {
     const imeis = imeisValidos(filtroImei)
-    return data.filter((r) => pasaImeis(r.imei, imeis) && pasaTecnico(r.idTec, filtros.tecnicos) && pasaPieza(r.tipoComponente, filtros.piezas) && pasaFechas(r, filtros.desde, filtros.hasta) && pasaIncidencias(r, filtros.incidencias))
+    return data.filter((r) => pasaImeis(r.imei, imeis) && pasaTecnico(r.idTec, filtros.tecnicos) && pasaPieza(r.tipoComponente, filtros.piezas) && pasaCliente(r.cliente, filtros.clientes) && pasaFechas(r, filtros.desde, filtros.hasta) && pasaIncidencias(r, filtros.incidencias))
   }, [data, filtroImei, filtros])
   // FORMATO_FECHA de cada controller, en la celda Fechas y en su "Copiar celda" (también con el toggle Glass, que es la
   // misma tabla): "yyyy/MM/dd HH:mm" en ReparacionController{SuperTecnico,Admin}, "yyyy/MM/dd" en ReparacionControllerTecnico.
@@ -62,7 +63,7 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
     descargarCsv(base, cabecerasHistorial(global), visibles.map((r) => filaHistorial(r, global)))
   })
 
-  const limpiar = () => { setFiltroImei(''); setFiltros({ tecnicos: new Set(), piezas: new Set(), desde: '', hasta: '', incidencias: new Set() }) }
+  const limpiar = () => { setFiltroImei(''); setFiltros({ tecnicos: new Set(), piezas: new Set(), clientes: new Set(), desde: '', hasta: '', incidencias: new Set() }) }
 
   return (
     <div className="p-10">
@@ -78,6 +79,7 @@ export function HistorialPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
             onChange={(s) => setFiltros({ ...filtros, tecnicos: new Set([...s].map(Number)) })} textoVacio="Técnico" textoPlural={(n) => `${n} técnicos`} className="min-w-[130px]" />
         )}
         <MultiSelect opciones={piezas} clave={(p) => p} etiqueta={(p) => p} seleccion={filtros.piezas} onChange={(s) => setFiltros({ ...filtros, piezas: s })} textoVacio="Pieza" textoPlural={(n) => `${n} piezas`} className="min-w-[140px]" />
+        <MultiSelect opciones={clientes} clave={(c) => c} etiqueta={(c) => c} seleccion={filtros.clientes} onChange={(s) => setFiltros({ ...filtros, clientes: s })} textoVacio="Cliente" textoPlural={(n) => `${n} clientes`} className="min-w-[130px]" />
         <RangoFechas desde={filtros.desde} hasta={filtros.hasta} onChange={(desde, hasta) => setFiltros({ ...filtros, desde, hasta })} />
         <MultiSelect opciones={OPCIONES_INCIDENCIAS} clave={(o) => o.clave} etiqueta={(o) => o.etiqueta} seleccion={filtros.incidencias as Set<string>}
           onChange={(s) => setFiltros({ ...filtros, incidencias: s as Set<EstadoIncidencia> })} textoVacio="Incidencias" textoPlural={(n) => `${n} filtros`} textoTodas="Todas" className="min-w-[130px]" />
