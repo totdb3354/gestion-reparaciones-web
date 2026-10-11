@@ -9,6 +9,7 @@ type Props = {
   p: Proveedor
   onToggle: (p: Proveedor) => void
   onEditar: (p: Proveedor) => void
+  onPiezas: (p: Proveedor) => void
   onBorrar: (p: Proveedor) => void
   onInteraccion: (abierto: boolean) => void
 }
@@ -16,7 +17,7 @@ type Props = {
 /** Calco del menú de proveedor (:1694-1713), solo SUPERTECNICO. "Borrar" aparece si `tiene-pedidos` es falso; la
  *  consulta se hace al abrir el menú (Radix monta el contenido al abrirse), no en cada clic de fila (S6). Mismo patrón que
  *  MenuCliente de la vista Clientes. */
-export function MenuProveedor({ p, onToggle, onEditar, onBorrar, onInteraccion }: Props) {
+export function MenuProveedor({ p, onToggle, onEditar, onPiezas, onBorrar, onInteraccion }: Props) {
   const { mostrarError } = useAlerta()
   const [borrable, setBorrable] = useState(false)
   useEffect(() => {
@@ -39,6 +40,7 @@ export function MenuProveedor({ p, onToggle, onEditar, onBorrar, onInteraccion }
     <>
       <ContextMenuItem onSelect={() => onToggle(p)}>{p.activo ? 'Desactivar' : 'Activar'}</ContextMenuItem>
       <ContextMenuItem onSelect={() => onEditar(p)}>Editar</ContextMenuItem>
+      <ContextMenuItem onSelect={() => onPiezas(p)}>Piezas que vende…</ContextMenuItem>
       {borrable && <ContextMenuItem onSelect={() => onBorrar(p)}>Borrar</ContextMenuItem>}
     </>
   )
