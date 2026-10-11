@@ -113,7 +113,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       const id = idsCreados[0]
       await expect(dlg).toBeHidden()
 
-      await page.getByPlaceholder('Buscar componente…').fill(sku!)
+      await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(sku!)
       // El proveedor es nuevo y solo tiene este pedido: su nombre identifica la fila.
       // 0.9.9: por defecto agrupada; su bloque nuevo sale con el proveedor en la cabecera. El resto del test, en la plana.
       await expect(page.locator('tr[data-cabecera]').filter({ hasText: nombreProv })).toHaveCount(1)
