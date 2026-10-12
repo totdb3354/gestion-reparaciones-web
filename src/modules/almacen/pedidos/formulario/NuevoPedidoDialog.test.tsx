@@ -47,12 +47,15 @@ async function elegirComponente(n: number, texto: string, opcion: string) {
   await userEvent.click(await screen.findByRole('option', { name: opcion }))
 }
 
-/** ComboNavy: disparador role="combobox" con aria-label; lista role="listbox" con el mismo nombre; cada opción es un
- *  <li role="option"> con un <button> dentro, que es quien recibe el clic (ComboNavy.tsx:79-118). */
-async function elegirProveedor(n: number, nombre: string) {
-  await userEvent.click(screen.getByRole('combobox', { name: `Proveedor línea ${n}` }))
-  await userEvent.click(await within(screen.getByRole('listbox', { name: `Proveedor línea ${n}` })).findByRole('button', { name: nombre }))
+/** El proveedor del pedido (0.9.9: uno por pedido, arriba): ComboNavy «Proveedor general». ComboNavy: disparador
+ *  role="combobox" con aria-label; lista role="listbox"; cada opción es un <li role="option"> con un <button> dentro. */
+async function elegirProveedor(nombre: string) {
+  await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor general' }))
+  await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor general' })).findByRole('button', { name: nombre }))
 }
+
+/** Lo que enseña la columna Proveedor de la línea n: el nombre del proveedor del pedido o «—» (sin combo). */
+const proveedorDeLinea = (n: number) => within(filaDe(n)).getAllByRole('cell')[1].textContent
 
 async function escribir(etiqueta: string, valor: string) {
   const campo = screen.getByRole('textbox', { name: etiqueta })
@@ -119,7 +122,7 @@ describe('NuevoPedidoDialog', () => {
     expect(dlg.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
     expect(dlg.getByText('Añade al menos una línea')).toBeInTheDocument()
     // Barra del proveedor general primero; la ✕ de DialogContent ("Close", sr-only) va la última.
-    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Aplicar a todas', 'Añadir previsión', '+ Añadir línea', 'Cancelar', 'Confirmar pedido', 'Close'])
+    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Añadir previsión', '+ Añadir línea', 'Cancelar', 'Confirmar pedido', 'Close'])
   })
 
   it('sin líneas: "Añade al menos una línea." y no envía nada', async () => {
@@ -133,14 +136,15 @@ describe('NuevoPedidoDialog', () => {
   it('"Pedir" (un componente): una línea con él, cantidad 1, precio 0,00, sin proveedor ni urgente; "+ Añadir línea" añade una vacía (calco: añadirFila(null)) y la selecciona', async () => {
     abrir({ modo: 'componentes', idsCom: [2] })
     expect(await screen.findByRole('combobox', { name: 'Componente línea 1' })).toHaveValue('bat-x / bat-y')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' }).textContent).toBe('')
+    expect(proveedorDeLinea(1)).toBe('—')
+    expect(screen.queryByRole('combobox', { name: 'Proveedor línea 1' })).not.toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 1' })).toHaveValue('1')
     expect(screen.getByRole('textbox', { name: 'Precio línea 1' })).toHaveValue('0,00')
     expect(screen.getByRole('checkbox', { name: 'Urgente línea 1' })).not.toBeChecked()
     expect(within(filaDe(1)).getByText('0,00 €')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
     expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 2' }).textContent).toBe('')
+    expect(proveedorDeLinea(2)).toBe('—')
     expect(screen.getByRole('textbox', { name: 'Cantidad línea 2' })).toHaveValue('1')
     expect(screen.getByRole('textbox', { name: 'Precio línea 2' })).toHaveValue('0,00')
     expect(screen.getByRole('checkbox', { name: 'Urgente línea 2' })).not.toBeChecked()
@@ -226,12 +230,12 @@ describe('NuevoPedidoDialog', () => {
     abrir()
     await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))
     await confirmar()
+    expect(screen.getByRole('alert')).toHaveTextContent('Elige el proveedor.')
+    await elegirProveedor('ACME')
+    await confirmar()
     expect(screen.getByRole('alert')).toHaveTextContent('Línea 1: selecciona un componente.')
     await elegirComponente(1, 'bat', 'bat-x / bat-y')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    await confirmar()
-    expect(screen.getByRole('alert')).toHaveTextContent('Línea 1: selecciona un proveedor.')
-    await elegirProveedor(1, 'ACME')
     await escribir('Cantidad línea 1', '0')
     await confirmar()
     expect(screen.getByRole('alert')).toHaveTextContent('Línea 1: la cantidad debe ser mayor que 0.')
@@ -245,8 +249,8 @@ describe('NuevoPedidoDialog', () => {
   it('proveedor en USD: solo activos en el combo, símbolo $ y Total EUR = precio / tasa × cantidad; en EUR, € sin pedir tasa', async () => {
     abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor línea 1' }))
-    const lista = screen.getByRole('listbox', { name: 'Proveedor línea 1' })
+    await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor general' }))
+    const lista = screen.getByRole('listbox', { name: 'Proveedor general' })
     await within(lista).findByRole('button', { name: 'ACME' })
     expect(within(lista).getAllByRole('button').map((b) => b.textContent)).toEqual(['ACME', 'Proveedor B'])
     await userEvent.click(within(lista).getByRole('button', { name: 'Proveedor B' }))
@@ -254,7 +258,7 @@ describe('NuevoPedidoDialog', () => {
     await escribir('Cantidad línea 1', '2')
     expect(within(filaDe(1)).getByText('$')).toBeInTheDocument()
     expect(await within(filaDe(1)).findByText('17,60 €')).toBeInTheDocument()
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     expect(within(filaDe(1)).getByText('€')).toBeInTheDocument()
     expect(within(filaDe(1)).getByText('20,00 €')).toBeInTheDocument()
     expect(tasasPedidas).toEqual(['USD'])
@@ -264,7 +268,7 @@ describe('NuevoPedidoDialog', () => {
     server.use(http.get('*/api/tipo-cambio/:divisa', async () => { await delay('infinite'); return HttpResponse.json({ value: 1.1367 }) }))
     abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await elegirProveedor(1, 'Proveedor B')
+    await elegirProveedor('Proveedor B')
     expect(within(filaDe(1)).getByText('—')).toBeInTheDocument()
   })
 
@@ -276,7 +280,7 @@ describe('NuevoPedidoDialog', () => {
     }))
     abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await elegirProveedor(1, 'Proveedor B')
+    await elegirProveedor('Proveedor B')
     await waitFor(() => expect(pedidas).toBe(1))
     expect(within(filaDe(1)).getByText('—')).toBeInTheDocument()
     expect(within(filaDe(1)).queryByText('0,00 €')).not.toBeInTheDocument()
@@ -287,7 +291,7 @@ describe('NuevoPedidoDialog', () => {
     await screen.findByRole('combobox', { name: 'Componente línea 2' })
     await userEvent.click(screen.getByRole('button', { name: 'Quitar línea 2' }))
     expect(screen.queryByRole('combobox', { name: 'Componente línea 2' })).not.toBeInTheDocument()
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     await escribir('Precio línea 1', '12,5')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Urgente línea 1' }))
     await confirmar()
@@ -305,7 +309,7 @@ describe('NuevoPedidoDialog', () => {
     abrir({ modo: 'solicitudes', urgentes: [urgente(10, 5), urgente(11, 1)], preventivas: [preventiva(20, 5)] })
     await screen.findByRole('combobox', { name: 'Componente línea 2' })
     await userEvent.click(screen.getByRole('button', { name: 'Quitar línea 2' }))
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     await confirmar()
     await waitFor(() => expect(lotes).toHaveLength(1))
     expect(lotes[0].cuerpo).toMatchObject({
@@ -318,7 +322,7 @@ describe('NuevoPedidoDialog', () => {
     respuestaLote = () => HttpResponse.json({ message: 'Línea 1: el proveedor está desactivado.' }, { status: 422 })
     const onCerrar = abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     await confirmar()
     expect(await screen.findByRole('alert')).toHaveTextContent('Línea 1: el proveedor está desactivado.')
     expect(screen.getByRole('dialog', { name: 'Nuevo pedido' })).toBeInTheDocument()
@@ -335,7 +339,7 @@ describe('NuevoPedidoDialog', () => {
     respuestaLote = () => new HttpResponse(null, { status: 403 })
     const onCerrar = abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     await confirmar()
     expect(await screen.findByRole('alert')).toHaveTextContent('Error al guardar: No tienes permisos para realizar esta acción.')
     expect(onCerrar).not.toHaveBeenCalled()
@@ -345,7 +349,7 @@ describe('NuevoPedidoDialog', () => {
     respuestaLote = () => HttpResponse.json({ message: 'No se pudo obtener el tipo de cambio de USD. Inténtalo de nuevo.' }, { status: 503 })
     const onCerrar = abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     await confirmar()
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo obtener el tipo de cambio de USD. Inténtalo de nuevo.')
     expect(screen.queryByText('Sin conexión con el servidor: HTTP 503')).not.toBeInTheDocument()
@@ -357,7 +361,7 @@ describe('NuevoPedidoDialog', () => {
     respuestaLote = () => new HttpResponse(null, { status: 500 })
     const onCerrar = abrir({ modo: 'componentes', idsCom: [2] })
     await screen.findByRole('combobox', { name: 'Componente línea 1' })
-    await elegirProveedor(1, 'ACME')
+    await elegirProveedor('ACME')
     await confirmar()
     expect(await screen.findByText('Sin conexión con el servidor: HTTP 500')).toBeInTheDocument()
     expect(screen.queryByText(/^Error al guardar/)).not.toBeInTheDocument()
@@ -405,11 +409,6 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
     server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(CON_PREVISION)))
   })
 
-  async function elegirProveedorGeneral(nombre: string) {
-    await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor general' }))
-    await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor general' })).findByRole('button', { name: nombre }))
-  }
-
   it('sin proveedor «Añadir previsión» está deshabilitado y explica por qué', async () => {
     abrir()
     const boton = await screen.findByRole('button', { name: 'Añadir previsión' })
@@ -420,10 +419,10 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
   it('«Añadir previsión de ACME (1)» mete la suya con su cantidad y ACME, y avisa de la que no necesita pedido y de la que no tiene lista', async () => {
     abrir()
     await screen.findByRole('button', { name: 'Añadir previsión' })
-    await elegirProveedorGeneral('ACME')
+    await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+    expect(proveedorDeLinea(1)).toBe('ACME')
     expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
     expect(screen.getByRole('status')).toHaveTextContent('1 pieza en Auto con algo que pedir no está en la lista de ningún proveedor.')
@@ -434,7 +433,7 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
   it('con la pieza ya en el pedido sube la cantidad y no la duplica', async () => {
     abrir({ modo: 'componentes', idsCom: [1] })
     await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
-    await elegirProveedorGeneral('ACME')
+    await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
     expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
@@ -473,36 +472,30 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
     expect(screen.queryByText(/según la previsión|no necesita pedido|no está en la lista/)).not.toBeInTheDocument()
   })
 
-  it('«Aplicar a todas» cambia también el proveedor que ya tenía una línea', async () => {
-    abrir({ modo: 'componentes', idsCom: [1] })
-    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
-    await elegirProveedor(1, 'Proveedor B')
-    await elegirProveedorGeneral('ACME')
-    await userEvent.click(screen.getByRole('button', { name: 'Aplicar a todas' }))
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
-  })
-
-  it('elegir el proveedor general rellena al momento las líneas sin proveedor y no toca las que ya tienen', async () => {
+  it('elegir el proveedor lo pone en todas las líneas; cambiarlo las cambia todas (un proveedor por pedido)', async () => {
     abrir({ modo: 'componentes', idsCom: [1, 2] })
     await waitFor(() => expect(screen.getByLabelText('Cantidad línea 2')).toHaveValue('1'))
-    await elegirProveedor(2, 'Proveedor B')
-    await elegirProveedorGeneral('ACME')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 2' })).toHaveTextContent('Proveedor B')
+    expect([proveedorDeLinea(1), proveedorDeLinea(2)]).toEqual(['—', '—'])
+    await elegirProveedor('Proveedor B')
+    expect([proveedorDeLinea(1), proveedorDeLinea(2)]).toEqual(['Proveedor B', 'Proveedor B'])
+    await elegirProveedor('ACME')
+    expect([proveedorDeLinea(1), proveedorDeLinea(2)]).toEqual(['ACME', 'ACME'])
+    expect(screen.queryByRole('button', { name: 'Aplicar a todas' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Proveedor línea 1' })).not.toBeInTheDocument()
   })
 
   it('con proveedor general elegido, «+ Añadir línea» la añade ya con ese proveedor', async () => {
     abrir()
     await screen.findByRole('button', { name: 'Añadir previsión' })
-    await elegirProveedorGeneral('ACME')
+    await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+    expect(proveedorDeLinea(1)).toBe('ACME')
   })
 
   it('el aviso de piezas sin pedido se borra al editar las líneas', async () => {
     abrir()
     await screen.findByRole('button', { name: 'Añadir previsión' })
-    await elegirProveedorGeneral('ACME')
+    await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
     await escribir('Cantidad línea 1', '5')
