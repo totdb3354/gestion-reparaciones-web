@@ -37,13 +37,16 @@ function abrir(precarga: PrecargaPedido = { modo: 'vacio' }) {
   return onCerrar
 }
 
-async function anadirLinea(n: number, proveedor?: string) {
+/** El proveedor del pedido (0.9.9: uno por pedido, arriba): ComboNavy «Proveedor general». */
+async function elegirProveedor(nombre: string) {
+  await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor general' }))
+  await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor general' })).findByRole('button', { name: nombre }))
+}
+
+async function anadirLinea(n: number) {
   await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
   await userEvent.type(screen.getByRole('combobox', { name: `Componente línea ${n}` }), 'lcd')
   await userEvent.click(await screen.findByRole('option', { name: 'lcd-x-negro' }))
-  if (proveedor === undefined) return
-  await userEvent.click(screen.getByRole('combobox', { name: `Proveedor línea ${n}` }))
-  await userEvent.click(await within(screen.getByRole('listbox', { name: `Proveedor línea ${n}` })).findByRole('button', { name: proveedor }))
 }
 const resumen = () => screen.getByRole('region', { name: 'Bloques' })
 const confirmar = () => userEvent.click(screen.getByRole('button', { name: 'Confirmar pedido' }))
@@ -52,13 +55,14 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
   it('sin líneas, el resumen lo explica', async () => {
     abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
-    expect(resumen()).toHaveTextContent('Añade líneas: aquí verás a qué bloque va cada proveedor.')
+    expect(resumen()).toHaveTextContent('Añade líneas: aquí verás a qué bloque van.')
   })
 
   it('un proveedor con bloque abierto se suma a él por defecto y viaja en destinos', async () => {
     const onCerrar = abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
-    await anadirLinea(1, 'ACME')
+    await elegirProveedor('ACME')
+    await anadirLinea(1)
     expect(await within(resumen()).findByRole('combobox', { name: 'Bloque de ACME' })).toHaveTextContent('Añadir a Bloque 41')
     await confirmar()
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
@@ -68,7 +72,8 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
   it('elegir «Bloque nuevo» lo manda con idBloque null', async () => {
     abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
-    await anadirLinea(1, 'ACME')
+    await elegirProveedor('ACME')
+    await anadirLinea(1)
     await userEvent.click(await within(resumen()).findByRole('combobox', { name: 'Bloque de ACME' }))
     await userEvent.click(await within(screen.getByRole('listbox', { name: 'Bloque de ACME' })).findByRole('button', { name: 'Bloque nuevo' }))
     await confirmar()
@@ -80,7 +85,8 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
     compras = []
     abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
-    await anadirLinea(1, 'Proveedor B')
+    await elegirProveedor('Proveedor B')
+    await anadirLinea(1)
     expect(resumen()).toHaveTextContent(/Proveedor B.*1 línea.*Bloque nuevo.*no tiene ninguno abierto/)
     await confirmar()
     await waitFor(() => expect(lotes).toHaveLength(1))
@@ -102,7 +108,8 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
     respuestaLote = () => HttpResponse.json({ message: 'El bloque 41 ya no existe; elige otro destino.' }, { status: 409 })
     abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
-    await anadirLinea(1, 'ACME')
+    await elegirProveedor('ACME')
+    await anadirLinea(1)
     await within(resumen()).findByRole('combobox', { name: 'Bloque de ACME' })
     const antes = lecturas
     await confirmar()

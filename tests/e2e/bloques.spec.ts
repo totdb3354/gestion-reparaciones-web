@@ -100,18 +100,18 @@ async function elegirEnMenuBloque(page: Page, n: number, entrada: RegExp) {
 
 /**
  * Abre «Nuevo pedido», añade una línea del SKU por cada precio (todas al proveedor sintético) y devuelve el diálogo. Mismo
- * recorrido que pedidos.spec.ts: autocompletar de componente y combobox «Proveedor línea n».
+ * recorrido que pedidos.spec.ts: autocompletar de componente; el proveedor, una vez arriba («Proveedor general»).
  */
 async function rellenarNuevoPedido(page: Page, precios: string[]): Promise<Locator> {
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
+  await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
+  await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
   for (const [i, precio] of precios.entries()) {
     await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
     await dlg.getByPlaceholder('Escribe componente...').nth(i).fill(sku!)
     // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
     await page.getByRole('option', { name: sku!, exact: true }).click()
-    await dlg.getByRole('combobox', { name: `Proveedor línea ${i + 1}` }).click()
-    await page.getByRole('option', { name: nombreProv, exact: true }).getByRole('button').click()
     await dlg.getByLabel(`Precio línea ${i + 1}`).fill(precio)
   }
   return dlg

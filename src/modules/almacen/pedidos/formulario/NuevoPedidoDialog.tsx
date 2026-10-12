@@ -14,8 +14,8 @@ import { destinosDelCuerpo } from './destinos'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoNadaQuePedir, avisoOmitidas, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
-  validarLineasCompra, type LineaCompra,
+  aplicarPrevision, aplicarProveedorATodas, avisoNadaQuePedir, avisoOmitidas, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
+  validarLineasCompra, MSG_SIN_PROVEEDOR, type LineaCompra,
 } from './lineas'
 import { ResumenBloques } from './ResumenBloques'
 
@@ -25,7 +25,7 @@ type Props = { precarga: PrecargaPedido; onCerrar: () => void }
 
 /** "Nuevo pedido" (FormularioCompraController, spec §6): modal en el sitio (P1) con la precarga del store. Un único
  *  POST /api/compras/lote con Idempotency-Key (P5): misma clave mientras el cuerpo no cambie, nueva tras un éxito.
- *  0.9.9: resumen «Bloques» al pie (a qué bloque va cada proveedor) y modo «Añadir líneas» de un bloque (precarga
+ *  0.9.9: resumen «Bloques» al pie (a qué bloque va el pedido, que tiene un único proveedor) y modo «Añadir líneas» de un bloque (precarga
  *  `bloque`: proveedor y destino fijos). */
 export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const componentes = useComponentesStock({ activo: false })
@@ -66,7 +66,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   // ninguna omitida y no sale la línea de información.
   if (lineas === null && (componentes.isSuccess || componentes.isError)) {
     const inicial = precargaInicial(precarga, activos)
-    setLineas(inicial.lineas)
+    setLineas(idProvGeneral === null ? inicial.lineas : aplicarProveedorATodas(inicial.lineas, idProvGeneral))
     setOmitidas(componentes.isError ? 0 : inicial.omitidas)
   }
   // Con la caché de Stock ya cargada, `isSuccess` es true con datos viejos: se espera a que acabe la recarga.
@@ -115,24 +115,19 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setNadaQuePedir(false)
     setError(null)
   }
-  /** Elegirlo rellena al momento las líneas sin proveedor; las que ya tienen uno solo cambian con «Aplicar a todas». */
+  /** Un proveedor por pedido (2026-10-12): elegirlo, o cambiarlo, lo pone en todas las líneas. */
   function elegirProveedorGeneral(idProv: number) {
     setIdProvGeneral(idProv)
-    setLineas((ls) => rellenarProveedorVacio(ls ?? [], idProv))
+    setLineas((ls) => (ls === null ? null : aplicarProveedorATodas(ls, idProv)))
     setError(null)
     setSinPedido(0)
     setSinListaVistas(0)
     setNadaQuePedir(false)
   }
-  function aplicarATodas() {
-    if (idProvGeneral === null) return
-    setLineas((ls) => aplicarProveedorATodas(ls ?? [], idProvGeneral))
-    setError(null)
-  }
 
   async function confirmar() {
     if (lineas === null) return
-    const fallo = validarLineasCompra(lineas)
+    const fallo = lineas.length > 0 && idProvGeneral === null ? MSG_SIN_PROVEEDOR : validarLineasCompra(lineas)
     if (fallo !== null) {
       setError(fallo)
       return
@@ -188,14 +183,13 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="text-[12px] font-bold text-azul-medio">Proveedor:</span>
             <ComboNavy valor={idProvGeneral === null ? null : String(idProvGeneral)} opciones={opcionesProveedor} onChange={(v) => elegirProveedorGeneral(Number(v))} textoVacio="" ancho={160} visibles={8} aria-label="Proveedor general" />
-            <BotonSecundario type="button" disabled={bloqueado || idProvGeneral === null || (lineas ?? []).length === 0} onClick={aplicarATodas}>Aplicar a todas</BotonSecundario>
             {botonPrevision}
           </div>
         )
       }
       lineas={lineas ?? []}
       proveedores={proveedoresActivos}
-      proveedorFijo={fijo ? nombreFijo : undefined}
+      proveedorFijo={fijo ? nombreFijo : nombrePrevision || '—'}
       pie={
         <ResumenBloques lineas={lineas ?? []} proveedores={proveedoresActivos} bloques={bloques} elegidos={elegidos}
           onElegir={(idProv, idBloque) => { setElegidos((e) => ({ ...e, [idProv]: idBloque })); setError(null) }}

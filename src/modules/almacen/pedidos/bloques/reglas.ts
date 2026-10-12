@@ -124,8 +124,10 @@ export type EntradaMenuBloque =
   | { accion: AccionMenuBloque; texto: string; deshabilitada: boolean; motivo: string | null; peligro: boolean }
   | 'separador'
 
-/** Menú del bloque (spec §6.4). `otrosDelProveedor`: cuántos bloques más tiene su proveedor. */
-export function entradasMenuBloque(b: Bloque, otrosDelProveedor: number): EntradaMenuBloque[] {
+/** Menú del bloque (spec §6.4). `otrosVivos`: cuántos bloques vivos más tiene su proveedor. */
+export function entradasMenuBloque(b: Bloque, otrosVivos: number): EntradaMenuBloque[] {
+  const cerrado = !esVivo(b)
+  const TERMINADO = 'el bloque está terminado'
   const pendientes = lineasQueCambian(b, 'confirmar').length
   const enCamino = lineasQueCambian(b, 'recibir').length
   const entrada = (accion: AccionMenuBloque, texto: string, deshabilitada: boolean, motivo: string | null, peligro = false): EntradaMenuBloque =>
@@ -134,10 +136,10 @@ export function entradasMenuBloque(b: Bloque, otrosDelProveedor: number): Entrad
     entrada('confirmar', `Confirmar bloque (${pendientes})`, pendientes === 0, 'nada pendiente'),
     entrada('recibir', `Recibir todo (${enCamino})`, enCamino === 0, 'nada en camino'),
     'separador',
-    entrada('anadir', 'Añadir líneas…', false, null),
-    entrada('prevision', 'Añadir previsión…', false, null),
-    entrada('separar', 'Separar líneas…', b.lineas.length < 2, 'solo tiene una línea'),
-    entrada('juntar', 'Juntar con…', otrosDelProveedor === 0, 'no hay otro bloque de este proveedor'),
+    entrada('anadir', 'Añadir líneas…', cerrado, TERMINADO),
+    entrada('prevision', 'Añadir previsión…', cerrado, TERMINADO),
+    entrada('separar', 'Separar líneas…', cerrado || b.lineas.length < 2, cerrado ? TERMINADO : 'solo tiene una línea'),
+    entrada('juntar', 'Juntar con…', cerrado || otrosVivos === 0, cerrado ? TERMINADO : 'no hay otro bloque vivo de este proveedor'),
     entrada('nota', b.nota ? 'Editar nota…' : 'Añadir nota…', false, null),
     'separador',
     entrada('cancelar', `Cancelar bloque (${enCamino})`, enCamino === 0, 'nada en camino', true),
@@ -148,6 +150,17 @@ export function entradasMenuBloque(b: Bloque, otrosDelProveedor: number): Entrad
 /** Bloques del proveedor (sin `excluir`), de mayor a menor número. «Sin bloque» nunca cuenta. */
 export function bloquesDelProveedor(bloques: Map<string, Bloque>, idProv: number, excluir?: string): Bloque[] {
   return [...bloques.values()].filter((b) => b.idBloque !== null && b.idProv === idProv && b.clave !== excluir).sort(compararBloques)
+}
+
+/** 2026-10-12: solo se mueven las líneas vivas; lo recibido y lo cancelado es historial. */
+export function sePuedeMover(p: CompraComponente): boolean {
+  return VIVOS.has(p.estado)
+}
+
+/** Bloques vivos (abiertos o en curso) del proveedor, sin `excluir`, de mayor a menor número: los únicos que admiten
+ *  líneas (un bloque terminado está cerrado, spec 2026-10-12). */
+export function vivosDelProveedor(bloques: Map<string, Bloque>, idProv: number, excluir?: string): Bloque[] {
+  return bloquesDelProveedor(bloques, idProv, excluir).filter(esVivo)
 }
 
 export function abiertosDe(bloques: Map<string, Bloque>, idProv: number): Bloque[] {
@@ -164,9 +177,9 @@ export function fechaCorta(fecha: string | null): string {
 
 export type DestinoMover = { idBloque: number; texto: string; detalle: string }
 
-/** Submenú «Mover a bloque ▸» (spec §6.4): hasta 8 bloques del proveedor sin el propio. */
+/** Submenú «Mover a bloque ▸» (spec §6.4 y 2026-10-12): los bloques vivos del proveedor sin el propio. */
 export function destinosMover(p: CompraComponente, bloques: Map<string, Bloque>): DestinoMover[] {
-  return bloquesDelProveedor(bloques, p.idProv, claveBloque(p)).slice(0, 8).map((b) => ({
+  return vivosDelProveedor(bloques, p.idProv, claveBloque(p)).map((b) => ({
     idBloque: b.idBloque as number,
     texto: `Bloque ${b.idBloque}`,
     detalle: `${fechaCorta(b.fecha)} · ${textoLineas(b.lineas.length)} · ${situacion(b)}`,

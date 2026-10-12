@@ -139,6 +139,16 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}"}]}`]))
   })
 
+  it('⋮ del bloque → «Juntar con…» ofrece el bloque abierto y no el terminado', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /Juntar con/ }))
+    const dlg = await screen.findByRole('dialog', { name: 'Juntar Bloque 41 con…' })
+    expect(within(dlg).getByRole('radio', { name: /Bloque 40/ })).toBeInTheDocument()
+    expect(within(dlg).queryByRole('radio', { name: /Bloque 39/ })).not.toBeInTheDocument()
+  })
+
   it('⋮ del bloque → «Añadir previsión…» abre el formulario en modo bloque con la previsión', async () => {
     montar()
     await screen.findByText('lcd-x-negro')
@@ -201,5 +211,21 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     const aviso = await screen.findByRole('dialog')
     expect(aviso).toHaveTextContent('El bloque 40 ya no existe; elige otro destino.')
     expect(aviso).not.toHaveTextContent('Este pedido fue modificado')
+  })
+
+
+  it('una recibida no ofrece «Mover a bloque» y una viva solo ve destinos vivos (el 39, terminado, no)', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    // El 39 está terminado y sale plegado: se despliega desde su cabecera.
+    await userEvent.click(screen.getByText('Bloque 39').closest('button') as HTMLElement)
+    await abrirMenu('lcd-y')
+    expect(await screen.findByRole('menuitem', { name: 'Editar' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Mover a bloque' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await abrirMenu('lcd-x-negro')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mover a bloque' }))
+    expect(await screen.findByRole('menuitem', { name: /Bloque 40/ })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Bloque 39/ })).not.toBeInTheDocument()
   })
 })

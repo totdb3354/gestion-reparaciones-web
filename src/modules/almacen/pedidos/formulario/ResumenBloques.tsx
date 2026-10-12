@@ -30,7 +30,7 @@ export function ResumenBloques({ lineas, proveedores, bloques, elegidos, onElegi
       ? <p className="flex flex-wrap items-center gap-2"><b>{fijo.nombre}</b> ({textoLineas(lineas.length)}) <Flecha /> <b>Bloque {fijo.idBloque}</b> <span className="text-azul-gris">(fijado)</span></p>
       : <p className="text-azul-gris">Añade líneas para ver su destino.</p>
   } else if (lineas.length === 0) {
-    contenido = <p className="text-azul-gris">Añade líneas: aquí verás a qué bloque va cada proveedor.</p>
+    contenido = <p className="text-azul-gris">Añade líneas: aquí verás a qué bloque van.</p>
   } else {
     contenido = (
       <>
