@@ -1,22 +1,20 @@
 import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
-// 0.9.9 (spec 2026-10-11): piezas que vende cada proveedor, previsión por proveedor, «Pendiente» / «Pedir 60 d» en el
-// listado de Stock y buscar un bloque por su número. ESCRIBE: solo contra PREPRODUCCIÓN (beforeAll se niega sin el
+// 0.9.9 (spec 2026-10-12): tipos de pieza que vende cada proveedor con modelos excluidos, previsión por proveedor, «Pendiente» / «Pedir 60 d» y buscar un bloque por su número. ESCRIBE: solo contra PREPRODUCCIÓN (beforeAll se niega sin el
 // letrero). Proveedor sintético «E2E Catálogo <marca>»; el SKU de prueba (E2E_SKU_PRUEBA, activo y sin master) se pasa a
 // Auto y se le sube el mínimo (ADMIN) para que haya algo que pedir. afterAll devuelve mínimo y modo, borra la línea
 // pendiente creada y el proveedor, y comprueba que el stock del SKU no se ha movido. Sesiones abiertas una vez en
 // beforeAll (supertécnico y admin: el entorno limita los inicios de sesión por minuto).
 test.describe.configure({ mode: 'serial' })
 
-type Pieza = { idCom: number; tipo: string; stockMinimo: number; autoPedido: boolean | null; pedir60: number | null; pendiente: number | null; proveedores: number[] | null; stock: number; enCamino: number }
+type Pieza = { idCom: number; tipo: string; stockMinimo: number; autoPedido: boolean | null; pedir60: number | null; pendiente: number | null; proveedores: number[] | null; stock: number; enCamino: number; idComMaster: number | null; activo: boolean }
 type RespuestaLote = { idsCreados: number[] }
 
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const marca = Date.now()
 const nombreProv = `E2E Catálogo ${marca}`
 const sku = process.env.E2E_SKU_PRUEBA
-const escaparRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 let sup: Page | null = null
 let adm: Page | null = null
@@ -33,7 +31,7 @@ async function entrar(page: Page, usuario: string, clave: string) {
 }
 
 /** Petición a la API con el token de la sesión de la página (patrón de pedidos.spec.ts). */
-async function llamarApi(page: Page, metodo: 'GET' | 'POST' | 'PATCH' | 'DELETE', ruta: string, cuerpo?: unknown): Promise<{ status: number; json: unknown }> {
+async function llamarApi(page: Page, metodo: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', ruta: string, cuerpo?: unknown): Promise<{ status: number; json: unknown }> {
   return page.evaluate(
     async ({ metodo, ruta, cuerpo }) => {
       const sesion = JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }
@@ -55,6 +53,30 @@ async function pieza(page: Page): Promise<Pieza> {
   expect(p, `No hay componente ${sku}`).toBeTruthy()
   return p as Pieza
 }
+
+type TipoPiezas = { prefijo: string; vende: boolean; modelos: string[]; excluidos: string[] }
+
+/** Prefijo y modelo del SKU de prueba con el criterio del servidor: prefijo = lo que va antes de la primera «i»; modelo
+ *  = el código más largo de los modelos de su tipo que sea prefijo de lo que queda. */
+function prefijoYModelo(tipos: TipoPiezas[]): { prefijo: string; modelo: string } {
+  const s = (sku as string).toLowerCase()
+  const prefijo = s.slice(0, s.indexOf('i'))
+  const tipo = tipos.find((t) => t.prefijo === prefijo)
+  expect(tipo, `El tipo ${prefijo} de ${sku} no sale en GET /piezas`).toBeTruthy()
+  const resto = s.slice(prefijo.length + 1)
+  const modelo = (tipo as TipoPiezas).modelos.filter((m) => resto.startsWith(m)).sort((a, b) => b.length - a.length)[0]
+  expect(modelo, `Sin modelo para ${sku}`).toBeTruthy()
+  return { prefijo, modelo }
+}
+
+/** Las piezas que «Añadir previsión de X (N)» cuenta: masters activas en Auto con algo que pedir que vende X. */
+async function previstas(page: Page): Promise<Pieza[]> {
+  const r = await llamarApi(page, 'GET', '/api/componentes/gestionados')
+  return (r.json as Pieza[]).filter((p) => p.idComMaster == null && p.activo && p.autoPedido === true && (p.pedir60 ?? 0) > 0
+    && (p.proveedores ?? []).includes(idProv as number))
+}
+
+let tipoPrueba: { prefijo: string; modelo: string } | null = null
 
 test.beforeAll(async ({ browser }, testInfo) => {
   const { E2E_USER, E2E_PASS, ADMIN_USER, ADMIN_PASS } = process.env
@@ -129,45 +151,65 @@ test.afterAll(async () => {
   if (fallos.length > 0) throw new Error(`catalogo.spec: preprod NO queda como estaba: ${fallos.join('; ')}`)
 })
 
-test('«Piezas que vende…» guarda la pieza en la lista del proveedor', async () => {
-  const page = sup as Page
-  await page.goto('/stock/proveedores')
-  await page.getByRole('row').filter({ hasText: nombreProv }).click({ button: 'right' })
-  await page.getByRole('menuitem', { name: 'Piezas que vende…' }).click()
-  const dlg = page.getByRole('dialog', { name: `Piezas que vende · ${nombreProv}` })
-  await dlg.getByRole('textbox', { name: 'Buscar pieza' }).fill(sku as string)
-  // El nombre del grupo puede llevar más tipos unidos por « / »: el SKU de prueba va entero, no como prefijo de otro.
-  const s = escaparRegex(sku as string)
-  await dlg.getByRole('checkbox', { name: new RegExp(`^Vende (.* / )?${s}( / .*)?$`) }).click()
-  await dlg.getByRole('button', { name: 'Guardar' }).click()
-  await expect(dlg).toBeHidden()
-  await expect.poll(async () => (await pieza(page)).proveedores).toContain(idProv)
-})
-
-test('con algo que pedir, «Añadir previsión de X (1)» la mete con su cantidad y X', async () => {
+test('con el modelo de la pieza excluido, la previsión de X no la trae', async () => {
   const page = sup as Page
   const p = antes as Pieza
   // Mínimo por encima de lo que hay (solo ADMIN) y pieza en Auto, para que «Pedir 60 d» sea > 0.
   expect((await llamarApi(adm as Page, 'PATCH', `/api/componentes/${p.idCom}/stock-minimo`, { stockMinimo: p.stock + p.enCamino + (p.pendiente ?? 0) + 50 })).status).toBe(200)
   expect((await llamarApi(page, 'PATCH', `/api/componentes/${p.idCom}/auto-pedido`, { autoPedido: true })).status).toBe(200)
-  const conPedido = await pieza(page)
-  expect(conPedido.pedir60 ?? 0).toBeGreaterThan(0)
+  const lectura = await llamarApi(page, 'GET', `/api/proveedores/${idProv}/piezas`)
+  expect(lectura.status).toBe(200)
+  tipoPrueba = prefijoYModelo(lectura.json as TipoPiezas[])
+  // El tipo de la pieza, con todos los modelos menos el suyo (por la API: el desplegable lo cubren los tests unitarios).
+  const guardado = await llamarApi(page, 'PUT', `/api/proveedores/${idProv}/piezas`, { tipos: [{ prefijo: tipoPrueba.prefijo, excluidos: [tipoPrueba.modelo] }] })
+  expect(guardado.status).toBe(204)
+  expect((await pieza(page)).proveedores ?? []).not.toContain(idProv)
+  const n = (await previstas(page)).length
 
   await page.goto('/stock/pedidos')
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-  await expect(dlg.getByRole('button', { name: 'Añadir previsión', exact: true })).toBeDisabled()
   await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
   await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
-  await dlg.getByRole('button', { name: `Añadir previsión de ${nombreProv} (1)` }).click()
-  await expect(dlg.getByLabel('Cantidad línea 1')).toHaveValue(String(conPedido.pedir60))
+  await expect(dlg.getByRole('button', { name: `Añadir previsión de ${nombreProv} (${n})` })).toBeVisible()
+  await dlg.getByRole('button', { name: 'Cancelar' }).click()
+})
+
+test('«Piezas que vende…»: «Todos los modelos» y la previsión ya la trae', async () => {
+  const page = sup as Page
+  const tp = tipoPrueba as { prefijo: string; modelo: string }
+  await page.goto('/stock/proveedores')
+  await page.getByRole('row').filter({ hasText: nombreProv }).click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Piezas que vende…' }).click()
+  const dlg = page.getByRole('dialog', { name: `Piezas que vende · ${nombreProv}` })
+  const renglon = dlg.locator(`[data-prefijo="${tp.prefijo}"]`)
+  await expect(renglon.getByRole('checkbox')).toBeChecked()
+  const desplegable = renglon.getByRole('button')
+  await expect(desplegable).toContainText('Seleccionados')
+  await desplegable.click()
+  await page.getByRole('checkbox', { name: 'Todos los modelos' }).click()
+  await expect(desplegable).toHaveText(/Todos los modelos/)
+  await page.keyboard.press('Escape')
+  await dlg.getByRole('button', { name: 'Guardar' }).click()
+  await expect(dlg).toBeHidden()
+  await expect.poll(async () => (await pieza(page)).proveedores).toContain(idProv)
+
+  const conPedido = await pieza(page)
+  const n = (await previstas(page)).length
+  expect(n).toBeGreaterThan(0)
+  await page.goto('/stock/pedidos')
+  await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
+  const pedido = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
+  await pedido.getByRole('combobox', { name: 'Proveedor general' }).click()
+  await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
+  await pedido.getByRole('button', { name: `Añadir previsión de ${nombreProv} (${n})` }).click()
   const respuesta = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/compras/lote' && r.request().method() === 'POST')
-  await dlg.getByRole('button', { name: 'Confirmar pedido' }).click()
+  await pedido.getByRole('button', { name: 'Confirmar pedido' }).click()
   const lote = await respuesta
   expect(lote.ok(), `POST /api/compras/lote respondió ${lote.status()}`).toBe(true)
   lineasCreadas.push(...((await lote.json()) as RespuestaLote).idsCreados)
-  expect(lineasCreadas).toHaveLength(1)
-  await expect(dlg).toBeHidden()
+  expect(lineasCreadas).toHaveLength(n)
+  await expect(pedido).toBeHidden()
 
   const despues = await pieza(page)
   expect(despues.pendiente).toBe((conPedido.pendiente ?? 0) + (conPedido.pedir60 ?? 0))
