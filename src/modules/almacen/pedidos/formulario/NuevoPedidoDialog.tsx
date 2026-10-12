@@ -69,7 +69,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setLineas(inicial.lineas)
     setOmitidas(componentes.isError ? 0 : inicial.omitidas)
   }
-  if (previsionPendiente && fijo && lineas !== null && (componentes.isSuccess || componentes.isError)) {
+  // Con la caché de Stock ya cargada, `isSuccess` es true con datos viejos: se espera a que acabe la recarga.
+  if (previsionPendiente && fijo && lineas !== null && ((componentes.isSuccess && !componentes.isFetching) || componentes.isError)) {
     setPrevisionPendiente(false)
     if (componentes.isSuccess) {
       const r = aplicarPrevision(lineas, activos, fijo.idProv)
@@ -119,6 +120,9 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setIdProvGeneral(idProv)
     setLineas((ls) => rellenarProveedorVacio(ls ?? [], idProv))
     setError(null)
+    setSinPedido(0)
+    setSinListaVistas(0)
+    setNadaQuePedir(false)
   }
   function aplicarATodas() {
     if (idProvGeneral === null) return
@@ -153,7 +157,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido), avisoSinLista(sinListaVistas), nadaQuePedir ? avisoNadaQuePedir(nombrePrevision) : null].filter((t) => t !== null).join(' ') || null
   const botonPrevision = idProvGeneral === null
     ? <BotonSecundario type="button" disabled title="Elige antes el proveedor">Añadir previsión</BotonSecundario>
-    : <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0} onClick={anadirPrevision}>Añadir previsión de {nombrePrevision} ({nPrevision})</BotonSecundario>
+    : <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0 || componentes.isFetching} onClick={anadirPrevision}>Añadir previsión de {nombrePrevision} ({nPrevision})</BotonSecundario>
 
   return (
     <DialogoLineas<LineaCompra>

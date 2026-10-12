@@ -41,7 +41,7 @@ describe('PiezasProveedorDialog (spec 2026-10-11 §5.1)', () => {
     expect(within(dlg).getByRole('checkbox', { name: 'Vende bat-x / bat-y' })).toBeChecked()
     expect(within(dlg).getByRole('checkbox', { name: 'Vende flex-x' })).not.toBeChecked()
     expect(within(dlg).queryByRole('checkbox', { name: 'Vende mc-x' })).not.toBeInTheDocument()
-    expect(dlg).toHaveTextContent('3 piezas marcadas')
+    expect(dlg).toHaveTextContent('2 piezas marcadas')
   })
 
   it('«Marcar las que se ven» y «Quitar las que se ven» actúan sobre lo filtrado; guardar conserva la desactivada', async () => {
@@ -96,5 +96,25 @@ describe('PiezasProveedorDialog (spec 2026-10-11 §5.1)', () => {
     const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
     expect(await within(dlg).findByText('No se ha podido cargar la lista de piezas.')).toBeInTheDocument()
     expect(within(dlg).getByRole('button', { name: 'Guardar', hidden: true })).toBeDisabled()
+  })
+
+  it('si la lista no carga, Marcar/Quitar las que se ven y Guardar quedan deshabilitados', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
+    abrir()
+    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
+    await within(dlg).findByText('No se ha podido cargar la lista de piezas.')
+    expect(within(dlg).getByRole('button', { name: 'Marcar las que se ven', hidden: true })).toBeDisabled()
+    expect(within(dlg).getByRole('button', { name: 'Quitar las que se ven', hidden: true })).toBeDisabled()
+    expect(within(dlg).getByRole('button', { name: 'Guardar', hidden: true })).toBeDisabled()
+  })
+
+  it('Enter en «Buscar pieza» no guarda ni cierra', async () => {
+    const onCerrar = abrir()
+    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
+    await within(dlg).findByRole('checkbox', { name: 'Vende flex-x' })
+    await userEvent.type(within(dlg).getByRole('textbox', { name: 'Buscar pieza' }), 'flex{Enter}')
+    expect(cuerpos).toHaveLength(0)
+    expect(onCerrar).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Piezas que vende · ACME' })).toBeInTheDocument()
   })
 })

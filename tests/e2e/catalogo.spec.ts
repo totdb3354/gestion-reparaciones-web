@@ -9,7 +9,7 @@ import { credenciales } from './credenciales.ts'
 // beforeAll (supertécnico y admin: el entorno limita los inicios de sesión por minuto).
 test.describe.configure({ mode: 'serial' })
 
-type Pieza = { idCom: number; tipo: string; stockMinimo: number; autoPedido: boolean | null; pedir60: number | null; pendiente: number | null; proveedores: number[] | null; stock: number }
+type Pieza = { idCom: number; tipo: string; stockMinimo: number; autoPedido: boolean | null; pedir60: number | null; pendiente: number | null; proveedores: number[] | null; stock: number; enCamino: number }
 type RespuestaLote = { idsCreados: number[] }
 
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
@@ -148,7 +148,7 @@ test('con algo que pedir, «Añadir previsión de X (1)» la mete con su cantida
   const page = sup as Page
   const p = antes as Pieza
   // Mínimo por encima de lo que hay (solo ADMIN) y pieza en Auto, para que «Pedir 60 d» sea > 0.
-  expect((await llamarApi(adm as Page, 'PATCH', `/api/componentes/${p.idCom}/stock-minimo`, { stockMinimo: p.stock + 50 })).status).toBe(200)
+  expect((await llamarApi(adm as Page, 'PATCH', `/api/componentes/${p.idCom}/stock-minimo`, { stockMinimo: p.stock + p.enCamino + (p.pendiente ?? 0) + 50 })).status).toBe(200)
   expect((await llamarApi(page, 'PATCH', `/api/componentes/${p.idCom}/auto-pedido`, { autoPedido: true })).status).toBe(200)
   const conPedido = await pieza(page)
   expect(conPedido.pedir60 ?? 0).toBeGreaterThan(0)

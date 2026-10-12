@@ -41,7 +41,8 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
 
   function cambiar(ids: number[], marcar: boolean) {
     setMarcadas((m) => {
-      const nuevo = new Set(m ?? [])
+      if (m === null) return m
+      const nuevo = new Set(m)
       for (const id of ids) {
         if (marcar) nuevo.add(id)
         else nuevo.delete(id)
@@ -68,15 +69,15 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
     <DialogoAlmacen abierto ancho={640} titulo={`Piezas que vende · ${proveedor.nombre}`} error={error} textoAccion="Guardar"
       enviando={guardar.isPending} accionDeshabilitada={marcadas === null} onConfirmar={() => void confirmar()} onCancelar={onCerrar}>
       <div className="flex flex-wrap items-center gap-2.5">
-        <Input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Buscar pieza…" aria-label="Buscar pieza" className="w-[200px] bg-superficie" />
-        <BotonSecundario type="button" onClick={() => cambiar(visibles.map((f) => f.idCom), true)}>Marcar las que se ven</BotonSecundario>
-        <BotonSecundario type="button" onClick={() => cambiar(visibles.map((f) => f.idCom), false)}>Quitar las que se ven</BotonSecundario>
+        <Input value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }} placeholder="Buscar pieza…" aria-label="Buscar pieza" className="w-[200px] bg-superficie" />
+        <BotonSecundario type="button" disabled={marcadas === null} onClick={() => cambiar(visibles.map((f) => f.idCom), true)}>Marcar las que se ven</BotonSecundario>
+        <BotonSecundario type="button" disabled={marcadas === null} onClick={() => cambiar(visibles.map((f) => f.idCom), false)}>Quitar las que se ven</BotonSecundario>
         <label className="flex items-center gap-1.5 text-[12px] text-azul-gris">
           <Checkbox checked={soloMarcadas} onCheckedChange={(v) => setSoloMarcadas(v === true)} aria-label="Solo las marcadas" />
           Solo las marcadas
         </label>
       </div>
-      <p className="text-[12px] text-azul-gris">{textoMarcadas(marcadas?.size ?? 0)}</p>
+      <p className="text-[12px] text-azul-gris">{textoMarcadas(marcadas === null ? 0 : filas.filter((f) => marcadas.has(f.idCom)).length)}</p>
       {marcadas === null ? (
         <p role="status" className="text-[12px] text-azul-gris">
           {componentes.isError ? 'No se ha podido cargar la lista de piezas.' : 'Cargando piezas…'}

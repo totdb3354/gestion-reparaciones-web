@@ -452,6 +452,27 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
     expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
   })
 
+  it('«Añadir previsión…» de un bloque con la caché de Stock vieja espera a la lista fresca y no aplica números viejos', async () => {
+    const qc = crearQueryClient({ retry: false })
+    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, CON_PREVISION)
+    server.use(http.get('*/api/componentes/gestionados', async () => {
+      await delay(50)
+      return HttpResponse.json(CON_PREVISION.map((c) => (c.idCom === 1 ? { ...c, pedir60: 0 } : c)))
+    }))
+    renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'bloque', idBloque: 41, idProv: 1, prevision: true }} onCerrar={vi.fn()} /> }], { sesion: SESION_SUPER, queryClient: qc })
+    expect(await screen.findByRole('status')).toHaveTextContent('Nada que pedir a ACME según la previsión.')
+    expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
+  })
+
+  it('«Añadir previsión…» de un bloque con la lista en 500 no añade líneas ni avisos de previsión', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
+    abrir({ modo: 'bloque', idBloque: 41, idProv: 1, prevision: true })
+    await screen.findByRole('dialog', { name: 'Añadir líneas · Bloque 41' })
+    await new Promise((r) => setTimeout(r, 200))
+    expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
+    expect(screen.queryByText(/según la previsión|no necesita pedido|no está en la lista/)).not.toBeInTheDocument()
+  })
+
   it('«Aplicar a todas» cambia también el proveedor que ya tenía una línea', async () => {
     abrir({ modo: 'componentes', idsCom: [1] })
     await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
