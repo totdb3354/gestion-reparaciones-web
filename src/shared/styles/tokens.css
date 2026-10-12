@@ -138,10 +138,14 @@
 
   /* Pedidos (sub-proyecto 4b), calco de StockController :869 y :904 (colores a mano, sin constante en Colores.java):
      barra ámbar del pendiente y su badge. El resto reutiliza fila-solicitud (en camino urgente), fila-recibido,
-     fila-parcial, fila-cancelado y badge-neutro/azul-gris (en camino normal). */
+     fila-parcial y fila-cancelado. */
   --color-fila-pendiente-brd: #C8961E;
   --color-badge-pendiente-bg: #FFF3D6;
   --color-badge-pendiente-text: #B26A00;
+  /* En camino normal (0.9.9, decisión del usuario 2026-10-12): azul en vez del gris neutro del JavaFX, que se confundía
+     con el de cancelado. */
+  --color-badge-en-camino-bg: #BBDEFB;
+  --color-badge-en-camino-text: #1565C0;
 
   /* Gestión (sub-proyecto 6). Fondo de RegisterView.fxml (#EFEFEF, el mismo valor que fondo-login: token propio para no
      atar la página de técnicos al login), badge de estado de RegisterController :106-131 (colores a mano, sin constante en

@@ -109,11 +109,11 @@ describe('tabla de otros', () => {
 })
 
 describe('badge, "⚠" y clase de fila', () => {
-  it('badge con el estado tal cual y los colores de StockController :903-914; "⚠" solo si urgente en camino o parcial', () => {
+  it('badge con el estado tal cual y los colores de StockController :903-914 salvo en camino normal, azul (0.9.9); "⚠" solo si urgente en camino o parcial', () => {
     const casos: [Partial<CompraComponente>, string[]][] = [
       [{ estado: 'pendiente' }, ['bg-badge-pendiente-bg', 'text-badge-pendiente-text']],
       [{ estado: 'en_camino', esUrgente: true }, ['bg-fila-solicitud-bg', 'text-fila-solicitud-brd']],
-      [{ estado: 'en_camino' }, ['bg-badge-neutro-bg', 'text-azul-gris']],
+      [{ estado: 'en_camino' }, ['bg-badge-en-camino-bg', 'text-badge-en-camino-text']],
       [{ estado: 'recibido' }, ['bg-fila-recibido-bg', 'text-fila-recibido-brd']],
       [{ estado: 'parcial', esUrgente: true }, ['bg-fila-parcial-bg', 'text-fila-parcial-brd']],
       [{ estado: 'cancelado' }, ['bg-fila-cancelado-bg', 'text-fila-cancelado-text']],
