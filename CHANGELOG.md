@@ -14,6 +14,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - **Previsión por proveedor** en «Nuevo pedido»: se elige el proveedor arriba y «Añadir previsión de X (N)» añade las piezas en Auto que vende X con su cantidad. Avisa de las piezas en Auto con algo que pedir que no están en la lista de ningún proveedor. También desde el menú del bloque: «Añadir previsión…». Sin proveedor elegido, «Añadir previsión» queda deshabilitado (en la 0.9.6 funcionaba sin él).
 - **«Pedir 60 d» descuenta lo pendiente** (lo apuntado en cualquier bloque y aún sin pedir), y Stock tiene la columna **«Pendiente»** (también en el CSV).
 - **Buscar un bloque por su número**: en Pedidos (Componentes), escribir solo cifras en el buscador enseña ese bloque.
+- **«En camino» en azul** en Pedidos y Otros pedidos (badge de la línea y chip de la cabecera del bloque): el gris de antes se confundía con «cancelado». El urgente sigue en naranja con ⚠.
 - CSV de pedidos con las columnas «Bloque» y «Nota del bloque». Los pedidos anteriores se agrupan en bloques «antiguos» (mismo proveedor y día).
 - Requiere el servidor 0.9.9 y las migraciones `migracion-bloques-compra.sql`, `reconstruir-bloques-compra.sql`, `migracion-catalogo-proveedores.sql` y `rellenar-catalogo-proveedores.sql`. Sin cambios en nginx.
 

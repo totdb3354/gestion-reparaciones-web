@@ -18,7 +18,8 @@ describe('CabeceraBloque (spec §6.3)', () => {
     expect(screen.getByText(formatearImporte(60, '€'))).toBeInTheDocument()
     expect(screen.getByText('⚠')).toBeInTheDocument()
     expect(screen.getByText('1 pendiente')).toBeInTheDocument()
-    expect(screen.getByText('2 en camino')).toBeInTheDocument()
+    // En camino, azul aunque una sea urgente: el aviso va en el ⚠ (0.9.9).
+    expect(screen.getByText('2 en camino')).toHaveClass('bg-badge-en-camino-bg', 'text-badge-en-camino-text')
     expect(screen.getByTitle('Ped. 123')).toHaveTextContent('📝 Ped. 123')
     expect(screen.queryByText(/mostrando/)).not.toBeInTheDocument()
     expect(screen.queryByText('antiguo')).not.toBeInTheDocument()

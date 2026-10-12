@@ -121,6 +121,7 @@ Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea
 
 - [x] Barra izquierda de 8 px: pendiente ámbar, en camino urgente naranja y normal sin barra, recibido verde, parcial violeta; cancelado sin barra y atenuado al 45 % (`pedidos-con-datos`; `columnas.test.tsx` "clase de fila: barra de 8 px por estado…").
 - [x] Badges: pendiente, en camino urgente y normal, recibido, parcial y cancelado con sus colores; radio 12, 11 px negrita; "⚠" a la derecha en urgentes en camino o parciales (`pedidos-con-datos`; `reglas.test.ts` "\"⚠\" solo si urgente y en camino o parcial…").
+- [x] **En camino normal, azul (0.9.9, decisión del usuario 2026-10-12)**: fondo `#BBDEFB` y texto `#1565C0` en el badge de la línea y en el chip de la cabecera del bloque, en vez del gris neutro del JavaFX (`#E8EAF0` / `#586376`), que se confundía con el de cancelado. El urgente sigue naranja con "⚠" (`columnas.test.tsx` "badge con el estado tal cual…", `CabeceraBloque.test.tsx`).
 - [x] Fila seleccionada navy con textos claros; el enlace Componente, el importe ámbar y el "!" conservan su color (calco, ver arriba) (`pedidos-fila-seleccionada`, `pedidos-fila-seleccionada-enlace`).
 - [x] Un cancelado seleccionado, navy sin la opacidad (calco, ver arriba) (`pedidos-fila-cancelada-seleccionada`; `columnas.test.tsx` "cancelado seleccionado…").
 
