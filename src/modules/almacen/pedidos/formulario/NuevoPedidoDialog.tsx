@@ -25,7 +25,7 @@ type Props = { precarga: PrecargaPedido; onCerrar: () => void }
 
 /** "Nuevo pedido" (FormularioCompraController, spec §6): modal en el sitio (P1) con la precarga del store. Un único
  *  POST /api/compras/lote con Idempotency-Key (P5): misma clave mientras el cuerpo no cambie, nueva tras un éxito.
- *  0.9.9: resumen «Bloques» al pie (a qué bloque va cada proveedor) y modo «Añadir líneas» de un bloque (precarga
+ *  0.9.9: resumen «Bloques» al pie (a qué bloque va el pedido, que tiene un único proveedor) y modo «Añadir líneas» de un bloque (precarga
  *  `bloque`: proveedor y destino fijos). */
 export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const componentes = useComponentesStock({ activo: false })

@@ -36,7 +36,8 @@ type Props<L extends LineaBase> = {
   barra?: ReactNode
   /** 0.9.9: resumen «Bloques» de «Nuevo pedido», encima de los botones. */
   pie?: ReactNode
-  /** 0.9.9 («Añadir líneas» de un bloque): proveedor fijo de todas las líneas, sin desplegable. */
+  /** 0.9.9: proveedor fijo de todas las líneas, sin desplegable. Lo usan «Añadir líneas» (el proveedor del bloque) y
+   *  «Nuevo pedido» (el único proveedor del pedido, «—» hasta que se elige). */
   proveedorFijo?: string
   lineas: L[]
   proveedores: Proveedor[]

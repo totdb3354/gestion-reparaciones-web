@@ -105,6 +105,21 @@ describe('SepararDialog', () => {
   })
 })
 
+describe('SepararDialog con líneas cerradas', () => {
+  it('las recibidas y canceladas se ven pero su casilla está deshabilitada; las vivas no', async () => {
+    const b = agruparEnBloques([
+      l({ idCompra: 1 }),
+      l({ idCompra: 2, estado: 'recibido', cantidadRecibida: 1, tipoComponente: 'bat-x' }),
+      l({ idCompra: 3, estado: 'cancelado', tipoComponente: 'mc-x' }),
+    ]).get('41')!
+    renderConProviders(<SepararDialog bloque={b} onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Separar líneas · Bloque 41' })
+    expect(within(dlg).getByRole('checkbox', { name: /\(ID 1\)/ })).toBeEnabled()
+    expect(within(dlg).getByRole('checkbox', { name: 'Separar bat-x (ID 2)' })).toBeDisabled()
+    expect(within(dlg).getByRole('checkbox', { name: 'Separar mc-x (ID 3)' })).toBeDisabled()
+  })
+})
+
 describe('JuntarDialog', () => {
   it('elegir destino, avisar de las ya pedidas y mandar el bloque entero', async () => {
     const onCerrar = vi.fn()

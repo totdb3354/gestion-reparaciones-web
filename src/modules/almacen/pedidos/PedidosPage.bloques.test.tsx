@@ -139,6 +139,16 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}"}]}`]))
   })
 
+  it('⋮ del bloque → «Juntar con…» ofrece el bloque abierto y no el terminado', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /Juntar con/ }))
+    const dlg = await screen.findByRole('dialog', { name: 'Juntar Bloque 41 con…' })
+    expect(within(dlg).getByRole('radio', { name: /Bloque 40/ })).toBeInTheDocument()
+    expect(within(dlg).queryByRole('radio', { name: /Bloque 39/ })).not.toBeInTheDocument()
+  })
+
   it('⋮ del bloque → «Añadir previsión…» abre el formulario en modo bloque con la previsión', async () => {
     montar()
     await screen.findByText('lcd-x-negro')

@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
+import { cn } from '@/shared/lib/utils'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useSepararBloque, vistaDe } from '../api'
 import { BadgeEstadoPedido } from '../BadgeEstadoPedido'
 import { tratarFalloBloque } from './fallos'
-import { textoYaPedidasSeparar, type Bloque } from './reglas'
+import { sePuedeMover, textoYaPedidasSeparar, type Bloque } from './reglas'
 
 type Props = { bloque: Bloque; onCerrar: () => void }
 
 /** «Separar líneas…» (spec §6.5): las marcadas pasan a un bloque nuevo del mismo proveedor; al menos una se queda. Las
- *  ya pedidas no piden otra confirmación: el aviso va dentro y el botón dice «Separar igualmente». */
+ *  ya pedidas no piden otra confirmación: el aviso va dentro y el botón dice «Separar igualmente». Solo se marcan
+ *  líneas vivas (pendiente, en camino o parcial); las recibidas y canceladas se ven pero no se pueden separar (2026-10-12). */
 export function SepararDialog({ bloque, onCerrar }: Props) {
   const separar = useSepararBloque()
   const { mostrarAviso } = useAlerta()
@@ -50,8 +52,9 @@ export function SepararDialog({ bloque, onCerrar }: Props) {
       <ul className="max-h-[50vh] overflow-y-auto rounded-lg border border-fila-sep bg-superficie">
         {bloque.lineas.map((p) => (
           <li key={p.idCompra} className="border-b border-crema last:border-b-0">
-            <label className="flex cursor-pointer items-center gap-2.5 px-2.5 py-1.5 text-[12px] text-azul-medio">
-              <Checkbox checked={marcadas.has(p.idCompra)} onCheckedChange={(v) => alternar(p.idCompra, v === true)}
+            <label className={cn('flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] text-azul-medio',
+              sePuedeMover(p) ? 'cursor-pointer' : 'cursor-default opacity-60')}>
+              <Checkbox checked={marcadas.has(p.idCompra)} disabled={!sePuedeMover(p)} onCheckedChange={(v) => alternar(p.idCompra, v === true)}
                 aria-label={`Separar ${p.tipoComponente} (ID ${p.idCompra})`} className="bg-superficie" />
               <span className="text-azul-gris">{p.idCompra}</span>
               <b>{p.tipoComponente}</b>
