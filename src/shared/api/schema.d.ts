@@ -84,14 +84,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/proveedores/{idProv}/componentes": {
+    "/api/proveedores/{idProv}/piezas": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["leer"];
         put: operations["reemplazar"];
         post?: never;
         delete?: never;
@@ -2469,7 +2469,11 @@ export interface components {
             comentario: string;
         };
         ProveedorPiezasRequest: {
-            idsCom: number[];
+            tipos: components["schemas"]["ProveedorPiezasTipoRequest"][];
+        };
+        ProveedorPiezasTipoRequest: {
+            prefijo: string;
+            excluidos: string[];
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -3436,6 +3440,12 @@ export interface components {
             comentario: string;
             tipo: string;
         };
+        ProveedorPiezasTipo: {
+            prefijo: string;
+            vende: boolean;
+            modelos: string[];
+            excluidos: string[];
+        };
         Lote: {
             /** Format: int32 */
             idLote: number;
@@ -3806,6 +3816,28 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    leer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idProv: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProveedorPiezasTipo"][];
+                };
             };
         };
     };

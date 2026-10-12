@@ -92,4 +92,35 @@ describe('MultiSelect', () => {
     rerender(<MultiSelect opciones={opciones} clave={(o) => String(o.id)} etiqueta={(o) => o.nombre} seleccion={new Set(['1', '2'])} onChange={() => {}} textoVacio="Técnico" textoPlural={(n) => `${n} técnicos`} />)
     expect(screen.getByRole('button', { name: '2 técnicos' })).toBeInTheDocument()
   })
+
+  it('texto fijo, etiqueta accesible y «Todos» arriba que marca todas', async () => {
+    const onChange = vi.fn()
+    render(<MultiSelect opciones={['12', '13', '14']} clave={(o) => o} etiqueta={(o) => `iPhone ${o}`} seleccion={new Set(['12'])} onChange={onChange}
+      textoVacio="No lo vende" textoPlural={(n) => `${n} modelos`} texto="Seleccionados 1 de 3" opcionTodas="Todos los modelos" etiquetaAccesible="Modelos de Batería" />)
+    const boton = screen.getByRole('button', { name: 'Modelos de Batería' })
+    expect(boton).toHaveTextContent('Seleccionados 1 de 3')
+    await userEvent.click(boton)
+    const todos = screen.getByRole('checkbox', { name: 'Todos los modelos' })
+    expect(todos).not.toBeChecked()
+    expect(screen.getByRole('separator').previousElementSibling).toHaveTextContent('Todos los modelos')
+    await userEvent.click(todos)
+    expect(onChange).toHaveBeenCalledWith(new Set(['12', '13', '14']))
+  })
+
+  it('«Todos» sale marcado con todas marcadas', async () => {
+    render(<MultiSelect opciones={['12', '13']} clave={(o) => o} etiqueta={(o) => o} seleccion={new Set(['12', '13'])} onChange={vi.fn()}
+      textoVacio="x" textoPlural={(n) => `${n}`} opcionTodas="Todos los modelos" />)
+    await userEvent.click(screen.getByRole('button'))
+    expect(screen.getByRole('checkbox', { name: 'Todos los modelos' })).toBeChecked()
+  })
+
+  it('deshabilitado no abre y lleva el gris de lo inactivo', async () => {
+    render(<MultiSelect opciones={['12']} clave={(o) => o} etiqueta={(o) => o} seleccion={new Set()} onChange={vi.fn()}
+      textoVacio="No lo vende" textoPlural={(n) => `${n}`} deshabilitado />)
+    const boton = screen.getByRole('button', { name: 'No lo vende' })
+    expect(boton).toBeDisabled()
+    expect(boton).toHaveClass('disabled:bg-pill-bg', 'disabled:text-texto-sub')
+    await userEvent.click(boton)
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+  })
 })

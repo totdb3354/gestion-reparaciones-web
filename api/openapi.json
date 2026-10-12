@@ -261,7 +261,35 @@
         }
       }
     },
-    "/api/proveedores/{idProv}/componentes" : {
+    "/api/proveedores/{idProv}/piezas" : {
+      "get" : {
+        "tags" : [ "proveedor-piezas-controller" ],
+        "operationId" : "leer",
+        "parameters" : [ {
+          "name" : "idProv",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProveedorPiezasTipo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "put" : {
         "tags" : [ "proveedor-piezas-controller" ],
         "operationId" : "reemplazar",
@@ -5103,14 +5131,28 @@
         }
       },
       "ProveedorPiezasRequest" : {
-        "required" : [ "idsCom" ],
+        "required" : [ "tipos" ],
         "type" : "object",
         "properties" : {
-          "idsCom" : {
+          "tipos" : {
             "type" : "array",
             "items" : {
-              "type" : "integer",
-              "format" : "int32"
+              "$ref" : "#/components/schemas/ProveedorPiezasTipoRequest"
+            }
+          }
+        }
+      },
+      "ProveedorPiezasTipoRequest" : {
+        "required" : [ "excluidos", "prefijo" ],
+        "type" : "object",
+        "properties" : {
+          "prefijo" : {
+            "type" : "string"
+          },
+          "excluidos" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
             }
           }
         }
@@ -7735,6 +7777,30 @@
           },
           "tipo" : {
             "type" : "string"
+          }
+        }
+      },
+      "ProveedorPiezasTipo" : {
+        "required" : [ "excluidos", "modelos", "prefijo", "vende" ],
+        "type" : "object",
+        "properties" : {
+          "prefijo" : {
+            "type" : "string"
+          },
+          "vende" : {
+            "type" : "boolean"
+          },
+          "modelos" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "excluidos" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         }
       },
