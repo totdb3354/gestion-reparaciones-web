@@ -187,6 +187,7 @@ Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea
 - [x] Avisos inline: "Añade al menos una línea.", "Línea {i}: selecciona un componente.", "Línea {i}: selecciona un proveedor.", "Línea {i}: la cantidad debe ser mayor que 0.", "Línea {i}: el precio no puede ser negativo." (`form-nuevo-error-sin-lineas`, `form-nuevo-error-componente`, `form-nuevo-error-proveedor`; los de cantidad y precio solo en la web, C21; `lineas.test.ts` "validarLineasCompra").
 - [x] Guardar cierra y recarga pedidos, stock y campana; "Cancelar" cierra sin preguntar. (verificado por test: `api.test.tsx` "useRecargaPedidos", `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\" → un lote con clave… cierra", "\"Cancelar\" cierra sin preguntar aunque haya líneas…")
 - [x] 503 del tipo de cambio al guardar: el mensaje del servidor en la línea de error, formulario abierto y sin banner (diferencia D-503, ver arriba). (verificado por test: `NuevoPedidoDialog.test.tsx` "503 del tipo de cambio al guardar…")
+- [x] **Un proveedor por pedido (0.9.9, decisión del usuario 2026-10-12)**: el proveedor se elige arriba («Proveedor general»), es obligatorio («Elige el proveedor.») y vale para todas las líneas; la columna Proveedor lo enseña sin combo. Desviación del JavaFX, que elegía proveedor en cada línea (`NuevoPedidoDialog.test.tsx` «elegir el proveedor lo pone en todas las líneas…»).
 
 ## Precargas del Nuevo pedido
 

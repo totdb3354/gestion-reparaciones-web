@@ -85,10 +85,9 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
       // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
       await page.getByRole('option', { name: sku!, exact: true }).click()
-      // El primer combobox del diálogo es el autocompletar de Componente (CampoAutocompletar, también role="combobox"),
-      // no el proveedor: se localiza por su aria-label (DialogoLineas.tsx:111), no por posición.
-      await dlg.getByRole('combobox', { name: 'Proveedor línea 1' }).click()
-      await page.getByRole('option', { name: nombreProv, exact: true }).getByRole('button').click()
+      // Un proveedor por pedido (0.9.9): se elige arriba, en «Proveedor general», y lo llevan todas las líneas.
+      await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
+      await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
 
       // La espera se registra ANTES del clic: waitForResponse solo atrapa respuestas posteriores al registro.
       const respuestaLote = page.waitForResponse(esRespuesta('/api/compras/lote', 'POST'))
