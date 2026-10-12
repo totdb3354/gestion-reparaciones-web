@@ -49,11 +49,11 @@ export function agruparEnBloques(todas: CompraComponente[]): Map<string, Bloque>
   return mapa
 }
 
-/** Regla 7: bloques de más reciente a más antiguo (fecha y número descendentes); «Sin bloque», al final. */
+/** Regla 7 (0.9.9): bloques de mayor a menor número; «Sin bloque», al final. */
 export function compararBloques(a: Bloque, b: Bloque): number {
   if (a.idBloque === null) return b.idBloque === null ? 0 : 1
   if (b.idBloque === null) return -1
-  return (b.fecha ?? '').localeCompare(a.fecha ?? '') || b.idBloque - a.idBloque
+  return b.idBloque - a.idBloque
 }
 
 /** Las líneas visibles (ya filtradas) en el orden de la vista agrupada: cada bloque seguido, en el orden de la regla 7. */
@@ -145,7 +145,7 @@ export function entradasMenuBloque(b: Bloque, otrosDelProveedor: number): Entrad
   ]
 }
 
-/** Bloques del proveedor (sin `excluir`), del más reciente al más antiguo. «Sin bloque» nunca cuenta. */
+/** Bloques del proveedor (sin `excluir`), de mayor a menor número. «Sin bloque» nunca cuenta. */
 export function bloquesDelProveedor(bloques: Map<string, Bloque>, idProv: number, excluir?: string): Bloque[] {
   return [...bloques.values()].filter((b) => b.idBloque !== null && b.idProv === idProv && b.clave !== excluir).sort(compararBloques)
 }
