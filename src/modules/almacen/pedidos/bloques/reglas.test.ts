@@ -26,12 +26,13 @@ describe('agrupar y ordenar', () => {
     expect(claveBloque(l({ idBloque: null }))).toBe(SIN_BLOQUE)
   })
 
-  it('ordena bloques por fecha y número descendentes, «Sin bloque» al final; dentro, líneas ascendentes', () => {
+  it('ordena bloques por número descendente (aunque la fecha sea anterior), «Sin bloque» al final; dentro, líneas ascendentes', () => {
     const todas = [
       l({ idCompra: 1, ...B39 }), l({ idCompra: 2, ...B40 }), l({ idCompra: 3, idBloque: null, fechaBloque: null }),
       l({ idCompra: 4, ...B41, fechaPedido: '2026-10-09T12:00:00' }), l({ idCompra: 5, ...B41, fechaPedido: '2026-10-09T11:00:00' }),
+      l({ idCompra: 6, idBloque: 42, fechaBloque: '2026-10-01T10:00:00' }),
     ]
-    expect(ordenarPorBloques(todas, agruparEnBloques(todas)).map((x) => x.idCompra)).toEqual([5, 4, 2, 1, 3])
+    expect(ordenarPorBloques(todas, agruparEnBloques(todas)).map((x) => x.idCompra)).toEqual([6, 5, 4, 2, 1, 3])
   })
 })
 
@@ -117,7 +118,7 @@ describe('mover y destinos', () => {
     l({ idCompra: 5, idBloque: 50, fechaBloque: '2026-10-09T09:00:00', idProv: 2, nombreProveedor: 'Proveedor B' }),
   ]
   const bloques = agruparEnBloques(todas)
-  it('destinos: los del mismo proveedor sin el propio, del más reciente al más antiguo', () => {
+  it('destinos: los del mismo proveedor sin el propio, de mayor a menor número', () => {
     expect(destinosMover(todas[0], bloques)).toEqual([
       { idBloque: 40, texto: 'Bloque 40', detalle: '08/10 · 1 línea · abierto' },
       { idBloque: 39, texto: 'Bloque 39', detalle: '08/10 · 1 línea · terminado' },
