@@ -2,8 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
 // 0.9.9 (spec 2026-10-12): tipos de pieza que vende cada proveedor con modelos excluidos, previsión por proveedor, «Pendiente» / «Pedir 60 d» y buscar un bloque por su número. ESCRIBE: solo contra PREPRODUCCIÓN (beforeAll se niega sin el
-// letrero). Proveedor sintético «E2E Catálogo <marca>»; el SKU de prueba (E2E_SKU_PRUEBA, activo y sin master) se pasa a
-// Auto y se le sube el mínimo (ADMIN) para que haya algo que pedir. afterAll devuelve mínimo y modo, borra la línea
+// letrero). Proveedor sintético «E2E Catálogo <marca>»; el SKU de prueba (E2E_SKU_PRUEBA, activo y sin master; su tipo debe
+// tener al menos otro modelo activo, y el SKU no debe tener esclavos de otro modelo: si no, la exclusión de la
+// primera prueba no puede dejarlo fuera) se pasa a Auto y se le sube el mínimo (ADMIN) para que haya algo que pedir. afterAll devuelve mínimo y modo, borra la línea
 // pendiente creada y el proveedor, y comprueba que el stock del SKU no se ha movido. Sesiones abiertas una vez en
 // beforeAll (supertécnico y admin: el entorno limita los inicios de sesión por minuto).
 test.describe.configure({ mode: 'serial' })
