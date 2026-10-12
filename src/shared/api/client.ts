@@ -18,6 +18,7 @@ export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
 /** Almacén (sub-proyecto 4a): proveedores de componentes (`tipo` COMPONENTES/TELEFONOS viene del servidor de main). */
 export type Proveedor = components['schemas']['Proveedor']
+export type TipoPiezasProveedor = components['schemas']['ProveedorPiezasTipo']
 
 /** Pedidos (sub-proyecto 4b): pedidos de componentes y "otros pedidos". `cantidadRecibida` y `fechaLlegada` vienen a null
  *  hasta la recepción (nullables del contrato desde la Task 6 del servidor). */

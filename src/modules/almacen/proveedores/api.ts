@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query'
-import { api, type Proveedor } from '@/shared/api/client'
+import { api, type Proveedor, type TipoPiezasProveedor } from '@/shared/api/client'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
+import type { CuerpoPiezas } from './piezasPorTipo'
 
 /** Siempre con ?tipo=COMPONENTES (diferencia hotfix→main adoptada, spec paraguas §2): el servidor de main distingue
  *  proveedores de componentes y de teléfonos, y sin el parámetro los mezcla. */
@@ -69,14 +70,26 @@ export function useBorrarProveedor(): UseMutationResult<unknown, unknown, number
   })
 }
 
-/** 0.9.9 (spec 2026-10-11 §5.1): sustituye las piezas que vende el proveedor. Su 422 lo pinta el diálogo: silencia el
- *  global. La lista llega en `proveedores` de cada pieza del listado de Stock: se recarga (`['componentes', …]`). */
-export function useGuardarPiezasProveedor(): UseMutationResult<unknown, unknown, { idProv: number; idsCom: number[] }> {
+/** 0.9.9 (spec 2026-10-12 §4.3): los tipos que existen y lo que vende el proveedor de cada uno. El diálogo lo monta
+ *  solo mientras está abierto. */
+export function usePiezasProveedor(idProv: number): UseQueryResult<TipoPiezasProveedor[]> {
+  return useQuery({
+    queryKey: ['proveedores', idProv, 'piezas'],
+    queryFn: async () => (await api.GET('/api/proveedores/{idProv}/piezas', { params: { path: { idProv } } })).data ?? [],
+  })
+}
+
+/** 0.9.9 (spec 2026-10-12 §4.3): sustituye los tipos que vende el proveedor. Su 422 lo pinta el diálogo: silencia el
+ *  global. Lo que vende cada pieza llega en `proveedores` del listado de Stock: se recarga (`['componentes', …]`). */
+export function useGuardarPiezasProveedor(): UseMutationResult<unknown, unknown, { idProv: number; cuerpo: CuerpoPiezas }> {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ idProv, idsCom }: { idProv: number; idsCom: number[] }) =>
-      api.PUT('/api/proveedores/{idProv}/componentes', { params: { path: { idProv } }, body: { idsCom } }),
+    mutationFn: ({ idProv, cuerpo }: { idProv: number; cuerpo: CuerpoPiezas }) =>
+      api.PUT('/api/proveedores/{idProv}/piezas', { params: { path: { idProv } }, body: cuerpo }),
     meta: { silenciarError: true },
-    onSettled: () => void qc.invalidateQueries({ queryKey: ['componentes'] }),
+    onSettled: (_datos, _error, { idProv }) => {
+      void qc.invalidateQueries({ queryKey: ['componentes'] })
+      void qc.invalidateQueries({ queryKey: ['proveedores', idProv, 'piezas'] })
+    },
   })
 }

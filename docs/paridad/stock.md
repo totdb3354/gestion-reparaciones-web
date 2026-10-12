@@ -213,6 +213,6 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (raíz):
 
-- Proveedores: clic derecho → «Piezas que vende…» (supertécnicos) abre «Piezas que vende · <proveedor>» con buscador, «Marcar las que se ven», «Quitar las que se ven» y «Solo las marcadas»; arranca rellenada con el historial de pedidos.
+- Proveedores: clic derecho → «Piezas que vende…» (supertécnicos) abre «Piezas que vende · <proveedor>»: un renglón por tipo de pieza con su casilla y un desplegable de modelos («Todos los modelos» / «Seleccionados K de M»; los desmarcados quedan excluidos, los modelos nuevos entran solos); arranca rellenada con los tipos pedidos (spec 2026-10-12).
 - Stock gana la columna «Pendiente» (también en el CSV): lo apuntado en cualquier bloque y aún sin pedir.
 - «Pedir 60 d» descuenta lo pendiente.

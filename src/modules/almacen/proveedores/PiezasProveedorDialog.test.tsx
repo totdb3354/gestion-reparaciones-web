@@ -2,26 +2,26 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Componente, Proveedor } from '@/shared/api/client'
+import type { Proveedor, TipoPiezasProveedor } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
-import { COMPONENTES } from '../pedidos/formulario/datosPrueba'
-import { CLAVE_COMPONENTES_GESTIONADOS } from '../stock/api'
 import { PiezasProveedorDialog } from './PiezasProveedorDialog'
 
 const ACME: Proveedor = { idProv: 1, nombre: 'ACME', activo: true, divisa: 'EUR', comentario: '', tipo: 'COMPONENTES' }
 
-// lcd-x-negro (1) y bat-x / bat-y (2, 5) los vende ACME; mc-x (4) está desactivada y también la vende ACME.
-const LISTADO: Componente[] = COMPONENTES.map((c) => ({ ...c, proveedores: c.idCom === 1 || c.idCom === 2 || c.idCom === 4 || c.idCom === 5 ? [1] : [] }))
-  .concat([{ ...COMPONENTES[0], idCom: 6, tipo: 'flex-x', proveedores: [] }])
+const TIPOS: TipoPiezasProveedor[] = [
+  { prefijo: 'bat', vende: true, modelos: ['12', '13', '14'], excluidos: [] },
+  { prefijo: 'g', vende: true, modelos: ['12', '12mini', '13', '13mini'], excluidos: ['12mini', '13mini'] },
+  { prefijo: 'lcd', vende: false, modelos: ['13', '14'], excluidos: [] },
+]
 
 let cuerpos: unknown[]
 beforeEach(() => {
   cuerpos = []
   server.use(
-    http.get('*/api/componentes/gestionados', () => HttpResponse.json(LISTADO)),
-    http.put('*/api/proveedores/:id/componentes', async ({ request }) => {
+    http.get('*/api/proveedores/:id/piezas', () => HttpResponse.json(TIPOS)),
+    http.put('*/api/proveedores/:id/piezas', async ({ request }) => {
       cuerpos.push(await request.json())
       return new HttpResponse(null, { status: 204 })
     }),
@@ -33,88 +33,81 @@ const abrir = (onCerrar = vi.fn()) => {
   return onCerrar
 }
 
-describe('PiezasProveedorDialog (spec 2026-10-11 §5.1)', () => {
-  it('lista las activas, una fila por grupo, con las de ACME marcadas', async () => {
+async function dialogo() {
+  const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
+  await within(dlg).findByRole('checkbox', { name: 'Vende Batería' })
+  return dlg
+}
+
+describe('PiezasProveedorDialog por tipos (spec 2026-10-12 §5.1)', () => {
+  it('un renglón por tipo con su casilla, el desplegable y lo que falta', async () => {
     abrir()
-    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    expect(await within(dlg).findByRole('checkbox', { name: 'Vende lcd-x-negro' })).toBeChecked()
-    expect(within(dlg).getByRole('checkbox', { name: 'Vende bat-x / bat-y' })).toBeChecked()
-    expect(within(dlg).getByRole('checkbox', { name: 'Vende flex-x' })).not.toBeChecked()
-    expect(within(dlg).queryByRole('checkbox', { name: 'Vende mc-x' })).not.toBeInTheDocument()
-    expect(dlg).toHaveTextContent('2 piezas marcadas')
+    const dlg = await dialogo()
+    expect(dlg).toHaveTextContent('Marca los tipos de pieza que vende.')
+    expect(dlg).toHaveTextContent('Vende 2 de 3 tipos')
+    expect(within(dlg).getByRole('checkbox', { name: 'Vende Batería' })).toBeChecked()
+    expect(within(dlg).getByRole('checkbox', { name: 'Vende Pantalla' })).not.toBeChecked()
+    expect(within(dlg).getByRole('button', { name: 'Modelos de Batería' })).toHaveTextContent('Todos los modelos')
+    expect(within(dlg).getByRole('button', { name: 'Modelos de Glass' })).toHaveTextContent('Seleccionados 2 de 4')
+    const pantalla = within(dlg).getByRole('button', { name: 'Modelos de Pantalla' })
+    expect(pantalla).toHaveTextContent('No lo vende')
+    expect(pantalla).toBeDisabled()
+    expect(dlg).toHaveTextContent('Sin iPhone 12 Mini · iPhone 13 Mini')
   })
 
-  it('«Marcar las que se ven» y «Quitar las que se ven» actúan sobre lo filtrado; guardar conserva la desactivada', async () => {
+  it('marcar un tipo, quitar un modelo, volver a «Todos los modelos» y guardar', async () => {
     const onCerrar = abrir()
-    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    await within(dlg).findByRole('checkbox', { name: 'Vende flex-x' })
-    await userEvent.type(within(dlg).getByRole('textbox', { name: 'Buscar pieza' }), 'flex')
-    await userEvent.click(within(dlg).getByRole('button', { name: 'Marcar las que se ven' }))
-    await userEvent.clear(within(dlg).getByRole('textbox', { name: 'Buscar pieza' }))
-    await userEvent.type(within(dlg).getByRole('textbox', { name: 'Buscar pieza' }), 'lcd')
-    await userEvent.click(within(dlg).getByRole('button', { name: 'Quitar las que se ven' }))
+    const dlg = await dialogo()
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'Vende Pantalla' }))
+    const pantalla = within(dlg).getByRole('button', { name: 'Modelos de Pantalla' })
+    expect(pantalla).toHaveTextContent('Todos los modelos')
+    await userEvent.click(pantalla)
+    expect(screen.getByRole('checkbox', { name: 'iPhone 13' })).toBeChecked()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'iPhone 13' }))
+    expect(pantalla).toHaveTextContent('Seleccionados 1 de 2')
+    expect(dlg).toHaveTextContent('Sin iPhone 13')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Todos los modelos' }))
+    expect(pantalla).toHaveTextContent('Todos los modelos')
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'Vende Batería' }))
     await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    const cuerpo = cuerpos[0] as { idsCom: number[] }
-    expect([...cuerpo.idsCom].sort((a, b) => a - b)).toEqual([2, 4, 6])
+    expect(cuerpos[0]).toEqual({ tipos: [{ prefijo: 'g', excluidos: ['12mini', '13mini'] }, { prefijo: 'lcd', excluidos: [] }] })
   })
 
-  it('«Solo las marcadas» esconde las demás', async () => {
+  it('desmarcar todos los modelos desmarca el tipo', async () => {
     abrir()
-    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    await within(dlg).findByRole('checkbox', { name: 'Vende flex-x' })
-    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'Solo las marcadas' }))
-    expect(within(dlg).queryByRole('checkbox', { name: 'Vende flex-x' })).not.toBeInTheDocument()
-    expect(within(dlg).getByRole('checkbox', { name: 'Vende lcd-x-negro' })).toBeInTheDocument()
+    const dlg = await dialogo()
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Modelos de Glass' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'iPhone 12' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'iPhone 13' }))
+    await waitFor(() => expect(within(dlg).getByRole('checkbox', { name: 'Vende Glass' })).not.toBeChecked())
+    expect(dlg).toHaveTextContent('Vende 1 de 3 tipos')
   })
 
   it('un 422 sale dentro y el diálogo sigue abierto', async () => {
-    server.use(http.put('*/api/proveedores/:id/componentes', () => HttpResponse.json({ message: 'Alguna pieza ya no existe.' }, { status: 422 })))
+    server.use(http.put('*/api/proveedores/:id/piezas', () => HttpResponse.json({ message: 'Algún modelo no existe.' }, { status: 422 })))
     const onCerrar = abrir()
-    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    await within(dlg).findByRole('checkbox', { name: 'Vende flex-x' })
+    const dlg = await dialogo()
     await userEvent.click(within(dlg).getByRole('button', { name: 'Guardar' }))
-    expect(await within(dlg).findByRole('alert')).toHaveTextContent('Alguna pieza ya no existe.')
+    expect(await within(dlg).findByRole('alert')).toHaveTextContent('Algún modelo no existe.')
     expect(onCerrar).not.toHaveBeenCalled()
   })
 
-  it('con la caché de Stock ya cargada y vieja, espera a la lista fresca para marcar', async () => {
+  it('con la caché vieja espera a los datos frescos', async () => {
     const qc = crearQueryClient({ retry: false })
-    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, COMPONENTES.map((c) => ({ ...c, proveedores: c.idCom === 1 ? [1] : [] })))
-    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(COMPONENTES.map((c) => ({ ...c, proveedores: c.idCom === 2 ? [1] : [] })))))
+    qc.setQueryData(['proveedores', 1, 'piezas'], TIPOS.map((t) => ({ ...t, vende: false, excluidos: [] })))
     renderConProviders(<PiezasProveedorDialog proveedor={ACME} onCerrar={vi.fn()} />, { sesion: SESION_SUPER, queryClient: qc })
     const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    const bat = await within(dlg).findByRole('checkbox', { name: 'Vende bat-x / bat-y' })
-    await waitFor(() => expect(bat).toBeChecked())
-    expect(within(dlg).getByRole('checkbox', { name: 'Vende lcd-x-negro' })).not.toBeChecked()
-    expect(dlg).toHaveTextContent('1 pieza marcada')
+    await waitFor(() => expect(within(dlg).getByRole('checkbox', { name: 'Vende Batería' })).toBeChecked())
+    expect(dlg).toHaveTextContent('Vende 2 de 3 tipos')
   })
 
-  it('mientras carga avisa, y si la lista no carga lo dice y Guardar queda deshabilitado', async () => {
-    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
+  it('mientras carga avisa, y si no carga lo dice y Guardar queda deshabilitado', async () => {
+    server.use(http.get('*/api/proveedores/:id/piezas', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
     abrir()
     const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
     expect(await within(dlg).findByText('No se ha podido cargar la lista de piezas.')).toBeInTheDocument()
     expect(within(dlg).getByRole('button', { name: 'Guardar', hidden: true })).toBeDisabled()
-  })
-
-  it('si la lista no carga, Marcar/Quitar las que se ven y Guardar quedan deshabilitados', async () => {
-    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
-    abrir()
-    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    await within(dlg).findByText('No se ha podido cargar la lista de piezas.')
-    expect(within(dlg).getByRole('button', { name: 'Marcar las que se ven', hidden: true })).toBeDisabled()
-    expect(within(dlg).getByRole('button', { name: 'Quitar las que se ven', hidden: true })).toBeDisabled()
-    expect(within(dlg).getByRole('button', { name: 'Guardar', hidden: true })).toBeDisabled()
-  })
-
-  it('Enter en «Buscar pieza» no guarda ni cierra', async () => {
-    const onCerrar = abrir()
-    const dlg = await screen.findByRole('dialog', { name: 'Piezas que vende · ACME' })
-    await within(dlg).findByRole('checkbox', { name: 'Vende flex-x' })
-    await userEvent.type(within(dlg).getByRole('textbox', { name: 'Buscar pieza' }), 'flex{Enter}')
-    expect(cuerpos).toHaveLength(0)
-    expect(onCerrar).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: 'Piezas que vende · ACME' })).toBeInTheDocument()
   })
 })

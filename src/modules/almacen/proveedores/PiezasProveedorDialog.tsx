@@ -1,62 +1,44 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { Proveedor } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError, ReglaNegocioError } from '@/shared/api/errors'
+import { traducirModelo } from '@/shared/lib/modelos'
+import { nombreTipoPieza } from '@/shared/lib/tiposPieza'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
-import { BotonSecundario } from '@/shared/ui/Botones'
 import { Checkbox } from '@/shared/ui/checkbox'
-import { Input } from '@/shared/ui/input'
-import { useComponentesStock } from '../stock/api'
-import { agruparCompartidos, nombreGrupo } from '../stock/grupos'
+import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { DialogoAlmacen } from '../ui/DialogoAlmacen'
-import { useGuardarPiezasProveedor } from './api'
+import { useGuardarPiezasProveedor, usePiezasProveedor } from './api'
+import {
+  AYUDA_PIEZAS, cuerpoGuardar, estadoInicial, fijarVendidos, marcarTipo, textoBoton, textoRecuento, textoSinModelos, vendidos,
+  type EstadoTipos,
+} from './piezasPorTipo'
 
 type Props = { proveedor: Proveedor; onCerrar: () => void }
 
-const textoMarcadas = (n: number) => (n === 1 ? '1 pieza marcada' : `${n} piezas marcadas`)
-
-/** «Piezas que vende…» (spec 2026-10-11 §5.1): la lista del proveedor sale del listado de Stock (`proveedores` de cada
- *  pieza). Se ven las activas, una fila por grupo compartido (el master); las desactivadas que ya estaban en la lista no
- *  se ven pero se conservan al guardar. «Guardar» manda la lista entera. La página lo monta solo mientras está abierto. */
+/** «Piezas que vende…» por tipo de pieza (spec 2026-10-12 §5.1): un renglón por tipo con su casilla y el desplegable de
+ *  modelos (todos marcados de entrada; los desmarcados quedan excluidos). «Guardar» manda todo. La página lo monta solo
+ *  mientras está abierto. */
 export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
-  const componentes = useComponentesStock({ activo: false })
+  const piezas = usePiezasProveedor(proveedor.idProv)
   const guardar = useGuardarPiezasProveedor()
   const { mostrarError } = useAlerta()
-  const filas = useMemo(() => agruparCompartidos((componentes.data ?? []).filter((c) => c.activo)), [componentes.data])
-  const [marcadas, setMarcadas] = useState<Set<number> | null>(null)
-  const [texto, setTexto] = useState('')
-  const [soloMarcadas, setSoloMarcadas] = useState(false)
+  const [estado, setEstado] = useState<EstadoTipos | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const tipos = piezas.data ?? []
 
-  // Las de la lista al abrir (masters, activas o no), una sola vez cuando carga el listado.
-  // Con la caché de Stock ya cargada, `isSuccess` es true al montar con datos viejos: se espera a que acabe la recarga.
-  if (marcadas === null && componentes.isSuccess && !componentes.isFetching) {
-    setMarcadas(new Set((componentes.data ?? [])
-      .filter((c) => c.idComMaster == null && (c.proveedores ?? []).includes(proveedor.idProv))
-      .map((c) => c.idCom)))
-  }
+  // Una sola vez, con datos frescos: con la caché ya cargada, `isSuccess` es true al montar con datos viejos.
+  if (estado === null && piezas.isSuccess && !piezas.isFetching) setEstado(estadoInicial(piezas.data))
 
-  const buscado = texto.trim().toLowerCase()
-  const visibles = filas.filter((f) =>
-    (buscado === '' || nombreGrupo(f).toLowerCase().includes(buscado)) && (!soloMarcadas || (marcadas?.has(f.idCom) ?? false)))
-
-  function cambiar(ids: number[], marcar: boolean) {
-    setMarcadas((m) => {
-      if (m === null) return m
-      const nuevo = new Set(m)
-      for (const id of ids) {
-        if (marcar) nuevo.add(id)
-        else nuevo.delete(id)
-      }
-      return nuevo
-    })
+  function cambiar(nuevo: EstadoTipos) {
+    setEstado(nuevo)
     setError(null)
   }
 
   async function confirmar() {
-    if (marcadas === null) return
+    if (estado === null) return
     setError(null)
     try {
-      await guardar.mutateAsync({ idProv: proveedor.idProv, idsCom: [...marcadas] })
+      await guardar.mutateAsync({ idProv: proveedor.idProv, cuerpo: cuerpoGuardar(tipos, estado) })
       onCerrar()
     } catch (e) {
       if (e instanceof ReglaNegocioError) { setError(e.message); return }
@@ -66,31 +48,38 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
   }
 
   return (
-    <DialogoAlmacen abierto ancho={640} titulo={`Piezas que vende · ${proveedor.nombre}`} error={error} textoAccion="Guardar"
-      enviando={guardar.isPending} accionDeshabilitada={marcadas === null} onConfirmar={() => void confirmar()} onCancelar={onCerrar}>
-      <div className="flex flex-wrap items-center gap-2.5">
-        <Input value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }} placeholder="Buscar pieza…" aria-label="Buscar pieza" className="w-[200px] bg-superficie" />
-        <BotonSecundario type="button" disabled={marcadas === null} onClick={() => cambiar(visibles.map((f) => f.idCom), true)}>Marcar las que se ven</BotonSecundario>
-        <BotonSecundario type="button" disabled={marcadas === null} onClick={() => cambiar(visibles.map((f) => f.idCom), false)}>Quitar las que se ven</BotonSecundario>
-        <label className="flex items-center gap-1.5 text-[12px] text-azul-gris">
-          <Checkbox checked={soloMarcadas} onCheckedChange={(v) => setSoloMarcadas(v === true)} aria-label="Solo las marcadas" />
-          Solo las marcadas
-        </label>
-      </div>
-      <p className="text-[12px] text-azul-gris">{textoMarcadas(marcadas === null ? 0 : filas.filter((f) => marcadas.has(f.idCom)).length)}</p>
-      {marcadas === null ? (
+    <DialogoAlmacen abierto ancho={640} titulo={`Piezas que vende · ${proveedor.nombre}`} subtitulo={AYUDA_PIEZAS} error={error}
+      textoAccion="Guardar" enviando={guardar.isPending} accionDeshabilitada={estado === null}
+      onConfirmar={() => void confirmar()} onCancelar={onCerrar}>
+      {estado === null ? (
         <p role="status" className="text-[12px] text-azul-gris">
-          {componentes.isError ? 'No se ha podido cargar la lista de piezas.' : 'Cargando piezas…'}
+          {piezas.isError ? 'No se ha podido cargar la lista de piezas.' : 'Cargando piezas…'}
         </p>
       ) : (
-      <div className="flex max-h-[50vh] flex-col overflow-y-auto rounded border border-fila-sep">
-        {visibles.map((f) => (
-          <label key={f.idCom} className="flex items-center gap-2 border-b border-fila-sep px-2 py-1 text-[13px] text-azul-medio last:border-b-0">
-            <Checkbox checked={marcadas?.has(f.idCom) ?? false} onCheckedChange={(v) => cambiar([f.idCom], v === true)} aria-label={`Vende ${nombreGrupo(f)}`} />
-            {nombreGrupo(f)}
-          </label>
-        ))}
-      </div>
+        <>
+          <p className="text-[12px] text-azul-gris">{textoRecuento(estado, tipos.length)}</p>
+          <div className="flex flex-col rounded border border-fila-sep bg-superficie">
+            {tipos.map((t) => {
+              const excluidos = estado.get(t.prefijo)
+              const nombre = nombreTipoPieza(t.prefijo)
+              return (
+                <div key={t.prefijo} data-prefijo={t.prefijo}
+                  className="flex min-h-12 items-center gap-2.5 border-b border-fila-sep px-2.5 py-2 last:border-b-0">
+                  <label className="flex w-[150px] shrink-0 items-center gap-2 text-[13px] text-azul-medio">
+                    <Checkbox checked={excluidos !== undefined} onCheckedChange={(v) => cambiar(marcarTipo(estado, t.prefijo, v === true))}
+                      aria-label={`Vende ${nombre}`} />
+                    {nombre}
+                  </label>
+                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-texto-sub">{textoSinModelos(t, excluidos)}</span>
+                  <MultiSelect opciones={t.modelos} clave={(m) => m} etiqueta={(m) => traducirModelo(m)} seleccion={vendidos(t, excluidos)}
+                    onChange={(s) => cambiar(fijarVendidos(estado, t, s))} textoVacio="No lo vende" textoPlural={(n) => `${n} modelos`}
+                    texto={textoBoton(t, excluidos)} opcionTodas="Todos los modelos" deshabilitado={excluidos === undefined}
+                    etiquetaAccesible={`Modelos de ${nombre}`} className="h-8 min-w-[170px]" />
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </DialogoAlmacen>
   )

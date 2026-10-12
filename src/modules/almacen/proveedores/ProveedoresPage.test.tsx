@@ -160,7 +160,7 @@ describe('ProveedoresPage', () => {
     await waitFor(() => expect(cuerpo).toEqual({ nombre: 'ACME 2', divisa: 'USD', comentario: 'principal' }))
   })
   it('"Piezas que vende…": el menú de la fila lo ofrece y abre el diálogo con el nombre del proveedor', async () => {
-    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json([])))
+    server.use(http.get('*/api/proveedores/:id/piezas', () => HttpResponse.json([])))
     montar()
     await screen.findByText('ACME')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('ACME') })
