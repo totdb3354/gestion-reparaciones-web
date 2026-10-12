@@ -192,7 +192,7 @@ describe('PedidosPage: vista', () => {
 })
 
 describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
-  it('menú por estado (0.9.9: más «Mover a bloque»); un cancelado solo tiene «Mover a bloque»', async () => {
+  it('menú por estado (0.9.9: más «Mover a bloque»); un cancelado no tiene menú (solo se mueven líneas vivas)', async () => {
     montar()
     await screen.findByText('lcd-x-negro')
     await abrirMenu('lcd-x-negro')
@@ -203,7 +203,7 @@ describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Recepción parcial', 'Confirmar recibido', 'Editar', 'Cancelar pedido', 'Mover a bloque'])
     await userEvent.keyboard('{Escape}')
     await abrirMenu('mc-x')
-    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Mover a bloque'])
+    expect(screen.queryAllByRole('menuitem')).toHaveLength(0)
   })
   it('"Confirmar pedido" escribe al pulsar, sin diálogo, y recarga', async () => {
     const llamadas = registrarPatch('*/api/compras/:id/:accion')

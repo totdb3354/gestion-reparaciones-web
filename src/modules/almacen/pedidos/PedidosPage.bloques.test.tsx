@@ -202,4 +202,20 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     expect(aviso).toHaveTextContent('El bloque 40 ya no existe; elige otro destino.')
     expect(aviso).not.toHaveTextContent('Este pedido fue modificado')
   })
+
+
+  it('una recibida no ofrece «Mover a bloque» y una viva solo ve destinos vivos (el 39, terminado, no)', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    // El 39 está terminado y sale plegado: se despliega desde su cabecera.
+    await userEvent.click(screen.getByText('Bloque 39').closest('button') as HTMLElement)
+    await abrirMenu('lcd-y')
+    expect(await screen.findByRole('menuitem', { name: 'Editar' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Mover a bloque' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await abrirMenu('lcd-x-negro')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mover a bloque' }))
+    expect(await screen.findByRole('menuitem', { name: /Bloque 40/ })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Bloque 39/ })).not.toBeInTheDocument()
+  })
 })

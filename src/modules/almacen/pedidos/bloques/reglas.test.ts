@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { lineaDePrueba as l } from './datosPrueba'
 import {
   abiertosDe, agruparEnBloques, avisoBloque, claveBloque, destinoSugeridoEdicion, destinosMover, entradasMenuBloque, estaDesplegado,
-  estaSola, lineasQueCambian, motivoNoCambia, ordenarPorBloques, resumenEstados, SIN_BLOQUE, situacion, textoLineas,
-  textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque,
+  estaSola, lineasQueCambian, motivoNoCambia, ordenarPorBloques, resumenEstados, SIN_BLOQUE, sePuedeMover, situacion, textoLineas,
+  textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque, vivosDelProveedor,
 } from './reglas'
 
 const B41 = { idBloque: 41, fechaBloque: '2026-10-09T10:00:00' }
@@ -90,16 +90,26 @@ describe('acciones de bloque', () => {
       'Cancelar bloque (1)', 'Borrar bloque',
     ])
     const porTexto = (t: string) => entradas.find((e) => e !== 'separador' && e.texto === t)
-    expect(porTexto('Juntar con…')).toMatchObject({ deshabilitada: true, motivo: 'no hay otro bloque de este proveedor' })
+    expect(porTexto('Juntar con…')).toMatchObject({ deshabilitada: true, motivo: 'no hay otro bloque vivo de este proveedor' })
     expect(porTexto('Borrar bloque')).toMatchObject({ deshabilitada: true, motivo: 'hay líneas ya pedidas', peligro: true })
     expect(porTexto('Separar líneas…')).toMatchObject({ deshabilitada: false, motivo: null })
   })
-  it('«Añadir previsión…» va justo tras «Añadir líneas…» y siempre está disponible', () => {
+  it('«Añadir previsión…» va justo tras «Añadir líneas…» y en un bloque vivo está disponible', () => {
     const textos = entradasMenuBloque(b, 0).map((e) => (e === 'separador' ? '—' : e.texto))
     const i = textos.indexOf('Añadir líneas…')
     expect(textos[i + 1]).toBe('Añadir previsión…')
     const entrada = entradasMenuBloque(b, 0).find((e) => e !== 'separador' && e.accion === 'prevision')
     expect(entrada).toMatchObject({ deshabilitada: false, peligro: false })
+  })
+  it('un bloque terminado está cerrado: sin añadir, previsión, separar ni juntar', () => {
+    const terminado = [...agruparEnBloques([
+      l({ idCompra: 1, idBloque: 60, estado: 'recibido' }), l({ idCompra: 2, idBloque: 60, estado: 'cancelado' }),
+    ]).values()][0]
+    const porAccion = (a: string) => entradasMenuBloque(terminado, 3).find((e) => e !== 'separador' && e.accion === a)
+    for (const accion of ['anadir', 'prevision', 'separar', 'juntar']) {
+      expect(porAccion(accion)).toMatchObject({ deshabilitada: true, motivo: 'el bloque está terminado' })
+    }
+    expect(porAccion('nota')).toMatchObject({ deshabilitada: false })
   })
   it('menú de un bloque de una sola línea pendiente y con nota', () => {
     const solo = agruparEnBloques([l({ notaBloque: 'Ped. 1' })]).get('41')!
@@ -118,15 +128,20 @@ describe('mover y destinos', () => {
     l({ idCompra: 5, idBloque: 50, fechaBloque: '2026-10-09T09:00:00', idProv: 2, nombreProveedor: 'Proveedor B' }),
   ]
   const bloques = agruparEnBloques(todas)
-  it('destinos: los del mismo proveedor sin el propio, de mayor a menor número', () => {
+  it('destinos: los bloques vivos del mismo proveedor sin el propio, de mayor a menor número (el 39, terminado, no)', () => {
     expect(destinosMover(todas[0], bloques)).toEqual([
       { idBloque: 40, texto: 'Bloque 40', detalle: '08/10 · 1 línea · abierto' },
-      { idBloque: 39, texto: 'Bloque 39', detalle: '08/10 · 1 línea · terminado' },
     ])
+    expect(vivosDelProveedor(bloques, 1).map((b) => b.idBloque)).toEqual([41, 40])
   })
-  it('como mucho 8 destinos', () => {
+  it('sin tope: todos los vivos del proveedor', () => {
     const muchas = Array.from({ length: 11 }, (_, i) => l({ idCompra: i + 1, idBloque: 100 + i, fechaBloque: `2026-10-0${(i % 9) + 1}T10:00:00` }))
-    expect(destinosMover(muchas[0], agruparEnBloques(muchas))).toHaveLength(8)
+    expect(destinosMover(muchas[0], agruparEnBloques(muchas))).toHaveLength(10)
+  })
+
+  it('solo se mueven las líneas vivas', () => {
+    expect(['pendiente', 'en_camino', 'parcial', 'recibido', 'cancelado'].map((estado) => sePuedeMover(l({ estado }))))
+      .toEqual([true, true, true, false, false])
   })
   it('sola en su bloque, abiertos y destino sugerido al editar', () => {
     expect(estaSola(todas[2], bloques)).toBe(true)

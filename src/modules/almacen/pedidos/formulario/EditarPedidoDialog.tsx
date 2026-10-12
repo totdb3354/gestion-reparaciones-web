@@ -10,7 +10,7 @@ import { Label } from '@/shared/ui/label'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useCompras, useEditarCompra } from '../api'
-import { agruparEnBloques, bloquesDelProveedor, destinoSugeridoEdicion, fechaCorta, situacion, textoLineas, textoMoverYaPedida } from '../bloques/reglas'
+import { agruparEnBloques, destinoSugeridoEdicion, fechaCorta, situacion, textoLineas, textoMoverYaPedida, vivosDelProveedor } from '../bloques/reglas'
 import { useTasa } from '../tasa'
 import { VALOR_NUEVO } from './destinos'
 import { CLASE_CAMPO, CLASE_ETIQUETA, DIVISAS_EDICION, MSG_PEDIDO_MODIFICADO, textoTotalEdicion, validarEdicion } from './edicion'
@@ -48,7 +48,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
   const nuevo = cambiaProveedor ? activos.find((p) => p.idProv === proveedor) : undefined
   const opcionesBloque = cambiaProveedor && proveedor !== null
     ? [
-        ...bloquesDelProveedor(bloques, proveedor).slice(0, 8).map((b) => ({
+        ...vivosDelProveedor(bloques, proveedor).map((b) => ({
           valor: String(b.idBloque), etiqueta: `Bloque ${b.idBloque} · ${fechaCorta(b.fecha)} · ${textoLineas(b.lineas.length)} · ${situacion(b)}`,
         })),
         { valor: VALOR_NUEVO, etiqueta: 'Bloque nuevo' },

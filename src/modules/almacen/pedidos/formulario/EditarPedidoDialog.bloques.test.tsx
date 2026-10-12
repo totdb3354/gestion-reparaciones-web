@@ -84,4 +84,22 @@ describe('«Editar pedido» cambiando el proveedor (0.9.9, spec §6.6)', () => {
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Bloque' })).toHaveTextContent('Bloque nuevo'))
     expect(onCerrar).not.toHaveBeenCalled()
   })
+
+
+  it('el campo Bloque solo ofrece los bloques vivos del proveedor nuevo y «Bloque nuevo»', async () => {
+    // Bloque 60 de «Proveedor B» abierto y bloque 59 terminado (todo recibido): el 59 no se ofrece.
+    server.use(http.get('*/api/compras', () => HttpResponse.json([
+      COMPRA,
+      l({ idCompra: 20, idProv: 2, nombreProveedor: 'Proveedor B', idBloque: 60 }),
+      l({ idCompra: 21, idProv: 2, nombreProveedor: 'Proveedor B', idBloque: 59, estado: 'recibido' }),
+    ])))
+    abrir(COMPRA)
+    await screen.findByRole('dialog', { name: 'Editar pedido #7' })
+    await elegirProveedor('Proveedor B')
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Bloque' }))
+    const opciones = within(screen.getByRole('listbox', { name: 'Bloque' })).getAllByRole('button').map((b) => b.textContent ?? '')
+    expect(opciones).toHaveLength(2)
+    expect(opciones[0]).toMatch(/^Bloque 60 /)
+    expect(opciones[1]).toBe('Bloque nuevo')
+  })
 })

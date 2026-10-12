@@ -28,7 +28,7 @@ import { JuntarDialog } from './bloques/JuntarDialog'
 import { BotonMenuBloque, MenuBloqueContextual } from './bloques/MenuBloque'
 import { NotaBloqueDialog } from './bloques/NotaBloqueDialog'
 import {
-  agruparEnBloques, bloquesDelProveedor, claveBloque, destinosMover, entradasMenuBloque, estaDesplegado, estaSola, ordenarPorBloques,
+  agruparEnBloques, claveBloque, destinosMover, entradasMenuBloque, estaDesplegado, estaSola, ordenarPorBloques, sePuedeMover, vivosDelProveedor,
   SIN_BLOQUE, textoMoverYaPedida, type AccionMenuBloque, type Bloque,
 } from './bloques/reglas'
 import { SepararDialog } from './bloques/SepararDialog'
@@ -246,7 +246,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
   // Memoizado: DataTable recalcula los grupos solo si cambia su identidad (doc de GruposTabla).
   const grupos = useMemo<GruposTabla<CompraComponente> | undefined>(() => {
     if (!vistaAgrupada) return undefined
-    const entradasDe = (b: Bloque) => entradasMenuBloque(b, bloquesDelProveedor(bloques, b.idProv, b.clave).length)
+    const entradasDe = (b: Bloque) => entradasMenuBloque(b, vivosDelProveedor(bloques, b.idProv, b.clave).length)
     const conMenuBloque = (b: Bloque | undefined): b is Bloque => puedeEditar && b !== undefined && b.clave !== SIN_BLOQUE
     return {
       clave: claveBloque,
@@ -317,10 +317,10 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
     transicionar(TRANSICION[accion], pedido)
   }
 
-  // Menú solo para el SUPERTECNICO (:961-966). Un cancelado no lleva menú salvo «Mover a bloque» (0.9.9, componentes).
+  // Menú solo para el SUPERTECNICO (:961-966). Un cancelado no lleva menú (y desde 2026-10-12 tampoco «Mover a bloque»: solo se mueven líneas vivas).
   const menuFila = puedeEditar
     ? (p: Pedido) => {
-        const mov = esCompra(p)
+        const mov = esCompra(p) && sePuedeMover(p)
           ? { destinos: destinosMover(p, bloques), sola: estaSola(p, bloques), onMover: (idBloque: number | null) => pedirMover(p, idBloque) }
           : undefined
         return entradasMenu(p.estado).length > 0 || mov ? <MenuPedido pedido={p} onAccion={alElegir} onInteraccion={marcar} mover={mov} /> : null
@@ -451,7 +451,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
       {accionBloque && <AccionBloqueDialog bloque={accionBloque.bloque} accion={accionBloque.accion} onCerrar={() => setAccionBloque(null)} />}
       {separando && <SepararDialog bloque={separando} onCerrar={() => setSeparando(null)} />}
       {juntando && (
-        <JuntarDialog bloque={juntando} candidatos={bloquesDelProveedor(bloques, juntando.idProv, juntando.clave)} onCerrar={() => setJuntando(null)} />
+        <JuntarDialog bloque={juntando} candidatos={vivosDelProveedor(bloques, juntando.idProv, juntando.clave)} onCerrar={() => setJuntando(null)} />
       )}
       {notaDe && <NotaBloqueDialog bloque={notaDe} onCerrar={() => setNotaDe(null)} />}
     </div>

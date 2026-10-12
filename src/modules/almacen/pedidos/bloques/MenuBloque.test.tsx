@@ -15,7 +15,7 @@ describe('BotonMenuBloque (spec §6.4)', () => {
     expect(onInteraccion).toHaveBeenLastCalledWith(true)
     const juntar = screen.getByRole('menuitem', { name: /Juntar con…/ })
     expect(juntar).toHaveAttribute('aria-disabled', 'true')
-    expect(juntar).toHaveTextContent('no hay otro bloque de este proveedor')
+    expect(juntar).toHaveTextContent('no hay otro bloque vivo de este proveedor')
     expect(screen.getByRole('menuitem', { name: /Borrar bloque/ })).toHaveClass('text-rojo-accion')
     await userEvent.click(screen.getByRole('menuitem', { name: 'Recibir todo (1)' }))
     expect(onAccion).toHaveBeenCalledWith('recibir')
