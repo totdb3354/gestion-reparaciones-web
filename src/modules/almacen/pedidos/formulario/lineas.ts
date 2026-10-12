@@ -88,19 +88,24 @@ function marcadas(activos: Componente[]): Componente[] {
   return activos.filter((c) => c.activo && c.autoPedido === true && c.idComMaster == null)
 }
 
-/** N del botón «Añadir previsión (N)»: marcadas con algo que pedir. */
-export function cuantasPrevision(activos: Componente[]): number {
-  return marcadas(activos).filter((c) => (c.pedir60 ?? 0) > 0).length
+/** Las marcadas que vende el proveedor (spec 2026-10-11 §5.2). */
+function marcadasDe(activos: Componente[], idProv: number): Componente[] {
+  return marcadas(activos).filter((c) => (c.proveedores ?? []).includes(idProv))
 }
 
-/** «Añadir previsión» (spec 0.9.6 §4.4). Marcada sin línea: línea nueva con «Pedir 60 d» y el proveedor general, o
- *  nada si no hay que pedir (cuenta en `sinPedido`). Marcada con línea: cantidad = máx(la de la línea, la previsión, 1)
- *  y el proveedor general solo si la línea no tenía. Las líneas de piezas no marcadas no se tocan. Idempotente.
- *  El proveedor general es opcional: sin él (`null`) las líneas nuevas van sin proveedor y se elige después. */
-export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number | null): { lineas: LineaCompra[]; sinPedido: number } {
+/** N del botón «Añadir previsión de X (N)»: marcadas de la lista de X con algo que pedir. Sin proveedor, 0. */
+export function cuantasPrevision(activos: Componente[], idProv: number | null): number {
+  if (idProv === null) return 0
+  return marcadasDe(activos, idProv).filter((c) => (c.pedir60 ?? 0) > 0).length
+}
+
+/** «Añadir previsión de X» (spec 0.9.6 §4.4 con el filtro de la spec 2026-10-11 §5.2). Marcada de la lista de X sin
+ *  línea: línea nueva con «Pedir 60 d» y el proveedor X, o nada si no hay que pedir (cuenta en `sinPedido`). Con
+ *  línea: cantidad = máx(la de la línea, la previsión, 1) y X solo si la línea no tenía proveedor. Idempotente. */
+export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number): { lineas: LineaCompra[]; sinPedido: number } {
   let resultado = lineas
   let sinPedido = 0
-  for (const c of marcadas(activos)) {
+  for (const c of marcadasDe(activos, idProv)) {
     const pedir = c.pedir60 ?? 0
     const existente = resultado.find((l) => l.idCom === c.idCom)
     if (existente === undefined) {
@@ -112,6 +117,23 @@ export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], i
     resultado = cambiarLinea(resultado, existente.id, { cantidad: String(cantidad), idProv: existente.idProv ?? idProv })
   }
   return { lineas: resultado, sinPedido }
+}
+
+/** Marcadas con algo que pedir que no están en la lista de ningún proveedor (spec 2026-10-11 §5.2). Una pieza sin el
+ *  dato (`proveedores` nulo) no cuenta: no se sabe. */
+export function sinLista(activos: Componente[]): number {
+  return marcadas(activos).filter((c) => (c.pedir60 ?? 0) > 0 && c.proveedores !== null && c.proveedores.length === 0).length
+}
+
+export function avisoSinLista(n: number): string | null {
+  if (n <= 0) return null
+  return n === 1
+    ? '1 pieza en Auto con algo que pedir no está en la lista de ningún proveedor.'
+    : `${n} piezas en Auto con algo que pedir no están en la lista de ningún proveedor.`
+}
+
+export function avisoNadaQuePedir(nombre: string): string {
+  return `Nada que pedir a ${nombre} según la previsión.`
 }
 
 /** Elegir el proveedor general: lo pone en las líneas sin proveedor y deja las demás como estén. */

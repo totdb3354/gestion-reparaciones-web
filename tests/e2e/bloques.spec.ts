@@ -199,7 +199,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
     await page.goto('/stock/pedidos')
     await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
     await expect(page.getByText(/^Actualizado [0-9][0-9]:[0-9][0-9]$/)).toBeVisible()
-    await page.getByPlaceholder('Buscar componente…').fill(sku!)
+    await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(sku!)
 
     const dlg = await rellenarNuevoPedido(page, ['2', '3'])
     const resumen = dlg.getByRole('region', { name: 'Bloques' })

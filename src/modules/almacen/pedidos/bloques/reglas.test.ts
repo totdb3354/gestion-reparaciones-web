@@ -85,13 +85,20 @@ describe('acciones de bloque', () => {
   it('menú del bloque con contadores, motivos y peligro', () => {
     const entradas = entradasMenuBloque(b, 0)
     expect(entradas.map((e) => (e === 'separador' ? '—' : e.texto))).toEqual([
-      'Confirmar bloque (1)', 'Recibir todo (1)', '—', 'Añadir líneas…', 'Separar líneas…', 'Juntar con…', 'Añadir nota…', '—',
+      'Confirmar bloque (1)', 'Recibir todo (1)', '—', 'Añadir líneas…', 'Añadir previsión…', 'Separar líneas…', 'Juntar con…', 'Añadir nota…', '—',
       'Cancelar bloque (1)', 'Borrar bloque',
     ])
     const porTexto = (t: string) => entradas.find((e) => e !== 'separador' && e.texto === t)
     expect(porTexto('Juntar con…')).toMatchObject({ deshabilitada: true, motivo: 'no hay otro bloque de este proveedor' })
     expect(porTexto('Borrar bloque')).toMatchObject({ deshabilitada: true, motivo: 'hay líneas ya pedidas', peligro: true })
     expect(porTexto('Separar líneas…')).toMatchObject({ deshabilitada: false, motivo: null })
+  })
+  it('«Añadir previsión…» va justo tras «Añadir líneas…» y siempre está disponible', () => {
+    const textos = entradasMenuBloque(b, 0).map((e) => (e === 'separador' ? '—' : e.texto))
+    const i = textos.indexOf('Añadir líneas…')
+    expect(textos[i + 1]).toBe('Añadir previsión…')
+    const entrada = entradasMenuBloque(b, 0).find((e) => e !== 'separador' && e.accion === 'prevision')
+    expect(entrada).toMatchObject({ deshabilitada: false, peligro: false })
   })
   it('menú de un bloque de una sola línea pendiente y con nota', () => {
     const solo = agruparEnBloques([l({ notaBloque: 'Ped. 1' })]).get('41')!

@@ -119,7 +119,7 @@ describe('NuevoPedidoDialog', () => {
     expect(dlg.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
     expect(dlg.getByText('Añade al menos una línea')).toBeInTheDocument()
     // Barra del proveedor general primero; la ✕ de DialogContent ("Close", sr-only) va la última.
-    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Aplicar a todas', 'Añadir previsión (0)', '+ Añadir línea', 'Cancelar', 'Confirmar pedido', 'Close'])
+    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Aplicar a todas', 'Añadir previsión', '+ Añadir línea', 'Cancelar', 'Confirmar pedido', 'Close'])
   })
 
   it('sin líneas: "Añade al menos una línea." y no envía nada', async () => {
@@ -391,10 +391,15 @@ describe('NuevoPedidoDialog', () => {
   })
 })
 
-describe('pedido automático (spec 0.9.6 §4.4)', () => {
-  // lcd-x-negro (1) marcada y pide 16; bat-x (2) marcada sin pedido; el resto sin marcar.
-  const CON_PREVISION: Componente[] = COMPONENTES.map((c) =>
-    c.idCom === 1 ? { ...c, autoPedido: true, pedir60: 16 } : c.idCom === 2 ? { ...c, autoPedido: true, pedir60: 0 } : c)
+describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)', () => {
+  // lcd-x-negro (1) marcada, de ACME, pide 16; bat-x (2) marcada, de ACME, sin pedido; flex-x (6) marcada, pide 3 y no
+  // está en ninguna lista.
+  const CON_PREVISION: Componente[] = [
+    ...COMPONENTES.map((c) =>
+      c.idCom === 1 ? { ...c, autoPedido: true, pedir60: 16, proveedores: [1] }
+        : c.idCom === 2 ? { ...c, autoPedido: true, pedir60: 0, proveedores: [1] } : { ...c, proveedores: [] }),
+    { ...COMPONENTES[0], idCom: 6, tipo: 'flex-x', autoPedido: true, pedir60: 3, proveedores: [] },
+  ]
 
   beforeEach(() => {
     server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(CON_PREVISION)))
@@ -405,27 +410,23 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor general' })).findByRole('button', { name: nombre }))
   }
 
-  it('sin proveedor general «Añadir previsión» funciona y deja las líneas sin proveedor; «Aplicar a todas» espera al proveedor', async () => {
+  it('sin proveedor «Añadir previsión» está deshabilitado y explica por qué', async () => {
     abrir()
-    await userEvent.click(await screen.findByRole('button', { name: 'Añadir previsión (1)' }))
-    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('')
-    expect(screen.getByRole('button', { name: 'Aplicar a todas' })).toBeDisabled()
-    await elegirProveedorGeneral('ACME')
-    await userEvent.click(screen.getByRole('button', { name: 'Aplicar a todas' }))
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
+    const boton = await screen.findByRole('button', { name: 'Añadir previsión' })
+    expect(boton).toBeDisabled()
+    expect(boton).toHaveAttribute('title', 'Elige antes el proveedor')
   })
 
-  it('«Añadir previsión» mete la marcada con su cantidad y el proveedor general, avisa de la que no necesita pedido y se confirma', async () => {
+  it('«Añadir previsión de ACME (1)» mete la suya con su cantidad y ACME, y avisa de la que no necesita pedido y de la que no tiene lista', async () => {
     abrir()
-    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await screen.findByRole('button', { name: 'Añadir previsión' })
     await elegirProveedorGeneral('ACME')
-    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
     expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
-    expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
-    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
     expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
+    expect(screen.getByRole('status')).toHaveTextContent('1 pieza en Auto con algo que pedir no está en la lista de ningún proveedor.')
     await confirmar()
     await waitFor(() => expect(lotes).toHaveLength(1))
   })
@@ -434,10 +435,42 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     abrir({ modo: 'componentes', idsCom: [1] })
     await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
     await elegirProveedorGeneral('ACME')
-    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
-    expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
     expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+  })
+
+  it('«Añadir previsión…» de un bloque abre con la previsión de su proveedor ya puesta', async () => {
+    abrir({ modo: 'bloque', idBloque: 41, idProv: 1, prevision: true })
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16'))
+    expect(screen.getByRole('dialog', { name: 'Añadir líneas · Bloque 41' })).toBeInTheDocument()
+  })
+
+  it('si el proveedor del bloque no tiene nada que pedir, no añade líneas y lo dice', async () => {
+    abrir({ modo: 'bloque', idBloque: 41, idProv: 2, prevision: true })
+    expect(await screen.findByRole('status')).toHaveTextContent('Nada que pedir a Proveedor B según la previsión.')
+    expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
+  })
+
+  it('«Añadir previsión…» de un bloque con la caché de Stock vieja espera a la lista fresca y no aplica números viejos', async () => {
+    const qc = crearQueryClient({ retry: false })
+    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, CON_PREVISION)
+    server.use(http.get('*/api/componentes/gestionados', async () => {
+      await delay(50)
+      return HttpResponse.json(CON_PREVISION.map((c) => (c.idCom === 1 ? { ...c, pedir60: 0 } : c)))
+    }))
+    renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'bloque', idBloque: 41, idProv: 1, prevision: true }} onCerrar={vi.fn()} /> }], { sesion: SESION_SUPER, queryClient: qc })
+    expect(await screen.findByRole('status')).toHaveTextContent('Nada que pedir a ACME según la previsión.')
+    expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
+  })
+
+  it('«Añadir previsión…» de un bloque con la lista en 500 no añade líneas ni avisos de previsión', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
+    abrir({ modo: 'bloque', idBloque: 41, idProv: 1, prevision: true })
+    await screen.findByRole('dialog', { name: 'Añadir líneas · Bloque 41' })
+    await new Promise((r) => setTimeout(r, 200))
+    expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
+    expect(screen.queryByText(/según la previsión|no necesita pedido|no está en la lista/)).not.toBeInTheDocument()
   })
 
   it('«Aplicar a todas» cambia también el proveedor que ya tenía una línea', async () => {
@@ -460,7 +493,7 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
 
   it('con proveedor general elegido, «+ Añadir línea» la añade ya con ese proveedor', async () => {
     abrir()
-    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await screen.findByRole('button', { name: 'Añadir previsión' })
     await elegirProveedorGeneral('ACME')
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
     expect(screen.getByRole('combobox', { name: 'Proveedor línea 1' })).toHaveTextContent('ACME')
@@ -468,9 +501,9 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
 
   it('el aviso de piezas sin pedido se borra al editar las líneas', async () => {
     abrir()
-    await screen.findByRole('button', { name: 'Añadir previsión (1)' })
+    await screen.findByRole('button', { name: 'Añadir previsión' })
     await elegirProveedorGeneral('ACME')
-    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión (1)' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByRole('status')).toHaveTextContent('1 pieza marcada no necesita pedido.')
     await escribir('Cantidad línea 1', '5')
     expect(screen.queryByText('1 pieza marcada no necesita pedido.')).not.toBeInTheDocument()

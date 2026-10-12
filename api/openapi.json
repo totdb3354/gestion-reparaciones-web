@@ -261,6 +261,36 @@
         }
       }
     },
+    "/api/proveedores/{idProv}/componentes" : {
+      "put" : {
+        "tags" : [ "proveedor-piezas-controller" ],
+        "operationId" : "reemplazar",
+        "parameters" : [ {
+          "name" : "idProv",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProveedorPiezasRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/parametros/prevision" : {
       "get" : {
         "tags" : [ "parametro-controller" ],
@@ -5072,6 +5102,19 @@
           }
         }
       },
+      "ProveedorPiezasRequest" : {
+        "required" : [ "idsCom" ],
+        "type" : "object",
+        "properties" : {
+          "idsCom" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "PesosPrevision" : {
         "required" : [ "peso1", "peso2", "peso3" ],
         "type" : "object",
@@ -7903,7 +7946,7 @@
         }
       },
       "Componente" : {
-        "required" : [ "activo", "autoPedido", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir60", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
+        "required" : [ "activo", "autoPedido", "consumoDiario", "enCamino", "fechaRegistro", "idCom", "idComMaster", "pedir60", "pendiente", "proveedores", "stock", "stockMinimo", "tipo", "ultimoPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCom" : {
@@ -7959,6 +8002,19 @@
           "autoPedido" : {
             "type" : "boolean",
             "nullable" : true
+          },
+          "pendiente" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "proveedores" : {
+            "type" : "array",
+            "nullable" : true,
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },

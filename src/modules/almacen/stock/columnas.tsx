@@ -6,10 +6,10 @@ import { cn } from '@/shared/lib/utils'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { esGrupo, nombreGrupo, type FilaStock } from './grupos'
-import { formatearConsumo, formatearModo, formatearPedir } from './prevision'
+import { formatearConsumo, formatearModo, formatearPedir, formatearPendiente } from './prevision'
 
 /** prefWidth de StockView.fxml :46-53; las tres de la previsión son de la 0.9.5 y 0.9.6. */
-export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, stockMinimo: 100, consumoDia: 95, pedir60: 90, modo: 80, ultimoPedido: 120, estado: 100 } as const
+export const ANCHOS_STOCK = { componente: 230, enStock: 80, enCamino: 90, pendiente: 90, stockMinimo: 100, consumoDia: 95, pedir60: 90, modo: 80, ultimoPedido: 120, estado: 100 } as const
 
 /** Un 0 en gris (no hay que pedir) y el resto en negrita, para que salten las piezas que sí. */
 function celdaPedir(valor: number | null) {
@@ -94,6 +94,10 @@ export function crearColumnasStock({ onEnCamino, conPrevision = false, onAutoPed
         )
       },
     },
+    ...(conPrevision ? [{
+      id: 'pendiente', header: 'Pendiente', size: ANCHOS_STOCK.pendiente, maxSize: ANCHOS_STOCK.pendiente,
+      cell: ({ row }) => <span className={CREMA_EN_FILA_SELECCIONADA}>{formatearPendiente(row.original.pendiente)}</span>,
+    } satisfies ColumnDef<FilaStock>] : []),
     { id: 'stockMinimo', header: 'Stock Mínimo', size: ANCHOS_STOCK.stockMinimo, maxSize: ANCHOS_STOCK.stockMinimo, accessorFn: (c) => String(c.stockMinimo) },
     ...(conPrevision ? columnasPrevision(onAutoPedido) : []),
     {
@@ -111,9 +115,14 @@ export function crearColumnasStock({ onEnCamino, conPrevision = false, onAutoPed
 export const CABECERAS_CSV_STOCK = ['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Fecha registro']
 export const CABECERAS_CSV_PREVISION = ['Consumo/día', 'Pedir 60 d', 'Modo']
 export function cabecerasCsvStock(conPrevision: boolean): string[] {
-  return conPrevision ? [...CABECERAS_CSV_STOCK, ...CABECERAS_CSV_PREVISION] : CABECERAS_CSV_STOCK
+  if (!conPrevision) return CABECERAS_CSV_STOCK
+  // 0.9.9: «Pendiente» tras «En camino».
+  const i = CABECERAS_CSV_STOCK.indexOf('En camino') + 1
+  return [...CABECERAS_CSV_STOCK.slice(0, i), 'Pendiente', ...CABECERAS_CSV_STOCK.slice(i), ...CABECERAS_CSV_PREVISION]
 }
 export function filaCsvStock(c: FilaStock, conPrevision = false): string[] {
-  const fila = [nombreGrupo(c), String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino), formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')]
-  return conPrevision ? [...fila, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir60), formatearModo(c.activo ? c.autoPedido : null)] : fila
+  const antes = [nombreGrupo(c), String(c.stock), String(c.stockMinimo), estadoStock(c), String(c.enCamino)]
+  const fecha = formatear(c.fechaRegistro, 'dd/MM/yyyy HH:mm')
+  if (!conPrevision) return [...antes, fecha]
+  return [...antes, String(c.pendiente ?? 0), fecha, formatearConsumo(c.consumoDiario), formatearPedir(c.pedir60), formatearModo(c.activo ? c.autoPedido : null)]
 }

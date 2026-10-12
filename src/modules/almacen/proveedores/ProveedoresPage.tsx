@@ -21,10 +21,11 @@ import { EditarProveedorDialog } from './EditarProveedorDialog'
 import { filtroProveedores, seleccionProveedores } from './estado'
 import { MenuProveedor } from './MenuProveedor'
 import { NuevoProveedorDialog } from './NuevoProveedorDialog'
+import { PiezasProveedorDialog } from './PiezasProveedorDialog'
 
 const OPERACION_ALTA = 'proveedores'
 
-type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; p: Proveedor } | { tipo: 'borrar'; p: Proveedor } | null
+type Dialogo = { tipo: 'nuevo' } | { tipo: 'editar'; p: Proveedor } | { tipo: 'borrar'; p: Proveedor } | { tipo: 'piezas'; p: Proveedor } | null
 
 /** Pestaña "Proveedores" de StockView.fxml (spec 4a §6): sin buscador ni "Limpiar filtros", filtro solo de activos. */
 export function ProveedoresPage() {
@@ -89,7 +90,7 @@ export function ProveedoresPage() {
         altoFila={35}
         ordenacion={false}
         menuFila={puedeEditar ? (p) => (
-          <MenuProveedor p={p} onToggle={(x) => setActivo.mutate({ idProv: x.idProv, activo: !x.activo })} onEditar={(x) => setDialogo({ tipo: 'editar', p: x })} onBorrar={(x) => setDialogo({ tipo: 'borrar', p: x })} onInteraccion={marcar} />
+          <MenuProveedor p={p} onToggle={(x) => setActivo.mutate({ idProv: x.idProv, activo: !x.activo })} onEditar={(x) => setDialogo({ tipo: 'editar', p: x })} onPiezas={(x) => setDialogo({ tipo: 'piezas', p: x })} onBorrar={(x) => setDialogo({ tipo: 'borrar', p: x })} onInteraccion={marcar} />
         ) : undefined}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
@@ -125,6 +126,7 @@ export function ProveedoresPage() {
         onCancelar={() => setDialogo(null)}
         onConfirmar={() => { if (dialogo?.tipo !== 'borrar') return; const id = dialogo.p.idProv; setDialogo(null); borrar.mutate(id) }}
       />
+      {dialogo?.tipo === 'piezas' && <PiezasProveedorDialog proveedor={dialogo.p} onCerrar={cerrarDialogo} />}
     </div>
   )
 }

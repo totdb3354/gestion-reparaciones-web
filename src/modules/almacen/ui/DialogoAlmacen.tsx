@@ -16,16 +16,18 @@ type Props = {
   /** 0.9.9: acción destructiva (cancelar o borrar un bloque): botón en rojo. */
   peligro?: boolean
   /** 360 (por defecto): ventanas de StockController, título de 20 px. 520: editores de pedido
-   *  (FormularioCompraEditar.fxml, FormularioOtroPedidoEditar.fxml), título `vista-titulo` de 24 px. */
-  ancho?: 360 | 520
+   *  (FormularioCompraEditar.fxml, FormularioOtroPedidoEditar.fxml), título `vista-titulo` de 24 px. 640: listas largas con
+   *  buscador («Piezas que vende…»), mismo título de 24 px. */
+  ancho?: 360 | 520 | 640
   onConfirmar: () => void
   onCancelar: () => void
   children: ReactNode
 }
 
-const ESTILO_ANCHO: Record<360 | 520, { caja: string; titulo: string }> = {
+const ESTILO_ANCHO: Record<360 | 520 | 640, { caja: string; titulo: string }> = {
   360: { caja: 'w-[360px] max-w-[min(360px,calc(100%-2rem))]', titulo: 'text-[20px]' },
   520: { caja: 'w-[520px] max-w-[min(520px,calc(100%-2rem))]', titulo: 'text-2xl' },
+  640: { caja: 'w-[640px] max-w-[min(640px,calc(100%-2rem))]', titulo: 'text-2xl' },
 }
 
 /** Calco de las ventanas propias de StockController (editarStock, solicitarPieza, editarProveedor): VBox de 360 px con

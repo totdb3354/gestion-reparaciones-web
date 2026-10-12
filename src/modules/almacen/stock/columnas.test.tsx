@@ -5,10 +5,11 @@ import type { Componente } from '@/shared/api/client'
 import { CREMA_EN_FILA_SELECCIONADA, DataTable } from '@/shared/ui/DataTable'
 import { BadgeEstadoStock } from './BadgeEstadoStock'
 import { CABECERAS_CSV_STOCK, cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
+import { formatearPendiente } from './prevision'
 import { agruparCompartidos, type FilaStock } from './grupos'
 import { repartoFluido } from '@/test/columnas'
 
-const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null }
+const base: Componente = { idCom: 1, tipo: 'lcd-x', fechaRegistro: '2026-09-01T10:30:00', stock: 5, stockMinimo: 2, activo: true, updatedAt: '2026-09-01T10:00:00', enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: null, pedir60: null, autoPedido: null, pendiente: null, proveedores: null }
 const c = (o: Partial<Componente>): Componente => ({ ...base, ...o })
 
 const filas = (l: Componente[]): FilaStock[] => agruparCompartidos(l)
@@ -121,7 +122,7 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
       c({ idCom: 2, tipo: 'bat-x', activo: false }),
     ])} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
-      ['Componente', 'En Stock', 'En Camino', 'Stock Mínimo', 'Consumo/día', 'Pedir 60 d', 'Modo', 'Último pedido', 'Estado'])
+      ['Componente', 'En Stock', 'En Camino', 'Pendiente', 'Stock Mínimo', 'Consumo/día', 'Pedir 60 d', 'Modo', 'Último pedido', 'Estado'])
     const pedir = (id: string) => screen.getAllByRole('row').slice(1).find((f) => within(f).queryByText(id))!.querySelector('[data-columna="pedir60"]')!
     expect(within(screen.getAllByRole('row')[1]).getByText('0,31')).toBeInTheDocument()
     expect(within(pedir('lcd-x') as HTMLElement).getByText('16')).toHaveClass('font-bold')
@@ -134,7 +135,7 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
   })
   it('CSV: con previsión añade las tres columnas al final', () => {
     expect(cabecerasCsvStock(false)).toEqual(CABECERAS_CSV_STOCK)
-    expect(cabecerasCsvStock(true)).toEqual([...CABECERAS_CSV_STOCK, 'Consumo/día', 'Pedir 60 d', 'Modo'])
+    expect(cabecerasCsvStock(true)).toEqual(['Tipo', 'Stock', 'Stock mínimo', 'Estado', 'En camino', 'Pendiente', 'Fecha registro', 'Consumo/día', 'Pedir 60 d', 'Modo'])
     const fila = filaCsvStock(filas([c({ consumoDiario: 0.31, pedir60: 16, autoPedido: true })])[0], true)
     expect(fila.slice(-3)).toEqual(['0,31', '16', 'Auto'])
     expect(filaCsvStock(filas([c({ autoPedido: false })])[0], true).slice(-1)).toEqual(['Manual'])
@@ -158,5 +159,35 @@ describe('columnas de Stock actual en ajuste fluido (adaptación a web)', () => 
     expect(bat).toBeDisabled()
     await userEvent.click(lcd)
     expect(onAutoPedido).toHaveBeenCalledWith(expect.objectContaining({ idCom: 1 }), false)
+  })
+})
+
+describe('Pendiente (spec 2026-10-11 §5.5)', () => {
+  it('va tras «En Camino» solo con previsión, con «—» si no hay y el número si hay', () => {
+    const idsCon = crearColumnasStock({ onEnCamino: vi.fn(), conPrevision: true }).map((col) => col.id)
+    expect(idsCon[idsCon.indexOf('enCamino') + 1]).toBe('pendiente')
+    expect(crearColumnasStock({ onEnCamino: vi.fn() }).map((col) => col.id)).not.toContain('pendiente')
+    render(<DataTable columns={crearColumnasStock({ onEnCamino: vi.fn(), conPrevision: true })}
+      data={filas([c({ idCom: 1, pendiente: 0 }), c({ idCom: 2, tipo: 'bat-x', pendiente: 4 })])} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
+    const cabeceras = screen.getAllByRole('columnheader').map((h) => h.textContent)
+    const i = cabeceras.indexOf('Pendiente')
+    const celda = (fila: number) => within(screen.getAllByRole('row')[fila]).getAllByRole('cell')[i].textContent
+    expect(celda(1)).toBe('—')
+    expect(celda(2)).toBe('4')
+  })
+
+  it('el CSV con previsión lleva «Pendiente» tras «En camino»', () => {
+    const cab = cabecerasCsvStock(true)
+    expect(cab[cab.indexOf('En camino') + 1]).toBe('Pendiente')
+    expect(cabecerasCsvStock(false)).not.toContain('Pendiente')
+    const fila = filaCsvStock(filas([c({ enCamino: 2, pendiente: 5 })])[0], true)
+    expect(fila[cab.indexOf('Pendiente')]).toBe('5')
+    expect(fila).toHaveLength(cab.length)
+  })
+
+  it('formatearPendiente', () => {
+    expect(formatearPendiente(null)).toBe('—')
+    expect(formatearPendiente(0)).toBe('—')
+    expect(formatearPendiente(7)).toBe('7')
   })
 })

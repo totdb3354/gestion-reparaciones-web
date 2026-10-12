@@ -83,3 +83,27 @@ describe('hayFiltros y firmaFiltros (0.9.9)', () => {
     expect(a).toBe(b)
   })
 })
+
+describe('buscador con número de bloque (spec 2026-10-11 §5.4)', () => {
+  const lista = [
+    compra({ idCompra: 1, tipoComponente: 'bati13', idBloque: 13 }),
+    compra({ idCompra: 2, tipoComponente: 'bati14', idBloque: 41 }),
+    compra({ idCompra: 3, tipoComponente: 'lcd-x', idBloque: 4 }),
+    compra({ idCompra: 4, tipoComponente: 'cami13pro', idBloque: null }),
+  ]
+
+  it('solo cifras: las líneas del bloque con ese número exacto', () => {
+    expect(ids(aplicarFiltrosPedidos(lista, f({ buscador: ' 41 ' })))).toEqual([2])
+    expect(ids(aplicarFiltrosPedidos(lista, f({ buscador: '4' })))).toEqual([3])
+    expect(ids(aplicarFiltrosPedidos(lista, f({ buscador: '13' })))).toEqual([1])
+  })
+
+  it('con letras busca la pieza como siempre', () => {
+    expect(ids(aplicarFiltrosPedidos(lista, f({ buscador: 'bati1' })))).toEqual([1, 2])
+  })
+
+  it('en «Otros» (sin bloque) las cifras siguen buscando el concepto', () => {
+    const otros = [otro({ idCompraOtro: 9, concepto: 'Cable 41 cm' }), otro({ idCompraOtro: 10, concepto: 'Bolsas' })]
+    expect(aplicarFiltrosPedidos(otros, f({ buscador: '41' })).map((p) => p.idCompraOtro)).toEqual([9])
+  })
+})

@@ -15,6 +15,11 @@ export function formatearModo(v: boolean | null | undefined): string {
   return v === true ? 'Auto' : v === false ? 'Manual' : '—'
 }
 
+/** «Pendiente» de Stock (0.9.9): lo apuntado y aún sin pedir; «—» si no hay. */
+export function formatearPendiente(n: number | null): string {
+  return n === null || n <= 0 ? '—' : String(n)
+}
+
 export const AYUDA_PESOS = 'Lo reciente pesa más. Los tres tienen que sumar 100.'
 export const MSG_PESOS_NO_VALIDOS = 'Los tres pesos tienen que ser enteros entre 0 y 100 y sumar 100.'
 

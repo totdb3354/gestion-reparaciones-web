@@ -68,3 +68,15 @@ export function useBorrarProveedor(): UseMutationResult<unknown, unknown, number
     onSettled: recargar,
   })
 }
+
+/** 0.9.9 (spec 2026-10-11 §5.1): sustituye las piezas que vende el proveedor. Su 422 lo pinta el diálogo: silencia el
+ *  global. La lista llega en `proveedores` de cada pieza del listado de Stock: se recarga (`['componentes', …]`). */
+export function useGuardarPiezasProveedor(): UseMutationResult<unknown, unknown, { idProv: number; idsCom: number[] }> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idProv, idsCom }: { idProv: number; idsCom: number[] }) =>
+      api.PUT('/api/proveedores/{idProv}/componentes', { params: { path: { idProv } }, body: { idsCom } }),
+    meta: { silenciarError: true },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['componentes'] }),
+  })
+}

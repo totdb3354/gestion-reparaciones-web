@@ -5,12 +5,14 @@ import { crearStore } from './store'
  *  - 'vacio': el botón "Nuevo pedido" de la pestaña, sin líneas.
  *  - 'componentes': "Pedir" de Stock actual o de una alerta (un id) y "Pedir todas las piezas" (un id por alerta, en el
  *    orden de la campana); cantidad 1 por línea.
- *  - 'solicitudes': "Pedir piezas", con las listas PENDIENTE recién leídas; el formulario agrupa por componente. */
+ *  - 'solicitudes': "Pedir piezas", con las listas PENDIENTE recién leídas; el formulario agrupa por componente.
+ *  - 'bloque': «Añadir líneas…» de un bloque (proveedor y destino fijos); con `prevision`, «Añadir previsión…»: se aplica
+ *    al abrir la previsión de su proveedor (0.9.9). */
 export type PrecargaPedido =
   | { modo: 'vacio' }
   | { modo: 'componentes'; idsCom: number[] }
   | { modo: 'solicitudes'; urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] }
-  | { modo: 'bloque'; idBloque: number; idProv: number }
+  | { modo: 'bloque'; idBloque: number; idProv: number; prevision?: boolean }
 
 export type FormularioPedidoAbierto = { tipo: 'compra'; precarga: PrecargaPedido } | { tipo: 'otro' }
 

@@ -21,15 +21,22 @@ function pasaFechas(fechaPedido: string | null, desde: string, hasta: string): b
   return true
 }
 
-/** Predicado del FilteredList (:934-957): cada filtro vacío no filtra; entre ellos, Y. El buscador es "contiene" sin
- *  mayúsculas sobre el componente (o el concepto en Otros, :1211-1212). */
+/** El buscador (:934-957 + 0.9.9): solo cifras busca el número de bloque exacto en las líneas que tienen bloque
+ *  (Componentes); el resto, "contiene" sin mayúsculas sobre el componente o el concepto. */
+function pasaBuscador(p: Pedido, texto: string): boolean {
+  if (texto === '') return true
+  if (/^\d+$/.test(texto) && 'idBloque' in p) return p.idBloque === Number(texto)
+  return nombrePedido(p).toLowerCase().includes(texto)
+}
+
+/** Predicado del FilteredList (:934-957): cada filtro vacío no filtra; entre ellos, Y. El buscador: ver `pasaBuscador`. */
 export function aplicarFiltrosPedidos<T extends Pedido>(lista: T[], f: FiltrosPedidos): T[] {
   const texto = f.buscador.trim().toLowerCase()
   return lista.filter(
     (p) =>
       (f.estados.size === 0 || f.estados.has(p.estado as EstadoPedido)) &&
       (f.proveedores.size === 0 || f.proveedores.has(p.nombreProveedor)) &&
-      (texto === '' || nombrePedido(p).toLowerCase().includes(texto)) &&
+      pasaBuscador(p, texto) &&
       pasaFechas(p.fechaPedido, f.desde, f.hasta),
   )
 }

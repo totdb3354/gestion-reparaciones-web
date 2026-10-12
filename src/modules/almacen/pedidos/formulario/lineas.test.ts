@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
-  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoSinPedido, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
+  aplicarPrevision, aplicarProveedorATodas, rellenarProveedorVacio, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
@@ -148,34 +148,25 @@ describe('textoDescartar', () => {
 describe('pedido automático (spec 0.9.6 §4.4)', () => {
   const comp = (o: Partial<Componente>): Componente => ({
     idCom: 1, tipo: 'x', fechaRegistro: '2026-09-01T10:00:00', updatedAt: '2026-09-01T10:00:00', stock: 0, stockMinimo: 1,
-    activo: true, enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: 0.3, pedir60: 0, autoPedido: false, ...o,
+    activo: true, enCamino: 0, ultimoPedido: null, idComMaster: null, consumoDiario: 0.3, pedir60: 0, autoPedido: false, pendiente: null, proveedores: null, ...o,
   })
   // lcd (1) marcada y pide 16; bat (2) marcada sin pedido; cam (3) sin marcar; bat-y (5) slave de bat, hereda la marca.
   const ACTIVOS = [
-    comp({ idCom: 1, tipo: 'lcd', autoPedido: true, pedir60: 16 }),
-    comp({ idCom: 2, tipo: 'bat', autoPedido: true, pedir60: 0 }),
+    comp({ idCom: 1, tipo: 'lcd', autoPedido: true, pedir60: 16, proveedores: [7] }),
+    comp({ idCom: 2, tipo: 'bat', autoPedido: true, pedir60: 0, proveedores: [7] }),
     comp({ idCom: 3, tipo: 'cam', autoPedido: false, pedir60: 9 }),
-    comp({ idCom: 5, tipo: 'bat-y', autoPedido: true, pedir60: 0, idComMaster: 2 }),
+    comp({ idCom: 5, tipo: 'bat-y', autoPedido: true, pedir60: 0, proveedores: [7], idComMaster: 2 }),
   ]
 
   it('cuenta las marcadas que necesitan pedido, una vez por grupo', () => {
-    expect(cuantasPrevision(ACTIVOS)).toBe(1)
-    expect(cuantasPrevision([...ACTIVOS, comp({ idCom: 6, tipo: 'mc', autoPedido: true, pedir60: 2 })])).toBe(2)
+    expect(cuantasPrevision(ACTIVOS, 7)).toBe(1)
+    expect(cuantasPrevision([...ACTIVOS, comp({ idCom: 6, tipo: 'mc', autoPedido: true, pedir60: 2, proveedores: [7] })], 7)).toBe(2)
   })
 
   it('añade las marcadas sin línea con su cantidad y el proveedor general, y salta las que no necesitan pedido', () => {
     const r = aplicarPrevision([], ACTIVOS, 7)
     expect(r.lineas).toEqual([{ id: 1, idCom: 1, idProv: 7, cantidad: '16', precio: '0,00', urgente: false }])
     expect(r.sinPedido).toBe(1)
-  })
-
-  it('sin proveedor general añade las líneas sin proveedor y no toca el de las que ya estaban', () => {
-    const r = aplicarPrevision([{ id: 1, idCom: 1, idProv: null, cantidad: '3', precio: '0,00', urgente: false }],
-      [...ACTIVOS, comp({ idCom: 6, tipo: 'mc', autoPedido: true, pedir60: 2 })], null)
-    expect(r.lineas).toEqual([
-      { id: 1, idCom: 1, idProv: null, cantidad: '16', precio: '0,00', urgente: false },
-      { id: 2, idCom: 6, idProv: null, cantidad: '2', precio: '0,00', urgente: false },
-    ])
   })
 
   it('en una línea que ya estaba sube la cantidad sin bajarla y solo rellena el proveedor vacío', () => {
@@ -207,9 +198,9 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
   })
 
   it('las desactivadas y las no marcadas no entran', () => {
-    const desactivada = comp({ idCom: 4, activo: false, autoPedido: true, pedir60: 5 })
+    const desactivada = comp({ idCom: 4, activo: false, autoPedido: true, pedir60: 5, proveedores: [7] })
     expect(aplicarPrevision([], [desactivada, comp({ idCom: 3, autoPedido: false, pedir60: 9 })], 7)).toEqual({ lineas: [], sinPedido: 0 })
-    expect(cuantasPrevision([desactivada])).toBe(0)
+    expect(cuantasPrevision([desactivada], 7)).toBe(0)
   })
 
   it('«Aplicar a todas» pone el proveedor en todas las líneas', () => {
@@ -232,5 +223,40 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     expect(avisoSinPedido(0)).toBeNull()
     expect(avisoSinPedido(1)).toBe('1 pieza marcada no necesita pedido.')
     expect(avisoSinPedido(3)).toBe('3 piezas marcadas no necesitan pedido.')
+  })
+})
+
+describe('previsión por proveedor (spec 2026-10-11 §5.2)', () => {
+  const c = (idCom: number, extra: Partial<Componente>): Componente => ({ ...COMPONENTES[0], idCom, tipo: `p-${idCom}`, idComMaster: null, activo: true, ...extra })
+  const ACTIVOS: Componente[] = [
+    c(1, { autoPedido: true, pedir60: 16, proveedores: [1] }),
+    c(2, { autoPedido: true, pedir60: 0, proveedores: [1, 2] }),
+    c(3, { autoPedido: true, pedir60: 4, proveedores: [2] }),
+    c(4, { autoPedido: true, pedir60: 5, proveedores: [] }),
+    c(5, { autoPedido: false, pedir60: 9, proveedores: [1] }),
+    c(6, { autoPedido: true, pedir60: 7, proveedores: null }),
+  ]
+
+  it('N cuenta solo las marcadas de la lista del proveedor con algo que pedir; sin proveedor, 0', () => {
+    expect(cuantasPrevision(ACTIVOS, 1)).toBe(1)
+    expect(cuantasPrevision(ACTIVOS, 2)).toBe(1)
+    expect(cuantasPrevision(ACTIVOS, null)).toBe(0)
+  })
+
+  it('aplicarPrevision solo añade las del proveedor, con él y su cantidad, y cuenta las que no necesitan pedido', () => {
+    const r = aplicarPrevision([], ACTIVOS, 1)
+    expect(r.lineas).toEqual([{ ...lineaCompraVacia(1, 1), idProv: 1, cantidad: '16' }])
+    expect(r.sinPedido).toBe(1)
+  })
+
+  it('sinLista cuenta las marcadas con algo que pedir y la lista vacía (no las que no traen lista)', () => {
+    expect(sinLista(ACTIVOS)).toBe(1)
+  })
+
+  it('avisos', () => {
+    expect(avisoSinLista(0)).toBeNull()
+    expect(avisoSinLista(1)).toBe('1 pieza en Auto con algo que pedir no está en la lista de ningún proveedor.')
+    expect(avisoSinLista(3)).toBe('3 piezas en Auto con algo que pedir no están en la lista de ningún proveedor.')
+    expect(avisoNadaQuePedir('ACME')).toBe('Nada que pedir a ACME según la previsión.')
   })
 })

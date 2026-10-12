@@ -119,7 +119,7 @@ export function motivoNoCambia(p: CompraComponente, accion: AccionBloque): strin
   return chipDeEstado(e as EstadoPedido)
 }
 
-export type AccionMenuBloque = AccionBloque | 'anadir' | 'separar' | 'juntar' | 'nota'
+export type AccionMenuBloque = AccionBloque | 'anadir' | 'prevision' | 'separar' | 'juntar' | 'nota'
 export type EntradaMenuBloque =
   | { accion: AccionMenuBloque; texto: string; deshabilitada: boolean; motivo: string | null; peligro: boolean }
   | 'separador'
@@ -135,6 +135,7 @@ export function entradasMenuBloque(b: Bloque, otrosDelProveedor: number): Entrad
     entrada('recibir', `Recibir todo (${enCamino})`, enCamino === 0, 'nada en camino'),
     'separador',
     entrada('anadir', 'Añadir líneas…', false, null),
+    entrada('prevision', 'Añadir previsión…', false, null),
     entrada('separar', 'Separar líneas…', b.lineas.length < 2, 'solo tiene una línea'),
     entrada('juntar', 'Juntar con…', otrosDelProveedor === 0, 'no hay otro bloque de este proveedor'),
     entrada('nota', b.nota ? 'Editar nota…' : 'Añadir nota…', false, null),
