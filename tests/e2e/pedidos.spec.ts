@@ -29,6 +29,15 @@ async function llamarApi(page: Page, metodo: 'GET' | 'POST' | 'DELETE', ruta: st
   )
 }
 
+/** «Nuevo pedido» (0.9.9, varios proveedores): al abrir vacío, «¿A qué proveedor pides?» con el ComboNavy «Proveedor»; con
+ *  un recuadro ya puesto, «+ Otro proveedor». Cada opción es «{nombre} · {bloque abierto o «sin bloque abierto»}». */
+async function elegirProveedorDelPedido(page: Page, combo: 'Proveedor' | 'Otro proveedor', nombre: string) {
+  const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
+  await dlg.getByRole('combobox', { name: combo, exact: true }).click()
+  const escapado = nombre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  await page.getByRole('listbox', { name: combo, exact: true }).getByRole('button', { name: new RegExp(`^${escapado} · `) }).click()
+}
+
 /** Alta del proveedor de prueba por API y su id por el nombre EXACTO y único. Si no aparece exactamente uno, el test falla
  *  aquí sin limpiar nada (mejor basura de test que borrar una fila ajena, como asignar.spec.ts). */
 async function crearProveedorDePrueba(page: Page, nombre: string): Promise<number> {
@@ -63,10 +72,12 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
   test.skip(!sku, 'Falta E2E_SKU_PRUEBA')
   const marca = Date.now()
   const nombreProv = `e2e-proveedor-${marca}`
+  const nombreProvB = `${nombreProv}-b`
   const concepto = `e2e-concepto-${marca}`
   await entrar(page)
 
   const idProv = await crearProveedorDePrueba(page, nombreProv)
+  const idProvB = await crearProveedorDePrueba(page, nombreProvB)
   // Rutas de los pedidos creados que siguen existiendo: se vacían al borrarlos por la interfaz; lo que quede se borra
   // por API al final.
   const porBorrar = new Set<string>()
@@ -80,16 +91,14 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
     await test.step('pedido de componentes: crear, editar y borrar', async () => {
       await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
       const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-      await expect(dlg.getByText('Añade al menos una línea')).toBeVisible()
+      await expect(dlg.getByText('¿A qué proveedor pides?')).toBeVisible()
+      await elegirProveedorDelPedido(page, 'Proveedor', nombreProv)
       await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
       await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
       // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
       await page.getByRole('option', { name: sku!, exact: true }).click()
       // Elegir la pieza pone su «Pedir 60 d» (0.9.9), que depende de cómo esté el SKU en el entorno: el test cuenta con 1.
       await dlg.getByLabel('Cantidad línea 1').fill('1')
-      // Un proveedor por pedido (0.9.9): se elige arriba, en «Proveedor general», y lo llevan todas las líneas.
-      await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
-      await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
 
       // La espera se registra ANTES del clic: waitForResponse solo atrapa respuestas posteriores al registro.
       const respuestaLote = page.waitForResponse(esRespuesta('/api/compras/lote', 'POST'))
@@ -143,6 +152,57 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       expect((await borrado).ok()).toBe(true)
       porBorrar.delete(`/api/compras/${id}`)
       await expect(fila).toHaveCount(0)
+    })
+
+    await test.step('pedido a dos proveedores: dos recuadros, dos bloques; se borran', async () => {
+      await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
+      const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
+      await elegirProveedorDelPedido(page, 'Proveedor', nombreProv)
+      const recuadroA = dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })
+      await recuadroA.getByRole('button', { name: '+ Añadir línea' }).click()
+      await recuadroA.getByPlaceholder('Escribe componente...').fill(sku!)
+      await page.getByRole('option', { name: sku!, exact: true }).click()
+      await recuadroA.getByLabel('Cantidad línea 1').fill('1')
+      await elegirProveedorDelPedido(page, 'Otro proveedor', nombreProvB)
+      const recuadroB = dlg.getByRole('region', { name: `Pedido a ${nombreProvB}`, exact: true })
+      await recuadroB.getByRole('button', { name: '+ Añadir línea' }).click()
+      await recuadroB.getByPlaceholder('Escribe componente...').fill(sku!)
+      await page.getByRole('option', { name: sku!, exact: true }).click()
+      // La misma pieza a dos proveedores se puede (0.9.9): cada recuadro avisa del otro. La cantidad, 1 a mano.
+      await recuadroB.getByLabel('Cantidad línea 1').fill('1')
+      await expect(recuadroA).toContainText(`también va a ${nombreProvB} (1).`)
+
+      const respuestaLote = page.waitForResponse(esRespuesta('/api/compras/lote', 'POST'))
+      await dlg.getByRole('button', { name: 'Confirmar pedido (2 bloques)' }).click()
+      const respuesta = await respuestaLote
+      if (respuesta.ok()) {
+        const { idsCreados } = (await respuesta.json()) as RespuestaLote
+        for (const idCreado of idsCreados) porBorrar.add(`/api/compras/${idCreado}`)
+      }
+      expect(respuesta.ok(), `POST /api/compras/lote respondió ${respuesta.status()}`).toBe(true)
+      expect(respuesta.request().postDataJSON()).toEqual({
+        lineas: [
+          { idCom: expect.any(Number), idProv, cantidad: 1, esUrgente: false, precioUnidad: 0 },
+          { idCom: expect.any(Number), idProv: idProvB, cantidad: 1, esUrgente: false, precioUnidad: 0 },
+        ],
+        solicitudes: { urgentes: [], preventivas: [] },
+        destinos: null,
+      })
+      await expect(dlg).toBeHidden()
+
+      // Vista agrupada: un bloque nuevo por proveedor. El paso anterior dejó la plana; se vuelve a pulsar al final.
+      const interruptor = page.getByRole('switch', { name: 'Agrupar por bloque' })
+      await interruptor.click()
+      await expect(page.locator('tr[data-cabecera]').filter({ hasText: nombreProvB })).toHaveCount(1)
+      await expect(page.locator('tr[data-cabecera]').filter({ hasText: new RegExp(`${nombreProv.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!-b)`) })).toHaveCount(1)
+      // Se borran por API, por el id que devolvió el lote (solo lo creado aquí).
+      for (const ruta of [...porBorrar].filter((r) => r.startsWith('/api/compras/'))) {
+        const r = await llamarApi(page, 'DELETE', ruta)
+        expect(r.status, `DELETE ${ruta}`).toBe(200)
+        porBorrar.delete(ruta)
+      }
+      // Vuelve a la vista plana, como la dejó el paso anterior, para que «otro pedido» empiece igual.
+      await interruptor.click()
     })
 
     await test.step('otro pedido: crear, editar y borrar', async () => {
@@ -216,6 +276,12 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       expect.soft(r.status, `limpieza DELETE /api/proveedores/${idProv}`).toBe(204)
     } catch (e) {
       console.warn(`limpieza DELETE /api/proveedores/${idProv} lanzó`, e)
+    }
+    try {
+      const r = await llamarApi(page, 'DELETE', `/api/proveedores/${idProvB}`)
+      expect.soft(r.status, `limpieza DELETE /api/proveedores/${idProvB}`).toBe(204)
+    } catch (e) {
+      console.warn(`limpieza DELETE /api/proveedores/${idProvB} lanzó`, e)
     }
   }
 })
