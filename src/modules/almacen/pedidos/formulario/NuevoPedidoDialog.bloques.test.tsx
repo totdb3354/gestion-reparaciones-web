@@ -121,4 +121,22 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
     expect(await screen.findByText('El bloque 41 ya no existe; elige otro destino.')).toBeInTheDocument()
     await waitFor(() => expect(lecturas).toBeGreaterThan(antes))
   })
+
+  it('dos proveedores con bloque abierto: cada uno a su bloque, y los dos viajan en destinos', async () => {
+    compras = [...ABIERTO_ACME, l({ idCompra: 10, idProv: 2, nombreProveedor: 'Proveedor B', idBloque: 42 })]
+    const onCerrar = abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    await anadirLinea(1)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Otro proveedor' }))
+    await userEvent.click(await within(screen.getByRole('listbox', { name: 'Otro proveedor' })).findByRole('button', { name: 'Proveedor B · Bloque 42 abierto' }))
+    const b = recuadro('Proveedor B')
+    await userEvent.click(within(b).getByRole('button', { name: '+ Añadir línea' }))
+    await userEvent.type(within(b).getByRole('combobox', { name: 'Componente línea 1' }), 'bat')
+    await userEvent.click(await screen.findByRole('option', { name: 'bat-x / bat-y' }))
+    expect(await within(b).findByRole('combobox', { name: 'Bloque de Proveedor B' })).toHaveTextContent('Añadir a Bloque 42')
+    await confirmar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(lotes[0]).toMatchObject({ destinos: [{ idProv: 1, idBloque: 41 }, { idProv: 2, idBloque: 42 }] })
+  })
 })

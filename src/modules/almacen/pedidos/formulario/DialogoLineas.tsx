@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import type { Proveedor } from '@/shared/api/client'
 import { BotonSecundario } from '@/shared/ui/Botones'
 import { ComboNavy } from '@/shared/ui/ComboNavy'
@@ -13,7 +13,6 @@ const ANCHO_COMBO_PROVEEDOR = 140
 type Props<L extends LineaBase> = {
   titulo: string
   primera: PrimeraColumna<L>
-  barra?: ReactNode
   lineas: L[]
   proveedores: Proveedor[]
   info: string | null
@@ -27,10 +26,10 @@ type Props<L extends LineaBase> = {
   onCerrar: () => void
 }
 
-/** "Nuevo otro pedido": el armazón (DialogoPedidoBase), la barra opcional, la tabla de líneas (TablaLineas) con el
- *  combo de proveedor en cada línea, en una caja de alto máximo con scroll propio, y "+ Añadir línea". La selección de
- *  línea es suya. («Nuevo pedido», desde la 0.9.9, va por recuadros de proveedor: NuevoPedidoDialog.) */
-export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
+/** "Nuevo otro pedido": el armazón (DialogoPedidoBase), la tabla de líneas (TablaLineas) con el combo de proveedor en
+ *  cada línea, en una caja de alto máximo con scroll propio, y "+ Añadir línea". La selección de línea es suya.
+ *  («Nuevo pedido», desde la 0.9.9, va por recuadros de proveedor: NuevoPedidoDialog.) */
+export function DialogoLineas<L extends LineaBase>({ titulo, primera, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   // Línea hasta la que se desplaza la caja con scroll: la de «+ Añadir línea».
   const [anadida, setAnadida] = useState<number | null>(null)
@@ -50,7 +49,6 @@ export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, lin
   return (
     <DialogoPedidoBase titulo={titulo} nLineas={lineas.length} info={info} error={error} bloqueado={bloqueado} enviando={enviando}
       onConfirmar={onConfirmar} onCerrar={onCerrar}>
-      {barra}
       {/* Alto máximo con scroll propio (ListView a prefHeight 220 de FormularioCompraView.fxml, C24; 300-420 desde la 0.9.6): con
           muchas líneas la tabla desplaza y "Cancelar"/"Confirmar pedido" quedan siempre a la vista. El popup del
           autocompletar de Componente va en un portal (CampoAutocompletar), así que el recorte de esta caja no lo

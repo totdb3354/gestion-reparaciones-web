@@ -12,8 +12,6 @@ type Props = {
   /** Líneas del pedido. Con alguna, F5 o cerrar la pestaña avisan y Atrás pide «Descartar». */
   nLineas: number
   info: string | null
-  /** Entre la línea de información y la de error. */
-  pie?: ReactNode
   error: string | null
   bloqueado: boolean
   enviando: boolean
@@ -21,14 +19,14 @@ type Props = {
   textoConfirmar?: string
   onConfirmar: () => void
   onCerrar: () => void
-  /** Lo de en medio: la barra, las líneas y «+ Añadir línea». */
+  /** Lo de en medio: las líneas (una tabla o los recuadros de proveedor) y «+ Añadir línea». */
   children: ReactNode
 }
 
 /** Armazón de «Nuevo pedido» y «Nuevo otro pedido» (FormularioCompraView.fxml / FormularioOtroPedidoView.fxml): modal de
  *  880 px (700 en el JavaFX; más grande desde la 0.9.6), título de 24 px, lo de en medio, línea de información, línea de
  *  error (P6) y «Cancelar» / «Confirmar pedido». Sin atajos de teclado (el JavaFX no tenía). */
-export function DialogoPedidoBase({ titulo, nLineas, info, pie, error, bloqueado, enviando, textoConfirmar = 'Confirmar pedido', onConfirmar, onCerrar, children }: Props) {
+export function DialogoPedidoBase({ titulo, nLineas, info, error, bloqueado, enviando, textoConfirmar = 'Confirmar pedido', onConfirmar, onCerrar, children }: Props) {
   // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
   // SELECCIONA el primer campo tabulable al abrirse (@radix-ui/react-focus-scope, focusFirst({ select: true })):
   // el Componente de la línea 1 queda con el texto en azul, y teclear lo pisa. El JavaFX no autoenfoca ese campo.
@@ -57,7 +55,6 @@ export function DialogoPedidoBase({ titulo, nLineas, info, pie, error, bloqueado
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
         {children}
         {info !== null && <p role="status" className="text-[11px] text-azul-gris">{info}</p>}
-        {pie}
         {error !== null && <p role="alert" className="text-[11px] text-texto-error">{error}</p>}
         <div className="flex justify-end gap-2.5">
           <BotonSecundario type="button" disabled={enviando} onClick={onCerrar}>Cancelar</BotonSecundario>

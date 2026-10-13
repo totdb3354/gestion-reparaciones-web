@@ -52,7 +52,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const idsActivos = useMemo(() => new Set(proveedoresActivos.map((p) => p.idProv)), [proveedoresActivos])
   const opciones = useMemo(() => agruparCompartidos(activos).map((f) => ({ clave: String(f.idCom), etiqueta: nombreGrupo(f) })), [activos])
   const [lineas, setLineas] = useState<LineaCompra[] | null>(precarga.modo === 'vacio' || fijo ? [] : null)
-  // Proveedores elegidos a mano, aunque aún no tengan líneas. En «Añadir líneas», el del bloque.
+  // Recuadros que siguen aunque se queden sin líneas (solo los quita su ×): los elegidos a mano, los del reparto de la
+  // precarga y los de «Pasar a…». En «Añadir líneas», el del bloque.
   const [anadidos, setAnadidos] = useState<number[]>(fijo ? [fijo.idProv] : [])
   const [plegados, setPlegados] = useState<ReadonlySet<ClaveRecuadro>>(() => new Set())
   // Recuadro con el error de «Confirmar» (borde rojo) y recuadro que se trae a la vista.
@@ -99,7 +100,11 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   // ninguna omitida y no sale la línea de información.
   if (lineas === null && (componentes.isSuccess || componentes.isError) && (proveedores.isSuccess || proveedores.isError)) {
     const inicial = precargaInicial(precarga, activos)
-    setLineas(repartirLineas(inicial.lineas, activos, idsActivos))
+    const repartidas = repartirLineas(inicial.lineas, activos, idsActivos)
+    setLineas(repartidas)
+    // Los recuadros del reparto se quedan aunque se quite su última línea: solo la × los quita.
+    const ids = repartidas.flatMap((l) => (l.idProv === null ? [] : [l.idProv]))
+    setAnadidos((a) => [...new Set([...a, ...ids])])
     setOmitidas(componentes.isError ? 0 : inicial.omitidas)
   }
   // «Pedir» y «Pedir todas las piezas» (2026-10-13): las líneas salen ya (C25); su «Pedir 60 d», con la lista fresca.
@@ -138,6 +143,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   function seleccionar(id: number) {
     setSeleccionada(id)
     setDesplazarA(null)
+    // El recuadro añadido o con error se trae a la vista una sola vez.
+    setALaVista(null)
   }
   function cambiar(id: number, cambio: Partial<LineaBase>) {
     setLineas((ls) => cambiarLinea<LineaCompra>(ls ?? [], id, cambio))
@@ -177,6 +184,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     const linea = todas.find((l) => l.id === id)
     const r = pasarA(todas, id, idProv)
     setLineas(r.lineas)
+    // Como los de «+ Otro proveedor»: el recuadro se queda hasta que se pulse su ×.
+    setAnadidos((a) => (a.includes(idProv) ? a : [...a, idProv]))
     limpiarAvisos()
     setPlegados((p) => sinClave(p, idProv))
     if (r.repetida && linea !== undefined && linea.idCom !== null) setRepetida(avisoYaEstaba(nombrePieza(linea.idCom), nombreProv(idProv)))
@@ -195,10 +204,12 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     limpiarAvisos()
   }
   function pedirQuitar(idProv: number) {
+    setALaVista(null)
     if (lineasDe(todas, idProv).length > 0) setQuitando(idProv)
     else quitarRecuadro(idProv)
   }
   function plegar(clave: ClaveRecuadro) {
+    setALaVista(null)
     setPlegados((p) => (p.has(clave) ? sinClave(p, clave) : new Set([...p, clave])))
   }
 
@@ -267,7 +278,13 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     if (fijo) return <DestinoRecuadro nombre={nombreFijo} fijado={fijo.idBloque} />
     return (
       <DestinoRecuadro nombre={nombreProv(idProv)} opciones={opcionesDestino(bloques, idProv)} valor={destinoElegido(bloques, idProv, elegidos)} cargando={compras.isPending}
-        onElegir={(idBloque) => { setElegidos((e) => ({ ...e, [idProv]: idBloque })); setError(null) }} />
+        onElegir={(idBloque) => {
+          // Cambiar el destino es tocar el pedido: quita el error y la marca.
+          setElegidos((e) => ({ ...e, [idProv]: idBloque }))
+          setError(null)
+          setMarcado(null)
+          setALaVista(null)
+        }} />
     )
   }
   const vacio = lineas !== null && !fijo && recuadros.length === 0 && porRepartir.length === 0
