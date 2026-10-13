@@ -15,10 +15,9 @@ describe('columna lateral de sub-navegación', () => {
     expect(enlace).toHaveAttribute('aria-current', 'page')
   })
 
-  it('en una sección todavía sin enlaces mantiene la columna vacía', () => {
+  it('en una sección sin enlaces no pinta la columna: el contenido usa todo el ancho (0.9.10)', () => {
     renderConProviders(<SubNav />, { ruta: '/estadisticas' })
-    const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
-    expect(within(columna).queryAllByRole('link')).toHaveLength(0)
+    expect(screen.queryByRole('navigation', { name: 'Sub-navegación' })).not.toBeInTheDocument()
   })
 
   it('en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada', () => {
@@ -57,17 +56,21 @@ describe('columna lateral de sub-navegación', () => {
   // reventaría. Es alcanzable: el catch-all `*` del router está dentro de AppLayout, de modo que SubNav se
   // pinta una vez con la ruta original antes de que el <Navigate> redirija.
   it.each(['/constructor', '/__proto__', '/toString'])(
-    'una sección que se llama como un miembro heredado de Object (%s) deja la columna vacía sin romper',
+    'una sección que se llama como un miembro heredado de Object (%s) no pinta la columna y no rompe',
     (ruta) => {
       renderConProviders(<SubNav />, { ruta })
-      const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
-      expect(within(columna).queryAllByRole('link')).toHaveLength(0)
+      expect(screen.queryByRole('navigation', { name: 'Sub-navegación' })).not.toBeInTheDocument()
     },
   )
 
-  it('el shell la coloca junto al contenido en todas las vistas', () => {
-    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/gestion/logs' })
+  it('el shell la coloca junto al contenido', () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/clientes' })
     expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toBeInTheDocument()
+  })
+
+  it('en Gestión el shell no pinta la columna (0.9.10)', () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_ADMIN, ruta: '/gestion/logs' })
+    expect(screen.queryByRole('navigation', { name: 'Sub-navegación' })).not.toBeInTheDocument()
   })
 
   it('usa el blanco de superficie del sistema de tokens', () => {

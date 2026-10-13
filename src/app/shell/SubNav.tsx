@@ -22,6 +22,8 @@ export function SubNav() {
   const seccion = pathname.split('/')[1]
   // Object.hasOwn: la sección viene de la URL y un /constructor resolvería a un miembro heredado de Object.prototype
   const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion](sesion) : []
+  // Sin enlaces (Estadísticas, Gestión) no hay columna: el contenido se queda con todo el ancho (0.9.10).
+  if (enlaces.length === 0) return null
   return (
     <nav aria-label="Sub-navegación" className="w-[200px] shrink-0 bg-superficie p-2">
       {enlaces.map((e) => (
