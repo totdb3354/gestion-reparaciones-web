@@ -70,11 +70,14 @@ export function PiezasProveedorDialog({ proveedor, onCerrar }: Props) {
                       aria-label={`Vende ${nombre}`} />
                     {nombre}
                   </label>
-                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-texto-sub">{textoSinModelos(t, excluidos)}</span>
+                  {/* Se corta con «…» al ancho que quede; la lista entera, al pasar el ratón. */}
+                  <span title={textoSinModelos(t, excluidos) || undefined} className="min-w-0 flex-1 truncate text-[11.5px] text-texto-sub">
+                    {textoSinModelos(t, excluidos)}
+                  </span>
                   <MultiSelect opciones={t.modelos} clave={(m) => m} etiqueta={(m) => traducirModelo(m)} seleccion={vendidos(t, excluidos)}
                     onChange={(s) => cambiar(fijarVendidos(estado, t, s))} textoVacio="No lo vende" textoPlural={(n) => `${n} modelos`}
                     texto={textoBoton(t, excluidos)} opcionTodas="Todos los modelos" deshabilitado={excluidos === undefined}
-                    etiquetaAccesible={`Modelos de ${nombre}`} className="h-8 min-w-[170px]" />
+                    etiquetaAccesible={`Modelos de ${nombre}`} className="h-8 w-[190px] min-w-[190px] shrink-0" />
                 </div>
               )
             })}

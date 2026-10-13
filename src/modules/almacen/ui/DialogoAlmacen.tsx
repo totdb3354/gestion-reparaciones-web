@@ -42,7 +42,9 @@ export function DialogoAlmacen({ abierto, titulo, subtitulo, error, textoAccion,
   return (
     <Dialog open={abierto} onOpenChange={(o) => { if (!o && !enviando) onCancelar() }}>
       <DialogContent {...(subtitulo ? {} : { 'aria-describedby': undefined })} className={cn(estilo.caja, 'gap-3 bg-fondo-vista p-7')}>
-        <form onSubmit={(e) => { e.preventDefault(); enviar(onConfirmar) }} className="flex flex-col gap-3">
+        {/* min-w-0: DialogContent es una rejilla y, sin esto, un texto que no se parte (p. ej. «Sin …» de «Piezas que
+            vende…») ensancha la columna por encima del ancho de la caja y el contenido se sale por la derecha. */}
+        <form onSubmit={(e) => { e.preventDefault(); enviar(onConfirmar) }} className="flex min-w-0 flex-col gap-3">
           <DialogHeader>
             <DialogTitle className={cn(estilo.titulo, 'font-bold text-azul-medio')}>{titulo}</DialogTitle>
             {subtitulo ? <DialogDescription className="whitespace-pre-wrap text-[12px] text-azul-gris">{subtitulo}</DialogDescription> : null}

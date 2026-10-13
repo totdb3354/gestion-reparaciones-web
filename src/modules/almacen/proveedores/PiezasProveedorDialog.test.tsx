@@ -53,6 +53,8 @@ describe('PiezasProveedorDialog por tipos (spec 2026-10-12 §5.1)', () => {
     expect(pantalla).toHaveTextContent('No lo vende')
     expect(pantalla).toBeDisabled()
     expect(dlg).toHaveTextContent('Sin iPhone 12 Mini · iPhone 13 Mini')
+    // Si no cabe se corta con «…»: la lista entera va en el tooltip.
+    expect(within(dlg).getByText('Sin iPhone 12 Mini · iPhone 13 Mini')).toHaveAttribute('title', 'Sin iPhone 12 Mini · iPhone 13 Mini')
   })
 
   it('marcar un tipo, quitar un modelo, volver a «Todos los modelos» y guardar', async () => {
