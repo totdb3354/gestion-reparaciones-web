@@ -11,6 +11,9 @@ type Props = {
   titulo: string
   /** Líneas del pedido. Con alguna, F5 o cerrar la pestaña avisan y Atrás pide «Descartar». */
   nLineas: number
+  /** Precarga (0.9.9): el diálogo se abre con líneas que aún pueden estar cargando. Si se pasa, decide C25 en lugar de
+   *  «había líneas en el primer render» (con la caché de proveedores fría, las líneas llegan después). */
+  conPrecarga?: boolean
   info: string | null
   error: string | null
   bloqueado: boolean
@@ -26,14 +29,14 @@ type Props = {
 /** Armazón de «Nuevo pedido» y «Nuevo otro pedido» (FormularioCompraView.fxml / FormularioOtroPedidoView.fxml): modal de
  *  880 px (700 en el JavaFX; más grande desde la 0.9.6), título de 24 px, lo de en medio, línea de información, línea de
  *  error (P6) y «Cancelar» / «Confirmar pedido». Sin atajos de teclado (el JavaFX no tenía). */
-export function DialogoPedidoBase({ titulo, nLineas, info, error, bloqueado, enviando, textoConfirmar = 'Confirmar pedido', onConfirmar, onCerrar, children }: Props) {
+export function DialogoPedidoBase({ titulo, nLineas, conPrecarga, info, error, bloqueado, enviando, textoConfirmar = 'Confirmar pedido', onConfirmar, onCerrar, children }: Props) {
   // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
   // SELECCIONA el primer campo tabulable al abrirse (@radix-ui/react-focus-scope, focusFirst({ select: true })):
   // el Componente de la línea 1 queda con el texto en azul, y teclear lo pisa. El JavaFX no autoenfoca ese campo.
   // Con el diálogo vacío (alta manual u "Otros") no hay ninguna línea todavía en el primer render, así que el
   // foco automático de Radix no cae sobre un campo con texto y se deja como estaba (calco). El valor se congela
   // en el primer render: es justo el que ve el efecto de montaje de FocusScope, que solo corre una vez.
-  const [huboPrecarga] = useState(() => nLineas > 0)
+  const [huboPrecarga] = useState(() => conPrecarga ?? nLineas > 0)
   // F5, cerrar la pestaña o salir de la web con líneas en el pedido: el navegador pregunta (el pedido aún no se ha guardado).
   useAvisoAlSalir(nLineas > 0)
   // Atrás (y Adelante) del navegador con líneas en el pedido: se para la navegación y se pide confirmación "Descartar",

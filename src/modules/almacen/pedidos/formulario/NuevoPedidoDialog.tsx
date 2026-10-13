@@ -293,7 +293,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const vacio = lineas !== null && !fijo && recuadros.length === 0 && porRepartir.length === 0
 
   return (
-    <DialogoPedidoBase titulo={fijo ? `Añadir líneas · Bloque ${fijo.idBloque}` : 'Nuevo pedido'} nLineas={todas.length} info={info} error={error}
+    <DialogoPedidoBase titulo={fijo ? `Añadir líneas · Bloque ${fijo.idBloque}` : 'Nuevo pedido'} nLineas={todas.length} conPrecarga={precarga.modo === 'componentes' || precarga.modo === 'solicitudes'} info={info} error={error}
       bloqueado={bloqueado} enviando={guardar.isPending} textoConfirmar={textoConfirmar(nBloques)} onConfirmar={() => void confirmar()} onCerrar={onCerrar}>
       {fijo && (
         <p className="text-[12px] text-azul-gris">

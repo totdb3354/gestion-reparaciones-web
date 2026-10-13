@@ -172,7 +172,7 @@ describe('NuevoPedidoDialog', () => {
   })
 
   it('"Pedir" con un componente precargado: no autoenfoca el campo Componente (C25, se pisaría la precarga al teclear)', async () => {
-    // Cachés ya calientes (como al venir de Stock): la línea precargada existe desde el primer render del diálogo, que es
+    // Cachés de componentes y proveedores ya calientes: la línea precargada existe desde el primer render del diálogo, que es
     // cuando Radix decide a qué enfocar al abrirse.
     const qc = crearQueryClient({ retry: false })
     qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, DE_ACME)
@@ -182,6 +182,15 @@ describe('NuevoPedidoDialog', () => {
     const campo = await screen.findByRole('combobox', { name: 'Componente línea 1' })
     expect(campo).toHaveValue('bat-x / bat-y')
     expect(document.activeElement).not.toBe(campo)
+  })
+
+  it('"Pedir" con la caché de proveedores fría (Stock no la carga): tampoco se enfoca «Cancelar» (C25)', async () => {
+    const qc = crearQueryClient({ retry: false })
+    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, DE_ACME)
+    renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'componentes', idsCom: [2] }} onCerrar={vi.fn()} /> }], { sesion: SESION_SUPER, queryClient: qc })
+    const campo = await screen.findByRole('combobox', { name: 'Componente línea 1' })
+    expect(document.activeElement).not.toBe(campo)
+    expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Cancelar' }))
   })
 
   it('componente desactivado o desconocido: la línea va vacía (calco), con su placeholder, a «Por repartir»', async () => {
