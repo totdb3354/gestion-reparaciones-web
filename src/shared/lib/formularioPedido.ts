@@ -4,7 +4,8 @@ import { crearStore } from './store'
 /** Con qué se abre "Nuevo pedido" (spec 4b §6, modos de precarga):
  *  - 'vacio': el botón "Nuevo pedido" de la pestaña, sin líneas.
  *  - 'componentes': "Pedir" de Stock actual o de una alerta (un id) y "Pedir todas las piezas" (un id por alerta, en el
- *    orden de la campana); cantidad 1 por línea.
+ *    orden de la campana); cada línea con su «Pedir 60 d» si es > 0 y, si no, 1 (0.9.9: el formulario la lee de la
+ *    lista recién cargada).
  *  - 'solicitudes': "Pedir piezas", con las listas PENDIENTE recién leídas; el formulario agrupa por componente.
  *  - 'bloque': «Añadir líneas…» de un bloque (proveedor y destino fijos); con `prevision`, «Añadir previsión…»: se aplica
  *    al abrir la previsión de su proveedor (0.9.9). */

@@ -3,7 +3,7 @@ import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
   aplicarPrevision, aplicarProveedorATodas, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
-  cantidadPrevista, elegirPieza, avisoRepetida,
+  cantidadPrevista, elegirPieza, avisoRepetida, ponerCantidadesPrevistas,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
@@ -298,9 +298,41 @@ describe('cantidad prevista y piezas repetidas (0.9.9, 2026-10-13)', () => {
     expect(avisoRepetida('lcd-x-negro', 3)).toBe('lcd-x-negro ya está en el pedido (línea 3).')
   })
 
-  it('«Pedir» y «Pedir todas las piezas» entran con la cantidad prevista (las solicitudes, no)', () => {
-    expect(precargarComponentes([1, 2], ACTIVOS).map((l) => [l.idCom, l.cantidad])).toEqual([[1, '16'], [2, '1']])
-    // Un slave se pide a su master, con la previsión del master.
-    expect(precargarComponentes([5], ACTIVOS).map((l) => [l.idCom, l.cantidad])).toEqual([[2, '1']])
+  // flex-x (6), pieza local de estos tests: pide 7.
+  const CON_SIETE: Componente[] = [...ACTIVOS, { ...COMPONENTES[0], idCom: 6, tipo: 'flex-x', pedir60: 7 }]
+
+  it('cambiar de pieza con la cantidad automática la recalcula: A (16) → B sin previsión, 1; A → C, 7', () => {
+    const conA = elegirPieza([lineaCompraVacia(1)], 1, 1, CON_SIETE).lineas
+    expect(conA[0]).toMatchObject({ idCom: 1, cantidad: '16' })
+    const conB = elegirPieza(conA, 1, 2, CON_SIETE).lineas
+    expect(conB[0]).toMatchObject({ idCom: 2, cantidad: '1' })
+    expect(elegirPieza(conB, 1, 6, CON_SIETE).lineas[0]).toMatchObject({ idCom: 6, cantidad: '7' })
+    expect(elegirPieza(conA, 1, 6, CON_SIETE).lineas[0]).toMatchObject({ idCom: 6, cantidad: '7' })
+  })
+
+  it('con la cantidad cambiada a mano, cambiar de pieza no la toca', () => {
+    const aMano = [{ ...lineaCompraVacia(1, 1), cantidad: '5' }]
+    expect(elegirPieza(aMano, 1, 2, CON_SIETE).lineas[0]).toMatchObject({ idCom: 2, cantidad: '5' })
+    expect(elegirPieza(aMano, 1, 6, CON_SIETE).lineas[0]).toMatchObject({ idCom: 6, cantidad: '5' })
+  })
+
+  it('volver a elegir la misma pieza no cambia nada, aunque siga con 1 y tenga previsión (una línea de solicitud con 1)', () => {
+    const lineas = [lineaCompraVacia(1, 1)]
+    const r = elegirPieza(lineas, 1, 1, ACTIVOS)
+    expect(r.repetida).toBeNull()
+    expect(r.lineas).toBe(lineas)
+    expect(r.lineas[0].cantidad).toBe('1')
+  })
+
+  it('ponerCantidadesPrevistas: las líneas con pieza que siguen con 1 pasan a su «Pedir 60 d»; las demás no cambian', () => {
+    const lineas = [lineaCompraVacia(1, 1), lineaCompraVacia(2, 2), { ...lineaCompraVacia(3, 1), cantidad: '3' }, lineaCompraVacia(4)]
+    expect(ponerCantidadesPrevistas(lineas, ACTIVOS).map((l) => l.cantidad)).toEqual(['16', '1', '3', '1'])
+    // La precarga de «Pedir» no la pone: puede venir de la caché vieja; el diálogo la aplica con la lista fresca.
+    expect(precargarComponentes([1], ACTIVOS)[0].cantidad).toBe('1')
+  })
+
+  it('«Pedir» de un slave: la línea va a su master y lleva la previsión del master, no la del slave', () => {
+    const activos = COMPONENTES.map((c) => (c.idCom === 2 ? { ...c, pedir60: 7 } : c.idCom === 5 ? { ...c, pedir60: 0 } : c))
+    expect(ponerCantidadesPrevistas(precargarComponentes([5], activos), activos).map((l) => [l.idCom, l.cantidad])).toEqual([[2, '7']])
   })
 })

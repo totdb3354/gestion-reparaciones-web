@@ -14,7 +14,7 @@ import { destinosDelCuerpo } from './destinos'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  aplicarPrevision, aplicarProveedorATodas, avisoNadaQuePedir, avisoOmitidas, avisoRepetida, elegirPieza, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
+  aplicarPrevision, aplicarProveedorATodas, avisoNadaQuePedir, avisoOmitidas, avisoRepetida, elegirPieza, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, ponerCantidadesPrevistas, precargaInicial, quitarLinea, siguienteId,
   validarLineasCompra, MSG_SIN_PROVEEDOR, type LineaCompra,
 } from './lineas'
 import { ResumenBloques } from './ResumenBloques'
@@ -53,6 +53,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const [seleccion, setSeleccion] = useState<{ id: number; marca: number } | null>(null)
   // «Añadir previsión…» de un bloque: se aplica una vez, cuando el listado de Stock ha cargado (bien o mal).
   const [previsionPendiente, setPrevisionPendiente] = useState(fijo?.prevision === true)
+  // «Pedir» y «Pedir todas las piezas» (2026-10-13): su «Pedir 60 d» se pone una vez, con la lista fresca.
+  const [cantidadesPendientes, setCantidadesPendientes] = useState(precarga.modo === 'componentes')
   const opcionesProveedor = useMemo(() => proveedoresActivos.map((p) => ({ valor: String(p.idProv), etiqueta: p.nombre })), [proveedoresActivos])
   // Una instancia por apertura: el host remonta el diálogo en cada apertura (key), así que no sobrevive a un éxito.
   const [claves] = useState(() => crearClavesIdempotencia())
@@ -71,6 +73,11 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     const inicial = precargaInicial(precarga, activos)
     setLineas(idProvGeneral === null ? inicial.lineas : aplicarProveedorATodas(inicial.lineas, idProvGeneral))
     setOmitidas(componentes.isError ? 0 : inicial.omitidas)
+  }
+  // «Pedir» y «Pedir todas las piezas» (2026-10-13): las líneas salen ya (C25); su «Pedir 60 d», con la lista fresca.
+  if (cantidadesPendientes && lineas !== null && ((componentes.isSuccess && !componentes.isFetching) || componentes.isError)) {
+    setCantidadesPendientes(false)
+    if (componentes.isSuccess) setLineas(ponerCantidadesPrevistas(lineas, activos))
   }
   // Con la caché de Stock ya cargada, `isSuccess` es true con datos viejos: se espera a que acabe la recarga.
   if (previsionPendiente && fijo && lineas !== null && ((componentes.isSuccess && !componentes.isFetching) || componentes.isError)) {
@@ -135,6 +142,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setSinPedido(r.sinPedido)
     setSinListaVistas(sinLista(activos))
     setNadaQuePedir(false)
+    setRepetida(null)
     setError(null)
   }
   /** Un proveedor por pedido (2026-10-12): elegirlo, o cambiarlo, lo pone en todas las líneas. */
@@ -145,6 +153,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setSinPedido(0)
     setSinListaVistas(0)
     setNadaQuePedir(false)
+    setRepetida(null)
   }
 
   async function confirmar() {

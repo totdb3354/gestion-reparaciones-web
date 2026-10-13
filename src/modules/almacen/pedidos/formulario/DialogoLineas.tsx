@@ -61,13 +61,16 @@ type Props<L extends LineaBase> = {
  *  línea se calcula como EUR (tasa 1.0 por defecto de LineaCompra). Sin atajos de teclado (el JavaFX no tenía). */
 export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, pie, proveedorFijo, lineas, proveedores, info, seleccionar: peticion, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
-  // Ajuste durante el render (sin useEffect): una marca nueva de `seleccionar` selecciona esa línea una vez.
+  // Línea hasta la que se desplaza la caja con scroll: la de «+ Añadir línea» o la que queda al juntar una repetida.
+  const [anadida, setAnadida] = useState<number | null>(null)
+  // Ajuste durante el render (sin useEffect): una marca nueva de `seleccionar` selecciona esa línea una vez y desplaza
+  // la caja hasta ella (con muchas líneas puede estar fuera de la vista).
   const [marcaVista, setMarcaVista] = useState<number | null>(null)
   if (peticion && peticion.marca !== marcaVista) {
     setMarcaVista(peticion.marca)
     setSeleccionada(peticion.id)
+    setAnadida(peticion.id)
   }
-  const [anadida, setAnadida] = useState<number | null>(null)
   // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
   // SELECCIONA el primer campo tabulable al abrirse (@radix-ui/react-focus-scope, focusFirst({ select: true })):
   // el Componente de la línea 1 queda con el texto en azul, y teclear lo pisa. El JavaFX no autoenfoca ese campo.

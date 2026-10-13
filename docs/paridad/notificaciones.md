@@ -53,7 +53,7 @@ Capturas de referencia (documentación privada, fuera del repo): `formulario/{ca
 - [x] Tarjeta: blanca (alterna #F5F6F8), radio 6, padding 12, separación 12. Icono circular de 40 px: #E8504A con "✕" (sin stock) o #E8903A con "!" (stock bajo), 14 px negrita blanco. SKU (14 px negrita, #2C3B54). Debajo, etiqueta "Sin Stock" / "Stock Bajo" (11 px negrita, del color del icono, sin fondo) y a su lado "Sin unidades" / "<stock> unid. restantes" (11 px, #9AA0AA; sin forma singular). El mínimo no se muestra. Sin menú contextual.
 - [x] Un componente con stock negativo cuenta como alerta (pulso) pero no tiene tarjeta (los grupos son `== 0` y `> 0`), como en el JavaFX.
 - [x] Botón "Pedir" de cada tarjeta (fondo #2C3B54, texto blanco, 11 px, radio 20, padding 6 16): cierra el panel y abre "Nuevo pedido" con ese componente (sub-proyecto 4b).
-- [x] Botones inferiores, mitad y mitad, los dos con el formato oscuro de "Pedir piezas": "Pedir todas las piezas" (cierra el panel y abre "Nuevo pedido" con una línea por alerta, cantidad 1, en el orden de la campana; sin alertas no hace nada) y "Ver Stock Completo" (cierra el panel y abre Stock en "Stock actual").
+- [x] Botones inferiores, mitad y mitad, los dos con el formato oscuro de "Pedir piezas": "Pedir todas las piezas" (cierra el panel y abre "Nuevo pedido" con una línea por alerta, con su «Pedir 60 d» si es > 0 y, si no, 1 (0.9.9), en el orden de la campana; sin alertas no hace nada) y "Ver Stock Completo" (cierra el panel y abre Stock en "Stock actual").
 - [x] Pedir una pieza no quita la alerta: solo desaparece cuando el stock supera el mínimo.
 
 ## Refresco
