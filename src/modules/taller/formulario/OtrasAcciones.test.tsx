@@ -19,6 +19,11 @@ function montar(preparar: (e: EstadoFormulario) => EstadoFormulario) {
   renderConProviders(<Arnes preparar={preparar} alGuardar={alGuardar} />)
   return { alGuardar }
 }
+/** Arnés con modelo 13 y las acciones «otro» ya guardadas del IMEI que trae la carga. */
+function ArnesCerrar({ acciones }: { acciones: string[] }) {
+  const [estado, dispatch] = useReducer(reducir, { ...DATOS, accionesImei: acciones }, (d) => conModelo('13')(estadoInicial(d)))
+  return <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={() => {}} />
+}
 const conModelo = (modelo: string) => (e: EstadoFormulario) => reducir(e, { tipo: 'CAMBIAR_MODELO', modelo })
 /** Modelo 13 con una acción ya guardada ("Limpieza de conector") y otra pendiente con texto. */
 function conUnaGuardadaYUnaPendiente(e: EstadoFormulario): EstadoFormulario {
@@ -33,6 +38,17 @@ function conUnaGuardadaYUnaPendiente(e: EstadoFormulario): EstadoFormulario {
 }
 
 describe('OtrasAcciones (ficha docs/paridad/formulario.md · Otras acciones)', () => {
+  it('«+ Cerrar» solo con más aperturas que cierres en el IMEI: añade «Cerrar» enfocada y se oculta', async () => {
+    const { unmount } = renderConProviders(<ArnesCerrar acciones={['Abrir', 'Cerrar']} />)
+    expect(screen.queryByRole('button', { name: '+ Cerrar' })).not.toBeInTheDocument()
+    unmount()
+    renderConProviders(<ArnesCerrar acciones={['Abrir']} />)
+    await userEvent.click(screen.getByRole('button', { name: '+ Cerrar' }))
+    const campo = screen.getByLabelText('Descripción de la acción 1')
+    expect(campo).toHaveValue('Cerrar')
+    expect(campo).toHaveFocus()
+    expect(screen.queryByRole('button', { name: '+ Cerrar' })).not.toBeInTheDocument()
+  })
   it('sección oculta sin modelo o sin componente otro del modelo', () => {
     montar((e) => e)
     expect(screen.queryByTestId('otras-acciones')).not.toBeInTheDocument()

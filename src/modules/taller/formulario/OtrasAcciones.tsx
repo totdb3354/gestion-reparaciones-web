@@ -1,5 +1,5 @@
 import { useEffect, useRef, type Dispatch } from 'react'
-import { anadirAccionHabilitado, contadorAcciones, otrasAccionesVisible, type AccionFormulario, type EstadoFormulario } from './estado'
+import { anadirAccionHabilitado, atajoCerrarVisible, contadorAcciones, otrasAccionesVisible, type AccionFormulario, type EstadoFormulario } from './estado'
 
 type Props = { estado: EstadoFormulario; dispatch: Dispatch<AccionFormulario>; onGuardarAccion: (id: number) => void }
 
@@ -66,14 +66,26 @@ export function OtrasAcciones({ estado, dispatch, onGuardarAccion }: Props) {
             )
           })}
         </div>
-        <button
-          type="button"
-          disabled={!anadirAccionHabilitado(estado)}
-          onClick={() => { enfocarNueva.current = true; dispatch({ tipo: 'ANADIR_ACCION' }) }}
-          className="cursor-pointer rounded-[6px] bg-azul-medio px-3 py-1.5 text-[11.5px] font-bold text-superficie disabled:cursor-default disabled:opacity-50"
-        >
-          + Añadir acción
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={!anadirAccionHabilitado(estado)}
+            onClick={() => { enfocarNueva.current = true; dispatch({ tipo: 'ANADIR_ACCION' }) }}
+            className="cursor-pointer rounded-[6px] bg-azul-medio px-3 py-1.5 text-[11.5px] font-bold text-superficie disabled:cursor-default disabled:opacity-50"
+          >
+            + Añadir acción
+          </button>
+          {/* Atajo «+ Cerrar» (spec 2026-10-13 §2.6): solo si el IMEI tiene un «Abrir» sin su «Cerrar». */}
+          {atajoCerrarVisible(estado) && (
+            <button
+              type="button"
+              onClick={() => { enfocarNueva.current = true; dispatch({ tipo: 'ANADIR_CERRAR' }) }}
+              className="cursor-pointer rounded-[6px] border border-azul-medio bg-superficie px-3 py-[5px] text-[11.5px] font-bold text-azul-medio hover:bg-fila-edicion-bg"
+            >
+              + Cerrar
+            </button>
+          )}
+        </div>
       </div>
     </section>
   )

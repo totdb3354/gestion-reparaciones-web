@@ -93,6 +93,9 @@ export type EstadoFormulario = {
   modelosPorTipo: Record<string, string[]>
   componentesOtro: Componente[] // grupo 'otro' completo (no se mira 'activo')
   otros: OtraAccion[]
+  /** Textos de las acciones «otro» ya guardadas del IMEI en reparación y glass al abrir: deciden el atajo «+ Cerrar»
+   *  (spec 2026-10-13 §2.6). Vacío en edición. */
+  accionesImei: string[]
   siguienteIdAccion: number
   edicion: EdicionEstado | null
   guardado: GuardadoEstado
@@ -115,6 +118,7 @@ export type DatosNuevo = {
   solicitudes: SolicitudAsignacion[] // incluye rechazadas
   incidencia: string | null
   modeloTelefono: string | null // '' o fuera de la lista = null; solo se usa si tras las solicitudes no hay modelo
+  accionesImei?: string[] // acciones «otro» guardadas del IMEI (reparación + glass), para «+ Cerrar»; sin el campo, []
 }
 export type DatosEditar = {
   modo: 'editar'
@@ -144,6 +148,7 @@ export type AccionFormulario =
   | { tipo: 'CANCELAR_AGOTADO'; prefijo: string }
   | { tipo: 'AGOTADO_REGISTRADO'; prefijo: string } // agotar-componente OK en este intento
   | { tipo: 'ANADIR_ACCION' }
+  | { tipo: 'ANADIR_CERRAR' } // atajo «+ Cerrar»: línea nueva con el texto «Cerrar»
   | { tipo: 'ESCRIBIR_ACCION'; id: number; texto: string } // devuelve "✓ Confirmar" a "✓ Guardar"
   | { tipo: 'QUITAR_ACCION'; id: number }
   | { tipo: 'PEDIR_CONFIRMACION_ACCION'; id: number }
@@ -245,6 +250,7 @@ function estadoBase(d: DatosBase): EstadoFormulario {
     modelosPorTipo: modelosDeCadaTipo(d.agrupados, bases.map((b) => b.prefijo)),
     componentesOtro: d.agrupados[PREFIJO_OTRO] ?? [],
     otros: [],
+    accionesImei: [],
     siguienteIdAccion: 1,
     edicion: null,
     guardado: { clics: 0, textoConfirmacion: false, enCurso: false },
@@ -351,6 +357,7 @@ function inicialNuevo(datos: DatosNuevo): EstadoFormulario {
     modeloBloqueado: telefono !== null || filas.some((f) => f.solicitud !== null),
     tieneSolicitudesIniciales: datos.solicitudes.length > 0,
     filas,
+    accionesImei: datos.accionesImei ?? [],
   }
 }
 
@@ -673,6 +680,13 @@ function anadirAccion(estado: EstadoFormulario): EstadoFormulario {
   return { ...estado, otros: [...estado.otros, linea], siguienteIdAccion: estado.siguienteIdAccion + 1, revision: estado.revision + 1 }
 }
 
+/** Atajo «+ Cerrar» (spec 2026-10-13 §2.6): como «+ Añadir acción», pero la línea nace con el texto «Cerrar». */
+function anadirCerrar(estado: EstadoFormulario): EstadoFormulario {
+  if (!atajoCerrarVisible(estado)) return estado
+  const linea: OtraAccion = { id: estado.siguienteIdAccion, texto: TEXTO_CERRAR, origen: 'nueva', guardada: null, confirmando: false, guardando: false }
+  return { ...estado, otros: [...estado.otros, linea], siguienteIdAccion: estado.siguienteIdAccion + 1, revision: estado.revision + 1 }
+}
+
 function quitarAccion(estado: EstadoFormulario, id: number): EstadoFormulario {
   const linea = estado.otros.find((a) => a.id === id)
   if (linea === undefined || linea.origen !== 'nueva' || !accionEditable(linea)) return estado
@@ -807,6 +821,8 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
       return agotadoRegistrado(estado, accion.prefijo)
     case 'ANADIR_ACCION':
       return anadirAccion(estado)
+    case 'ANADIR_CERRAR':
+      return anadirCerrar(estado)
     case 'ESCRIBIR_ACCION':
       return cambiarAccion(estado, accion.id, true, (a) =>
         !accionEditable(a) || a.texto === accion.texto ? null : { ...a, texto: accion.texto, confirmando: false, pideOtroClic: false },
@@ -958,6 +974,22 @@ export function contadorAcciones(e: EstadoFormulario): number {
 
 export function anadirAccionHabilitado(e: EstadoFormulario): boolean {
   return otrasAccionesVisible(e) && !e.otros.some((a) => a.guardada === null && a.origen !== 'yaReparada' && a.texto.trim() === '')
+}
+
+export const TEXTO_CERRAR = 'Cerrar'
+const normalizada = (texto: string) => texto.trim().toLowerCase()
+/** Apertura = acción que empieza por «abr» o «abi»; cierre = por «cerr» (mismo criterio que el servidor, spec 2026-10-13). */
+export const esApertura = (texto: string) => /^(abr|abi)/.test(normalizada(texto))
+export const esCierre = (texto: string) => normalizada(texto).startsWith('cerr')
+
+/** «+ Cerrar» sale al completar (no al editar), con la sección Otras acciones visible, si el IMEI tiene más aperturas que
+ *  cierres: cuentan las acciones guardadas al abrir (reparación + glass) y, como cierres, las líneas nuevas del formulario
+ *  que empiezan por «cerr» (guardadas o no). */
+export function atajoCerrarVisible(e: EstadoFormulario): boolean {
+  if (e.modo === 'editar' || !otrasAccionesVisible(e)) return false
+  const aperturas = e.accionesImei.filter(esApertura).length
+  const cierres = e.accionesImei.filter(esCierre).length + e.otros.filter((a) => a.origen === 'nueva' && esCierre(a.texto)).length
+  return aperturas > cierres
 }
 
 /** true = el siguiente clic en "✓ Guardar" / "✓ Confirmar" de la línea debe PEDIR confirmación (no guardar todavía). */
