@@ -39,11 +39,30 @@ export function idPedible(idCom: number, activos: Componente[]): number | null {
   return activos.some((x) => x.idCom === idMaster && x.activo && x.idComMaster == null) ? idMaster : null
 }
 
+/** «Pedir 60 d» de la pieza (su master; el listado de Stock lo trae calculado para SUPERTECNICO y ADMIN) si es > 0;
+ *  si no hay previsión o no hay nada que pedir, null (0.9.9, 2026-10-13). */
+export function cantidadPrevista(idCom: number, activos: Componente[]): number | null {
+  const pedir = activos.find((c) => c.idCom === idCom)?.pedir60 ?? 0
+  return pedir > 0 ? pedir : null
+}
+
 /** "Pedir" (1 id) y "Pedir todas las piezas" (N ids, orden de la campana): una línea por id con cantidad 1. El id de un
  *  slave se sustituye por el de su master (el pedido va al master). Un id que no está entre los activos, o cuyo master
- *  no lo está, deja la línea vacía, como el JavaFX (buscaba en `componentesDisponibles` y no rellenaba). */
+ *  no lo está, deja la línea vacía, como el JavaFX (buscaba en `componentesDisponibles` y no rellenaba). Su «Pedir 60 d»
+ *  lo pone después el diálogo con la lista fresca (`ponerCantidadesPrevistas`): la de aquí puede ser la de la caché. */
 export function precargarComponentes(idsCom: number[], activos: Componente[]): LineaCompra[] {
   return idsCom.map((idCom, i) => lineaCompraVacia(i + 1, idPedible(idCom, activos)))
+}
+
+/** «Pedir» y «Pedir todas las piezas» entran con su «Pedir 60 d»; se aplica con la lista fresca, no con la caché
+ *  (0.9.9, 2026-10-13). Cada línea con pieza que sigue con el 1 de entrada y cuya pieza tiene previsión pasa a esa
+ *  cantidad; las demás no cambian. */
+export function ponerCantidadesPrevistas(lineas: LineaCompra[], activos: Componente[]): LineaCompra[] {
+  return lineas.map((l) => {
+    if (l.idCom === null || l.cantidad !== '1') return l
+    const prevista = cantidadPrevista(l.idCom, activos)
+    return prevista === null ? l : { ...l, cantidad: String(prevista) }
+  })
 }
 
 /** "Pedir piezas" (initConSolicitudes, FC :606-621): agrupa por componente, con los slaves sumados en su master, en el
@@ -228,6 +247,40 @@ export function cambiarLinea<T extends { id: number }>(lineas: T[], id: number, 
 
 export function quitarLinea<T extends { id: number }>(lineas: T[], id: number): T[] {
   return lineas.filter((l) => l.id !== id)
+}
+
+/** Lo que deja elegir una pieza en una línea (0.9.9, 2026-10-13): las líneas y, si la pieza ya estaba en otra línea, cuál
+ *  queda (su id y su número tras quitar la que se estaba rellenando). */
+export type Eleccion = { lineas: LineaCompra[]; repetida: { id: number; n: number } | null }
+
+/** Elegir la pieza `idCom` en la línea `id` (regla «Recalcular», decisión del usuario 2026-10-13):
+ *  - si la línea ya tenía esa pieza, no cambia nada (p. ej. una línea de solicitud con 1 sigue con 1);
+ *  - si otra línea ya la tiene, la línea `id` se quita (una pieza nunca va en dos líneas) y la otra no cambia;
+ *  - si no, la línea toma la pieza. Si su cantidad seguía automática (el 1 de entrada, o la «Pedir 60 d» de la pieza
+ *    anterior), pasa a la «Pedir 60 d» de la nueva o, si no tiene, a 1. Si se cambió a mano, no se toca. */
+export function elegirPieza(lineas: LineaCompra[], id: number, idCom: number, activos: Componente[]): Eleccion {
+  const linea = lineas.find((l) => l.id === id)
+  if (linea?.idCom === idCom) return { lineas, repetida: null }
+  const otra = lineas.find((l) => l.id !== id && l.idCom === idCom)
+  if (otra !== undefined) {
+    const restantes = quitarLinea(lineas, id)
+    return { lineas: restantes, repetida: { id: otra.id, n: restantes.findIndex((l) => l.id === otra.id) + 1 } }
+  }
+  const cambio: Partial<LineaCompra> = { idCom }
+  if (linea !== undefined && cantidadAutomatica(linea, activos)) cambio.cantidad = String(cantidadPrevista(idCom, activos) ?? 1)
+  return { lineas: cambiarLinea(lineas, id, cambio), repetida: null }
+}
+
+/** La cantidad de la línea es la que puso el formulario y no la del usuario: el 1 de entrada o la «Pedir 60 d» de su pieza. */
+function cantidadAutomatica(linea: LineaCompra, activos: Componente[]): boolean {
+  if (linea.cantidad === '1') return true
+  if (linea.idCom === null) return false
+  const anterior = cantidadPrevista(linea.idCom, activos)
+  return anterior !== null && linea.cantidad === String(anterior)
+}
+
+export function avisoRepetida(nombre: string, n: number): string {
+  return `${nombre} ya está en el pedido (línea ${n}).`
 }
 
 export function siguienteId(lineas: { id: number }[]): number {

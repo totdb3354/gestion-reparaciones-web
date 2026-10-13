@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { Componente } from '@/shared/api/client'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { crearQueryClient } from '@/shared/api/queryClient'
@@ -432,11 +432,55 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
 
   it('con la pieza ya en el pedido sube la cantidad y no la duplica', async () => {
     abrir({ modo: 'componentes', idsCom: [1] })
-    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
+    // 2026-10-13: «Pedir» ya entra con su «Pedir 60 d»; se baja a mano para ver que la previsión la vuelve a subir.
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16'))
+    await escribir('Cantidad línea 1', '2')
     await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
     expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+  })
+
+  it('elegir una pieza con previsión en una línea pone su «Pedir 60 d» (2026-10-13)', async () => {
+    abrir()
+    await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))
+    await elegirComponente(1, 'lcd', 'lcd-x-negro')
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+  })
+
+  it('una pieza que ya está en el pedido no se repite: queda seleccionada, y a la vista, la que estaba y sale el aviso', async () => {
+    const desplazar = vi.spyOn(Element.prototype, 'scrollIntoView')
+    onTestFinished(() => desplazar.mockRestore())
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    await elegirComponente(2, 'lcd', 'lcd-x-negro')
+    expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+    expect(filaDe(1)).toHaveAttribute('data-state', 'selected')
+    // La caja de líneas tiene scroll propio: se desplaza hasta la línea que queda.
+    expect(desplazar.mock.contexts).toContain(filaDe(1))
+    expect(screen.getByRole('status')).toHaveTextContent('lcd-x-negro ya está en el pedido (línea 1).')
+  })
+
+  it('el aviso de pieza repetida se borra con «Añadir previsión» y al cambiar el proveedor', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
+    async function repetirLaPieza() {
+      await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+      await elegirComponente(2, 'lcd', 'lcd-x-negro')
+      expect(screen.getByRole('status')).toHaveTextContent('lcd-x-negro ya está en el pedido (línea 1).')
+    }
+    await repetirLaPieza()
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
+    expect(screen.queryByText(/ya está en el pedido/)).not.toBeInTheDocument()
+    await repetirLaPieza()
+    await elegirProveedor('Proveedor B')
+    expect(screen.queryByText(/ya está en el pedido/)).not.toBeInTheDocument()
   })
 
   it('«Añadir previsión…» de un bloque abre con la previsión de su proveedor ya puesta', async () => {
@@ -461,6 +505,19 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
     renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'bloque', idBloque: 41, idProv: 1, prevision: true }} onCerrar={vi.fn()} /> }], { sesion: SESION_SUPER, queryClient: qc })
     expect(await screen.findByRole('status')).toHaveTextContent('Nada que pedir a ACME según la previsión.')
     expect(screen.queryByLabelText('Cantidad línea 1')).not.toBeInTheDocument()
+  })
+
+  it('«Pedir» con la caché de Stock vieja entra con 1 y pone el «Pedir 60 d» de la lista fresca, nunca el viejo (2026-10-13)', async () => {
+    const qc = crearQueryClient({ retry: false })
+    qc.setQueryData(CLAVE_COMPONENTES_GESTIONADOS, CON_PREVISION.map((c) => (c.idCom === 1 ? { ...c, pedir60: 5 } : c)))
+    server.use(http.get('*/api/componentes/gestionados', async () => {
+      await delay(50)
+      return HttpResponse.json(CON_PREVISION)
+    }))
+    renderConRouter([{ path: '/', element: <NuevoPedidoDialog precarga={{ modo: 'componentes', idsCom: [1] }} onCerrar={vi.fn()} /> }], { sesion: SESION_SUPER, queryClient: qc })
+    // C25: con la caché caliente la línea sale ya, pero sin la previsión de la caché.
+    expect(await screen.findByLabelText('Cantidad línea 1')).not.toHaveValue('5')
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16'))
   })
 
   it('«Añadir previsión…» de un bloque con la lista en 500 no añade líneas ni avisos de previsión', async () => {

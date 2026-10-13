@@ -85,6 +85,8 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
       // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
       await page.getByRole('option', { name: sku!, exact: true }).click()
+      // Elegir la pieza pone su «Pedir 60 d» (0.9.9), que depende de cómo esté el SKU en el entorno: el test cuenta con 1.
+      await dlg.getByLabel('Cantidad línea 1').fill('1')
       // Un proveedor por pedido (0.9.9): se elige arriba, en «Proveedor general», y lo llevan todas las líneas.
       await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
       await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()

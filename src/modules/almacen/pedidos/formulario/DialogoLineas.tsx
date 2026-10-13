@@ -42,6 +42,9 @@ type Props<L extends LineaBase> = {
   lineas: L[]
   proveedores: Proveedor[]
   info: string | null
+  /** Petición de selección desde fuera (0.9.9, 2026-10-13: al juntar una pieza repetida queda seleccionada la línea que
+   *  ya la tenía). Cada `marca` nueva selecciona la línea `id`. */
+  seleccionar?: { id: number; marca: number } | null
   error: string | null
   bloqueado: boolean
   enviando: boolean
@@ -56,9 +59,18 @@ type Props<L extends LineaBase> = {
  *  880 px (700 en el JavaFX; más grande desde la 0.9.6), título de 24 px, barra opcional (proveedor general de "Nuevo pedido"), tabla de líneas con celdas siempre editables (P8), "+ Añadir línea", línea de información,
  *  línea de error (P6) y "Cancelar" / "Confirmar pedido". La divisa de cada línea es la de su proveedor; sin proveedor la
  *  línea se calcula como EUR (tasa 1.0 por defecto de LineaCompra). Sin atajos de teclado (el JavaFX no tenía). */
-export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, pie, proveedorFijo, lineas, proveedores, info, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
+export function DialogoLineas<L extends LineaBase>({ titulo, primera, barra, pie, proveedorFijo, lineas, proveedores, info, seleccionar: peticion, error, bloqueado, enviando, onCambiar, onQuitar, onAnadir, onConfirmar, onCerrar }: Props<L>) {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
+  // Línea hasta la que se desplaza la caja con scroll: la de «+ Añadir línea» o la que queda al juntar una repetida.
   const [anadida, setAnadida] = useState<number | null>(null)
+  // Ajuste durante el render (sin useEffect): una marca nueva de `seleccionar` selecciona esa línea una vez y desplaza
+  // la caja hasta ella (con muchas líneas puede estar fuera de la vista).
+  const [marcaVista, setMarcaVista] = useState<number | null>(null)
+  if (peticion && peticion.marca !== marcaVista) {
+    setMarcaVista(peticion.marca)
+    setSeleccionada(peticion.id)
+    setAnadida(peticion.id)
+  }
   // C25: si el diálogo ya nace con líneas (precarga desde Stock/campana con la caché caliente), Radix enfoca Y
   // SELECCIONA el primer campo tabulable al abrirse (@radix-ui/react-focus-scope, focusFirst({ select: true })):
   // el Componente de la línea 1 queda con el texto en azul, y teclear lo pisa. El JavaFX no autoenfoca ese campo.

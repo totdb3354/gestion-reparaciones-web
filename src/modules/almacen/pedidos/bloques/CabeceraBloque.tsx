@@ -1,10 +1,11 @@
+import { MessageSquareText } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { formatear } from '@/shared/lib/fechas'
 import { formatearImporte } from '@/shared/lib/importes'
 import { cn } from '@/shared/lib/utils'
 import { clasesEstado } from '../BadgeEstadoPedido'
 import { chipDeEstado } from '../reglas'
-import { avisoBloque, resumenEstados, SIN_BLOQUE, textoLineas, totalBloque, type Bloque } from './reglas'
+import { avisoBloque, resumenEstados, SIN_BLOQUE, sinPrecio, textoLineas, textoSinPrecio, totalBloque, type Bloque } from './reglas'
 
 type Props = {
   bloque: Bloque
@@ -55,10 +56,21 @@ export function CabeceraBloque({ bloque, visibles, desplegado, onAlternar, menu 
           <span key={estado} className={cn('rounded-[12px] px-2 py-0.5 text-[11px] font-bold', clasesEstado(estado))}>{n} {chipDeEstado(estado)}</span>
         ))}
       </span>
+      {sinPrecio(bloque) > 0 && (
+        <span title={textoSinPrecio(sinPrecio(bloque))}
+          className="shrink-0 rounded-[12px] bg-fila-solicitud-bg px-2 py-0.5 text-[11px] font-bold text-fila-solicitud-brd">
+          ! {sinPrecio(bloque)} sin precio
+        </span>
+      )}
       {visibles < total && (
         <span className="shrink-0 rounded-[10px] bg-texto-accion px-2 py-0.5 text-[11px] text-superficie">mostrando {visibles} de {total}</span>
       )}
-      {bloque.nota && <span title={bloque.nota} className="min-w-0 truncate text-azul-gris italic">📝 {bloque.nota}</span>}
+      {bloque.nota && (
+        <span title={bloque.nota} className="flex min-w-0 items-center gap-1 text-azul-gris italic">
+          <MessageSquareText aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="truncate">{bloque.nota}</span>
+        </span>
+      )}
       <span className="flex-1" />
       {menu}
     </div>

@@ -98,22 +98,28 @@ async function elegirEnMenuBloque(page: Page, n: number, entrada: RegExp) {
   await page.getByRole('menuitem', { name: entrada }).click()
 }
 
+/** Elige el SKU en la línea 1 del diálogo (la única) y escribe la cantidad 1: elegir la pieza pone su «Pedir 60 d» (0.9.9),
+ *  que depende de cómo esté el SKU en preproducción, y los tests cuentan con 1 (totales del bloque). */
+async function elegirSku(page: Page, dlg: Locator) {
+  await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
+  // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
+  await page.getByRole('option', { name: sku!, exact: true }).click()
+  await dlg.getByLabel('Cantidad línea 1').fill('1')
+}
+
 /**
- * Abre «Nuevo pedido», añade una línea del SKU por cada precio (todas al proveedor sintético) y devuelve el diálogo. Mismo
- * recorrido que pedidos.spec.ts: autocompletar de componente; el proveedor, una vez arriba («Proveedor general»).
+ * Abre «Nuevo pedido» con una línea del SKU a ese precio, al proveedor sintético, y devuelve el diálogo. Mismo recorrido que
+ * pedidos.spec.ts: autocompletar de componente; el proveedor, una vez arriba («Proveedor general»). Una sola línea: en un
+ * mismo diálogo una pieza no se repite (0.9.9); la segunda línea del SKU se añade al bloque con `anadirLineaAlBloque`.
  */
-async function rellenarNuevoPedido(page: Page, precios: string[]): Promise<Locator> {
+async function rellenarNuevoPedido(page: Page, precio: string): Promise<Locator> {
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
   await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
   await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
-  for (const [i, precio] of precios.entries()) {
-    await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
-    await dlg.getByPlaceholder('Escribe componente...').nth(i).fill(sku!)
-    // La lista del autocompletar va en un portal fuera del diálogo (114ca65): se busca en la página.
-    await page.getByRole('option', { name: sku!, exact: true }).click()
-    await dlg.getByLabel(`Precio línea ${i + 1}`).fill(precio)
-  }
+  await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
+  await elegirSku(page, dlg)
+  await dlg.getByLabel('Precio línea 1').fill(precio)
   return dlg
 }
 
@@ -125,6 +131,19 @@ async function guardarLote(page: Page, dlg: Locator): Promise<number[]> {
   expect(respuesta.ok(), `POST /api/compras/lote respondió ${respuesta.status()}`).toBe(true)
   await expect(dlg).toBeHidden()
   return ((await respuesta.json()) as RespuestaLote).idsCreados
+}
+
+/** «Añadir líneas…» del menú del bloque n: una línea del SKU a ese precio. Devuelve el id de la línea creada. Así el bloque
+ *  lleva dos líneas del mismo SKU: lo de no repetir una pieza es dentro de cada diálogo. */
+async function anadirLineaAlBloque(page: Page, n: number, precio: string): Promise<number> {
+  await elegirEnMenuBloque(page, n, /^Añadir líneas…/)
+  const dlg = page.getByRole('dialog', { name: `Añadir líneas · Bloque ${n}`, exact: true })
+  await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
+  await elegirSku(page, dlg)
+  await dlg.getByLabel('Precio línea 1').fill(precio)
+  const ids = await guardarLote(page, dlg)
+  expect(ids).toHaveLength(1)
+  return ids[0]
 }
 
 test.beforeAll(async ({ browser }, testInfo) => {
@@ -194,23 +213,29 @@ test.afterAll(async () => {
 })
 
 test.describe('supertécnico: pedidos por bloques', () => {
-  test('Nuevo pedido con dos líneas crea un bloque nuevo', async () => {
+  test('Nuevo pedido crea un bloque nuevo y «Añadir líneas…» le suma una segunda línea', async () => {
     const page = sup!
     await page.goto('/stock/pedidos')
     await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
     await expect(page.getByText(/^Actualizado [0-9][0-9]:[0-9][0-9]$/)).toBeVisible()
     await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(sku!)
 
-    const dlg = await rellenarNuevoPedido(page, ['2', '3'])
+    const dlg = await rellenarNuevoPedido(page, '2')
     const resumen = dlg.getByRole('region', { name: 'Bloques' })
     await expect(resumen).toContainText(nombreProv)
-    await expect(resumen).toContainText('2 líneas')
+    await expect(resumen).toContainText('1 línea')
     await expect(resumen).toContainText('Bloque nuevo (no tiene ninguno abierto)')
-    idsBloqueA = await guardarLote(page, dlg)
-    expect(idsBloqueA).toHaveLength(2)
+    const creadas = await guardarLote(page, dlg)
+    expect(creadas).toHaveLength(1)
+    const id1 = creadas[0]
 
     await expect.poll(async () => (await bloquesDe()).length).toBe(1)
     bloque1 = (await bloquesDe())[0]
+    // La segunda línea, del mismo SKU, por el menú del bloque (en un mismo diálogo una pieza no se repite).
+    const id2 = await anadirLineaAlBloque(page, bloque1, '3')
+    idsBloqueA = [id1, id2]
+    await expect.poll(async () => (await linea(id2))?.idBloque).toBe(bloque1)
+
     const cabeceras = page.locator('tr[data-cabecera]').filter({ hasText: nombreProv })
     await expect(cabeceras).toHaveCount(1)
     await expect(cabeceras).toContainText(`Bloque ${bloque1}`)
@@ -220,7 +245,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
 
   test('un segundo Nuevo pedido sugiere el bloque abierto y le suma la línea', async () => {
     const page = sup!
-    const dlg = await rellenarNuevoPedido(page, ['4'])
+    const dlg = await rellenarNuevoPedido(page, '4')
     const resumen = dlg.getByRole('region', { name: 'Bloques' })
     await expect(resumen.getByRole('combobox', { name: `Bloque de ${nombreProv}` })).toContainText(`Añadir a Bloque ${bloque1}`)
     ;[l3] = await guardarLote(page, dlg)
@@ -238,8 +263,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
     await expect(dlg).toContainText(nombreProv)
     await expect(dlg.getByRole('combobox', { name: 'Proveedor general' })).toHaveCount(0)
     await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
-    await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
-    await page.getByRole('option', { name: sku!, exact: true }).click()
+    await elegirSku(page, dlg)
     await expect(dlg.getByRole('region', { name: 'Bloques' })).toContainText(`Bloque ${bloque1}`)
     await expect(dlg.getByRole('region', { name: 'Bloques' })).toContainText('(fijado)')
     ;[l4] = await guardarLote(page, dlg)
@@ -359,13 +383,16 @@ test.describe('supertécnico: pedidos por bloques', () => {
 
   test('Borrar bloque con todo pendiente quita el bloque y sus líneas', async () => {
     const page = sup!
-    const dlgNuevo = await rellenarNuevoPedido(page, ['2', '3'])
+    const dlgNuevo = await rellenarNuevoPedido(page, '2')
     // El proveedor ya no tiene ningún bloque abierto (uno en camino y otro cancelado): bloque nuevo.
     await expect(dlgNuevo.getByRole('region', { name: 'Bloques' })).toContainText('Bloque nuevo (no tiene ninguno abierto)')
-    const ids = await guardarLote(page, dlgNuevo)
-    await expect.poll(async () => (await linea(ids[0]))?.idBloque ?? null).not.toBeNull()
-    const bloque5 = (await linea(ids[0]))!.idBloque!
+    const creadas = await guardarLote(page, dlgNuevo)
+    expect(creadas).toHaveLength(1)
+    await expect.poll(async () => (await linea(creadas[0]))?.idBloque ?? null).not.toBeNull()
+    const bloque5 = (await linea(creadas[0]))!.idBloque!
     expect(bloque5).not.toBe(bloque1)
+    // La segunda línea del SKU, por el menú del bloque.
+    const ids = [creadas[0], await anadirLineaAlBloque(page, bloque5, '3')]
     await expect(cabecera(page, bloque5)).toContainText('2 líneas')
 
     await elegirEnMenuBloque(page, bloque5, /^Borrar bloque/)
