@@ -152,6 +152,8 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       expect((await borrado).ok()).toBe(true)
       porBorrar.delete(`/api/compras/${id}`)
       await expect(fila).toHaveCount(0)
+      // La ruta de solo borrar ese pedido se quita: el paso siguiente borra los suyos por la API.
+      await page.unroute('**/api/compras/*')
     })
 
     await test.step('pedido a dos proveedores: dos recuadros, dos bloques; se borran', async () => {
