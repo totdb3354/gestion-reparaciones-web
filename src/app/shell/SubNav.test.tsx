@@ -36,6 +36,22 @@ describe('columna lateral de sub-navegación', () => {
     expect(screen.getByRole('link', { name: 'Stock actual' })).not.toHaveAttribute('aria-current')
   })
 
+  it.each([
+    ['/stock', ['Stock actual', 'Pedidos', 'Proveedores']],
+    ['/clientes', ['Clientes']],
+  ])('en %s cada enlace lleva su icono delante del nombre, decorativo (0.9.10)', (ruta, nombres) => {
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta })
+    const columna = within(screen.getByRole('navigation', { name: 'Sub-navegación' }))
+    for (const nombre of nombres) {
+      const enlace = columna.getByRole('link', { name: nombre })
+      const icono = enlace.querySelector('svg')
+      expect(icono).not.toBeNull()
+      expect(icono).toHaveAttribute('aria-hidden', 'true')
+      expect(enlace.firstElementChild).toBe(icono)
+      expect(enlace.textContent).toBe(nombre)
+    }
+  })
+
   // El mapa de secciones es un objeto plano: leerlo con `SUBNAV[seccion]` devuelve los miembros heredados de
   // Object.prototype, así que una ruta como /constructor daría una función en vez de un array y `.map`
   // reventaría. Es alcanzable: el catch-all `*` del router está dentro de AppLayout, de modo que SubNav se

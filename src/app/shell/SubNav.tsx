@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router'
 import { enlacesStock } from '@/modules/almacen/rutas'
 import { enlacesReparaciones } from '@/modules/taller/rutas'
@@ -10,7 +11,7 @@ import type { Sesion } from '@/shared/session/storage'
 
 /** Enlaces de la columna por sección (primer segmento de la ruta) y rol. Cada sub-proyecto añade los suyos. */
 const SUBNAV: Record<string, (sesion: Sesion | null) => Enlace[]> = {
-  clientes: () => [{ to: '/clientes', label: 'Clientes' }],
+  clientes: () => [{ to: '/clientes', label: 'Clientes', icono: Users }],
   reparaciones: enlacesReparaciones,
   stock: enlacesStock,
 }
@@ -37,6 +38,7 @@ export function SubNav() {
         >
           {({ isActive }) => (
             <>
+              <e.icono aria-hidden className="mr-2.5 size-[18px] shrink-0" />
               {e.label}
               {e.badge === 'pendientes' && <BadgePendientes activo={isActive} />}
               {e.badge === 'asignaciones' && <BadgeAsignaciones activo={isActive} />}

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
+import { ClipboardList, History, Smartphone, Wrench } from 'lucide-react'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
@@ -62,6 +63,12 @@ describe('rutas del taller', () => {
     // El badge de Asignaciones es solo del supertécnico: para el ADMIN desaparece (spec 3a §12).
     expect(enlacesReparaciones(SESION_SUPER)[0].badge).toBe('asignaciones')
     expect(enlacesReparaciones(SESION_ADMIN)[0].badge).toBeUndefined()
+  })
+
+  it('cada enlace de la columna lleva su icono (0.9.10)', () => {
+    expect(enlacesReparaciones(SESION_SUPER).map((e) => e.icono)).toEqual([ClipboardList, Wrench, History, Smartphone])
+    expect(enlacesReparaciones(SESION_TEC).map((e) => e.icono)).toEqual([Wrench, History, Smartphone])
+    expect(enlacesReparaciones(SESION_ADMIN)[0].icono).toBe(ClipboardList)
   })
   it('RequiereSupertecnico: TECNICO y ADMIN por URL reciben el aviso genérico y vuelven a la lista; el supertécnico pasa', async () => {
     const rutas = [

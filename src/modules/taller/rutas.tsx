@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { ClipboardList, History, Smartphone, Wrench } from 'lucide-react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { MSG_SIN_PERMISOS } from '@/shared/api/errors'
 import { useSession } from '@/shared/session/SessionProvider'
@@ -14,10 +15,10 @@ export type EnlaceTaller = Enlace
 export function enlacesReparaciones(sesion: Sesion | null): EnlaceTaller[] {
   const enlaces: EnlaceTaller[] = []
   // El badge de Asignaciones (total de la tabla unificada) es solo del supertécnico: para el ADMIN desaparece (spec 3a §12).
-  if (esSuperTecnico(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones', badge: 'asignaciones' })
-  else if (esAdmin(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones' })
-  if (!esAdmin(sesion) && sesion?.idTec != null) enlaces.push({ to: '/reparaciones/pendientes', label: 'Pendientes', badge: 'pendientes' })
-  enlaces.push({ to: '/reparaciones/historial', label: 'Historial' }, { to: '/reparaciones/imeis', label: 'IMEIs' })
+  if (esSuperTecnico(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones', icono: ClipboardList, badge: 'asignaciones' })
+  else if (esAdmin(sesion)) enlaces.push({ to: '/reparaciones/asignaciones', label: 'Asignaciones', icono: ClipboardList })
+  if (!esAdmin(sesion) && sesion?.idTec != null) enlaces.push({ to: '/reparaciones/pendientes', label: 'Pendientes', icono: Wrench, badge: 'pendientes' })
+  enlaces.push({ to: '/reparaciones/historial', label: 'Historial', icono: History }, { to: '/reparaciones/imeis', label: 'IMEIs', icono: Smartphone })
   return enlaces
 }
 
