@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
-  aplicarPrevision, aplicarProveedorATodas, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
+  aplicarPrevision, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
   cantidadPrevista, elegirPieza, loQueFalta, avisoRepetida, ponerCantidadesPrevistas,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
@@ -205,14 +205,6 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     expect(cuantasPrevision([desactivada], 7)).toBe(0)
   })
 
-  it('aplicarProveedorATodas pone el proveedor en todas las líneas', () => {
-    const lineas: LineaCompra[] = [
-      { id: 1, idCom: 1, idProv: null, cantidad: '1', precio: '0,00', urgente: false },
-      { id: 2, idCom: 2, idProv: 9, cantidad: '1', precio: '0,00', urgente: false },
-    ]
-    expect(aplicarProveedorATodas(lineas, 7).map((l) => l.idProv)).toEqual([7, 7])
-  })
-
   it('aviso de las marcadas sin pedido', () => {
     expect(avisoSinPedido(0)).toBeNull()
     expect(avisoSinPedido(1)).toBe('1 pieza marcada no necesita pedido.')
@@ -295,8 +287,9 @@ describe('cantidad prevista y piezas repetidas (0.9.9, 2026-10-13)', () => {
     expect(r.lineas[0].cantidad).toBe('4')
   })
 
-  it('aviso de repetida', () => {
-    expect(avisoRepetida('lcd-x-negro', 3)).toBe('lcd-x-negro ya está en el pedido (línea 3).')
+  it('aviso de repetida, con el proveedor del recuadro o «Por repartir»', () => {
+    expect(avisoRepetida('lcd-x-negro', 'ACME', 3)).toBe('lcd-x-negro ya está en el pedido a ACME (línea 3).')
+    expect(avisoRepetida('lcd-x-negro', null, 1)).toBe('lcd-x-negro ya está en «Por repartir» (línea 1).')
   })
 
   // flex-x (6), pieza local de estos tests: pide 7.

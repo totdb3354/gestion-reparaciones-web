@@ -12,8 +12,6 @@ export type LineaOtro = { id: number; concepto: string; idProv: number | null; c
 export type LineaBase = { id: number; idProv: number | null; cantidad: string; precio: string; urgente: boolean }
 
 export const MSG_SIN_LINEAS = 'Añade al menos una línea.'
-/** 0.9.9 (2026-10-12): «Nuevo pedido» lleva un único proveedor, el de arriba. */
-export const MSG_SIN_PROVEEDOR = 'Elige el proveedor.'
 
 /** Cuerpo de la confirmación "Descartar" del Atrás del navegador con líneas en el pedido (decisión del usuario 2026-09-27). */
 export function textoDescartar(n: number): string {
@@ -173,11 +171,6 @@ export function avisoNadaQuePedir(nombre: string): string {
   return `Nada que pedir a ${nombre} según la previsión.`
 }
 
-/** El proveedor del pedido en todas las líneas, también en las que ya tenían uno. */
-export function aplicarProveedorATodas<T extends { idProv: number | null }>(lineas: T[], idProv: number): T[] {
-  return lineas.map((l) => ({ ...l, idProv }))
-}
-
 export function avisoSinPedido(n: number): string | null {
   if (n <= 0) return null
   return n === 1 ? '1 pieza marcada no necesita pedido.' : `${n} piezas marcadas no necesitan pedido.`
@@ -300,8 +293,9 @@ function cantidadAutomatica(lineas: LineaCompra[], linea: LineaCompra, activos: 
   return anterior > 0 && linea.cantidad === String(anterior)
 }
 
-export function avisoRepetida(nombre: string, n: number): string {
-  return `${nombre} ya está en el pedido (línea ${n}).`
+/** Aviso de pieza repetida dentro de un recuadro (2026-10-13; con el proveedor desde varios proveedores en un pedido). */
+export function avisoRepetida(nombre: string, proveedor: string | null, n: number): string {
+  return proveedor === null ? `${nombre} ya está en «Por repartir» (línea ${n}).` : `${nombre} ya está en el pedido a ${proveedor} (línea ${n}).`
 }
 
 export function siguienteId(lineas: { id: number }[]): number {
