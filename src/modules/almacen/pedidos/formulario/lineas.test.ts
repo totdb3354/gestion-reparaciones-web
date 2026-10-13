@@ -343,6 +343,11 @@ describe('lo que falta y recuadros (varios proveedores, spec 2026-10-13 §4-§5)
     expect(loQueFalta([L(1, 1, 1, '9')], 1, 2, ACTIVOS)).toBe(0)
   })
 
+  it('«Añadir previsión» no coge de «Por repartir» una pieza a la que ya no le falta nada', () => {
+    const ls = [L(1, 1, 1, '7'), L(2, 1, null, '5')]
+    expect(aplicarPrevision(ls, ACTIVOS, 2)).toEqual({ lineas: ls, sinPedido: 1 })
+  })
+
   it('elegir la pieza en el segundo proveedor pone lo que falta (7 − 3 = 4); si no falta nada, 1', () => {
     expect(elegirPieza([L(1, 1, 1, '3'), L(2, null, 2)], 2, 1, ACTIVOS).lineas[1].cantidad).toBe('4')
     expect(elegirPieza([L(1, 1, 1, '7'), L(2, null, 2)], 2, 1, ACTIVOS).lineas[1].cantidad).toBe('1')

@@ -133,7 +133,7 @@ export function cuantasPrevision(activos: Componente[], idProv: number | null, l
 /** «Añadir previsión» del recuadro del proveedor X (spec 0.9.6 §4.4, filtro de la spec 2026-10-11 §5.2 y varios
  *  proveedores 2026-10-13 §4). Por cada marcada de la lista de X, con lo que falta (`loQueFalta`):
  *  - si el recuadro de X ya la tiene, su cantidad = máx(la de la línea, lo que falta, 1);
- *  - si no, y está en «Por repartir», esa línea pasa a X con esa misma cantidad;
+ *  - si no, y está en «Por repartir» y le falta algo, esa línea pasa a X con esa misma cantidad;
  *  - si no está, línea nueva de X con lo que falta, o nada si no falta nada (cuenta en `sinPedido`).
  *  Las líneas de otros proveedores no se tocan. Idempotente. */
 export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number): { lineas: LineaCompra[]; sinPedido: number } {
@@ -141,8 +141,9 @@ export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], i
   let sinPedido = 0
   for (const c of marcadasDe(activos, idProv)) {
     const falta = loQueFalta(resultado, c.idCom, idProv, activos)
+    // La de «Por repartir» solo se coge si a la pieza le falta algo; si no, es como si no hubiera línea.
     const existente = resultado.find((l) => l.idCom === c.idCom && l.idProv === idProv)
-      ?? resultado.find((l) => l.idCom === c.idCom && l.idProv === null)
+      ?? (falta > 0 ? resultado.find((l) => l.idCom === c.idCom && l.idProv === null) : undefined)
     if (existente === undefined) {
       if (falta > 0) resultado = [...resultado, { ...lineaCompraVacia(siguienteId(resultado), c.idCom), idProv, cantidad: String(falta) }]
       else sinPedido += 1
