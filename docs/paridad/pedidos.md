@@ -193,8 +193,8 @@ Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea
 ## Precargas del Nuevo pedido
 
 - [x] Desde "Pedir" de Stock actual o de una alerta: una línea con el componente, con su «Pedir 60 d» si es > 0 y, si no, 1 (0.9.9; leída de la lista recién cargada, no de la caché), en el recuadro del único proveedor activo que la vende o, si la venden varios o ninguno, en «Por repartir» (0.9.9); vacía si está desactivado (`form-nuevo-desde-stock`, `form-nuevo-desde-alerta-pedir` solo en la web; `stock-pedir-desde-desactivado` sin captura, verificado por test: `NuevoPedidoDialog.test.tsx` "componente desactivado o desconocido: la línea va vacía (calco)…", «"Pedir" con la caché de Stock vieja…»).
-- [x] Desde "Pedir todas las piezas": una línea por alerta, con su «Pedir 60 d» si es > 0 y, si no, 1 (0.9.9), en el orden de la campana (diferencia aceptada, C23) (`form-nuevo-desde-alertas`; `PanelNotificaciones.test.tsx` "\"Pedir todas las piezas\" cierra el panel … en el orden de la campana").
-- [x] Desde "Pedir piezas": una línea por componente con cantidad = número de solicitudes, urgentes primero (`form-nuevo-desde-solicitudes`; `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\": agrupa por componente con urgentes primero…").
+- [x] Desde "Pedir todas las piezas": una línea por alerta, con su «Pedir 60 d» si es > 0 y, si no, 1 (0.9.9), en el orden de la campana (diferencia aceptada, C23); desde la 0.9.9, cada pieza va al recuadro del único proveedor activo que la vende o a «Por repartir» (`form-nuevo-desde-alertas`; `PanelNotificaciones.test.tsx` "\"Pedir todas las piezas\" cierra el panel … en el orden de la campana").
+- [x] Desde "Pedir piezas": una línea por componente con cantidad = número de solicitudes, urgentes primero; desde la 0.9.9, cada pieza va al recuadro del único proveedor activo que la vende o a «Por repartir» (`form-nuevo-desde-solicitudes`; `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\": agrupa por componente con urgentes primero…").
 
 ## Nuevo otro pedido
 
