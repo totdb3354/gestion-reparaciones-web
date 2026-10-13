@@ -3,7 +3,7 @@ import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
   aplicarPrevision, aplicarProveedorATodas, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
-  cantidadPrevista, elegirPieza, avisoRepetida, ponerCantidadesPrevistas,
+  cantidadPrevista, elegirPieza, loQueFalta, avisoRepetida, ponerCantidadesPrevistas,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
@@ -170,7 +170,7 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
     expect(r.sinPedido).toBe(1)
   })
 
-  it('en una línea que ya estaba sube la cantidad sin bajarla y solo rellena el proveedor vacío', () => {
+  it('en una línea suya o de «Por repartir» sube la cantidad sin bajarla, y la de «Por repartir» pasa a este proveedor; la de otro proveedor no se toca (2026-10-13)', () => {
     const lineas: LineaCompra[] = [
       { id: 1, idCom: 1, idProv: null, cantidad: '3', precio: '0,00', urgente: true },
       { id: 2, idCom: 2, idProv: 9, cantidad: '4', precio: '1,50', urgente: false },
@@ -182,7 +182,8 @@ describe('pedido automático (spec 0.9.6 §4.4)', () => {
       { id: 2, idCom: 2, idProv: 9, cantidad: '4', precio: '1,50', urgente: false },
       { id: 3, idCom: 3, idProv: null, cantidad: '1', precio: '0,00', urgente: false },
     ])
-    expect(r.sinPedido).toBe(0)
+    // bat (2) ya va a otro proveedor (9) y su previsión es 0: a este no le falta nada.
+    expect(r.sinPedido).toBe(1)
   })
 
   it('una cantidad no válida en una línea marcada pasa a la previsión, o a 1 si la previsión es 0', () => {
@@ -334,5 +335,40 @@ describe('cantidad prevista y piezas repetidas (0.9.9, 2026-10-13)', () => {
   it('«Pedir» de un slave: la línea va a su master y lleva la previsión del master, no la del slave', () => {
     const activos = COMPONENTES.map((c) => (c.idCom === 2 ? { ...c, pedir60: 7 } : c.idCom === 5 ? { ...c, pedir60: 0 } : c))
     expect(ponerCantidadesPrevistas(precargarComponentes([5], activos), activos).map((l) => [l.idCom, l.cantidad])).toEqual([[2, '7']])
+  })
+})
+
+describe('lo que falta y recuadros (varios proveedores, spec 2026-10-13 §4-§5)', () => {
+  // lcd-x-negro (1) pide 7, marcada en Auto; la venden ACME (1) y Proveedor B (2).
+  const ACTIVOS: Componente[] = COMPONENTES.map((c) => (c.idCom === 1 ? { ...c, pedir60: 7, autoPedido: true, proveedores: [1, 2] } : c))
+  const L = (id: number, idCom: number | null, idProv: number | null, cantidad = '1'): LineaCompra => ({ ...lineaCompraVacia(id, idCom), idProv, cantidad })
+
+  it('loQueFalta: «Pedir 60 d» menos lo que va a otros proveedores; «Por repartir» no cuenta; nunca negativo', () => {
+    const ls = [L(1, 1, 1, '3'), L(2, 1, null, '5')]
+    expect(loQueFalta(ls, 1, 2, ACTIVOS)).toBe(4)
+    expect(loQueFalta(ls, 1, 1, ACTIVOS)).toBe(7)
+    expect(loQueFalta([L(1, 1, 1, '9')], 1, 2, ACTIVOS)).toBe(0)
+  })
+
+  it('elegir la pieza en el segundo proveedor pone lo que falta (7 − 3 = 4); si no falta nada, 1', () => {
+    expect(elegirPieza([L(1, 1, 1, '3'), L(2, null, 2)], 2, 1, ACTIVOS).lineas[1].cantidad).toBe('4')
+    expect(elegirPieza([L(1, 1, 1, '7'), L(2, null, 2)], 2, 1, ACTIVOS).lineas[1].cantidad).toBe('1')
+  })
+
+  it('una pieza solo se junta dentro de su recuadro; en otro proveedor sí puede ir; el número es el del recuadro', () => {
+    const otroProveedor = elegirPieza([L(1, 1, 1, '3'), L(2, null, 2)], 2, 1, ACTIVOS)
+    expect(otroProveedor.repetida).toBeNull()
+    expect(otroProveedor.lineas.map((l) => [l.idCom, l.idProv])).toEqual([[1, 1], [1, 2]])
+    const mismo = elegirPieza([L(1, 2, 2), L(2, 1, 1, '3'), L(3, 1, 2, '4'), L(4, null, 2)], 4, 1, ACTIVOS)
+    expect(mismo.repetida).toEqual({ id: 3, n: 2 })
+    expect(mismo.lineas.map((l) => l.id)).toEqual([1, 2, 3])
+  })
+
+  it('«Añadir previsión» de un recuadro: lo que falta; coge la de «Por repartir»; no toca la de otro proveedor', () => {
+    expect(cuantasPrevision(ACTIVOS, 2, [L(1, 1, 1, '3')])).toBe(1)
+    expect(cuantasPrevision(ACTIVOS, 2, [L(1, 1, 1, '7')])).toBe(0)
+    expect(aplicarPrevision([L(1, 1, 1, '3')], ACTIVOS, 2).lineas).toEqual([L(1, 1, 1, '3'), L(2, 1, 2, '4')])
+    expect(aplicarPrevision([L(1, 1, null, '2')], ACTIVOS, 2).lineas).toEqual([L(1, 1, 2, '7')])
+    expect(aplicarPrevision([L(1, 1, 1, '7')], ACTIVOS, 2)).toEqual({ lineas: [L(1, 1, 1, '7')], sinPedido: 1 })
   })
 })

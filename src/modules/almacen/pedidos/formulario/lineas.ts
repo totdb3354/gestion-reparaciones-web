@@ -46,6 +46,17 @@ export function cantidadPrevista(idCom: number, activos: Componente[]): number |
   return pedir > 0 ? pedir : null
 }
 
+/** Lo que falta de una pieza en el recuadro del proveedor `idProv` (0.9.9, varios proveedores en un pedido, spec
+ *  2026-10-13 §4): su «Pedir 60 d» menos lo que ya va a OTROS proveedores en este pedido, nunca menos de 0. Las líneas de
+ *  «Por repartir» (sin proveedor) no cuentan: aún no van a nadie. Con un solo proveedor es su «Pedir 60 d». */
+export function loQueFalta(lineas: LineaCompra[], idCom: number, idProv: number | null, activos: Componente[]): number {
+  const pedir = activos.find((c) => c.idCom === idCom)?.pedir60 ?? 0
+  const enOtros = lineas
+    .filter((l) => l.idCom === idCom && l.idProv !== null && l.idProv !== idProv)
+    .reduce((suma, l) => suma + (parsearEntero(l.cantidad) ?? 0), 0)
+  return Math.max(pedir - enOtros, 0)
+}
+
 /** "Pedir" (1 id) y "Pedir todas las piezas" (N ids, orden de la campana): una línea por id con cantidad 1. El id de un
  *  slave se sustituye por el de su master (el pedido va al master). Un id que no está entre los activos, o cuyo master
  *  no lo está, deja la línea vacía, como el JavaFX (buscaba en `componentesDisponibles` y no rellenaba). Su «Pedir 60 d»
@@ -114,28 +125,33 @@ function marcadasDe(activos: Componente[], idProv: number): Componente[] {
   return marcadas(activos).filter((c) => (c.proveedores ?? []).includes(idProv))
 }
 
-/** N del botón «Añadir previsión de X (N)»: marcadas de la lista de X con algo que pedir. Sin proveedor, 0. */
-export function cuantasPrevision(activos: Componente[], idProv: number | null): number {
+/** N del botón «Añadir previsión (N)» de un recuadro: marcadas de la lista del proveedor a las que aún les falta algo en
+ *  este pedido (`loQueFalta`). Sin proveedor, 0. */
+export function cuantasPrevision(activos: Componente[], idProv: number | null, lineas: LineaCompra[] = []): number {
   if (idProv === null) return 0
-  return marcadasDe(activos, idProv).filter((c) => (c.pedir60 ?? 0) > 0).length
+  return marcadasDe(activos, idProv).filter((c) => loQueFalta(lineas, c.idCom, idProv, activos) > 0).length
 }
 
-/** «Añadir previsión de X» (spec 0.9.6 §4.4 con el filtro de la spec 2026-10-11 §5.2). Marcada de la lista de X sin
- *  línea: línea nueva con «Pedir 60 d» y el proveedor X, o nada si no hay que pedir (cuenta en `sinPedido`). Con
- *  línea: cantidad = máx(la de la línea, la previsión, 1) y X solo si la línea no tenía proveedor. Idempotente. */
+/** «Añadir previsión» del recuadro del proveedor X (spec 0.9.6 §4.4, filtro de la spec 2026-10-11 §5.2 y varios
+ *  proveedores 2026-10-13 §4). Por cada marcada de la lista de X, con lo que falta (`loQueFalta`):
+ *  - si el recuadro de X ya la tiene, su cantidad = máx(la de la línea, lo que falta, 1);
+ *  - si no, y está en «Por repartir», esa línea pasa a X con esa misma cantidad;
+ *  - si no está, línea nueva de X con lo que falta, o nada si no falta nada (cuenta en `sinPedido`).
+ *  Las líneas de otros proveedores no se tocan. Idempotente. */
 export function aplicarPrevision(lineas: LineaCompra[], activos: Componente[], idProv: number): { lineas: LineaCompra[]; sinPedido: number } {
   let resultado = lineas
   let sinPedido = 0
   for (const c of marcadasDe(activos, idProv)) {
-    const pedir = c.pedir60 ?? 0
-    const existente = resultado.find((l) => l.idCom === c.idCom)
+    const falta = loQueFalta(resultado, c.idCom, idProv, activos)
+    const existente = resultado.find((l) => l.idCom === c.idCom && l.idProv === idProv)
+      ?? resultado.find((l) => l.idCom === c.idCom && l.idProv === null)
     if (existente === undefined) {
-      if (pedir > 0) resultado = [...resultado, { ...lineaCompraVacia(siguienteId(resultado), c.idCom), idProv, cantidad: String(pedir) }]
+      if (falta > 0) resultado = [...resultado, { ...lineaCompraVacia(siguienteId(resultado), c.idCom), idProv, cantidad: String(falta) }]
       else sinPedido += 1
       continue
     }
-    const cantidad = Math.max(parsearEntero(existente.cantidad) ?? 0, pedir, 1)
-    resultado = cambiarLinea(resultado, existente.id, { cantidad: String(cantidad), idProv: existente.idProv ?? idProv })
+    const cantidad = Math.max(parsearEntero(existente.cantidad) ?? 0, falta, 1)
+    resultado = cambiarLinea(resultado, existente.id, { cantidad: String(cantidad), idProv })
   }
   return { lineas: resultado, sinPedido }
 }
@@ -253,30 +269,35 @@ export function quitarLinea<T extends { id: number }>(lineas: T[], id: number): 
  *  queda (su id y su número tras quitar la que se estaba rellenando). */
 export type Eleccion = { lineas: LineaCompra[]; repetida: { id: number; n: number } | null }
 
-/** Elegir la pieza `idCom` en la línea `id` (regla «Recalcular», decisión del usuario 2026-10-13):
+/** Elegir la pieza `idCom` en la línea `id` (regla «Recalcular» del 2026-10-13, con lo que falta de la spec de varios
+ *  proveedores §4). Todo es dentro del recuadro de la línea, es decir, su proveedor o «Por repartir»:
  *  - si la línea ya tenía esa pieza, no cambia nada (p. ej. una línea de solicitud con 1 sigue con 1);
- *  - si otra línea ya la tiene, la línea `id` se quita (una pieza nunca va en dos líneas) y la otra no cambia;
- *  - si no, la línea toma la pieza. Si su cantidad seguía automática (el 1 de entrada, o la «Pedir 60 d» de la pieza
- *    anterior), pasa a la «Pedir 60 d» de la nueva o, si no tiene, a 1. Si se cambió a mano, no se toca. */
+ *  - si otra línea del recuadro ya la tiene, la línea `id` se quita y la otra no cambia; `n` es su número en el recuadro;
+ *  - si no, la línea toma la pieza. Si su cantidad seguía automática (el 1 de entrada, o lo que faltaba de la pieza
+ *    anterior), pasa a lo que falta de la nueva o, si no falta nada, a 1. Si se cambió a mano, no se toca. */
 export function elegirPieza(lineas: LineaCompra[], id: number, idCom: number, activos: Componente[]): Eleccion {
   const linea = lineas.find((l) => l.id === id)
-  if (linea?.idCom === idCom) return { lineas, repetida: null }
-  const otra = lineas.find((l) => l.id !== id && l.idCom === idCom)
+  if (linea === undefined || linea.idCom === idCom) return { lineas, repetida: null }
+  const otra = lineas.find((l) => l.id !== id && l.idCom === idCom && l.idProv === linea.idProv)
   if (otra !== undefined) {
     const restantes = quitarLinea(lineas, id)
-    return { lineas: restantes, repetida: { id: otra.id, n: restantes.findIndex((l) => l.id === otra.id) + 1 } }
+    const delRecuadro = restantes.filter((l) => l.idProv === linea.idProv)
+    return { lineas: restantes, repetida: { id: otra.id, n: delRecuadro.findIndex((l) => l.id === otra.id) + 1 } }
   }
   const cambio: Partial<LineaCompra> = { idCom }
-  if (linea !== undefined && cantidadAutomatica(linea, activos)) cambio.cantidad = String(cantidadPrevista(idCom, activos) ?? 1)
+  if (cantidadAutomatica(lineas, linea, activos)) {
+    const falta = loQueFalta(lineas, idCom, linea.idProv, activos)
+    cambio.cantidad = String(falta > 0 ? falta : 1)
+  }
   return { lineas: cambiarLinea(lineas, id, cambio), repetida: null }
 }
 
-/** La cantidad de la línea es la que puso el formulario y no la del usuario: el 1 de entrada o la «Pedir 60 d» de su pieza. */
-function cantidadAutomatica(linea: LineaCompra, activos: Componente[]): boolean {
+/** La cantidad de la línea es la que puso el formulario y no la del usuario: el 1 de entrada o lo que faltaba de su pieza. */
+function cantidadAutomatica(lineas: LineaCompra[], linea: LineaCompra, activos: Componente[]): boolean {
   if (linea.cantidad === '1') return true
   if (linea.idCom === null) return false
-  const anterior = cantidadPrevista(linea.idCom, activos)
-  return anterior !== null && linea.cantidad === String(anterior)
+  const anterior = loQueFalta(lineas, linea.idCom, linea.idProv, activos)
+  return anterior > 0 && linea.cantidad === String(anterior)
 }
 
 export function avisoRepetida(nombre: string, n: number): string {
