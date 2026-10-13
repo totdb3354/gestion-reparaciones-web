@@ -109,13 +109,13 @@ async function elegirSku(page: Page, dlg: Locator) {
 
 /**
  * Abre «Nuevo pedido» con una línea del SKU a ese precio, al proveedor sintético, y devuelve el diálogo. Mismo recorrido que
- * pedidos.spec.ts: autocompletar de componente; el proveedor, en «¿A qué proveedor pides?». Una sola línea: en un
+ * pedidos.spec.ts: autocompletar de componente; el proveedor, en la cabecera del primer recuadro. Una sola línea: en un
  * mismo diálogo una pieza no se repite (0.9.9); la segunda línea del SKU se añade al bloque con `anadirLineaAlBloque`.
  */
 async function rellenarNuevoPedido(page: Page, precio: string): Promise<Locator> {
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-  // «¿A qué proveedor pides?» (0.9.9, varios proveedores): ComboNavy «Proveedor», opciones «{nombre} · {bloque abierto}».
+  // El primer recuadro (0.9.9, varios proveedores): ComboNavy «Proveedor», opciones «{nombre} · {bloque abierto}».
   await dlg.getByRole('combobox', { name: 'Proveedor', exact: true }).click()
   await page.getByRole('listbox', { name: 'Proveedor', exact: true }).getByRole('button', { name: new RegExp(`^${escaparRegex(nombreProv)} · `) }).click()
   await dlg.getByRole('button', { name: '+ Añadir línea' }).click()

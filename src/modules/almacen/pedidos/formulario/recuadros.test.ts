@@ -25,8 +25,8 @@ describe('reparto automático (spec 2026-10-13 §3)', () => {
 })
 
 describe('recuadros', () => {
-  it('los proveedores con líneas y los añadidos vacíos, sin repetir, por nombre', () => {
-    expect(recuadrosDelPedido([L(1, 1, 2), L(2, 2, 1), L(3, 2, null)], [2, 3], nombre)).toEqual([1, 3, 2]) // ACME, Proveedor A, Proveedor B
+  it('en el orden en que se añadieron: primero los añadidos y después los que solo tienen líneas, sin repetir', () => {
+    expect(recuadrosDelPedido([L(1, 1, 2), L(2, 2, 1), L(3, 2, null)], [2, 3])).toEqual([2, 3, 1])
   })
   it('lineasDe: las de un proveedor o las de «Por repartir», en su orden', () => {
     const ls = [L(1, 1, 2), L(2, 2, null), L(3, 2, 2)]
