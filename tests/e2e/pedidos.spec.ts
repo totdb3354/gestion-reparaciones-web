@@ -29,8 +29,9 @@ async function llamarApi(page: Page, metodo: 'GET' | 'POST' | 'DELETE', ruta: st
   )
 }
 
-/** «Nuevo pedido» (0.9.9, varios proveedores): al abrir vacío, «¿A qué proveedor pides?» con el ComboNavy «Proveedor»; con
- *  un recuadro ya puesto, «+ Otro proveedor». Cada opción es «{nombre} · {bloque abierto o «sin bloque abierto»}». */
+/** «Nuevo pedido» (0.9.9, varios proveedores): al abrir vacío, un primer recuadro («Pedido sin proveedor») con el ComboNavy
+ *  «Proveedor» en la cabecera; con un recuadro ya puesto, «+ Otro proveedor», en el pie. Cada opción es «{nombre} · {bloque
+ *  abierto o «sin bloque abierto»}». */
 async function elegirProveedorDelPedido(page: Page, combo: 'Proveedor' | 'Otro proveedor', nombre: string) {
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
   await dlg.getByRole('combobox', { name: combo, exact: true }).click()
@@ -91,7 +92,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
     await test.step('pedido de componentes: crear, editar y borrar', async () => {
       await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
       const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-      await expect(dlg.getByText('¿A qué proveedor pides?')).toBeVisible()
+      await expect(dlg.getByRole('region', { name: 'Pedido sin proveedor', exact: true })).toBeVisible()
       await elegirProveedorDelPedido(page, 'Proveedor', nombreProv)
       await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
       await dlg.getByPlaceholder('Escribe componente...').fill(sku!)
