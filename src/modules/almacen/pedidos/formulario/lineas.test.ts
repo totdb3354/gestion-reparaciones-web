@@ -3,6 +3,7 @@ import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
   aplicarPrevision, aplicarProveedorATodas, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
+  cantidadPrevista, elegirPieza, avisoRepetida,
   precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
   type LineaCompra, type LineaOtro,
 } from './lineas'
@@ -250,5 +251,56 @@ describe('previsión por proveedor (spec 2026-10-11 §5.2)', () => {
     expect(avisoSinLista(1)).toBe('1 pieza en Auto con algo que pedir no está en la lista de ningún proveedor.')
     expect(avisoSinLista(3)).toBe('3 piezas en Auto con algo que pedir no están en la lista de ningún proveedor.')
     expect(avisoNadaQuePedir('ACME')).toBe('Nada que pedir a ACME según la previsión.')
+  })
+})
+
+describe('cantidad prevista y piezas repetidas (0.9.9, 2026-10-13)', () => {
+  // lcd-x-negro (1) pide 16; bat-x (2) no pide nada; bat-y (5) es slave de bat-x.
+  const ACTIVOS: Componente[] = COMPONENTES.map((c) => (c.idCom === 1 ? { ...c, pedir60: 16 } : { ...c, pedir60: 0 }))
+
+  it('cantidadPrevista: «Pedir 60 d» si es > 0; si no, null', () => {
+    expect(cantidadPrevista(1, ACTIVOS)).toBe(16)
+    expect(cantidadPrevista(2, ACTIVOS)).toBeNull()
+    expect(cantidadPrevista(99, ACTIVOS)).toBeNull()
+    expect(cantidadPrevista(1, COMPONENTES)).toBeNull()            // sin previsión calculada (pedir60 ausente)
+  })
+
+  it('elegir una pieza con previsión pone su cantidad si la línea seguía con el 1 de entrada', () => {
+    const r = elegirPieza([lineaCompraVacia(1)], 1, 1, ACTIVOS)
+    expect(r.repetida).toBeNull()
+    expect(r.lineas).toEqual([{ ...lineaCompraVacia(1), idCom: 1, cantidad: '16' }])
+  })
+
+  it('con la cantidad ya cambiada, o sin previsión, solo cambia la pieza', () => {
+    expect(elegirPieza([{ ...lineaCompraVacia(1), cantidad: '3' }], 1, 1, ACTIVOS).lineas[0]).toMatchObject({ idCom: 1, cantidad: '3' })
+    expect(elegirPieza([lineaCompraVacia(1)], 1, 2, ACTIVOS).lineas[0]).toMatchObject({ idCom: 2, cantidad: '1' })
+  })
+
+  it('una pieza que ya está en otra línea: se quita la línea nueva y se devuelve la que queda con su número', () => {
+    const lineas = [{ ...lineaCompraVacia(1, 1), cantidad: '16' }, lineaCompraVacia(2, 2), lineaCompraVacia(3)]
+    const r = elegirPieza(lineas, 3, 1, ACTIVOS)
+    expect(r.lineas.map((l) => l.id)).toEqual([1, 2])
+    expect(r.lineas[0].cantidad).toBe('16')
+    expect(r.repetida).toEqual({ id: 1, n: 1 })
+    // Cambiar la pieza de una línea a otra que ya estaba, igual; el número es el de la línea que queda tras quitar.
+    const r2 = elegirPieza(lineas, 1, 2, ACTIVOS)
+    expect(r2.lineas.map((l) => l.id)).toEqual([2, 3])
+    expect(r2.repetida).toEqual({ id: 2, n: 1 })
+  })
+
+  it('elegir en una línea la pieza que ya tenía no es repetida', () => {
+    const r = elegirPieza([{ ...lineaCompraVacia(1, 1), cantidad: '4' }], 1, 1, ACTIVOS)
+    expect(r.repetida).toBeNull()
+    expect(r.lineas[0].cantidad).toBe('4')
+  })
+
+  it('aviso de repetida', () => {
+    expect(avisoRepetida('lcd-x-negro', 3)).toBe('lcd-x-negro ya está en el pedido (línea 3).')
+  })
+
+  it('«Pedir» y «Pedir todas las piezas» entran con la cantidad prevista (las solicitudes, no)', () => {
+    expect(precargarComponentes([1, 2], ACTIVOS).map((l) => [l.idCom, l.cantidad])).toEqual([[1, '16'], [2, '1']])
+    // Un slave se pide a su master, con la previsión del master.
+    expect(precargarComponentes([5], ACTIVOS).map((l) => [l.idCom, l.cantidad])).toEqual([[2, '1']])
   })
 })

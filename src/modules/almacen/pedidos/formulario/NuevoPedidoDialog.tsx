@@ -14,7 +14,7 @@ import { destinosDelCuerpo } from './destinos'
 import { DialogoLineas } from './DialogoLineas'
 import { mensajeErrorGuardado } from './errores'
 import {
-  aplicarPrevision, aplicarProveedorATodas, avisoNadaQuePedir, avisoOmitidas, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
+  aplicarPrevision, aplicarProveedorATodas, avisoNadaQuePedir, avisoOmitidas, avisoRepetida, elegirPieza, avisoSinLista, avisoSinPedido, sinLista, cambiarLinea, cuantasPrevision, cuerpoLoteCompras, lineaCompraVacia, precargaInicial, quitarLinea, siguienteId,
   validarLineasCompra, MSG_SIN_PROVEEDOR, type LineaCompra,
 } from './lineas'
 import { ResumenBloques } from './ResumenBloques'
@@ -48,6 +48,9 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const nPrevision = useMemo(() => cuantasPrevision(activos, idProvGeneral), [activos, idProvGeneral])
   const [sinListaVistas, setSinListaVistas] = useState(0)
   const [nadaQuePedir, setNadaQuePedir] = useState(false)
+  // 2026-10-13: aviso de pieza repetida y petición de seleccionar la línea que ya la tenía.
+  const [repetida, setRepetida] = useState<string | null>(null)
+  const [seleccion, setSeleccion] = useState<{ id: number; marca: number } | null>(null)
   // «Añadir previsión…» de un bloque: se aplica una vez, cuando el listado de Stock ha cargado (bien o mal).
   const [previsionPendiente, setPrevisionPendiente] = useState(fijo?.prevision === true)
   const opcionesProveedor = useMemo(() => proveedoresActivos.map((p) => ({ valor: String(p.idProv), etiqueta: p.nombre })), [proveedoresActivos])
@@ -87,6 +90,23 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setSinPedido(0)
     setSinListaVistas(0)
     setNadaQuePedir(false)
+    setRepetida(null)
+  }
+  /** Elegir la pieza de una línea (2026-10-13): cantidad prevista y, si la pieza ya estaba, se junta en esa línea. */
+  function elegir(id: number, idCom: number) {
+    const r = elegirPieza(lineas ?? [], id, idCom, activos)
+    setLineas(r.lineas)
+    setError(null)
+    setSinPedido(0)
+    setSinListaVistas(0)
+    setNadaQuePedir(false)
+    if (r.repetida === null) {
+      setRepetida(null)
+      return
+    }
+    const { id: queda, n } = r.repetida
+    setRepetida(avisoRepetida(opciones.find((o) => o.clave === String(idCom))?.etiqueta ?? '', n))
+    setSeleccion((s) => ({ id: queda, marca: (s?.marca ?? 0) + 1 }))
   }
   function quitar(id: number) {
     setLineas((ls) => quitarLinea(ls ?? [], id))
@@ -94,6 +114,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setSinPedido(0)
     setSinListaVistas(0)
     setNadaQuePedir(false)
+    setRepetida(null)
   }
   function anadir(): number {
     const id = siguienteId(lineas ?? [])
@@ -104,6 +125,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setSinPedido(0)
     setSinListaVistas(0)
     setNadaQuePedir(false)
+    setRepetida(null)
     return id
   }
   function anadirPrevision() {
@@ -149,13 +171,14 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   }
 
   const bloqueado = guardar.isPending || lineas === null
-  const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido), avisoSinLista(sinListaVistas), nadaQuePedir ? avisoNadaQuePedir(nombrePrevision) : null].filter((t) => t !== null).join(' ') || null
+  const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido), avisoSinLista(sinListaVistas), nadaQuePedir ? avisoNadaQuePedir(nombrePrevision) : null, repetida].filter((t) => t !== null).join(' ') || null
   const botonPrevision = idProvGeneral === null
     ? <BotonSecundario type="button" disabled title="Elige antes el proveedor">Añadir previsión</BotonSecundario>
     : <BotonSecundario type="button" disabled={bloqueado || nPrevision === 0 || componentes.isFetching} onClick={anadirPrevision}>Añadir previsión de {nombrePrevision} ({nPrevision})</BotonSecundario>
 
   return (
     <DialogoLineas<LineaCompra>
+      seleccionar={seleccion}
       titulo={fijo ? `Añadir líneas · Bloque ${fijo.idBloque}` : 'Nuevo pedido'}
       primera={{
         cabecera: 'Componente',
@@ -163,7 +186,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
         celda: (l, n) => (
           // Fila seleccionada: el campo navy lleva el borde rgba(255,255,255,0.35) del JavaFX (FC :459-473).
           <div className="rounded-full group-data-[state=selected]:ring-1 group-data-[state=selected]:ring-white/35">
-            <CampoAutocompletar valor={l.idCom === null ? null : String(l.idCom)} opciones={opciones} onElegir={(c) => cambiar(l.id, { idCom: Number(c) })} placeholder="Escribe componente..." aria-label={`Componente línea ${n}`} />
+            <CampoAutocompletar valor={l.idCom === null ? null : String(l.idCom)} opciones={opciones} onElegir={(c) => elegir(l.id, Number(c))} placeholder="Escribe componente..." aria-label={`Componente línea ${n}`} />
           </div>
         ),
       }}

@@ -432,11 +432,33 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
 
   it('con la pieza ya en el pedido sube la cantidad y no la duplica', async () => {
     abrir({ modo: 'componentes', idsCom: [1] })
-    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('1'))
+    // 2026-10-13: «Pedir» ya entra con su «Pedir 60 d»; se baja a mano para ver que la previsión la vuelve a subir.
+    await waitFor(() => expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16'))
+    await escribir('Cantidad línea 1', '2')
     await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
     expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
     expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+  })
+
+  it('elegir una pieza con previsión en una línea pone su «Pedir 60 d» (2026-10-13)', async () => {
+    abrir()
+    await userEvent.click(await screen.findByRole('button', { name: '+ Añadir línea' }))
+    await elegirComponente(1, 'lcd', 'lcd-x-negro')
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+  })
+
+  it('una pieza que ya está en el pedido no se repite: queda seleccionada la que estaba y sale el aviso', async () => {
+    abrir()
+    await screen.findByRole('button', { name: 'Añadir previsión' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir previsión de ACME (1)' }))
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    await elegirComponente(2, 'lcd', 'lcd-x-negro')
+    expect(screen.queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+    expect(filaDe(1)).toHaveAttribute('data-state', 'selected')
+    expect(screen.getByRole('status')).toHaveTextContent('lcd-x-negro ya está en el pedido (línea 1).')
   })
 
   it('«Añadir previsión…» de un bloque abre con la previsión de su proveedor ya puesta', async () => {
