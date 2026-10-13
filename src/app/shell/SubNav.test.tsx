@@ -229,6 +229,27 @@ describe('plegar la columna lateral', () => {
     expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toHaveClass('transition-[width]', 'motion-reduce:transition-none')
   })
 
+  it('plegar y desplegar no remonta los enlaces', async () => {
+    const user = userEvent.setup()
+    renderConProviders(<SubNav />, { ruta: '/stock' })
+    const antes = screen.getByRole('link', { name: 'Pedidos' })
+    await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
+    const plegada = screen.getByRole('link', { name: 'Pedidos' })
+    expect(plegada).toBe(antes)
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }))
+    expect(screen.getByRole('link', { name: 'Pedidos' })).toBe(antes)
+  })
+
+  it('plegar no vuelve a pedir los números', async () => {
+    const user = userEvent.setup()
+    const cargas = asignaciones(2, 1, 1)
+    renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/reparaciones/historial' })
+    await waitFor(() => expect(cargas.n).toBe(1))
+    await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)) })
+    expect(cargas.n).toBe(1)
+  })
+
   it('en una sección sin enlaces tampoco hay botón', () => {
     renderConProviders(<SubNav />, { ruta: '/estadisticas' })
     expect(screen.queryByRole('button', { name: /menú lateral/ })).not.toBeInTheDocument()
@@ -270,6 +291,17 @@ describe('columna lateral plegada: números y nombre de cada icono', () => {
     renderConProviders(<SubNav />, { ruta: '/stock' })
     act(() => screen.getByRole('link', { name: 'Pedidos' }).focus())
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Pedidos')
+  })
+
+  it('al quitar el ratón del icono el nombre se va (no tapa el botón de la columna)', async () => {
+    localStorage.setItem(CLAVE_PLEGADA, 'si')
+    const user = userEvent.setup()
+    renderConProviders(<SubNav />, { ruta: '/stock' })
+    const enlace = screen.getByRole('link', { name: 'Proveedores' })
+    await user.hover(enlace)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Proveedores')
+    await user.unhover(enlace)
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
   })
 
   it('abierta no hay tooltip: el nombre ya se ve', async () => {

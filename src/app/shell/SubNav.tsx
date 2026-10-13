@@ -54,7 +54,9 @@ export function SubNav() {
       {/* overflow-hidden: al desplegar, los nombres aparecen antes de que la columna termine de crecer. A la derecha se
           deja sitio para el botón, que monta sobre el borde. */}
       <div className={cn('flex flex-col overflow-hidden py-2', plegada ? 'pr-3.5 pl-1.5' : 'pr-[18px] pl-2')}>
-        <TooltipProvider>
+        {/* disableHoverableContent: el nombre se va en cuanto el ratón sale del icono; si no, plegada, su tooltip (a la
+            derecha del primer icono) taparía el botón de desplegar y se llevaría sus clics. */}
+        <TooltipProvider disableHoverableContent>
           {enlaces.map((e) => (
             <EnlaceLateral key={e.to} enlace={e} plegada={plegada} />
           ))}
@@ -76,8 +78,11 @@ export function SubNav() {
 }
 
 /** Un enlace de la columna. Plegada, solo el icono: el nombre pasa al `aria-label`, porque deja de verse, y a un tooltip
- *  que sale al pasar el ratón o al llegar con el teclado. Los números van compactos, en la esquina del icono. */
+ *  que sale al pasar el ratón o al llegar con el teclado. Los números van compactos, en la esquina del icono. El árbol es el
+ *  mismo plegada y abierta (el tooltip, controlado, solo se abre plegada), así que plegar no remonta el enlace ni sus
+ *  números y no se vuelven a pedir los contadores. */
 function EnlaceLateral({ enlace: e, plegada }: { enlace: Enlace; plegada: boolean }) {
+  const [abierto, setAbierto] = useState(false)
   const enlace = (
     <NavLink
       to={e.to}
@@ -101,11 +106,10 @@ function EnlaceLateral({ enlace: e, plegada }: { enlace: Enlace; plegada: boolea
       )}
     </NavLink>
   )
-  if (!plegada) return enlace
   // El disparador es un <span> que envuelve el enlace, no el propio NavLink con asChild: el Slot de Radix junta los
   // className como texto y convertiría en texto la función de className de NavLink.
   return (
-    <Tooltip>
+    <Tooltip open={plegada && abierto} onOpenChange={(v) => setAbierto(plegada && v)}>
       <TooltipTrigger asChild>
         <span className="block">{enlace}</span>
       </TooltipTrigger>
