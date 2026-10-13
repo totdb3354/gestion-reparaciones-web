@@ -17,7 +17,7 @@ import {
   aplicarPrevision, avisoNadaQuePedir, avisoOmitidas, avisoRepetida, avisoSinLista, avisoSinPedido, cambiarLinea, cuantasPrevision, cuerpoLoteCompras,
   elegirPieza, lineaCompraVacia, ponerCantidadesPrevistas, precargaInicial, quitarLinea, siguienteId, sinLista, type LineaBase, type LineaCompra,
 } from './lineas'
-import { DestinoRecuadro, RecuadroProveedor, RecuadroRepartir } from './RecuadroProveedor'
+import { DestinoRecuadro, RecuadroProveedor, RecuadroRepartir, RecuadroSinProveedor } from './RecuadroProveedor'
 import {
   avisoYaEstaba, lineasDe, opcionesOtroProveedor, opcionesPasarA, pasarA, POR_REPARTIR, recuadrosDelPedido, repartirLineas, tambienVa,
   textoConfirmar, textoQuitarRecuadro, validarPedido, type ClaveRecuadro,
@@ -125,7 +125,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   }
 
   const todas = lineas ?? []
-  const recuadros = fijo ? [fijo.idProv] : recuadrosDelPedido(todas, anadidos, nombreProv)
+  const recuadros = fijo ? [fijo.idProv] : recuadrosDelPedido(todas, anadidos)
   const porRepartir = lineasDe(todas, POR_REPARTIR)
   const nBloques = recuadros.filter((idProv) => lineasDe(todas, idProv).length > 0).length
   const opcionesOtro = fijo ? [] : opcionesOtroProveedor(proveedoresActivos, recuadros, bloques)
@@ -190,7 +190,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setPlegados((p) => sinClave(p, idProv))
     if (r.repetida && linea !== undefined && linea.idCom !== null) setRepetida(avisoYaEstaba(nombrePieza(linea.idCom), nombreProv(idProv)))
   }
-  /** «¿A qué proveedor pides?» y «+ Otro proveedor»: su recuadro, desplegado y a la vista. */
+  /** El proveedor del primer recuadro y «+ Otro proveedor»: su recuadro, al final, desplegado y a la vista. */
   function anadirProveedor(idProv: number) {
     setAnadidos((a) => (a.includes(idProv) ? a : [...a, idProv]))
     setPlegados((p) => sinClave(p, idProv))
@@ -294,7 +294,13 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
 
   return (
     <DialogoPedidoBase titulo={fijo ? `Añadir líneas · Bloque ${fijo.idBloque}` : 'Nuevo pedido'} nLineas={todas.length} conPrecarga={precarga.modo === 'componentes' || precarga.modo === 'solicitudes'} info={info} error={error}
-      bloqueado={bloqueado} enviando={guardar.isPending} textoConfirmar={textoConfirmar(nBloques)} onConfirmar={() => void confirmar()} onCerrar={onCerrar}>
+      bloqueado={bloqueado} enviando={guardar.isPending} textoConfirmar={textoConfirmar(nBloques)} onConfirmar={() => void confirmar()} onCerrar={onCerrar}
+      // «+ Otro proveedor» en el pie (ajuste del 2026-10-13), con el aspecto de «Cancelar»; en «Añadir líneas» no hay.
+      pieIzquierda={fijo ? undefined : (
+        <ComboNavy valor={null} opciones={opcionesOtro} onChange={(v) => anadirProveedor(Number(v))} textoVacio="+ Otro proveedor"
+          ancho={190} visibles={8} aspecto="boton" aria-label="Otro proveedor"
+          disabled={vacio || lineas === null || opcionesOtro.length === 0 || guardar.isPending} />
+      )}>
       {fijo && (
         <p className="text-[12px] text-azul-gris">
           {nombreFijo}{bloqueFijo ? ` · ${situacion(bloqueFijo)}` : ''} · las líneas nuevas entran como pendientes y el bloque mostrará «Confirmar bloque (n)».
@@ -304,11 +310,15 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
           "Confirmar pedido" quedan siempre a la vista. Los popups (autocompletar, combos) van en un portal. */}
       <div className="flex max-h-[520px] min-h-[300px] flex-col gap-2.5 overflow-y-auto">
         {vacio ? (
-          <div className="flex flex-col items-center gap-2.5 rounded-[10px] bg-superficie px-4 py-9 text-center">
-            <p className="text-[13px] font-bold text-azul-medio">¿A qué proveedor pides?</p>
-            <ComboNavy valor={null} opciones={opcionesOtro} onChange={(v) => anadirProveedor(Number(v))} textoVacio="Elige el proveedor…" ancho={280} visibles={8} aria-label="Proveedor" />
-            <p className="text-[12px] text-azul-gris">Luego puedes pedir a otros con «+ Otro proveedor»: cada uno va en su bloque.</p>
-          </div>
+          // Primera vista (ajuste del 2026-10-13, opción A): un primer recuadro con el proveedor por elegir en la cabecera.
+          <RecuadroSinProveedor selector={
+            <ComboNavy valor={null} opciones={opcionesOtro} onChange={(v) => anadirProveedor(Number(v))} textoVacio="Elige el proveedor…"
+              ancho={240} visibles={8} aria-label="Proveedor" />
+          }>
+            <TablaLineas<LineaCompra> primera={primera} proveedor={null} lineas={[]} proveedores={proveedoresActivos}
+              vacio="Elige el proveedor para añadir líneas." seleccionada={null} desplazarA={null}
+              onSeleccionar={seleccionar} onCambiar={cambiar} onQuitar={quitar} />
+          </RecuadroSinProveedor>
         ) : (
           <>
             {porRepartir.length > 0 && (
@@ -330,11 +340,6 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
                 </RecuadroProveedor>
               )
             })}
-            {opcionesOtro.length > 0 && lineas !== null && (
-              <div>
-                <ComboNavy valor={null} opciones={opcionesOtro} onChange={(v) => anadirProveedor(Number(v))} textoVacio="+ Otro proveedor" ancho={260} visibles={8} aria-label="Otro proveedor" />
-              </div>
-            )}
           </>
         )}
       </div>

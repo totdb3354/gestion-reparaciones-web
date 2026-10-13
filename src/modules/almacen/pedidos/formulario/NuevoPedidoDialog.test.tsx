@@ -123,16 +123,19 @@ describe('NuevoPedidoDialog', () => {
     expect(avisaAlSalir()).toBe(false)
   })
 
-  it('vacío: título de 24 px y «¿A qué proveedor pides?» con los proveedores activos; al elegir uno, su recuadro con seis columnas', async () => {
+  it('vacío: título de 24 px y un primer recuadro con el proveedor por elegir; «+ Otro proveedor» en el pie, deshabilitado hasta elegirlo', async () => {
     abrir()
     const dlg = within(await screen.findByRole('dialog', { name: 'Nuevo pedido' }))
     expect(dlg.getByRole('heading', { name: 'Nuevo pedido' })).toHaveClass('text-2xl', 'font-bold', 'text-azul-medio')
     expect(screen.getByRole('dialog')).toHaveClass('w-[880px]', 'bg-fondo-vista', 'p-7')
-    expect(dlg.getByText('¿A qué proveedor pides?')).toBeInTheDocument()
-    expect(dlg.getByText('Luego puedes pedir a otros con «+ Otro proveedor»: cada uno va en su bloque.')).toBeInTheDocument()
+    const primero = within(dlg.getByRole('region', { name: 'Pedido sin proveedor' }))
+    expect(primero.getByText('Elige el proveedor para añadir líneas.')).toBeInTheDocument()
+    expect(primero.getByRole('button', { name: 'Añadir previsión' })).toBeDisabled()
+    expect(dlg.queryByText(/Luego puedes pedir/)).not.toBeInTheDocument()
+    expect(dlg.getByRole('combobox', { name: 'Otro proveedor' })).toBeDisabled()
     // La ✕ de DialogContent ("Close", sr-only) va la última.
-    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Cancelar', 'Confirmar pedido', 'Close'])
-    await userEvent.click(dlg.getByRole('combobox', { name: 'Proveedor' }))
+    expect(dlg.getAllByRole('button').map((b) => b.textContent)).toEqual(['Añadir previsión', 'Cancelar', 'Confirmar pedido', 'Close'])
+    await userEvent.click(primero.getByRole('combobox', { name: 'Proveedor' }))
     const lista = screen.getByRole('listbox', { name: 'Proveedor' })
     await within(lista).findByRole('button', { name: /^ACME/ })
     expect(within(lista).getAllByRole('button').map((b) => b.textContent)).toEqual(['ACME · sin bloque abierto', 'Proveedor B · sin bloque abierto'])
@@ -140,7 +143,8 @@ describe('NuevoPedidoDialog', () => {
     const acme = within(recuadro('ACME'))
     expect(acme.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
     expect(acme.getByText('Añade líneas o «Añadir previsión».')).toBeInTheDocument()
-    expect(screen.queryByText('¿A qué proveedor pides?')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Pedido sin proveedor' })).not.toBeInTheDocument()
+    expect(dlg.getByRole('combobox', { name: 'Otro proveedor' })).toBeEnabled()
   })
 
   it('sin líneas: "Añade al menos una línea." y no envía nada', async () => {
@@ -577,14 +581,14 @@ describe('pedido automático por proveedor (spec 0.9.6 §4.4 y 2026-10-11 §5.2)
 })
 
 describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () => {
-  it('un recuadro por proveedor, por nombre: «Confirmar pedido (2 bloques)» manda las líneas de los dos', async () => {
+  it('un recuadro por proveedor, en el orden en que se añaden: «Confirmar pedido (2 bloques)» manda las líneas de los dos', async () => {
     const onCerrar = abrir()
     await screen.findByRole('dialog', { name: 'Nuevo pedido' })
     await elegirProveedor('Proveedor B')
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
     await elegirComponente(1, 'bat', 'bat-x / bat-y')
     await otroProveedor('ACME')
-    expect(screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))).toEqual(['Pedido a ACME', 'Pedido a Proveedor B'])
+    expect(screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))).toEqual(['Pedido a Proveedor B', 'Pedido a ACME'])
     const acme = recuadro('ACME')
     await userEvent.click(within(acme).getByRole('button', { name: '+ Añadir línea' }))
     await elegirComponente(1, 'lcd', 'lcd-x-negro', acme)
@@ -649,7 +653,7 @@ describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () =>
     await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Quitar ACME' }))
     expect(screen.queryByRole('region', { name: 'Pedido a ACME' })).not.toBeInTheDocument()
-    expect(screen.getByText('¿A qué proveedor pides?')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Pedido sin proveedor' })).toBeInTheDocument()
     await elegirProveedor('ACME')
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
     await userEvent.click(screen.getByRole('button', { name: 'Quitar ACME' }))
@@ -677,6 +681,17 @@ describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () =>
     expect(desplazar.mock.contexts).toContain(recuadro('ACME'))
   })
 
+  it('«+ Otro proveedor» del pie: el recuadro nuevo sale al final y se trae a la vista', async () => {
+    const desplazar = vi.spyOn(Element.prototype, 'scrollIntoView')
+    onTestFinished(() => desplazar.mockRestore())
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('Proveedor B')
+    await otroProveedor('ACME')
+    expect(screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))).toEqual(['Pedido a Proveedor B', 'Pedido a ACME'])
+    expect(desplazar.mock.contexts).toContain(recuadro('ACME'))
+  })
+
   it('el recuadro añadido se trae a la vista una sola vez: pinchar en otra fila no lo vuelve a traer', async () => {
     const desplazar = vi.spyOn(Element.prototype, 'scrollIntoView')
     onTestFinished(() => desplazar.mockRestore())
@@ -698,7 +713,7 @@ describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () =>
     expect(recuadro('ACME')).toBeInTheDocument()
     expect(within(recuadro('ACME')).getByText('Añade líneas o «Añadir previsión».')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Quitar ACME' }))
-    expect(screen.getByText('¿A qué proveedor pides?')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Pedido sin proveedor' })).toBeInTheDocument()
   })
 
   it('«Pasar a…» a un proveedor que ya tenía la pieza: se queda la línea que había y lo dice', async () => {

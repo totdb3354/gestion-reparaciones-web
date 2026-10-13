@@ -185,6 +185,13 @@ describe('ComboNavy (combo navy de selección única)', () => {
     expect(lista.querySelectorAll('li')).toHaveLength(3)
     expect(lista.querySelector('[data-resaltada]')).toBeNull()
   })
+  it('aspecto «botón»: el disparador imita a BotonSecundario (crema, borde y texto azul noche)', () => {
+    render(<ComboNavy valor={null} opciones={[{ valor: '1', etiqueta: 'Uno' }]} onChange={vi.fn()} textoVacio="+ Otro proveedor" ancho={180} aspecto="boton" aria-label="Otro proveedor" />)
+    const boton = screen.getByRole('combobox', { name: 'Otro proveedor' })
+    expect(boton).toHaveClass('bg-crema', 'border-azul-noche', 'text-azul-noche')
+    expect(boton).not.toHaveClass('bg-azul-noche')
+    expect(boton).toHaveTextContent('+ Otro proveedor')
+  })
 })
 
 describe('siguienteAbiertoOMismo (el guardia de cambiarAbierto)', () => {

@@ -37,7 +37,8 @@ function abrir(precarga: PrecargaPedido = { modo: 'vacio' }) {
   return onCerrar
 }
 
-/** «¿A qué proveedor pides?» (0.9.9, varios proveedores): ComboNavy «Proveedor»; cada opción, «{nombre} · {bloque abierto}». */
+/** El proveedor del primer recuadro (0.9.9, varios proveedores; «Pedido sin proveedor» desde el ajuste del 2026-10-13):
+ *  ComboNavy «Proveedor»; cada opción, «{nombre} · {bloque abierto}». */
 async function elegirProveedor(nombre: string) {
   await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor' }))
   await userEvent.click(await within(screen.getByRole('listbox', { name: 'Proveedor' })).findByRole('button', { name: new RegExp(`^${nombre} · `) }))

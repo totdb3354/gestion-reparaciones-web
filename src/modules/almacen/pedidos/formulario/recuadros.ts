@@ -18,11 +18,13 @@ export function repartirLineas(lineas: LineaCompra[], activos: Componente[], ids
   })
 }
 
-/** Recuadros de proveedor del pedido: los que tienen líneas y los elegidos a mano aún vacíos, por nombre. */
-export function recuadrosDelPedido(lineas: LineaCompra[], anadidos: number[], nombre: (idProv: number) => string): number[] {
+/** Recuadros de proveedor del pedido, en el orden en que se añadieron (ajuste del 2026-10-13: el nuevo, al final). Primero
+ *  los de `anadidos` (elegidos a mano, los de la precarga en el orden de sus líneas y los de «Pasar a…»); después, por si
+ *  acaso, cualquier proveedor con líneas que no esté entre ellos, en el orden de las líneas. */
+export function recuadrosDelPedido(lineas: LineaCompra[], anadidos: number[]): number[] {
   const ids = new Set(anadidos)
   for (const l of lineas) if (l.idProv !== null) ids.add(l.idProv)
-  return [...ids].sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'))
+  return [...ids]
 }
 
 /** Líneas de un recuadro en su orden: la n de «línea n» es su posición aquí. */
@@ -51,8 +53,8 @@ export function opcionesPasarA(idCom: number | null, activos: Componente[], prov
   ]
 }
 
-/** Opciones de «¿A qué proveedor pides?» y de «+ Otro proveedor»: los proveedores sin recuadro, con su bloque abierto más
- *  reciente o «sin bloque abierto». */
+/** Opciones del proveedor por elegir del primer recuadro y de «+ Otro proveedor»: los proveedores sin recuadro, con su
+ *  bloque abierto más reciente o «sin bloque abierto». */
 export function opcionesOtroProveedor(proveedores: Proveedor[], recuadros: number[], bloques: Map<string, Bloque>): OpcionCombo[] {
   return proveedores.filter((p) => !recuadros.includes(p.idProv)).map((p) => {
     const abierto = abiertosDe(bloques, p.idProv)[0]

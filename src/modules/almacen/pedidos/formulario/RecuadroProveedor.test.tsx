@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
-import { DestinoRecuadro, RecuadroProveedor, RecuadroRepartir } from './RecuadroProveedor'
+import { DestinoRecuadro, RecuadroProveedor, RecuadroRepartir, RecuadroSinProveedor } from './RecuadroProveedor'
 
 function recuadro(extra: Partial<ComponentProps<typeof RecuadroProveedor>> = {}) {
   const props: ComponentProps<typeof RecuadroProveedor> = {
@@ -72,6 +72,16 @@ describe('RecuadroRepartir', () => {
     expect(onPlegar).toHaveBeenCalled()
     rerender(<RecuadroRepartir nLineas={2} plegado onPlegar={onPlegar} marcado={false} aLaVista={false}><p>filas</p></RecuadroRepartir>)
     expect(screen.queryByText('filas')).not.toBeInTheDocument()
+  })
+})
+
+describe('RecuadroSinProveedor', () => {
+  it('cabecera con el selector y «Añadir previsión» deshabilitado; el cuerpo con la tabla', () => {
+    render(<RecuadroSinProveedor selector={<button type="button">elegir</button>}><p>tabla vacía</p></RecuadroSinProveedor>)
+    const r = screen.getByRole('region', { name: 'Pedido sin proveedor' })
+    expect(within(r).getByRole('button', { name: 'elegir' })).toBeInTheDocument()
+    expect(within(r).getByRole('button', { name: 'Añadir previsión' })).toBeDisabled()
+    expect(within(r).getByText('tabla vacía')).toBeInTheDocument()
   })
 })
 

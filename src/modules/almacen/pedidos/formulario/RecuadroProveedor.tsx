@@ -95,6 +95,22 @@ export function RecuadroRepartir({ nLineas, plegado, onPlegar, marcado, aLaVista
   )
 }
 
+/** Primer recuadro de «Nuevo pedido» al abrir vacío (ajuste del 2026-10-13, opción A): la forma del pedido desde el
+ *  principio, con el proveedor por elegir en la cabecera (`selector`) y la tabla vacía (`children`). */
+export function RecuadroSinProveedor({ selector, children }: { selector: ReactNode; children: ReactNode }) {
+  return (
+    <section aria-label="Pedido sin proveedor" className="shrink-0 overflow-hidden rounded-[10px] border border-fila-sep bg-superficie">
+      <div className="flex flex-wrap items-center gap-2 border-b border-fila-sep bg-fila-maestro-bg px-2.5 py-1.5 text-[12px] text-azul-medio">
+        {selector}
+        <span className="text-azul-gris opacity-60">· 0 líneas</span>
+        <span className="flex-1" />
+        <BotonSecundario type="button" disabled>Añadir previsión</BotonSecundario>
+      </div>
+      <div className="p-2.5">{children}</div>
+    </section>
+  )
+}
+
 type DestinoProps = {
   nombre: string
   /** «Añadir líneas» de un bloque: destino fijo. */
