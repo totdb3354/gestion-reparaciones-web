@@ -108,12 +108,14 @@ test('técnico: entregar apunta el «Abrir», deshacer lo borra, la llegada lo v
   await page.getByRole('menuitem', { name: /^Entregar a / }).click()
   await expect(aviso).toContainText('· Abierto')
   await expect.poll(accionesRep).toEqual(['Abrir'])
+  await expect(fila).toContainText('→ ') // la lista ya refrescó la marca de entrega
 
   // 2) Deshacer entrega → el «Abrir» se borra
   await fila.getByText(imei).click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Deshacer entrega' }).click()
   await expect(aviso).toContainText('Entrega deshecha · «Abrir» borrado')
   await expect.poll(accionesRep).toEqual([])
+  await expect(fila).toContainText('Glass: ') // la lista ya refrescó: vuelve la marca de glass pendiente
 
   // 3) Pestaña Glass: «Marcar que llegó» → el «Abrir» va al dueño de la normal (el mismo técnico)
   await page.goto('/reparaciones/pendientes/glass')

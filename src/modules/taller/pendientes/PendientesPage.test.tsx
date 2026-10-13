@@ -277,6 +277,45 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Marcar que llegó' }))
     expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Llegada registrada · Abierto (Técnico J)')
   })
+
+  it('«Deshacer entrega» y «Deshacer llegada» avisan de si el «Abrir» se borró', async () => {
+    // idTec 4 = SESION_TEC: solo quien firmó la entrega puede deshacerla.
+    const entregada = { ...normal(true, '2026-09-16T08:00:00'), idRep: 'A20260916_12', glassEntregadoPor: 4 }
+    server.use(
+      http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([entregada])),
+      http.patch('*/api/reparaciones/asignaciones/A20260916_12/entrega-glass', () =>
+        HttpResponse.json({ abrir: null, idRepAbrir: null, tecnicoAbrir: null, idRepBorrado: 'R20260916_99' })),
+    )
+    const { unmount } = renderConProviders(<><PendientesPage tipo="REPARACION" /><AvisoBreveHost /></>, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('A20260916_12') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Deshacer entrega' }))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Entrega deshecha · «Abrir» borrado')
+    unmount()
+
+    const llegada = { ...glass('2026-09-16T08:00:00'), idRep: 'AG20260916_2', imei: '352222222222222', entregadoPor: 4, normalAbierta: true }
+    server.use(
+      http.get('*/api/glass/asignaciones', () => HttpResponse.json([llegada])),
+      http.delete('*/api/reparaciones/asignaciones/AG20260916_2/llegada', () =>
+        HttpResponse.json({ abrir: null, idRepAbrir: null, tecnicoAbrir: null, idRepBorrado: null })),
+    )
+    renderConProviders(<><PendientesPage tipo="GLASS" /><AvisoBreveHost /></>, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('AG20260916_2') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Deshacer llegada' }))
+    const aviso = await screen.findByTestId('aviso-breve')
+    expect(aviso).toHaveTextContent('Llegada deshecha')
+    expect(aviso).not.toHaveTextContent('borrado')
+  })
+
+  it('contra un servidor antiguo (204 sin cuerpo) no sale aviso breve', async () => {
+    server.use(
+      http.patch('*/api/reparaciones/asignaciones/A20260916_12/entrega-glass', () => new HttpResponse(null, { status: 204 })),
+    )
+    renderConProviders(<><PendientesPage tipo="REPARACION" /><AvisoBreveHost /></>, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('A20260916_12') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Entregar a Técnico H' }))
+    await new Promise((r) => setTimeout(r, 300))
+    expect(screen.queryByTestId('aviso-breve')).not.toBeInTheDocument()
+  })
 })
 
 describe('PendientesPage: tabla fluida (adaptación a web)', () => {
