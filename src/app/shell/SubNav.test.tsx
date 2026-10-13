@@ -234,3 +234,49 @@ describe('plegar la columna lateral', () => {
     expect(screen.queryByRole('button', { name: /menú lateral/ })).not.toBeInTheDocument()
   })
 })
+
+/** Plegada (0.9.10, spec §2): los números siguen cada uno en su icono, compactos, y el nombre sale al pasar el ratón o al
+ *  llegar con el teclado. */
+describe('columna lateral plegada: números y nombre de cada icono', () => {
+  it('los números de Asignaciones y Pendientes siguen, compactos en la esquina del icono y con sus colores', async () => {
+    localStorage.setItem(CLAVE_PLEGADA, 'si')
+    asignaciones(2, 1, 1)
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 90, glass: 10, pulidos: 5 })))
+    renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/reparaciones/pendientes' })
+    const asig = screen.getByRole('link', { name: 'Asignaciones' })
+    expect(await within(asig).findByText('4')).toHaveClass('absolute', 'bg-azul-noche', 'text-superficie')
+    const pend = screen.getByRole('link', { name: 'Pendientes' })
+    expect(await within(pend).findByText('99+')).toHaveClass('absolute', 'bg-superficie', 'text-azul-noche')
+  })
+
+  it('abierta, el número sigue detrás del nombre, como antes', async () => {
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 1, glass: 1, pulidos: 1 })))
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/reparaciones/historial' })
+    const numero = await within(screen.getByRole('link', { name: /Pendientes/ })).findByText('3')
+    expect(numero).toHaveClass('ml-2')
+    expect(numero).not.toHaveClass('absolute')
+  })
+
+  it('al pasar el ratón por un icono sale su nombre', async () => {
+    localStorage.setItem(CLAVE_PLEGADA, 'si')
+    const user = userEvent.setup()
+    renderConProviders(<SubNav />, { ruta: '/stock' })
+    await user.hover(screen.getByRole('link', { name: 'Proveedores' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Proveedores')
+  })
+
+  it('también al llegar con el teclado', async () => {
+    localStorage.setItem(CLAVE_PLEGADA, 'si')
+    renderConProviders(<SubNav />, { ruta: '/stock' })
+    act(() => screen.getByRole('link', { name: 'Pedidos' }).focus())
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Pedidos')
+  })
+
+  it('abierta no hay tooltip: el nombre ya se ve', async () => {
+    const user = userEvent.setup()
+    renderConProviders(<SubNav />, { ruta: '/stock' })
+    await user.hover(screen.getByRole('link', { name: 'Proveedores' }))
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)) })
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  })
+})

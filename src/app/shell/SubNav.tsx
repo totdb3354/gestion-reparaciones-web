@@ -9,6 +9,7 @@ import type { Enlace } from '@/shared/lib/enlaces'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
 import type { Sesion } from '@/shared/session/storage'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip'
 import { guardarPlegada, leerPlegada } from './preferencias'
 
 /** Enlaces de la columna por sección (primer segmento de la ruta) y rol. Cada sub-proyecto añade los suyos. */
@@ -53,9 +54,11 @@ export function SubNav() {
       {/* overflow-hidden: al desplegar, los nombres aparecen antes de que la columna termine de crecer. A la derecha se
           deja sitio para el botón, que monta sobre el borde. */}
       <div className={cn('flex flex-col overflow-hidden py-2', plegada ? 'pr-3.5 pl-1.5' : 'pr-[18px] pl-2')}>
-        {enlaces.map((e) => (
-          <EnlaceLateral key={e.to} enlace={e} plegada={plegada} />
-        ))}
+        <TooltipProvider>
+          {enlaces.map((e) => (
+            <EnlaceLateral key={e.to} enlace={e} plegada={plegada} />
+          ))}
+        </TooltipProvider>
       </div>
       <button
         type="button"
@@ -72,9 +75,10 @@ export function SubNav() {
   )
 }
 
-/** Un enlace de la columna. Plegada, solo el icono: el nombre pasa al `aria-label`, porque deja de verse. */
+/** Un enlace de la columna. Plegada, solo el icono: el nombre pasa al `aria-label`, porque deja de verse, y a un tooltip
+ *  que sale al pasar el ratón o al llegar con el teclado. Los números van compactos, en la esquina del icono. */
 function EnlaceLateral({ enlace: e, plegada }: { enlace: Enlace; plegada: boolean }) {
-  return (
+  const enlace = (
     <NavLink
       to={e.to}
       end={e.end}
@@ -91,10 +95,23 @@ function EnlaceLateral({ enlace: e, plegada }: { enlace: Enlace; plegada: boolea
         <>
           <e.icono aria-hidden className={cn('size-[18px] shrink-0', !plegada && 'mr-2.5')} />
           {!plegada && e.label}
-          {e.badge === 'pendientes' && <BadgePendientes activo={isActive} />}
-          {e.badge === 'asignaciones' && <BadgeAsignaciones activo={isActive} />}
+          {e.badge === 'pendientes' && <BadgePendientes activo={isActive} compacto={plegada} />}
+          {e.badge === 'asignaciones' && <BadgeAsignaciones activo={isActive} compacto={plegada} />}
         </>
       )}
     </NavLink>
+  )
+  if (!plegada) return enlace
+  // El disparador es un <span> que envuelve el enlace, no el propio NavLink con asChild: el Slot de Radix junta los
+  // className como texto y convertiría en texto la función de className de NavLink.
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="block">{enlace}</span>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        {e.label}
+      </TooltipContent>
+    </Tooltip>
   )
 }
