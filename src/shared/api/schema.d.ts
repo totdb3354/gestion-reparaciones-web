@@ -7139,6 +7139,7 @@ export interface operations {
             query?: {
                 categoria?: string;
                 excluir?: string;
+                desde?: string;
             };
             header?: never;
             path: {

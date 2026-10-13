@@ -982,11 +982,11 @@ const normalizada = (texto: string) => texto.trim().toLowerCase()
 export const esApertura = (texto: string) => /^(abr|abi)/.test(normalizada(texto))
 export const esCierre = (texto: string) => normalizada(texto).startsWith('cerr')
 
-/** «+ Cerrar» sale al completar (no al editar), con la sección Otras acciones visible, si el IMEI tiene más aperturas que
- *  cierres: cuentan las acciones guardadas al abrir (reparación + glass) y, como cierres, las líneas nuevas del formulario
+/** «+ Cerrar» sale solo en el formulario de reparación al completar (no en glass ni al editar), con la sección Otras acciones visible, si el IMEI tiene más aperturas que
+ *  cierres: cuentan las acciones del IMEI guardadas desde la asignación (reparación + glass) y, como cierres, las líneas nuevas del formulario
  *  que empiezan por «cerr» (guardadas o no). */
 export function atajoCerrarVisible(e: EstadoFormulario): boolean {
-  if (e.modo === 'editar' || !otrasAccionesVisible(e)) return false
+  if (e.modo !== 'nuevo' || !otrasAccionesVisible(e)) return false
   const aperturas = e.accionesImei.filter(esApertura).length
   const cierres = e.accionesImei.filter(esCierre).length + e.otros.filter((a) => a.origen === 'nueva' && esCierre(a.texto)).length
   return aperturas > cierres

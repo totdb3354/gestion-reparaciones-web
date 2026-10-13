@@ -18,13 +18,13 @@ async function pedirAgrupados() {
   return (await api.GET('/api/componentes/agrupados')).data ?? {}
 }
 
-async function accionesDelImei(imei: string, categoria: 'R' | 'G'): Promise<string[]> {
-  return (await api.GET('/api/reparaciones/imei/{imei}/acciones', { params: { path: { imei }, query: { categoria } } })).data ?? []
+async function accionesDelImei(imei: string, categoria: 'R' | 'G', desde: string): Promise<string[]> {
+  return (await api.GET('/api/reparaciones/imei/{imei}/acciones', { params: { path: { imei }, query: { categoria, desde } } })).data ?? []
 }
 
 /** Carga del flujo nuevo y Glass. 1) La asignación, para conocer el IMEI (vale igual con F5 o acceso directo por URL; su
  *  404 llega como NoEncontradoError). 2) En paralelo: componentes, solicitudes e incidencia (un fallo rechaza la carga y la
- *  vista lo muestra) y, en silencio, asignaciones activas del IMEI (→ []), modelo del teléfono (→ null), acciones «otro» del IMEI en reparación y glass (→ []) y borrador (→ null),
+ *  vista lo muestra) y, en silencio, asignaciones activas del IMEI (→ []), modelo del teléfono (→ null), acciones «otro» del IMEI (→ []; solo para una reparación, no para glass: reparación y glass, guardadas desde la asignación) y borrador (→ null),
  *  SALVO un 403 del borrador, que se propaga: significa que la asignación no es del técnico de la sesión. */
 export async function cargarNuevo(idAsignacion: string): Promise<CargaNuevo> {
   const asignacion = (await api.GET('/api/reparaciones/asignaciones/{idRep}', { params: { path: { idRep: idAsignacion } } })).data
@@ -52,10 +52,13 @@ export async function cargarNuevo(idAsignacion: string): Promise<CargaNuevo> {
         if (e instanceof PermisoError) throw e
         return null
       }),
-    // Acciones «otro» del IMEI en reparación y glass, para el atajo «+ Cerrar» (spec 2026-10-13 §2.6); en silencio → [].
-    Promise.all([accionesDelImei(imei, 'R'), accionesDelImei(imei, 'G')])
-      .then(([rep, glass]) => [...rep, ...glass])
-      .catch((): string[] => []),
+    // Atajo «+ Cerrar» (solo en el formulario de reparación): acciones «otro» del IMEI en reparación y glass guardadas desde
+    // la asignación (`desde` = su fechaAsig tal cual llega, hora de la BD); en glass no se piden; en silencio → [].
+    glass
+      ? Promise.resolve<string[]>([])
+      : Promise.all([accionesDelImei(imei, 'R', asignacion.fechaAsig), accionesDelImei(imei, 'G', asignacion.fechaAsig)])
+          .then(([rep, gl]) => [...rep, ...gl])
+          .catch((): string[] => []),
   ])
   return {
     datos: { modo: glass ? 'glass' : 'nuevo', idAsignacion, imei, agrupados, solicitudes, incidencia, modeloTelefono, accionesImei },

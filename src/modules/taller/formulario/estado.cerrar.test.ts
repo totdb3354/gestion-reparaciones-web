@@ -23,9 +23,10 @@ describe('atajo «+ Cerrar» (spec 2026-10-13 §2.6)', () => {
     expect(atajoCerrarVisible(con13([]))).toBe(false)
     expect(atajoCerrarVisible(con13(undefined))).toBe(false)
   })
-  it('sin la sección Otras acciones (sin modelo) y en edición no sale', () => {
+  it('sin la sección Otras acciones (sin modelo), en edición y en glass no sale', () => {
     expect(atajoCerrarVisible(estadoInicial(datos(['Abrir'])))).toBe(false)
     expect(atajoCerrarVisible({ ...con13(['Abrir']), modo: 'editar' })).toBe(false)
+    expect(atajoCerrarVisible({ ...con13(['Abrir']), modo: 'glass' })).toBe(false)
   })
   it('«+ Cerrar» añade la línea «Cerrar» y el atajo deja de salir; quitarla lo devuelve', () => {
     let s = reducir(con13(['Abrir']), { tipo: 'ANADIR_CERRAR' })
