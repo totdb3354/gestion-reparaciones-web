@@ -1,4 +1,5 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
@@ -6,6 +7,7 @@ import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { AppLayout } from './AppLayout'
 import { SubNav } from './SubNav'
+import { CLAVE_PLEGADA } from './preferencias'
 
 describe('columna lateral de sub-navegación', () => {
   it('en /clientes muestra el enlace "Clientes" marcado como activo', () => {
@@ -176,5 +178,59 @@ describe('badge de Asignaciones en el lateral del supertécnico', () => {
     expect(cargas.n).toBe(1)
     await avanzar(INTERVALO_CONECTADO_MS * 2)
     expect(cargas.n).toBe(1)
+  })
+})
+
+/** Columna plegable (0.9.10, spec «Columna lateral plegable» §2): el botón redondo del borde la pliega a una franja de
+ *  iconos de 56 px y la despliega; el navegador recuerda cómo se dejó. */
+describe('plegar la columna lateral', () => {
+  it('abierta: 200 px, con los nombres y el botón «Ocultar menú lateral»', () => {
+    renderConProviders(<SubNav />, { ruta: '/stock' })
+    const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
+    expect(columna).toHaveClass('w-[200px]')
+    const boton = screen.getByRole('button', { name: 'Ocultar menú lateral' })
+    expect(boton).toHaveAttribute('title', 'Ocultar menú lateral')
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    expect(boton).toHaveAttribute('aria-controls', columna.id)
+    expect(within(columna).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
+  })
+
+  it('el botón la pliega a la franja de iconos, lo guarda y la vuelve a desplegar', async () => {
+    const user = userEvent.setup()
+    renderConProviders(<SubNav />, { ruta: '/stock/pedidos' })
+    const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
+
+    await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
+    expect(columna).toHaveClass('w-14')
+    const pedidos = within(columna).getByRole('link', { name: 'Pedidos' })
+    expect(pedidos.textContent).toBe('')
+    expect(pedidos.querySelector('svg')).not.toBeNull()
+    expect(pedidos).toHaveAttribute('aria-current', 'page')
+    expect(localStorage.getItem(CLAVE_PLEGADA)).toBe('si')
+    const boton = screen.getByRole('button', { name: 'Mostrar menú lateral' })
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(boton)
+    expect(columna).toHaveClass('w-[200px]')
+    expect(within(columna).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
+    expect(localStorage.getItem(CLAVE_PLEGADA)).toBe('no')
+  })
+
+  it('arranca plegada si el navegador lo recuerda', () => {
+    localStorage.setItem(CLAVE_PLEGADA, 'si')
+    renderConProviders(<SubNav />, { ruta: '/clientes' })
+    expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toHaveClass('w-14')
+    expect(screen.getByRole('link', { name: 'Clientes' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toBeInTheDocument()
+  })
+
+  it('anima el ancho, salvo si el sistema pide reducir movimiento', () => {
+    renderConProviders(<SubNav />, { ruta: '/clientes' })
+    expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toHaveClass('transition-[width]', 'motion-reduce:transition-none')
+  })
+
+  it('en una sección sin enlaces tampoco hay botón', () => {
+    renderConProviders(<SubNav />, { ruta: '/estadisticas' })
+    expect(screen.queryByRole('button', { name: /menú lateral/ })).not.toBeInTheDocument()
   })
 })
