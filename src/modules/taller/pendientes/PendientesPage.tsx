@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
+import { avisar } from '@/shared/ui/avisos'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { descargarCsv, textoForzado } from '@/shared/lib/csv'
 import { formatear, hoyMadrid } from '@/shared/lib/fechas'
@@ -24,7 +25,7 @@ import { BotonPapelera } from '../componentes/BotonPapelera'
 import { CeldaImeiPendiente } from '../componentes/CeldaImeiPendiente'
 import { TogglesPendientes } from '../componentes/TogglesPendientes'
 import { filtroImeiPendientes, tipoPendientes } from '../estado'
-import { ocultarAnadirGlass } from '../lib/entregaGlass'
+import { avisoDeshacer, avisoEntrega, avisoLlegada, ocultarAnadirGlass } from '../lib/entregaGlass'
 import { etiquetaContador, ordenarPendientes, pasaImeis, pasaTipo, type TipoPendiente } from '../lib/filtros'
 import { traducirModelo } from '../lib/modelos'
 import { MenuPendiente } from './MenuPendiente'
@@ -99,9 +100,16 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
   const acciones = {
     porCerrar: (r: ReparacionResumen) => porCerrar.mutate({ idRep: r.idRep, porCerrar: !r.porCerrar }),
     // Sin entrega → entregar; con entrega → deshacer. `!` y no `=== null`: una clave ausente (undefined) también es "sin entrega".
-    entrega: (r: ReparacionResumen) => entrega.mutate({ idRep: r.idRep, entregado: !r.glassEntregadoAt }),
-    llegada: (r: ReparacionResumen) => llegada.mutate(r.idRep),
-    deshacerLlegada: (r: ReparacionResumen) => deshacerLlegada.mutate(r.idRep),
+    // Al acabar, el aviso breve cuenta qué pasó con el «Abrir» (spec 2026-10-13); con un servidor que aún responde 204 no hay aviso.
+    entrega: (r: ReparacionResumen) => {
+      const entregar = !r.glassEntregadoAt
+      entrega.mutate({ idRep: r.idRep, entregado: entregar }, {
+        onSuccess: (res) => { if (res) avisar(entregar ? avisoEntrega(res, r.glassTecnicoNombre) : avisoDeshacer(res, false)) },
+      })
+    },
+    llegada: (r: ReparacionResumen) => llegada.mutate(r.idRep, { onSuccess: (res) => { if (res) avisar(avisoLlegada(res)) } }),
+    deshacerLlegada: (r: ReparacionResumen) =>
+      deshacerLlegada.mutate(r.idRep, { onSuccess: (res) => { if (res) avisar(avisoDeshacer(res, true)) } }),
   }
 
   function confirmarBorrado() {

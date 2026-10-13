@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
+import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { anchosDeColumnas, simularAnchoDeTabla } from '@/test/columnas'
 import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
@@ -251,6 +252,30 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
     expect(cabeceras).toEqual(['ID Reparación', 'IMEI', 'Técnico', 'Fecha asig.', 'Fecha fin', 'Componente', 'Observaciones', 'Incidencia', 'Resuelto', 'ID Rep. anterior'])
     expect(filasCsv[0]).toEqual(['A20260915_29', '="355400000000111"', 'Técnico A', '15/09/2026 10:53', '', '', '', 'No', 'No', ''])
     descargar.mockRestore()
+  })
+
+  it('tras «Entregar a» y «Marcar que llegó» sale el aviso breve con lo que pasó con el «Abrir»', async () => {
+    server.use(
+      http.patch('*/api/reparaciones/asignaciones/A20260916_12/entrega-glass', () =>
+        HttpResponse.json({ abrir: 'CREADO', idRepAbrir: 'R20260916_99', tecnicoAbrir: 'Técnico A', idRepBorrado: null })),
+    )
+    const { unmount } = renderConProviders(<><PendientesPage tipo="REPARACION" /><AvisoBreveHost /></>, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes' })
+    await screen.findByText('A20260915_29')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('A20260916_12') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Entregar a Técnico H' }))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Entregado a Técnico H · Abierto')
+    unmount()
+
+    const bloqueada = { ...glass(null), idRep: 'AG20260916_1', imei: '351111111111111', normalAbierta: true, normalTecnicoNombre: 'Técnico J' }
+    server.use(
+      http.get('*/api/glass/asignaciones', () => HttpResponse.json([bloqueada])),
+      http.patch('*/api/reparaciones/asignaciones/AG20260916_1/llegada', () =>
+        HttpResponse.json({ abrir: 'CREADO', idRepAbrir: 'R20260916_98', tecnicoAbrir: 'Técnico J', idRepBorrado: null })),
+    )
+    renderConProviders(<><PendientesPage tipo="GLASS" /><AvisoBreveHost /></>, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('AG20260916_1') })
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Marcar que llegó' }))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Llegada registrada · Abierto (Técnico J)')
   })
 })
 

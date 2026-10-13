@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import type { ResultadoEntregaGlass } from '@/shared/api/client'
 import { glass, normal, resumen } from '../test/fabrica'
 import {
-  etiquetaGlassPendiente, etiquetaRepAbierta, mostrarMarcarLlegada, ocultarAnadirGlass, opcionDeshacerLlegada, opcionMenuEntrega,
+  avisoDeshacer, avisoEntrega, avisoLlegada, etiquetaGlassPendiente, etiquetaRepAbierta, mostrarMarcarLlegada, ocultarAnadirGlass, opcionDeshacerLlegada, opcionMenuEntrega,
   subEtiquetaHistorial, textoBadgeEntrega, textoCsvEntrega, tooltipEntrega, tooltipGlassPendiente, tooltipRepAbierta,
 } from './entregaGlass'
 
@@ -103,5 +104,36 @@ describe('entregaGlass (calco de EntregaGlass, spec 2026-08-28)', () => {
     expect(opcionDeshacerLlegada(glass(null), true, 7)).toBeNull()
     expect(opcionDeshacerLlegada(normal(true, UTC_0842), true, 7)).toBeNull()
     expect(opcionDeshacerLlegada(null, true, 7)).toBeNull()
+  })
+})
+
+const res = (p: Partial<ResultadoEntregaGlass>): ResultadoEntregaGlass => ({
+  abrir: null, idRepAbrir: null, tecnicoAbrir: null, idRepBorrado: null, ...p,
+})
+
+describe('avisos del «Abrir» automático (spec 2026-10-13 §2.1–2.4)', () => {
+  it('entregar: creado, ya abierto y sin pieza otro', () => {
+    expect(avisoEntrega(res({ abrir: 'CREADO', idRepAbrir: 'R20261013_101', tecnicoAbrir: 'Técnico J' }), 'Técnico H'))
+      .toEqual({ texto: 'Entregado a Técnico H · Abierto', tipo: 'ok' })
+    expect(avisoEntrega(res({ abrir: 'YA_EXISTIA', tecnicoAbrir: 'Técnico J' }), 'Técnico H'))
+      .toEqual({ texto: 'Entregado a Técnico H · ya estaba abierto', tipo: 'info' })
+    expect(avisoEntrega(res({ abrir: 'SIN_PIEZA_OTRO', tecnicoAbrir: 'Técnico J' }), 'Técnico H'))
+      .toEqual({ texto: 'Entregado a Técnico H · sin «Abrir» (el modelo no tiene pieza otro)', tipo: 'warn' })
+    expect(avisoEntrega(res({ abrir: 'CREADO' }), null).texto).toBe('Entregado a glass · Abierto')
+  })
+  it('llegada: dice a quién se apuntó el «Abrir»; sin normal, solo la llegada', () => {
+    expect(avisoLlegada(res({ abrir: 'CREADO', idRepAbrir: 'R20261013_102', tecnicoAbrir: 'Técnico L' })))
+      .toEqual({ texto: 'Llegada registrada · Abierto (Técnico L)', tipo: 'ok' })
+    expect(avisoLlegada(res({ abrir: 'YA_EXISTIA', tecnicoAbrir: 'Técnico L' })))
+      .toEqual({ texto: 'Llegada registrada · ya estaba abierto', tipo: 'info' })
+    expect(avisoLlegada(res({ abrir: 'SIN_PIEZA_OTRO', tecnicoAbrir: 'Técnico L' })))
+      .toEqual({ texto: 'Llegada registrada · sin «Abrir» (el modelo no tiene pieza otro)', tipo: 'warn' })
+    expect(avisoLlegada(res({ abrir: 'SIN_NORMAL' }))).toEqual({ texto: 'Llegada registrada', tipo: 'info' })
+  })
+  it('deshacer: con y sin «Abrir» que borrar', () => {
+    expect(avisoDeshacer(res({ idRepBorrado: 'R20261013_101' }), false)).toEqual({ texto: 'Entrega deshecha · «Abrir» borrado', tipo: 'ok' })
+    expect(avisoDeshacer(res({}), false)).toEqual({ texto: 'Entrega deshecha', tipo: 'info' })
+    expect(avisoDeshacer(res({ idRepBorrado: 'R20261013_101' }), true)).toEqual({ texto: 'Llegada deshecha · «Abrir» borrado', tipo: 'ok' })
+    expect(avisoDeshacer(res({}), true)).toEqual({ texto: 'Llegada deshecha', tipo: 'info' })
   })
 })

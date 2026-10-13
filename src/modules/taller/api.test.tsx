@@ -9,7 +9,10 @@ import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
 import { server } from '@/test/server'
 import { SESION_SUPER, SESION_TEC } from '@/test/render'
-import { useAsignaciones, useContadoresPendientes, useEditarObservacionTelefono, useHistorial, usePorCerrar } from './api'
+import {
+  useAsignaciones, useContadoresPendientes, useDeshacerLlegada, useEditarObservacionTelefono, useEntregaGlass, useHistorial, useMarcarLlegada,
+  usePorCerrar,
+} from './api'
 
 function envoltorio(sesion: typeof SESION_TEC) {
   guardarSesion(sesion)
@@ -83,5 +86,24 @@ describe('api del taller', () => {
     await waitFor(() => expect(peticiones).toBe(2))
     soltarRecarga()
     await waitFor(() => expect(historial.result.current.isFetching).toBe(false))
+  })
+
+  it('entrega, llegada y deshacer devuelven el resultado del «Abrir»; null con un servidor que aún responde 204', async () => {
+    const creado = { abrir: 'CREADO', idRepAbrir: 'R20261013_101', tecnicoAbrir: 'Técnico J', idRepBorrado: null }
+    server.use(
+      http.patch('*/api/reparaciones/asignaciones/:idRep/entrega-glass', ({ params }) =>
+        params.idRep === 'A1' ? HttpResponse.json(creado) : new HttpResponse(null, { status: 204 })),
+      http.patch('*/api/reparaciones/asignaciones/:idRep/llegada', () => HttpResponse.json(creado)),
+      http.delete('*/api/reparaciones/asignaciones/:idRep/llegada', () =>
+        HttpResponse.json({ abrir: null, idRepAbrir: null, tecnicoAbrir: null, idRepBorrado: 'R20261013_101' })),
+    )
+    const wrapper = envoltorio(SESION_TEC)
+    const entrega = renderHook(() => useEntregaGlass(), { wrapper })
+    await act(async () => { expect(await entrega.result.current.mutateAsync({ idRep: 'A1', entregado: true })).toEqual(creado) })
+    await act(async () => { expect(await entrega.result.current.mutateAsync({ idRep: 'A2', entregado: true })).toBeNull() })
+    const llegada = renderHook(() => useMarcarLlegada(), { wrapper })
+    await act(async () => { expect(await llegada.result.current.mutateAsync('AG1')).toEqual(creado) })
+    const deshacer = renderHook(() => useDeshacerLlegada(), { wrapper })
+    await act(async () => { expect((await deshacer.result.current.mutateAsync('AG1'))?.idRepBorrado).toBe('R20261013_101') })
   })
 })

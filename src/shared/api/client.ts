@@ -12,6 +12,8 @@ import { reportarExito, reportarFallo } from './conexion'
 export type Cliente = components['schemas']['Cliente']
 export type LoginResponse = components['schemas']['LoginResponse']
 export type ReparacionResumen = components['schemas']['ReparacionResumen']
+/** Respuesta de entregar/deshacer la entrega y de marcar/deshacer la llegada a glass (spec 2026-10-13 §4.1). */
+export type ResultadoEntregaGlass = components['schemas']['ResultadoEntregaGlass']
 export type TrabajoCerrado = components['schemas']['TrabajoCerrado']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
