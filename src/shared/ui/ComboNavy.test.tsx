@@ -189,6 +189,8 @@ describe('ComboNavy (combo navy de selección única)', () => {
     render(<ComboNavy valor={null} opciones={[{ valor: '1', etiqueta: 'Uno' }]} onChange={vi.fn()} textoVacio="+ Otro proveedor" ancho={180} aspecto="boton" aria-label="Otro proveedor" />)
     const boton = screen.getByRole('combobox', { name: 'Otro proveedor' })
     expect(boton).toHaveClass('bg-crema', 'border-azul-noche', 'text-azul-noche')
+    // El mismo alto que «Cancelar» (BotonSecundario: h-auto py-2).
+    expect(boton).toHaveClass('py-2')
     expect(boton).not.toHaveClass('bg-azul-noche')
     expect(boton).toHaveTextContent('+ Otro proveedor')
   })

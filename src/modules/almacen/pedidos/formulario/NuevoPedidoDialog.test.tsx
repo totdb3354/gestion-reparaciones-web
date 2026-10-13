@@ -692,6 +692,24 @@ describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () =>
     expect(desplazar.mock.contexts).toContain(recuadro('ACME'))
   })
 
+  it('«+ Otro proveedor» se deshabilita cuando todos los proveedores activos tienen su recuadro', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    await otroProveedor('Proveedor B')
+    expect(screen.getByRole('combobox', { name: 'Otro proveedor' })).toBeDisabled()
+  })
+
+  it('«+ Otro proveedor» va en el pie, en la fila de «Cancelar», y no dentro de ningún recuadro', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    const combo = screen.getByRole('combobox', { name: 'Otro proveedor' })
+    for (const r of screen.getAllByRole('region')) expect(r).not.toContainElement(combo)
+    // Pie de DialogoPedidoBase: fila > [combo, div ml-auto > [Cancelar, Confirmar]].
+    expect(screen.getByRole('button', { name: 'Cancelar' }).parentElement?.parentElement).toContainElement(combo)
+  })
+
   it('el recuadro añadido se trae a la vista una sola vez: pinchar en otra fila no lo vuelve a traer', async () => {
     const desplazar = vi.spyOn(Element.prototype, 'scrollIntoView')
     onTestFinished(() => desplazar.mockRestore())

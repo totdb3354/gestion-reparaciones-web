@@ -116,7 +116,7 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         style={ancho === 'full' ? undefined : { width: ancho }}
         className={cn(
           boton
-            ? 'flex h-[32px] shrink-0 items-center justify-between gap-1 rounded-3xl border border-azul-noche bg-crema px-4 font-bold text-azul-noche hover:bg-badge-neutro-bg disabled:cursor-default disabled:opacity-60 disabled:hover:bg-crema'
+            ? 'flex h-auto shrink-0 items-center justify-center gap-1 rounded-3xl border border-azul-noche bg-crema px-4 py-2 font-bold text-azul-noche hover:bg-badge-neutro-bg disabled:cursor-default disabled:opacity-50 disabled:hover:bg-crema'
             : 'flex h-[27px] shrink-0 items-center justify-between gap-1 rounded-3xl bg-azul-noche px-3 font-bold hover:bg-azul-noche-hover disabled:cursor-default disabled:opacity-60 disabled:hover:bg-azul-noche',
           ancho === 'full' && 'w-full',
           tamano,

@@ -298,7 +298,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
       // «+ Otro proveedor» en el pie (ajuste del 2026-10-13), con el aspecto de «Cancelar»; en «Añadir líneas» no hay.
       pieIzquierda={fijo ? undefined : (
         <ComboNavy valor={null} opciones={opcionesOtro} onChange={(v) => anadirProveedor(Number(v))} textoVacio="+ Otro proveedor"
-          ancho={190} visibles={8} aspecto="boton" aria-label="Otro proveedor"
+          ancho={160} visibles={8} aspecto="boton" aria-label="Otro proveedor"
           disabled={vacio || lineas === null || opcionesOtro.length === 0 || guardar.isPending} />
       )}>
       {fijo && (
