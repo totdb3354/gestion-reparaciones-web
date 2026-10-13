@@ -100,3 +100,10 @@
   transform-origin: left center;
   animation: encoge-aviso 4s linear forwards;
 }
+
+/* Con "reducir movimiento" la barra no encoge; el temporizador de JS sigue cerrando el aviso a los 4 s. */
+@media (prefers-reduced-motion: reduce) {
+  .aviso-barra {
+    animation: none;
+  }
+}
