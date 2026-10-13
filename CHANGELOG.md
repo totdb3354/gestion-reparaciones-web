@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.10] - 2026-10-XX — Columna lateral plegable
+
+- **Iconos en la columna lateral.** Cada pestaña de la columna de la izquierda lleva su icono delante del nombre: Asignaciones, Pendientes, Historial, IMEIs, Stock actual, Pedidos, Proveedores y Clientes.
+- **La columna se pliega.** El botón redondo de su borde la deja en una franja de 56 px con solo los iconos, y el contenido gana 144 px; el mismo botón la despliega. Plegada, al pasar el ratón por un icono sale su nombre, y los números de Pendientes y Asignaciones siguen cada uno en su icono. El navegador recuerda cómo se dejó (es del ordenador, no del usuario).
+- **Sin columna vacía.** En Estadísticas, Gestionar técnicos y Ver logs ya no sale la columna en blanco: el contenido usa todo el ancho.
+- Solo web: sin cambios en el servidor, la base ni nginx.
+
 ## [0.9.9] - 2026-10-XX — Pedidos por bloques
 
 - **Bloques de pedido.** Cada pedido de componentes pertenece a un **bloque**: lo que se le pide de una vez a un proveedor. Al guardar «Nuevo pedido», las líneas de cada proveedor se suman a su bloque abierto (sin nada confirmado) o van a uno nuevo; el resumen «Bloques» al pie del formulario enseña y deja elegir el destino.
