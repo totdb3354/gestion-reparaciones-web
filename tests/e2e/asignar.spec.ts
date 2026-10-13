@@ -57,7 +57,20 @@ test('el supertécnico asigna un trabajo desde el modal y lo borra', async ({ pa
   const modal = page.getByRole('dialog', { name: 'Asignar trabajos' })
   await modal.getByPlaceholder('Escanea o escribe el IMEI (15 dígitos)...').fill(imei!)
   await expect(modal.getByTestId('imei-en-curso')).toHaveText(imei!)
-  await expect(modal.getByRole('combobox', { name: 'Modelo de iPhone' })).not.toHaveValue('')
+  // El IMEI de prueba es inventado: el servicio de IMEI no lo reconoce (contesta «IMEI Helpdesk» / «test», que no es
+  // Apple), así que el modelo solo sale solo si el teléfono de prueba sigue en la base con el suyo; y la propia prueba lo
+  // borra al quitar su asignación si se queda sin trabajos. Si no sale, se elige a mano, como haría el técnico ante
+  // «No encontrado — selecciona manualmente» (2026-10-13). La detección automática la cubren los tests del servidor y
+  // de la web.
+  const modelo = modal.getByRole('combobox', { name: 'Modelo de iPhone' })
+  await expect.poll(async () => (await modelo.inputValue()) !== ''
+    || (await modelo.getAttribute('placeholder')) === 'No encontrado — selecciona manualmente').toBe(true)
+  if ((await modelo.inputValue()) === '') {
+    await modelo.fill('iPhone 13')
+    // La lista del autocompletar va en un portal fuera del modal: se busca en la página.
+    await page.getByRole('option', { name: 'iPhone 13', exact: true }).click()
+  }
+  await expect(modelo).not.toHaveValue('')
   await modal.getByRole('checkbox', { name: casillaDeTecnico(tecnico!) }).click()
   await modal.getByRole('button', { name: 'Asignar →' }).click()
 
