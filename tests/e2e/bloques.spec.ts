@@ -109,14 +109,15 @@ async function elegirSku(page: Page, dlg: Locator) {
 
 /**
  * Abre «Nuevo pedido» con una línea del SKU a ese precio, al proveedor sintético, y devuelve el diálogo. Mismo recorrido que
- * pedidos.spec.ts: autocompletar de componente; el proveedor, una vez arriba («Proveedor general»). Una sola línea: en un
+ * pedidos.spec.ts: autocompletar de componente; el proveedor, en «¿A qué proveedor pides?». Una sola línea: en un
  * mismo diálogo una pieza no se repite (0.9.9); la segunda línea del SKU se añade al bloque con `anadirLineaAlBloque`.
  */
 async function rellenarNuevoPedido(page: Page, precio: string): Promise<Locator> {
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-  await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
-  await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
+  // «¿A qué proveedor pides?» (0.9.9, varios proveedores): ComboNavy «Proveedor», opciones «{nombre} · {bloque abierto}».
+  await dlg.getByRole('combobox', { name: 'Proveedor', exact: true }).click()
+  await page.getByRole('listbox', { name: 'Proveedor', exact: true }).getByRole('button', { name: new RegExp(`^${escaparRegex(nombreProv)} · `) }).click()
   await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
   await elegirSku(page, dlg)
   await dlg.getByLabel('Precio línea 1').fill(precio)
@@ -221,7 +222,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
     await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(sku!)
 
     const dlg = await rellenarNuevoPedido(page, '2')
-    const resumen = dlg.getByRole('region', { name: 'Bloques' })
+    const resumen = dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })
     await expect(resumen).toContainText(nombreProv)
     await expect(resumen).toContainText('1 línea')
     await expect(resumen).toContainText('Bloque nuevo (no tiene ninguno abierto)')
@@ -246,7 +247,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
   test('un segundo Nuevo pedido sugiere el bloque abierto y le suma la línea', async () => {
     const page = sup!
     const dlg = await rellenarNuevoPedido(page, '4')
-    const resumen = dlg.getByRole('region', { name: 'Bloques' })
+    const resumen = dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })
     await expect(resumen.getByRole('combobox', { name: `Bloque de ${nombreProv}` })).toContainText(`Añadir a Bloque ${bloque1}`)
     ;[l3] = await guardarLote(page, dlg)
 
@@ -261,11 +262,11 @@ test.describe('supertécnico: pedidos por bloques', () => {
     await elegirEnMenuBloque(page, bloque1, /^Añadir líneas…/)
     const dlg = page.getByRole('dialog', { name: `Añadir líneas · Bloque ${bloque1}`, exact: true })
     await expect(dlg).toContainText(nombreProv)
-    await expect(dlg.getByRole('combobox', { name: 'Proveedor general' })).toHaveCount(0)
+    await expect(dlg.getByRole('combobox', { name: 'Proveedor', exact: true })).toHaveCount(0)
     await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
     await elegirSku(page, dlg)
-    await expect(dlg.getByRole('region', { name: 'Bloques' })).toContainText(`Bloque ${bloque1}`)
-    await expect(dlg.getByRole('region', { name: 'Bloques' })).toContainText('(fijado)')
+    await expect(dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })).toContainText(`Bloque ${bloque1}`)
+    await expect(dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })).toContainText('(fijado)')
     ;[l4] = await guardarLote(page, dlg)
 
     await expect.poll(async () => (await linea(l4))?.idBloque).toBe(bloque1)
@@ -385,7 +386,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
     const page = sup!
     const dlgNuevo = await rellenarNuevoPedido(page, '2')
     // El proveedor ya no tiene ningún bloque abierto (uno en camino y otro cancelado): bloque nuevo.
-    await expect(dlgNuevo.getByRole('region', { name: 'Bloques' })).toContainText('Bloque nuevo (no tiene ninguno abierto)')
+    await expect(dlgNuevo.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })).toContainText('Bloque nuevo (no tiene ninguno abierto)')
     const creadas = await guardarLote(page, dlgNuevo)
     expect(creadas).toHaveLength(1)
     await expect.poll(async () => (await linea(creadas[0]))?.idBloque ?? null).not.toBeNull()

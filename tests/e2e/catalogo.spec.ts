@@ -70,7 +70,9 @@ function prefijoYModelo(tipos: TipoPiezas[]): { prefijo: string; modelo: string 
   return { prefijo, modelo }
 }
 
-/** Las piezas que «Añadir previsión de X (N)» cuenta: masters activas en Auto con algo que pedir que vende X. */
+const escaparRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Las piezas que «Añadir previsión (N)» del recuadro de X cuenta: masters activas en Auto con algo que pedir que vende X. */
 async function previstas(page: Page): Promise<Pieza[]> {
   const r = await llamarApi(page, 'GET', '/api/componentes/gestionados')
   return (r.json as Pieza[]).filter((p) => p.idComMaster == null && p.activo && p.autoPedido === true && (p.pedir60 ?? 0) > 0
@@ -170,9 +172,9 @@ test('con el modelo de la pieza excluido, la previsión de X no la trae', async 
   await page.goto('/stock/pedidos')
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-  await dlg.getByRole('combobox', { name: 'Proveedor general' }).click()
-  await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
-  await expect(dlg.getByRole('button', { name: `Añadir previsión de ${nombreProv} (${n})` })).toBeVisible()
+  await dlg.getByRole('combobox', { name: 'Proveedor', exact: true }).click()
+  await page.getByRole('listbox', { name: 'Proveedor', exact: true }).getByRole('button', { name: new RegExp(`^${escaparRegex(nombreProv)} · `) }).click()
+  await expect(dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true }).getByRole('button', { name: `Añadir previsión (${n})` })).toBeVisible()
   await dlg.getByRole('button', { name: 'Cancelar' }).click()
 })
 
@@ -201,9 +203,9 @@ test('«Piezas que vende…»: «Todos los modelos» y la previsión ya la trae'
   await page.goto('/stock/pedidos')
   await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
   const pedido = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
-  await pedido.getByRole('combobox', { name: 'Proveedor general' }).click()
-  await page.getByRole('listbox', { name: 'Proveedor general' }).getByRole('button', { name: nombreProv }).click()
-  await pedido.getByRole('button', { name: `Añadir previsión de ${nombreProv} (${n})` }).click()
+  await pedido.getByRole('combobox', { name: 'Proveedor', exact: true }).click()
+  await page.getByRole('listbox', { name: 'Proveedor', exact: true }).getByRole('button', { name: new RegExp(`^${escaparRegex(nombreProv)} · `) }).click()
+  await pedido.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true }).getByRole('button', { name: `Añadir previsión (${n})` }).click()
   const respuesta = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/compras/lote' && r.request().method() === 'POST')
   await pedido.getByRole('button', { name: 'Confirmar pedido' }).click()
   const lote = await respuesta
