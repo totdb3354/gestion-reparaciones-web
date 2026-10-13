@@ -205,11 +205,13 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   }
   function pedirQuitar(idProv: number) {
     setALaVista(null)
+    setDesplazarA(null)
     if (lineasDe(todas, idProv).length > 0) setQuitando(idProv)
     else quitarRecuadro(idProv)
   }
   function plegar(clave: ClaveRecuadro) {
     setALaVista(null)
+    setDesplazarA(null)
     setPlegados((p) => (p.has(clave) ? sinClave(p, clave) : new Set([...p, clave])))
   }
 
@@ -284,6 +286,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
           setError(null)
           setMarcado(null)
           setALaVista(null)
+          setDesplazarA(null)
         }} />
     )
   }
