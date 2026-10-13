@@ -85,3 +85,18 @@
     box-shadow: 0 0 12px 0 var(--color-amarillo);
   }
 }
+
+/* Aviso breve (spec 2026-10-13 §2.7): la barra amarilla encoge hacia la izquierda en los 4 s que dura el aviso
+   (DURACION_AVISO_MS en AvisoBreve.tsx). Cambiar uno obliga a cambiar el otro. */
+@keyframes encoge-aviso {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.aviso-barra {
+  transform-origin: left center;
+  animation: encoge-aviso 4s linear forwards;
+}

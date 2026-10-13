@@ -157,4 +157,7 @@
   --color-badge-usuario-inactivo-text: #B03040;
   --color-error-password: #CC0000;
   --color-etiqueta-password: #555555;
+  /* Aviso breve (spec 2026-10-13 §2.7): iconos «i» (informativo) y «!» (ámbar, caso de seguridad). El «✓» usa verde-ok. */
+  --color-aviso-info: #8FA3C2;
+  --color-aviso-warn: #F5B942;
 }
