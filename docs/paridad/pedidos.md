@@ -188,6 +188,7 @@ Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea
 - [x] Guardar cierra y recarga pedidos, stock y campana; "Cancelar" cierra sin preguntar. (verificado por test: `api.test.tsx` "useRecargaPedidos", `NuevoPedidoDialog.test.tsx` "\"Pedir piezas\" → un lote con clave… cierra", "\"Cancelar\" cierra sin preguntar aunque haya líneas…")
 - [x] 503 del tipo de cambio al guardar: el mensaje del servidor en la línea de error, formulario abierto y sin banner (diferencia D-503, ver arriba). (verificado por test: `NuevoPedidoDialog.test.tsx` "503 del tipo de cambio al guardar…")
 - [x] **Un proveedor por pedido (0.9.9, decisión del usuario 2026-10-12)**: el proveedor se elige arriba («Proveedor general»), es obligatorio («Elige el proveedor.») y vale para todas las líneas; la columna Proveedor lo enseña sin combo. Desviación del JavaFX, que elegía proveedor en cada línea (`NuevoPedidoDialog.test.tsx` «elegir el proveedor lo pone en todas las líneas…»).
+- [x] **Cantidad prevista y sin repetidas (0.9.9, decisión del usuario 2026-10-13)**: al elegir la pieza, la cantidad es su «Pedir 60 d» si la línea seguía con 1 (también en «Pedir» y «Pedir todas las piezas»; las solicitudes, como siempre); una pieza ya presente no se repite: la línea nueva desaparece, queda seleccionada la otra y sale «… ya está en el pedido (línea n).». El JavaFX dejaba 1 y permitía repetidas (`lineas.test.ts` «cantidad prevista y piezas repetidas», `NuevoPedidoDialog.test.tsx`).
 
 ## Precargas del Nuevo pedido
 
@@ -251,6 +252,7 @@ Diferencias deliberadas, decididas en la spec `2026-10-09-v099-bloques-pedidos-d
 - Componentes agrupada por bloques por defecto, con cabeceras plegables e interruptor «Agrupar por bloque» a la vista plana (que gana la columna «Bloque» tras «ID»; en la agrupada, «Proveedor» va en la cabecera).
 - Menú del bloque (⋮ y clic derecho en la cabecera) y entrada «Mover a bloque ▸» en el menú de cada línea; «Mover a bloque» solo sale en líneas vivas (pendiente, en camino, parcial), con los bloques vivos del mismo proveedor y «Bloque nuevo» como destinos; las canceladas y recibidas no tienen «Mover». Un bloque terminado está cerrado (sin añadir, previsión, separar ni juntar) y «Separar» solo deja marcar líneas vivas (2026-10-12).
 - «Nuevo pedido» con el resumen «Bloques» al pie y modo «Añadir líneas» de un bloque; «Editar pedido» con el campo «Bloque» al cambiar el proveedor.
+- [x] **Cabecera: «! N sin precio» e icono de nota (0.9.9, 2026-10-13)**: chip ámbar con las líneas recibidas a 0 (tooltip «… ponlo con «Editar».»); la nota lleva el icono `MessageSquareText` en vez del emoji (`CabeceraBloque.test.tsx`).
 - CSV de componentes con «Bloque» y «Nota del bloque» tras «ID».
 
 ## 0.9.9 — Piezas por proveedor (sin equivalente en el JavaFX)

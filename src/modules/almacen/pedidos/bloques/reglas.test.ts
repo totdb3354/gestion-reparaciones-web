@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { lineaDePrueba as l } from './datosPrueba'
 import {
   abiertosDe, agruparEnBloques, avisoBloque, claveBloque, destinoSugeridoEdicion, destinosMover, entradasMenuBloque, estaDesplegado,
-  estaSola, lineasQueCambian, motivoNoCambia, ordenarPorBloques, resumenEstados, SIN_BLOQUE, sePuedeMover, situacion, textoLineas,
+  estaSola, lineasQueCambian, motivoNoCambia, ordenarPorBloques, resumenEstados, SIN_BLOQUE, sePuedeMover, sinPrecio, situacion, textoLineas, textoSinPrecio,
   textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque, vivosDelProveedor,
 } from './reglas'
 
@@ -164,5 +164,21 @@ describe('textos', () => {
     expect(textoYaPedidasSeparar(2)).toBe('2 líneas de las marcadas ya se pidieron: el movimiento quedará apuntado en el registro.')
     expect(textoYaPedidasJuntar(41, 1)).toBe('El Bloque 41 tiene 1 línea ya pedida: el movimiento quedará apuntado en el registro.')
     expect(textoYaPedidasJuntar(41, 2)).toBe('El Bloque 41 tiene 2 líneas ya pedidas: el movimiento quedará apuntado en el registro.')
+  })
+})
+
+describe('líneas recibidas sin precio (2026-10-13)', () => {
+  it('cuenta las recibidas con P.Unit. o EUR a 0; las pendientes o en camino a 0 no', () => {
+    const b = [...agruparEnBloques([
+      l({ idCompra: 1, idBloque: 70, estado: 'recibido', precioUnidadPedido: 0, precioEur: 0 }),
+      l({ idCompra: 2, idBloque: 70, estado: 'recibido' }),
+      l({ idCompra: 3, idBloque: 70, estado: 'pendiente', precioUnidadPedido: 0, precioEur: 0 }),
+      l({ idCompra: 4, idBloque: 70, estado: 'en_camino', precioUnidadPedido: 0, precioEur: 0 }),
+    ]).values()][0]
+    expect(sinPrecio(b)).toBe(1)
+  })
+  it('texto del tooltip', () => {
+    expect(textoSinPrecio(1)).toBe('1 línea recibida sin precio: ponlo con «Editar».')
+    expect(textoSinPrecio(3)).toBe('3 líneas recibidas sin precio: ponlo con «Editar».')
   })
 })

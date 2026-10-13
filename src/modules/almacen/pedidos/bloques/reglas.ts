@@ -1,7 +1,7 @@
 import type { CompraComponente } from '@/shared/api/client'
 import { formatear } from '@/shared/lib/fechas'
 import type { AccionBloque } from '../api'
-import { chipDeEstado, ESTADOS_PEDIDO, llevaAviso, totalFila, type EstadoPedido } from '../reglas'
+import { chipDeEstado, ESTADOS_PEDIDO, llevaAviso, marcaPrecioCero, marcaTotalCero, totalFila, type EstadoPedido } from '../reglas'
 
 /** Reglas de los bloques de pedido (0.9.9, spec «Pedidos por bloques» §3 y §6): funciones puras sobre las líneas de
  *  GET /api/compras, que traen los datos de su bloque. */
@@ -93,6 +93,15 @@ export function totalBloque(b: Bloque): number {
 /** Regla 6. */
 export function avisoBloque(b: Bloque): boolean {
   return b.lineas.some(llevaAviso)
+}
+
+/** 2026-10-13: líneas recibidas sin precio (las del «!» ámbar de su fila); el precio se pone con «Editar». */
+export function sinPrecio(b: Bloque): number {
+  return b.lineas.filter((p) => marcaPrecioCero(p) || marcaTotalCero(p)).length
+}
+
+export function textoSinPrecio(n: number): string {
+  return `${n === 1 ? '1 línea recibida' : `${n} líneas recibidas`} sin precio: ponlo con «Editar».`
 }
 
 const ESTADO_DE: Record<AccionBloque, EstadoPedido> = { confirmar: 'pendiente', recibir: 'en_camino', cancelar: 'en_camino', borrar: 'pendiente' }
