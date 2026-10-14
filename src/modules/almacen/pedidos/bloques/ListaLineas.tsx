@@ -25,13 +25,14 @@ function Datos({ p, tachada = false }: { p: CompraComponente; tachada?: boolean 
 
 /** Lista de líneas de los diálogos de bloque (prototipo): ID, componente, cantidad y su estado o, en «No cambian», el
  *  motivo. Con `casillas` (0.9.13) cada línea se puede desmarcar (gris, tachada y con `textoQueda`) y la cabecera lleva
- *  «Marcar todas»: marcada con todas, a medias con algunas; al pulsarla, desmarca si estaban todas y si no, marca todas. */
+ *  «Marcar todas»: marcada con todas, a medias con algunas; al pulsarla, desmarca si estaban todas y si no, marca todas.
+ *  La cabecera se queda fija arriba mientras se desplaza su lista (bloques de muchas líneas). */
 export function ListaLineas({ titulo, lineas, motivo, apagada = false, casillas }: Props) {
   const nMarcadas = casillas ? lineas.filter((p) => casillas.marcadas.has(p.idCompra)).length : 0
   const todas = nMarcadas === lineas.length
   return (
     <section aria-label={titulo} className="rounded-lg border border-fila-sep bg-superficie">
-      <div className={cn('flex items-center gap-2 rounded-t-lg border-b border-fila-sep bg-crema px-2.5 py-1.5 text-[12px] font-bold', apagada ? 'text-texto-sub' : 'text-azul-medio')}>
+      <div className={cn('sticky top-0 z-10 flex items-center gap-2 rounded-t-lg border-b border-fila-sep bg-crema px-2.5 py-1.5 text-[12px] font-bold', apagada ? 'text-texto-sub' : 'text-azul-medio')}>
         {casillas && lineas.length > 0 && (
           <Checkbox aria-label="Marcar todas" checked={todas ? true : nMarcadas === 0 ? false : 'indeterminate'}
             onCheckedChange={() => casillas.onAlternarTodas(!todas)} className="bg-superficie" />
