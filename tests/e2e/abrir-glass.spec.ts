@@ -4,6 +4,7 @@ import { credenciales } from './credenciales.ts'
 /**
  * «Abrir» automático al entregar a glass y atajo «+ Cerrar» (spec raíz 2026-10-13). ESCRIBE: con E2E_USER crea por la API una
  * Reparación y una Glass de un IMEI sintético, las dos para TEC_USER (así el mismo técnico entrega, marca la llegada y cierra).
+ * Con la glass abierta «+ Cerrar» no sale; la prueba borra la glass por la API (el de glass deja el teléfono) y entonces sí.
  * afterAll borra todo lo que cuelga de ese IMEI: asignaciones, «Abrir», «Cerrar» y teléfono.
  */
 test.describe.configure({ mode: 'serial' })
@@ -91,12 +92,12 @@ async function entrar(page: Page, usuario: string, clave: string) {
   await expect(page.getByText('FSGR:')).toBeVisible()
 }
 
-test('técnico: entregar apunta el «Abrir», deshacer lo borra, la llegada lo vuelve a apuntar y sale «+ Cerrar»', async ({ page }) => {
+test('técnico: entregar apunta el «Abrir», deshacer lo borra, la llegada lo vuelve a apuntar y «+ Cerrar» sale al acabar la glass', async ({ page }) => {
   credenciales('E2E_USER', 'E2E_PASS')
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   await entrar(page, usuario, clave)
   await expect(page).toHaveURL(/\/reparaciones\/pendientes$/)
-  const { imei, idRep } = await crearTrabajos(page)
+  const { imei, idRep, idGlass } = await crearTrabajos(page)
   await page.reload()
 
   const accionesRep = async () => {
@@ -129,13 +130,28 @@ test('técnico: entregar apunta el «Abrir», deshacer lo borra, la llegada lo v
   await expect(aviso).toContainText('Llegada registrada · Abierto (')
   await expect.poll(accionesRep).toEqual(['Abrir'])
 
-  // 4) Formulario de la normal: «+ Cerrar» → guardar → el atajo ya no sale
-  await page.goto('/reparaciones/pendientes')
-  await page.getByRole('row').filter({ hasText: imei }).getByRole('button', { name: 'Añadir reparación' }).click()
-  await expect(page).toHaveURL(new RegExp(`/reparaciones/pendientes/reparar/${idRep}$`))
+  // 4) Formulario de la normal con la glass todavía abierta: el teléfono sigue en glass, «+ Cerrar» no sale
+  const abrirFormulario = async () => {
+    await page.goto('/reparaciones/pendientes')
+    await page.getByRole('row').filter({ hasText: imei }).getByRole('button', { name: 'Añadir reparación' }).click()
+    await expect(page).toHaveURL(new RegExp(`/reparaciones/pendientes/reparar/${idRep}$`))
+  }
   const formulario = page.getByRole('dialog', { name: /^Nueva reparación — IMEI / })
   const seccion = formulario.getByTestId('otras-acciones')
   const cerrar = seccion.getByRole('button', { name: '+ Cerrar' })
+  await abrirFormulario()
+  await expect(seccion).toBeVisible()
+  await expect(cerrar).toBeHidden()
+  await formulario.getByRole('button', { name: 'Cerrar formulario' }).click()
+  await expect(page).toHaveURL(/\/reparaciones\/pendientes$/)
+
+  // 5) Se elimina la glass (el de glass deja el teléfono): el «Abrir» se queda y sale «+ Cerrar» → guardar → ya no sale
+  const borrada = await api!.ctx.delete(`/api/reparaciones/asignaciones/${idGlass}`, {
+    headers: api!.headers, data: { motivo: 'e2e abrir glass: el de glass deja el teléfono' },
+  })
+  expect(borrada.status(), 'DELETE de la asignación de glass').toBe(204)
+  await expect.poll(accionesRep).toEqual(['Abrir'])
+  await abrirFormulario()
   await expect(cerrar).toBeVisible()
   await cerrar.click()
   await expect(seccion.getByLabel('Descripción de la acción 1')).toHaveValue('Cerrar')

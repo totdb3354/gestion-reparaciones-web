@@ -8,7 +8,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 - **«Abrir» automático.** «Entregar a …» (Mis pendientes, Reparación) apunta sola una acción «otro» «Abrir» a quien entrega, en su reparación. Si la llegada la marca el de glass («Marcar que llegó»), el «Abrir» va al dueño de la reparación normal. «Deshacer entrega» y «Deshacer llegada» lo borran. Si ya había un «abrir» apuntado a mano no se duplica; si el modelo no tiene pieza «otro», la entrega se hace igual, sin «Abrir».
 - **Aviso breve** abajo al centro tras entregar, marcar la llegada o deshacer («Entregado a … · Abierto», …): no es un diálogo; una barra amarilla encoge en 4 s y se cierra solo, o con un clic.
-- **Atajo «+ Cerrar»** en Otras acciones del formulario de **reparación** (al completar): añade la línea «Cerrar» lista para «✓ Guardar». Solo sale si desde que se asignó la reparación hay más «Abrir» que «Cerrar». Cada bajada a glass apunta su propio «Abrir».
+- **Atajo «+ Cerrar»** en Otras acciones del formulario de **reparación** (al completar): añade la línea «Cerrar» lista para «✓ Guardar». Solo sale si desde que se asignó la reparación hay más «Abrir» que «Cerrar» y el teléfono ya ha vuelto de glass: con una glass abierta en el IMEI no sale; cuando se completa o se elimina, sí. Cada bajada a glass apunta su propio «Abrir».
 - Requiere el servidor con `migracion-abrir-glass.sql` (columna `ID_REP_ABRIR` y puntos `abrir` 0,25 / `cerrar` 0,17).
 
 ## [0.9.10] - 2026-10-14 — Columna lateral plegable

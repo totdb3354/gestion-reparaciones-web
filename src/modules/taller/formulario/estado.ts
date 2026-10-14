@@ -96,6 +96,9 @@ export type EstadoFormulario = {
   /** Textos de las acciones «otro» ya guardadas del IMEI en reparación y glass al abrir: deciden el atajo «+ Cerrar»
    *  (spec 2026-10-13 §2.6). Vacío en edición. */
   accionesImei: string[]
+  /** El IMEI tiene una asignación de glass (AG) abierta: el teléfono sigue en glass y aún no toca cerrarlo; el atajo
+   *  «+ Cerrar» espera a que la glass se complete o se elimine. false en edición y en glass. */
+  glassAbiertaEnImei: boolean
   siguienteIdAccion: number
   edicion: EdicionEstado | null
   guardado: GuardadoEstado
@@ -119,6 +122,7 @@ export type DatosNuevo = {
   incidencia: string | null
   modeloTelefono: string | null // '' o fuera de la lista = null; solo se usa si tras las solicitudes no hay modelo
   accionesImei?: string[] // acciones «otro» guardadas del IMEI (reparación + glass), para «+ Cerrar»; sin el campo, []
+  glassAbiertaEnImei?: boolean // hay una AG abierta en el IMEI (de quien sea): «+ Cerrar» no sale; sin el campo, false
 }
 export type DatosEditar = {
   modo: 'editar'
@@ -251,6 +255,7 @@ function estadoBase(d: DatosBase): EstadoFormulario {
     componentesOtro: d.agrupados[PREFIJO_OTRO] ?? [],
     otros: [],
     accionesImei: [],
+    glassAbiertaEnImei: false,
     siguienteIdAccion: 1,
     edicion: null,
     guardado: { clics: 0, textoConfirmacion: false, enCurso: false },
@@ -358,6 +363,7 @@ function inicialNuevo(datos: DatosNuevo): EstadoFormulario {
     tieneSolicitudesIniciales: datos.solicitudes.length > 0,
     filas,
     accionesImei: datos.accionesImei ?? [],
+    glassAbiertaEnImei: datos.glassAbiertaEnImei ?? false,
   }
 }
 
@@ -984,9 +990,10 @@ export const esCierre = (texto: string) => normalizada(texto).startsWith('cerr')
 
 /** «+ Cerrar» sale solo en el formulario de reparación al completar (no en glass ni al editar), con la sección Otras acciones visible, si el IMEI tiene más aperturas que
  *  cierres: cuentan las acciones del IMEI guardadas desde la asignación (reparación + glass) y, como cierres, las líneas nuevas del formulario
- *  que empiezan por «cerr» (guardadas o no). */
+ *  que empiezan por «cerr» (guardadas o no). No sale mientras quede una glass abierta en el IMEI: el teléfono se cierra cuando
+ *  vuelve de glass (glass completada o eliminada). */
 export function atajoCerrarVisible(e: EstadoFormulario): boolean {
-  if (e.modo !== 'nuevo' || !otrasAccionesVisible(e)) return false
+  if (e.modo !== 'nuevo' || e.glassAbiertaEnImei || !otrasAccionesVisible(e)) return false
   const aperturas = e.accionesImei.filter(esApertura).length
   const cierres = e.accionesImei.filter(esCierre).length + e.otros.filter((a) => a.origen === 'nueva' && esCierre(a.texto)).length
   return aperturas > cierres

@@ -24,7 +24,7 @@ async function accionesDelImei(imei: string, categoria: 'R' | 'G', desde: string
 
 /** Carga del flujo nuevo y Glass. 1) La asignación, para conocer el IMEI (vale igual con F5 o acceso directo por URL; su
  *  404 llega como NoEncontradoError). 2) En paralelo: componentes, solicitudes e incidencia (un fallo rechaza la carga y la
- *  vista lo muestra) y, en silencio, asignaciones activas del IMEI (→ []), modelo del teléfono (→ null), acciones «otro» del IMEI (→ []; solo para una reparación, no para glass: reparación y glass, guardadas desde la asignación) y borrador (→ null),
+ *  vista lo muestra) y, en silencio, asignaciones activas del IMEI (→ []; con una AG entre ellas, glassAbiertaEnImei), modelo del teléfono (→ null), acciones «otro» del IMEI (→ []; solo para una reparación, no para glass: reparación y glass, guardadas desde la asignación) y borrador (→ null),
  *  SALVO un 403 del borrador, que se propaga: significa que la asignación no es del técnico de la sesión. */
 export async function cargarNuevo(idAsignacion: string): Promise<CargaNuevo> {
   const asignacion = (await api.GET('/api/reparaciones/asignaciones/{idRep}', { params: { path: { idRep: idAsignacion } } })).data
@@ -60,8 +60,10 @@ export async function cargarNuevo(idAsignacion: string): Promise<CargaNuevo> {
           .then(([rep, gl]) => [...rep, ...gl])
           .catch((): string[] => []),
   ])
+  // «+ Cerrar» espera a que el teléfono vuelva de glass: con una AG abierta en el IMEI (de quien sea) no sale.
+  const glassAbiertaEnImei = !glass && asignacionesActivas.some((a) => a.idRep.startsWith('AG'))
   return {
-    datos: { modo: glass ? 'glass' : 'nuevo', idAsignacion, imei, agrupados, solicitudes, incidencia, modeloTelefono, accionesImei },
+    datos: { modo: glass ? 'glass' : 'nuevo', idAsignacion, imei, agrupados, solicitudes, incidencia, modeloTelefono, accionesImei, glassAbiertaEnImei },
     asignacionesActivas,
     borradorJson,
   }

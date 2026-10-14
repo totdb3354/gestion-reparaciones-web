@@ -46,6 +46,16 @@ describe('cargarNuevo', () => {
     expect((await cargarNuevo('A20260916_1')).datos.accionesImei).toEqual([])
   })
 
+  it('glassAbiertaEnImei: hay una asignación de glass (AG…) abierta en el IMEI, de quien sea; si falla la consulta, false', async () => {
+    guardarSesion(SESION_TEC)
+    server.use(...handlersFormulario({ activas: [asignacionActiva({ idRep: 'A20260916_1' }), asignacionActiva({ idRep: 'AG20260916_2' })] }))
+    expect((await cargarNuevo('A20260916_1')).datos.glassAbiertaEnImei).toBe(true)
+    server.use(...handlersFormulario({ activas: [asignacionActiva({ idRep: 'A20260916_1' })] }))
+    expect((await cargarNuevo('A20260916_1')).datos.glassAbiertaEnImei).toBe(false)
+    server.use(http.get('*/api/reparaciones/imei/:imei/asignaciones-activas', () => HttpResponse.json({ message: 'fallo' }, { status: 422 })))
+    expect((await cargarNuevo('A20260916_1')).datos.glassAbiertaEnImei).toBe(false)
+  })
+
   it('en una asignación de glass (AG…) no pide las acciones del IMEI y accionesImei es []', async () => {
     guardarSesion(SESION_TEC)
     let llamadas = 0
@@ -63,7 +73,7 @@ describe('cargarNuevo', () => {
     const carga = await cargarNuevo('A20260916_1')
     expect(carga.datos).toEqual({
       modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000222', agrupados: agrupados(), solicitudes, incidencia: 'R20260910_3',
-      modeloTelefono: '14', accionesImei: [],
+      modeloTelefono: '14', accionesImei: [], glassAbiertaEnImei: true,
     })
     expect(Object.keys(carga.datos.agrupados)).toEqual(['bat', 'cha', 'g', 'mc', 'lcd', 'cam', 'otro'])
     expect(carga.asignacionesActivas).toEqual(activas)

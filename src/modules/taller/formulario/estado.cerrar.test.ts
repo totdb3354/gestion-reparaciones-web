@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { agrupados } from '../test/fabrica'
 import { atajoCerrarVisible, esApertura, esCierre, estadoInicial, reducir, type DatosNuevo, type EstadoFormulario } from './estado'
 
-const datos = (accionesImei?: string[]): DatosNuevo => ({
+const datos = (accionesImei?: string[], glassAbiertaEnImei?: boolean): DatosNuevo => ({
   modo: 'nuevo', idAsignacion: 'A20261013_1', imei: '355400000000111', agrupados: agrupados(), solicitudes: [], incidencia: null,
-  modeloTelefono: null, accionesImei,
+  modeloTelefono: null, accionesImei, glassAbiertaEnImei,
 })
 /** Formulario con el modelo 13 (tiene componente «otro» en la fábrica): la sección Otras acciones se ve. */
-const con13 = (accionesImei?: string[]): EstadoFormulario => reducir(estadoInicial(datos(accionesImei)), { tipo: 'CAMBIAR_MODELO', modelo: '13' })
+const con13 = (accionesImei?: string[], glassAbiertaEnImei?: boolean): EstadoFormulario =>
+  reducir(estadoInicial(datos(accionesImei, glassAbiertaEnImei)), { tipo: 'CAMBIAR_MODELO', modelo: '13' })
 
 describe('atajo «+ Cerrar» (spec 2026-10-13 §2.6)', () => {
   it('apertura = «abr»/«abi», cierre = «cerr», sin mirar mayúsculas ni espacios', () => {
@@ -27,6 +28,10 @@ describe('atajo «+ Cerrar» (spec 2026-10-13 §2.6)', () => {
     expect(atajoCerrarVisible(estadoInicial(datos(['Abrir'])))).toBe(false)
     expect(atajoCerrarVisible({ ...con13(['Abrir']), modo: 'editar' })).toBe(false)
     expect(atajoCerrarVisible({ ...con13(['Abrir']), modo: 'glass' })).toBe(false)
+  })
+  it('no sale mientras el IMEI tenga una glass abierta (el teléfono sigue en glass); completada o eliminada, sí', () => {
+    expect(atajoCerrarVisible(con13(['Abrir'], true))).toBe(false)
+    expect(atajoCerrarVisible(con13(['Abrir'], false))).toBe(true)
   })
   it('«+ Cerrar» añade la línea «Cerrar» y el atajo deja de salir; quitarla lo devuelve', () => {
     let s = reducir(con13(['Abrir']), { tipo: 'ANADIR_CERRAR' })
