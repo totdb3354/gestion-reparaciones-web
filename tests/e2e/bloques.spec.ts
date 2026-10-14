@@ -335,22 +335,28 @@ test.describe('supertécnico: pedidos por bloques', () => {
     await expect(cabecera(page, bloque1)).toContainText('3 en camino')
   })
 
-  test('Recibir todo suma stock y «Revertir a En camino» lo devuelve', async () => {
+  test('Recibir todo con una línea desmarcada recibe solo las marcadas y «Revertir a En camino» lo devuelve', async () => {
     const page = sup!
     const del1 = (await lineas()).filter((l) => l.idBloque === bloque1)
-    const unidades = del1.reduce((s, l) => s + l.cantidad, 0)
+    const [fuera, ...marcadas] = del1
+    const unidades = marcadas.reduce((s, l) => s + l.cantidad, 0)
 
     await elegirEnMenuBloque(page, bloque1, /^Recibir todo \(3\)/)
     const dlg = page.getByRole('dialog', { name: `Recibir todo · Bloque ${bloque1}`, exact: true })
     await expect(dlg).toContainText('Se reciben (suman al stock) (3)')
-    await dlg.getByRole('button', { name: 'Recibir (3)' }).click()
+    // 0.9.13: la línea que no ha llegado se desmarca y se queda en camino.
+    await dlg.getByRole('checkbox', { name: new RegExp(`\\(ID ${fuera.idCompra}\\)$`) }).click()
+    await expect(dlg).toContainText('Se reciben (suman al stock) (2 de 3)')
+    await expect(dlg).toContainText('Se queda en camino 1 línea: la desmarcada no cambia.')
+    await dlg.getByRole('button', { name: 'Recibir (2)' }).click()
     await expect(dlg).toBeHidden()
 
-    await expect.poll(async () => (await lineas()).filter((l) => l.idBloque === bloque1 && l.estado === 'recibido').length).toBe(3)
+    await expect.poll(async () => (await lineas()).filter((l) => l.idBloque === bloque1 && l.estado === 'recibido').length).toBe(2)
+    expect((await linea(fuera.idCompra))?.estado).toBe('en_camino')
     await expect.poll(() => stockDelSku(page)).toBe(stockInicial! + unidades)
-    await expect(cabecera(page, bloque1)).toContainText('3 recibido')
+    await expect(cabecera(page, bloque1)).toContainText('2 recibido')
 
-    for (const l of del1) {
+    for (const l of marcadas) {
       await celdaId(page, l.idCompra).click({ button: 'right' })
       await page.getByRole('menuitem', { name: 'Revertir a En camino' }).click()
       const confirmacion = page.getByRole('dialog', { name: 'Revertir a En camino', exact: true })
@@ -435,5 +441,20 @@ test.describe('supertécnico: pedidos por bloques', () => {
     expect(lineasCsv[0].startsWith('ID;Bloque;Nota del bloque;')).toBe(true)
     expect(lineasCsv.some((l) => l.startsWith(`${idsBloqueA[0]};${bloque1};${nota};`) && l.includes(nombreProv))).toBe(true)
     expect(lineasCsv.some((l) => new RegExp(`^${escaparRegex(String(l3))};${bloque3};;`).test(l) && l.includes(nombreProv))).toBe(true)
+  })
+
+  test('«Exportar bloque en CSV» descarga solo las líneas de ese bloque', async () => {
+    const page = sup!
+    // Sin el selector de ficheros del navegador: descarga directa por enlace (src/shared/lib/csv.ts).
+    await page.evaluate(() => { Reflect.set(globalThis, 'showSaveFilePicker', undefined) })
+    const descarga = page.waitForEvent('download')
+    await elegirEnMenuBloque(page, bloque1, /^Exportar bloque en CSV/)
+    const fichero = await descarga
+    expect(fichero.suggestedFilename()).toMatch(new RegExp(`^pedidos_bloque_${bloque1}_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}\\.csv$`))
+    const texto = readFileSync(await fichero.path(), 'utf8')
+    const filasCsv = (texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto).split(String.fromCharCode(10)).map((l) => l.trim()).filter((l) => l !== '')
+    expect(filasCsv[0].startsWith('ID;Bloque;Nota del bloque;')).toBe(true)
+    const esperadas = (await lineas()).filter((l) => l.idBloque === bloque1).map((l) => String(l.idCompra)).sort()
+    expect(filasCsv.slice(1).map((l) => l.split(';')[0]).sort()).toEqual(esperadas)
   })
 })
