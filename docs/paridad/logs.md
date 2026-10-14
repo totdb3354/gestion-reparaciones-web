@@ -44,7 +44,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 ## Ruta y acceso
 
-- [x] "Ver logs" del menú (solo ADMIN) abre `/gestion/logs`; SUPERTECNICO y TECNICO no tienen el ítem (`gestion-menu-usuario-admin`, `gestion-menu-usuario-supertecnico`) y por URL reciben el aviso de permisos.
+- [x] "Ver logs" del menú (solo ADMIN) abre `/gestion/logs`; SUPERTECNICO y TECNICO no tienen el ítem (`gestion-menu-usuario-admin`, `gestion-menu-usuario-supertecnico`) y por URL reciben el aviso de permisos. **0.9.12:** se entra por la pestaña Logs del grupo Gestión de la columna.
 
 ## Cabecera
 

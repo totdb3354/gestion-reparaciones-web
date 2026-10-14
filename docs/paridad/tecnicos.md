@@ -47,7 +47,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 ## Ruta y acceso
 
-- [x] "Gestionar técnicos" del menú (solo ADMIN) abre `/gestion/tecnicos` (`gestion-menu-usuario-admin`).
+- [x] "Gestionar técnicos" del menú (solo ADMIN) abre `/gestion/tecnicos` (`gestion-menu-usuario-admin`). **0.9.12:** se entra por la pestaña Técnicos del grupo Gestión de la columna.
 - [x] TECNICO y SUPERTECNICO por URL: aviso de permisos y vuelta a `/reparaciones` (cubierto por test `modules/gestion/rutas.test.tsx`).
 
 ## Cabecera
