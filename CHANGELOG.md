@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.9] - 2026-10-XX — Pedidos por bloques
+## [0.9.9] - 2026-10-14 — Pedidos por bloques
 
 - **Bloques de pedido.** Cada pedido de componentes pertenece a un **bloque**: lo que se le pide de una vez a un proveedor. Al guardar «Nuevo pedido», las líneas de cada proveedor se suman a su bloque abierto (sin nada confirmado) o van a uno nuevo; la cabecera del recuadro de cada proveedor enseña y deja elegir el destino.
 - **Pedidos agrupada por bloques** (Componentes): cabeceras plegables con número, proveedor, fecha, líneas, total, ⚠, resumen de estados y nota. Los bloques con algo por hacer salen desplegados; los terminados, plegados; con filtros, solo las líneas que cumplen («mostrando k de n»). El interruptor **«Agrupar por bloque»** vuelve a la vista plana de siempre (con columna «Bloque»), y el navegador lo recuerda.
