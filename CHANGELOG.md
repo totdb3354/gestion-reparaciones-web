@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.11] - 2026-10-XX — «Abrir» automático al entregar a glass
+## [0.9.11] - 2026-10-14 — «Abrir» automático al entregar a glass
 
 - **«Abrir» automático.** «Entregar a …» (Mis pendientes, Reparación) apunta sola una acción «otro» «Abrir» a quien entrega, en su reparación. Si la llegada la marca el de glass («Marcar que llegó»), el «Abrir» va al dueño de la reparación normal. «Deshacer entrega» y «Deshacer llegada» lo borran. Si ya había un «abrir» apuntado a mano no se duplica; si el modelo no tiene pieza «otro», la entrega se hace igual, sin «Abrir».
 - **Aviso breve** abajo al centro tras entregar, marcar la llegada o deshacer («Entregado a … · Abierto», …): no es un diálogo; una barra amarilla encoge en 4 s y se cierra solo, o con un clic.
