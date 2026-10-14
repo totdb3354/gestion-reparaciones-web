@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.13] - 2026-10-XX — Casillas en las acciones de bloque y «Exportar bloque en CSV»
+## [0.9.13] - 2026-10-14 — Casillas en las acciones de bloque y «Exportar bloque en CSV»
 
 - **Casillas en «Confirmar bloque», «Recibir todo» y «Cancelar bloque».** Al abrir, todas las líneas que cambian salen marcadas; se desmarcan las que no deben cambiar (por ejemplo, las que no han llegado) y «Marcar todas» marca o desmarca todas. El título y el botón cuentan las marcadas («Se reciben (suman al stock) (36 de 39)», «Recibir (36)»); una desmarcada sale en gris y tachada con «se queda en camino» («se queda pendiente» al confirmar), y debajo se avisa de cuántas no cambian. Las parciales siguen fuera, en «No cambian», y «Borrar bloque» sigue sin casillas.
 - **«Exportar bloque en CSV»** en el menú del bloque (⋮ o clic derecho en su cabecera): descarga todas las líneas de ese bloque, aunque haya filtros, con las columnas del CSV de Pedidos, en `pedidos_bloque_<n>_<fecha>.csv`. El administrador y el técnico también ven el ⋮, solo con esta entrada.
