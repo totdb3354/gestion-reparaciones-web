@@ -17,7 +17,6 @@ import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { Input } from '@/shared/ui/input'
 import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
-import { ultimaRutaStock } from '../estado'
 import { AjustarMinimoDialog } from './AjustarMinimoDialog'
 import { pedirCantidadEnCamino, useAjustarMinimo, useComponentesStock, useEditarStock, useMarcarAutoPedido, useSetActivoComponente, useSolicitarPieza } from './api'
 import { cabecerasCsvStock, claseFilaStock, crearColumnasStock, filaCsvStock, parametrosPedidos } from './columnas'
@@ -69,7 +68,6 @@ export function StockPage() {
   const [claves] = useState(() => crearClavesIdempotencia())
 
   // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
-  useEffect(() => { ultimaRutaStock.set('/stock') }, [])
   // Un diálogo abierto (de fila o de parámetros) congela el sondeo (D4 del 3a).
   useEffect(() => {
     if (!dialogo && !parametrosAbiertos) return

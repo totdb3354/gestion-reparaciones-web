@@ -1,15 +1,13 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { CambiarPasswordDialog } from '@/modules/gestion/cuenta/CambiarPasswordDialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
 import { useSession } from '@/shared/session/SessionProvider'
-import { esAdmin } from '@/shared/session/storage'
 import { useExportable } from '@/shared/ui/exportable'
 
 export function UserMenu() {
   const { sesion, logout } = useSession()
   const navigate = useNavigate()
-  const { pathname } = useLocation()
   const exportar = useExportable()
   // "Cambiar contraseña" es un diálogo sobre la vista actual (G6, calco del Stage modal): estado local, sin ruta.
   const [passwordAbierto, setPasswordAbierto] = useState(false)
@@ -21,14 +19,8 @@ export function UserMenu() {
           <img src="/user.png" alt="" className="h-7 w-7" />
           <span className="text-[12px] font-bold text-crema">Hola, {sesion.nombreUsuario}</span>
         </DropdownMenuTrigger>
+        {/* Gestión (Técnicos y Logs) está en la columna desde la 0.9.12. */}
         <DropdownMenuContent align="end">
-          {esAdmin(sesion) && (
-            <>
-              <DropdownMenuItem onSelect={() => navigate('/gestion/tecnicos', { state: { volverA: pathname } })}>Gestionar técnicos</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/gestion/logs', { state: { volverA: pathname } })}>Ver logs</DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </>
-          )}
           <DropdownMenuItem disabled={!exportar} onSelect={() => exportar?.()}>Descargar CSV</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setPasswordAbierto(true)}>Cambiar contraseña</DropdownMenuItem>
           <DropdownMenuSeparator />

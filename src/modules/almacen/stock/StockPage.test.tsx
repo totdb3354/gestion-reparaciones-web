@@ -11,7 +11,6 @@ import { cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formulari
 import type { EstadoStock } from '@/shared/lib/semaforoStock'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { ultimaRutaStock } from '../estado'
 import { filtrosStock, seleccionStock } from './estado'
 import { CABECERAS_CSV_STOCK } from './columnas'
 import { StockPage } from './StockPage'
@@ -86,12 +85,6 @@ describe('StockPage', () => {
     expect(actualizado).not.toHaveClass('w-full')
     expect(actualizado).toHaveClass('shrink-0', 'whitespace-nowrap')
     expect(desactivados).toHaveClass('whitespace-nowrap')
-  })
-  it('al entrar guarda "/stock" como última pestaña de Stock (el botón "Stock" de la barra superior vuelve aquí)', async () => {
-    ultimaRutaStock.set('/stock/proveedores')
-    montar()
-    await screen.findByText('lcd-x / lcd-y')
-    expect(ultimaRutaStock.get()).toBe('/stock')
   })
   it('el donut cuenta sobre todo (activos, un grupo una vez) y no cambia al filtrar; el buscador filtra "contiene" y vacío pinta "Sin componentes"', async () => {
     montar()
