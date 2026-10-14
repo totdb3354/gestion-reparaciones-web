@@ -21,7 +21,7 @@ describe('grupos de la columna lateral (0.9.12)', () => {
     expect(grupos[0].enlaces.map((e) => e.label)).toEqual(['Asignaciones', 'Pendientes', 'Historial', 'IMEIs'])
   })
 
-  it('admin: Gestión al final con Técnicos y Logs, ', () => {
+  it('admin: Gestión al final con Técnicos y Logs', () => {
     const grupos = gruposNav(SESION_ADMIN)
     expect(grupos[0].enlaces.map((e) => e.label)).toEqual(['Asignaciones', 'Historial', 'IMEIs'])
     const gestion = grupos[grupos.length - 1]

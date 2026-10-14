@@ -20,7 +20,7 @@ async function entrarCon(page: Page, usuario: string, clave: string) {
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
   await expect(page.getByText('FSGR:')).toBeVisible()
   // La barra se pinta antes de que `<Navigate>` lleve de /reparaciones a /historial (ADMIN) o /pendientes (TECNICO):
-  // se espera la URL final porque la `ruta` de `cambiarPassword` leen `page.url()` después de la redirección.
+  // se espera la URL final porque la `ruta` de `cambiarPassword` lee `page.url()` después de la redirección.
   await expect(page).toHaveURL(/\/reparaciones\/(historial|pendientes)$/)
 }
 
