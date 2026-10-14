@@ -11,7 +11,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - **Atajo «+ Cerrar»** en Otras acciones del formulario de **reparación** (al completar): añade la línea «Cerrar» lista para «✓ Guardar». Solo sale si desde que se asignó la reparación hay más «Abrir» que «Cerrar». Cada bajada a glass apunta su propio «Abrir».
 - Requiere el servidor con `migracion-abrir-glass.sql` (columna `ID_REP_ABRIR` y puntos `abrir` 0,25 / `cerrar` 0,17).
 
-## [0.9.10] - 2026-10-XX — Columna lateral plegable
+## [0.9.10] - 2026-10-14 — Columna lateral plegable
 
 - **Iconos en la columna lateral.** Cada pestaña de la columna de la izquierda lleva su icono delante del nombre: Asignaciones, Pendientes, Historial, IMEIs, Stock actual, Pedidos, Proveedores y Clientes.
 - **La columna se pliega.** El botón redondo de su borde la deja en una franja de 56 px con solo los iconos, y el contenido gana 144 px; el mismo botón la despliega. Plegada, al pasar el ratón por un icono sale su nombre, y los números de Pendientes y Asignaciones siguen cada uno en su icono. El navegador recuerda cómo se dejó (es del ordenador, no del usuario).
