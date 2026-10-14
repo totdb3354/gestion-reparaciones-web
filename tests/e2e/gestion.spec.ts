@@ -53,6 +53,11 @@ async function menuUsuario(page: Page, item: string) {
   await page.getByRole('menuitem', { name: item, exact: true }).click()
 }
 
+/** Técnicos y Logs están en el grupo «Gestión» de la columna lateral (0.9.12; antes, en el menú de usuario). */
+async function irAGestion(page: Page, pestana: 'Técnicos' | 'Logs') {
+  await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: pestana, exact: true }).click()
+}
+
 async function cerrarSesion(page: Page) {
   await menuUsuario(page, 'Cerrar Sesión')
   await expect(page).toHaveURL(/\/login$/)
@@ -115,7 +120,7 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
   let temporal = ''
   await test.step('alta desde "Gestionar técnicos"', async () => {
     const lista = page.waitForResponse(esRespuesta('/api/usuarios/tecnicos', 'GET'))
-    await menuUsuario(page, 'Gestionar técnicos')
+    await irAGestion(page, 'Técnicos')
     await expect(page).toHaveURL(/\/gestion\/tecnicos$/)
     await expect(page.getByText('Gestión de usuarios', { exact: true })).toBeVisible()
     expect((await lista).ok()).toBe(true)
@@ -182,7 +187,7 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
 
   await test.step('CREAR_USUARIO en "Ver logs" filtrando por acción y por el día de hoy', async () => {
     const hoy = hoyMadrid()
-    await menuUsuario(page, 'Ver logs')
+    await irAGestion(page, 'Logs')
     await expect(page).toHaveURL(/\/gestion\/logs$/)
     await expect(page.getByText('Log de actividad', { exact: true })).toBeVisible()
     await page.getByLabel('Desde:').fill(hoy)
@@ -228,7 +233,7 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
 
   await test.step('el ADMIN lo borra desde la papelera', async () => {
     await entrarCon(page, admin.usuario, admin.clave) // inicio de sesión 4/4
-    await menuUsuario(page, 'Gestionar técnicos')
+    await irAGestion(page, 'Técnicos')
     await expect(fila).toHaveCount(1)
     const comprobacion = page.waitForResponse(esRespuesta(`/api/usuarios/tecnicos/${idTec}/tiene-reparaciones`, 'GET'))
     await fila.locator('button:has(img[src="/borrar.png"])').click()

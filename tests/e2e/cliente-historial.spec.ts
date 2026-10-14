@@ -282,8 +282,7 @@ test('admin: el menú ofrece Corregir cliente y no Editar, y Ver logs muestra la
 
   expect(correcciones.length, 'correcciones de los tests 1 y 2').toBeGreaterThan(0)
   const hoy = hoyMadrid()
-  await page.getByRole('button', { name: /Hola,/ }).click()
-  await page.getByRole('menuitem', { name: 'Ver logs', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: 'Logs', exact: true }).click()
   await expect(page).toHaveURL(/\/gestion\/logs$/)
   await page.getByLabel('Desde:').fill(hoy)
   await page.getByLabel('Hasta:').fill(hoy)

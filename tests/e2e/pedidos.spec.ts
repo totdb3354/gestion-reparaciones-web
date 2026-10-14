@@ -83,8 +83,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
   // por API al final.
   const porBorrar = new Set<string>()
   try {
-    await page.getByRole('link', { name: 'Stock', exact: true }).click()
-    await page.getByRole('link', { name: 'Pedidos', exact: true }).click()
+    await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: 'Pedidos', exact: true }).click()
     await expect(page).toHaveURL(/\/stock\/pedidos$/)
     await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
     await expect(page.getByText(/^Actualizado [0-9][0-9]:[0-9][0-9]$/)).toBeVisible()

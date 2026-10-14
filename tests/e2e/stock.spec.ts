@@ -34,7 +34,7 @@ test('supertécnico: stock actual, editar stock y devolverlo; proveedor de prueb
   test.skip(!sku, 'Falta E2E_SKU_PRUEBA')
   await entrar(page)
 
-  await page.getByRole('link', { name: 'Stock' }).click()
+  await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: 'Stock actual' }).click()
   await expect(page).toHaveURL(/\/stock$/)
   await expect(page.getByRole('heading', { name: 'Stock actual' })).toBeVisible()
   await expect(page.getByText('Estado del stock')).toBeVisible()
