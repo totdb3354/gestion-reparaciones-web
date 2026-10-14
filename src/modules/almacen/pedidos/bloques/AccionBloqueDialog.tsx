@@ -66,7 +66,7 @@ export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
       <div className="flex max-h-[50vh] flex-col gap-2.5 overflow-y-auto">
         <ListaLineas titulo={`${t.cambian} (${cuenta})`} lineas={cambian}
           casillas={conCasillas ? { marcadas, onAlternar: alternar, onAlternarTodas: alternarTodas, textoQueda: textoQueda(accion) } : undefined} />
-        {conCasillas && <p role="status" className={cn('text-[12px] text-azul-gris', desmarcadas === 0 && 'hidden')}>{desmarcadas > 0 ? textoDesmarcadas(accion, desmarcadas) : ''}</p>}
+        {conCasillas && <p role="status" className={cn('text-[12px] text-azul-gris', desmarcadas === 0 && 'sr-only')}>{desmarcadas > 0 ? textoDesmarcadas(accion, desmarcadas) : ''}</p>}
         {quedan.length > 0 && (
           <ListaLineas titulo={`No cambian (${quedan.length})`} lineas={quedan} motivo={(p) => motivoNoCambia(p, accion)} apagada />
         )}
