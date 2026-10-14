@@ -73,10 +73,7 @@ describe('LogsPage: estructura (LogView.fxml)', () => {
     for (let i = 1; i < orden.length; i++) {
       expect(orden[i - 1].compareDocumentPosition(orden[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     }
-    const actualizar = screen.getByRole('button', { name: 'Actualizar' })
-    const cerrar = screen.getByRole('button', { name: 'Cerrar' })
-    expect(actualizar.compareDocumentPosition(cerrar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(cerrar).toHaveClass('text-[12px]', 'text-azul-gris')
+    expect(screen.getByRole('button', { name: 'Actualizar' })).toBeInTheDocument()
     await screen.findByText('CREAR_ASIGNACION')
     expect(peticiones).toEqual([{ limite: '1000' }])
   })
@@ -288,34 +285,26 @@ describe('LogsPage: errores', () => {
   })
 })
 
-describe('LogsPage: "Cerrar"', () => {
-  it('vuelve a la vista desde la que se abrió (state.volverA); al reabrir, los filtros están vacíos', async () => {
+describe('LogsPage: sin "Cerrar"', () => {
+  it('al volver a entrar, los filtros están vacíos', async () => {
     registrarLogs()
     const { router } = renderConRouter(
       [
         { path: '/stock', element: <p>STOCK</p> },
-        { path: '/reparaciones', element: <p>REPARACIONES</p> },
-        { path: '/gestion/logs', element: <LogsPage /> },
-      ],
-      { sesion: SESION_ADMIN, ruta: '/stock' },
-    )
-    await act(() => router.navigate('/gestion/logs', { state: { volverA: '/stock' } }))
-    await userEvent.type(await screen.findByPlaceholderText('Buscar...'), 'usuario-a')
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(await screen.findByText('STOCK')).toBeInTheDocument()
-    await act(() => router.navigate('/gestion/logs'))
-    expect(await screen.findByPlaceholderText('Buscar...')).toHaveValue('')
-  })
-  it('sin volverA vuelve a /reparaciones', async () => {
-    registrarLogs()
-    renderConRouter(
-      [
-        { path: '/reparaciones', element: <p>REPARACIONES</p> },
         { path: '/gestion/logs', element: <LogsPage /> },
       ],
       { sesion: SESION_ADMIN, ruta: '/gestion/logs' },
     )
-    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar' }))
-    expect(await screen.findByText('REPARACIONES')).toBeInTheDocument()
+    await userEvent.type(await screen.findByPlaceholderText('Buscar...'), 'usuario-a')
+    await act(() => router.navigate('/stock'))
+    expect(await screen.findByText('STOCK')).toBeInTheDocument()
+    await act(() => router.navigate('/gestion/logs'))
+    expect(await screen.findByPlaceholderText('Buscar...')).toHaveValue('')
+  })
+  it('no tiene botón «Cerrar» (0.9.14: es una pestaña de la columna)', async () => {
+    registrarLogs()
+    abrir()
+    await screen.findByText('CREAR_ASIGNACION')
+    expect(screen.queryByText('Cerrar', { exact: true })).not.toBeInTheDocument()
   })
 })

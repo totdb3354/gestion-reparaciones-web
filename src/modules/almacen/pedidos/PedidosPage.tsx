@@ -19,7 +19,6 @@ import { Input } from '@/shared/ui/input'
 import { MultiSelect } from '@/shared/ui/MultiSelect'
 import { RangoFechas } from '@/shared/ui/RangoFechas'
 import { TogglePill } from '@/shared/ui/TogglePill'
-import { ultimaRutaStock } from '../estado'
 import { useProveedoresComponentes } from '../proveedores/api'
 import { useCompras, useComprasOtros, useMoverLinea, useTransicionPedido, type AccionBloque, type AccionTransicion } from './api'
 import { AccionBloqueDialog } from './bloques/AccionBloqueDialog'
@@ -50,7 +49,6 @@ const OPCIONES_TOGGLE = [
   { to: '/stock/pedidos', etiqueta: 'Componentes' },
   { to: '/stock/pedidos/otros', etiqueta: 'Otros' },
 ]
-const RUTA: Record<TipoPedido, string> = { componentes: '/stock/pedidos', otros: '/stock/pedidos/otros' }
 /** Mapa vacío estable (0.9.9): con filtros nuevos, nada plegado a mano. */
 const SIN_PLEGADOS: Record<string, boolean> = {}
 
@@ -110,8 +108,6 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
   const transicion = useTransicionPedido(tipo)
   const mover = useMoverLinea()
 
-  // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
-  useEffect(() => { ultimaRutaStock.set(RUTA[tipo]) }, [tipo])
   const hayModal = dialogoCantidad !== null || confirmar !== null || editando !== null || accionBloque !== null || separando !== null
     || juntando !== null || notaDe !== null || moverConfirmar !== null
   useEffect(() => {

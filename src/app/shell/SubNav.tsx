@@ -1,45 +1,44 @@
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
-import { enlacesStock } from '@/modules/almacen/rutas'
-import { enlacesReparaciones } from '@/modules/taller/rutas'
+import { NavLink, matchPath, useLocation } from 'react-router'
 import { BadgeAsignaciones } from '@/modules/taller/asignaciones/BadgeAsignaciones'
 import { BadgePendientes } from '@/modules/taller/componentes/BadgePendientes'
-import type { Enlace } from '@/shared/lib/enlaces'
+import { BadgeSumaLateral } from '@/modules/taller/componentes/BadgeSumaLateral'
+import type { Enlace, GrupoNav, IdGrupoNav } from '@/shared/lib/enlaces'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
-import type { Sesion } from '@/shared/session/storage'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip'
-import { guardarPlegada, leerPlegada } from './preferencias'
+import { gruposNav } from './navegacion'
+import { guardarGruposPlegados, guardarPlegada, leerGruposPlegados, leerPlegada } from './preferencias'
 
-/** Enlaces de la columna por sección (primer segmento de la ruta) y rol. Cada sub-proyecto añade los suyos. */
-const SUBNAV: Record<string, (sesion: Sesion | null) => Enlace[]> = {
-  clientes: () => [{ to: '/clientes', label: 'Clientes', icono: Users }],
-  reparaciones: enlacesReparaciones,
-  stock: enlacesStock,
-}
-
-/** Id de la columna: el botón de plegar la señala con `aria-controls`. */
+/** Id de la columna: el botón de plegar la señala con `aria-controls`. Las listas de los grupos van en `<id>-<grupo>`. */
 const ID_COLUMNA = 'columna-lateral'
+/** Con la vista de Asignaciones abierta, la suma de su grupo plegado no sondea por su cuenta (D4). */
+const RUTA_ASIGNACIONES = '/reparaciones/asignaciones'
 
 /**
- * Columna lateral de sub-navegación. Plegable desde la 0.9.10 (spec «Columna lateral plegable»; adaptación web, sin calco
- * en el JavaFX): abierta mide 200 px con icono y nombre; plegada, 56 px con solo los iconos. El botón redondo del borde la
- * pliega y la despliega, y el navegador recuerda cómo se dejó. Las tablas de las vistas se recolocan solas al cambiar el
- * ancho (ResizeObserver de DataTable).
+ * Columna lateral con toda la navegación de la web (0.9.14, spec «Navegación por grupos»; adaptación web, sin calco en el
+ * JavaFX). Cada sección es un grupo con su cabecera plegable, y plegado enseña la suma de sus números. La columna se pliega
+ * con el botón redondo del borde (0.9.10): abierta mide 200 px, con icono y nombre; plegada mide 56 px, con todos los
+ * iconos, una línea entre grupos y el nombre «Grupo · Pestaña» al pasar el ratón. El navegador recuerda la columna y los
+ * grupos plegados. Las tablas de las vistas se recolocan solas al cambiar el ancho (ResizeObserver de DataTable).
  */
 export function SubNav() {
   const { pathname } = useLocation()
   const { sesion } = useSession()
   const [plegada, setPlegada] = useState(leerPlegada)
-  const seccion = pathname.split('/')[1]
-  // Object.hasOwn: la sección viene de la URL y un /constructor resolvería a un miembro heredado de Object.prototype
-  const enlaces = Object.hasOwn(SUBNAV, seccion) ? SUBNAV[seccion](sesion) : []
-  // Sin enlaces (Estadísticas, Gestión) no hay columna: el contenido se queda con todo el ancho (0.9.10).
-  if (enlaces.length === 0) return null
+  const [gruposPlegados, setGruposPlegados] = useState(leerGruposPlegados)
+  const grupos = gruposNav(sesion)
   const alternar = () => {
     setPlegada(!plegada)
     guardarPlegada(!plegada)
+  }
+  const alternarGrupo = (id: IdGrupoNav) => {
+    const nuevos = new Set(gruposPlegados)
+    if (nuevos.has(id)) nuevos.delete(id)
+    else nuevos.add(id)
+    setGruposPlegados(nuevos)
+    guardarGruposPlegados(nuevos)
   }
   const accion = plegada ? 'Mostrar menú lateral' : 'Ocultar menú lateral'
   return (
@@ -57,8 +56,16 @@ export function SubNav() {
         {/* disableHoverableContent: el nombre se va en cuanto el ratón sale del icono; si no, plegada, su tooltip (a la
             derecha del primer icono) taparía el botón de desplegar y se llevaría sus clics. */}
         <TooltipProvider disableHoverableContent>
-          {enlaces.map((e) => (
-            <EnlaceLateral key={e.to} enlace={e} plegada={plegada} />
+          {grupos.map((g, i) => (
+            <GrupoLateral
+              key={g.id}
+              grupo={g}
+              primero={i === 0}
+              plegada={plegada}
+              grupoPlegado={gruposPlegados.has(g.id)}
+              onAlternar={() => alternarGrupo(g.id)}
+              pathname={pathname}
+            />
           ))}
         </TooltipProvider>
       </div>
@@ -77,17 +84,68 @@ export function SubNav() {
   )
 }
 
-/** Un enlace de la columna. Plegada, solo el icono: el nombre pasa al `aria-label`, porque deja de verse, y a un tooltip
- *  que sale al pasar el ratón o al llegar con el teclado. Los números van compactos, en la esquina del icono. El árbol es el
- *  mismo plegada y abierta (el tooltip, controlado, solo se abre plegada), así que plegar no remonta el enlace ni sus
- *  números y no se vuelven a pedir los contadores. */
-function EnlaceLateral({ enlace: e, plegada }: { enlace: Enlace; plegada: boolean }) {
+type PropsGrupo = { grupo: GrupoNav; primero: boolean; plegada: boolean; grupoPlegado: boolean; onAlternar: () => void; pathname: string }
+
+/**
+ * Un grupo de la columna.
+ * - Columna abierta: una cabecera (un botón que pliega y despliega el grupo, sin navegar) y sus pestañas. Con el grupo
+ *   plegado no se pintan las pestañas, la cabecera suma sus números y, si la página actual está dentro, va en navy.
+ * - Columna plegada: sin cabecera, con una línea antes de cada grupo menos el primero, y todas sus pestañas aunque el
+ *   grupo esté plegado.
+ * La lista de pestañas va siempre en el mismo sitio del árbol, así que plegar la columna no remonta los enlaces.
+ */
+function GrupoLateral({ grupo: g, primero, plegada, grupoPlegado, onAlternar, pathname }: PropsGrupo) {
+  const idLista = `${ID_COLUMNA}-${g.id}`
+  const dentro = g.enlaces.some((e) => matchPath({ path: e.to, end: e.end ?? false }, pathname) !== null)
+  return (
+    <div>
+      {plegada ? (
+        !primero && <div aria-hidden className="mx-1 my-1.5 h-px bg-fila-sep" />
+      ) : (
+        <button
+          type="button"
+          onClick={onAlternar}
+          aria-expanded={!grupoPlegado}
+          aria-controls={idLista}
+          className={cn(
+            'flex w-full cursor-pointer items-center gap-1.5 rounded-lg py-1 pr-2.5 pl-4 text-[10.5px] font-extrabold tracking-wide whitespace-nowrap uppercase hover:bg-azul-medio/5',
+            !primero && 'mt-2',
+            grupoPlegado && dentro ? 'text-azul-noche' : 'text-azul-gris hover:text-azul-medio',
+          )}
+        >
+          {g.titulo}
+          {grupoPlegado && (
+            <BadgeSumaLateral
+              pendientes={g.enlaces.some((e) => e.badge === 'pendientes')}
+              asignaciones={g.enlaces.some((e) => e.badge === 'asignaciones')}
+              sondeaAsignaciones={matchPath(RUTA_ASIGNACIONES, pathname) === null}
+            />
+          )}
+          <ChevronDown
+            aria-hidden
+            className={cn('ml-auto size-3.5 shrink-0 transition-transform motion-reduce:transition-none', grupoPlegado && '-rotate-90')}
+          />
+        </button>
+      )}
+      <div id={idLista}>
+        {(plegada || !grupoPlegado) && g.enlaces.map((e) => <EnlaceLateral key={e.to} enlace={e} grupo={g.titulo} plegada={plegada} />)}
+      </div>
+    </div>
+  )
+}
+
+/** Un enlace de la columna. Plegada, solo el icono: el nombre «Grupo · Pestaña» pasa al `aria-label`, porque deja de verse,
+ *  y a un tooltip que sale al pasar el ratón o al llegar con el teclado. Los números van compactos, en la esquina del
+ *  icono. El árbol es el mismo plegada y abierta (el tooltip, controlado, solo se abre plegada), así que plegar no remonta
+ *  el enlace ni sus números y no se vuelven a pedir los contadores. */
+function EnlaceLateral({ enlace: e, grupo, plegada }: { enlace: Enlace; grupo: string; plegada: boolean }) {
   const [abierto, setAbierto] = useState(false)
+  const nombre = `${grupo} · ${e.label}`
   const enlace = (
     <NavLink
       to={e.to}
       end={e.end}
-      aria-label={plegada ? e.label : undefined}
+      aria-label={plegada ? nombre : undefined}
       className={({ isActive }) =>
         cn(
           'relative flex w-full items-center rounded-3xl py-2.5 text-left text-[13px] font-bold whitespace-nowrap',
@@ -114,7 +172,7 @@ function EnlaceLateral({ enlace: e, plegada }: { enlace: Enlace; plegada: boolea
         <span className="block">{enlace}</span>
       </TooltipTrigger>
       <TooltipContent side="right" sideOffset={8}>
-        {e.label}
+        {nombre}
       </TooltipContent>
     </Tooltip>
   )

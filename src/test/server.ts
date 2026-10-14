@@ -12,6 +12,9 @@ export const server = setupServer(
   http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
   http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
   http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),
+  // 0.9.14: con la navegación por grupos, el badge de "Pendientes" (técnico y supertécnico) va en la columna en todas las
+  // vistas, así que cualquier test que monte el layout con esas sesiones pide sus contadores. A cero no se pinta.
+  http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })),
   // 0.9.9: «Nuevo pedido» y «Editar pedido» leen los pedidos para ofrecer sus bloques; los abren tests de Stock, de la
   // campana y del layout que no van de pedidos. Una lista vacía = ningún bloque abierto (regla por defecto).
   http.get('*/api/compras', () => HttpResponse.json([])),

@@ -62,7 +62,7 @@ Sin puntos pendientes tras la comparación de capturas del 2026-09-24.
 
 - [x] Columna blanca de 200 px (160 en el JavaFX, ver arriba) con "Stock actual", "Pedidos" y "Proveedores" en ese orden; la activa en navy con texto crema (`stock-actual-supertecnico`).
 - [x] "Stock actual" activa al entrar en `/stock`; "Proveedores" en `/stock/proveedores` (`proveedores-supertecnico`).
-- [x] "Pedidos" lleva a `/stock/pedidos` (la pestaña llega en 4b: ficha `pedidos.md`). (verificado por test: `SubNav.test.tsx` "en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada")
+- [x] "Pedidos" lleva a `/stock/pedidos` (la pestaña llega en 4b: ficha `pedidos.md`). (verificado por test: `SubNav.test.tsx` "en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada") **0.9.14:** ese test ya no existe; las entradas de Stock son un grupo de la columna (`SubNav.test.tsx`, «columna lateral por grupos»).
 - [x] Los tres roles ven la vista entera, con la columna "En Camino" (`stock-actual-tecnico`, `stock-actual-admin`).
 - [x] Al volver desde Reparaciones se conservan la pestaña, los filtros y la selección (`stock-cache-vuelta`).
 

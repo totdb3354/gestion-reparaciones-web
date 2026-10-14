@@ -1,5 +1,4 @@
 import { useCallback, useId, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
 import type { Usuario } from '@/shared/api/client'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
@@ -12,7 +11,6 @@ import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
 import { Input } from '@/shared/ui/input'
 import { useUsuariosTecnicos } from '../api'
-import { rutaVolverA } from '../navegacion'
 import { consultarTieneReparaciones, entregarPasswordTemporal, useCambiarActivo, useEliminar, useRegistrar } from './api'
 import { columnasTecnicos } from './columnas'
 import { DialogoPasswordTemporal } from './DialogoPasswordTemporal'
@@ -43,8 +41,6 @@ const CLASE_CAMPO = 'h-auto rounded-lg border-borde-input bg-superficie px-3 py-
  *  shell (G2). La línea de error inline recoge la validación del alta y los fallos de carga, candado y borrado; se vacía al
  *  empezar cada acción y enseña el message del servidor en 404/409/422 (G9). Sin sondeo, sin CSV, sin ordenación. */
 export function TecnicosPage() {
-  const navigate = useNavigate()
-  const location = useLocation()
   const { mostrarAviso } = useAlerta()
   const { sesion } = useSession()
   const idBase = useId()
@@ -229,12 +225,6 @@ export function TecnicosPage() {
           // Calco de CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN: la de acciones (candado y papelera centrados) se queda el sobrante.
           ajuste="ultima"
         />
-      </div>
-
-      <div className="flex justify-end px-12 pt-3 pb-5">
-        <button type="button" onClick={() => navigate(rutaVolverA(location.state))} className="cursor-pointer text-[12px] text-azul-gris">
-          Cerrar
-        </button>
       </div>
 
       <ConfirmDialog

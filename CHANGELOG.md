@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.14] - 2026-10-XX — Navegación por grupos
+
+- **Toda la navegación en la columna de la izquierda.** Cada sección es un grupo con su cabecera, que se pliega y se despliega: Reparaciones, Stock, Estadísticas (Rendimiento), Clientes (Listado) y, para el administrador, Gestión (Técnicos y Logs). Cualquier pestaña está a un clic desde cualquier sitio.
+- **La barra de arriba ya no tiene botones de sección**: se queda con el logo, la versión, la campana y el usuario. Gestionar técnicos y Ver logs salen del menú de usuario y pasan al grupo Gestión. Técnicos y Logs ya no tienen «Cerrar»: son pestañas como las demás.
+- **Los números de Pendientes y Asignaciones se ven siempre**, también desde Stock o Clientes. Con su grupo plegado, la cabecera enseña la suma.
+- Con la columna plegada se ven todos los iconos, separados por grupos, y al pasar el ratón sale «Grupo · Pestaña». El navegador recuerda qué grupos se dejaron plegados.
+- Solo web: sin cambios en el servidor, la base ni nginx.
+
 ## [0.9.13] - 2026-10-14 — Casillas en las acciones de bloque y «Exportar bloque en CSV»
 
 - **Casillas en «Confirmar bloque», «Recibir todo» y «Cancelar bloque».** Al abrir, todas las líneas que cambian salen marcadas; se desmarcan las que no deben cambiar (por ejemplo, las que no han llegado) y «Marcar todas» marca o desmarca todas. El título y el botón cuentan las marcadas («Se reciben (suman al stock) (36 de 39)», «Recibir (36)»); una desmarcada sale en gris y tachada con «se queda en camino» («se queda pendiente» al confirmar), y debajo se avisa de cuántas no cambian. Las parciales siguen fuera, en «No cambian», y «Borrar bloque» sigue sin casillas.

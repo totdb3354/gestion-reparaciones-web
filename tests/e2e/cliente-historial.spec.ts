@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
 // La sesión del supertécnico se abre una vez y la comparten los tres primeros tests (el entorno limita los inicios de
-// sesión por minuto); el del administrador lee en «Ver logs» las correcciones de los dos primeros: van en orden.
+// sesión por minuto); el del administrador lee en «Logs» las correcciones de los dos primeros: van en orden.
 test.describe.configure({ mode: 'serial' })
 
 /** Formas de las respuestas que usa el test (schema.d.ts: TrabajoCerrado, Cliente, LoteAsignacionesRespuesta). Se repiten
@@ -15,7 +15,7 @@ type Correccion = { idRep: string; imei: string; antes: number; despues: number 
 
 /** Página con la sesión del supertécnico, abierta en beforeAll. */
 let sup: Page | null = null
-/** Correcciones hechas por los tests 1 y 2 (ida y vuelta), para buscarlas en «Ver logs». */
+/** Correcciones hechas por los tests 1 y 2 (ida y vuelta), para buscarlas en «Logs». */
 const correcciones: Correccion[] = []
 /** Datos sintéticos del test 3; afterAll borra todo lo que cuelga de ese IMEI. */
 let sintetico: { imei: string; idAsignacion: string } | null = null
@@ -116,7 +116,7 @@ async function confirmarCorreccion(page: Page, dialogo: Locator, destino: string
 }
 
 /** Ida y vuelta de un trabajo: a `otro` y de nuevo a `original`, solo esa casilla marcada. Si cae a medias, lo devuelve por
- *  la API. Apunta las dos correcciones para «Ver logs». */
+ *  la API. Apunta las dos correcciones para «Logs». */
 async function corregirYDeshacer(page: Page, { idRep, imei, original, otro }: Eleccion) {
   const celda = filaDeId(page, idRep).locator('td[data-columna="cliente"]')
   try {
@@ -257,10 +257,10 @@ test('supertécnico: una asignación cerrada con dos piezas resueltas sale una v
   for (const t of await cerradosDe(page, imei)) expect(t.idCli, t.idRep).toBe(activos[0].idCli)
 })
 
-/** Solo lectura: el administrador no tiene el menú de edición del Historial, pero sí «Corregir cliente»; y en «Ver logs»
+/** Solo lectura: el administrador no tiene el menú de edición del Historial, pero sí «Corregir cliente»; y en «Logs»
  *  están las líneas CORREGIR_CLIENTE_TRABAJO de las correcciones de los dos primeros tests, con el cliente anterior y el
  *  nuevo. */
-test('admin: el menú ofrece Corregir cliente y no Editar, y Ver logs muestra las correcciones', async ({ page }) => {
+test('admin: el menú ofrece Corregir cliente y no Editar, y Logs muestra las correcciones', async ({ page }) => {
   const { usuario, clave } = credenciales('ADMIN_USER', 'ADMIN_PASS')
   await entrar(page, usuario, clave)
   await page.goto('/reparaciones/historial')
@@ -282,8 +282,7 @@ test('admin: el menú ofrece Corregir cliente y no Editar, y Ver logs muestra la
 
   expect(correcciones.length, 'correcciones de los tests 1 y 2').toBeGreaterThan(0)
   const hoy = hoyMadrid()
-  await page.getByRole('button', { name: /Hola,/ }).click()
-  await page.getByRole('menuitem', { name: 'Ver logs', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: 'Logs', exact: true }).click()
   await expect(page).toHaveURL(/\/gestion\/logs$/)
   await page.getByLabel('Desde:').fill(hoy)
   await page.getByLabel('Hasta:').fill(hoy)

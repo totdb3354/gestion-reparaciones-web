@@ -1,45 +1,20 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Route, useLocation } from 'react-router'
-import { ultimaRutaStock } from '@/modules/almacen/estado'
+import { Route } from 'react-router'
 import { handlersNotificaciones } from '@/modules/taller/notificaciones/test/handlers'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { AppLayout } from './AppLayout'
 
-/** Destino de prueba que enseña el state con el que se llegó (el `volverA` del menú de usuario). */
-function Destino({ texto }: { texto: string }) {
-  const { state } = useLocation()
-  return <p>{`${texto} ${JSON.stringify(state)}`}</p>
-}
-
 describe('barra superior (calco de MainView)', () => {
-  it('muestra título, versión, los 4 botones y el saludo para cualquier rol', () => {
+  it('muestra título, versión y saludo, y ya no tiene botones de sección (0.9.14: la navegación va en la columna)', () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC })
     expect(screen.getByText('FSGR:')).toBeInTheDocument()
     expect(screen.getByText(/Gestión de Stock y Reparaciones V\.\d+\.\d+\.\d+/)).toBeInTheDocument()
-    for (const b of ['Reparaciones', 'Stock', 'Estadísticas', 'Clientes']) {
-      expect(screen.getByRole('link', { name: b })).toBeInTheDocument()
-    }
+    expect(within(screen.getByRole('banner')).getAllByRole('link').map((l) => l.getAttribute('href'))).toEqual(['/'])
     expect(screen.getByText('Hola, tecnico_n')).toBeInTheDocument()
-  })
-  it('"Stock" lleva a la última pestaña de Stock visitada (caché de vista del JavaFX) y no se marca fuera de /stock', () => {
-    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/reparaciones' })
-    expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
-    act(() => ultimaRutaStock.set('/stock/proveedores'))
-    expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock/proveedores')
-    expect(screen.getByRole('link', { name: 'Stock' })).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('link', { name: 'Reparaciones' })).toHaveAttribute('aria-current', 'page')
-  })
-  it.each(['/stock', '/stock/pedidos', '/stock/proveedores'])('"Stock" sigue activo en %s aunque apunte a otra pestaña', (ruta) => {
-    ultimaRutaStock.set(ruta === '/stock' ? '/stock/proveedores' : '/stock')
-    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta })
-    const stock = screen.getByRole('link', { name: 'Stock' })
-    expect(stock).toHaveAttribute('aria-current', 'page')
-    expect(stock).toHaveClass('bg-azul-noche', 'text-texto-nav-activo')
-    expect(screen.getByRole('link', { name: 'Reparaciones' })).not.toHaveAttribute('aria-current')
   })
   it('el menú de usuario de un técnico no tiene opciones de admin y "Descargar CSV" va deshabilitado', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC })
@@ -50,20 +25,12 @@ describe('barra superior (calco de MainView)', () => {
     expect(screen.getByRole('menuitem', { name: 'Cambiar contraseña' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Cerrar Sesión' })).toBeInTheDocument()
   })
-  it('el admin ve además "Gestionar técnicos" y "Ver logs"', async () => {
+  it('el menú del admin ya no tiene Gestión: Técnicos y Logs están en la columna (0.9.14)', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_ADMIN })
     await userEvent.click(screen.getByRole('button', { name: /Hola, admin/ }))
-    expect(screen.getByRole('menuitem', { name: 'Gestionar técnicos' })).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Ver logs' })).toBeInTheDocument()
-  })
-  it.each([
-    ['Gestionar técnicos', '/gestion/tecnicos', 'TECNICOS'],
-    ['Ver logs', '/gestion/logs', 'LOGS'],
-  ])('"%s" navega a %s con volverA = la ruta desde la que se abrió', async (item, ruta, texto) => {
-    renderConProviders(<AppLayout />, { sesion: SESION_ADMIN, ruta: '/stock/proveedores', rutas: <Route path={ruta} element={<Destino texto={texto} />} /> })
-    await userEvent.click(screen.getByRole('button', { name: /Hola, admin/ }))
-    await userEvent.click(screen.getByRole('menuitem', { name: item }))
-    expect(await screen.findByText(`${texto} {"volverA":"/stock/proveedores"}`)).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Gestionar técnicos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Ver logs' })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Cambiar contraseña' })).toBeInTheDocument()
   })
   it('"Cambiar contraseña" ya no navega a /cuenta/cambiar-password (la ruta desaparece; el diálogo lo abre en el sitio)', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/stock/proveedores', rutas: <Route path="/cuenta/cambiar-password" element={<p>CUENTA</p>} /> })

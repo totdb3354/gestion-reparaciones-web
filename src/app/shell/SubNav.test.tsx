@@ -7,44 +7,65 @@ import { server } from '@/test/server'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { AppLayout } from './AppLayout'
 import { SubNav } from './SubNav'
-import { CLAVE_PLEGADA } from './preferencias'
+import { CLAVE_GRUPOS_PLEGADOS, CLAVE_PLEGADA } from './preferencias'
 
-describe('columna lateral de sub-navegación', () => {
-  it('en /clientes muestra el enlace "Clientes" marcado como activo', () => {
-    renderConProviders(<SubNav />, { ruta: '/clientes' })
-    const enlace = screen.getByRole('link', { name: 'Clientes' })
-    expect(enlace).toHaveAttribute('href', '/clientes')
-    expect(enlace).toHaveAttribute('aria-current', 'page')
+const columna = () => within(screen.getByRole('navigation', { name: 'Sub-navegación' }))
+/** Cabecera de un grupo: su nombre accesible empieza por el título (plegado, le sigue la suma de sus números). */
+const cabecera = (titulo: string) => screen.getByRole('button', { name: new RegExp(`^${titulo}`) })
+const CABECERAS = /^(Reparaciones|Stock|Estadísticas|Clientes|Gestión)/
+
+/** Filas mínimas para el total: el badge solo cuenta, así que basta con el id. */
+const filas = (prefijo: string, n: number) => Array.from({ length: n }, (_, i) => ({ idRep: `${prefijo}20260901_${i + 1}` }))
+
+/** Las tres listas de asignaciones (sin ?tecnico=) con n filas cada una; cuenta las cargas por la de reparaciones. */
+function asignaciones(rep: number, glass: number, pul: number) {
+  const cargas = { n: 0 }
+  server.use(
+    http.get('*/api/reparaciones/asignaciones', () => {
+      cargas.n += 1
+      return HttpResponse.json(filas('A', rep))
+    }),
+    http.get('*/api/glass/asignaciones', () => HttpResponse.json(filas('AG', glass))),
+    http.get('*/api/pulidos/asignaciones', () => HttpResponse.json(filas('AP', pul))),
+    http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })),
+  )
+  return cargas
+}
+
+const avanzar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
+
+/** Navegación por grupos (0.9.14, spec «Navegación por grupos»): toda la navegación en la columna. */
+describe('columna lateral por grupos', () => {
+  it('en cualquier ruta salen todos los grupos del rol, en orden, con sus pestañas', () => {
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/estadisticas' })
+    expect(columna().getAllByRole('button', { name: CABECERAS }).map((b) => b.textContent)).toEqual(['Reparaciones', 'Stock', 'Estadísticas', 'Clientes'])
+    expect(columna().getAllByRole('link').map((l) => l.textContent)).toEqual(['Pendientes', 'Historial', 'IMEIs', 'Stock actual', 'Pedidos', 'Proveedores', 'Rendimiento', 'Listado'])
+    expect(columna().getByRole('link', { name: 'Rendimiento' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('en una sección sin enlaces no pinta la columna: el contenido usa todo el ancho (0.9.10)', () => {
-    renderConProviders(<SubNav />, { ruta: '/estadisticas' })
-    expect(screen.queryByRole('navigation', { name: 'Sub-navegación' })).not.toBeInTheDocument()
+  it('el admin tiene además Gestión, y en /gestion/logs la columna sigue con Logs marcado', () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_ADMIN, ruta: '/gestion/logs' })
+    expect(cabecera('Gestión')).toBeInTheDocument()
+    expect(columna().getByRole('link', { name: 'Logs' })).toHaveAttribute('aria-current', 'page')
+    expect(columna().getByRole('link', { name: 'Técnicos' })).toHaveAttribute('href', '/gestion/tecnicos')
   })
 
-  it('en Stock pinta las tres entradas del sidebar del JavaFX, para cualquier rol, con la activa marcada', () => {
-    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock/proveedores' })
-    const columna = within(screen.getByRole('navigation', { name: 'Sub-navegación' }))
-    expect(columna.getAllByRole('link').map((l) => l.textContent)).toEqual(['Stock actual', 'Pedidos', 'Proveedores'])
-    expect(columna.getByRole('link', { name: 'Stock actual' })).toHaveAttribute('href', '/stock')
-    expect(columna.getByRole('link', { name: 'Pedidos' })).toHaveAttribute('href', '/stock/pedidos')
-    expect(columna.getByRole('link', { name: 'Proveedores' })).toHaveAttribute('aria-current', 'page')
-    expect(columna.getByRole('link', { name: 'Stock actual' })).not.toHaveAttribute('aria-current')
+  it('el supertécnico no tiene Gestión', () => {
+    renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/stock' })
+    expect(screen.queryAllByRole('button', { name: /^Gestión/ })).toHaveLength(0)
+    expect(screen.queryByRole('link', { name: 'Técnicos' })).not.toBeInTheDocument()
   })
+
   it('"Stock actual" solo está activo en /stock exacto (NavLink end), no en /stock/pedidos', () => {
     renderConProviders(<SubNav />, { sesion: SESION_ADMIN, ruta: '/stock/pedidos' })
     expect(screen.getByRole('link', { name: 'Pedidos' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Stock actual' })).not.toHaveAttribute('aria-current')
   })
 
-  it.each([
-    ['/stock', ['Stock actual', 'Pedidos', 'Proveedores']],
-    ['/clientes', ['Clientes']],
-  ])('en %s cada enlace lleva su icono delante del nombre, decorativo (0.9.10)', (ruta, nombres) => {
-    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta })
-    const columna = within(screen.getByRole('navigation', { name: 'Sub-navegación' }))
-    for (const nombre of nombres) {
-      const enlace = columna.getByRole('link', { name: nombre })
+  it('cada enlace lleva su icono delante del nombre, decorativo', () => {
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock' })
+    for (const nombre of ['Stock actual', 'Pedidos', 'Proveedores', 'Rendimiento', 'Listado']) {
+      const enlace = columna().getByRole('link', { name: nombre })
       const icono = enlace.querySelector('svg')
       expect(icono).not.toBeNull()
       expect(icono).toHaveAttribute('aria-hidden', 'true')
@@ -53,33 +74,66 @@ describe('columna lateral de sub-navegación', () => {
     }
   })
 
-  // El mapa de secciones es un objeto plano: leerlo con `SUBNAV[seccion]` devuelve los miembros heredados de
-  // Object.prototype, así que una ruta como /constructor daría una función en vez de un array y `.map`
-  // reventaría. Es alcanzable: el catch-all `*` del router está dentro de AppLayout, de modo que SubNav se
-  // pinta una vez con la ruta original antes de que el <Navigate> redirija.
-  it.each(['/constructor', '/__proto__', '/toString'])(
-    'una sección que se llama como un miembro heredado de Object (%s) no pinta la columna y no rompe',
-    (ruta) => {
-      renderConProviders(<SubNav />, { ruta })
-      expect(screen.queryByRole('navigation', { name: 'Sub-navegación' })).not.toBeInTheDocument()
-    },
-  )
-
-  it('el shell la coloca junto al contenido', () => {
-    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/clientes' })
+  it('el shell la coloca junto al contenido en todas las vistas, también en Estadísticas', () => {
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/estadisticas' })
     expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toBeInTheDocument()
-  })
-
-  it('en Gestión el shell no pinta la columna (0.9.10)', () => {
-    renderConProviders(<AppLayout />, { sesion: SESION_ADMIN, ruta: '/gestion/logs' })
-    expect(screen.queryByRole('navigation', { name: 'Sub-navegación' })).not.toBeInTheDocument()
   })
 
   it('usa el blanco de superficie del sistema de tokens', () => {
     renderConProviders(<SubNav />, { ruta: '/clientes' })
     expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toHaveClass('bg-superficie')
   })
+})
 
+describe('grupos plegables', () => {
+  it('la cabecera pliega su grupo sin navegar, lo recuerda y lo despliega', async () => {
+    const user = userEvent.setup()
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/clientes' })
+    const stock = cabecera('Stock')
+    expect(stock).toHaveAttribute('aria-expanded', 'true')
+    expect(stock).toHaveAttribute('aria-controls', 'columna-lateral-stock')
+    await user.click(stock)
+    expect(stock).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: 'Pedidos' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Listado' })).toHaveAttribute('aria-current', 'page')
+    expect(JSON.parse(localStorage.getItem(CLAVE_GRUPOS_PLEGADOS) ?? 'null')).toEqual(['stock'])
+    await user.click(stock)
+    expect(screen.getByRole('link', { name: 'Pedidos' })).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem(CLAVE_GRUPOS_PLEGADOS) ?? 'null')).toEqual([])
+  })
+
+  it('arranca con los grupos que el navegador recuerda plegados', () => {
+    localStorage.setItem(CLAVE_GRUPOS_PLEGADOS, '["reparaciones"]')
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock' })
+    expect(cabecera('Reparaciones')).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: 'Historial' })).not.toBeInTheDocument()
+  })
+
+  it('plegado, el grupo enseña en su cabecera la suma de sus números', async () => {
+    localStorage.setItem(CLAVE_GRUPOS_PLEGADOS, '["reparaciones"]')
+    asignaciones(2, 1, 1)
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 2, glass: 1, pulidos: 0 })))
+    renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/stock' })
+    expect(await within(cabecera('Reparaciones')).findByText('7')).toHaveClass('bg-azul-noche', 'text-superficie')
+  })
+
+  it('plegado con la página actual dentro, la cabecera va en navy', () => {
+    localStorage.setItem(CLAVE_GRUPOS_PLEGADOS, '["stock","clientes"]')
+    renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock/pedidos' })
+    expect(cabecera('Stock')).toHaveClass('text-azul-noche')
+    expect(cabecera('Clientes')).toHaveClass('text-azul-gris')
+  })
+
+  it('los números de Pendientes y Asignaciones se ven estando en Stock', async () => {
+    asignaciones(2, 1, 1)
+    server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 5, glass: 0, pulidos: 0 })))
+    renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/stock' })
+    expect(await within(screen.getByRole('link', { name: /Asignaciones/ })).findByText('4')).toBeInTheDocument()
+    expect(await within(screen.getByRole('link', { name: /Pendientes/ })).findByText('5')).toBeInTheDocument()
+  })
+})
+
+describe('número de Pendientes en la columna', () => {
   it('en Reparaciones pinta los enlaces del rol y el badge de Pendientes con tope 99+', async () => {
     server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 90, glass: 10, pulidos: 5 })))
     renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/reparaciones/pendientes/glass' })
@@ -104,26 +158,6 @@ describe('columna lateral de sub-navegación', () => {
     expect(await screen.findByText('8')).toHaveClass('bg-azul-noche', 'text-superficie')
   })
 })
-
-/** Filas mínimas para el total: el badge solo cuenta, así que basta con el id. */
-const filas = (prefijo: string, n: number) => Array.from({ length: n }, (_, i) => ({ idRep: `${prefijo}20260901_${i + 1}` }))
-
-/** Las tres listas de asignaciones (sin ?tecnico=) con n filas cada una; cuenta las cargas por la de reparaciones. */
-function asignaciones(rep: number, glass: number, pul: number) {
-  const cargas = { n: 0 }
-  server.use(
-    http.get('*/api/reparaciones/asignaciones', () => {
-      cargas.n += 1
-      return HttpResponse.json(filas('A', rep))
-    }),
-    http.get('*/api/glass/asignaciones', () => HttpResponse.json(filas('AG', glass))),
-    http.get('*/api/pulidos/asignaciones', () => HttpResponse.json(filas('AP', pul))),
-    http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })),
-  )
-  return cargas
-}
-
-const avanzar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
 
 /** Calco de ReparacionControllerSuperTecnico.actualizarBadges: lblBadgeAsignaciones = getTotalItems() de la tabla
  *  unificada (rep + glass + pulido, sin filtros), con el setBadge de siempre (oculto a cero, tope 99+). */
@@ -181,28 +215,27 @@ describe('badge de Asignaciones en el lateral del supertécnico', () => {
   })
 })
 
-/** Columna plegable (0.9.10, spec «Columna lateral plegable» §2): el botón redondo del borde la pliega a una franja de
- *  iconos de 56 px y la despliega; el navegador recuerda cómo se dejó. */
+/** Columna plegable (0.9.10): el botón redondo del borde la pliega a 56 px y la despliega; el navegador lo recuerda. */
 describe('plegar la columna lateral', () => {
   it('abierta: 200 px, con los nombres y el botón «Ocultar menú lateral»', () => {
     renderConProviders(<SubNav />, { ruta: '/stock' })
-    const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
-    expect(columna).toHaveClass('w-[200px]')
+    const nav = screen.getByRole('navigation', { name: 'Sub-navegación' })
+    expect(nav).toHaveClass('w-[200px]')
     const boton = screen.getByRole('button', { name: 'Ocultar menú lateral' })
     expect(boton).toHaveAttribute('title', 'Ocultar menú lateral')
     expect(boton).toHaveAttribute('aria-expanded', 'true')
-    expect(boton).toHaveAttribute('aria-controls', columna.id)
-    expect(within(columna).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
+    expect(boton).toHaveAttribute('aria-controls', nav.id)
+    expect(within(nav).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
   })
 
   it('el botón la pliega a la franja de iconos, lo guarda y la vuelve a desplegar', async () => {
     const user = userEvent.setup()
     renderConProviders(<SubNav />, { ruta: '/stock/pedidos' })
-    const columna = screen.getByRole('navigation', { name: 'Sub-navegación' })
+    const nav = screen.getByRole('navigation', { name: 'Sub-navegación' })
 
     await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
-    expect(columna).toHaveClass('w-14')
-    const pedidos = within(columna).getByRole('link', { name: 'Pedidos' })
+    expect(nav).toHaveClass('w-14')
+    const pedidos = within(nav).getByRole('link', { name: 'Stock · Pedidos' })
     expect(pedidos.textContent).toBe('')
     expect(pedidos.querySelector('svg')).not.toBeNull()
     expect(pedidos).toHaveAttribute('aria-current', 'page')
@@ -211,16 +244,34 @@ describe('plegar la columna lateral', () => {
     expect(boton).toHaveAttribute('aria-expanded', 'false')
 
     await user.click(boton)
-    expect(columna).toHaveClass('w-[200px]')
-    expect(within(columna).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
+    expect(nav).toHaveClass('w-[200px]')
+    expect(within(nav).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
     expect(localStorage.getItem(CLAVE_PLEGADA)).toBe('no')
+  })
+
+  it('plegada: sin cabeceras, todos los iconos (también los de grupos plegados) y una línea entre grupos', () => {
+    localStorage.setItem(CLAVE_PLEGADA, 'si')
+    localStorage.setItem(CLAVE_GRUPOS_PLEGADOS, '["stock"]')
+    renderConProviders(<SubNav />, { ruta: '/clientes' })
+    const nav = screen.getByRole('navigation', { name: 'Sub-navegación' })
+    expect(within(nav).queryAllByRole('button', { name: CABECERAS })).toHaveLength(0)
+    expect(within(nav).getAllByRole('link').map((l) => l.getAttribute('aria-label'))).toEqual([
+      'Reparaciones · Historial',
+      'Reparaciones · IMEIs',
+      'Stock · Stock actual',
+      'Stock · Pedidos',
+      'Stock · Proveedores',
+      'Estadísticas · Rendimiento',
+      'Clientes · Listado',
+    ])
+    expect(nav.querySelectorAll('div[aria-hidden="true"].h-px')).toHaveLength(3)
   })
 
   it('arranca plegada si el navegador lo recuerda', () => {
     localStorage.setItem(CLAVE_PLEGADA, 'si')
     renderConProviders(<SubNav />, { ruta: '/clientes' })
     expect(screen.getByRole('navigation', { name: 'Sub-navegación' })).toHaveClass('w-14')
-    expect(screen.getByRole('link', { name: 'Clientes' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Clientes · Listado' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toBeInTheDocument()
   })
 
@@ -234,8 +285,7 @@ describe('plegar la columna lateral', () => {
     renderConProviders(<SubNav />, { ruta: '/stock' })
     const antes = screen.getByRole('link', { name: 'Pedidos' })
     await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
-    const plegada = screen.getByRole('link', { name: 'Pedidos' })
-    expect(plegada).toBe(antes)
+    expect(screen.getByRole('link', { name: 'Stock · Pedidos' })).toBe(antes)
     await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }))
     expect(screen.getByRole('link', { name: 'Pedidos' })).toBe(antes)
   })
@@ -249,14 +299,9 @@ describe('plegar la columna lateral', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 50)) })
     expect(cargas.n).toBe(1)
   })
-
-  it('en una sección sin enlaces tampoco hay botón', () => {
-    renderConProviders(<SubNav />, { ruta: '/estadisticas' })
-    expect(screen.queryByRole('button', { name: /menú lateral/ })).not.toBeInTheDocument()
-  })
 })
 
-/** Plegada (0.9.10, spec §2): los números siguen cada uno en su icono, compactos, y el nombre sale al pasar el ratón o al
+/** Plegada: los números siguen cada uno en su icono, compactos, y el nombre «Grupo · Pestaña» sale al pasar el ratón o al
  *  llegar con el teclado. */
 describe('columna lateral plegada: números y nombre de cada icono', () => {
   it('los números de Asignaciones y Pendientes siguen, compactos en la esquina del icono y con sus colores', async () => {
@@ -264,9 +309,9 @@ describe('columna lateral plegada: números y nombre de cada icono', () => {
     asignaciones(2, 1, 1)
     server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 90, glass: 10, pulidos: 5 })))
     renderConProviders(<SubNav />, { sesion: SESION_SUPER, ruta: '/reparaciones/pendientes' })
-    const asig = screen.getByRole('link', { name: 'Asignaciones' })
+    const asig = screen.getByRole('link', { name: 'Reparaciones · Asignaciones' })
     expect(await within(asig).findByText('4')).toHaveClass('absolute', 'bg-azul-noche', 'text-superficie')
-    const pend = screen.getByRole('link', { name: 'Pendientes' })
+    const pend = screen.getByRole('link', { name: 'Reparaciones · Pendientes' })
     expect(await within(pend).findByText('99+')).toHaveClass('absolute', 'bg-superficie', 'text-azul-noche')
   })
 
@@ -278,28 +323,28 @@ describe('columna lateral plegada: números y nombre de cada icono', () => {
     expect(numero).not.toHaveClass('absolute')
   })
 
-  it('al pasar el ratón por un icono sale su nombre', async () => {
+  it('al pasar el ratón por un icono sale «Grupo · Pestaña»', async () => {
     localStorage.setItem(CLAVE_PLEGADA, 'si')
     const user = userEvent.setup()
     renderConProviders(<SubNav />, { ruta: '/stock' })
-    await user.hover(screen.getByRole('link', { name: 'Proveedores' }))
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Proveedores')
+    await user.hover(screen.getByRole('link', { name: 'Stock · Proveedores' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Stock · Proveedores')
   })
 
   it('también al llegar con el teclado', async () => {
     localStorage.setItem(CLAVE_PLEGADA, 'si')
     renderConProviders(<SubNav />, { ruta: '/stock' })
-    act(() => screen.getByRole('link', { name: 'Pedidos' }).focus())
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Pedidos')
+    act(() => screen.getByRole('link', { name: 'Stock · Pedidos' }).focus())
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Stock · Pedidos')
   })
 
   it('al quitar el ratón del icono el nombre se va (no tapa el botón de la columna)', async () => {
     localStorage.setItem(CLAVE_PLEGADA, 'si')
     const user = userEvent.setup()
     renderConProviders(<SubNav />, { ruta: '/stock' })
-    const enlace = screen.getByRole('link', { name: 'Proveedores' })
+    const enlace = screen.getByRole('link', { name: 'Stock · Proveedores' })
     await user.hover(enlace)
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Proveedores')
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Stock · Proveedores')
     await user.unhover(enlace)
     await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
   })

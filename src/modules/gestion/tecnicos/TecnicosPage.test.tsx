@@ -1,11 +1,11 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Usuario } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { ExportableProvider, useExportable } from '@/shared/ui/exportable'
-import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
+import { renderConProviders, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { TecnicosPage } from './TecnicosPage'
 
@@ -46,7 +46,7 @@ function SondaCsv() {
 
 /** Calco de RegisterView.fxml y RegisterController (hotfix/0.16.3) como página del shell (spec 6, §6.1). */
 describe('TecnicosPage', () => {
-  it('cabecera con logo, dos campos con sus etiquetas y placeholders, fila de acción, tabla y "Cerrar"', async () => {
+  it('cabecera con logo, dos campos con sus etiquetas y placeholders, fila de acción y tabla', async () => {
     const { container } = montar()
     expect(screen.getByRole('heading', { name: 'Gestión de usuarios' })).toHaveClass('text-[18px]', 'font-bold', 'text-azul-medio')
     expect(screen.getByText('Registra o elimina accesos al sistema')).toHaveClass('text-[12px]', 'text-azul-gris')
@@ -73,7 +73,6 @@ describe('TecnicosPage', () => {
     expect(botonRegistrar()).toBeEnabled()
     expect(linea()).toBeEmptyDOMElement()
     expect(screen.getByRole('heading', { name: 'Técnicos registrados' })).toHaveClass('text-[13px]', 'font-bold')
-    expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass('text-[12px]', 'text-azul-gris')
     expect(container.firstChild).toHaveClass('bg-fondo-gestion')
     expect(await screen.findByText('tecnico-a')).toBeInTheDocument()
   })
@@ -370,23 +369,6 @@ describe('TecnicosPage', () => {
     expect(qc.getQueryState(['tecnicos', 'activos'])?.isInvalidated).toBe(true)
     expect(qc.getQueryState(['clientes'])?.isInvalidated).toBe(false)
   })
-  it('"Cerrar" vuelve a la ruta de volverA sin preguntar aunque haya texto', async () => {
-    const { router } = renderConRouter(
-      [
-        { path: '/gestion/tecnicos', element: <TecnicosPage /> },
-        { path: '/stock/pedidos', element: <p>PEDIDOS</p> },
-        { path: '/reparaciones', element: <p>REPARACIONES</p> },
-      ],
-      { sesion: SESION_ADMIN, ruta: '/reparaciones' },
-    )
-    await act(() => router.navigate('/gestion/tecnicos', { state: { volverA: '/stock/pedidos' } }))
-    await screen.findByText('tecnico-a')
-    await userEvent.type(screen.getByLabelText('Nombre del técnico'), 'tecnico-c')
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(await screen.findByText('PEDIDOS')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/stock/pedidos')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
   it('"Restablecer contraseña": confirma, POST con el idUsu de la fila y enseña la contraseña una sola vez', async () => {
     const pedidas: string[] = []
     server.use(http.post('*/api/usuarios/:idUsu/password-temporal', ({ request }) => {
@@ -453,17 +435,9 @@ describe('TecnicosPage', () => {
     await screen.findByText('tecnico-a')
     expect(screen.queryByRole('button', { name: 'Restablecer contraseña' })).not.toBeInTheDocument()
   })
-  it('"Cerrar" sin volverA (URL tecleada) va a /reparaciones', async () => {
-    const { router } = renderConRouter(
-      [
-        { path: '/gestion/tecnicos', element: <TecnicosPage /> },
-        { path: '/reparaciones', element: <p>REPARACIONES</p> },
-      ],
-      { sesion: SESION_ADMIN, ruta: '/gestion/tecnicos' },
-    )
+  it('no tiene botón «Cerrar» (0.9.14: es una pestaña de la columna)', async () => {
+    montar()
     await screen.findByText('tecnico-a')
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(await screen.findByText('REPARACIONES')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/reparaciones')
+    expect(screen.queryByText('Cerrar', { exact: true })).not.toBeInTheDocument()
   })
 })

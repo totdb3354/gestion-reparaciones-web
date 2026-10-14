@@ -99,7 +99,7 @@ Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea
 
 - [x] "Pedidos" en la columna lateral de Stock abre `/stock/pedidos`; título "Pedidos" y, a la derecha, el toggle "Componentes" | "Otros" con Componentes marcado (`pedidos-vista-referencia-4b`, `pedidos-con-datos`).
 - [x] "Otros" abre `/stock/pedidos/otros` con su tabla y el botón "Nuevo otro pedido" (`pedidos-otros-con-datos`).
-- [x] El botón "Stock" de la barra superior vuelve a la última pestaña de Stock, también desde Pedidos. (verificado por test: `TopBar.test.tsx` "\"Stock\" lleva a la última pestaña de Stock visitada…", `PedidosPage.test.tsx` "título, toggle en Componentes, … y última pestaña de Stock")
+- [x] El botón "Stock" de la barra superior vuelve a la última pestaña de Stock, también desde Pedidos. (verificado por test: `TopBar.test.tsx` "\"Stock\" lleva a la última pestaña de Stock visitada…", `PedidosPage.test.tsx` "título, toggle en Componentes, … y última pestaña de Stock") **0.9.14:** retirado: ya no hay botón «Stock»; cada pestaña de Stock está en la columna.
 - [ ] Los tres roles ven la pestaña; ADMIN y TECNICO sin "Nuevo…" ni menú (0.9.13: en la vista por bloques ven el menú del bloque solo con «Exportar bloque en CSV»; capturas anteriores a 0.9.13) (`pedidos-admin`, `pedidos-tecnico`). Sin marcar: faltan las capturas ADMIN y TECNICO del JavaFX, que toma el usuario. Las de la web (`web-pedidos-admin`, `web-pedidos-tecnico`) ya muestran la barra sin "Nuevo pedido" y el clic derecho sin menú, y el comportamiento del JavaFX es el del inventario.
 
 ## Tabla de componentes

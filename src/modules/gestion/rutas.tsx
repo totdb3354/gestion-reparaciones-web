@@ -5,8 +5,8 @@ import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 
-/** "Gestionar técnicos" y "Ver logs" (spec 6, §6.4 y Roles): solo ADMIN. TECNICO y SUPERTECNICO no tienen las entradas del
- *  menú, así que solo llegan por URL: reciben el aviso genérico y salen a /reparaciones, que ya reparte por rol. Mismo
+/** Técnicos y Logs (spec 6, §6.4 y Roles): solo ADMIN. Se entra desde el grupo Gestión de la columna lateral (0.9.14).
+ *  TECNICO y SUPERTECNICO no tienen esas pestañas, así que solo llegan por URL: reciben el aviso genérico y salen a /reparaciones, que ya reparte por rol. Mismo
  *  patrón que RequiereSupertecnicoOAdmin (modules/taller/rutas.tsx), copiado porque un módulo no importa de otro. */
 export function RequiereAdmin() {
   const { sesion } = useSession()

@@ -11,7 +11,6 @@ import { abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from '@/sh
 import type { Sesion } from '@/shared/session/storage'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { ultimaRutaStock } from '../estado'
 import { PedidosPage } from './PedidosPage'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
@@ -95,8 +94,7 @@ function handlersLayout() {
 }
 
 describe('PedidosPage: vista', () => {
-  it('título, toggle en Componentes, columnas, cancelados al final, pie "Actualizado" y última pestaña de Stock', async () => {
-    ultimaRutaStock.set('/stock')
+  it('título, toggle en Componentes, columnas, cancelados al final y pie "Actualizado"', async () => {
     montar()
     expect(await screen.findByRole('heading', { name: 'Pedidos' })).toBeInTheDocument()
     await screen.findByText('lcd-x-negro')
@@ -113,11 +111,10 @@ describe('PedidosPage: vista', () => {
     expect(filaDe('mc-x')).toHaveClass('opacity-45')
     expect(screen.getByRole('button', { name: /^Actualizado \d\d:\d\d$/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Nuevo pedido' })).toBeInTheDocument()
-    expect(ultimaRutaStock.get()).toBe('/stock/pedidos')
     // Solo se consulta la tabla visible.
     expect(cargas.otros).toBe(0)
   })
-  it('el toggle "Otros" cambia de ruta y de tabla, conserva los filtros y fija la última pestaña', async () => {
+  it('el toggle "Otros" cambia de ruta y de tabla y conserva los filtros', async () => {
     const { router } = montar()
     await screen.findByText('lcd-x-negro')
     await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'bat')
@@ -129,7 +126,6 @@ describe('PedidosPage: vista', () => {
     expect(screen.getByRole('button', { name: 'Nuevo otro pedido' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nuevo pedido' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Otros' })).toHaveAttribute('aria-current', 'page')
-    expect(ultimaRutaStock.get()).toBe('/stock/pedidos/otros')
     await userEvent.clear(screen.getByPlaceholderText('Buscar componente…'))
     expect(await screen.findByText('Cinta de embalar')).toBeInTheDocument()
     expect(cargas.otros).toBe(1)

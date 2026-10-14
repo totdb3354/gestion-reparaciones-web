@@ -6,7 +6,6 @@ import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/te
 import { server } from '@/test/server'
 import { repartoFluido } from '@/test/columnas'
 import { CABECERAS_CSV_PROVEEDORES, crearColumnasProveedores, filaCsvProveedor } from './columnas'
-import { ultimaRutaStock } from '../estado'
 import { ProveedoresPage } from './ProveedoresPage'
 
 const proveedores = [
@@ -45,11 +44,6 @@ describe('ProveedoresPage', () => {
     montar()
     const comentario = await screen.findByText((_, el) => el?.tagName === 'SPAN' && el.textContent === 'linea uno\nlinea dos')
     expect(comentario).toHaveClass('whitespace-pre-line')
-  })
-  it('al entrar guarda "/stock/proveedores" como última pestaña de Stock (S2: la barra superior vuelve a ella)', async () => {
-    montar()
-    await screen.findByText('ACME')
-    expect(ultimaRutaStock.get()).toBe('/stock/proveedores')
   })
   it('el filtro solo ofrece activos, dice "N proveedores" con varios y filtra por nombre; vacío pinta "Sin proveedores"', async () => {
     montar()

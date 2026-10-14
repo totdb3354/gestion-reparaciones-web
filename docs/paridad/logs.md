@@ -11,7 +11,7 @@ Los ejemplos de usuario ("usuario-a") y de IMEI (`000000000000000`) son sintéti
 Las de la spec §10:
 
 - **Página del shell** `/gestion/logs` con la guarda `RequiereAdmin` (G2), en vez de una ventana independiente no modal; para tenerla al lado de otra vista se abre en otra pestaña del navegador.
-- **"Cerrar" vuelve a la vista desde la que el menú abrió la página** (`volverA`), o a `/reparaciones` si se entró por URL.
+- **"Cerrar" vuelve a la vista desde la que el menú abrió la página** (`volverA`), o a `/reparaciones` si se entró por URL. **0.9.14:** «Cerrar» retirado: Logs es una pestaña del grupo Gestión de la columna; para volver, otra pestaña o Atrás del navegador.
 - **Las 1.000 entradas más recientes** (G3): la web pide `limite=1000` y, si llegan exactamente 1.000, avisa "Mostrando los 1.000 registros más recientes; acota con los filtros."; el JavaFX descarga el log entero en cada cambio de filtro.
 - **Lista de acciones real y alfabética** (G4), de `GET /api/logs/acciones`; el JavaFX usa 56 códigos agrupados a mano (le faltan unos 40 de los que escribe el servidor y sobran 3 que ya no se generan).
 - **Filtro de fechas en hora de Madrid** (G5): lo ocurrido entre las 00:00 y las 01:59 ya no cae en el día anterior; corrige también al JavaFX.
@@ -44,7 +44,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 ## Ruta y acceso
 
-- [x] "Ver logs" del menú (solo ADMIN) abre `/gestion/logs`; SUPERTECNICO y TECNICO no tienen el ítem (`gestion-menu-usuario-admin`, `gestion-menu-usuario-supertecnico`) y por URL reciben el aviso de permisos.
+- [x] "Ver logs" del menú (solo ADMIN) abre `/gestion/logs`; SUPERTECNICO y TECNICO no tienen el ítem (`gestion-menu-usuario-admin`, `gestion-menu-usuario-supertecnico`) y por URL reciben el aviso de permisos. **0.9.14:** se entra por la pestaña Logs del grupo Gestión de la columna.
 
 ## Cabecera
 
@@ -78,7 +78,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 ## Pie y errores
 
-- [x] "Actualizar" (navy) recarga con los filtros actuales; "Cerrar" vuelve a la vista de origen (cubierto por test `modules/gestion/logs/LogsPage.test.tsx`).
+- [x] "Actualizar" (navy) recarga con los filtros actuales; "Cerrar" vuelve a la vista de origen (cubierto por test `modules/gestion/logs/LogsPage.test.tsx`). **0.9.14:** sin «Cerrar».
 - [x] Fallo de carga: "Error al cargar los logs: …" conservando la tabla (`gestion-logs-error`: diferencia de presentación, ver arriba; no reproducible en producción; cubierto por test `modules/gestion/logs/LogsPage.test.tsx`).
 
 ## Comprobado por tests
