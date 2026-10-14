@@ -6,7 +6,7 @@ import type { CompraComponente } from '@/shared/api/client'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { renderConRouter, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
-import { lineaDePrueba as l } from '../bloques/datosPrueba'
+import { lineaDePrueba as l, otroDePrueba as o } from '../bloques/datosPrueba'
 import { COMPONENTES, PROVEEDORES } from './datosPrueba'
 import { NuevoPedidoDialog } from './NuevoPedidoDialog'
 
@@ -139,5 +139,13 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
     await confirmar()
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
     expect(lotes[0]).toMatchObject({ destinos: [{ idProv: 1, idBloque: 41 }, { idProv: 2, idBloque: 42 }] })
+  })
+  it('un bloque que solo lleva otros pendientes también está abierto y se ofrece (0.9.15: lee también los otros)', async () => {
+    compras = []
+    server.use(http.get('*/api/compras-otros', () => HttpResponse.json([o({ idCompraOtro: 3, idProv: 1, nombreProveedor: 'ACME', idBloque: 50 })])))
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor' }))
+    expect(await within(screen.getByRole('listbox', { name: 'Proveedor' })).findByRole('button', { name: 'ACME · Bloque 50 abierto' })).toBeInTheDocument()
   })
 })

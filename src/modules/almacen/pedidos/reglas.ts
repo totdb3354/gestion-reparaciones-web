@@ -31,6 +31,17 @@ export function nombrePedido(p: Pedido): string {
   return esCompra(p) ? p.tipoComponente : p.concepto
 }
 
+/** 0.9.15 (spec «Añadir otro» §2): una línea se identifica por tipo + id, porque piezas y otros tienen numeración propia.
+ *  Clave de fila, de selección y de las casillas de los diálogos: `p-{id}` o `o-{id}`. */
+export function claveLinea(p: Pedido): string {
+  return esCompra(p) ? `p-${p.idCompra}` : `o-${p.idCompraOtro}`
+}
+
+/** ID en pantalla y en el CSV (0.9.15): el de una pieza tal cual; el de un otro, «O-{id}». */
+export function idVisible(p: Pedido): string {
+  return esCompra(p) ? String(p.idCompra) : `O-${p.idCompraOtro}`
+}
+
 /** Texto del check del filtro: `estado.name().replace('_', ' ')` (StockController :925-933). */
 export function chipDeEstado(e: EstadoPedido): string {
   return e.replace('_', ' ')

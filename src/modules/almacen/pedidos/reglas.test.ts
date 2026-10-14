@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { CompraComponente, CompraOtro } from '@/shared/api/client'
 import {
-  cantidadARevertir, chipDeEstado, entradasMenu, esCompra, estadoDeChip, ESTADOS_PEDIDO, idPedido, llevaAviso, marcaPrecioCero,
-  marcaTotalCero, nombrePedido, restante, textoCantidad, totalFila, unidadesFila, validarParcial, validarResto,
+  cantidadARevertir, chipDeEstado, entradasMenu, claveLinea, esCompra, estadoDeChip, ESTADOS_PEDIDO, idPedido, idVisible, llevaAviso, marcaPrecioCero,
+  marcaTotalCero, nombrePedido, restante, textoCantidad, tipoLinea, totalFila, unidadesFila, validarParcial, validarResto,
 } from './reglas'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
@@ -35,6 +35,14 @@ describe('estados y chips', () => {
     expect(idPedido(otro())).toBe(7)
     expect(nombrePedido(compra())).toBe('bat-x')
     expect(nombrePedido(otro())).toBe('Cinta de embalar')
+  })
+  it('identidad de una línea (0.9.15): clave p-/o-, ID visible con «O-» en un otro y tipo para el servidor', () => {
+    expect(claveLinea(compra())).toBe('p-2')
+    expect(claveLinea(otro())).toBe('o-7')
+    expect(idVisible(compra())).toBe('2')
+    expect(idVisible(otro())).toBe('O-7')
+    expect(tipoLinea(compra())).toBe('PIEZA')
+    expect(tipoLinea(otro())).toBe('OTRO')
   })
 })
 

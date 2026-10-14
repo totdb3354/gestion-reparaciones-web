@@ -5,7 +5,7 @@ import { formatearImporte, formatearNumero, simboloDivisa } from '@/shared/lib/i
 import { cn } from '@/shared/lib/utils'
 import { CREMA_EN_FILA_SELECCIONADA } from '@/shared/ui/DataTable'
 import { BadgeEstadoPedido } from './BadgeEstadoPedido'
-import { marcaPrecioCero, marcaTotalCero, textoCantidad, totalFila, type Pedido } from './reglas'
+import { esCompra, idVisible, marcaPrecioCero, marcaTotalCero, nombrePedido, textoCantidad, totalFila, type Pedido } from './reglas'
 
 /** prefWidth de StockView.fxml :141-149 (componentes) y :156-163 (otros); el ID es de la 0.9.6 y el bloque de la 0.9.9 (no estaban en el JavaFX). */
 export const ANCHOS_PEDIDOS = { id: 55, bloque: 64, fecha: 115, componente: 190, proveedor: 130, cantidad: 50, precio: 68, eur: 68, estado: 110 } as const
@@ -94,12 +94,13 @@ export function claseFilaPedido(p: Pedido): string {
 
 /** Calco de exportarPedidos (:1961-1983): las filas filtradas en el orden mostrado; Cantidad = pedida; total con la regla
  *  de unidades de la columna EUR; importes con `%.2f` (coma, sin símbolo); Estado = `name()`. Fecha en Madrid con año
- *  completo. */
-export const CABECERAS_CSV_PEDIDOS = ['ID', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
-export function filaCsvPedido(p: CompraComponente): string[] {
+ *  completo. 0.9.15 (spec «Añadir otro» §5.3): piezas y otros, con «Tipo» tras «ID»; el ID de un otro es «O-{id}» y su
+ *  concepto va en «Componente». */
+export const CABECERAS_CSV_PEDIDOS = ['ID', 'Tipo', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado']
+export function filaCsvPedido(p: Pedido): string[] {
   return [
-    String(p.idCompra), p.idBloque == null ? '' : String(p.idBloque), p.notaBloque ?? '',
-    formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), p.tipoComponente, String(p.cantidad), p.esUrgente ? 'Sí' : 'No', p.nombreProveedor,
+    idVisible(p), esCompra(p) ? 'pieza' : 'otro', p.idBloque == null ? '' : String(p.idBloque), p.notaBloque ?? '',
+    formatear(p.fechaPedido, 'dd/MM/yyyy HH:mm'), nombrePedido(p), String(p.cantidad), p.esUrgente ? 'Sí' : 'No', p.nombreProveedor,
     formatearNumero(p.precioUnidadPedido), p.divisa, formatearNumero(totalFila(p)), p.estado,
   ]
 }

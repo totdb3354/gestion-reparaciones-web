@@ -52,7 +52,7 @@ describe('CantidadDialog (spec 4b §6, P6)', () => {
   it('"Recibir unidades": subtítulo en dos líneas con el concepto en otros y campo precargado con el restante', async () => {
     const onConfirmar = montar('resto', parcial)
     const dlg = within(screen.getByRole('dialog', { name: 'Recibir unidades' }))
-    expect(dlg.getByText('Pedido #7 — Cinta de embalar (recibidas: 3/10)\nSi introduces 7, el pedido se cerrará como recibido.', sinColapsar)).toBeInTheDocument()
+    expect(dlg.getByText('Pedido #O-7 — Cinta de embalar (recibidas: 3/10)\nSi introduces 7, el pedido se cerrará como recibido.', sinColapsar)).toBeInTheDocument()
     const campo = dlg.getByLabelText('Cantidad que llega ahora:')
     expect(campo).toHaveValue('7')
     await userEvent.click(dlg.getByRole('button', { name: 'Confirmar' }))

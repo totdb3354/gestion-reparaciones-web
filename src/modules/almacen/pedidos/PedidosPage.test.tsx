@@ -324,7 +324,7 @@ describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
     await abrirMenu('Cinta de embalar')
     await userEvent.click(screen.getByRole('menuitem', { name: 'Revertir a En camino' }))
     const dlg = screen.getByRole('dialog', { name: 'Revertir a En camino' })
-    expect(within(dlg).getByText('¿Revertir el pedido #7 de Cinta de embalar a En camino?', sinColapsar)).toBeInTheDocument()
+    expect(within(dlg).getByText('¿Revertir el pedido #O-7 de Cinta de embalar a En camino?', sinColapsar)).toBeInTheDocument()
     await userEvent.click(within(dlg).getByRole('button', { name: 'Revertir a En camino' }))
     await waitFor(() => expect(llamadas).toEqual([`7 desrecibir {"updatedAt":"${U1}"}`]))
   })
@@ -402,10 +402,10 @@ describe('PedidosPage: refresco y CSV', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('pedidos')
-    expect(cabeceras).toEqual(['ID', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
+    expect(cabeceras).toEqual(['ID', 'Tipo', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filas).toEqual([
-      ['2', '1', '', '19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
-      ['3', '1', '', '17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
+      ['2', 'pieza', '1', '', '19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
+      ['3', 'pieza', '1', '', '17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
     ])
     descargar.mockRestore()
   })

@@ -5,7 +5,7 @@ import { formatearImporte } from '@/shared/lib/importes'
 import { cn } from '@/shared/lib/utils'
 import { clasesEstado } from '../BadgeEstadoPedido'
 import { chipDeEstado } from '../reglas'
-import { avisoBloque, resumenEstados, SIN_BLOQUE, sinPrecio, textoLineas, textoSinPrecio, totalBloque, type Bloque } from './reglas'
+import { avisoBloque, resumenEstados, SIN_BLOQUE, sinPrecio, textoLineasBloque, textoSinPrecio, totalBloque, type Bloque } from './reglas'
 
 type Props = {
   bloque: Bloque
@@ -41,7 +41,7 @@ export function CabeceraBloque({ bloque, visibles, desplegado, onAlternar, menu 
             <b>Bloque {bloque.idBloque}</b>
             <Punto />{bloque.nombreProveedor}
             <Punto />{formatear(bloque.fecha, 'dd/MM/yyyy')}
-            <Punto />{textoLineas(total)}
+            <Punto />{textoLineasBloque(bloque)}
             <Punto /><b>{formatearImporte(totalBloque(bloque), '€')}</b>
           </>
         )}

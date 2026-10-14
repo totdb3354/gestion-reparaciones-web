@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { useComponentesStock } from '../../stock/api'
 import { agruparCompartidos, nombreGrupo } from '../../stock/grupos'
-import { useCompras, useGuardarLoteCompras } from '../api'
+import { useGuardarLoteCompras, useLineasPedido } from '../api'
 import { agruparEnBloques, situacion } from '../bloques/reglas'
 import { destinoElegido, destinosDelCuerpo, opcionesDestino } from './destinos'
 import { DialogoPedidoBase } from './DialogoPedidoBase'
@@ -43,8 +43,8 @@ function sinClave(plegados: ReadonlySet<ClaveRecuadro>, clave: ClaveRecuadro): R
 export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const componentes = useComponentesStock({ activo: false })
   const proveedores = useProveedoresComponentes({ activo: false })
-  // Los bloques salen de los pedidos (sin sondeo: con el formulario abierto las vistas no refrescan).
-  const compras = useCompras({ activo: false })
+  // Los bloques salen de los pedidos, piezas y otros (0.9.15), sin sondeo: con el formulario abierto las vistas no refrescan.
+  const compras = useLineasPedido({ activo: false })
   const bloques = useMemo(() => agruparEnBloques(compras.data ?? []), [compras.data])
   const fijo = precarga.modo === 'bloque' ? precarga : null
   const activos = useMemo(() => (componentes.data ?? []).filter((c) => c.activo), [componentes.data])

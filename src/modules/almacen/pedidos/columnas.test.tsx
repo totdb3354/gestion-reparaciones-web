@@ -148,13 +148,16 @@ describe('badge, "⚠" y clase de fila', () => {
   })
 })
 
-describe('CSV (StockController :1961-2006)', () => {
-  it('componentes: cabeceras exactas, fecha con año completo, cantidad pedida, Sí/No, coma decimal, total con recibidas y estado con guion bajo', () => {
-    expect(CABECERAS_CSV_PEDIDOS).toEqual(['ID', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
-    expect(filaCsvPedido(compra({ estado: 'recibido', cantidadRecibida: 2, esUrgente: true }))).toEqual(['1', '1', '', '20/09/2026 10:30', 'lcd-x-negro', '5', 'Sí', 'Proveedor A', '12,50', 'EUR', '25,00', 'recibido'])
-    expect(filaCsvPedido(compra({ estado: 'en_camino', divisa: 'USD', precioUnidadPedido: 10, precioEur: 8.8 }))).toEqual(['1', '1', '', '20/09/2026 10:30', 'lcd-x-negro', '5', 'No', 'Proveedor A', '10,00', 'USD', '44,00', 'en_camino'])
+describe('CSV (StockController :1961-2006; 0.9.15 con «Tipo»)', () => {
+  it('cabeceras con «Tipo» tras «ID»; una pieza: fecha con año completo, cantidad pedida, Sí/No, coma decimal, total con recibidas y estado con guion bajo', () => {
+    expect(CABECERAS_CSV_PEDIDOS).toEqual(['ID', 'Tipo', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
+    expect(filaCsvPedido(compra({ estado: 'recibido', cantidadRecibida: 2, esUrgente: true }))).toEqual(['1', 'pieza', '1', '', '20/09/2026 10:30', 'lcd-x-negro', '5', 'Sí', 'Proveedor A', '12,50', 'EUR', '25,00', 'recibido'])
+    expect(filaCsvPedido(compra({ estado: 'en_camino', divisa: 'USD', precioUnidadPedido: 10, precioEur: 8.8 }))).toEqual(['1', 'pieza', '1', '', '20/09/2026 10:30', 'lcd-x-negro', '5', 'No', 'Proveedor A', '10,00', 'USD', '44,00', 'en_camino'])
   })
-  it('otros: sin Urgente', () => {
+  it('un otro: «O-{id}», tipo «otro» y su concepto en «Componente»', () => {
+    expect(filaCsvPedido(otro({ notaBloque: 'Ped. 1' }))).toEqual(['O-7', 'otro', '1', 'Ped. 1', '20/09/2026 10:30', 'Cinta de embalar', '3', 'No', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'])
+  })
+  it('otros (página de la 0.9.14, se va en la 0.9.15): sin Urgente', () => {
     expect(CABECERAS_CSV_OTROS).toEqual(['ID', 'Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filaCsvOtro(otro())).toEqual(['7', '20/09/2026 10:30', 'Cinta de embalar', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'])
   })

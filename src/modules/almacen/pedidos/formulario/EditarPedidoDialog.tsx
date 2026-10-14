@@ -9,7 +9,7 @@ import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
-import { useCompras, useEditarCompra } from '../api'
+import { useEditarCompra, useLineasPedido } from '../api'
 import { agruparEnBloques, destinoSugeridoEdicion, fechaCorta, situacion, textoLineas, textoMoverYaPedida, vivosDelProveedor } from '../bloques/reglas'
 import { useTasa } from '../tasa'
 import { VALOR_NUEVO } from './destinos'
@@ -26,7 +26,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
   const { data: proveedores } = useProveedoresComponentes({ activo: false })
   const activos = useMemo(() => (proveedores ?? []).filter((p) => p.activo), [proveedores])
   const opciones = useMemo(() => activos.map((p) => ({ valor: String(p.idProv), etiqueta: p.nombre })), [activos])
-  const compras = useCompras({ activo: false, habilitada: pedido !== null })
+  const compras = useLineasPedido({ activo: false, habilitada: pedido !== null })
   const bloques = useMemo(() => agruparEnBloques(compras.data ?? []), [compras.data])
   const [idProv, setIdProv] = useState<number | null>(null)
   const [cantidad, setCantidad] = useState('')
@@ -88,7 +88,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
       if (esBloqueInexistente(e) && cambiaProveedor) {
         // El bloque elegido ya no existe: se vuelve a sugerir con los datos recargados.
         const r = await compras.refetch()
-        setDestino(destinoSugeridoEdicion(pedido, v.valor.idProv, agruparEnBloques(r.data ?? [])))
+        setDestino(destinoSugeridoEdicion(pedido, v.valor.idProv, agruparEnBloques(r ?? [])))
       }
     }
   }

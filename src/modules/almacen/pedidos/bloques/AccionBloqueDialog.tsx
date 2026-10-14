@@ -4,6 +4,7 @@ import { cn } from '@/shared/lib/utils'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useAccionBloque, vistaDe, type AccionBloque } from '../api'
+import { claveLinea } from '../reglas'
 import { tratarFalloBloque } from './fallos'
 import { ListaLineas } from './ListaLineas'
 import { lineasQueCambian, motivoNoCambia, textoDesmarcadas, textoQueda, type Bloque } from './reglas'
@@ -28,21 +29,21 @@ export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
   const cambian = lineasQueCambian(bloque, accion)
   const quedan = bloque.lineas.filter((p) => !cambian.includes(p))
   const conCasillas = accion !== 'borrar'
-  const [marcadas, setMarcadas] = useState<Set<number>>(() => new Set(cambian.map((p) => p.idCompra)))
-  const elegidas = conCasillas ? cambian.filter((p) => marcadas.has(p.idCompra)) : cambian
+  const [marcadas, setMarcadas] = useState<Set<string>>(() => new Set(cambian.map(claveLinea)))
+  const elegidas = conCasillas ? cambian.filter((p) => marcadas.has(claveLinea(p))) : cambian
   const desmarcadas = cambian.length - elegidas.length
 
-  function alternar(idCompra: number, marcada: boolean) {
+  function alternar(clave: string, marcada: boolean) {
     setMarcadas((m) => {
       const n = new Set(m)
-      if (marcada) n.add(idCompra)
-      else n.delete(idCompra)
+      if (marcada) n.add(clave)
+      else n.delete(clave)
       return n
     })
     setError(null)
   }
   function alternarTodas(marcar: boolean) {
-    setMarcadas(marcar ? new Set(cambian.map((p) => p.idCompra)) : new Set())
+    setMarcadas(marcar ? new Set(cambian.map(claveLinea)) : new Set())
     setError(null)
   }
 

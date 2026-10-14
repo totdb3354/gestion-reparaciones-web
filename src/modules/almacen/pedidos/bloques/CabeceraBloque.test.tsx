@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { formatearImporte } from '@/shared/lib/importes'
 import { CabeceraBloque } from './CabeceraBloque'
-import { lineaDePrueba as l } from './datosPrueba'
+import type { Pedido } from '../reglas'
+import { lineaDePrueba as l, otroDePrueba as o } from './datosPrueba'
 import { agruparEnBloques } from './reglas'
 
 const NOTA = { notaBloque: 'Ped. 123' }
-const bloque = (...lineas: ReturnType<typeof l>[]) => [...agruparEnBloques(lineas).values()][0]
+const bloque = (...lineas: Pedido[]) => [...agruparEnBloques(lineas).values()][0]
 
 describe('CabeceraBloque (spec §6.3)', () => {
   it('número, proveedor, fecha, líneas, total, ⚠, chips del resumen y nota', () => {
@@ -59,5 +60,11 @@ describe('CabeceraBloque (spec §6.3)', () => {
     const chip = screen.getByText('! 2 sin precio')
     expect(chip).toHaveAttribute('title', '2 líneas recibidas sin precio: ponlo con «Editar».')
     expect(chip).toHaveClass('bg-fila-solicitud-bg', 'text-fila-solicitud-brd')
+  })
+  it('con otros: «n líneas (m otro)» y el total cuenta los dos (0.9.15)', () => {
+    const b = bloque(l({ idCompra: 1 }), l({ idCompra: 2 }), o({ idCompraOtro: 3 }))
+    render(<CabeceraBloque bloque={b} visibles={3} desplegado onAlternar={vi.fn()} />)
+    expect(screen.getByText('Bloque 41').closest('button')).toHaveTextContent('Bloque 41·Proveedor A·09/10/2026·3 líneas (1 otro)·')
+    expect(screen.getByText(formatearImporte(42, '€'))).toBeInTheDocument()
   })
 })
