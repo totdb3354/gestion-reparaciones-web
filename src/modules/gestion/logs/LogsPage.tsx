@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
 import type { LogActividad } from '@/shared/api/client'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
@@ -9,7 +8,6 @@ import { DataTable } from '@/shared/ui/DataTable'
 import { Input } from '@/shared/ui/input'
 import { RangoFechas } from '@/shared/ui/RangoFechas'
 import { useUsuariosTecnicos } from '../api'
-import { rutaVolverA } from '../navegacion'
 import { useAccionesLog, useLogs } from './api'
 import { COLUMNAS_LOGS, textoDetalle } from './columnas'
 import { aplicarBuscador, FILTROS_LOGS_VACIOS, LIMITE_LOGS, MSG_TOPE, queryLogs, TEXTO_VACIO_LOGS, type FiltrosLogs } from './filtros'
@@ -20,8 +18,6 @@ const ANCHO_LISTA = 250
 
 /** "Ver logs" (LogView.fxml + LogController de `hotfix/0.16.3`), como página del shell (G2). Solo lectura. */
 export function LogsPage() {
-  const navigate = useNavigate()
-  const location = useLocation()
   const { mostrarError, mostrarTexto } = useAlerta()
   // Estado local: los filtros no sobreviven a salir de la página (calco: la ventana del JavaFX se abre siempre vacía).
   const [filtros, setFiltros] = useState<FiltrosLogs>(FILTROS_LOGS_VACIOS)
@@ -135,9 +131,6 @@ export function LogsPage() {
 
       <footer className="flex items-center justify-end gap-3 px-12 pt-3 pb-5">
         <BotonPrimario onClick={() => void refetch()}>Actualizar</BotonPrimario>
-        <button type="button" onClick={() => navigate(rutaVolverA(location.state))} className="cursor-pointer bg-transparent text-[12px] text-azul-gris">
-          Cerrar
-        </button>
       </footer>
     </div>
   )

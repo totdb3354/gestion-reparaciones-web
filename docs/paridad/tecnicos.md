@@ -11,7 +11,7 @@ Los ejemplos de técnico ("tecnico-a") y de usuario ("usuario-a") son sintético
 Las de la spec §10:
 
 - **Página del shell** `/gestion/tecnicos` con la guarda `RequiereAdmin` (G2), en vez de la ventana modal "Gestión de técnicos"; sin título de ventana. El resto de roles recibe el aviso de permisos y vuelve a `/reparaciones`.
-- **"Cerrar" vuelve a la vista desde la que el menú abrió la página** (`volverA`), o a `/reparaciones` si se entró por URL; equivale a cerrar la ventana.
+- **"Cerrar" vuelve a la vista desde la que el menú abrió la página** (`volverA`), o a `/reparaciones` si se entró por URL; equivale a cerrar la ventana. **0.9.12:** «Cerrar» retirado: Técnicos es una pestaña del grupo Gestión de la columna; para volver, otra pestaña o Atrás del navegador.
 - **Validaciones también en el servidor** (G1): el alta responde 422 "Todos los campos son obligatorios.", "La contraseña debe tener al menos 6 caracteres.", "El nombre de usuario no puede superar 50 caracteres.", "El nombre del técnico no puede superar 100 caracteres." y "Rol no permitido."; los duplicados siguen siendo 409; un `idTec` inexistente es 404 "Técnico no encontrado.". El JavaFX no los ve porque valida antes.
 - **Borrar un técnico con cualquier referencia** (reparaciones propias, asignadas por él, entregas de glass, revisiones, envíos, devoluciones, solicitudes de stock o movimientos de teléfonos) da el aviso "No se puede eliminar", y si la comprobación y el borrado se cruzan, el `DELETE` responde 409 `"{nombre}" tiene reparaciones asociadas.` sin borrar nada (G8). En el JavaFX solo miraba `Reparacion.ID_TEC` y el borrado acababa en "Error al eliminar el técnico." (500 por integridad).
 - **Diálogos nativos → propios** (G9): "No se puede eliminar" es un `mostrarAviso` y "Eliminar técnico" un `ConfirmDialog` con los botones "Eliminar" y "Cancelar".
@@ -99,7 +99,7 @@ Cerrado con la comparación de capturas (decisión del usuario 2026-09-26):
 
 ## Pie
 
-- [x] "Cerrar" (estilo enlace, 12 px azul gris) vuelve a la vista de origen, que muestra ya el técnico nuevo en sus combos (`gestion-tecnicos-tras-cerrar`; las capturas de la web no llegan al pie: "Cerrar" lo cubre el test `modules/gestion/tecnicos/TecnicosPage.test.tsx`).
+- [x] "Cerrar" (estilo enlace, 12 px azul gris) vuelve a la vista de origen, que muestra ya el técnico nuevo en sus combos (`gestion-tecnicos-tras-cerrar`; las capturas de la web no llegan al pie: "Cerrar" lo cubre el test `modules/gestion/tecnicos/TecnicosPage.test.tsx`). **0.9.12:** retirado.
 
 ## Comprobado por tests
 

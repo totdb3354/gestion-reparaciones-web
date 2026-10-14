@@ -28,7 +28,7 @@ export function SubNav() {
   const { sesion } = useSession()
   const [plegada, setPlegada] = useState(leerPlegada)
   const [gruposPlegados, setGruposPlegados] = useState(leerGruposPlegados)
-  const grupos = gruposNav(sesion, pathname)
+  const grupos = gruposNav(sesion)
   const alternar = () => {
     setPlegada(!plegada)
     guardarPlegada(!plegada)
@@ -145,7 +145,6 @@ function EnlaceLateral({ enlace: e, grupo, plegada }: { enlace: Enlace; grupo: s
     <NavLink
       to={e.to}
       end={e.end}
-      state={e.state}
       aria-label={plegada ? nombre : undefined}
       className={({ isActive }) =>
         cn(

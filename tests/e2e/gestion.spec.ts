@@ -20,7 +20,7 @@ async function entrarCon(page: Page, usuario: string, clave: string) {
   await page.getByRole('button', { name: 'Iniciar Sesión' }).click()
   await expect(page.getByText('FSGR:')).toBeVisible()
   // La barra se pinta antes de que `<Navigate>` lleve de /reparaciones a /historial (ADMIN) o /pendientes (TECNICO):
-  // se espera la URL final porque `origen` y la `ruta` de `cambiarPassword` leen `page.url()` después de la redirección.
+  // se espera la URL final porque la `ruta` de `cambiarPassword` leen `page.url()` después de la redirección.
   await expect(page).toHaveURL(/\/reparaciones\/(historial|pendientes)$/)
 }
 
@@ -113,12 +113,11 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
   const claveNueva = `nube marina ${marca} cuaderno`
 
   await entrarCon(page, admin.usuario, admin.clave) // inicio de sesión 1/4
-  const origen = new URL(page.url()).pathname
 
   let idTec = 0
   let idUsu = 0
   let temporal = ''
-  await test.step('alta desde "Gestionar técnicos"', async () => {
+  await test.step('alta desde «Técnicos»', async () => {
     const lista = page.waitForResponse(esRespuesta('/api/usuarios/tecnicos', 'GET'))
     await irAGestion(page, 'Técnicos')
     await expect(page).toHaveURL(/\/gestion\/tecnicos$/)
@@ -179,13 +178,9 @@ test('admin: técnico de prueba registrado, bloqueado y desbloqueado, visto en e
     expect((await activar).status(), `PATCH /api/usuarios/tecnicos/${idTec}/activar`).toBe(204)
     await expect(fila.getByText('Activo', { exact: true })).toBeVisible()
     await expect(fila.getByRole('button', { name: 'Desactivar acceso' })).toBeVisible()
-
-    // "Cerrar" vuelve a la vista desde la que el menú abrió la página (volverA).
-    await page.getByText('Cerrar', { exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`${escaparRegex(origen)}$`))
   })
 
-  await test.step('CREAR_USUARIO en "Ver logs" filtrando por acción y por el día de hoy', async () => {
+  await test.step('CREAR_USUARIO en «Logs» filtrando por acción y por el día de hoy', async () => {
     const hoy = hoyMadrid()
     await irAGestion(page, 'Logs')
     await expect(page).toHaveURL(/\/gestion\/logs$/)

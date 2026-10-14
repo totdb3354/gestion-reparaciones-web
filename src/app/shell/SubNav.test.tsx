@@ -1,7 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { Route, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import { server } from '@/test/server'
@@ -14,12 +13,6 @@ const columna = () => within(screen.getByRole('navigation', { name: 'Sub-navegac
 /** Cabecera de un grupo: su nombre accesible empieza por el título (plegado, le sigue la suma de sus números). */
 const cabecera = (titulo: string) => screen.getByRole('button', { name: new RegExp(`^${titulo}`) })
 const CABECERAS = /^(Reparaciones|Stock|Estadísticas|Clientes|Gestión)/
-
-/** Destino de prueba que enseña el state con el que se llegó (el `volverA` de los enlaces de Gestión). */
-function Destino({ texto }: { texto: string }) {
-  const { state } = useLocation()
-  return <p>{`${texto} ${JSON.stringify(state)}`}</p>
-}
 
 /** Filas mínimas para el total: el badge solo cuenta, así que basta con el id. */
 const filas = (prefijo: string, n: number) => Array.from({ length: n }, (_, i) => ({ idRep: `${prefijo}20260901_${i + 1}` }))
@@ -55,15 +48,6 @@ describe('columna lateral por grupos', () => {
     expect(cabecera('Gestión')).toBeInTheDocument()
     expect(columna().getByRole('link', { name: 'Logs' })).toHaveAttribute('aria-current', 'page')
     expect(columna().getByRole('link', { name: 'Técnicos' })).toHaveAttribute('href', '/gestion/tecnicos')
-  })
-
-  it.each([
-    ['Técnicos', '/gestion/tecnicos', 'TECNICOS'],
-    ['Logs', '/gestion/logs', 'LOGS'],
-  ])('"%s" navega a %s con volverA = la ruta desde la que se abrió', async (nombre, ruta, texto) => {
-    renderConProviders(<AppLayout />, { sesion: SESION_ADMIN, ruta: '/stock/proveedores', rutas: <Route path={ruta} element={<Destino texto={texto} />} /> })
-    await userEvent.click(columna().getByRole('link', { name: nombre }))
-    expect(await screen.findByText(`${texto} {"volverA":"/stock/proveedores"}`)).toBeInTheDocument()
   })
 
   it('el supertécnico no tiene Gestión', () => {

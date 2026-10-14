@@ -67,7 +67,6 @@ export function StockPage() {
   // Clave de reintento de "Solicitar pieza": la misma mientras el cuerpo no cambie; nueva tras un envío correcto.
   const [claves] = useState(() => crearClavesIdempotencia())
 
-  // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
   // Un diálogo abierto (de fila o de parámetros) congela el sondeo (D4 del 3a).
   useEffect(() => {
     if (!dialogo && !parametrosAbiertos) return

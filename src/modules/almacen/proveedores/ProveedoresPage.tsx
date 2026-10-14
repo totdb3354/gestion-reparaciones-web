@@ -44,7 +44,6 @@ export function ProveedoresPage() {
   const editar = useEditarProveedor()
   const setActivo = useSetActivoProveedor()
   const borrar = useBorrarProveedor()
-  // Última pestaña de Stock para el botón de la barra superior (caché de vista del JavaFX, S2).
   useEffect(() => {
     if (!dialogo) return
     marcar(true)

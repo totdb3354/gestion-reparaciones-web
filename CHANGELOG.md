@@ -7,7 +7,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 ## [0.9.12] - 2026-10-XX — Navegación por grupos
 
 - **Toda la navegación en la columna de la izquierda.** Cada sección es un grupo con su cabecera, que se pliega y se despliega: Reparaciones, Stock, Estadísticas (Rendimiento), Clientes (Listado) y, para el administrador, Gestión (Técnicos y Logs). Cualquier pestaña está a un clic desde cualquier sitio.
-- **La barra de arriba ya no tiene botones de sección**: se queda con el logo, la versión, la campana y el usuario. Gestionar técnicos y Ver logs salen del menú de usuario y pasan al grupo Gestión.
+- **La barra de arriba ya no tiene botones de sección**: se queda con el logo, la versión, la campana y el usuario. Gestionar técnicos y Ver logs salen del menú de usuario y pasan al grupo Gestión. Técnicos y Logs ya no tienen «Cerrar»: son pestañas como las demás.
 - **Los números de Pendientes y Asignaciones se ven siempre**, también desde Stock o Clientes. Con su grupo plegado, la cabecera enseña la suma.
 - Con la columna plegada se ven todos los iconos, separados por grupos, y al pasar el ratón sale «Grupo · Pestaña». El navegador recuerda qué grupos se dejaron plegados.
 - Solo web: sin cambios en el servidor, la base ni nginx.
