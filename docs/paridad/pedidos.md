@@ -261,3 +261,11 @@ Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (r
 
 - Buscar un bloque por su número: en Componentes, escribir solo cifras en «Buscar componente o nº de bloque…» enseña ese bloque.
 - «Nuevo pedido»: un recuadro por proveedor con su «Añadir previsión (N)», que añade las piezas en Auto que vende ese proveedor con lo que falta; también «Añadir previsión…» en el menú del bloque.
+
+## 0.9.13 — Casillas en las acciones de bloque y «Exportar bloque en CSV» (sin equivalente en el JavaFX)
+
+Diferencias deliberadas, decididas en la spec `2026-10-14-v0913-casillas-y-exportar-bloque-design.md` (raíz):
+
+- «Confirmar bloque», «Recibir todo» y «Cancelar bloque» con una casilla por cada línea que cambia, todas marcadas al abrir, y «Marcar todas»; solo se mandan las marcadas. «Borrar bloque» sin casillas; las parciales siguen en «No cambian» (`dialogos.test.tsx` «AccionBloqueDialog con casillas (0.9.13)», `bloques.spec.ts` «Recibir todo con una línea desmarcada…»).
+- «Exportar bloque en CSV» en el menú del bloque: todas las líneas del bloque aunque haya filtros, en `pedidos_bloque_<n>_<fecha>.csv` (`PedidosPage.bloques.test.tsx`, `bloques.spec.ts`).
+- El menú del bloque también lo ven el administrador y el técnico, solo con «Exportar bloque en CSV» (`reglas.test.ts`, `PedidosPage.bloques.test.tsx`).
