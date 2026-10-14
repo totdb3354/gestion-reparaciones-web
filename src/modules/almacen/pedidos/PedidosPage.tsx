@@ -71,7 +71,8 @@ type Confirmar = { accion: AccionConfirmada; pedido: Pedido } | null
 
 /** Pestaña "Pedidos" de StockView.fxml (spec 4b §6): toggle Componentes | Otros por rutas (P4), cuatro filtros compartidos,
  *  la tabla del toggle visible, menú de transiciones (SUPERTECNICO), CSV y "Actualizado". 0.9.9: Componentes agrupada
- *  por bloques (spec «Pedidos por bloques» §6), con interruptor a la vista plana. */
+ *  por bloques (spec «Pedidos por bloques» §6), con interruptor a la vista plana. 0.9.13: el menú del bloque lo ven todos;
+ *  sin edición, solo con «Exportar bloque en CSV». */
 export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
   const { sesion } = useSession()
   const puedeEditar = esSuperTecnico(sesion)
@@ -241,13 +242,18 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
       case 'nota':
         setNotaDe(b)
         return
+      case 'exportar':
+        // En el mismo clic, sin nada asíncrono antes: la ventana «Guardar como» exige un gesto reciente (doc de descargarCsv).
+        // Todas las líneas del bloque, aunque los filtros oculten alguna.
+        void descargarCsv(`pedidos_bloque_${b.idBloque}`, CABECERAS_CSV_PEDIDOS, b.lineas.map(filaCsvPedido))
+        return
     }
   }, [])
   // Memoizado: DataTable recalcula los grupos solo si cambia su identidad (doc de GruposTabla).
   const grupos = useMemo<GruposTabla<CompraComponente> | undefined>(() => {
     if (!vistaAgrupada) return undefined
-    const entradasDe = (b: Bloque) => entradasMenuBloque(b, vivosDelProveedor(bloques, b.idProv, b.clave).length)
-    const conMenuBloque = (b: Bloque | undefined): b is Bloque => puedeEditar && b !== undefined && b.clave !== SIN_BLOQUE
+    const entradasDe = (b: Bloque) => entradasMenuBloque(b, vivosDelProveedor(bloques, b.idProv, b.clave).length, puedeEditar)
+    const conMenuBloque = (b: Bloque | undefined): b is Bloque => b !== undefined && b.clave !== SIN_BLOQUE
     return {
       clave: claveBloque,
       desplegado,
