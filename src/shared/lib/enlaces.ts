@@ -11,6 +11,6 @@ export type Enlace = {
   end?: boolean
 }
 
-/** Grupos de la columna lateral (0.9.12, spec «Navegación por grupos»): una cabecera plegable y sus pestañas. */
+/** Grupos de la columna lateral (0.9.14, spec «Navegación por grupos»): una cabecera plegable y sus pestañas. */
 export type IdGrupoNav = 'reparaciones' | 'stock' | 'estadisticas' | 'clientes' | 'gestion'
 export type GrupoNav = { id: IdGrupoNav; titulo: string; enlaces: Enlace[] }

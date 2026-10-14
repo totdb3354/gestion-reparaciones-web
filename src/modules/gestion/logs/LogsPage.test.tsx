@@ -301,7 +301,7 @@ describe('LogsPage: sin "Cerrar"', () => {
     await act(() => router.navigate('/gestion/logs'))
     expect(await screen.findByPlaceholderText('Buscar...')).toHaveValue('')
   })
-  it('no tiene botón «Cerrar» (0.9.12: es una pestaña de la columna)', async () => {
+  it('no tiene botón «Cerrar» (0.9.14: es una pestaña de la columna)', async () => {
     registrarLogs()
     abrir()
     await screen.findByText('CREAR_ASIGNACION')

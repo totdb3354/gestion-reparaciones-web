@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
-// columna-lateral.spec.ts (0.9.10 y 0.9.12): navegación por grupos en la columna, plegar un grupo, plegar la columna,
+// columna-lateral.spec.ts (0.9.10 y 0.9.14): navegación por grupos en la columna, plegar un grupo, plegar la columna,
 // recargar, navegar por un icono y desplegar. Solo LEE: no crea ni cambia datos, y las preferencias viven en el
 // localStorage del contexto del navegador, que Playwright descarta al terminar. Aun así, como todas las E2E, solo contra
 // PREPRODUCCIÓN: se niega a seguir sin el letrero.

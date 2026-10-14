@@ -17,7 +17,7 @@ const ID_COLUMNA = 'columna-lateral'
 const RUTA_ASIGNACIONES = '/reparaciones/asignaciones'
 
 /**
- * Columna lateral con toda la navegación de la web (0.9.12, spec «Navegación por grupos»; adaptación web, sin calco en el
+ * Columna lateral con toda la navegación de la web (0.9.14, spec «Navegación por grupos»; adaptación web, sin calco en el
  * JavaFX). Cada sección es un grupo con su cabecera plegable, y plegado enseña la suma de sus números. La columna se pliega
  * con el botón redondo del borde (0.9.10): abierta mide 200 px, con icono y nombre; plegada mide 56 px, con todos los
  * iconos, una línea entre grupos y el nombre «Grupo · Pestaña» al pasar el ratón. El navegador recuerda la columna y los

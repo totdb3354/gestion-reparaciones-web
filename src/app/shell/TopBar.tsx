@@ -4,7 +4,7 @@ import { APP_VERSION } from '@/shared/lib/version'
 import { UserMenu } from './UserMenu'
 
 /** Barra superior navy de 64 px (calco de la navbar de MainView.fxml): logo, título con la versión, campana y usuario. Desde
- *  la 0.9.12 (spec «Navegación por grupos») ya no lleva los botones de sección: toda la navegación va en la columna. */
+ *  la 0.9.14 (spec «Navegación por grupos») ya no lleva los botones de sección: toda la navegación va en la columna. */
 export function TopBar() {
   return (
     <header className="flex h-navbar items-center gap-2.5 bg-azul-noche px-5">

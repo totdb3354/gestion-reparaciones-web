@@ -5,7 +5,7 @@ import type { GrupoNav } from '@/shared/lib/enlaces'
 import { esAdmin, type Sesion } from '@/shared/session/storage'
 
 /**
- * Grupos de la columna lateral (0.9.12, spec «Navegación por grupos» §2), en este orden: Reparaciones (sus pestañas
+ * Grupos de la columna lateral (0.9.14, spec «Navegación por grupos» §2), en este orden: Reparaciones (sus pestañas
  * dependen del rol), Stock, Estadísticas, Clientes y, solo para el admin, Gestión. Las pestañas no repiten el nombre del
  * grupo (Estadísticas › Rendimiento, Clientes › Listado).
  */

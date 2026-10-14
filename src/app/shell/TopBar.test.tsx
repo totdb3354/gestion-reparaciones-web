@@ -9,7 +9,7 @@ import { server } from '@/test/server'
 import { AppLayout } from './AppLayout'
 
 describe('barra superior (calco de MainView)', () => {
-  it('muestra título, versión y saludo, y ya no tiene botones de sección (0.9.12: la navegación va en la columna)', () => {
+  it('muestra título, versión y saludo, y ya no tiene botones de sección (0.9.14: la navegación va en la columna)', () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC })
     expect(screen.getByText('FSGR:')).toBeInTheDocument()
     expect(screen.getByText(/Gestión de Stock y Reparaciones V\.\d+\.\d+\.\d+/)).toBeInTheDocument()
@@ -25,7 +25,7 @@ describe('barra superior (calco de MainView)', () => {
     expect(screen.getByRole('menuitem', { name: 'Cambiar contraseña' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Cerrar Sesión' })).toBeInTheDocument()
   })
-  it('el menú del admin ya no tiene Gestión: Técnicos y Logs están en la columna (0.9.12)', async () => {
+  it('el menú del admin ya no tiene Gestión: Técnicos y Logs están en la columna (0.9.14)', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_ADMIN })
     await userEvent.click(screen.getByRole('button', { name: /Hola, admin/ }))
     expect(screen.queryByRole('menuitem', { name: 'Gestionar técnicos' })).not.toBeInTheDocument()

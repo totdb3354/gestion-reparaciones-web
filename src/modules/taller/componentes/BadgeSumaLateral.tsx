@@ -8,7 +8,7 @@ type Contadores = { reparaciones: number; glass: number; pulidos: number }
 const totalPendientes = (c: Contadores | undefined) => (c ? c.reparaciones + c.glass + c.pulidos : undefined)
 
 /**
- * Suma de los números de un grupo plegado de la columna lateral (0.9.12, spec «Navegación por grupos» §3): Pendientes,
+ * Suma de los números de un grupo plegado de la columna lateral (0.9.14, spec «Navegación por grupos» §3): Pendientes,
  * Asignaciones o los dos, según las pestañas del grupo. Va en la cabecera, navy como sobre un enlace inactivo, con el
  * tope 99+ y oculta a cero (BadgeLateral). Con el grupo plegado sus pestañas no se pintan, así que esta suma es la que
  * mantiene vivos los sondeos. `sondeaAsignaciones`: con la vista de Asignaciones abierta su total no se sondea por su

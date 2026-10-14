@@ -34,7 +34,7 @@ function asignaciones(rep: number, glass: number, pul: number) {
 
 const avanzar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
 
-/** Navegación por grupos (0.9.12, spec «Navegación por grupos»): toda la navegación en la columna. */
+/** Navegación por grupos (0.9.14, spec «Navegación por grupos»): toda la navegación en la columna. */
 describe('columna lateral por grupos', () => {
   it('en cualquier ruta salen todos los grupos del rol, en orden, con sus pestañas', () => {
     renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/estadisticas' })

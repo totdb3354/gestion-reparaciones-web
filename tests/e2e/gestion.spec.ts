@@ -53,7 +53,7 @@ async function menuUsuario(page: Page, item: string) {
   await page.getByRole('menuitem', { name: item, exact: true }).click()
 }
 
-/** Técnicos y Logs están en el grupo «Gestión» de la columna lateral (0.9.12; antes, en el menú de usuario). */
+/** Técnicos y Logs están en el grupo «Gestión» de la columna lateral (0.9.14; antes, en el menú de usuario). */
 async function irAGestion(page: Page, pestana: 'Técnicos' | 'Logs') {
   await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: pestana, exact: true }).click()
 }

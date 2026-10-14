@@ -34,7 +34,7 @@ describe('preferencia de la columna lateral plegada (0.9.10)', () => {
   })
 })
 
-describe('grupos plegados de la columna lateral (0.9.12)', () => {
+describe('grupos plegados de la columna lateral (0.9.14)', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })

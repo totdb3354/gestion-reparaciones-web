@@ -23,7 +23,7 @@ function datos(contadores: { reparaciones: number; glass: number; pulidos: numbe
   return cargas
 }
 
-/** Suma de la cabecera de un grupo plegado (0.9.12, spec «Navegación por grupos» §3). */
+/** Suma de la cabecera de un grupo plegado (0.9.14, spec «Navegación por grupos» §3). */
 describe('suma de números de un grupo plegado', () => {
   afterEach(() => {
     vi.useRealTimers()

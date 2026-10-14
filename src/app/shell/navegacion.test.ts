@@ -5,7 +5,7 @@ import { gruposNav } from './navegacion'
 
 const resumen = (grupos: ReturnType<typeof gruposNav>) => grupos.map((g) => [g.id, g.titulo, g.enlaces.map((e) => e.label)])
 
-describe('grupos de la columna lateral (0.9.12)', () => {
+describe('grupos de la columna lateral (0.9.14)', () => {
   it('técnico: Reparaciones con Pendientes, Stock, Estadísticas › Rendimiento y Clientes › Listado, sin Gestión', () => {
     expect(resumen(gruposNav(SESION_TEC))).toEqual([
       ['reparaciones', 'Reparaciones', ['Pendientes', 'Historial', 'IMEIs']],

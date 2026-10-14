@@ -435,7 +435,7 @@ describe('TecnicosPage', () => {
     await screen.findByText('tecnico-a')
     expect(screen.queryByRole('button', { name: 'Restablecer contraseña' })).not.toBeInTheDocument()
   })
-  it('no tiene botón «Cerrar» (0.9.12: es una pestaña de la columna)', async () => {
+  it('no tiene botón «Cerrar» (0.9.14: es una pestaña de la columna)', async () => {
     montar()
     await screen.findByText('tecnico-a')
     expect(screen.queryByText('Cerrar', { exact: true })).not.toBeInTheDocument()
