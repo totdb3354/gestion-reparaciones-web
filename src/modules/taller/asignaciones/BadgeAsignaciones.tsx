@@ -8,8 +8,9 @@ import { useTotalAsignaciones } from './api'
  *
  * `activo` (el enlace es la ruta actual) apaga además su sondeo propio: con la vista abierta el ritmo lo lleva ella,
  * que es quien sabe congelarlo (D4); ver useTotalAsignaciones.
+ * `compacto`: columna plegada (BadgeLateral, 0.9.10).
  */
-export function BadgeAsignaciones({ activo }: { activo: boolean }) {
+export function BadgeAsignaciones({ activo, compacto = false }: { activo: boolean; compacto?: boolean }) {
   const { data } = useTotalAsignaciones({ sondea: !activo })
-  return <BadgeLateral total={data} activo={activo} />
+  return <BadgeLateral total={data} activo={activo} compacto={compacto} />
 }
