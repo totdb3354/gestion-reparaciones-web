@@ -1,4 +1,5 @@
-import type { ReparacionResumen } from '@/shared/api/client'
+import type { ReparacionResumen, ResultadoEntregaGlass } from '@/shared/api/client'
+import type { AvisoBreve } from '@/shared/ui/avisos'
 import { fechaLocal, formatear } from '@/shared/lib/fechas'
 import { tipoDe } from '@/shared/lib/tipoTrabajo'
 
@@ -112,4 +113,34 @@ export function etiquetaRepAbierta(rep: Rep): string | null {
 
 export function tooltipRepAbierta(rep: Rep): string | null {
   return etiquetaRepAbierta(rep) === null ? null : `Reparación abierta de ${nombreRep(rep!.normalTecnicoNombre)}`
+}
+
+const SIN_PIEZA_OTRO = 'sin «Abrir» (el modelo no tiene pieza otro)'
+
+/** Aviso tras «Entregar a X» (spec 2026-10-13 §2.1 y §2.3); X es el dueño de la glass, «glass» si no hay nombre. */
+export function avisoEntrega(r: ResultadoEntregaGlass, glassTecnico: string | null | undefined): AvisoBreve {
+  const base = `Entregado a ${nombre(glassTecnico)}`
+  switch (r.abrir) {
+    case 'CREADO': return { texto: `${base} · Abierto`, tipo: 'ok' }
+    case 'YA_EXISTIA': return { texto: `${base} · ya estaba abierto`, tipo: 'info' }
+    case 'SIN_PIEZA_OTRO': return { texto: `${base} · ${SIN_PIEZA_OTRO}`, tipo: 'warn' }
+    default: return { texto: base, tipo: 'info' }
+  }
+}
+
+/** Aviso tras «Marcar que llegó» (§2.2 y §2.3): el «Abrir» va al dueño de la reparación normal. */
+export function avisoLlegada(r: ResultadoEntregaGlass): AvisoBreve {
+  const base = 'Llegada registrada'
+  switch (r.abrir) {
+    case 'CREADO': return { texto: `${base} · Abierto (${nombreRep(r.tecnicoAbrir)})`, tipo: 'ok' }
+    case 'YA_EXISTIA': return { texto: `${base} · ya estaba abierto`, tipo: 'info' }
+    case 'SIN_PIEZA_OTRO': return { texto: `${base} · ${SIN_PIEZA_OTRO}`, tipo: 'warn' }
+    default: return { texto: base, tipo: 'info' }
+  }
+}
+
+/** Aviso tras «Deshacer entrega» (llegada = false) o «Deshacer llegada» (§2.4). */
+export function avisoDeshacer(r: ResultadoEntregaGlass, llegada: boolean): AvisoBreve {
+  const base = llegada ? 'Llegada deshecha' : 'Entrega deshecha'
+  return r.idRepBorrado ? { texto: `${base} · «Abrir» borrado`, tipo: 'ok' } : { texto: base, tipo: 'info' }
 }

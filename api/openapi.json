@@ -2593,8 +2593,15 @@
           }
         } ],
         "responses" : {
-          "204" : {
-            "description" : "No Content"
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultadoEntregaGlass"
+                }
+              }
+            }
           }
         }
       },
@@ -2610,8 +2617,15 @@
           }
         } ],
         "responses" : {
-          "204" : {
-            "description" : "No Content"
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultadoEntregaGlass"
+                }
+              }
+            }
           }
         }
       }
@@ -2639,8 +2653,15 @@
           "required" : true
         },
         "responses" : {
-          "204" : {
-            "description" : "No Content"
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultadoEntregaGlass"
+                }
+              }
+            }
           }
         }
       }
@@ -4124,6 +4145,14 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "name" : "desde",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         } ],
         "responses" : {
@@ -6633,6 +6662,29 @@
         "properties" : {
           "porCerrar" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ResultadoEntregaGlass" : {
+        "required" : [ "abrir", "idRepAbrir", "idRepBorrado", "tecnicoAbrir" ],
+        "type" : "object",
+        "properties" : {
+          "abrir" : {
+            "type" : "string",
+            "nullable" : true,
+            "enum" : [ "CREADO", "YA_EXISTIA", "SIN_PIEZA_OTRO", "SIN_NORMAL" ]
+          },
+          "idRepAbrir" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "tecnicoAbrir" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idRepBorrado" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

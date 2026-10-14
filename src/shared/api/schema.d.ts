@@ -3000,6 +3000,13 @@ export interface components {
         ReparacionPorCerrarRequest: {
             porCerrar: boolean;
         };
+        ResultadoEntregaGlass: {
+            /** @enum {string|null} */
+            abrir: "CREADO" | "YA_EXISTIA" | "SIN_PIEZA_OTRO" | "SIN_NORMAL" | null;
+            idRepAbrir: string | null;
+            tecnicoAbrir: string | null;
+            idRepBorrado: string | null;
+        };
         ReparacionEntregaGlassRequest: {
             entregado: boolean;
         };
@@ -5875,12 +5882,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ResultadoEntregaGlass"];
+                };
             };
         };
     };
@@ -5895,12 +5904,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ResultadoEntregaGlass"];
+                };
             };
         };
     };
@@ -5919,12 +5930,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ResultadoEntregaGlass"];
+                };
             };
         };
     };
@@ -7126,6 +7139,7 @@ export interface operations {
             query?: {
                 categoria?: string;
                 excluir?: string;
+                desde?: string;
             };
             header?: never;
             path: {

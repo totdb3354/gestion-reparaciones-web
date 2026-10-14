@@ -12,6 +12,7 @@ import { borrarSesion } from '@/shared/session/storage'
 import { mensajeSesionCerrada } from '@/app/session/mensajes'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
+import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 
 // Arranque asíncrono: la comprobación de la sesión (cerrojo de pestaña, con un tope de 2 s, y señal de actividad) se espera
 // ANTES de crear el QueryClient y la raíz de React; hasta entonces no se pinta nada ni sale ninguna petición, y nadie lee la
@@ -35,6 +36,7 @@ function pintar() {
         <SessionProvider>
           <AlertaProvider>
             <RouterProvider router={router} />
+            <AvisoBreveHost />
           </AlertaProvider>
         </SessionProvider>
       </QueryClientProvider>

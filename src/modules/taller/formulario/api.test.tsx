@@ -28,6 +28,33 @@ function envoltorio(sesion: typeof SESION_TEC) {
 }
 
 describe('cargarNuevo', () => {
+  it('trae las acciones «otro» del IMEI (reparación y glass) desde la fecha de la asignación; si fallan, []', async () => {
+    guardarSesion(SESION_TEC)
+    const consultas: string[] = []
+    server.use(...handlersFormulario({ asignacion: { fechaAsig: '2026-09-16T07:02:00' } }))
+    server.use(
+      http.get('*/api/reparaciones/imei/:imei/acciones', ({ request }) => {
+        const q = new URL(request.url).searchParams
+        const categoria = q.get('categoria') ?? ''
+        consultas.push(`${categoria} ${q.get('desde') ?? ''}`)
+        return HttpResponse.json(categoria === 'G' ? ['Cerrar'] : ['Abrir', 'Cambio de tornillos'])
+      }),
+    )
+    expect((await cargarNuevo('A20260916_1')).datos.accionesImei).toEqual(['Abrir', 'Cambio de tornillos', 'Cerrar'])
+    expect(consultas.sort()).toEqual(['G 2026-09-16T07:02:00', 'R 2026-09-16T07:02:00'])
+    server.use(http.get('*/api/reparaciones/imei/:imei/acciones', () => HttpResponse.json({ message: 'fallo' }, { status: 422 })))
+    expect((await cargarNuevo('A20260916_1')).datos.accionesImei).toEqual([])
+  })
+
+  it('en una asignación de glass (AG…) no pide las acciones del IMEI y accionesImei es []', async () => {
+    guardarSesion(SESION_TEC)
+    let llamadas = 0
+    server.use(...handlersFormulario())
+    server.use(http.get('*/api/reparaciones/imei/:imei/acciones', () => { llamadas++; return HttpResponse.json(['Abrir']) }))
+    expect((await cargarNuevo('AG20260916_2')).datos.accionesImei).toEqual([])
+    expect(llamadas).toBe(0)
+  })
+
   it('compone DatosNuevo con el imei de la asignación', async () => {
     guardarSesion(SESION_TEC)
     const solicitudes = [solicitudAsignacion({ idCom: 102 })]
@@ -36,7 +63,7 @@ describe('cargarNuevo', () => {
     const carga = await cargarNuevo('A20260916_1')
     expect(carga.datos).toEqual({
       modo: 'nuevo', idAsignacion: 'A20260916_1', imei: '355400000000222', agrupados: agrupados(), solicitudes, incidencia: 'R20260910_3',
-      modeloTelefono: '14',
+      modeloTelefono: '14', accionesImei: [],
     })
     expect(Object.keys(carga.datos.agrupados)).toEqual(['bat', 'cha', 'g', 'mc', 'lcd', 'cam', 'otro'])
     expect(carga.asignacionesActivas).toEqual(activas)

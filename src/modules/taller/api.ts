@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type Cliente, type ContadoresPendientes, type ReparacionResumen, type Tecnico, type TrabajoCerrado } from '@/shared/api/client'
+import { api, type Cliente, type ContadoresPendientes, type ReparacionResumen, type ResultadoEntregaGlass, type Tecnico, type TrabajoCerrado } from '@/shared/api/client'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin, esSuperTecnico } from '@/shared/session/storage'
@@ -116,25 +116,32 @@ export function usePorCerrar() {
     onSettled: recargar,
   })
 }
+/** Entregar/deshacer la entrega y marcar/deshacer la llegada devuelven qué pasó con el «Abrir» automático (spec 2026-10-13
+ *  §4.1); null contra un servidor que aún responde 204. Recargan también el Historial de reparaciones, donde aparece o
+ *  desaparece el «Abrir». */
+const PENDIENTES_E_HISTORIAL_REP = [...PENDIENTES_AMBAS, claveHistorial('REPARACION')] as const
+
 export function useEntregaGlass() {
-  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_E_HISTORIAL_REP)
   return useMutation({
-    mutationFn: ({ idRep, entregado }: { idRep: string; entregado: boolean }) =>
-      api.PATCH('/api/reparaciones/asignaciones/{idRep}/entrega-glass', { params: { path: { idRep } }, body: { entregado } }),
+    mutationFn: async ({ idRep, entregado }: { idRep: string; entregado: boolean }): Promise<ResultadoEntregaGlass | null> =>
+      (await api.PATCH('/api/reparaciones/asignaciones/{idRep}/entrega-glass', { params: { path: { idRep } }, body: { entregado } })).data ?? null,
     onSettled: recargar,
   })
 }
 export function useMarcarLlegada() {
-  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_E_HISTORIAL_REP)
   return useMutation({
-    mutationFn: (idRep: string) => api.PATCH('/api/reparaciones/asignaciones/{idRep}/llegada', { params: { path: { idRep } } }),
+    mutationFn: async (idRep: string): Promise<ResultadoEntregaGlass | null> =>
+      (await api.PATCH('/api/reparaciones/asignaciones/{idRep}/llegada', { params: { path: { idRep } } })).data ?? null,
     onSettled: recargar,
   })
 }
 export function useDeshacerLlegada() {
-  const recargar = useRecargarSinEsperar(...PENDIENTES_AMBAS)
+  const recargar = useRecargarSinEsperar(...PENDIENTES_E_HISTORIAL_REP)
   return useMutation({
-    mutationFn: (idRep: string) => api.DELETE('/api/reparaciones/asignaciones/{idRep}/llegada', { params: { path: { idRep } } }),
+    mutationFn: async (idRep: string): Promise<ResultadoEntregaGlass | null> =>
+      (await api.DELETE('/api/reparaciones/asignaciones/{idRep}/llegada', { params: { path: { idRep } } })).data ?? null,
     onSettled: recargar,
   })
 }
