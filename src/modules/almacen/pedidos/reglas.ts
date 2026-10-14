@@ -5,12 +5,21 @@ export type EstadoPedido = 'pendiente' | 'en_camino' | 'parcial' | 'recibido' | 
 /** En el orden de los cinco checks del menú "Estado" (StockController :943-949). */
 export const ESTADOS_PEDIDO: EstadoPedido[] = ['pendiente', 'en_camino', 'parcial', 'recibido', 'cancelado']
 
-/** Toggle "Componentes" | "Otros" (spec 4b, P4). */
+/** Tabla de origen de un pedido: la clave de su consulta (`['compras', tipo]`). Hasta la 0.9.14 era también el toggle
+ *  «Componentes | Otros»; desde la 0.9.15 las dos van juntas en una lista. */
 export type TipoPedido = 'componentes' | 'otros'
 export type Pedido = CompraComponente | CompraOtro
 
+/** Tipo de una línea en las acciones de bloque (0.9.15, contrato `LineaVista.tipo`): piezas y otros tienen numeración
+ *  propia, así que una línea se identifica por tipo + id. */
+export type TipoLinea = 'PIEZA' | 'OTRO'
+
 export function esCompra(p: Pedido): p is CompraComponente {
   return 'idCompra' in p
+}
+
+export function tipoLinea(p: Pedido): TipoLinea {
+  return esCompra(p) ? 'PIEZA' : 'OTRO'
 }
 
 export function idPedido(p: Pedido): number {

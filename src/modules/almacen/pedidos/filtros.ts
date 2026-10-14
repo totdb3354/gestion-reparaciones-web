@@ -1,3 +1,4 @@
+import type { CompraComponente, CompraOtro } from '@/shared/api/client'
 import { fechaLocal } from '@/shared/lib/fechas'
 import { estadoDeChip, nombrePedido, type EstadoPedido, type Pedido } from './reglas'
 
@@ -9,6 +10,13 @@ export const FILTROS_PEDIDOS_VACIOS: FiltrosPedidos = { estados: new Set(), prov
 /** Calco de :1016 y :1283: el servidor ordena por fecha desc y el cliente manda los cancelados al final con un sort estable. */
 export function ordenarCanceladosAlFinal<T extends { estado: string }>(lista: T[]): T[] {
   return [...lista].sort((a, b) => Number(a.estado === 'cancelado') - Number(b.estado === 'cancelado'))
+}
+
+/** 0.9.15 (spec «Añadir otro» §5.1): las dos listas de Pedidos en una. Por fecha de pedido descendente, como ordena el
+ *  servidor cada una; a igual fecha, las piezas primero (orden estable), y los cancelados al final, como hoy. */
+export function juntarLineas(compras: CompraComponente[], otros: CompraOtro[]): Pedido[] {
+  const todas: Pedido[] = [...compras, ...otros]
+  return ordenarCanceladosAlFinal(todas.sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido)))
 }
 
 /** `!fecha.isBefore(desde) && !fecha.isAfter(hasta)` sobre el día de Madrid (:954-957); una fecha nula pasa (calco). */

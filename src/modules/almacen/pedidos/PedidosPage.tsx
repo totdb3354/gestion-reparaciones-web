@@ -105,7 +105,7 @@ export function PedidosPage({ tipo }: { tipo: TipoPedido }) {
   const otros = useComprasOtros({ activo: activo && tipo === 'otros', habilitada: tipo === 'otros' })
   // Proveedores del filtro: la misma consulta que la pestaña Proveedores; aquí no sondea.
   const proveedores = useProveedoresComponentes({ activo: false })
-  const transicion = useTransicionPedido(tipo)
+  const transicion = useTransicionPedido()
   const mover = useMoverLinea()
 
   const hayModal = dialogoCantidad !== null || confirmar !== null || editando !== null || accionBloque !== null || separando !== null

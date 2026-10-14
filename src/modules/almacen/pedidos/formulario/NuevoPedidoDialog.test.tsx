@@ -346,6 +346,7 @@ describe('NuevoPedidoDialog', () => {
       lineas: [{ idCom: 2, idProv: 1, cantidad: 2, esUrgente: true, precioUnidad: 12.5 }],
       solicitudes: { urgentes: [10], preventivas: [20] },
       destinos: null,
+      otros: [],
     })
   })
 
@@ -602,6 +603,7 @@ describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () =>
       ],
       solicitudes: { urgentes: [], preventivas: [] },
       destinos: null,
+      otros: [],
     })
   })
 

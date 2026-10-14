@@ -10,6 +10,7 @@ const compra: CompraComponente = {
   precioEur: 12.5, estado: 'recibido', updatedAt: '2026-09-18T08:00:00',
 }
 const otro: CompraOtro = {
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 7, idProv: 1, nombreProveedor: 'Proveedor A', concepto: 'Cinta de embalar', cantidad: 3, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR', precioEur: 2,
   estado: 'recibido', updatedAt: '2026-09-20T08:30:00',

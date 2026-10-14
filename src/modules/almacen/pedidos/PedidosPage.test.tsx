@@ -35,6 +35,7 @@ const compras: CompraComponente[] = [
   compra({ idCompra: 4, idCom: 14, tipoComponente: 'cam-x', estado: 'recibido', cantidadRecibida: 2, fechaPedido: '2026-09-16T08:00:00' }),
 ]
 const otroBase: CompraOtro = {
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 7, idProv: 1, nombreProveedor: 'Proveedor A', concepto: 'Cinta de embalar', cantidad: 3, cantidadRecibida: null,
   esUrgente: false, fechaPedido: U1, fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR', precioEur: 2, estado: 'recibido', updatedAt: U1,
 }

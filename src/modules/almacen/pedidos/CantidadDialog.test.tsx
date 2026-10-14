@@ -14,6 +14,7 @@ const enCamino: CompraComponente = {
   estado: 'en_camino', updatedAt: '2026-09-19T08:00:00',
 }
 const parcial: CompraOtro = {
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 7, idProv: 1, nombreProveedor: 'Proveedor A', concepto: 'Cinta de embalar', cantidad: 10, cantidadRecibida: 3,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR', precioEur: 2,
   estado: 'parcial', updatedAt: '2026-09-20T08:30:00',

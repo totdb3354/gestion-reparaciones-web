@@ -13,6 +13,7 @@ const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,
 })
 const otro = (o: Partial<CompraOtro> = {}): CompraOtro => ({
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 7, idProv: 1, nombreProveedor: 'Proveedor A', concepto: 'Cinta de embalar', cantidad: 3, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR', precioEur: 2,
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,

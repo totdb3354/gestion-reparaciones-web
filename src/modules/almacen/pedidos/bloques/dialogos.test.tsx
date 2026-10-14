@@ -43,7 +43,7 @@ describe('AccionBloqueDialog (spec §6.5)', () => {
     expect(quedan).toHaveTextContent('parcial (1/2): usa «Recibir resto» en su fila')
     await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (1)' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/recibir', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }] } }])
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/recibir', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }] } }])
   })
 
   it('un 409 cierra y avisa como «Advertencia»', async () => {
@@ -118,7 +118,7 @@ describe('AccionBloqueDialog con casillas (0.9.13)', () => {
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
     expect(peticiones).toEqual([{
       ruta: '/api/bloques-compra/41/recibir',
-      cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }, { idCompra: 4, updatedAt: U }] },
+      cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 4, updatedAt: U, tipo: 'PIEZA' }] },
     }])
   })
 
@@ -187,7 +187,7 @@ describe('SepararDialog', () => {
     expect(within(dlg).getByText('2 líneas de las marcadas ya se pidieron: el movimiento quedará apuntado en el registro.')).toBeInTheDocument()
     await userEvent.click(within(dlg).getByRole('button', { name: 'Separar igualmente (2)' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/separar', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }, { idCompra: 3, updatedAt: U }] } }])
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/separar', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 3, updatedAt: U, tipo: 'PIEZA' }] } }])
   })
 })
 
@@ -221,7 +221,7 @@ describe('JuntarDialog', () => {
     await userEvent.click(within(dlg).getByRole('radio', { name: /Bloque 40/ }))
     await userEvent.click(within(dlg).getByRole('button', { name: 'Juntar' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 1, updatedAt: U }] } }])
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 1, updatedAt: U, tipo: 'PIEZA' }] } }])
   })
 })
 

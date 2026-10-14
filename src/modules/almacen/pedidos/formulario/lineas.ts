@@ -235,6 +235,7 @@ export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: Sol
           preventivas: origen.preventivas.filter((s) => tieneLinea(s.idCom)).map((s) => s.idSol),
         },
     destinos,
+    otros: [],
   }
 }
 

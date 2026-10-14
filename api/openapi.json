@@ -3270,6 +3270,36 @@
         }
       }
     },
+    "/api/compras-otros/{id}/bloque" : {
+      "patch" : {
+        "tags" : [ "bloque-compra-controller" ],
+        "operationId" : "moverOtro",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BloqueCompraMoverRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/componentes/{idCom}/stock" : {
       "patch" : {
         "tags" : [ "componente-controller" ],
@@ -5268,7 +5298,7 @@
         "nullable" : true
       },
       "CompraOtroEditarRequest" : {
-        "required" : [ "cantidad", "concepto", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
+        "required" : [ "cantidad", "concepto", "destino", "divisa", "esUrgente", "idProv", "precioEur", "precioUnidad", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idProv" : {
@@ -5301,6 +5331,9 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "destino" : {
+            "$ref" : "#/components/schemas/DestinoPedido"
           }
         }
       },
@@ -6077,8 +6110,36 @@
           }
         }
       },
+      "LoteComprasOtrosLinea" : {
+        "required" : [ "cantidad", "concepto", "esUrgente", "idProv", "precioUnidad" ],
+        "type" : "object",
+        "properties" : {
+          "idProv" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "concepto" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "cantidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "esUrgente" : {
+            "type" : "boolean"
+          },
+          "precioUnidad" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        },
+        "description" : "0.9.15: otros pedidos del mismo guardado; nulo = ninguno",
+        "nullable" : true
+      },
       "LoteComprasPeticion" : {
-        "required" : [ "destinos", "lineas", "solicitudes" ],
+        "required" : [ "destinos", "lineas", "otros", "solicitudes" ],
         "type" : "object",
         "properties" : {
           "lineas" : {
@@ -6095,6 +6156,14 @@
             "nullable" : true,
             "items" : {
               "$ref" : "#/components/schemas/LoteComprasDestino"
+            }
+          },
+          "otros" : {
+            "type" : "array",
+            "description" : "0.9.15: otros pedidos del mismo guardado; nulo = ninguno",
+            "nullable" : true,
+            "items" : {
+              "$ref" : "#/components/schemas/LoteComprasOtrosLinea"
             }
           }
         }
@@ -6120,10 +6189,17 @@
         }
       },
       "LoteComprasRespuesta" : {
-        "required" : [ "idsCreados" ],
+        "required" : [ "idsCreados", "idsOtrosCreados" ],
         "type" : "object",
         "properties" : {
           "idsCreados" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "idsOtrosCreados" : {
             "type" : "array",
             "items" : {
               "type" : "integer",
@@ -6162,32 +6238,6 @@
             "description" : "Ignorado: el servidor calcula el importe en euros",
             "format" : "double",
             "nullable" : true
-          }
-        }
-      },
-      "LoteComprasOtrosLinea" : {
-        "required" : [ "cantidad", "concepto", "esUrgente", "idProv", "precioUnidad" ],
-        "type" : "object",
-        "properties" : {
-          "idProv" : {
-            "type" : "integer",
-            "format" : "int32",
-            "nullable" : true
-          },
-          "concepto" : {
-            "type" : "string",
-            "nullable" : true
-          },
-          "cantidad" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "esUrgente" : {
-            "type" : "boolean"
-          },
-          "precioUnidad" : {
-            "type" : "number",
-            "format" : "double"
           }
         }
       },
@@ -6242,7 +6292,7 @@
         }
       },
       "LineaVista" : {
-        "required" : [ "idCompra", "updatedAt" ],
+        "required" : [ "idCompra", "tipo", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCompra" : {
@@ -6252,6 +6302,12 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "tipo" : {
+            "type" : "string",
+            "description" : "0.9.15: PIEZA u OTRO; nulo o ausente = PIEZA",
+            "nullable" : true,
+            "enum" : [ "PIEZA", "OTRO" ]
           }
         }
       },
@@ -8005,7 +8061,7 @@
         }
       },
       "CompraOtro" : {
-        "required" : [ "cantidad", "cantidadRecibida", "concepto", "divisa", "esUrgente", "estado", "fechaLlegada", "fechaPedido", "idCompraOtro", "idProv", "nombreProveedor", "precioEur", "precioUnidadPedido", "updatedAt" ],
+        "required" : [ "bloqueAntiguo", "bloqueUpdatedAt", "cantidad", "cantidadRecibida", "concepto", "divisa", "esUrgente", "estado", "fechaBloque", "fechaLlegada", "fechaPedido", "idBloque", "idCompraOtro", "idProv", "nombreProveedor", "notaBloque", "precioEur", "precioUnidadPedido", "updatedAt" ],
         "type" : "object",
         "properties" : {
           "idCompraOtro" : {
@@ -8060,6 +8116,28 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "idBloque" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "fechaBloque" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "notaBloque" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "bloqueUpdatedAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "bloqueAntiguo" : {
+            "type" : "boolean"
           }
         }
       },

@@ -138,7 +138,7 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Recibir todo (1)' }))
     const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
     await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (1)' }))
-    await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}"}]}`]))
+    await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}","tipo":"PIEZA"}]}`]))
   })
 
   it('⋮ del bloque → «Exportar bloque en CSV» descarga todas sus líneas aunque un filtro oculte alguna (0.9.13)', async () => {

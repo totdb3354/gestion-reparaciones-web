@@ -1444,6 +1444,22 @@ export interface paths {
         patch: operations["cancelar_2"];
         trace?: never;
     };
+    "/api/compras-otros/{id}/bloque": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["moverOtro"];
+        trace?: never;
+    };
     "/api/componentes/{idCom}/stock": {
         parameters: {
             query?: never;
@@ -2530,6 +2546,7 @@ export interface components {
             precioEur: number | null;
             /** Format: date-time */
             updatedAt: string;
+            destino: components["schemas"]["DestinoPedido"];
         };
         ComponenteActualizarRequest: {
             tipo: string;
@@ -2800,10 +2817,23 @@ export interface components {
             /** Format: double */
             precioUnidad: number;
         };
+        /** @description 0.9.15: otros pedidos del mismo guardado; nulo = ninguno */
+        LoteComprasOtrosLinea: {
+            /** Format: int32 */
+            idProv: number | null;
+            concepto: string | null;
+            /** Format: int32 */
+            cantidad: number;
+            esUrgente: boolean;
+            /** Format: double */
+            precioUnidad: number;
+        } | null;
         LoteComprasPeticion: {
             lineas: components["schemas"]["LoteComprasLinea"][];
             solicitudes: components["schemas"]["LoteComprasSolicitudes"];
             destinos: components["schemas"]["LoteComprasDestino"][] | null;
+            /** @description 0.9.15: otros pedidos del mismo guardado; nulo = ninguno */
+            otros: components["schemas"]["LoteComprasOtrosLinea"][] | null;
         };
         LoteComprasSolicitudes: {
             urgentes: number[];
@@ -2811,6 +2841,7 @@ export interface components {
         };
         LoteComprasRespuesta: {
             idsCreados: number[];
+            idsOtrosCreados: number[];
         };
         CompraOtroInsertarRequest: {
             /** Format: int32 */
@@ -2827,16 +2858,6 @@ export interface components {
              * @description Ignorado: el servidor calcula el importe en euros
              */
             precioEur: number | null;
-        };
-        LoteComprasOtrosLinea: {
-            /** Format: int32 */
-            idProv: number | null;
-            concepto: string | null;
-            /** Format: int32 */
-            cantidad: number;
-            esUrgente: boolean;
-            /** Format: double */
-            precioUnidad: number;
         };
         LoteComprasOtrosPeticion: {
             lineas: components["schemas"]["LoteComprasOtrosLinea"][];
@@ -2859,6 +2880,11 @@ export interface components {
             idCompra: number;
             /** Format: date-time */
             updatedAt: string;
+            /**
+             * @description 0.9.15: PIEZA u OTRO; nulo o ausente = PIEZA
+             * @enum {string|null}
+             */
+            tipo: "PIEZA" | "OTRO" | null;
         };
         BloqueCompraSepararRespuesta: {
             /** Format: int32 */
@@ -3537,6 +3563,14 @@ export interface components {
             estado: string;
             /** Format: date-time */
             updatedAt: string;
+            /** Format: int32 */
+            idBloque: number | null;
+            /** Format: date-time */
+            fechaBloque: string | null;
+            notaBloque: string | null;
+            /** Format: date-time */
+            bloqueUpdatedAt: string | null;
+            bloqueAntiguo: boolean;
         };
         Componente: {
             /** Format: int32 */
@@ -6427,6 +6461,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CompraOtroUpdatedAtRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    moverOtro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueCompraMoverRequest"];
             };
         };
         responses: {

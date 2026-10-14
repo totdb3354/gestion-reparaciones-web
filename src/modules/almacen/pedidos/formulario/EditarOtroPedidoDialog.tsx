@@ -45,7 +45,7 @@ export function EditarOtroPedidoDialog({ pedido, onCerrar }: Props) {
     try {
       await editar.mutateAsync({
         idCompraOtro: pedido.idCompraOtro,
-        cuerpo: { idProv: v.valor.idProv, concepto: v.valor.concepto ?? '', cantidad: v.valor.cantidad, esUrgente: pedido.esUrgente, precioUnidad: v.valor.precioUnidad, divisa, updatedAt: pedido.updatedAt },
+        cuerpo: { idProv: v.valor.idProv, concepto: v.valor.concepto ?? '', cantidad: v.valor.cantidad, esUrgente: pedido.esUrgente, precioUnidad: v.valor.precioUnidad, divisa, updatedAt: pedido.updatedAt, destino: null },
       })
       onCerrar()
     } catch (e) {
