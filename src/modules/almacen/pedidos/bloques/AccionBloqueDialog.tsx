@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatear } from '@/shared/lib/fechas'
+import { cn } from '@/shared/lib/utils'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useAccionBloque, vistaDe, type AccionBloque } from '../api'
@@ -46,6 +47,7 @@ export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
   }
 
   async function confirmar() {
+    if (conCasillas && elegidas.length === 0) return
     setError(null)
     try {
       await aplicar.mutateAsync({ idBloque: bloque.idBloque as number, accion, lineas: elegidas.map(vistaDe) })
@@ -64,7 +66,7 @@ export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
       <div className="flex max-h-[50vh] flex-col gap-2.5 overflow-y-auto">
         <ListaLineas titulo={`${t.cambian} (${cuenta})`} lineas={cambian}
           casillas={conCasillas ? { marcadas, onAlternar: alternar, onAlternarTodas: alternarTodas, textoQueda: textoQueda(accion) } : undefined} />
-        {desmarcadas > 0 && <p role="status" className="text-[12px] text-azul-gris">{textoDesmarcadas(accion, desmarcadas)}</p>}
+        {conCasillas && <p role="status" className={cn('text-[12px] text-azul-gris', desmarcadas === 0 && 'hidden')}>{desmarcadas > 0 ? textoDesmarcadas(accion, desmarcadas) : ''}</p>}
         {quedan.length > 0 && (
           <ListaLineas titulo={`No cambian (${quedan.length})`} lineas={quedan} motivo={(p) => motivoNoCambia(p, accion)} apagada />
         )}

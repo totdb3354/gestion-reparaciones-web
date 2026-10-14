@@ -31,13 +31,13 @@ export function ListaLineas({ titulo, lineas, motivo, apagada = false, casillas 
   const todas = nMarcadas === lineas.length
   return (
     <section aria-label={titulo} className="rounded-lg border border-fila-sep bg-superficie">
-      <h4 className={cn('flex items-center gap-2 rounded-t-lg border-b border-fila-sep bg-crema px-2.5 py-1.5 text-[12px] font-bold', apagada ? 'text-texto-sub' : 'text-azul-medio')}>
+      <div className={cn('flex items-center gap-2 rounded-t-lg border-b border-fila-sep bg-crema px-2.5 py-1.5 text-[12px] font-bold', apagada ? 'text-texto-sub' : 'text-azul-medio')}>
         {casillas && lineas.length > 0 && (
           <Checkbox aria-label="Marcar todas" checked={todas ? true : nMarcadas === 0 ? false : 'indeterminate'}
             onCheckedChange={() => casillas.onAlternarTodas(!todas)} className="bg-superficie" />
         )}
-        {titulo}
-      </h4>
+        <h4 className="m-0 text-[length:inherit] font-[inherit]">{titulo}</h4>
+      </div>
       <ul>
         {lineas.map((p) => {
           if (!casillas) {

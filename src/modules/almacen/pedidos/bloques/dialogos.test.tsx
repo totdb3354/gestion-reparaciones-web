@@ -122,6 +122,15 @@ describe('AccionBloqueDialog con casillas (0.9.13)', () => {
     }])
   })
 
+  it('el aviso de desmarcadas está montado y vacío al abrir, y se rellena al desmarcar una', async () => {
+    renderConProviders(<AccionBloqueDialog bloque={tresEnCamino()} accion="recibir" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
+    const aviso = within(dlg).getByRole('status', { hidden: true })
+    expect(aviso).toBeEmptyDOMElement()
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'lcd-y (ID 3)' }))
+    expect(within(dlg).getByRole('status')).toHaveTextContent('Se queda en camino 1 línea: la desmarcada no cambia.')
+  })
+
   it('«Marcar todas» desmarca todas (botón deshabilitado) y, a medias, las vuelve a marcar todas', async () => {
     renderConProviders(<AccionBloqueDialog bloque={tresEnCamino()} accion="cancelar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
     const dlg = await screen.findByRole('dialog', { name: 'Cancelar bloque · Bloque 41' })
