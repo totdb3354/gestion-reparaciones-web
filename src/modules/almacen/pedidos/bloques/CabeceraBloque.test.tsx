@@ -20,7 +20,11 @@ describe('CabeceraBloque (spec §6.3)', () => {
     expect(screen.getByText('1 pendiente')).toBeInTheDocument()
     // En camino, azul aunque una sea urgente: el aviso va en el ⚠ (0.9.9).
     expect(screen.getByText('2 en camino')).toHaveClass('bg-badge-en-camino-bg', 'text-badge-en-camino-text')
-    expect(screen.getByTitle('Ped. 123')).toHaveTextContent('📝 Ped. 123')
+    const nota = screen.getByTitle('Ped. 123')
+    expect(nota).toHaveTextContent('Ped. 123')
+    expect(nota).not.toHaveTextContent('📝')
+    expect(nota.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.queryByText(/sin precio/)).not.toBeInTheDocument()
     expect(screen.queryByText(/mostrando/)).not.toBeInTheDocument()
     expect(screen.queryByText('antiguo')).not.toBeInTheDocument()
   })
@@ -47,5 +51,13 @@ describe('CabeceraBloque (spec §6.3)', () => {
     render(<CabeceraBloque bloque={bloque(l({ idBloque: null, fechaBloque: null }))} visibles={1} desplegado onAlternar={vi.fn()} />)
     expect(screen.getByText('Sin bloque')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Plegar líneas sin bloque' })).toBeInTheDocument()
+  })
+
+  it('chip «! N sin precio» con líneas recibidas a 0 (2026-10-13)', () => {
+    const b = bloque(l({ idCompra: 1, estado: 'recibido', precioUnidadPedido: 0, precioEur: 0 }), l({ idCompra: 2, estado: 'recibido', precioUnidadPedido: 0, precioEur: 0 }))
+    render(<CabeceraBloque bloque={b} visibles={2} desplegado={false} onAlternar={vi.fn()} />)
+    const chip = screen.getByText('! 2 sin precio')
+    expect(chip).toHaveAttribute('title', '2 líneas recibidas sin precio: ponlo con «Editar».')
+    expect(chip).toHaveClass('bg-fila-solicitud-bg', 'text-fila-solicitud-brd')
   })
 })

@@ -33,6 +33,9 @@ type Props = {
    *  refresco periódico de una tabla, que al recargar movería la fila bajo el cursor). Opcional: sin ella el combo
    *  se comporta igual que siempre. */
   onOpenChange?: (abierta: boolean) => void
+  /** Aspecto del disparador: «navy» (el de siempre) o «botón», que imita a BotonSecundario (borde y texto azul noche
+   *  sobre crema), para un combo que hace de botón de acción, como «+ Otro proveedor» del pie de «Nuevo pedido». */
+  aspecto?: 'navy' | 'boton'
   'aria-label': string
 }
 
@@ -63,8 +66,9 @@ function MuestraColor({ color, sobreOscuro = false }: { color: string | null; so
 /** Combo navy de selección única (modelo y SKU del formulario): píldora navy con la etiqueta de la opción elegida y lista
  *  blanca con la opción activa en navy. `clase` colorea el texto de una opción (SKU por stock) en la lista y en el botón. El
  *  color no se mezcla con `cn`: se elige una clase u otra, para no depender de cómo resuelva tailwind-merge dos `text-*`. */
-export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamanoTexto = 12, visibles, disabled = false, onOpenChange, 'aria-label': etiquetaAccesible }: Props) {
+export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamanoTexto = 12, visibles, disabled = false, onOpenChange, aspecto = 'navy', 'aria-label': etiquetaAccesible }: Props) {
   const [abierto, setAbierto] = useState(false)
+  const boton = aspecto === 'boton'
   const actual = opciones.find((o) => o.valor === valor) ?? null
   const tamano = CLASE_TEXTO[tamanoTexto]
   // Las filas de título de bloque también ocupan alto en la lista: sin contarlas se verían menos opciones de las pedidas.
@@ -111,17 +115,20 @@ export function ComboNavy({ valor, opciones, onChange, textoVacio, ancho, tamano
         disabled={disabled}
         style={ancho === 'full' ? undefined : { width: ancho }}
         className={cn(
-          'flex h-[27px] shrink-0 items-center justify-between gap-1 rounded-3xl bg-azul-noche px-3 font-bold hover:bg-azul-noche-hover disabled:cursor-default disabled:opacity-60 disabled:hover:bg-azul-noche',
+          boton
+            ? 'flex h-auto shrink-0 items-center justify-center gap-1 rounded-3xl border border-azul-noche bg-crema px-4 py-2 font-bold text-azul-noche hover:bg-badge-neutro-bg disabled:cursor-default disabled:opacity-50 disabled:hover:bg-crema'
+            : 'flex h-[27px] shrink-0 items-center justify-between gap-1 rounded-3xl bg-azul-noche px-3 font-bold hover:bg-azul-noche-hover disabled:cursor-default disabled:opacity-60 disabled:hover:bg-azul-noche',
           ancho === 'full' && 'w-full',
           tamano,
-          actual?.clase || 'text-texto-nav-activo',
+          // Con aspecto «botón» el texto va siempre en azul noche (arriba): la clase de la opción solo colorea la píldora navy.
+          !boton && (actual?.clase || 'text-texto-nav-activo'),
         )}
       >
         <span className="flex min-w-0 items-center gap-1.5">
-          {actual?.color !== undefined && <MuestraColor color={actual.color} sobreOscuro />}
+          {actual?.color !== undefined && <MuestraColor color={actual.color} sobreOscuro={!boton} />}
           <span className="truncate">{actual ? (actual.etiquetaBoton ?? actual.etiqueta) : textoVacio}</span>
         </span>
-        <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-texto-nav-activo" />
+        <ChevronDown aria-hidden="true" className={cn('size-3.5 shrink-0', boton ? 'text-azul-noche' : 'text-texto-nav-activo')} />
       </PopoverTrigger>
       <PopoverContent align="start" style={ancho === 'full' ? undefined : { minWidth: ancho }} className={cn(ancho === 'full' && 'min-w-(--radix-popover-trigger-width)', 'w-auto rounded-lg border border-fila-sep bg-superficie p-0 shadow-md')}>
         <ul

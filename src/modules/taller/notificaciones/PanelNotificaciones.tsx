@@ -92,8 +92,8 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
   }
 
   /** "Pedir" de una alerta y "Pedir todas las piezas" (calco de MainController :699-704 y :275-278): "Nuevo pedido" con una
-   *  línea por componente, cantidad 1, en el orden de la campana. El formulario es un modal sobre la vista actual (P1)
-   *  y el panel se cierra antes de abrirlo (spec §6 "Campana"). */
+   *  línea por componente, con su «Pedir 60 d» si es > 0 y, si no, 1 (0.9.9), en el orden de la campana. El formulario
+   *  es un modal sobre la vista actual (P1) y el panel se cierra antes de abrirlo (spec §6 "Campana"). */
   function pedirComponentes(idsCom: number[]) {
     onCerrar()
     abrirNuevoPedido({ modo: 'componentes', idsCom })
