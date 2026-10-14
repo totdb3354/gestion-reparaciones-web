@@ -1,3 +1,4 @@
+import { isCancelledError } from '@tanstack/react-query'
 import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from '@/shared/api/errors'
 import { horaLocal } from '@/shared/lib/fechas'
 import { cn } from '@/shared/lib/utils'
@@ -21,6 +22,9 @@ export function EtiquetaActualizado({ actualizadoEn, onRecargar, className }: Pr
     try {
       await onRecargar()
     } catch (e) {
+      // Pulsar otra vez antes de que acabe cancela la recarga en curso (cancelRefetch de TanStack) y desde el tercer
+      // clic la primera rechaza con CancelledError: no es un fallo, la última recarga sigue y trae los datos.
+      if (isCancelledError(e)) return
       if (e instanceof ConexionError) mostrarError(mensajeSinConexion(e))
       else if (!esErrorGestionadoGlobalmente(e)) mostrarError(mensajeDeError(e))
     }
