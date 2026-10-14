@@ -42,13 +42,17 @@ test.beforeAll(async ({ playwright }, testInfo) => {
   api = { ctx, headers: { Authorization: `Bearer ${token}` } }
 })
 
-/** Primer modelo con componente «otro» (sin él no hay «Abrir»). */
+/** Primer modelo con componente «otro» ACTIVO: sin él no hay «Abrir», y el formulario solo ofrece (y preselecciona) modelos
+ *  con piezas activas; con uno inactivo (p. ej. el 11 tras sanear el catálogo) entra sin modelo y sin «Otras acciones». */
 async function modeloConOtro(): Promise<string> {
   const r = await api!.ctx.get('/api/componentes/agrupados', { headers: api!.headers })
   expect(r.status(), 'GET /api/componentes/agrupados').toBe(200)
-  const agrupados = (await r.json()) as Record<string, { tipo: string }[]>
-  const modelo = (agrupados.otro ?? []).map((c) => modeloDeSku(c.tipo, 'otro')).find((m): m is string => m !== null)
-  if (!modelo) throw new Error('Ningún modelo tiene componente «otro»')
+  const agrupados = (await r.json()) as Record<string, { tipo: string; activo: boolean }[]>
+  const modelo = (agrupados.otro ?? [])
+    .filter((c) => c.activo)
+    .map((c) => modeloDeSku(c.tipo, 'otro'))
+    .find((m): m is string => m !== null)
+  if (!modelo) throw new Error('Ningún modelo tiene componente «otro» activo')
   return modelo
 }
 
