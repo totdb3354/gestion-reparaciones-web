@@ -100,7 +100,7 @@ Sin puntos. La que apareció en la auditoría de sustitución ("+ Añadir línea
 - [x] "Pedidos" en la columna lateral de Stock abre `/stock/pedidos`; título "Pedidos" y, a la derecha, el toggle "Componentes" | "Otros" con Componentes marcado (`pedidos-vista-referencia-4b`, `pedidos-con-datos`).
 - [x] "Otros" abre `/stock/pedidos/otros` con su tabla y el botón "Nuevo otro pedido" (`pedidos-otros-con-datos`).
 - [x] El botón "Stock" de la barra superior vuelve a la última pestaña de Stock, también desde Pedidos. (verificado por test: `TopBar.test.tsx` "\"Stock\" lleva a la última pestaña de Stock visitada…", `PedidosPage.test.tsx` "título, toggle en Componentes, … y última pestaña de Stock") **0.9.12:** retirado: ya no hay botón «Stock»; cada pestaña de Stock está en la columna.
-- [ ] Los tres roles ven la pestaña; ADMIN y TECNICO sin "Nuevo…" ni menú (`pedidos-admin`, `pedidos-tecnico`). Sin marcar: faltan las capturas ADMIN y TECNICO del JavaFX, que toma el usuario. Las de la web (`web-pedidos-admin`, `web-pedidos-tecnico`) ya muestran la barra sin "Nuevo pedido" y el clic derecho sin menú, y el comportamiento del JavaFX es el del inventario.
+- [ ] Los tres roles ven la pestaña; ADMIN y TECNICO sin "Nuevo…" ni menú (0.9.13: en la vista por bloques ven el menú del bloque solo con «Exportar bloque en CSV»; capturas anteriores a 0.9.13) (`pedidos-admin`, `pedidos-tecnico`). Sin marcar: faltan las capturas ADMIN y TECNICO del JavaFX, que toma el usuario. Las de la web (`web-pedidos-admin`, `web-pedidos-tecnico`) ya muestran la barra sin "Nuevo pedido" y el clic derecho sin menú, y el comportamiento del JavaFX es el del inventario.
 
 ## Tabla de componentes
 
@@ -261,3 +261,11 @@ Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (r
 
 - Buscar un bloque por su número: en Componentes, escribir solo cifras en «Buscar componente o nº de bloque…» enseña ese bloque.
 - «Nuevo pedido»: un recuadro por proveedor con su «Añadir previsión (N)», que añade las piezas en Auto que vende ese proveedor con lo que falta; también «Añadir previsión…» en el menú del bloque.
+
+## 0.9.13 — Casillas en las acciones de bloque y «Exportar bloque en CSV» (sin equivalente en el JavaFX)
+
+Diferencias deliberadas, decididas en la spec `2026-10-14-v0913-casillas-y-exportar-bloque-design.md` (raíz):
+
+- «Confirmar bloque», «Recibir todo» y «Cancelar bloque» con una casilla por cada línea que cambia, todas marcadas al abrir, y «Marcar todas»; solo se mandan las marcadas. «Borrar bloque» sin casillas; las parciales siguen en «No cambian» (`dialogos.test.tsx` «AccionBloqueDialog con casillas (0.9.13)», `bloques.spec.ts` «Recibir todo con una línea desmarcada…»).
+- «Exportar bloque en CSV» en el menú del bloque: todas las líneas del bloque aunque haya filtros, en `pedidos_bloque_<n>_<fecha>.csv` (`PedidosPage.bloques.test.tsx`, `bloques.spec.ts`).
+- El menú del bloque también lo ven el administrador y el técnico, solo con «Exportar bloque en CSV» (`reglas.test.ts`, `PedidosPage.bloques.test.tsx`).

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { lineaDePrueba as l } from './datosPrueba'
 import {
   abiertosDe, agruparEnBloques, avisoBloque, claveBloque, destinoSugeridoEdicion, destinosMover, entradasMenuBloque, estaDesplegado,
-  estaSola, lineasQueCambian, motivoNoCambia, ordenarPorBloques, resumenEstados, SIN_BLOQUE, sePuedeMover, sinPrecio, situacion, textoLineas, textoSinPrecio,
-  textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque, vivosDelProveedor,
+  estaSola, lineasQueCambian, motivoNoCambia, ordenarPorBloques, resumenEstados, SIN_BLOQUE, sePuedeMover, sinPrecio, situacion, textoDesmarcadas,
+  textoLineas, textoQueda, textoSinPrecio, textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque, vivosDelProveedor,
 } from './reglas'
 
 const B41 = { idBloque: 41, fechaBloque: '2026-10-09T10:00:00' }
@@ -86,8 +86,8 @@ describe('acciones de bloque', () => {
   it('menú del bloque con contadores, motivos y peligro', () => {
     const entradas = entradasMenuBloque(b, 0)
     expect(entradas.map((e) => (e === 'separador' ? '—' : e.texto))).toEqual([
-      'Confirmar bloque (1)', 'Recibir todo (1)', '—', 'Añadir líneas…', 'Añadir previsión…', 'Separar líneas…', 'Juntar con…', 'Añadir nota…', '—',
-      'Cancelar bloque (1)', 'Borrar bloque',
+      'Confirmar bloque (1)', 'Recibir todo (1)', '—', 'Añadir líneas…', 'Añadir previsión…', 'Separar líneas…', 'Juntar con…', 'Añadir nota…',
+      'Exportar bloque en CSV', '—', 'Cancelar bloque (1)', 'Borrar bloque',
     ])
     const porTexto = (t: string) => entradas.find((e) => e !== 'separador' && e.texto === t)
     expect(porTexto('Juntar con…')).toMatchObject({ deshabilitada: true, motivo: 'no hay otro bloque vivo de este proveedor' })
@@ -118,6 +118,25 @@ describe('acciones de bloque', () => {
     expect(entradas.find((e) => e.accion === 'separar')).toMatchObject({ deshabilitada: true, motivo: 'solo tiene una línea' })
     expect(entradas.find((e) => e.accion === 'nota')).toMatchObject({ texto: 'Editar nota…' })
     expect(entradas.find((e) => e.accion === 'borrar')).toMatchObject({ deshabilitada: false })
+  })
+  it('«Exportar bloque en CSV» sale también en un bloque terminado (0.9.13)', () => {
+    const terminado = [...agruparEnBloques([l({ idCompra: 1, idBloque: 60, estado: 'recibido' })]).values()][0]
+    expect(entradasMenuBloque(terminado, 0).find((e) => e !== 'separador' && e.accion === 'exportar'))
+      .toMatchObject({ texto: 'Exportar bloque en CSV', deshabilitada: false, motivo: null, peligro: false })
+  })
+  it('sin permiso de edición el menú solo lleva «Exportar bloque en CSV» (0.9.13)', () => {
+    expect(entradasMenuBloque(b, 0, false)).toEqual([
+      { accion: 'exportar', texto: 'Exportar bloque en CSV', deshabilitada: false, motivo: null, peligro: false },
+    ])
+  })
+  it('textos de las líneas desmarcadas (0.9.13)', () => {
+    expect(textoQueda('confirmar')).toBe('se queda pendiente')
+    expect(textoQueda('recibir')).toBe('se queda en camino')
+    expect(textoQueda('cancelar')).toBe('se queda en camino')
+    expect(textoDesmarcadas('recibir', 1)).toBe('Se queda en camino 1 línea: la desmarcada no cambia.')
+    expect(textoDesmarcadas('cancelar', 3)).toBe('Se quedan en camino 3 líneas: las desmarcadas no cambian.')
+    expect(textoDesmarcadas('confirmar', 1)).toBe('Se queda pendiente 1 línea: la desmarcada no cambia.')
+    expect(textoDesmarcadas('confirmar', 2)).toBe('Se quedan pendientes 2 líneas: las desmarcadas no cambian.')
   })
 })
 

@@ -4,11 +4,13 @@ import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CompraComponente, Proveedor } from '@/shared/api/client'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
+import * as csv from '@/shared/lib/csv'
 import { cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import type { Sesion } from '@/shared/session/storage'
 import { renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { lineaDePrueba as l } from './bloques/datosPrueba'
+import { CABECERAS_CSV_PEDIDOS } from './columnas'
 import { FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros } from './filtros'
 import { filtrosPedidos, plegadoBloques } from './estado'
 import { PedidosPage } from './PedidosPage'
@@ -139,6 +141,23 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}"}]}`]))
   })
 
+  it('⋮ del bloque → «Exportar bloque en CSV» descarga todas sus líneas aunque un filtro oculte alguna (0.9.13)', async () => {
+    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'bat')
+    await waitFor(() => expect(screen.queryByText('lcd-x-negro')).not.toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Exportar bloque en CSV' }))
+    expect(descargar).toHaveBeenCalledTimes(1)
+    const [nombre, cabeceras, filasCsv] = descargar.mock.calls[0]
+    expect(nombre).toBe('pedidos_bloque_41')
+    expect(cabeceras).toEqual(CABECERAS_CSV_PEDIDOS)
+    expect(filasCsv.map((f) => f[0])).toEqual(['1', '2'])
+    expect(escrituras).toEqual([])
+    descargar.mockRestore()
+  })
+
   it('⋮ del bloque → «Juntar con…» ofrece el bloque abierto y no el terminado', async () => {
     montar()
     await screen.findByText('lcd-x-negro')
@@ -158,11 +177,12 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     cerrarFormularioPedido()
   })
 
-  it('el administrador ve los bloques sin ⋮', async () => {
+  it('el administrador ve el ⋮ del bloque solo con «Exportar bloque en CSV» (0.9.13)', async () => {
     montar(SESION_ADMIN)
     await screen.findByText('lcd-x-negro')
     expect(screen.getByText('Bloque 41')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Acciones del bloque/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Exportar bloque en CSV'])
   })
 
   it('con el ⋮ de un bloque abierto el sondeo se congela y vuelve al cerrarlo', async () => {

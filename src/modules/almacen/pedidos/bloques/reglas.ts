@@ -128,19 +128,34 @@ export function motivoNoCambia(p: CompraComponente, accion: AccionBloque): strin
   return chipDeEstado(e as EstadoPedido)
 }
 
-export type AccionMenuBloque = AccionBloque | 'anadir' | 'prevision' | 'separar' | 'juntar' | 'nota'
+/** 0.9.13: lo que pasa con una línea desmarcada en «Confirmar bloque», «Recibir todo» o «Cancelar bloque». */
+export function textoQueda(accion: AccionBloque): string {
+  return accion === 'confirmar' ? 'se queda pendiente' : 'se queda en camino'
+}
+
+/** 0.9.13: aviso bajo la lista de un diálogo de bloque con líneas desmarcadas. */
+export function textoDesmarcadas(accion: AccionBloque, n: number): string {
+  const pendiente = accion === 'confirmar'
+  if (n === 1) return `${pendiente ? 'Se queda pendiente' : 'Se queda en camino'} 1 línea: la desmarcada no cambia.`
+  return `${pendiente ? 'Se quedan pendientes' : 'Se quedan en camino'} ${n} líneas: las desmarcadas no cambian.`
+}
+
+export type AccionMenuBloque = AccionBloque | 'anadir' | 'prevision' | 'separar' | 'juntar' | 'nota' | 'exportar'
 export type EntradaMenuBloque =
   | { accion: AccionMenuBloque; texto: string; deshabilitada: boolean; motivo: string | null; peligro: boolean }
   | 'separador'
 
-/** Menú del bloque (spec §6.4). `otrosVivos`: cuántos bloques vivos más tiene su proveedor. */
-export function entradasMenuBloque(b: Bloque, otrosVivos: number): EntradaMenuBloque[] {
+/** Menú del bloque (spec §6.4). `otrosVivos`: cuántos bloques vivos más tiene su proveedor. 0.9.13: «Exportar bloque en
+ *  CSV» siempre disponible; sin `puedeEditar` (admin y técnico) es la única entrada. */
+export function entradasMenuBloque(b: Bloque, otrosVivos: number, puedeEditar = true): EntradaMenuBloque[] {
+  const entrada = (accion: AccionMenuBloque, texto: string, deshabilitada: boolean, motivo: string | null, peligro = false): EntradaMenuBloque =>
+    ({ accion, texto, deshabilitada, motivo: deshabilitada ? motivo : null, peligro })
+  const exportar = entrada('exportar', 'Exportar bloque en CSV', false, null)
+  if (!puedeEditar) return [exportar]
   const cerrado = !esVivo(b)
   const TERMINADO = 'el bloque está terminado'
   const pendientes = lineasQueCambian(b, 'confirmar').length
   const enCamino = lineasQueCambian(b, 'recibir').length
-  const entrada = (accion: AccionMenuBloque, texto: string, deshabilitada: boolean, motivo: string | null, peligro = false): EntradaMenuBloque =>
-    ({ accion, texto, deshabilitada, motivo: deshabilitada ? motivo : null, peligro })
   return [
     entrada('confirmar', `Confirmar bloque (${pendientes})`, pendientes === 0, 'nada pendiente'),
     entrada('recibir', `Recibir todo (${enCamino})`, enCamino === 0, 'nada en camino'),
@@ -150,6 +165,7 @@ export function entradasMenuBloque(b: Bloque, otrosVivos: number): EntradaMenuBl
     entrada('separar', 'Separar líneas…', cerrado || b.lineas.length < 2, cerrado ? TERMINADO : 'solo tiene una línea'),
     entrada('juntar', 'Juntar con…', cerrado || otrosVivos === 0, cerrado ? TERMINADO : 'no hay otro bloque vivo de este proveedor'),
     entrada('nota', b.nota ? 'Editar nota…' : 'Añadir nota…', false, null),
+    exportar,
     'separador',
     entrada('cancelar', `Cancelar bloque (${enCamino})`, enCamino === 0, 'nada en camino', true),
     entrada('borrar', 'Borrar bloque', pendientes !== b.lineas.length, 'hay líneas ya pedidas', true),

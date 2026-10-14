@@ -87,6 +87,92 @@ describe('AccionBloqueDialog (spec §6.5)', () => {
   })
 })
 
+/** Bloque 41: pendiente (1) y tres en camino (2 bat-x, 3 lcd-y, 4 mc-x). */
+const tresEnCamino = () => agruparEnBloques([
+  l({ idCompra: 1 }),
+  l({ idCompra: 2, estado: 'en_camino', tipoComponente: 'bat-x' }),
+  l({ idCompra: 3, estado: 'en_camino', tipoComponente: 'lcd-y' }),
+  l({ idCompra: 4, estado: 'en_camino', tipoComponente: 'mc-x' }),
+]).get('41')!
+
+describe('AccionBloqueDialog con casillas (0.9.13)', () => {
+  it('abre con todas marcadas; desmarcar una cambia título, botón, aviso y su texto, y manda solo las marcadas', async () => {
+    const onCerrar = vi.fn()
+    renderConProviders(<AccionBloqueDialog bloque={tresEnCamino()} accion="recibir" onCerrar={onCerrar} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
+    const casilla = within(dlg).getByRole('checkbox', { name: 'lcd-y (ID 3)' })
+    expect(casilla).toBeChecked()
+    expect(within(dlg).getByRole('checkbox', { name: 'Marcar todas' })).toBeChecked()
+    expect(within(dlg).getByRole('region', { name: 'Se reciben (suman al stock) (3)' })).toBeInTheDocument()
+    expect(within(dlg).queryByText(/desmarcadas? no cambia/)).not.toBeInTheDocument()
+
+    await userEvent.click(casilla)
+    expect(casilla).not.toBeChecked()
+    const lista = within(dlg).getByRole('region', { name: 'Se reciben (suman al stock) (2 de 3)' })
+    expect(within(lista).getByText('lcd-y')).toHaveClass('line-through')
+    expect(lista).toHaveTextContent('se queda en camino')
+    expect(within(dlg).getByRole('checkbox', { name: 'Marcar todas' })).toHaveAttribute('aria-checked', 'mixed')
+    expect(within(dlg).getByText('Se queda en camino 1 línea: la desmarcada no cambia.')).toBeInTheDocument()
+
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (2)' }))
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(peticiones).toEqual([{
+      ruta: '/api/bloques-compra/41/recibir',
+      cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }, { idCompra: 4, updatedAt: U }] },
+    }])
+  })
+
+  it('el aviso de desmarcadas está montado y vacío al abrir, y se rellena al desmarcar una', async () => {
+    renderConProviders(<AccionBloqueDialog bloque={tresEnCamino()} accion="recibir" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
+    const aviso = within(dlg).getByRole('status')
+    expect(aviso).toBeEmptyDOMElement()
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'lcd-y (ID 3)' }))
+    expect(within(dlg).getByRole('status')).toHaveTextContent('Se queda en camino 1 línea: la desmarcada no cambia.')
+  })
+
+  it('«Marcar todas» desmarca todas (botón deshabilitado) y, a medias, las vuelve a marcar todas', async () => {
+    renderConProviders(<AccionBloqueDialog bloque={tresEnCamino()} accion="cancelar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Cancelar bloque · Bloque 41' })
+    const todas = within(dlg).getByRole('checkbox', { name: 'Marcar todas' })
+    await userEvent.click(todas)
+    expect(todas).not.toBeChecked()
+    expect(within(dlg).getByRole('button', { name: 'Cancelar líneas (0)' })).toBeDisabled()
+    expect(within(dlg).getByText('Se quedan en camino 3 líneas: las desmarcadas no cambian.')).toBeInTheDocument()
+
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'bat-x (ID 2)' }))
+    expect(todas).toHaveAttribute('aria-checked', 'mixed')
+    await userEvent.click(todas)
+    expect(todas).toBeChecked()
+    expect(within(dlg).getByRole('button', { name: 'Cancelar líneas (3)' })).toBeEnabled()
+    expect(within(dlg).getByRole('region', { name: 'Se cancelan (no se pueden reactivar) (3)' })).toBeInTheDocument()
+    expect(peticiones).toEqual([])
+  })
+
+  it('«Confirmar bloque» con una desmarcada: «se queda pendiente»', async () => {
+    const b = agruparEnBloques([l({ idCompra: 1 }), l({ idCompra: 2, tipoComponente: 'bat-x' })]).get('41')!
+    renderConProviders(<AccionBloqueDialog bloque={b} accion="confirmar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Confirmar bloque · Bloque 41' })
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'bat-x (ID 2)' }))
+    expect(within(dlg).getByRole('region', { name: 'Pasan a en camino (1 de 2)' })).toHaveTextContent('se queda pendiente')
+    expect(within(dlg).getByText('Se queda pendiente 1 línea: la desmarcada no cambia.')).toBeInTheDocument()
+    expect(within(dlg).getByRole('button', { name: 'Confirmar (1)' })).toBeEnabled()
+  })
+
+  it('«No cambian» y «Borrar bloque» no llevan casillas', async () => {
+    const { unmount } = renderConProviders(<AccionBloqueDialog bloque={mezclado()} accion="recibir" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
+    expect(within(within(dlg).getByRole('region', { name: 'No cambian (2)' })).queryAllByRole('checkbox')).toHaveLength(0)
+    unmount()
+
+    const b = agruparEnBloques([l({ idCompra: 1 }), l({ idCompra: 2 })]).get('41')!
+    renderConProviders(<AccionBloqueDialog bloque={b} accion="borrar" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const borrar = await screen.findByRole('dialog', { name: 'Borrar bloque · Bloque 41' })
+    expect(within(borrar).queryAllByRole('checkbox')).toHaveLength(0)
+    expect(within(borrar).getByRole('region', { name: 'Se borran el bloque y todas sus líneas (2)' })).toBeInTheDocument()
+  })
+})
+
 describe('SepararDialog', () => {
   it('sin marcar no deja; con todas avisa; con ya pedidas cambia el botón; manda las marcadas', async () => {
     const onCerrar = vi.fn()
