@@ -129,6 +129,14 @@ export function etiquetaLinea(p: Pedido): string {
   return `${nombrePedido(p)} (ID ${idVisible(p)})`
 }
 
+/** Título de lo que cambia en «Recibir todo» (0.9.15): recibir un otro no toca el stock. Solo piezas (o ninguna): el de
+ *  siempre; piezas y otros: «las piezas suman al stock»; solo otros: «no tocan el stock». */
+export function textoSeReciben(lineas: Pedido[]): string {
+  const otros = lineas.filter((p) => !esCompra(p)).length
+  if (otros === 0) return 'Se reciben (suman al stock)'
+  return otros === lineas.length ? 'Se reciben (no tocan el stock)' : 'Se reciben (las piezas suman al stock)'
+}
+
 const ESTADO_DE: Record<AccionBloque, EstadoPedido> = { confirmar: 'pendiente', recibir: 'en_camino', cancelar: 'en_camino', borrar: 'pendiente' }
 
 /** Las líneas a las que se aplica cada acción (spec §6.5), piezas y otros. */

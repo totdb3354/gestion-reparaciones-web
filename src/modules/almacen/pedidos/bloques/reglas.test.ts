@@ -4,7 +4,7 @@ import { lineaDePrueba as l, otroDePrueba as o } from './datosPrueba'
 import {
   abiertosDe, agruparEnBloques, avisoBloque, claveBloque, destinoSugeridoEdicion, destinosMover, entradasMenuBloque, estaDesplegado,
   estaSola, etiquetaLinea, lineasQueCambian, motivoNoCambia, ordenarPorBloques, otrosDe, resumenEstados, SIN_BLOQUE, sePuedeMover, sinPrecio, situacion, textoDesmarcadas,
-  textoLineas, textoLineasBloque, textoQueda, textoSinPrecio, textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque, vivosDelProveedor,
+  textoLineas, textoLineasBloque, textoQueda, textoSeReciben, textoSinPrecio, textoMoverYaPedida, textoYaPedidasJuntar, textoYaPedidasSeparar, totalBloque, vivosDelProveedor,
 } from './reglas'
 
 const B41 = { idBloque: 41, fechaBloque: '2026-10-09T10:00:00' }
@@ -220,6 +220,13 @@ describe('líneas recibidas sin precio (2026-10-13)', () => {
 })
 
 describe('líneas mixtas: piezas y otros (0.9.15)', () => {
+  it('«Recibir todo»: el título dice qué toca el stock', () => {
+    expect(textoSeReciben([l({ idCompra: 1 })])).toBe('Se reciben (suman al stock)')
+    expect(textoSeReciben([l({ idCompra: 1 }), o({ idCompraOtro: 1 })])).toBe('Se reciben (las piezas suman al stock)')
+    expect(textoSeReciben([o({ idCompraOtro: 1 })])).toBe('Se reciben (no tocan el stock)')
+    expect(textoSeReciben([])).toBe('Se reciben (suman al stock)')
+  })
+
   /** Bloque 41: pieza 5 pendiente, pieza 2 en camino, otro 2 en camino (3 × 2 €) y otro 1 recibido sin precio. */
   const mixto = () => agruparEnBloques([
     o({ idCompraOtro: 2, estado: 'en_camino', cantidad: 3, precioEur: 2 }),

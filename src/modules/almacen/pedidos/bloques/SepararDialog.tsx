@@ -5,7 +5,8 @@ import { Checkbox } from '@/shared/ui/checkbox'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useSepararBloque, vistaDe } from '../api'
 import { BadgeEstadoPedido } from '../BadgeEstadoPedido'
-import { claveLinea, idVisible, nombrePedido } from '../reglas'
+import { PildoraTipo } from '../PildoraTipo'
+import { claveLinea, esCompra, idVisible, nombrePedido } from '../reglas'
 import { tratarFalloBloque } from './fallos'
 import { etiquetaLinea, sePuedeMover, textoYaPedidasSeparar, type Bloque } from './reglas'
 
@@ -13,7 +14,8 @@ type Props = { bloque: Bloque; onCerrar: () => void }
 
 /** «Separar líneas…» (spec §6.5): las marcadas pasan a un bloque nuevo del mismo proveedor; al menos una se queda. Las
  *  ya pedidas no piden otra confirmación: el aviso va dentro y el botón dice «Separar igualmente». Solo se marcan
- *  líneas vivas (pendiente, en camino o parcial); las recibidas y canceladas se ven pero no se pueden separar (2026-10-12). */
+ *  líneas vivas (pendiente, en camino o parcial); las recibidas y canceladas se ven pero no se pueden separar (2026-10-12).
+ *  0.9.15: piezas y otros, cada uno con su píldora y su ID («O-{id}» en un otro). */
 export function SepararDialog({ bloque, onCerrar }: Props) {
   const separar = useSepararBloque()
   const { mostrarAviso } = useAlerta()
@@ -57,10 +59,11 @@ export function SepararDialog({ bloque, onCerrar }: Props) {
               sePuedeMover(p) ? 'cursor-pointer' : 'cursor-default opacity-60')}>
               <Checkbox checked={marcadas.has(claveLinea(p))} disabled={!sePuedeMover(p)} onCheckedChange={(v) => alternar(claveLinea(p), v === true)}
                 aria-label={`Separar ${etiquetaLinea(p)}`} className="bg-superficie" />
-              <span className="text-azul-gris">{idVisible(p)}</span>
-              <b>{nombrePedido(p)}</b>
-              <span>× {p.cantidad}</span>
-              <span className="ml-auto"><BadgeEstadoPedido pedido={p} /></span>
+              <span className={cn('shrink-0', esCompra(p) ? 'text-azul-gris' : 'text-otro-text')}>{idVisible(p)}</span>
+              <PildoraTipo tipo={esCompra(p) ? 'pieza' : 'otro'} />
+              <b className="min-w-0 truncate">{nombrePedido(p)}</b>
+              <span className="shrink-0">× {p.cantidad}</span>
+              <span className="ml-auto shrink-0"><BadgeEstadoPedido pedido={p} /></span>
             </label>
           </li>
         ))}

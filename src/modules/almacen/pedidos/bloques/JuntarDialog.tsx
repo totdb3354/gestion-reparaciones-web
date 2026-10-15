@@ -5,11 +5,12 @@ import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useJuntarBloque, vistaDe } from '../api'
 import { tratarFalloBloque } from './fallos'
-import { situacion, textoLineas, textoYaPedidasJuntar, totalBloque, type Bloque } from './reglas'
+import { situacion, textoLineas, textoLineasBloque, textoYaPedidasJuntar, totalBloque, type Bloque } from './reglas'
 
 type Props = { bloque: Bloque; candidatos: Bloque[]; onCerrar: () => void }
 
-/** «Juntar con…» (spec §6.5): todas las líneas pasan al bloque elegido (del mismo proveedor) y este desaparece. */
+/** «Juntar con…» (spec §6.5): todas las líneas pasan al bloque elegido (del mismo proveedor) y este desaparece.
+ *  0.9.15: piezas y otros; cada destino dice cuántos otros lleva. */
 export function JuntarDialog({ bloque, candidatos, onCerrar }: Props) {
   const juntar = useJuntarBloque()
   const { mostrarAviso } = useAlerta()
@@ -40,7 +41,7 @@ export function JuntarDialog({ bloque, candidatos, onCerrar }: Props) {
             <input type="radio" name="juntar-destino" checked={destino === b.idBloque} onChange={() => { setDestino(b.idBloque); setError(null) }} />
             <b>Bloque {b.idBloque}</b>
             <span className="text-azul-gris">
-              {formatear(b.fecha, 'dd/MM/yyyy')} · {textoLineas(b.lineas.length)} · {formatearImporte(totalBloque(b), '€')} · {situacion(b)}
+              {formatear(b.fecha, 'dd/MM/yyyy')} · {textoLineasBloque(b)} · {formatearImporte(totalBloque(b), '€')} · {situacion(b)}
             </span>
           </label>
         ))}
