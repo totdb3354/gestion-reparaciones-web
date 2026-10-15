@@ -10,12 +10,14 @@ import { useComponentesStock } from '../../stock/api'
 import { agruparCompartidos, nombreGrupo } from '../../stock/grupos'
 import { useGuardarLoteCompras, useLineasPedido } from '../api'
 import { agruparEnBloques, situacion } from '../bloques/reglas'
+import { PildoraTipo } from '../PildoraTipo'
 import { destinoElegido, destinosDelCuerpo, opcionesDestino } from './destinos'
 import { DialogoPedidoBase } from './DialogoPedidoBase'
 import { mensajeErrorGuardado } from './errores'
 import {
   aplicarPrevision, avisoNadaQuePedir, avisoOmitidas, avisoRepetida, avisoSinLista, avisoSinPedido, cambiarLinea, cuantasPrevision, cuerpoLoteCompras,
-  elegirPieza, lineaCompraVacia, ponerCantidadesPrevistas, precargaInicial, quitarLinea, siguienteId, sinLista, type LineaBase, type LineaCompra,
+  elegirPieza, esLineaOtro, lineaCompraVacia, lineaOtroVacia, MAX_CONCEPTO, ponerCantidadesPrevistas, precargaInicial, quitarLinea, siguienteId, sinLista,
+  type LineaCompra,
 } from './lineas'
 import { DestinoRecuadro, RecuadroProveedor, RecuadroRepartir, RecuadroSinProveedor } from './RecuadroProveedor'
 import {
@@ -39,7 +41,9 @@ function sinClave(plegados: ReadonlySet<ClaveRecuadro>, clave: ClaveRecuadro): R
  *  POST /api/compras/lote con Idempotency-Key (P5): misma clave mientras el cuerpo no cambie, nueva tras un éxito.
  *  0.9.9 (spec 2026-10-13 varios proveedores): un recuadro por proveedor, que es su bloque, con su destino en la
  *  cabecera; lo precargado se reparte solo al proveedor que vende cada pieza y lo demás espera en «Por repartir». Modo
- *  «Añadir líneas» de un bloque (precarga `bloque`): un único recuadro con proveedor y destino fijos. */
+ *  «Añadir líneas» de un bloque (precarga `bloque`): un único recuadro con proveedor y destino fijos. 0.9.15 (spec «Añadir otro»
+ *  §5.2): «+ Añadir otro» en cada recuadro; la línea de otro va en `otros` del mismo lote y no cuenta en la previsión;
+ *  «Añadir otro…» de un bloque (`otro`) abre con una. */
 export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const componentes = useComponentesStock({ activo: false })
   const proveedores = useProveedoresComponentes({ activo: false })
@@ -51,7 +55,9 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const proveedoresActivos = useMemo(() => (proveedores.data ?? []).filter((p) => p.activo), [proveedores.data])
   const idsActivos = useMemo(() => new Set(proveedoresActivos.map((p) => p.idProv)), [proveedoresActivos])
   const opciones = useMemo(() => agruparCompartidos(activos).map((f) => ({ clave: String(f.idCom), etiqueta: nombreGrupo(f) })), [activos])
-  const [lineas, setLineas] = useState<LineaCompra[] | null>(precarga.modo === 'vacio' || fijo ? [] : null)
+  // «Añadir otro…» de un bloque (0.9.15) abre con una línea de otro de su proveedor.
+  const [lineas, setLineas] = useState<LineaCompra[] | null>(() =>
+    (precarga.modo === 'vacio' ? [] : fijo ? (fijo.otro ? [lineaOtroVacia(1, fijo.idProv)] : []) : null))
   // Recuadros que siguen aunque se queden sin líneas (solo los quita su ×): los elegidos a mano, los del reparto de la
   // precarga y los de «Pasar a…». En «Añadir líneas», el del bloque.
   const [anadidos, setAnadidos] = useState<number[]>(fijo ? [fijo.idProv] : [])
@@ -65,6 +71,8 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   // opción del autocompletar burbujea hasta la fila que desaparece y la seleccionaría después.
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   const [desplazarA, setDesplazarA] = useState<number | null>(null)
+  // Línea de otro cuyo concepto toma el cursor al aparecer (0.9.15): la de «+ Añadir otro» o la de «Añadir otro…».
+  const [focoConcepto, setFocoConcepto] = useState<number | null>(fijo?.otro ? 1 : null)
   const [peticion, setPeticion] = useState<{ id: number; marca: number } | null>(null)
   const [marcaVista, setMarcaVista] = useState<number | null>(null)
   if (peticion && peticion.marca !== marcaVista) {
@@ -145,8 +153,10 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     setDesplazarA(null)
     // El recuadro añadido o con error se trae a la vista una sola vez.
     setALaVista(null)
+    // El cursor ya está donde toca: un remontaje (plegar y desplegar) no lo vuelve a mover.
+    setFocoConcepto(null)
   }
-  function cambiar(id: number, cambio: Partial<LineaBase>) {
+  function cambiar(id: number, cambio: Partial<LineaCompra>) {
     setLineas((ls) => cambiarLinea<LineaCompra>(ls ?? [], id, cambio))
     limpiarAvisos()
   }
@@ -172,6 +182,16 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
     limpiarAvisos()
     setSeleccionada(id)
     setDesplazarA(id)
+  }
+  /** «+ Añadir otro» de un recuadro (0.9.15): línea de otro de ese proveedor; queda seleccionada, a la vista y con el
+   *  cursor en su concepto. */
+  function anadirOtro(idProv: number) {
+    const id = siguienteId(todas)
+    setLineas((ls) => [...(ls ?? []), lineaOtroVacia(id, idProv)])
+    limpiarAvisos()
+    setSeleccionada(id)
+    setDesplazarA(id)
+    setFocoConcepto(id)
   }
   function anadirPrevision(idProv: number) {
     const r = aplicarPrevision(todas, activos, idProv)
@@ -247,14 +267,25 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   const bloqueado = guardar.isPending || lineas === null
   const info = [avisoOmitidas(omitidas), avisoSinPedido(sinPedido), avisoSinLista(sinListaVistas), nadaQuePedir ? avisoNadaQuePedir(nombreFijo) : null, repetida].filter((t) => t !== null).join(' ') || null
   const primera = {
-    cabecera: 'Componente',
-    ancho: 175,
-    celda: (l: LineaCompra, n: number) => (
-      // Fila seleccionada: el campo navy lleva el borde rgba(255,255,255,0.35) del JavaFX (FC :459-473).
-      <div className="rounded-full group-data-[state=selected]:ring-1 group-data-[state=selected]:ring-white/35">
-        <CampoAutocompletar valor={l.idCom === null ? null : String(l.idCom)} opciones={opciones} onElegir={(c) => elegir(l.id, Number(c))} placeholder="Escribe componente..." aria-label={`Componente línea ${n}`} />
+    cabecera: 'Componente / concepto',
+    ancho: 230,
+    celda: (l: LineaCompra, n: number) => (esLineaOtro(l) ? (
+      // 0.9.15 (maqueta del modal): píldora «otro» y el concepto en un campo blanco con borde lila.
+      <div className="flex items-center gap-2">
+        <PildoraTipo tipo="otro" />
+        <input aria-label={`Concepto línea ${n}`} value={l.concepto} maxLength={MAX_CONCEPTO} placeholder="Escribe el concepto…"
+          autoFocus={l.id === focoConcepto} onChange={(e) => cambiar(l.id, { concepto: e.target.value })}
+          className="h-[30px] w-full min-w-0 rounded-full border border-otro-borde bg-superficie px-3 text-[12px] text-azul-medio outline-none placeholder:text-texto-sub focus-visible:ring-2 focus-visible:ring-ring/50" />
       </div>
-    ),
+    ) : (
+      <div className="flex items-center gap-2">
+        <PildoraTipo tipo="pieza" />
+        {/* Fila seleccionada: el campo navy lleva el borde rgba(255,255,255,0.35) del JavaFX (FC :459-473). */}
+        <div className="min-w-0 flex-1 rounded-full group-data-[state=selected]:ring-1 group-data-[state=selected]:ring-white/35">
+          <CampoAutocompletar valor={l.idCom === null ? null : String(l.idCom)} opciones={opciones} onElegir={(c) => elegir(l.id, Number(c))} placeholder="Escribe componente..." aria-label={`Componente línea ${n}`} />
+        </div>
+      </div>
+    )),
   }
   /** Tabla de un recuadro; en «Por repartir», con «Pasar a…» en la columna Proveedor. */
   function tabla(suyas: LineaCompra[], conPasarA: boolean) {
@@ -333,7 +364,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
                 <RecuadroProveedor key={idProv} nombre={nombreProv(idProv)} divisa={proveedoresActivos.find((p) => p.idProv === idProv)?.divisa ?? 'EUR'}
                   nLineas={suyas.length} destino={destinoDe(idProv)} nPrevision={cuantasPrevision(activos, idProv, todas)}
                   previsionDeshabilitada={bloqueado || componentes.isFetching} onPrevision={() => anadirPrevision(idProv)}
-                  onQuitar={fijo ? undefined : () => pedirQuitar(idProv)} bloqueado={bloqueado} onAnadir={() => anadir(idProv)}
+                  onQuitar={fijo ? undefined : () => pedirQuitar(idProv)} bloqueado={bloqueado} onAnadir={() => anadir(idProv)} onAnadirOtro={() => anadirOtro(idProv)}
                   avisos={tambienVa(todas, idProv, nombrePieza, nombreProv)} plegado={plegados.has(idProv)} onPlegar={() => plegar(idProv)}
                   marcado={marcado === idProv} aLaVista={aLaVista === idProv}>
                   {tabla(suyas, false)}

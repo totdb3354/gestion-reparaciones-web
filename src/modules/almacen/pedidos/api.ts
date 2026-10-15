@@ -192,7 +192,6 @@ export type CuerpoLoteCompras = {
   /** 0.9.15 (spec «Añadir otro» §5.2): los otros del pedido; van al mismo bloque que las piezas de su proveedor. */
   otros: LineaOtroLote[]
 }
-export type CuerpoLoteOtros = { lineas: LineaOtroLote[] }
 
 /** Alta por lotes (P5): una petición con `Idempotency-Key` (la da el formulario con crearClavesIdempotencia; la misma clave
  *  y el mismo cuerpo devuelven la respuesta guardada sin escribir). Recarga solo si sale bien. 0.9.15: devuelve también
@@ -204,16 +203,6 @@ export function useGuardarLoteCompras(): UseMutationResult<{ idsCreados: number[
       const r = (await api.POST('/api/compras/lote', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })).data
       return { idsCreados: r?.idsCreados ?? [], idsOtrosCreados: r?.idsOtrosCreados ?? [] }
     },
-    meta: { silenciarError: true },
-    onSuccess: recargar,
-  })
-}
-
-export function useGuardarLoteOtros(): UseMutationResult<{ idsCreados: number[] }, unknown, { cuerpo: CuerpoLoteOtros; clave: string }> {
-  const recargar = useRecargaPedidos()
-  return useMutation({
-    mutationFn: async ({ cuerpo, clave }: { cuerpo: CuerpoLoteOtros; clave: string }) =>
-      (await api.POST('/api/compras-otros/lote', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })).data ?? { idsCreados: [] },
     meta: { silenciarError: true },
     onSuccess: recargar,
   })

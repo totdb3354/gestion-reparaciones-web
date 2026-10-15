@@ -8,7 +8,7 @@ import { ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { server } from '@/test/server'
 import {
-  useAccionBloque, useCompras, useComprasOtros, useEditarCompra, useEditarOtro, useGuardarLoteCompras, useGuardarLoteOtros, useJuntarBloque, useLineasPedido,
+  useAccionBloque, useCompras, useComprasOtros, useEditarCompra, useEditarOtro, useGuardarLoteCompras, useJuntarBloque, useLineasPedido,
   useMoverLinea, useNotaBloque, useRecargaPedidos, useSepararBloque, useTransicionPedido, vistaDe, type AccionTransicion,
 } from './api'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
@@ -175,20 +175,12 @@ describe('lotes (spec 4b P5)', () => {
     const cuerpo = { lineas: [{ idCom: 11, idProv: 1, cantidad: 1, esUrgente: false, precioUnidad: 0 }], solicitudes: { urgentes: [], preventivas: [] }, destinos: null, otros: [] }
     expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-4' })).toEqual({ idsCreados: [21], idsOtrosCreados: [] })
   })
-  it('useGuardarLoteOtros: POST /api/compras-otros/lote con Idempotency-Key', async () => {
-    const peticiones = registrar('*/api/compras-otros/lote', () => HttpResponse.json({ idsCreados: [31] }))
-    const { wrapper } = envoltorio()
-    const { result } = renderHook(() => useGuardarLoteOtros(), { wrapper })
-    const cuerpo = { lineas: [{ idProv: 1, concepto: 'Cinta de embalar', cantidad: 3, esUrgente: false, precioUnidad: 2 }] }
-    expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-2' })).toEqual({ idsCreados: [31] })
-    expect(peticiones).toEqual([{ metodo: 'POST', ruta: '/api/compras-otros/lote', cuerpo, clave: 'clave-2' }])
-  })
   it('un lote rechazado (422) no recarga: el formulario sigue abierto con su error', async () => {
-    registrar('*/api/compras-otros/lote', () => HttpResponse.json({ message: 'Línea 1: el proveedor está desactivado.' }, { status: 422 }))
+    registrar('*/api/compras/lote', () => HttpResponse.json({ message: 'Otro 1: el concepto no puede estar vacío.' }, { status: 422 }))
     const { qc, wrapper } = envoltorio()
     qc.setQueryData(['compras', 'otros'], [])
-    const { result } = renderHook(() => useGuardarLoteOtros(), { wrapper })
-    const cuerpo = { lineas: [{ idProv: 3, concepto: 'Bolsas', cantidad: 1, esUrgente: false, precioUnidad: 0 }] }
+    const { result } = renderHook(() => useGuardarLoteCompras(), { wrapper })
+    const cuerpo = { lineas: [], solicitudes: { urgentes: [], preventivas: [] }, destinos: null, otros: [{ idProv: 3, concepto: 'Bolsas', cantidad: 1, esUrgente: false, precioUnidad: 0 }] }
     await expect(result.current.mutateAsync({ cuerpo, clave: 'clave-3' })).rejects.toBeInstanceOf(ReglaNegocioError)
     expect(qc.getQueryState(['compras', 'otros'])?.isInvalidated).toBe(false)
   })

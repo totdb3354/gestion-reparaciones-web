@@ -2,7 +2,7 @@ import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { abrirNuevoOtroPedido, abrirNuevoPedido, formularioPedido } from '@/shared/lib/formularioPedido'
+import { abrirNuevoPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import { renderConRouter, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { COMPONENTES, PROVEEDORES } from './datosPrueba'
@@ -35,10 +35,5 @@ describe('FormulariosPedido', () => {
     act(() => abrirNuevoPedido({ modo: 'componentes', idsCom: [1] }))
     expect(await screen.findByDisplayValue('lcd-x-negro')).toBeInTheDocument()
     expect(screen.queryByDisplayValue('bat-x / bat-y')).not.toBeInTheDocument()
-  })
-  it('abrirNuevoOtroPedido pinta "Nuevo otro pedido"', async () => {
-    renderConRouter([{ path: '/', element: <FormulariosPedido /> }], { sesion: SESION_SUPER })
-    act(() => abrirNuevoOtroPedido())
-    expect(await screen.findByRole('dialog', { name: 'Nuevo otro pedido' })).toBeInTheDocument()
   })
 })

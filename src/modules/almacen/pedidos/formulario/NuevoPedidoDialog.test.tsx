@@ -141,7 +141,7 @@ describe('NuevoPedidoDialog', () => {
     expect(within(lista).getAllByRole('button').map((b) => b.textContent)).toEqual(['ACME · sin bloque abierto', 'Proveedor B · sin bloque abierto'])
     await userEvent.click(within(lista).getByRole('button', { name: /^ACME/ }))
     const acme = within(recuadro('ACME'))
-    expect(acme.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
+    expect(acme.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Componente / concepto', 'Cant.', 'P.Unit.', 'Urg.', 'Total EUR', ''])
     expect(acme.getByText('Añade líneas o «Añadir previsión».')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Pedido sin proveedor' })).not.toBeInTheDocument()
     expect(dlg.getByRole('combobox', { name: 'Otro proveedor' })).toBeEnabled()
@@ -750,5 +750,119 @@ describe('varios proveedores en un mismo pedido (0.9.9, spec 2026-10-13)', () =>
     expect(screen.queryByRole('region', { name: 'Por repartir' })).not.toBeInTheDocument()
     expect(within(recuadro('ACME')).queryByLabelText('Cantidad línea 2')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('lcd-x-negro ya estaba en ACME: se queda la línea que había.')
+  })
+})
+
+describe('otros en «Nuevo pedido» (0.9.15, spec «Añadir otro» §5.2)', () => {
+  it('«+ Añadir otro» junto a «+ Añadir línea»: línea con la píldora «otro», el concepto en blanco con su texto y el cursor en él', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    const acme = within(recuadro('ACME'))
+    const anadirOtro = acme.getByRole('button', { name: '+ Añadir otro' })
+    expect(anadirOtro.previousElementSibling).toHaveTextContent('+ Añadir línea')
+    await userEvent.click(acme.getByRole('button', { name: '+ Añadir línea' }))
+    expect(within(filaDe(1)).getByText('pieza')).toBeInTheDocument()
+    await userEvent.click(anadirOtro)
+    const concepto = screen.getByRole('textbox', { name: 'Concepto línea 2' })
+    await waitFor(() => expect(concepto).toHaveFocus())
+    expect(concepto).toHaveAttribute('placeholder', 'Escribe el concepto…')
+    expect(concepto).toHaveAttribute('maxlength', '255')
+    expect(concepto).toHaveClass('bg-superficie', 'border-otro-borde')
+    expect(within(filaDe(2)).getByText('otro')).toBeInTheDocument()
+    expect(filaDe(2)).toHaveAttribute('data-state', 'selected')
+    expect(screen.getByRole('textbox', { name: 'Cantidad línea 2' })).toHaveValue('1')
+    expect(screen.getByRole('textbox', { name: 'Precio línea 2' })).toHaveValue('0,00')
+    expect(recuadro('ACME')).toHaveTextContent('· 2 líneas · EUR')
+  })
+
+  it('concepto vacío: «{Proveedor} · Línea {n}: escribe el concepto.», marca el recuadro y no envía; luego, los textos de siempre', async () => {
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir otro' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 1' }), '   ')
+    await confirmar()
+    expect(screen.getByRole('alert')).toHaveTextContent('ACME · Línea 1: escribe el concepto.')
+    expect(recuadro('ACME')).toHaveAttribute('data-marcado', 'true')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 1' }), 'Cinta')
+    await escribir('Cantidad línea 1', '0')
+    await confirmar()
+    expect(screen.getByRole('alert')).toHaveTextContent('ACME · Línea 1: la cantidad debe ser mayor que 0.')
+    expect(lotes).toHaveLength(0)
+  })
+
+  it('el lote lleva las piezas en `lineas` y los otros en `otros` (concepto recortado); el mismo concepto puede ir dos veces', async () => {
+    const onCerrar = abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir línea' }))
+    await elegirComponente(1, 'bat', 'bat-x / bat-y')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir otro' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 2' }), '  Cinta de embalar  ')
+    await escribir('Precio línea 2', '1,5')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Urgente línea 2' }))
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir otro' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 3' }), 'Cinta de embalar')
+    expect(screen.queryByText(/ya está en el pedido/)).not.toBeInTheDocument()
+    await confirmar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(lotes[0].cuerpo).toEqual({
+      lineas: [{ idCom: 2, idProv: 1, cantidad: 1, esUrgente: false, precioUnidad: 0 }],
+      solicitudes: { urgentes: [], preventivas: [] },
+      destinos: null,
+      otros: [
+        { idProv: 1, concepto: 'Cinta de embalar', cantidad: 1, esUrgente: true, precioUnidad: 1.5 },
+        { idProv: 1, concepto: 'Cinta de embalar', cantidad: 1, esUrgente: false, precioUnidad: 0 },
+      ],
+    })
+  })
+
+  it('un recuadro con solo otros también es un bloque: «Confirmar pedido (2 bloques)»', async () => {
+    const onCerrar = abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('Proveedor B')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir otro' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 1' }), 'Bolsas')
+    await otroProveedor('ACME')
+    const acme = recuadro('ACME')
+    await userEvent.click(within(acme).getByRole('button', { name: '+ Añadir línea' }))
+    await elegirComponente(1, 'lcd', 'lcd-x-negro', acme)
+    expect(screen.getByRole('button', { name: 'Confirmar pedido (2 bloques)' })).toBeInTheDocument()
+    await confirmar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(lotes[0].cuerpo).toEqual({
+      lineas: [{ idCom: 1, idProv: 1, cantidad: 1, esUrgente: false, precioUnidad: 0 }],
+      solicitudes: { urgentes: [], preventivas: [] },
+      destinos: null,
+      otros: [{ idProv: 2, concepto: 'Bolsas', cantidad: 1, esUrgente: false, precioUnidad: 0 }],
+    })
+  })
+
+  it('aislado de la previsión: un otro con el nombre de una pieza no cuenta en «Añadir previsión (n)» ni en lo que falta', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json(DE_ACME.map((c) => (c.idCom === 1 ? { ...c, autoPedido: true, pedir60: 16 } : c)))))
+    abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir otro' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 1' }), 'lcd-x-negro')
+    await escribir('Cantidad línea 1', '16')
+    await userEvent.click(await within(recuadro('ACME')).findByRole('button', { name: 'Añadir previsión (1)' }))
+    expect(screen.getByRole('textbox', { name: 'Concepto línea 1' })).toHaveValue('lcd-x-negro')
+    expect(screen.getByLabelText('Cantidad línea 1')).toHaveValue('16')
+    expect(screen.getByRole('combobox', { name: 'Componente línea 2' })).toHaveValue('lcd-x-negro')
+    expect(screen.getByLabelText('Cantidad línea 2')).toHaveValue('16')
+  })
+
+  it('un 422 «Otro n: …» del servidor se enseña tal cual con el formulario abierto', async () => {
+    respuestaLote = () => HttpResponse.json({ message: 'Otro 1: el concepto no puede pasar de 255 caracteres.' }, { status: 422 })
+    const onCerrar = abrir()
+    await screen.findByRole('dialog', { name: 'Nuevo pedido' })
+    await elegirProveedor('ACME')
+    await userEvent.click(screen.getByRole('button', { name: '+ Añadir otro' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Concepto línea 1' }), 'Cinta de embalar')
+    await confirmar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Otro 1: el concepto no puede pasar de 255 caracteres.')
+    expect(onCerrar).not.toHaveBeenCalled()
   })
 })

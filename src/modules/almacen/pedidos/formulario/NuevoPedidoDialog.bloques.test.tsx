@@ -148,4 +148,22 @@ describe('«Nuevo pedido» con bloques (0.9.9)', () => {
     await userEvent.click(screen.getByRole('combobox', { name: 'Proveedor' }))
     expect(await within(screen.getByRole('listbox', { name: 'Proveedor' })).findByRole('button', { name: 'ACME · Bloque 50 abierto' })).toBeInTheDocument()
   })
+
+  it('«Añadir otro…» de un bloque (0.9.15): una línea de otro con el cursor en su concepto; el lote la manda en `otros` al bloque fijado', async () => {
+    const onCerrar = abrir({ modo: 'bloque', idBloque: 41, idProv: 1, otro: true })
+    await screen.findByRole('dialog', { name: 'Añadir líneas · Bloque 41' })
+    const concepto = screen.getByRole('textbox', { name: 'Concepto línea 1' })
+    await waitFor(() => expect(concepto).toHaveFocus())
+    const acme = await screen.findByRole('region', { name: 'Pedido a ACME' })
+    expect(within(acme).getByText('otro')).toBeInTheDocument()
+    await userEvent.type(concepto, 'Cinta de embalar')
+    await confirmar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(lotes[0]).toEqual({
+      lineas: [],
+      solicitudes: { urgentes: [], preventivas: [] },
+      destinos: [{ idProv: 1, idBloque: 41 }],
+      otros: [{ idProv: 1, concepto: 'Cinta de embalar', cantidad: 1, esUrgente: false, precioUnidad: 0 }],
+    })
+  })
 })

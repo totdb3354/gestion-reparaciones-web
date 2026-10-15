@@ -7,7 +7,7 @@ import { DestinoRecuadro, RecuadroProveedor, RecuadroRepartir, RecuadroSinProvee
 function recuadro(extra: Partial<ComponentProps<typeof RecuadroProveedor>> = {}) {
   const props: ComponentProps<typeof RecuadroProveedor> = {
     nombre: 'ACME', divisa: 'EUR', nLineas: 2, destino: <span>destino</span>, nPrevision: 3, previsionDeshabilitada: false,
-    onPrevision: vi.fn(), onQuitar: vi.fn(), bloqueado: false, onAnadir: vi.fn(), avisos: [], plegado: false, onPlegar: vi.fn(),
+    onPrevision: vi.fn(), onQuitar: vi.fn(), bloqueado: false, onAnadir: vi.fn(), onAnadirOtro: vi.fn(), avisos: [], plegado: false, onPlegar: vi.fn(),
     marcado: false, aLaVista: false, children: <p>tabla</p>, ...extra,
   }
   render(<RecuadroProveedor {...props} />)
@@ -28,6 +28,11 @@ describe('RecuadroProveedor (0.9.9, varios proveedores)', () => {
     expect(p.onQuitar).toHaveBeenCalled()
     await userEvent.click(within(r).getByRole('button', { name: '+ Añadir línea' }))
     expect(p.onAnadir).toHaveBeenCalled()
+    const otro = within(r).getByRole('button', { name: '+ Añadir otro' })
+    expect(otro.previousElementSibling).toHaveTextContent('+ Añadir línea')
+    expect(otro).toHaveClass('border-otro-boton', 'text-otro-text')
+    await userEvent.click(otro)
+    expect(p.onAnadirOtro).toHaveBeenCalled()
     const plegar = within(r).getByRole('button', { name: 'Plegar ACME' })
     expect(plegar).toHaveAttribute('aria-expanded', 'true')
     await userEvent.click(plegar)
@@ -38,6 +43,7 @@ describe('RecuadroProveedor (0.9.9, varios proveedores)', () => {
     recuadro({ plegado: true })
     expect(screen.queryByText('tabla')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '+ Añadir línea' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+ Añadir otro' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Desplegar ACME' })).toHaveAttribute('aria-expanded', 'false')
   })
 

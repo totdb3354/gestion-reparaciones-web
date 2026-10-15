@@ -16,7 +16,7 @@ export type PrecargaPedido =
   | { modo: 'solicitudes'; urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] }
   | { modo: 'bloque'; idBloque: number; idProv: number; prevision?: boolean; otro?: boolean }
 
-export type FormularioPedidoAbierto = { tipo: 'compra'; precarga: PrecargaPedido } | { tipo: 'otro' }
+export type FormularioPedidoAbierto = { tipo: 'compra'; precarga: PrecargaPedido }
 
 /** Qué formulario de alta está abierto (spec 4b, P1): calco del `Stage` modal del JavaFX, que no saca al usuario de su vista.
  *  Vive en shared porque la campana (taller) y Stock y Pedidos (almacén) lo abren y un módulo no importa de otro. Con
@@ -25,10 +25,6 @@ export const formularioPedido = crearStore<FormularioPedidoAbierto | null>(null)
 
 export function abrirNuevoPedido(precarga: PrecargaPedido): void {
   formularioPedido.set({ tipo: 'compra', precarga })
-}
-
-export function abrirNuevoOtroPedido(): void {
-  formularioPedido.set({ tipo: 'otro' })
 }
 
 export function cerrarFormularioPedido(): void {

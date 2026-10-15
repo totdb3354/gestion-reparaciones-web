@@ -41,14 +41,16 @@ type Props = Comunes & {
   onQuitar?: () => void
   bloqueado: boolean
   onAnadir: () => void
+  /** «+ Añadir otro» (0.9.15): una línea de otro (concepto libre) en este recuadro. */
+  onAnadirOtro: () => void
   /** «… también va a X (n).» */
   avisos: string[]
 }
 
 /** Recuadro de un proveedor en «Nuevo pedido» (0.9.9, spec 2026-10-13 varios proveedores §2): es un bloque. Cabecera con
  *  plegar, el proveedor, sus líneas y divisa, el destino, «Añadir previsión (n)» y la ×; cuerpo con la tabla (children),
- *  «+ Añadir línea» y los avisos «también va a». */
-export function RecuadroProveedor({ nombre, divisa, nLineas, destino, nPrevision, previsionDeshabilitada, onPrevision, onQuitar, bloqueado, onAnadir, avisos, plegado, onPlegar, marcado, aLaVista, children }: Props) {
+ *  «+ Añadir línea», «+ Añadir otro» (0.9.15) y los avisos «también va a». */
+export function RecuadroProveedor({ nombre, divisa, nLineas, destino, nPrevision, previsionDeshabilitada, onPrevision, onQuitar, bloqueado, onAnadir, onAnadirOtro, avisos, plegado, onPlegar, marcado, aLaVista, children }: Props) {
   return (
     <section aria-label={`Pedido a ${nombre}`} ref={traerALaVista(aLaVista)} data-marcado={marcado ? 'true' : undefined}
       className={cn('shrink-0 overflow-hidden rounded-[10px] border bg-superficie', marcado ? 'border-texto-error ring-1 ring-texto-error' : 'border-fila-sep')}>
@@ -72,6 +74,7 @@ export function RecuadroProveedor({ nombre, divisa, nLineas, destino, nPrevision
           {children}
           <div className="flex flex-wrap items-center gap-2.5">
             <BotonSecundario type="button" disabled={bloqueado} onClick={onAnadir}>+ Añadir línea</BotonSecundario>
+            <BotonSecundario type="button" disabled={bloqueado} onClick={onAnadirOtro} className="border-otro-boton text-otro-text hover:text-otro-text">+ Añadir otro</BotonSecundario>
             {avisos.length > 0 && <p className="text-[11px] text-azul-gris">{avisos.join(' ')}</p>}
           </div>
         </div>

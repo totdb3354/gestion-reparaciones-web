@@ -28,7 +28,8 @@ type Props = {
   children: ReactNode
 }
 
-/** Armazón de «Nuevo pedido» y «Nuevo otro pedido» (FormularioCompraView.fxml / FormularioOtroPedidoView.fxml): modal de
+/** Armazón de «Nuevo pedido» (FormularioCompraView.fxml; desde la 0.9.15 también con los otros, que tenían su formulario
+ *  aparte, FormularioOtroPedidoView.fxml): modal de
  *  880 px (700 en el JavaFX; más grande desde la 0.9.6), título de 24 px, lo de en medio, línea de información, línea de
  *  error (P6) y «Cancelar» / «Confirmar pedido». Sin atajos de teclado (el JavaFX no tenía). */
 export function DialogoPedidoBase({ titulo, nLineas, conPrecarga, info, error, bloqueado, enviando, textoConfirmar = 'Confirmar pedido', onConfirmar, onCerrar, pieIzquierda, children }: Props) {

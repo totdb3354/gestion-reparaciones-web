@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import { useStore } from '@/shared/lib/store'
-import { NuevoOtroPedidoDialog } from './NuevoOtroPedidoDialog'
 import { NuevoPedidoDialog } from './NuevoPedidoDialog'
 
-/** Host del shell (P1): pinta el formulario de alta que diga el store compartido. Stock actual, Pedidos y la campana (que
- *  vive en `taller` y no puede importar de `almacen`) solo llaman a `abrirNuevoPedido` / `abrirNuevoOtroPedido`. */
+/** Host del shell (P1): pinta «Nuevo pedido» con la precarga del store compartido. Stock actual, Pedidos y la campana (que
+ *  vive en `taller` y no puede importar de `almacen`) solo llaman a `abrirNuevoPedido`. Desde la 0.9.15 los otros van en
+ *  el mismo formulario («+ Añadir otro»): ya no hay «Nuevo otro pedido». */
 export function FormulariosPedido() {
   const [abierto] = useStore(formularioPedido)
   // Una apertura = un montaje: cada apertura guarda un objeto nuevo en el store, así que si se abre otro formulario con
@@ -17,6 +17,5 @@ export function FormulariosPedido() {
     setApertura((n) => n + 1)
   }
   if (abierto === null) return null
-  if (abierto.tipo === 'otro') return <NuevoOtroPedidoDialog key={apertura} onCerrar={cerrarFormularioPedido} />
   return <NuevoPedidoDialog key={apertura} precarga={abierto.precarga} onCerrar={cerrarFormularioPedido} />
 }
