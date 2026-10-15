@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.15] - 2026-10-XX — «Añadir otro»: los otros pedidos dentro del bloque de su proveedor
+## [0.9.15] - 2026-10-15 — «Añadir otro»: los otros pedidos dentro del bloque de su proveedor
 
 - **Una sola lista en Pedidos.** Los otros pedidos (conceptos libres) van dentro del bloque de su proveedor, junto a las piezas. Cada línea lleva delante una píldora «pieza» u «otro» (las dos del mismo ancho), y el ID de un otro se ve como «O-88». Desaparecen el toggle «Componentes | Otros», la página «Otros» y «Nuevo otro pedido»; la dirección antigua simplemente abre Pedidos, y el buscador encuentra un otro por su concepto.
 - **Cabecera del bloque con los otros.** La cabecera del bloque cuenta los otros («3 líneas (1 otro)»), y el total, los estados y las acciones del bloque (confirmar, recibir, cancelar, borrar, separar y juntar) cuentan las dos cosas. Recibir un otro no toca el stock.
