@@ -305,8 +305,11 @@ describe('otros dentro de los bloques (0.9.15)', () => {
     const textos = screen.getAllByRole('menuitem').map((m) => m.textContent)
     expect(textos[textos.indexOf('Añadir líneas…') + 1]).toBe('Añadir otro…')
     await userEvent.click(screen.getByRole('menuitem', { name: 'Añadir otro…' }))
-    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, otro: true } })
-    cerrarFormularioPedido()
+    try {
+      expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, otro: true } })
+    } finally {
+      cerrarFormularioPedido()
+    }
   })
 
   it('en un bloque terminado, «Añadir otro…» va deshabilitado con su motivo', async () => {

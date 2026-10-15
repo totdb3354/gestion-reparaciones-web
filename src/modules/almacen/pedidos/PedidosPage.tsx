@@ -127,7 +127,7 @@ export function PedidosPage() {
   useEffect(() => {
     if ((llegada === null && llegadaTipo === null) || llegadaAplicada.current) return
     llegadaAplicada.current = true
-    filtrosPedidos.set((f) => ({ ...f, ...(llegada ?? {}), ...(llegadaTipo === null ? {} : { tipo: llegadaTipo }) }))
+    filtrosPedidos.set((f) => ({ ...f, ...(llegada ?? {}), ...(llegada === null ? {} : { tipo: 'piezas' as const }), ...(llegadaTipo === null ? {} : { tipo: llegadaTipo }) }))
     navigate(location.pathname, { replace: true })
   }, [llegada, llegadaTipo, navigate, location.pathname])
   const datos = lineas.data

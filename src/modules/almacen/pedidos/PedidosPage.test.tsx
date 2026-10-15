@@ -11,6 +11,8 @@ import { abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from '@/sh
 import type { Sesion } from '@/shared/session/storage'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
+import { filtrosPedidos } from './estado'
+import { FILTROS_PEDIDOS_VACIOS } from './filtros'
 import { PedidosPage, RedirigirPedidosOtros } from './PedidosPage'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
@@ -211,6 +213,15 @@ describe('PedidosPage: vista', () => {
     expect(screen.getByPlaceholderText('Buscar componente o nº de bloque…')).toHaveValue('bat-x')
     expect(screen.getByRole('button', { name: '3 estados' })).toBeInTheDocument()
     expect(screen.getAllByRole('row')).toHaveLength(2)
+  })
+})
+
+describe('PedidosPage: llegada desde Stock con «Tipo» previo', () => {
+  it('con «Tipo: Otros» en el store, llegar desde «En Camino» lo pone en «Piezas»: la pieza se ve y queda seleccionada', async () => {
+    filtrosPedidos.set({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(), proveedores: new Set(), tipo: 'otros' })
+    montar(SESION_TEC, '/stock/pedidos?estados=pendiente%2Cen+camino%2Cparcial&buscar=bat-x')
+    await waitFor(() => expect(document.querySelector('tr[aria-selected="true"]')).toHaveTextContent('bat-x'))
+    expect(screen.getByRole('radio', { name: 'Piezas' })).toHaveAttribute('aria-checked', 'true')
   })
 })
 
