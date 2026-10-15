@@ -9,7 +9,7 @@ import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import * as csv from '@/shared/lib/csv'
 import { abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import type { Sesion } from '@/shared/session/storage'
-import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { PedidosPage, RedirigirPedidosOtros } from './PedidosPage'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
@@ -148,8 +148,8 @@ describe('PedidosPage: vista', () => {
     expect(router.state.location.search).toBe('')
     expect(nombresEnTabla()).toHaveLength(7)
   })
-  it.each([['ADMIN', SESION_ADMIN], ['TECNICO', SESION_TEC]] as const)('%s ve la tabla sin "Nuevo pedido" ni menú contextual', async (_rol, sesion) => {
-    montar(sesion)
+  it('ADMIN ve la tabla sin "Nuevo pedido" ni menú contextual (desde la 0.9.16 el TECNICO no entra en Pedidos)', async () => {
+    montar(SESION_ADMIN)
     await screen.findByText('lcd-x-negro')
     expect(screen.queryByRole('button', { name: 'Nuevo pedido' })).not.toBeInTheDocument()
     await abrirMenu('lcd-x-negro')
@@ -194,7 +194,7 @@ describe('PedidosPage: vista', () => {
   })
   it('llegada desde "En Camino" de Stock: marca los estados, rellena el buscador, selecciona la primera fila filtrada y limpia la URL', async () => {
     server.use(http.get('*/api/compras', () => HttpResponse.json([compra({ idCompra: 6, idCom: 12, tipoComponente: 'bat-x', estado: 'recibido', fechaPedido: '2026-09-21T08:00:00' }), ...compras])))
-    const { router } = montar(SESION_TEC, '/stock/pedidos?estados=pendiente%2Cen+camino%2Cparcial&buscar=bat-x')
+    const { router } = montar(SESION_ADMIN, '/stock/pedidos?estados=pendiente%2Cen+camino%2Cparcial&buscar=bat-x')
     await waitFor(() => expect(document.querySelector('tr[aria-selected="true"]')).toHaveTextContent('19/09/26 10:00'))
     expect(document.querySelector('tr[aria-selected="true"]')).toHaveTextContent('bat-x')
     expect(router.state.location.pathname).toBe('/stock/pedidos')
@@ -413,7 +413,7 @@ describe('PedidosPage: refresco y CSV', () => {
     await waitFor(() => expect(cargas.compras).toBeGreaterThan(1))
   })
   it('"Actualizado HH:mm" recarga las dos listas, piezas y otros (0.9.15)', async () => {
-    montar(SESION_TEC)
+    montar(SESION_ADMIN)
     await screen.findByText('lcd-x-negro')
     expect(cargas.compras).toBe(1)
     expect(cargas.otros).toBe(1)

@@ -6,19 +6,20 @@ import { gruposNav } from './navegacion'
 const resumen = (grupos: ReturnType<typeof gruposNav>) => grupos.map((g) => [g.id, g.titulo, g.enlaces.map((e) => e.label)])
 
 describe('grupos de la columna lateral (0.9.14)', () => {
-  it('técnico: Reparaciones con Pendientes, Stock, Estadísticas › Rendimiento y Clientes › Listado, sin Gestión', () => {
+  it('técnico: Reparaciones con Pendientes, Stock solo con «Stock actual» (0.9.16), Estadísticas › Rendimiento y Clientes › Listado, sin Gestión', () => {
     expect(resumen(gruposNav(SESION_TEC))).toEqual([
       ['reparaciones', 'Reparaciones', ['Pendientes', 'Historial', 'IMEIs']],
-      ['stock', 'Stock', ['Stock actual', 'Pedidos', 'Proveedores']],
+      ['stock', 'Stock', ['Stock actual']],
       ['estadisticas', 'Estadísticas', ['Rendimiento']],
       ['clientes', 'Clientes', ['Listado']],
     ])
   })
 
-  it('supertécnico: Asignaciones y Pendientes en Reparaciones, sin Gestión', () => {
+  it('supertécnico: Asignaciones y Pendientes en Reparaciones, Stock con Pedidos y Proveedores, sin Gestión', () => {
     const grupos = gruposNav(SESION_SUPER)
     expect(grupos.map((g) => g.id)).toEqual(['reparaciones', 'stock', 'estadisticas', 'clientes'])
     expect(grupos[0].enlaces.map((e) => e.label)).toEqual(['Asignaciones', 'Pendientes', 'Historial', 'IMEIs'])
+    expect(grupos[1].enlaces.map((e) => e.label)).toEqual(['Stock actual', 'Pedidos', 'Proveedores'])
   })
 
   it('admin: Gestión al final con Técnicos y Logs', () => {

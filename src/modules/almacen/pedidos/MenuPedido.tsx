@@ -12,7 +12,7 @@ type Props = {
   mover?: { destinos: DestinoMover[]; sola: boolean; onMover: (idBloque: number | null) => void }
 }
 
-/** Contenido del menú contextual de una fila de Pedidos (solo SUPERTECNICO; la página no pasa menuFila a ADMIN ni TECNICO).
+/** Contenido del menú contextual de una fila de Pedidos (solo SUPERTECNICO; la página no pasa menuFila a ADMIN (desde la 0.9.16 el técnico no entra en Pedidos)).
  *  Entradas y separadores por estado de `entradasMenu`; cancelado no tiene entradas, y «Mover a bloque» solo se ofrece en líneas vivas (2026-10-12). */
 export function MenuPedido({ pedido, onAccion, onInteraccion, mover }: Props) {
   // Radix monta el contenido solo mientras el menú está abierto: montar/desmontar = abrir/cerrar.

@@ -44,6 +44,11 @@ describe('columnas de Stock actual', () => {
     await userEvent.click(enlace)
     expect(onEnCamino).toHaveBeenCalledWith(expect.objectContaining({ idCom: 1 }))
   })
+  it('sin onEnCamino (TECNICO, 0.9.16) "En Camino" es el número como texto, sin botón', () => {
+    render(<DataTable columns={crearColumnasStock({})} data={filas([c({ enCamino: 3 })])} vacio="Sin componentes" getRowId={(x) => String(x.idCom)} />)
+    expect(document.querySelector('[data-columna="enCamino"]')).toHaveTextContent('3')
+    expect(screen.queryByRole('button', { name: '3' })).not.toBeInTheDocument()
+  })
   it('el badge Estado lleva los colores del semáforo', () => {
     const { rerender } = render(<BadgeEstadoStock estado="OK" />)
     expect(screen.getByText('OK')).toHaveClass('bg-badge-neutro-bg', 'text-azul-gris', 'rounded-[10px]', 'text-[11px]', 'font-bold')

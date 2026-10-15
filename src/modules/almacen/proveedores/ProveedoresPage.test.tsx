@@ -2,7 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { renderConProviders, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConProviders, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { repartoFluido } from '@/test/columnas'
 import { CABECERAS_CSV_PROVEEDORES, crearColumnasProveedores, filaCsvProveedor } from './columnas'
@@ -57,15 +57,12 @@ describe('ProveedoresPage', () => {
     expect(within(screen.getByRole('table')).queryByText('Antiguo')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument()
   })
-  it('TECNICO y ADMIN: sin "Nuevo proveedor" ni menú', async () => {
-    for (const sesion of [SESION_TEC, SESION_ADMIN]) {
-      const { unmount } = montar(sesion)
-      await screen.findByText('ACME')
-      expect(screen.queryByRole('button', { name: 'Nuevo proveedor' })).not.toBeInTheDocument()
-      await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('ACME') })
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument()
-      unmount()
-    }
+  it('ADMIN: sin "Nuevo proveedor" ni menú (desde la 0.9.16 el TECNICO no entra en Proveedores)', async () => {
+    montar(SESION_ADMIN)
+    await screen.findByText('ACME')
+    expect(screen.queryByRole('button', { name: 'Nuevo proveedor' })).not.toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('ACME') })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
   it('menú del supertécnico: Desactivar/Editar y "Borrar" solo sin pedidos; "Activar" en el inactivo', async () => {
     montar()

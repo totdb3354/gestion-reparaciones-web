@@ -125,13 +125,15 @@ export function StockPage() {
     )
     return () => { vigente = false }
   }, [maestroSeleccionado, veEnCamino, mostrarError])
-  // Sin selección, "Selecciona un componente"; el TECNICO no pide la cantidad y su barra "Pedido" va a 0 al momento.
+  // Sin selección, "Selecciona un componente". El TECNICO no pide la cantidad: su barra "Pedido" usa el «En Camino» de la fila
+  // (0.9.16), que es el mismo número (los pedidos se guardan en el master y la fila agrupada es la del master).
   const filaGrafico = veEnCamino ? (grafico ? filas.find((f) => f.idCom === grafico.idCom) ?? null : null) : seleccionado
-  const graficoSku = !seleccionado || !filaGrafico ? null : { componente: filaGrafico, enCamino: veEnCamino ? grafico?.enCamino ?? 0 : 0 }
+  const graficoSku = !seleccionado || !filaGrafico ? null : { componente: filaGrafico, enCamino: veEnCamino ? grafico?.enCamino ?? 0 : filaGrafico.enCamino }
 
   const irAPedidos = useCallback((c: Componente) => navigate(`/stock/pedidos?${parametrosPedidos(c)}`), [navigate])
   const columnas = useMemo(
-    () => crearColumnasStock({ onEnCamino: irAPedidos, conPrevision: veEnCamino, onAutoPedido: (c, autoPedido) => marcarAutoPedido({ idCom: c.idCom, autoPedido }) }),
+    // 0.9.16: «En Camino» solo abre Pedidos para quien tiene Pedidos (SUPERTECNICO y ADMIN, los mismos que ven la previsión).
+    () => crearColumnasStock({ onEnCamino: veEnCamino ? irAPedidos : undefined, conPrevision: veEnCamino, onAutoPedido: (c, autoPedido) => marcarAutoPedido({ idCom: c.idCom, autoPedido }) }),
     [irAPedidos, veEnCamino, marcarAutoPedido])
 
   useRegistrarExportable(() => descargarCsv('stock_actual', cabecerasCsvStock(veEnCamino), visibles.map((c) => filaCsvStock(c, veEnCamino))))

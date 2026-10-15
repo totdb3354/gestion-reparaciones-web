@@ -154,14 +154,21 @@ describe('StockPage', () => {
     expect(await screen.findByText('9')).toBeInTheDocument()
     expect(enCamino).toBe(1)
   })
-  it('el TECNICO no pide la cantidad en camino: la barra Pedido va a 0', async () => {
+  it('el TECNICO no pide la cantidad en camino: la barra Pedido usa el «En Camino» de la fila (0.9.16)', async () => {
     let pedida = false
-    server.use(http.get('*/api/compras/cantidad-en-camino/:id', () => { pedida = true; return HttpResponse.json({ value: 4 }) }))
+    // Si se pidiera, el gráfico diría 9: así se ve que el 4 es el de la fila (bat-x, enCamino 4).
+    server.use(http.get('*/api/compras/cantidad-en-camino/:id', () => { pedida = true; return HttpResponse.json({ value: 9 }) }))
     montar(SESION_TEC)
     await screen.findByText('bat-x')
     await userEvent.click(screen.getByText('bat-x'))
-    expect(await screen.findByRole('img', { name: 'Stock 2, Pedido 0' })).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: 'Stock 2, Pedido 4' })).toBeInTheDocument()
     expect(pedida).toBe(false)
+  })
+  it('el TECNICO ve «En Camino» como número, sin enlace a Pedidos (0.9.16)', async () => {
+    montar(SESION_TEC)
+    await screen.findByText('bat-x')
+    expect(within(filaDe('bat-x')).getByText('4')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '4' })).not.toBeInTheDocument()
   })
   it('si falla la cantidad en camino, el gráfico por SKU conserva el anterior (título incluido) y avisa', async () => {
     montar()

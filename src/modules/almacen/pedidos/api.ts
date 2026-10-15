@@ -12,7 +12,7 @@ export function claveCompras(tipo: TipoPedido): readonly ['compras', TipoPedido]
 
 type OpcionesConsulta = { activo: boolean; habilitada?: boolean }
 
-/** GET /api/compras (los tres roles). `activo = false` congela el sondeo y el refetch por foco con un menú, un diálogo o un
+/** GET /api/compras (SUPERTECNICO y ADMIN desde la 0.9.16). `activo = false` congela el sondeo y el refetch por foco con un menú, un diálogo o un
  *  formulario abiertos; `habilitada = false` no la pide (un editor cerrado, por ejemplo). */
 export function useCompras({ activo, habilitada = true }: OpcionesConsulta): UseQueryResult<CompraComponente[]> {
   const intervalo = useIntervaloRefresco(activo)
@@ -25,7 +25,7 @@ export function useCompras({ activo, habilitada = true }: OpcionesConsulta): Use
   })
 }
 
-/** GET /api/compras-otros (los tres roles), con las mismas reglas que useCompras. */
+/** GET /api/compras-otros (SUPERTECNICO y ADMIN desde la 0.9.16), con las mismas reglas que useCompras. */
 export function useComprasOtros({ activo, habilitada = true }: OpcionesConsulta): UseQueryResult<CompraOtro[]> {
   const intervalo = useIntervaloRefresco(activo)
   return useQuery({
