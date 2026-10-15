@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.16] - 2026-10-XX — El técnico sin Pedidos ni Proveedores
+## [0.9.16] - 2026-10-15 — El técnico sin Pedidos ni Proveedores
 
 - **Pedidos y Proveedores son del supertécnico y del administrador.** El técnico ya no los tiene en la columna: el grupo Stock le queda con «Stock actual». Si entra por la dirección, ve «No tienes permisos para realizar esta acción.» y vuelve a Stock actual. El administrador sigue viéndolos en solo lectura.
 - **Stock actual del técnico:** «En Camino» es el número, sin enlace a Pedidos, y la barra «Pedido» del gráfico de la pieza enseña lo que está en camino (antes marcaba 0).
