@@ -428,7 +428,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
     await expect(cabecera(page, bloque1)).toHaveCount(1)
   })
 
-  test('CSV con «Bloque» y «Nota del bloque» tras «ID»', async () => {
+  test('CSV con «Tipo», «Bloque» y «Nota del bloque» tras «ID» (0.9.15)', async () => {
     const page = sup!
     // Sin el selector de ficheros del navegador: descarga directa por enlace (src/shared/lib/csv.ts).
     await page.evaluate(() => { Reflect.set(globalThis, 'showSaveFilePicker', undefined) })
@@ -438,9 +438,9 @@ test.describe('supertécnico: pedidos por bloques', () => {
     const ruta = await (await descarga).path()
     const texto = readFileSync(ruta, 'utf8')
     const lineasCsv = (texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto).split(String.fromCharCode(10)).map((l) => l.trim())
-    expect(lineasCsv[0].startsWith('ID;Bloque;Nota del bloque;')).toBe(true)
-    expect(lineasCsv.some((l) => l.startsWith(`${idsBloqueA[0]};${bloque1};${nota};`) && l.includes(nombreProv))).toBe(true)
-    expect(lineasCsv.some((l) => new RegExp(`^${escaparRegex(String(l3))};${bloque3};;`).test(l) && l.includes(nombreProv))).toBe(true)
+    expect(lineasCsv[0].startsWith('ID;Tipo;Bloque;Nota del bloque;')).toBe(true)
+    expect(lineasCsv.some((l) => l.startsWith(`${idsBloqueA[0]};pieza;${bloque1};${nota};`) && l.includes(nombreProv))).toBe(true)
+    expect(lineasCsv.some((l) => new RegExp(`^${escaparRegex(String(l3))};pieza;${bloque3};;`).test(l) && l.includes(nombreProv))).toBe(true)
   })
 
   test('«Exportar bloque en CSV» descarga solo las líneas de ese bloque', async () => {
@@ -453,7 +453,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
     expect(fichero.suggestedFilename()).toMatch(new RegExp(`^pedidos_bloque_${bloque1}_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}\\.csv$`))
     const texto = readFileSync(await fichero.path(), 'utf8')
     const filasCsv = (texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto).split(String.fromCharCode(10)).map((l) => l.trim()).filter((l) => l !== '')
-    expect(filasCsv[0].startsWith('ID;Bloque;Nota del bloque;')).toBe(true)
+    expect(filasCsv[0].startsWith('ID;Tipo;Bloque;Nota del bloque;')).toBe(true)
     const esperadas = (await lineas()).filter((l) => l.idBloque === bloque1).map((l) => String(l.idCompra)).sort()
     expect(filasCsv.slice(1).map((l) => l.split(';')[0]).sort()).toEqual(esperadas)
   })
