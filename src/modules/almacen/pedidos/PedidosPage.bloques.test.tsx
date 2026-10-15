@@ -13,6 +13,7 @@ import { lineaDePrueba as l, otroDePrueba as o } from './bloques/datosPrueba'
 import { CABECERAS_CSV_PEDIDOS } from './columnas'
 import { FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros } from './filtros'
 import { filtrosPedidos, plegadoBloques } from './estado'
+import { FormulariosPedido } from './formulario/FormulariosPedido'
 import { PedidosPage } from './PedidosPage'
 
 const U = '2026-10-09T10:00:00'
@@ -309,6 +310,27 @@ describe('otros dentro de los bloques (0.9.15)', () => {
       expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, otro: true } })
     } finally {
       cerrarFormularioPedido()
+    }
+  })
+
+  it('⋮ del bloque → «Añadir otro…» con el formulario de verdad: el cursor queda en el concepto aunque el menú, al cerrarse, devuelva el foco al ⋮', async () => {
+    server.use(http.get('*/api/componentes/gestionados', () => HttpResponse.json([])))
+    // Como en el shell (AppLayout): la vista y el host del formulario a la vez, para que el menú se cierre con el diálogo ya abierto.
+    renderConRouter([{ path: '/stock/pedidos', element: <><PedidosPage /><FormulariosPedido /></> }], { sesion: SESION_SUPER, ruta: '/stock/pedidos' })
+    await screen.findByText('lcd-x-negro')
+    const boton = screen.getByRole('button', { name: 'Acciones del bloque 41' })
+    await userEvent.click(boton)
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Añadir otro…' }))
+    try {
+      const dlg = await screen.findByRole('dialog', { name: 'Añadir líneas · Bloque 41' })
+      const concepto = within(dlg).getByRole('textbox', { name: 'Concepto línea 1' })
+      // El menú devuelve el foco a su ⋮ en un setTimeout(0) al desmontarse (FocusScope de Radix): se le deja correr.
+      await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+      await act(() => new Promise((r) => setTimeout(r, 20)))
+      expect(document.activeElement).not.toBe(boton)
+      expect(concepto).toHaveFocus()
+    } finally {
+      act(() => cerrarFormularioPedido())
     }
   })
 

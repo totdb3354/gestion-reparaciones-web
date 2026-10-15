@@ -71,8 +71,12 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
   // opción del autocompletar burbujea hasta la fila que desaparece y la seleccionaría después.
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   const [desplazarA, setDesplazarA] = useState<number | null>(null)
-  // Línea de otro cuyo concepto toma el cursor al aparecer (0.9.15): la de «+ Añadir otro» o la de «Añadir otro…».
-  const [focoConcepto, setFocoConcepto] = useState<number | null>(fijo?.otro ? 1 : null)
+  // Línea de otro cuyo concepto toma el cursor al aparecer (0.9.15, `autoFocus`): la de «+ Añadir otro».
+  const [focoConcepto, setFocoConcepto] = useState<number | null>(null)
+  // La de «Añadir otro…» de un bloque, que nace con el diálogo, no va con `autoFocus`: React enfocaría en el commit, antes
+  // de que el FocusScope de Radix escuche, y el menú ⋮ al cerrarse devolvería el foco a su botón, detrás del modal. Se
+  // marca (`data-autofoco`) y la enfoca DialogoPedidoBase al abrirse, así el diálogo la recuerda y le devuelve el foco.
+  const focoAlAbrir = fijo?.otro ? 1 : null
   const [peticion, setPeticion] = useState<{ id: number; marca: number } | null>(null)
   const [marcaVista, setMarcaVista] = useState<number | null>(null)
   if (peticion && peticion.marca !== marcaVista) {
@@ -274,7 +278,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
       <div className="flex items-center gap-2">
         <PildoraTipo tipo="otro" />
         <input aria-label={`Concepto línea ${n}`} value={l.concepto} maxLength={MAX_CONCEPTO} placeholder="Escribe el concepto…"
-          autoFocus={l.id === focoConcepto} onChange={(e) => cambiar(l.id, { concepto: e.target.value })}
+          autoFocus={l.id === focoConcepto} data-autofoco={l.id === focoAlAbrir ? '' : undefined} onChange={(e) => cambiar(l.id, { concepto: e.target.value })}
           className="h-[30px] w-full min-w-0 rounded-full border border-otro-borde bg-superficie px-3 text-[12px] text-azul-medio outline-none placeholder:text-texto-sub focus-visible:ring-2 focus-visible:ring-ring/50" />
       </div>
     ) : (

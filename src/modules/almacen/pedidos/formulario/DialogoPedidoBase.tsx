@@ -36,9 +36,9 @@ export function DialogoPedidoBase({ titulo, nLineas, conPrecarga, info, error, b
   // SELECCIONA el primer campo tabulable al abrirse (@radix-ui/react-focus-scope, focusFirst({ select: true })):
   // el Componente de la línea 1 queda con el texto en azul, y teclear lo pisa. El JavaFX no autoenfoca ese campo.
   // Con el diálogo vacío (alta manual) no hay ninguna línea todavía en el primer render, y en el modo bloque con un
-  // otro (`conPrecarga={false}`) la única línea nace vacía: en ambos casos el foco automático de Radix no cae sobre un
-  // campo con texto y se deja como estaba (calco). El valor se congela en el primer render: es justo el que ve el
-  // efecto de montaje de FocusScope, que solo corre una vez.
+  // otro (`conPrecarga={false}`) la única línea nace vacía y su concepto se enfoca por `data-autofoco`: en ningún caso el
+  // foco automático cae sobre un campo con texto y se deja como estaba (calco). El valor se congela en el primer render:
+  // es justo el que ve el efecto de montaje de FocusScope, que solo corre una vez.
   const [huboPrecarga] = useState(() => conPrecarga ?? nLineas > 0)
   // F5, cerrar la pestaña o salir de la web con líneas en el pedido: el navegador pregunta (el pedido aún no se ha guardado).
   useAvisoAlSalir(nLineas > 0)
@@ -53,9 +53,25 @@ export function DialogoPedidoBase({ titulo, nLineas, conPrecarga, info, error, b
     <Dialog open onOpenChange={(abierto) => { if (!abierto && !enviando) onCerrar() }}>
       <DialogContent
         aria-describedby={undefined}
-        // Sin seleccionar texto en una precarga (C25): igual de accesible que el comportamiento por defecto de Radix
-        // (el propio diálogo recibe el foco, sin tocar ningún campo), pero sin pisar lo precargado al teclear.
-        onOpenAutoFocus={huboPrecarga ? (e) => { e.preventDefault(); (e.target as HTMLElement).focus() } : undefined}
+        onOpenAutoFocus={(e) => {
+          const contenido = e.target as HTMLElement
+          // 0.9.15: el campo marcado con `data-autofoco` (el concepto del otro de «Añadir otro…» de un bloque) se enfoca
+          // aquí, dentro del montaje de FocusScope y ya con su trampa escuchando: el diálogo lo recuerda como último foco y
+          // le devuelve el cursor cuando el menú ⋮, al cerrarse, lo manda a su botón (un `autoFocus` de React llegaría
+          // antes que la trampa y el foco se quedaría detrás del modal).
+          const campo = contenido.querySelector<HTMLElement>('[data-autofoco]')
+          if (campo !== null) {
+            e.preventDefault()
+            campo.focus()
+            return
+          }
+          // Sin seleccionar texto en una precarga (C25): igual de accesible que el comportamiento por defecto de Radix
+          // (el propio diálogo recibe el foco, sin tocar ningún campo), pero sin pisar lo precargado al teclear.
+          if (huboPrecarga) {
+            e.preventDefault()
+            contenido.focus()
+          }
+        }}
         className="max-h-[calc(100vh-24px)] w-[880px] max-w-[min(880px,calc(100%-2rem))] gap-4 overflow-y-auto bg-fondo-vista p-7"
       >
         <DialogTitle className="text-2xl font-bold text-azul-medio">{titulo}</DialogTitle>
