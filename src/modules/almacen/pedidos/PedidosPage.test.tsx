@@ -11,8 +11,6 @@ import { abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from '@/sh
 import type { Sesion } from '@/shared/session/storage'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { filtrosPedidos } from './estado'
-import { FILTROS_PEDIDOS_VACIOS } from './filtros'
 import { PedidosPage, RedirigirPedidosOtros } from './PedidosPage'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
@@ -132,32 +130,23 @@ describe('PedidosPage: vista', () => {
     expect(fila.querySelector('[data-columna="id"]')).toHaveTextContent('O-7')
     expect(screen.queryByRole('button', { name: 'Cinta de embalar' })).not.toBeInTheDocument()
   })
-  it('filtro «Tipo»: «Todos | Piezas | Otros», cuenta con los demás filtros y «Limpiar filtros» lo vuelve a «Todos»', async () => {
+  it('el buscador encuentra un otro por su concepto y «Limpiar filtros» vuelve a la lista entera', async () => {
     listaOtros = otros
     montar()
     await screen.findByText('Cinta de embalar')
-    const tipo = screen.getByRole('radiogroup', { name: 'Tipo' })
-    expect(within(tipo).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Todos', 'Piezas', 'Otros'])
-    expect(within(tipo).getByRole('radio', { name: 'Todos' })).toHaveAttribute('aria-checked', 'true')
-    await userEvent.click(within(tipo).getByRole('radio', { name: 'Otros' }))
-    expect(within(tipo).getByRole('radio', { name: 'Otros' })).toHaveAttribute('aria-checked', 'true')
-    expect(nombresEnTabla()).toEqual(['Cinta de embalar', 'Bolsas'])
-    await userEvent.click(within(tipo).getByRole('radio', { name: 'Piezas' }))
-    expect(nombresEnTabla()).toEqual(['lcd-x-negro', 'bat-x', 'bat-y', 'cam-x', 'mc-x'])
     await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'bolsas')
-    expect(screen.getByText('Sin pedidos')).toBeInTheDocument()
+    expect(nombresEnTabla()).toEqual(['Bolsas'])
+    expect(screen.queryByRole('radiogroup', { name: 'Tipo' })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
-    expect(within(tipo).getByRole('radio', { name: 'Todos' })).toHaveAttribute('aria-checked', 'true')
     expect(nombresEnTabla()).toHaveLength(7)
   })
-  it('la dirección antigua /stock/pedidos/otros abre Pedidos con «Tipo: Otros» y limpia la URL', async () => {
+  it('la dirección antigua /stock/pedidos/otros abre Pedidos, sin filtro y con la lista entera', async () => {
     listaOtros = otros
     const { router } = montar(SESION_SUPER, '/stock/pedidos/otros')
     await screen.findByText('Cinta de embalar')
-    await waitFor(() => expect(router.state.location.search).toBe(''))
-    expect(router.state.location.pathname).toBe('/stock/pedidos')
-    expect(screen.getByRole('radio', { name: 'Otros' })).toHaveAttribute('aria-checked', 'true')
-    expect(nombresEnTabla()).toEqual(['Cinta de embalar', 'Bolsas'])
+    await waitFor(() => expect(router.state.location.pathname).toBe('/stock/pedidos'))
+    expect(router.state.location.search).toBe('')
+    expect(nombresEnTabla()).toHaveLength(7)
   })
   it.each([['ADMIN', SESION_ADMIN], ['TECNICO', SESION_TEC]] as const)('%s ve la tabla sin "Nuevo pedido" ni menú contextual', async (_rol, sesion) => {
     montar(sesion)
@@ -213,15 +202,6 @@ describe('PedidosPage: vista', () => {
     expect(screen.getByPlaceholderText('Buscar componente o nº de bloque…')).toHaveValue('bat-x')
     expect(screen.getByRole('button', { name: '3 estados' })).toBeInTheDocument()
     expect(screen.getAllByRole('row')).toHaveLength(2)
-  })
-})
-
-describe('PedidosPage: llegada desde Stock con «Tipo» previo', () => {
-  it('con «Tipo: Otros» en el store, llegar desde «En Camino» lo pone en «Piezas»: la pieza se ve y queda seleccionada', async () => {
-    filtrosPedidos.set({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(), proveedores: new Set(), tipo: 'otros' })
-    montar(SESION_TEC, '/stock/pedidos?estados=pendiente%2Cen+camino%2Cparcial&buscar=bat-x')
-    await waitFor(() => expect(document.querySelector('tr[aria-selected="true"]')).toHaveTextContent('bat-x'))
-    expect(screen.getByRole('radio', { name: 'Piezas' })).toHaveAttribute('aria-checked', 'true')
   })
 })
 

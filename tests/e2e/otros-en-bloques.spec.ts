@@ -229,11 +229,13 @@ test.describe('supertécnico: otros pedidos dentro de los bloques', () => {
     await expect(filaDeId(page, String(idPieza)).getByText('pieza', { exact: true })).toBeVisible()
   })
 
-  test('«Añadir otro…» del ⋮ suma un otro al mismo bloque; «Tipo: Otros» enseña solo los otros', async () => {
+  test('«Añadir otro…» del ⋮ suma un otro al mismo bloque; el buscador lo encuentra por su concepto', async () => {
     const page = sup!
     await elegirEnMenuBloque(page, bloque, /^Añadir otro…/)
     const dlg = page.getByRole('dialog', { name: `Añadir líneas · Bloque ${bloque}`, exact: true })
     const concepto = dlg.getByLabel('Concepto línea 1')
+    // El menú, al cerrarse (~150 ms), devuelve el foco a su ⋮: se espera a que se cierre del todo antes de mirar el foco.
+    await expect(page.getByRole('menu')).toHaveCount(0)
     await expect(concepto).toBeFocused()
     await concepto.fill(concepto2)
     await dlg.getByLabel('Precio línea 1').fill('1')
@@ -254,12 +256,13 @@ test.describe('supertécnico: otros pedidos dentro de los bloques', () => {
     await expect(cabecera(page, bloque)).toContainText('3 líneas (2 otros)')
     await expect(cabecera(page, bloque)).toContainText('4,00 €')
 
-    const tipo = page.getByRole('radiogroup', { name: 'Tipo' })
-    await tipo.getByRole('radio', { name: 'Otros' }).click()
-    await expect(cabecera(page, bloque)).toContainText('mostrando 2 de 3')
+    const buscador = page.getByPlaceholder('Buscar componente o nº de bloque…')
+    await buscador.fill(concepto2)
+    await expect(cabecera(page, bloque)).toContainText('mostrando 1 de 3')
     await expect(filaDeId(page, String(idPieza))).toHaveCount(0)
     await expect(filaDeId(page, `O-${idOtro2}`)).toContainText(concepto2)
-    await tipo.getByRole('radio', { name: 'Todos' }).click()
+    // Vuelve a dejar la lista filtrada por el bloque, como la dejó el test anterior, para el siguiente.
+    await buscador.fill(String(bloque))
     await expect(filaDeId(page, String(idPieza))).toHaveCount(1)
   })
 

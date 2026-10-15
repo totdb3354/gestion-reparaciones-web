@@ -210,7 +210,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await interruptor.click()
     })
 
-    await test.step('otro pedido con «+ Añadir otro»: crear, verlo con «Tipo: Otros», editar y borrar', async () => {
+    await test.step('otro pedido con «+ Añadir otro»: crear, encontrarlo con el buscador, editar y borrar', async () => {
       await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
       const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
       await elegirProveedorDelPedido(page, 'Proveedor', nombreProv)
@@ -244,9 +244,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       const id = idsOtrosCreados[0]
       await expect(dlg).toBeHidden()
 
-      // Una sola lista (0.9.15): «Tipo: Otros» y el buscador por concepto. Sigue la vista plana del paso anterior.
-      const tipo = page.getByRole('radiogroup', { name: 'Tipo' })
-      await tipo.getByRole('radio', { name: 'Otros' }).click()
+      // Una sola lista (0.9.15): el buscador encuentra el otro por su concepto. Sigue la vista plana del paso anterior.
       await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(concepto)
       const fila = page.getByRole('row').filter({ hasText: nombreProv })
       await expect(fila).toHaveCount(1)
@@ -280,10 +278,9 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await expect(fila).toHaveCount(0)
       await page.unroute('**/api/compras-otros/*')
 
-      // La dirección antigua de «Otros» abre Pedidos con «Tipo: Otros» (0.9.15).
+      // La dirección antigua de «Otros» abre Pedidos (0.9.15).
       await page.goto('/stock/pedidos/otros')
       await expect(page).toHaveURL(/\/stock\/pedidos$/)
-      await expect(page.getByRole('radiogroup', { name: 'Tipo' }).getByRole('radio', { name: 'Otros' })).toHaveAttribute('aria-checked', 'true')
     })
   } finally {
     // Limpieza por id: primero los pedidos que queden (solo los creados por este test, siguen pendientes), después el
