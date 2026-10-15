@@ -179,7 +179,7 @@ export type EntradaMenuBloque =
   | 'separador'
 
 /** Menú del bloque (spec §6.4). `otrosVivos`: cuántos bloques vivos más tiene su proveedor. 0.9.13: «Exportar bloque en
- *  CSV» siempre disponible; sin `puedeEditar` (admin y técnico) es la única entrada. 0.9.15: «Añadir otro…» justo tras «Añadir líneas…», cerrado
+ *  CSV» siempre disponible; sin `puedeEditar` (el admin; desde la 0.9.16 el técnico no entra en Pedidos) es la única entrada. 0.9.15: «Añadir otro…» justo tras «Añadir líneas…», cerrado
  *  como ella en un bloque terminado. */
 export function entradasMenuBloque(b: Bloque, otrosVivos: number, puedeEditar = true): EntradaMenuBloque[] {
   const entrada = (accion: AccionMenuBloque, texto: string, deshabilitada: boolean, motivo: string | null, peligro = false): EntradaMenuBloque =>

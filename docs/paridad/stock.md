@@ -221,6 +221,6 @@ Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (r
 
 Diferencias deliberadas, decididas en la spec `2026-10-15-v0916-tecnico-sin-pedidos-design.md` (raíz):
 
-- La columna del técnico solo tiene «Stock actual»; Pedidos y Proveedores son de SUPERTECNICO y ADMIN (`rutas.test.tsx`, `navegacion.test.ts`, `SubNav.test.tsx`).
+- La columna del técnico solo tiene «Stock actual»; Pedidos y Proveedores son de SUPERTECNICO y ADMIN (`rutas.test.tsx`, `navegacion.test.ts`, `SubNav.test.tsx`). Lo de Proveedores «TECNICO y ADMIN: sin botón ni menú» vale ahora solo para el ADMIN.
 - Para el técnico, «En Camino» es el número sin enlace a Pedidos (`columnas.test.tsx`, `StockPage.test.tsx`).
 - La barra «Pedido» del gráfico por SKU del técnico usa el «En Camino» de la fila; en el JavaFX y hasta la 0.9.15 iba a 0 (`StockPage.test.tsx`).

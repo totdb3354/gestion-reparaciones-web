@@ -281,4 +281,4 @@ Diferencias deliberadas, decididas en la spec `2026-10-14-v0915-anadir-otro-desi
 
 ## 0.9.16 — El técnico sin Pedidos (diferencia con el JavaFX)
 
-Diferencia deliberada, decidida en la spec `2026-10-15-v0916-tecnico-sin-pedidos-design.md` (raíz): el TECNICO ya no ve Pedidos, que en el JavaFX y hasta la 0.9.15 veía en solo lectura. Lo de arriba sobre «ADMIN y TECNICO sin "Nuevo…" ni menú» vale ahora solo para el ADMIN. Por URL, el técnico recibe el aviso de permisos y vuelve a Stock actual (`rutas.test.tsx`, `roles-stock.spec.ts`); el servidor le responde 403 (`RolesLecturasPedidosTest`).
+Diferencia deliberada, decidida en la spec `2026-10-15-v0916-tecnico-sin-pedidos-design.md` (raíz): el TECNICO ya no ve Pedidos, que en el JavaFX y hasta la 0.9.15 veía en solo lectura. Lo de arriba sobre «ADMIN y TECNICO sin "Nuevo…" ni menú» y sobre el menú del bloque solo con «Exportar bloque en CSV» (0.9.13) vale ahora solo para el ADMIN; la captura `pedidos-tecnico` ya no hace falta. Por URL, el técnico recibe el aviso de permisos y vuelve a Stock actual (`rutas.test.tsx`, `roles-stock.spec.ts`); el servidor le responde 403 (`RolesLecturasPedidosTest`).
