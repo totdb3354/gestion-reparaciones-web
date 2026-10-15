@@ -1,11 +1,11 @@
-import { cantidadARevertir, esCompra, idPedido, nombrePedido, type Pedido } from './reglas'
+import { cantidadARevertir, esCompra, idVisible, nombrePedido, type Pedido } from './reglas'
 
 export type Confirmacion = { titulo: string; descripcion: string; textoAccion: string }
 
 /** Textos de las tres confirmaciones (spec 4b §6). "Cancelar pedido" / "Cancelar" se calca tal cual. La descripción de
  *  revertir en componentes lleva saltos de línea: ConfirmDialog los respeta (whitespace-pre-line, Task 13). */
 export function confirmacionDe(accion: 'cancelar' | 'borrar' | 'revertir', p: Pedido): Confirmacion {
-  const id = idPedido(p)
+  const id = idVisible(p)
   const nombre = nombrePedido(p)
   switch (accion) {
     case 'cancelar':

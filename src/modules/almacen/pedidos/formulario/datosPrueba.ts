@@ -1,6 +1,6 @@
 import type { Componente, CompraComponente, CompraOtro, Proveedor, SolicitudResumen, SolicitudStock } from '@/shared/api/client'
 
-/** Campos del bloque (0.9.9) para los literales de CompraComponente de los tests: todas las líneas en el bloque 1. */
+/** Campos del bloque (0.9.9) para los literales de CompraComponente y, desde la 0.9.15, de CompraOtro de los tests: todas las líneas en el bloque 1. */
 export const BLOQUE_PRUEBA = {
   idBloque: 1, fechaBloque: '2026-09-20T10:00:00', notaBloque: null, bloqueUpdatedAt: '2026-09-20T10:00:00', bloqueAntiguo: false,
 } as const
@@ -38,6 +38,7 @@ export const COMPRA: CompraComponente = {
 }
 
 export const OTRO: CompraOtro = {
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 9, idProv: 1, nombreProveedor: 'ACME', concepto: 'Cinta de embalar', cantidad: 4, cantidadRecibida: null,
   esUrgente: true, fechaPedido: '2026-09-20T10:00:00', fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR',
   precioEur: 2, estado: 'pendiente', updatedAt: '2026-09-20T10:00:00',

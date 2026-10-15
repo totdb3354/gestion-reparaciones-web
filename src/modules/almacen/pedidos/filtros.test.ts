@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { CompraComponente, CompraOtro } from '@/shared/api/client'
-import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros, hayFiltros, ordenarCanceladosAlFinal, type FiltrosPedidos } from './filtros'
+import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros, hayFiltros, juntarLineas, ordenarCanceladosAlFinal, tipoDesdeUrl, type FiltrosPedidos } from './filtros'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
+import { claveLinea, esCompra, type Pedido } from './reglas'
 
 const compra = (o: Partial<CompraComponente>): CompraComponente => ({
   ...BLOQUE_PRUEBA,
@@ -10,6 +11,7 @@ const compra = (o: Partial<CompraComponente>): CompraComponente => ({
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,
 })
 const otro = (o: Partial<CompraOtro>): CompraOtro => ({
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 7, idProv: 1, nombreProveedor: 'Proveedor A', concepto: 'Cinta de embalar', cantidad: 3, cantidadRecibida: null,
   esUrgente: false, fechaPedido: '2026-09-20T08:30:00', fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR', precioEur: 2,
   estado: 'pendiente', updatedAt: '2026-09-20T08:30:00', ...o,
@@ -78,6 +80,8 @@ describe('hayFiltros y firmaFiltros (0.9.9)', () => {
     expect(hayFiltros(FILTROS_PEDIDOS_VACIOS)).toBe(false)
     expect(hayFiltros({ ...FILTROS_PEDIDOS_VACIOS, buscador: '  ' })).toBe(false)
     expect(hayFiltros({ ...FILTROS_PEDIDOS_VACIOS, desde: '2026-10-01' })).toBe(true)
+    expect(hayFiltros({ ...FILTROS_PEDIDOS_VACIOS, tipo: 'otros' })).toBe(true)
+    expect(firmaFiltros({ ...FILTROS_PEDIDOS_VACIOS, tipo: 'otros' })).not.toBe(firmaFiltros(FILTROS_PEDIDOS_VACIOS))
     const a = firmaFiltros({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(['pendiente', 'en_camino']), buscador: 'LCD ' })
     const b = firmaFiltros({ ...FILTROS_PEDIDOS_VACIOS, estados: new Set(['en_camino', 'pendiente']), buscador: 'lcd' })
     expect(a).toBe(b)
@@ -102,8 +106,42 @@ describe('buscador con número de bloque (spec 2026-10-11 §5.4)', () => {
     expect(ids(aplicarFiltrosPedidos(lista, f({ buscador: 'bati1' })))).toEqual([1, 2])
   })
 
-  it('en «Otros» (sin bloque) las cifras siguen buscando el concepto', () => {
-    const otros = [otro({ idCompraOtro: 9, concepto: 'Cable 41 cm' }), otro({ idCompraOtro: 10, concepto: 'Bolsas' })]
-    expect(aplicarFiltrosPedidos(otros, f({ buscador: '41' })).map((p) => p.idCompraOtro)).toEqual([9])
+  it('un otro (0.9.15, con bloque) también se busca por el número de su bloque, no por las cifras del concepto', () => {
+    const otros = [otro({ idCompraOtro: 9, concepto: 'Cable 41 cm', idBloque: 7 }), otro({ idCompraOtro: 10, concepto: 'Bolsas', idBloque: 41 })]
+    expect(aplicarFiltrosPedidos(otros, f({ buscador: '41' })).map((p) => p.idCompraOtro)).toEqual([10])
+  })
+})
+
+describe('juntarLineas (0.9.15)', () => {
+  it('piezas y otros en una lista por fecha de pedido descendente; a igual fecha, las piezas primero; los cancelados al final', () => {
+    const lista = juntarLineas(
+      [compra({ idCompra: 1, fechaPedido: '2026-09-20T08:30:00' }), compra({ idCompra: 2, fechaPedido: '2026-09-18T10:00:00', estado: 'cancelado' })],
+      [otro({ idCompraOtro: 7, fechaPedido: '2026-09-20T08:30:00' }), otro({ idCompraOtro: 8, fechaPedido: '2026-09-19T10:00:00' })],
+    )
+    expect(lista.map((p) => (esCompra(p) ? `p-${p.idCompra}` : `o-${p.idCompraOtro}`))).toEqual(['p-1', 'o-7', 'o-8', 'p-2'])
+  })
+})
+
+describe('filtro «Tipo» y buscador con piezas y otros (0.9.15)', () => {
+  const mezcla: Pedido[] = [
+    compra({ idCompra: 1, tipoComponente: 'cinta-x' }),
+    otro({ idCompraOtro: 7, concepto: 'Cinta de embalar' }),
+    otro({ idCompraOtro: 8, concepto: 'Bolsas' }),
+  ]
+  it('Todos, solo piezas o solo otros; se combina con los demás filtros', () => {
+    expect(aplicarFiltrosPedidos(mezcla, f({})).map(claveLinea)).toEqual(['p-1', 'o-7', 'o-8'])
+    expect(aplicarFiltrosPedidos(mezcla, f({ tipo: 'piezas' })).map(claveLinea)).toEqual(['p-1'])
+    expect(aplicarFiltrosPedidos(mezcla, f({ tipo: 'otros' })).map(claveLinea)).toEqual(['o-7', 'o-8'])
+    expect(aplicarFiltrosPedidos(mezcla, f({ tipo: 'otros', buscador: 'bol' })).map(claveLinea)).toEqual(['o-8'])
+  })
+  it('el buscador encuentra el componente o el concepto en la misma lista', () => {
+    expect(aplicarFiltrosPedidos(mezcla, f({ buscador: 'CINTA' })).map(claveLinea)).toEqual(['p-1', 'o-7'])
+  })
+  it('tipoDesdeUrl: ?tipo=todos|piezas|otros; otro valor o sin él, null', () => {
+    expect(tipoDesdeUrl(new URLSearchParams('tipo=otros'))).toBe('otros')
+    expect(tipoDesdeUrl(new URLSearchParams('tipo=piezas'))).toBe('piezas')
+    expect(tipoDesdeUrl(new URLSearchParams('tipo=todos'))).toBe('todos')
+    expect(tipoDesdeUrl(new URLSearchParams('tipo=raro'))).toBeNull()
+    expect(tipoDesdeUrl(new URLSearchParams(''))).toBeNull()
   })
 })

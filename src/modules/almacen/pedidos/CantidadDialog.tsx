@@ -3,7 +3,7 @@ import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { DialogoAlmacen } from '../ui/DialogoAlmacen'
 import { useErrorServidor } from '../ui/useErrorServidor'
-import { idPedido, nombrePedido, restante, validarParcial, validarResto, type Pedido } from './reglas'
+import { idVisible, nombrePedido, restante, validarParcial, validarResto, type Pedido } from './reglas'
 
 type Props = {
   modo: 'parcial' | 'resto'
@@ -17,7 +17,7 @@ type Props = {
 /** Cabecera del TextInputDialog (StockController :1506-1507 y :1539-1541). La de "Recibir unidades" corrige el "o más"
  *  que el cliente no permite (P7); una recibida nula (no debería en `parcial`) se pinta 0. */
 function subtitulo(modo: 'parcial' | 'resto', p: Pedido): string {
-  const cabecera = `Pedido #${idPedido(p)} — ${nombrePedido(p)}`
+  const cabecera = `Pedido #${idVisible(p)} — ${nombrePedido(p)}`
   if (modo === 'parcial') return `${cabecera} (${p.cantidad} pedidas)`
   return `${cabecera} (recibidas: ${p.cantidadRecibida ?? 0}/${p.cantidad})\nSi introduces ${restante(p)}, el pedido se cerrará como recibido.`
 }

@@ -1,17 +1,18 @@
 import type { Componente, SolicitudResumen, SolicitudStock } from '@/shared/api/client'
 import type { PrecargaPedido } from '@/shared/lib/formularioPedido'
 import { parsearDecimal, parsearEntero } from '@/shared/lib/importes'
-import type { CuerpoLoteCompras, CuerpoLoteOtros } from '../api'
+import type { CuerpoLoteCompras } from '../api'
 
 /** Línea de "Nuevo pedido" (LineaCompra del JavaFX). Cantidad y precio van como texto: las celdas son inputs siempre
- *  editables (P8) y el texto se valida al confirmar. */
-export type LineaCompra = { id: number; idCom: number | null; idProv: number | null; cantidad: string; precio: string; urgente: boolean }
-/** Línea de "Nuevo otro pedido" (LineaOtro, FO :46-73). */
-export type LineaOtro = { id: number; concepto: string; idProv: number | null; cantidad: string; precio: string; urgente: boolean }
-/** Lo común a las dos: las columnas Proveedor, Cant., P.Unit., Urg., Total EUR y la papelera (DialogoLineas). */
+ *  editables (P8) y el texto se valida al confirmar. 0.9.15 (spec «Añadir otro» §5.2): con `concepto` es una línea de otro
+ *  (texto libre; su `idCom` siempre es null); sin él, de pieza. */
+export type LineaCompra = { id: number; idCom: number | null; idProv: number | null; cantidad: string; precio: string; urgente: boolean; concepto?: string }
+/** Lo común a piezas y otros: las columnas Cant., P.Unit., Urg., Total EUR y la papelera (TablaLineas). */
 export type LineaBase = { id: number; idProv: number | null; cantidad: string; precio: string; urgente: boolean }
 
 export const MSG_SIN_LINEAS = 'Añade al menos una línea.'
+/** Tamaño de la columna CONCEPTO (0.9.15): el campo no deja escribir más y el servidor lo valida igual. */
+export const MAX_CONCEPTO = 255
 
 /** Cuerpo de la confirmación "Descartar" del Atrás del navegador con líneas en el pedido (decisión del usuario 2026-09-27). */
 export function textoDescartar(n: number): string {
@@ -23,8 +24,15 @@ export function lineaCompraVacia(id: number, idCom: number | null = null): Linea
   return { id, idCom, idProv: null, cantidad: '1', precio: '0,00', urgente: false }
 }
 
-export function lineaOtroVacia(id: number): LineaOtro {
-  return { id, concepto: '', idProv: null, cantidad: '1', precio: '0,00', urgente: false }
+/** Línea de otro (0.9.15): concepto vacío, cantidad 1 y precio 0 como una pieza, ya en el recuadro de su proveedor. */
+export function lineaOtroVacia(id: number, idProv: number | null = null): LineaCompra {
+  return { ...lineaCompraVacia(id), idProv, concepto: '' }
+}
+
+/** Una línea de otro (0.9.15): lleva concepto en lugar de pieza. No cuenta en la previsión, en «lo que falta» ni en las
+ *  repetidas (su `idCom` es null) y nunca va a «Por repartir» (nace en el recuadro de un proveedor). */
+export function esLineaOtro(l: LineaCompra): l is LineaCompra & { concepto: string } {
+  return l.concepto !== undefined
 }
 
 /** Id del master al que se pide un componente: el de su master si es slave, el suyo si no. Devuelve null si el id es
@@ -187,41 +195,37 @@ function errorComun(l: LineaBase, n: number): string | null {
   return null
 }
 
-/** Calco de confirmar (FC :517-540): primer error o null. */
+/** Calco de confirmar (FC :517-540): primer error o null. 0.9.15: una línea de otro pide su concepto («escribe el
+ *  concepto.») donde una pieza pide el componente; lo demás, igual y en el mismo orden. */
 export function validarLineasCompra(lineas: LineaCompra[]): string | null {
   if (lineas.length === 0) return MSG_SIN_LINEAS
   for (const [i, l] of lineas.entries()) {
     const n = i + 1
-    if (l.idCom === null) return `Línea ${n}: selecciona un componente.`
+    if (esLineaOtro(l)) {
+      if (l.concepto.trim() === '') return `Línea ${n}: escribe el concepto.`
+    } else if (l.idCom === null) {
+      return `Línea ${n}: selecciona un componente.`
+    }
     const error = errorComun(l, n)
     if (error !== null) return error
   }
   return null
 }
 
-/** Calco de confirmar de otros (FO :444-468): el concepto, recortado, va antes que lo común. */
-export function validarLineasOtro(lineas: LineaOtro[]): string | null {
-  if (lineas.length === 0) return MSG_SIN_LINEAS
-  for (const [i, l] of lineas.entries()) {
-    const n = i + 1
-    if (l.concepto.trim() === '') return `Línea ${n}: el concepto no puede estar vacío.`
-    const error = errorComun(l, n)
-    if (error !== null) return error
-  }
-  return null
-}
-
-/** Cuerpo de POST /api/compras/lote. Solo se llama con `validarLineasCompra(lineas) === null` (por eso los `as number`).
- *  Las solicitudes que viajan son las de componentes (o de su master, si son slaves) que siguen teniendo línea al confirmar (spec §6): si el usuario quitó
- *  la línea o le cambió el componente, esas solicitudes siguen PENDIENTE. */
+/** Cuerpo de POST /api/compras/lote. Solo se llama con `validarLineasCompra` sin error en cada recuadro (por eso los
+ *  `as number`). Las solicitudes que viajan son las de componentes (o de su master, si son slaves) que siguen teniendo
+ *  línea al confirmar (spec §6): si el usuario quitó la línea o le cambió el componente, esas solicitudes siguen
+ *  PENDIENTE. 0.9.15: las líneas de otro van en `otros`, con el concepto recortado (FO :470-478); el servidor las mete en
+ *  el mismo bloque que las piezas de su proveedor. */
 export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] } | null, activos: Componente[],
                                   destinos: CuerpoLoteCompras['destinos'] = null): CuerpoLoteCompras {
-  const conLinea = new Set(lineas.map((l) => l.idCom))
+  const piezas = lineas.filter((l) => !esLineaOtro(l))
+  const conLinea = new Set(piezas.map((l) => l.idCom))
   // Las líneas llevan el id del master: la solicitud de un slave se resuelve a él antes de comprobar si su grupo tiene línea
   // (el servidor marca GESTIONADA exactamente las solicitudes que recibe).
   const tieneLinea = (idCom: number) => conLinea.has(idPedible(idCom, activos) ?? idCom)
   return {
-    lineas: lineas.map((l) => ({
+    lineas: piezas.map((l) => ({
       idCom: l.idCom as number,
       idProv: l.idProv as number,
       cantidad: parsearEntero(l.cantidad) as number,
@@ -235,13 +239,7 @@ export function cuerpoLoteCompras(lineas: LineaCompra[], origen: { urgentes: Sol
           preventivas: origen.preventivas.filter((s) => tieneLinea(s.idCom)).map((s) => s.idSol),
         },
     destinos,
-  }
-}
-
-/** Cuerpo de POST /api/compras-otros/lote; concepto recortado (FO :470-478). Solo con `validarLineasOtro(lineas) === null`. */
-export function cuerpoLoteOtros(lineas: LineaOtro[]): CuerpoLoteOtros {
-  return {
-    lineas: lineas.map((l) => ({
+    otros: lineas.filter(esLineaOtro).map((l) => ({
       idProv: l.idProv as number,
       concepto: l.concepto.trim(),
       cantidad: parsearEntero(l.cantidad) as number,

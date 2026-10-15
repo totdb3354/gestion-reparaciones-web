@@ -101,7 +101,7 @@ export function CampoAutocompletar({
           />
         </PopoverAnchor>
         {/* Portal (Radix Popover) en vez de `position: absolute` dentro de la celda: la fila puede vivir en una tabla
-            con scroll propio (DialogoLineas, C24) y un popup absolute quedaría recortado por ese contenedor en vez
+            con scroll propio (la tabla de «Nuevo pedido», C24) y un popup absolute quedaría recortado por ese contenedor en vez
             de traído a la vista por su scroll. El portal escapa a document.body y Radix posiciona el contenido bajo
             el input (Popper), así que nunca queda recortado. Sin autofoco de Radix al abrir/cerrar: el foco se queda
             en el input, igual que con el popup absolute de antes. */}

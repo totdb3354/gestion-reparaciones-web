@@ -8,10 +8,11 @@ import { ReglaNegocioError, StaleDataError } from '@/shared/api/errors'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { server } from '@/test/server'
 import {
-  useAccionBloque, useCompras, useComprasOtros, useEditarCompra, useEditarOtro, useGuardarLoteCompras, useGuardarLoteOtros, useJuntarBloque, useMoverLinea, useNotaBloque, useRecargaPedidos, useSepararBloque,
-  useTransicionPedido, vistaDe, type AccionTransicion,
+  useAccionBloque, useCompras, useComprasOtros, useEditarCompra, useEditarOtro, useGuardarLoteCompras, useJuntarBloque, useLineasPedido,
+  useMoverLinea, useNotaBloque, useRecargaPedidos, useSepararBloque, useTransicionPedido, vistaDe, type AccionTransicion,
 } from './api'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
+import { esCompra } from './reglas'
 
 const U = '2026-09-19T08:00:00'
 const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
@@ -21,6 +22,7 @@ const compra = (o: Partial<CompraComponente> = {}): CompraComponente => ({
   updatedAt: U, ...o,
 })
 const otro = (o: Partial<CompraOtro> = {}): CompraOtro => ({
+  ...BLOQUE_PRUEBA,
   idCompraOtro: 7, idProv: 1, nombreProveedor: 'Proveedor A', concepto: 'Cinta de embalar', cantidad: 3, cantidadRecibida: null,
   esUrgente: false, fechaPedido: U, fechaLlegada: null, precioUnidadPedido: 2, divisa: 'EUR', precioEur: 2, estado: 'en_camino',
   updatedAt: U, ...o,
@@ -64,6 +66,21 @@ describe('consultas', () => {
     await waitFor(() => expect(result.current.data?.map((p) => p.idCompraOtro)).toEqual([7, 8]))
     expect(peticiones).toBe(1)
   })
+  it('useLineasPedido (0.9.15): junta las dos listas (fecha descendente, cancelados al final) y solo da datos con las dos', async () => {
+    let otrosPedidos = 0
+    server.use(
+      http.get('*/api/compras', () => HttpResponse.json([compra({ idCompra: 2 }), compra({ idCompra: 9, estado: 'cancelado', fechaPedido: '2026-09-21T08:00:00' })])),
+      http.get('*/api/compras-otros', () => { otrosPedidos += 1; return HttpResponse.json([otro({ idCompraOtro: 7, fechaPedido: '2026-09-20T08:00:00' })]) }),
+    )
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useLineasPedido({ activo: true }), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.map((p) => (esCompra(p) ? `p-${p.idCompra}` : `o-${p.idCompraOtro}`))).toEqual(['o-7', 'p-2', 'p-9'])
+    expect(result.current.dataUpdatedAt).toBeGreaterThan(0)
+    const recargadas = await result.current.refetch()
+    expect(recargadas).toHaveLength(3)
+    expect(otrosPedidos).toBe(2)
+  })
 })
 
 describe('useTransicionPedido', () => {
@@ -79,14 +96,14 @@ describe('useTransicionPedido', () => {
   ] as const)('%s de componentes: %s → %s %s con el cuerpo de hoy', async (accion, cantidad, metodo, ruta, cuerpo) => {
     const peticiones = registrar('*/api/compras/*')
     const { wrapper } = envoltorio()
-    const { result } = renderHook(() => useTransicionPedido('componentes'), { wrapper })
+    const { result } = renderHook(() => useTransicionPedido(), { wrapper })
     await result.current.mutateAsync({ accion: accion as AccionTransicion, pedido: compra(), cantidad })
     expect(peticiones).toEqual([{ metodo, ruta, cuerpo, clave: null }])
   })
-  it('en otros va a /api/compras-otros/{id}/…', async () => {
+  it('un otro va a /api/compras-otros/{id}/… (decide el tipo de la línea, 0.9.15)', async () => {
     const peticiones = registrar('*/api/compras-otros/*')
     const { wrapper } = envoltorio()
-    const { result } = renderHook(() => useTransicionPedido('otros'), { wrapper })
+    const { result } = renderHook(() => useTransicionPedido(), { wrapper })
     await result.current.mutateAsync({ accion: 'recibir-resto', pedido: otro({ estado: 'parcial', cantidadRecibida: 1 }), cantidad: 2 })
     await result.current.mutateAsync({ accion: 'borrar', pedido: otro({ estado: 'pendiente' }) })
     expect(peticiones).toEqual([
@@ -101,7 +118,7 @@ describe('useTransicionPedido', () => {
     qc.setQueryData(['componentes', 'gestionados'], [])
     qc.setQueryData(['notificaciones', 'contador'], 0)
     qc.setQueryData(['proveedores', 'COMPONENTES'], [])
-    const { result } = renderHook(() => useTransicionPedido('componentes'), { wrapper })
+    const { result } = renderHook(() => useTransicionPedido(), { wrapper })
     await expect(result.current.mutateAsync({ accion: 'confirmar', pedido: compra({ estado: 'pendiente' }) })).rejects.toBeInstanceOf(StaleDataError)
     expect(qc.getQueryState(['compras', 'componentes'])?.isInvalidated).toBe(true)
     expect(qc.getQueryState(['componentes', 'gestionados'])?.isInvalidated).toBe(true)
@@ -121,18 +138,20 @@ describe('editar (PUT, spec 4b §6 y P3)', () => {
     expect(peticiones).toEqual([{ metodo: 'PUT', ruta: '/api/compras/2', cuerpo: { ...cuerpo, destino: null, precioEur: null }, clave: null }])
     expect(qc.getQueryState(['compras', 'componentes'])?.isInvalidated).toBe(true)
   })
-  it('useEditarOtro manda también el concepto a /api/compras-otros/{id}', async () => {
+  it('useEditarOtro manda también el concepto y el destino (0.9.15) a /api/compras-otros/{id}', async () => {
     const peticiones = registrar('*/api/compras-otros/*')
     const { wrapper } = envoltorio()
     const { result } = renderHook(() => useEditarOtro(), { wrapper })
-    await result.current.mutateAsync({ idCompraOtro: 7, cuerpo: { ...cuerpo, concepto: 'Cinta de embalar' } })
-    expect(peticiones).toEqual([{ metodo: 'PUT', ruta: '/api/compras-otros/7', cuerpo: { ...cuerpo, concepto: 'Cinta de embalar', precioEur: null }, clave: null }])
+    await result.current.mutateAsync({ idCompraOtro: 7, cuerpo: { ...cuerpo, concepto: 'Cinta de embalar', destino: { idBloque: 60 } } })
+    expect(peticiones).toEqual([{
+      metodo: 'PUT', ruta: '/api/compras-otros/7', cuerpo: { ...cuerpo, concepto: 'Cinta de embalar', destino: { idBloque: 60 }, precioEur: null }, clave: null,
+    }])
   })
 })
 
 describe('lotes (spec 4b P5)', () => {
-  it('useGuardarLoteCompras: POST /api/compras/lote con Idempotency-Key, devuelve los ids creados y recarga', async () => {
-    const peticiones = registrar('*/api/compras/lote', () => HttpResponse.json({ idsCreados: [21, 22] }))
+  it('useGuardarLoteCompras: POST /api/compras/lote con Idempotency-Key, piezas y otros; devuelve los ids de los dos y recarga', async () => {
+    const peticiones = registrar('*/api/compras/lote', () => HttpResponse.json({ idsCreados: [21, 22], idsOtrosCreados: [31] }))
     const { qc, wrapper } = envoltorio()
     qc.setQueryData(['notificaciones', 'solicitudes'], {})
     const { result } = renderHook(() => useGuardarLoteCompras(), { wrapper })
@@ -143,25 +162,25 @@ describe('lotes (spec 4b P5)', () => {
       ],
       solicitudes: { urgentes: [31], preventivas: [41] },
       destinos: null,
+      otros: [{ idProv: 1, concepto: 'Cinta de embalar', cantidad: 3, esUrgente: false, precioUnidad: 2 }],
     }
-    expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-1' })).toEqual({ idsCreados: [21, 22] })
+    expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-1' })).toEqual({ idsCreados: [21, 22], idsOtrosCreados: [31] })
     expect(peticiones).toEqual([{ metodo: 'POST', ruta: '/api/compras/lote', cuerpo, clave: 'clave-1' }])
     expect(qc.getQueryState(['notificaciones', 'solicitudes'])?.isInvalidated).toBe(true)
   })
-  it('useGuardarLoteOtros: POST /api/compras-otros/lote con Idempotency-Key', async () => {
-    const peticiones = registrar('*/api/compras-otros/lote', () => HttpResponse.json({ idsCreados: [31] }))
+  it('useGuardarLoteCompras: una respuesta sin idsOtrosCreados da la lista vacía', async () => {
+    registrar('*/api/compras/lote', () => HttpResponse.json({ idsCreados: [21] }))
     const { wrapper } = envoltorio()
-    const { result } = renderHook(() => useGuardarLoteOtros(), { wrapper })
-    const cuerpo = { lineas: [{ idProv: 1, concepto: 'Cinta de embalar', cantidad: 3, esUrgente: false, precioUnidad: 2 }] }
-    expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-2' })).toEqual({ idsCreados: [31] })
-    expect(peticiones).toEqual([{ metodo: 'POST', ruta: '/api/compras-otros/lote', cuerpo, clave: 'clave-2' }])
+    const { result } = renderHook(() => useGuardarLoteCompras(), { wrapper })
+    const cuerpo = { lineas: [{ idCom: 11, idProv: 1, cantidad: 1, esUrgente: false, precioUnidad: 0 }], solicitudes: { urgentes: [], preventivas: [] }, destinos: null, otros: [] }
+    expect(await result.current.mutateAsync({ cuerpo, clave: 'clave-4' })).toEqual({ idsCreados: [21], idsOtrosCreados: [] })
   })
   it('un lote rechazado (422) no recarga: el formulario sigue abierto con su error', async () => {
-    registrar('*/api/compras-otros/lote', () => HttpResponse.json({ message: 'Línea 1: el proveedor está desactivado.' }, { status: 422 }))
+    registrar('*/api/compras/lote', () => HttpResponse.json({ message: 'Otro 1: el concepto no puede estar vacío.' }, { status: 422 }))
     const { qc, wrapper } = envoltorio()
     qc.setQueryData(['compras', 'otros'], [])
-    const { result } = renderHook(() => useGuardarLoteOtros(), { wrapper })
-    const cuerpo = { lineas: [{ idProv: 3, concepto: 'Bolsas', cantidad: 1, esUrgente: false, precioUnidad: 0 }] }
+    const { result } = renderHook(() => useGuardarLoteCompras(), { wrapper })
+    const cuerpo = { lineas: [], solicitudes: { urgentes: [], preventivas: [] }, destinos: null, otros: [{ idProv: 3, concepto: 'Bolsas', cantidad: 1, esUrgente: false, precioUnidad: 0 }] }
     await expect(result.current.mutateAsync({ cuerpo, clave: 'clave-3' })).rejects.toBeInstanceOf(ReglaNegocioError)
     expect(qc.getQueryState(['compras', 'otros'])?.isInvalidated).toBe(false)
   })
@@ -183,7 +202,7 @@ describe('useRecargaPedidos', () => {
   })
 })
 
-describe('bloques (0.9.9)', () => {
+describe('bloques (0.9.9; con otros, 0.9.15)', () => {
   it('useMoverLinea: PATCH /api/compras/{id}/bloque con el destino y el updatedAt de la línea', async () => {
     const peticiones = registrar('*/api/compras/:id/bloque')
     const { wrapper } = envoltorio()
@@ -192,24 +211,39 @@ describe('bloques (0.9.9)', () => {
     expect(peticiones).toEqual([{ metodo: 'PATCH', ruta: '/api/compras/2/bloque', cuerpo: { idBloque: null, updatedAt: U }, clave: null }])
   })
 
+  it('useMoverLinea de un otro: PATCH /api/compras-otros/{id}/bloque', async () => {
+    const peticiones = registrar('*/api/compras-otros/:id/bloque')
+    const { wrapper } = envoltorio()
+    const { result } = renderHook(() => useMoverLinea(), { wrapper })
+    await result.current.mutateAsync({ pedido: otro({ idCompraOtro: 7 }), idBloque: 40 })
+    expect(peticiones).toEqual([{ metodo: 'PATCH', ruta: '/api/compras-otros/7/bloque', cuerpo: { idBloque: 40, updatedAt: U }, clave: null }])
+  })
+
+  it('vistaDe lleva el id en su tabla y el tipo de la línea', () => {
+    expect(vistaDe(compra({ idCompra: 2 }))).toEqual({ idCompra: 2, updatedAt: U, tipo: 'PIEZA' })
+    expect(vistaDe(otro({ idCompraOtro: 2 }))).toEqual({ idCompra: 2, updatedAt: U, tipo: 'OTRO' })
+  })
+
   it.each([
     ['confirmar', '/api/bloques-compra/41/confirmar'],
     ['recibir', '/api/bloques-compra/41/recibir'],
     ['cancelar', '/api/bloques-compra/41/cancelar'],
     ['borrar', '/api/bloques-compra/41/borrar'],
-  ] as const)('useAccionBloque %s: POST %s con las líneas vistas', async (accion, ruta) => {
+  ] as const)('useAccionBloque %s: POST %s con las líneas vistas y su tipo', async (accion, ruta) => {
     const peticiones = registrar('*/api/bloques-compra/:id/:accion')
     const { wrapper } = envoltorio()
     const { result } = renderHook(() => useAccionBloque(), { wrapper })
-    await result.current.mutateAsync({ idBloque: 41, accion, lineas: [vistaDe(compra({ idCompra: 2 }))] })
-    expect(peticiones).toEqual([{ metodo: 'POST', ruta, cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }] }, clave: null }])
+    await result.current.mutateAsync({ idBloque: 41, accion, lineas: [vistaDe(compra({ idCompra: 2 })), vistaDe(otro({ idCompraOtro: 2 }))] })
+    expect(peticiones).toEqual([{
+      metodo: 'POST', ruta, cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 2, updatedAt: U, tipo: 'OTRO' }] }, clave: null,
+    }])
   })
 
   it('useSepararBloque devuelve el número del bloque nuevo', async () => {
     registrar('*/api/bloques-compra/:id/separar', () => HttpResponse.json({ idBloque: 90 }))
     const { wrapper } = envoltorio()
     const { result } = renderHook(() => useSepararBloque(), { wrapper })
-    expect(await result.current.mutateAsync({ idBloque: 41, lineas: [{ idCompra: 2, updatedAt: U }] })).toEqual({ idBloque: 90 })
+    expect(await result.current.mutateAsync({ idBloque: 41, lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }] })).toEqual({ idBloque: 90 })
   })
 
   it('useJuntarBloque y useNotaBloque mandan su cuerpo', async () => {
@@ -217,10 +251,10 @@ describe('bloques (0.9.9)', () => {
     const { wrapper } = envoltorio()
     const juntar = renderHook(() => useJuntarBloque(), { wrapper }).result
     const nota = renderHook(() => useNotaBloque(), { wrapper }).result
-    await juntar.current.mutateAsync({ idBloque: 41, destino: 40, lineas: [{ idCompra: 2, updatedAt: U }] })
+    await juntar.current.mutateAsync({ idBloque: 41, destino: 40, lineas: [{ idCompra: 2, updatedAt: U, tipo: 'OTRO' }] })
     await nota.current.mutateAsync({ idBloque: 41, nota: 'Ped. 123', updatedAt: U })
     expect(peticiones).toEqual([
-      { metodo: 'POST', ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 2, updatedAt: U }] }, clave: null },
+      { metodo: 'POST', ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 2, updatedAt: U, tipo: 'OTRO' }] }, clave: null },
       { metodo: 'PATCH', ruta: '/api/bloques-compra/41/nota', cuerpo: { nota: 'Ped. 123', updatedAt: U }, clave: null },
     ])
   })

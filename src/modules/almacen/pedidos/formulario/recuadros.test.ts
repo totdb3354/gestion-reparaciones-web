@@ -3,7 +3,7 @@ import type { Componente } from '@/shared/api/client'
 import { lineaDePrueba } from '../bloques/datosPrueba'
 import { agruparEnBloques } from '../bloques/reglas'
 import { COMPONENTES, PROVEEDORES } from './datosPrueba'
-import { lineaCompraVacia, type LineaCompra } from './lineas'
+import { lineaCompraVacia, lineaOtroVacia, type LineaCompra } from './lineas'
 import {
   avisoYaEstaba, lineasDe, opcionesOtroProveedor, opcionesPasarA, pasarA, POR_REPARTIR, recuadrosDelPedido, repartirLineas, tambienVa,
   textoConfirmar, textoQuitarRecuadro, validarPedido,
@@ -89,5 +89,16 @@ describe('Confirmar (§6)', () => {
     expect(textoConfirmar(3)).toBe('Confirmar pedido (3 bloques)')
     expect(textoQuitarRecuadro('ACME', 1)).toBe('¿Quitar ACME y su línea?')
     expect(textoQuitarRecuadro('ACME', 4)).toBe('¿Quitar ACME y sus 4 líneas?')
+  })
+})
+
+describe('líneas de otro (0.9.15)', () => {
+  const O = (id: number, idProv: number, concepto = 'Bolsas'): LineaCompra => ({ ...lineaOtroVacia(id, idProv), concepto })
+  it('un recuadro con solo otros es un recuadro con líneas; un concepto vacío falla con su proveedor y su número en el recuadro', () => {
+    expect(validarPedido([O(1, 2)], [2], nombre)).toBeNull()
+    expect(validarPedido([L(1, 1, 1), O(2, 1, '  ')], [1], nombre)).toEqual({ error: 'ACME · Línea 2: escribe el concepto.', recuadro: 1 })
+  })
+  it('un otro no sale en «también va a» aunque su concepto se llame como una pieza', () => {
+    expect(tambienVa([L(1, 1, 1, '3'), O(2, 2, 'lcd-x-negro')], 1, () => 'lcd-x-negro', nombre)).toEqual([])
   })
 })

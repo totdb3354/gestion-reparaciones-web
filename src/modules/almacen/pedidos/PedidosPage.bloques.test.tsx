@@ -2,14 +2,14 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CompraComponente, Proveedor } from '@/shared/api/client'
+import type { CompraComponente, CompraOtro, Proveedor } from '@/shared/api/client'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
 import * as csv from '@/shared/lib/csv'
 import { cerrarFormularioPedido, formularioPedido } from '@/shared/lib/formularioPedido'
 import type { Sesion } from '@/shared/session/storage'
 import { renderConRouter, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
-import { lineaDePrueba as l } from './bloques/datosPrueba'
+import { lineaDePrueba as l, otroDePrueba as o } from './bloques/datosPrueba'
 import { CABECERAS_CSV_PEDIDOS } from './columnas'
 import { FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros } from './filtros'
 import { filtrosPedidos, plegadoBloques } from './estado'
@@ -29,14 +29,21 @@ const compras: CompraComponente[] = [
 const proveedores: Proveedor[] = [{ idProv: 1, nombre: 'Proveedor A', activo: true, divisa: 'EUR', comentario: '', tipo: 'COMPONENTES' }]
 let escrituras: string[]
 let cargasCompras = 0
+let otros: CompraOtro[]
 
 beforeEach(() => {
   escrituras = []
   cargasCompras = 0
+  otros = []
   localStorage.removeItem('pedidos.agruparPorBloque')
   server.use(
     http.get('*/api/compras', () => { cargasCompras += 1; return HttpResponse.json(compras) }),
     http.get('*/api/proveedores', () => HttpResponse.json(proveedores)),
+    http.get('*/api/compras-otros', () => HttpResponse.json(otros)),
+    http.patch('*/api/compras-otros/:id/bloque', async ({ params, request }) => {
+      escrituras.push(`PATCH otro ${String(params.id)} ${JSON.stringify(await request.json())}`)
+      return new HttpResponse(null, { status: 200 })
+    }),
     http.patch('*/api/compras/:id/bloque', async ({ params, request }) => {
       escrituras.push(`PATCH ${String(params.id)} ${JSON.stringify(await request.json())}`)
       return new HttpResponse(null, { status: 200 })
@@ -53,7 +60,7 @@ afterEach(() => {
 })
 
 function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
-  return renderConRouter([{ path: '/stock/pedidos', element: <PedidosPage tipo="componentes" /> }], { sesion, ruta })
+  return renderConRouter([{ path: '/stock/pedidos', element: <PedidosPage /> }], { sesion, ruta })
 }
 const filas = () => screen.getAllByRole('row').slice(1).map((r) => r.textContent ?? '')
 const abrirMenu = (texto: string) => userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText(texto).closest('tr') as HTMLElement })
@@ -138,7 +145,7 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Recibir todo (1)' }))
     const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
     await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (1)' }))
-    await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}"}]}`]))
+    await waitFor(() => expect(escrituras).toEqual([`POST 41 recibir {"lineas":[{"idCompra":2,"updatedAt":"${U}","tipo":"PIEZA"}]}`]))
   })
 
   it('⋮ del bloque → «Exportar bloque en CSV» descarga todas sus líneas aunque un filtro oculte alguna (0.9.13)', async () => {
@@ -247,5 +254,70 @@ describe('Pedidos agrupados por bloques (0.9.9)', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Mover a bloque' }))
     expect(await screen.findByRole('menuitem', { name: /Bloque 40/ })).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: /Bloque 39/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('otros dentro de los bloques (0.9.15)', () => {
+  /** Otro 88 en el bloque 41 (Proveedor A), pendiente, a la misma hora que sus piezas. */
+  const otro41 = () => o({ idCompraOtro: 88, ...B41, concepto: 'Cinta de embalar' })
+
+  it('un otro sale en el bloque de su proveedor, tras las piezas, con su píldora y «O-{id}»; la cabecera cuenta los otros', async () => {
+    otros = [otro41()]
+    montar()
+    const fila = (await screen.findByText('Cinta de embalar')).closest('tr') as HTMLElement
+    expect(within(fila).getByText('otro')).toBeInTheDocument()
+    expect(fila.querySelector('[data-columna="id"]')).toHaveTextContent('O-88')
+    expect(screen.queryByRole('button', { name: 'Cinta de embalar' })).not.toBeInTheDocument()
+    const t = filas()
+    expect(t[0]).toContain('Bloque 41')
+    expect(t[0]).toContain('3 líneas (1 otro)')
+    expect(t[3]).toContain('Cinta de embalar')
+  })
+
+  it('filtro «Tipo: Otros»: solo el otro, su bloque desplegado con «mostrando 1 de 3»; «Limpiar filtros» vuelve a «Todos»', async () => {
+    otros = [otro41()]
+    montar()
+    await screen.findByText('Cinta de embalar')
+    await userEvent.click(screen.getByRole('radio', { name: 'Otros' }))
+    expect(screen.getByText('mostrando 1 de 3')).toBeInTheDocument()
+    expect(screen.queryByText('lcd-x-negro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Bloque 40')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(screen.getByRole('radio', { name: 'Todos' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByText('lcd-x-negro')).toBeInTheDocument()
+  })
+
+  it('menú de fila de un otro: sus transiciones y «Mover a bloque», que manda PATCH /api/compras-otros/{id}/bloque', async () => {
+    otros = [otro41()]
+    montar()
+    await screen.findByText('Cinta de embalar')
+    await abrirMenu('Cinta de embalar')
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Confirmar pedido', 'Editar', 'Borrar', 'Mover a bloque'])
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mover a bloque' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Bloque 40/ }))
+    await waitFor(() => expect(escrituras).toEqual([`PATCH otro 88 {"idBloque":40,"updatedAt":"${U}"}`]))
+  })
+
+  it('⋮ del bloque → «Añadir otro…», justo tras «Añadir líneas…», abre «Nuevo pedido» del bloque con una línea de otro', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 41' }))
+    const textos = screen.getAllByRole('menuitem').map((m) => m.textContent)
+    expect(textos[textos.indexOf('Añadir líneas…') + 1]).toBe('Añadir otro…')
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Añadir otro…' }))
+    try {
+      expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, otro: true } })
+    } finally {
+      cerrarFormularioPedido()
+    }
+  })
+
+  it('en un bloque terminado, «Añadir otro…» va deshabilitado con su motivo', async () => {
+    montar()
+    await screen.findByText('lcd-x-negro')
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones del bloque 39' }))
+    const entrada = screen.getByRole('menuitem', { name: /Añadir otro…/ })
+    expect(entrada).toHaveAttribute('aria-disabled', 'true')
+    expect(entrada).toHaveTextContent('el bloque está terminado')
   })
 })

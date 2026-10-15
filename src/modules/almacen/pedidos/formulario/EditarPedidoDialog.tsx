@@ -9,10 +9,10 @@ import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
-import { useCompras, useEditarCompra } from '../api'
-import { agruparEnBloques, destinoSugeridoEdicion, fechaCorta, situacion, textoLineas, textoMoverYaPedida, vivosDelProveedor } from '../bloques/reglas'
+import { useEditarCompra, useLineasPedido } from '../api'
+import { agruparEnBloques, destinoSugeridoEdicion, textoMoverYaPedida } from '../bloques/reglas'
 import { useTasa } from '../tasa'
-import { VALOR_NUEVO } from './destinos'
+import { opcionesBloqueEdicion, VALOR_NUEVO } from './destinos'
 import { CLASE_CAMPO, CLASE_ETIQUETA, DIVISAS_EDICION, MSG_PEDIDO_MODIFICADO, textoTotalEdicion, validarEdicion } from './edicion'
 import { esBloqueInexistente, mensajeErrorGuardado, staleDataDe } from './errores'
 
@@ -26,7 +26,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
   const { data: proveedores } = useProveedoresComponentes({ activo: false })
   const activos = useMemo(() => (proveedores ?? []).filter((p) => p.activo), [proveedores])
   const opciones = useMemo(() => activos.map((p) => ({ valor: String(p.idProv), etiqueta: p.nombre })), [activos])
-  const compras = useCompras({ activo: false, habilitada: pedido !== null })
+  const compras = useLineasPedido({ activo: false, habilitada: pedido !== null })
   const bloques = useMemo(() => agruparEnBloques(compras.data ?? []), [compras.data])
   const [idProv, setIdProv] = useState<number | null>(null)
   const [cantidad, setCantidad] = useState('')
@@ -46,14 +46,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
   const proveedor = idProv !== null && activos.some((p) => p.idProv === idProv) ? idProv : null
   const cambiaProveedor = pedido !== null && proveedor !== null && proveedor !== pedido.idProv
   const nuevo = cambiaProveedor ? activos.find((p) => p.idProv === proveedor) : undefined
-  const opcionesBloque = cambiaProveedor && proveedor !== null
-    ? [
-        ...vivosDelProveedor(bloques, proveedor).map((b) => ({
-          valor: String(b.idBloque), etiqueta: `Bloque ${b.idBloque} · ${fechaCorta(b.fecha)} · ${textoLineas(b.lineas.length)} · ${situacion(b)}`,
-        })),
-        { valor: VALOR_NUEVO, etiqueta: 'Bloque nuevo' },
-      ]
-    : []
+  const opcionesBloque = cambiaProveedor && proveedor !== null ? opcionesBloqueEdicion(bloques, proveedor) : []
 
   function elegirProveedor(v: string) {
     const id = Number(v)
@@ -88,7 +81,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
       if (esBloqueInexistente(e) && cambiaProveedor) {
         // El bloque elegido ya no existe: se vuelve a sugerir con los datos recargados.
         const r = await compras.refetch()
-        setDestino(destinoSugeridoEdicion(pedido, v.valor.idProv, agruparEnBloques(r.data ?? [])))
+        setDestino(destinoSugeridoEdicion(pedido, v.valor.idProv, agruparEnBloques(r ?? [])))
       }
     }
   }

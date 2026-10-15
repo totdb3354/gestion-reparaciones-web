@@ -85,7 +85,7 @@ describe('CampoAutocompletar', () => {
     await userEvent.type(screen.getByRole('combobox'), 'cliente')
     expect(screen.getByRole('listbox')).toHaveStyle({ maxHeight: '180px' })
   })
-  it('la lista va en un portal: no queda anidada dentro de un contenedor con scroll propio (C24, DialogoLineas)', async () => {
+  it('la lista va en un portal: no queda anidada dentro de un contenedor con scroll propio (C24, tabla de «Nuevo pedido»)', async () => {
     const contenedor = document.createElement('div')
     contenedor.setAttribute('data-testid', 'contenedor-scroll')
     document.body.appendChild(contenedor)

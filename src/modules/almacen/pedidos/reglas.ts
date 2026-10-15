@@ -5,12 +5,21 @@ export type EstadoPedido = 'pendiente' | 'en_camino' | 'parcial' | 'recibido' | 
 /** En el orden de los cinco checks del menú "Estado" (StockController :943-949). */
 export const ESTADOS_PEDIDO: EstadoPedido[] = ['pendiente', 'en_camino', 'parcial', 'recibido', 'cancelado']
 
-/** Toggle "Componentes" | "Otros" (spec 4b, P4). */
+/** Tabla de origen de un pedido: la clave de su consulta (`['compras', tipo]`). Hasta la 0.9.14 era también el toggle
+ *  «Componentes | Otros»; desde la 0.9.15 las dos van juntas en una lista. */
 export type TipoPedido = 'componentes' | 'otros'
 export type Pedido = CompraComponente | CompraOtro
 
+/** Tipo de una línea en las acciones de bloque (0.9.15, contrato `LineaVista.tipo`): piezas y otros tienen numeración
+ *  propia, así que una línea se identifica por tipo + id. */
+export type TipoLinea = 'PIEZA' | 'OTRO'
+
 export function esCompra(p: Pedido): p is CompraComponente {
   return 'idCompra' in p
+}
+
+export function tipoLinea(p: Pedido): TipoLinea {
+  return esCompra(p) ? 'PIEZA' : 'OTRO'
 }
 
 export function idPedido(p: Pedido): number {
@@ -20,6 +29,17 @@ export function idPedido(p: Pedido): number {
 /** Lo que va en `{componente}` de los textos y en el buscador: el tipo del componente o, en otros, el concepto. */
 export function nombrePedido(p: Pedido): string {
   return esCompra(p) ? p.tipoComponente : p.concepto
+}
+
+/** 0.9.15 (spec «Añadir otro» §2): una línea se identifica por tipo + id, porque piezas y otros tienen numeración propia.
+ *  Clave de fila, de selección y de las casillas de los diálogos: `p-{id}` o `o-{id}`. */
+export function claveLinea(p: Pedido): string {
+  return esCompra(p) ? `p-${p.idCompra}` : `o-${p.idCompraOtro}`
+}
+
+/** ID en pantalla y en el CSV (0.9.15): el de una pieza tal cual; el de un otro, «O-{id}». */
+export function idVisible(p: Pedido): string {
+  return esCompra(p) ? String(p.idCompra) : `O-${p.idCompraOtro}`
 }
 
 /** Texto del check del filtro: `estado.name().replace('_', ' ')` (StockController :925-933). */

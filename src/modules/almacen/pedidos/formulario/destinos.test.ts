@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { lineaDePrueba as l } from '../bloques/datosPrueba'
 import { agruparEnBloques } from '../bloques/reglas'
-import { destinoElegido, destinosDelCuerpo, opcionesDestino, proveedoresDeLineas, VALOR_NUEVO } from './destinos'
+import { destinoElegido, destinosDelCuerpo, opcionesDestino, opcionesBloqueEdicion, proveedoresDeLineas, VALOR_NUEVO } from './destinos'
 import { lineaCompraVacia } from './lineas'
 
 const bloques = agruparEnBloques([
@@ -33,5 +33,14 @@ describe('destinos de «Nuevo pedido» (spec §6.6)', () => {
   it('cuerpo: solo los proveedores con desplegable; ninguno → null', () => {
     expect(destinosDelCuerpo([linea(1, 1), linea(2, 2)], bloques, { 1: null })).toEqual([{ idProv: 1, idBloque: null }])
     expect(destinosDelCuerpo([linea(1, 2)], bloques, {})).toBeNull()
+  })
+  it('opcionesBloqueEdicion: los bloques vivos del proveedor nuevo (abiertos y en curso) y «Bloque nuevo»', () => {
+    expect(opcionesBloqueEdicion(bloques, 1)).toEqual([
+      { valor: '41', etiqueta: 'Bloque 41 · 09/10 · 1 línea · abierto' },
+      { valor: '40', etiqueta: 'Bloque 40 · 08/10 · 1 línea · abierto' },
+      { valor: '39', etiqueta: 'Bloque 39 · 07/10 · 1 línea · en curso' },
+      { valor: VALOR_NUEVO, etiqueta: 'Bloque nuevo' },
+    ])
+    expect(opcionesBloqueEdicion(bloques, 2)).toEqual([{ valor: VALOR_NUEVO, etiqueta: 'Bloque nuevo' }])
   })
 })

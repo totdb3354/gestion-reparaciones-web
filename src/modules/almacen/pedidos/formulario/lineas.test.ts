@@ -2,20 +2,22 @@ import { describe, expect, it } from 'vitest'
 import { COMPONENTES, preventiva, urgente } from './datosPrueba'
 import type { Componente } from '@/shared/api/client'
 import {
-  aplicarPrevision, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, cuerpoLoteOtros, lineaCompraVacia, lineaOtroVacia, precargaInicial,
+  aplicarPrevision, avisoSinPedido, avisoSinLista, avisoNadaQuePedir, sinLista, cuantasPrevision, avisoOmitidas, cambiarLinea, cuerpoLoteCompras, esLineaOtro, lineaCompraVacia, lineaOtroVacia, precargaInicial,
   cantidadPrevista, elegirPieza, loQueFalta, avisoRepetida, ponerCantidadesPrevistas,
-  precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra, validarLineasOtro,
-  type LineaCompra, type LineaOtro,
+  precargarComponentes, precargarSolicitudes, quitarLinea, siguienteId, textoDescartar, validarLineasCompra,
+  type LineaCompra,
 } from './lineas'
 
 const completa = (cambio: Partial<LineaCompra> = {}): LineaCompra => ({ id: 1, idCom: 2, idProv: 1, cantidad: '2', precio: '12,5', urgente: false, ...cambio })
-const otra = (cambio: Partial<LineaOtro> = {}): LineaOtro => ({ id: 1, concepto: 'Cinta de embalar', idProv: 1, cantidad: '3', precio: '1,5', urgente: false, ...cambio })
 
 describe('líneas vacías', () => {
-  it('cantidad 1, precio 0,00, sin proveedor ni urgente; la de compra admite un componente', () => {
+  it('cantidad 1, precio 0,00, sin proveedor ni urgente; la de compra admite un componente; la de otro (0.9.15), concepto vacío y su proveedor', () => {
     expect(lineaCompraVacia(3)).toEqual({ id: 3, idCom: null, idProv: null, cantidad: '1', precio: '0,00', urgente: false })
     expect(lineaCompraVacia(4, 2)).toEqual({ id: 4, idCom: 2, idProv: null, cantidad: '1', precio: '0,00', urgente: false })
-    expect(lineaOtroVacia(1)).toEqual({ id: 1, concepto: '', idProv: null, cantidad: '1', precio: '0,00', urgente: false })
+    expect(lineaOtroVacia(1)).toEqual({ id: 1, idCom: null, idProv: null, cantidad: '1', precio: '0,00', urgente: false, concepto: '' })
+    expect(lineaOtroVacia(2, 7)).toMatchObject({ id: 2, idProv: 7, concepto: '' })
+    expect(esLineaOtro(lineaOtroVacia(1))).toBe(true)
+    expect(esLineaOtro(lineaCompraVacia(1))).toBe(false)
   })
 })
 
@@ -90,14 +92,15 @@ describe('validarLineasCompra', () => {
   })
 })
 
-describe('validarLineasOtro', () => {
-  it('concepto en blanco (tras trim) primero; después proveedor, cantidad y precio con los textos de siempre', () => {
-    expect(validarLineasOtro([])).toBe('Añade al menos una línea.')
-    expect(validarLineasOtro([otra({ concepto: '   ', idProv: null })])).toBe('Línea 1: el concepto no puede estar vacío.')
-    expect(validarLineasOtro([otra({ idProv: null })])).toBe('Línea 1: selecciona un proveedor.')
-    expect(validarLineasOtro([otra({ cantidad: '0' })])).toBe('Línea 1: la cantidad debe ser mayor que 0.')
-    expect(validarLineasOtro([otra({ precio: '-0,5' })])).toBe('Línea 1: el precio no puede ser negativo.')
-    expect(validarLineasOtro([otra()])).toBeNull()
+describe('validarLineasCompra con otros (0.9.15)', () => {
+  const otra = (cambio: Partial<LineaCompra> = {}): LineaCompra => ({ ...lineaOtroVacia(1, 1), concepto: 'Cinta de embalar', cantidad: '3', precio: '1,5', ...cambio })
+  it('el concepto en blanco (tras recortarlo) va donde el componente; después proveedor, cantidad y precio con los textos de siempre', () => {
+    expect(validarLineasCompra([otra({ concepto: '   ', idProv: null })])).toBe('Línea 1: escribe el concepto.')
+    expect(validarLineasCompra([otra({ idProv: null })])).toBe('Línea 1: selecciona un proveedor.')
+    expect(validarLineasCompra([otra({ cantidad: '0' })])).toBe('Línea 1: la cantidad debe ser mayor que 0.')
+    expect(validarLineasCompra([otra({ precio: '-0,5' })])).toBe('Línea 1: el precio no puede ser negativo.')
+    expect(validarLineasCompra([completa(), otra({ id: 2 })])).toBeNull()
+    expect(validarLineasCompra([completa(), otra({ id: 2, concepto: '' })])).toBe('Línea 2: escribe el concepto.')
   })
 })
 
@@ -112,6 +115,7 @@ describe('cuerpos de lote', () => {
       ],
       solicitudes: { urgentes: [10, 12], preventivas: [20] },
       destinos: null,
+      otros: [],
     })
   })
   it('cuerpoLoteCompras: las solicitudes de un slave viajan si su master tiene línea y no si su grupo no tiene ninguna', () => {
@@ -122,10 +126,16 @@ describe('cuerpos de lote', () => {
   it('cuerpoLoteCompras: sin origen, solicitudes vacías', () => {
     expect(cuerpoLoteCompras([completa()], null, COMPONENTES).solicitudes).toEqual({ urgentes: [], preventivas: [] })
   })
-  it('cuerpoLoteOtros: concepto recortado y números convertidos', () => {
-    expect(cuerpoLoteOtros([otra({ concepto: '  Cinta de embalar  ', urgente: true })])).toEqual({
-      lineas: [{ idProv: 1, concepto: 'Cinta de embalar', cantidad: 3, esUrgente: true, precioUnidad: 1.5 }],
+  it('cuerpoLoteCompras (0.9.15): los otros van en `otros` con el concepto recortado y no cuentan para las solicitudes', () => {
+    const otro: LineaCompra = { ...lineaOtroVacia(2, 1), concepto: '  Cinta de embalar  ', cantidad: '3', precio: '1,5', urgente: true }
+    const origen = { urgentes: [urgente(10, 2)], preventivas: [] }
+    expect(cuerpoLoteCompras([completa({ idCom: 2 }), otro], origen, COMPONENTES)).toEqual({
+      lineas: [{ idCom: 2, idProv: 1, cantidad: 2, esUrgente: false, precioUnidad: 12.5 }],
+      solicitudes: { urgentes: [10], preventivas: [] },
+      destinos: null,
+      otros: [{ idProv: 1, concepto: 'Cinta de embalar', cantidad: 3, esUrgente: true, precioUnidad: 1.5 }],
     })
+    expect(cuerpoLoteCompras([otro], null, COMPONENTES)).toMatchObject({ lineas: [], otros: [{ concepto: 'Cinta de embalar' }] })
   })
 })
 
@@ -368,5 +378,24 @@ describe('lo que falta y recuadros (varios proveedores, spec 2026-10-13 §4-§5)
     expect(aplicarPrevision([L(1, 1, 1, '3')], ACTIVOS, 2).lineas).toEqual([L(1, 1, 1, '3'), L(2, 1, 2, '4')])
     expect(aplicarPrevision([L(1, 1, null, '2')], ACTIVOS, 2).lineas).toEqual([L(1, 1, 2, '7')])
     expect(aplicarPrevision([L(1, 1, 1, '7')], ACTIVOS, 2)).toEqual({ lineas: [L(1, 1, 1, '7')], sinPedido: 1 })
+  })
+})
+
+describe('una línea de otro va aislada de la previsión (0.9.15, spec «Añadir otro» §5.2)', () => {
+  // lcd-x-negro (1) pide 7, marcada en Auto, de ACME (1).
+  const ACTIVOS: Componente[] = COMPONENTES.map((c) => (c.idCom === 1 ? { ...c, pedir60: 7, autoPedido: true, proveedores: [1] } : c))
+  const otro = (id: number, idProv: number | null, cantidad: string): LineaCompra => ({ ...lineaOtroVacia(id, idProv), concepto: 'lcd-x-negro', cantidad })
+
+  it('aunque se llame como una pieza, no cuenta en lo que falta ni en «Añadir previsión (n)», que no la toca', () => {
+    const ls = [otro(1, 2, '5')]
+    expect(loQueFalta(ls, 1, 1, ACTIVOS)).toBe(7)
+    expect(cuantasPrevision(ACTIVOS, 1, ls)).toBe(1)
+    expect(aplicarPrevision(ls, ACTIVOS, 1).lineas).toEqual([ls[0], { ...lineaCompraVacia(2, 1), idProv: 1, cantidad: '7' }])
+  })
+
+  it('elegir una pieza no la junta con un otro del recuadro (no hay comprobación de repetidas)', () => {
+    const r = elegirPieza([otro(1, 1, '1'), { ...lineaCompraVacia(2), idProv: 1 }], 2, 1, ACTIVOS)
+    expect(r.repetida).toBeNull()
+    expect(r.lineas.map((l) => [l.id, l.idCom])).toEqual([[1, null], [2, 1]])
   })
 })

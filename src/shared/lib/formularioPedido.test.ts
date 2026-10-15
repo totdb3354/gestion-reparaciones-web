@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { abrirNuevoOtroPedido, abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from './formularioPedido'
+import { abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from './formularioPedido'
 import { reiniciarStores } from './store'
 
 /** Spec 4b P1: Stock actual, Pedidos y la campana abren el formulario de alta llamando al store; el host del shell
@@ -16,9 +16,12 @@ describe('formularioPedido', () => {
     abrirNuevoPedido({ modo: 'vacio' })
     expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'vacio' } })
   })
-  it('abrirNuevoOtroPedido abre el de otros y cerrarFormularioPedido lo cierra', () => {
-    abrirNuevoOtroPedido()
-    expect(formularioPedido.get()).toEqual({ tipo: 'otro' })
+  it('«Añadir otro…» de un bloque (0.9.15): el de compra en modo bloque con `otro`', () => {
+    abrirNuevoPedido({ modo: 'bloque', idBloque: 41, idProv: 1, otro: true })
+    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, otro: true } })
+  })
+  it('cerrarFormularioPedido lo cierra', () => {
+    abrirNuevoPedido({ modo: 'vacio' })
     cerrarFormularioPedido()
     expect(formularioPedido.get()).toBeNull()
   })

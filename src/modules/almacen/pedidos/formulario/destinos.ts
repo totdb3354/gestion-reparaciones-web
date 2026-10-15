@@ -1,4 +1,4 @@
-import { abiertosDe, fechaCorta, textoLineas, type Bloque } from '../bloques/reglas'
+import { abiertosDe, fechaCorta, situacion, textoLineas, vivosDelProveedor, type Bloque } from '../bloques/reglas'
 import type { LineaCompra } from './lineas'
 
 /** Valor de «Bloque nuevo» en los desplegables de bloque (0.9.9). */
@@ -42,4 +42,15 @@ export function destinosDelCuerpo(lineas: LineaCompra[], bloques: Map<string, Bl
     .filter(({ idProv }) => abiertosDe(bloques, idProv).length > 0)
     .map(({ idProv }) => ({ idProv, idBloque: destinoElegido(bloques, idProv, elegidos) }))
   return destinos.length > 0 ? destinos : null
+}
+
+/** Campo «Bloque» de los editores al cambiar el proveedor (0.9.9 en piezas; 0.9.15 también en otros): los bloques vivos
+ *  del proveedor nuevo (un terminado está cerrado) y «Bloque nuevo». */
+export function opcionesBloqueEdicion(bloques: Map<string, Bloque>, idProv: number): OpcionDestino[] {
+  return [
+    ...vivosDelProveedor(bloques, idProv).map((b) => ({
+      valor: String(b.idBloque), etiqueta: `Bloque ${b.idBloque} · ${fechaCorta(b.fecha)} · ${textoLineas(b.lineas.length)} · ${situacion(b)}`,
+    })),
+    { valor: VALOR_NUEVO, etiqueta: 'Bloque nuevo' },
+  ]
 }

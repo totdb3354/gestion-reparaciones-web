@@ -1,9 +1,9 @@
 import { expect, test, type Page, type Response } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
-/** Forma de la respuesta de los dos lotes (schema.d.ts: LoteComprasRespuesta). Se repite aquí a mano porque el e2e no
- *  importa código de la app. */
-type RespuestaLote = { idsCreados: number[] }
+/** Forma de la respuesta del lote (schema.d.ts: LoteComprasRespuesta, 0.9.15 con los otros). Se repite aquí a mano porque
+ *  el e2e no importa código de la app. */
+type RespuestaLote = { idsCreados: number[]; idsOtrosCreados: number[] }
 
 async function entrar(page: Page) {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
@@ -65,8 +65,9 @@ const esRespuesta = (ruta: string, metodo: string) => (r: Response) => new URL(r
 
 /**
  * ESCRIBE en el entorno de destino: crea un proveedor de prueba por API, un pedido de componentes de una línea con
- * E2E_SKU_PRUEBA y precio 0 y un otro pedido con un concepto sintético; edita cada uno (cantidad 2) y los borra por el id
- * que devolvió su lote; al final borra el proveedor. No confirma ni recibe nada: no toca stock ni deja filas.
+ * E2E_SKU_PRUEBA y precio 0 y, con «+ Añadir otro» (0.9.15), un otro pedido con un concepto sintético; edita cada uno
+ * (cantidad 2) y los borra por el id que devolvió su lote; al final borra el proveedor. No confirma ni recibe nada: no toca
+ * stock ni deja filas.
  */
 test('supertécnico: pedido y otro pedido creados, editados y borrados con un proveedor de prueba', async ({ page }) => {
   const sku = process.env.E2E_SKU_PRUEBA
@@ -117,6 +118,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
         lineas: [{ idCom: expect.any(Number), idProv, cantidad: 1, esUrgente: false, precioUnidad: 0 }],
         solicitudes: { urgentes: [], preventivas: [] },
         destinos: null,
+        otros: [],
       })
       const { idsCreados } = (await respuesta.json()) as RespuestaLote
       expect(idsCreados).toHaveLength(1)
@@ -189,6 +191,7 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
         ],
         solicitudes: { urgentes: [], preventivas: [] },
         destinos: null,
+        otros: [],
       })
       await expect(dlg).toBeHidden()
 
@@ -207,50 +210,65 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       await interruptor.click()
     })
 
-    await test.step('otro pedido: crear, editar y borrar', async () => {
-      await page.getByRole('link', { name: 'Otros', exact: true }).click()
-      await expect(page).toHaveURL(/\/stock\/pedidos\/otros$/)
-      await page.getByRole('button', { name: 'Nuevo otro pedido' }).click()
-      const dlg = page.getByRole('dialog', { name: 'Nuevo otro pedido' })
-      await dlg.getByRole('button', { name: '+ Añadir línea' }).click()
-      await dlg.getByPlaceholder('Escribe concepto...').fill(concepto)
-      // El Concepto es un input de texto libre (aria-label "Concepto línea 1", sin role combobox): el único combobox de
-      // la fila es el proveedor, localizado igualmente por su aria-label.
-      await dlg.getByRole('combobox', { name: 'Proveedor línea 1' }).click()
-      await page.getByRole('option', { name: nombreProv, exact: true }).getByRole('button').click()
+    await test.step('otro pedido con «+ Añadir otro»: crear, verlo con «Tipo: Otros», editar y borrar', async () => {
+      await page.getByRole('button', { name: 'Nuevo pedido', exact: true }).click()
+      const dlg = page.getByRole('dialog', { name: 'Nuevo pedido', exact: true })
+      await elegirProveedorDelPedido(page, 'Proveedor', nombreProv)
+      const recuadro = dlg.getByRole('region', { name: `Pedido a ${nombreProv}`, exact: true })
+      await recuadro.getByRole('button', { name: '+ Añadir otro' }).click()
+      // La línea de otro nace con el cursor en su concepto (0.9.15).
+      const campoConcepto = recuadro.getByLabel('Concepto línea 1')
+      await expect(campoConcepto).toBeFocused()
+      await expect(campoConcepto).toHaveAttribute('placeholder', 'Escribe el concepto…')
+      await campoConcepto.fill(concepto)
 
-      const respuestaLote = page.waitForResponse(esRespuesta('/api/compras-otros/lote', 'POST'))
+      const respuestaLote = page.waitForResponse(esRespuesta('/api/compras/lote', 'POST'))
       await dlg.getByRole('button', { name: 'Confirmar pedido' }).click()
       const respuesta = await respuestaLote
       // Mismo orden que en el pedido de componentes: registrar los ids devueltos antes de cualquier otra aserción.
       if (respuesta.ok()) {
-        const { idsCreados } = (await respuesta.json()) as RespuestaLote
-        for (const idCreado of idsCreados) porBorrar.add(`/api/compras-otros/${idCreado}`)
+        const { idsOtrosCreados } = (await respuesta.json()) as RespuestaLote
+        for (const idCreado of idsOtrosCreados) porBorrar.add(`/api/compras-otros/${idCreado}`)
       }
-      expect(respuesta.ok(), `POST /api/compras-otros/lote respondió ${respuesta.status()}`).toBe(true)
+      expect(respuesta.ok(), `POST /api/compras/lote respondió ${respuesta.status()}`).toBe(true)
       expect(respuesta.request().headers()['idempotency-key']).toBeTruthy()
-      expect(respuesta.request().postDataJSON()).toEqual({ lineas: [{ idProv, concepto, cantidad: 1, esUrgente: false, precioUnidad: 0 }] })
-      const { idsCreados } = (await respuesta.json()) as RespuestaLote
-      expect(idsCreados).toHaveLength(1)
-      const id = idsCreados[0]
+      expect(respuesta.request().postDataJSON()).toEqual({
+        lineas: [],
+        solicitudes: { urgentes: [], preventivas: [] },
+        destinos: null,
+        otros: [{ idProv, concepto, cantidad: 1, esUrgente: false, precioUnidad: 0 }],
+      })
+      const { idsCreados, idsOtrosCreados } = (await respuesta.json()) as RespuestaLote
+      expect(idsCreados).toHaveLength(0)
+      expect(idsOtrosCreados).toHaveLength(1)
+      const id = idsOtrosCreados[0]
       await expect(dlg).toBeHidden()
 
-      // Los filtros son compartidos por los dos toggles: el buscador aún tiene el SKU.
-      await page.getByPlaceholder('Buscar componente…').fill(concepto)
+      // Una sola lista (0.9.15): «Tipo: Otros» y el buscador por concepto. Sigue la vista plana del paso anterior.
+      const tipo = page.getByRole('radiogroup', { name: 'Tipo' })
+      await tipo.getByRole('radio', { name: 'Otros' }).click()
+      await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(concepto)
       const fila = page.getByRole('row').filter({ hasText: nombreProv })
       await expect(fila).toHaveCount(1)
+      await expect(fila.locator('td[data-columna="id"]')).toHaveText(`O-${id}`)
+      await expect(fila.locator('td[data-columna="componente"]').getByText('otro', { exact: true })).toBeVisible()
+      await expect(fila.locator('td[data-columna="componente"]')).toContainText(concepto)
       await expect(fila.getByText('pendiente', { exact: true })).toBeVisible()
 
       await fila.click({ button: 'right' })
       await page.getByRole('menuitem', { name: 'Editar' }).click()
-      const editor = page.getByRole('dialog', { name: `Editar pedido #${id}` })
+      const editor = page.getByRole('dialog', { name: `Editar pedido #O-${id}` })
+      await expect(editor.getByLabel('Concepto:')).toHaveValue(concepto)
       await expect(editor.getByLabel('Cantidad:')).toHaveValue('1')
       await editor.getByLabel('Cantidad:').fill('2')
       const guardado = page.waitForResponse(esRespuesta(`/api/compras-otros/${id}`, 'PUT'))
       await editor.getByRole('button', { name: 'Guardar' }).click()
-      expect((await guardado).ok()).toBe(true)
+      const put = await guardado
+      expect(put.ok()).toBe(true)
+      expect(put.request().postDataJSON()).toMatchObject({ idProv, concepto, cantidad: 2, destino: null })
       await expect(editor).toBeHidden()
-      await expect(fila.getByRole('cell').nth(4)).toHaveText('2')
+      // Vista plana: ID, Bloque, Pedido, Componente / concepto, Proveedor, Cant.
+      await expect(fila.getByRole('cell').nth(5)).toHaveText('2')
 
       await soloBorrar(page, '**/api/compras-otros/*', `/api/compras-otros/${id}`)
       const borrado = page.waitForResponse(esRespuesta(`/api/compras-otros/${id}`, 'DELETE'))
@@ -260,6 +278,12 @@ test('supertécnico: pedido y otro pedido creados, editados y borrados con un pr
       expect((await borrado).ok()).toBe(true)
       porBorrar.delete(`/api/compras-otros/${id}`)
       await expect(fila).toHaveCount(0)
+      await page.unroute('**/api/compras-otros/*')
+
+      // La dirección antigua de «Otros» abre Pedidos con «Tipo: Otros» (0.9.15).
+      await page.goto('/stock/pedidos/otros')
+      await expect(page).toHaveURL(/\/stock\/pedidos$/)
+      await expect(page.getByRole('radiogroup', { name: 'Tipo' }).getByRole('radio', { name: 'Otros' })).toHaveAttribute('aria-checked', 'true')
     })
   } finally {
     // Limpieza por id: primero los pedidos que queden (solo los creados por este test, siguen pendientes), después el

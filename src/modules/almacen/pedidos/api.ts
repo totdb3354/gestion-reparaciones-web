@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { api, type CompraComponente, type CompraOtro } from '@/shared/api/client'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
-import { ordenarCanceladosAlFinal } from './filtros'
-import { esCompra, type Pedido, type TipoPedido } from './reglas'
+import { juntarLineas, ordenarCanceladosAlFinal } from './filtros'
+import { esCompra, idPedido, tipoLinea, type Pedido, type TipoLinea, type TipoPedido } from './reglas'
 
 export const CLAVE_COMPRAS = ['compras'] as const
 export function claveCompras(tipo: TipoPedido): readonly ['compras', TipoPedido] {
@@ -13,7 +13,7 @@ export function claveCompras(tipo: TipoPedido): readonly ['compras', TipoPedido]
 type OpcionesConsulta = { activo: boolean; habilitada?: boolean }
 
 /** GET /api/compras (los tres roles). `activo = false` congela el sondeo y el refetch por foco con un menú, un diálogo o un
- *  formulario abiertos; `habilitada = false` no la pide (la página solo consulta la tabla del toggle visible, spec §5). */
+ *  formulario abiertos; `habilitada = false` no la pide (un editor cerrado, por ejemplo). */
 export function useCompras({ activo, habilitada = true }: OpcionesConsulta): UseQueryResult<CompraComponente[]> {
   const intervalo = useIntervaloRefresco(activo)
   return useQuery({
@@ -35,6 +35,42 @@ export function useComprasOtros({ activo, habilitada = true }: OpcionesConsulta)
     refetchInterval: intervalo,
     refetchOnWindowFocus: activo,
   })
+}
+
+/** Las dos listas de Pedidos juntas (0.9.15, spec «Añadir otro» §5.1): piezas y otros en una sola lista de líneas. */
+export type ConsultaLineas = {
+  /** Solo cuando han llegado las dos: con una sola, los bloques saldrían a medias. */
+  data: Pedido[] | undefined
+  isPending: boolean
+  isSuccess: boolean
+  isFetching: boolean
+  /** La más antigua de las dos (0 = todavía sin datos). */
+  dataUpdatedAt: number
+  /** Recarga las dos y devuelve la lista junta (undefined si alguna no llega). */
+  refetch: (opciones?: { throwOnError?: boolean }) => Promise<Pedido[] | undefined>
+}
+
+export function useLineasPedido(opciones: OpcionesConsulta): ConsultaLineas {
+  const compras = useCompras(opciones)
+  const otros = useComprasOtros(opciones)
+  const data = useMemo(
+    () => (compras.data === undefined || otros.data === undefined ? undefined : juntarLineas(compras.data, otros.data)),
+    [compras.data, otros.data],
+  )
+  const refetchCompras = compras.refetch
+  const refetchOtros = otros.refetch
+  const refetch = useCallback(async (o?: { throwOnError?: boolean }) => {
+    const [c, x] = await Promise.all([refetchCompras(o), refetchOtros(o)])
+    return c.data === undefined || x.data === undefined ? undefined : juntarLineas(c.data, x.data)
+  }, [refetchCompras, refetchOtros])
+  return {
+    data,
+    isPending: compras.isPending || otros.isPending,
+    isSuccess: compras.isSuccess && otros.isSuccess,
+    isFetching: compras.isFetching || otros.isFetching,
+    dataUpdatedAt: Math.min(compras.dataUpdatedAt, otros.dataUpdatedAt),
+    refetch,
+  }
 }
 
 /** Recarga tras escribir (spec 4b §7): las dos tablas de Pedidos, Stock actual (`['componentes', …]`) y la campana entera
@@ -104,28 +140,24 @@ async function transicionOtro(accion: AccionTransicion, p: CompraOtro, cantidad:
   }
 }
 
-/** Las ocho transiciones del menú. El 409 (genérico o el de desrecibir) y el 422 de parcial/resto los traduce la página,
- *  así que silencia el diálogo global; recarga siempre, también con error (calco: el 409 "recarga los datos"). */
-export function useTransicionPedido(tipo: TipoPedido): UseMutationResult<unknown, unknown, { accion: AccionTransicion; pedido: Pedido; cantidad?: number }> {
+/** Las ocho transiciones del menú de una fila. 0.9.15: piezas y otros van en la misma lista, así que la ruta la decide el
+ *  tipo de la línea. El 409 (genérico o el de desrecibir) y el 422 de parcial/resto los traduce la página, así que silencia
+ *  el diálogo global; recarga siempre, también con error (calco: el 409 "recarga los datos"). */
+export function useTransicionPedido(): UseMutationResult<unknown, unknown, { accion: AccionTransicion; pedido: Pedido; cantidad?: number }> {
   const recargar = useRecargaPedidos()
   return useMutation({
-    mutationFn: ({ accion, pedido, cantidad }: { accion: AccionTransicion; pedido: Pedido; cantidad?: number }) => {
-      if (tipo === 'componentes') {
-        if (!esCompra(pedido)) throw new Error('El pedido no es de componentes')
-        return transicionCompra(accion, pedido, cantidad)
-      }
-      if (esCompra(pedido)) throw new Error('El pedido no es de otros')
-      return transicionOtro(accion, pedido, cantidad)
-    },
+    mutationFn: ({ accion, pedido, cantidad }: { accion: AccionTransicion; pedido: Pedido; cantidad?: number }) =>
+      (esCompra(pedido) ? transicionCompra(accion, pedido, cantidad) : transicionOtro(accion, pedido, cantidad)),
     meta: { silenciarError: true },
     onSettled: recargar,
   })
 }
 
 type CamposEditar = { idProv: number; cantidad: number; esUrgente: boolean; precioUnidad: number; divisa: string; updatedAt: string }
-/** `destino` (0.9.9): solo cuando cambia el proveedor (`idBloque` null = bloque nuevo); null = regla por defecto del servidor. */
+/** `destino` (0.9.9 en piezas, 0.9.15 en otros): solo cuando cambia el proveedor (`idBloque` null = bloque nuevo); null =
+ *  regla por defecto del servidor. */
 export type CuerpoEditarCompra = CamposEditar & { destino: { idBloque: number | null } | null }
-export type CuerpoEditarOtro = CamposEditar & { concepto: string }
+export type CuerpoEditarOtro = CamposEditar & { concepto: string; destino: { idBloque: number | null } | null }
 
 /** PUT del editor (spec 4b §6). `precioEur` va a null: el servidor lo calcula e ignora el de la petición (P3). */
 export function useEditarCompra(): UseMutationResult<unknown, unknown, { idCompra: number; cuerpo: CuerpoEditarCompra }> {
@@ -148,52 +180,55 @@ export function useEditarOtro(): UseMutationResult<unknown, unknown, { idCompraO
   })
 }
 
+/** Un otro del lote (0.9.15): el concepto ya recortado; la divisa es la de su proveedor (el servidor calcula `precioEur`). */
+export type LineaOtroLote = { idProv: number; concepto: string; cantidad: number; esUrgente: boolean; precioUnidad: number }
+
 export type CuerpoLoteCompras = {
   lineas: { idCom: number; idProv: number; cantidad: number; esUrgente: boolean; precioUnidad: number }[]
   solicitudes: { urgentes: number[]; preventivas: number[] }
   /** 0.9.9 (spec «Pedidos por bloques» §5.2): bloque de cada proveedor (`idBloque` null = bloque nuevo); null = el
    *  servidor aplica su regla por defecto (abierto más reciente del proveedor o uno nuevo). */
   destinos: { idProv: number; idBloque: number | null }[] | null
+  /** 0.9.15 (spec «Añadir otro» §5.2): los otros del pedido; van al mismo bloque que las piezas de su proveedor. */
+  otros: LineaOtroLote[]
 }
-export type CuerpoLoteOtros = { lineas: { idProv: number; concepto: string; cantidad: number; esUrgente: boolean; precioUnidad: number }[] }
 
 /** Alta por lotes (P5): una petición con `Idempotency-Key` (la da el formulario con crearClavesIdempotencia; la misma clave
- *  y el mismo cuerpo devuelven la respuesta guardada sin escribir). Recarga solo si sale bien. */
-export function useGuardarLoteCompras(): UseMutationResult<{ idsCreados: number[] }, unknown, { cuerpo: CuerpoLoteCompras; clave: string }> {
+ *  y el mismo cuerpo devuelven la respuesta guardada sin escribir). Recarga solo si sale bien. 0.9.15: devuelve también
+ *  los ids de los otros creados. */
+export function useGuardarLoteCompras(): UseMutationResult<{ idsCreados: number[]; idsOtrosCreados: number[] }, unknown, { cuerpo: CuerpoLoteCompras; clave: string }> {
   const recargar = useRecargaPedidos()
   return useMutation({
-    mutationFn: async ({ cuerpo, clave }: { cuerpo: CuerpoLoteCompras; clave: string }) =>
-      (await api.POST('/api/compras/lote', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })).data ?? { idsCreados: [] },
+    mutationFn: async ({ cuerpo, clave }: { cuerpo: CuerpoLoteCompras; clave: string }) => {
+      const r = (await api.POST('/api/compras/lote', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })).data
+      return { idsCreados: r?.idsCreados ?? [], idsOtrosCreados: r?.idsOtrosCreados ?? [] }
+    },
     meta: { silenciarError: true },
     onSuccess: recargar,
   })
 }
 
-export function useGuardarLoteOtros(): UseMutationResult<{ idsCreados: number[] }, unknown, { cuerpo: CuerpoLoteOtros; clave: string }> {
-  const recargar = useRecargaPedidos()
-  return useMutation({
-    mutationFn: async ({ cuerpo, clave }: { cuerpo: CuerpoLoteOtros; clave: string }) =>
-      (await api.POST('/api/compras-otros/lote', { params: { header: { 'Idempotency-Key': clave } }, body: cuerpo })).data ?? { idsCreados: [] },
-    meta: { silenciarError: true },
-    onSuccess: recargar,
-  })
-}
+// ── 0.9.9: bloques de pedido (spec «Pedidos por bloques» §5.3); 0.9.15: con piezas y otros ──────────────────
 
-// ── 0.9.9: bloques de pedido (spec «Pedidos por bloques» §5.3) ─────────────────────────────────────────────
-
-/** Una línea tal como la ve la tabla: el servidor la comprueba antes de aplicar una acción de bloque (todo o nada). */
-export type LineaVista = { idCompra: number; updatedAt: string }
-export function vistaDe(p: CompraComponente): LineaVista {
-  return { idCompra: p.idCompra, updatedAt: p.updatedAt }
+/** Una línea tal como la ve la tabla: el servidor la comprueba antes de aplicar una acción de bloque (todo o nada).
+ *  `idCompra` es el id en su tabla y `tipo` dice cuál (0.9.15: piezas y otros tienen numeración propia). */
+export type LineaVista = { idCompra: number; updatedAt: string; tipo: TipoLinea }
+export function vistaDe(p: Pedido): LineaVista {
+  return { idCompra: idPedido(p), updatedAt: p.updatedAt, tipo: tipoLinea(p) }
 }
 export type AccionBloque = 'confirmar' | 'recibir' | 'cancelar' | 'borrar'
 
-/** «Mover a bloque ▸»: `idBloque` null = bloque nuevo. La página traduce el 409 y el 422; recarga siempre. */
-export function useMoverLinea(): UseMutationResult<unknown, unknown, { pedido: CompraComponente; idBloque: number | null }> {
+/** «Mover a bloque ▸»: `idBloque` null = bloque nuevo. Una pieza va por /api/compras y un otro por /api/compras-otros
+ *  (0.9.15). La página traduce el 409 y el 422; recarga siempre. */
+export function useMoverLinea(): UseMutationResult<unknown, unknown, { pedido: Pedido; idBloque: number | null }> {
   const recargar = useRecargaPedidos()
   return useMutation({
-    mutationFn: ({ pedido, idBloque }: { pedido: CompraComponente; idBloque: number | null }) =>
-      api.PATCH('/api/compras/{idCompra}/bloque', { params: { path: { idCompra: pedido.idCompra } }, body: { idBloque, updatedAt: pedido.updatedAt } }),
+    mutationFn: ({ pedido, idBloque }: { pedido: Pedido; idBloque: number | null }) => {
+      const body = { idBloque, updatedAt: pedido.updatedAt }
+      return esCompra(pedido)
+        ? api.PATCH('/api/compras/{idCompra}/bloque', { params: { path: { idCompra: pedido.idCompra } }, body })
+        : api.PATCH('/api/compras-otros/{id}/bloque', { params: { path: { id: pedido.idCompraOtro } }, body })
+    },
     meta: { silenciarError: true },
     onSettled: recargar,
   })

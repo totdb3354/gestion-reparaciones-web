@@ -4,9 +4,10 @@ import { cn } from '@/shared/lib/utils'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useAccionBloque, vistaDe, type AccionBloque } from '../api'
+import { claveLinea } from '../reglas'
 import { tratarFalloBloque } from './fallos'
 import { ListaLineas } from './ListaLineas'
-import { lineasQueCambian, motivoNoCambia, textoDesmarcadas, textoQueda, type Bloque } from './reglas'
+import { lineasQueCambian, motivoNoCambia, textoDesmarcadas, textoQueda, textoSeReciben, type Bloque } from './reglas'
 
 const TEXTOS: Record<AccionBloque, { titulo: string; cambian: string; boton: (n: number) => string; peligro: boolean }> = {
   confirmar: { titulo: 'Confirmar bloque', cambian: 'Pasan a en camino', boton: (n) => `Confirmar (${n})`, peligro: false },
@@ -19,30 +20,32 @@ type Props = { bloque: Bloque; accion: AccionBloque; onCerrar: () => void }
 
 /** Confirmación de una acción de bloque (spec §6.5): qué cambia y qué no, con su motivo. 0.9.13: al confirmar, recibir
  *  o cancelar, cada línea que cambia lleva su casilla, todas marcadas al abrir, y solo se mandan las marcadas. Borrar
- *  sigue sin casillas: el servidor exige el bloque entero. El servidor comprueba la lista entera (todo o nada). */
+ *  sigue sin casillas: el servidor exige el bloque entero. El servidor comprueba la lista entera (todo o nada). 0.9.15: piezas y otros, cada uno con su píldora; el cuerpo lleva el tipo de cada línea. */
 export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
   const aplicar = useAccionBloque()
   const { mostrarAviso } = useAlerta()
   const [error, setError] = useState<string | null>(null)
   const t = TEXTOS[accion]
   const cambian = lineasQueCambian(bloque, accion)
+  // 0.9.15: recibir un otro no toca el stock; el título de la lista lo dice.
+  const tituloCambian = accion === 'recibir' ? textoSeReciben(cambian) : t.cambian
   const quedan = bloque.lineas.filter((p) => !cambian.includes(p))
   const conCasillas = accion !== 'borrar'
-  const [marcadas, setMarcadas] = useState<Set<number>>(() => new Set(cambian.map((p) => p.idCompra)))
-  const elegidas = conCasillas ? cambian.filter((p) => marcadas.has(p.idCompra)) : cambian
+  const [marcadas, setMarcadas] = useState<Set<string>>(() => new Set(cambian.map(claveLinea)))
+  const elegidas = conCasillas ? cambian.filter((p) => marcadas.has(claveLinea(p))) : cambian
   const desmarcadas = cambian.length - elegidas.length
 
-  function alternar(idCompra: number, marcada: boolean) {
+  function alternar(clave: string, marcada: boolean) {
     setMarcadas((m) => {
       const n = new Set(m)
-      if (marcada) n.add(idCompra)
-      else n.delete(idCompra)
+      if (marcada) n.add(clave)
+      else n.delete(clave)
       return n
     })
     setError(null)
   }
   function alternarTodas(marcar: boolean) {
-    setMarcadas(marcar ? new Set(cambian.map((p) => p.idCompra)) : new Set())
+    setMarcadas(marcar ? new Set(cambian.map(claveLinea)) : new Set())
     setError(null)
   }
 
@@ -64,7 +67,7 @@ export function AccionBloqueDialog({ bloque, accion, onCerrar }: Props) {
       textoAccion={t.boton(elegidas.length)} accionDeshabilitada={accion !== 'borrar' && elegidas.length === 0} peligro={t.peligro} enviando={aplicar.isPending}
       onConfirmar={() => void confirmar()} onCancelar={onCerrar}>
       <div className="flex max-h-[50vh] flex-col gap-2.5 overflow-y-auto">
-        <ListaLineas titulo={`${t.cambian} (${cuenta})`} lineas={cambian}
+        <ListaLineas titulo={`${tituloCambian} (${cuenta})`} lineas={cambian}
           casillas={conCasillas ? { marcadas, onAlternar: alternar, onAlternarTodas: alternarTodas, textoQueda: textoQueda(accion) } : undefined} />
         {quedan.length > 0 && (
           <ListaLineas titulo={`No cambian (${quedan.length})`} lineas={quedan} motivo={(p) => motivoNoCambia(p, accion)} apagada />

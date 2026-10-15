@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { AccionBloqueDialog } from './AccionBloqueDialog'
-import { lineaDePrueba as l } from './datosPrueba'
+import { lineaDePrueba as l, otroDePrueba as o } from './datosPrueba'
 import { JuntarDialog } from './JuntarDialog'
 import { NotaBloqueDialog } from './NotaBloqueDialog'
 import { agruparEnBloques } from './reglas'
@@ -43,7 +43,7 @@ describe('AccionBloqueDialog (spec §6.5)', () => {
     expect(quedan).toHaveTextContent('parcial (1/2): usa «Recibir resto» en su fila')
     await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (1)' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/recibir', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }] } }])
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/recibir', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }] } }])
   })
 
   it('un 409 cierra y avisa como «Advertencia»', async () => {
@@ -118,7 +118,7 @@ describe('AccionBloqueDialog con casillas (0.9.13)', () => {
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
     expect(peticiones).toEqual([{
       ruta: '/api/bloques-compra/41/recibir',
-      cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }, { idCompra: 4, updatedAt: U }] },
+      cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 4, updatedAt: U, tipo: 'PIEZA' }] },
     }])
   })
 
@@ -187,7 +187,7 @@ describe('SepararDialog', () => {
     expect(within(dlg).getByText('2 líneas de las marcadas ya se pidieron: el movimiento quedará apuntado en el registro.')).toBeInTheDocument()
     await userEvent.click(within(dlg).getByRole('button', { name: 'Separar igualmente (2)' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/separar', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U }, { idCompra: 3, updatedAt: U }] } }])
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/separar', cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 3, updatedAt: U, tipo: 'PIEZA' }] } }])
   })
 })
 
@@ -221,7 +221,7 @@ describe('JuntarDialog', () => {
     await userEvent.click(within(dlg).getByRole('radio', { name: /Bloque 40/ }))
     await userEvent.click(within(dlg).getByRole('button', { name: 'Juntar' }))
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
-    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 1, updatedAt: U }] } }])
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/juntar', cuerpo: { destino: 40, lineas: [{ idCompra: 1, updatedAt: U, tipo: 'PIEZA' }] } }])
   })
 })
 
@@ -253,5 +253,80 @@ describe('NotaBloqueDialog', () => {
     renderConProviders(<JuntarDialog bloque={bloques.get('41')!} candidatos={[bloques.get('40')!]} onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
     const dlg = await screen.findByRole('dialog', { name: 'Juntar Bloque 41 con…' })
     expect(dlg).toHaveTextContent('Sus 2 líneas pasan al bloque que elijas y el Bloque 41 desaparece.')
+  })
+})
+
+/** Bloque 41 (0.9.15): la pieza 2 y el otro 2 en camino (mismo número en tablas distintas) y el otro 5 pendiente. */
+const mixto = () => agruparEnBloques([
+  l({ idCompra: 2, estado: 'en_camino', tipoComponente: 'bat-x' }),
+  o({ idCompraOtro: 2, estado: 'en_camino', concepto: 'Cinta de embalar' }),
+  o({ idCompraOtro: 5, concepto: 'Bolsas' }),
+]).get('41')!
+
+describe('diálogos de bloque con otros (0.9.15)', () => {
+  it('«Recibir todo»: la pieza 2 y el otro O-2 son dos casillas con su píldora; el cuerpo lleva el tipo de cada una', async () => {
+    const onCerrar = vi.fn()
+    renderConProviders(<AccionBloqueDialog bloque={mixto()} accion="recibir" onCerrar={onCerrar} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
+    const lista = within(dlg).getByRole('region', { name: 'Se reciben (las piezas suman al stock) (2)' })
+    expect(within(lista).getByText('pieza')).toHaveClass('bg-pieza-bg')
+    expect(within(lista).getByText('otro')).toHaveClass('bg-otro-bg')
+    expect(within(lista).getByText('O-2')).toHaveClass('text-otro-text')
+    const pieza = within(dlg).getByRole('checkbox', { name: 'bat-x (ID 2)' })
+    const otro = within(dlg).getByRole('checkbox', { name: 'Cinta de embalar (ID O-2)' })
+    await userEvent.click(otro)
+    expect(otro).not.toBeChecked()
+    expect(pieza).toBeChecked()
+    expect(within(dlg).getByRole('button', { name: 'Recibir (1)' })).toBeEnabled()
+    await userEvent.click(otro)
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Recibir (2)' }))
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(peticiones).toEqual([{
+      ruta: '/api/bloques-compra/41/recibir',
+      cuerpo: { lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 2, updatedAt: U, tipo: 'OTRO' }] },
+    }])
+  })
+
+  it('«Recibir todo» con solo otros: «no tocan el stock»; «No cambian» enseña el otro pendiente con su «O-{id}» y su motivo', async () => {
+    const b = agruparEnBloques([o({ idCompraOtro: 2, estado: 'en_camino' }), o({ idCompraOtro: 5, concepto: 'Bolsas' })]).get('41')!
+    renderConProviders(<AccionBloqueDialog bloque={b} accion="recibir" onCerrar={vi.fn()} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Recibir todo · Bloque 41' })
+    expect(within(dlg).getByRole('region', { name: 'Se reciben (no tocan el stock) (1)' })).toBeInTheDocument()
+    const quedan = within(dlg).getByRole('region', { name: 'No cambian (1)' })
+    expect(quedan).toHaveTextContent('O-5')
+    expect(quedan).toHaveTextContent('Bolsas')
+    expect(quedan).toHaveTextContent('pendiente: aún no se ha pedido')
+  })
+
+  it('«Separar líneas…»: cada línea con su píldora; un otro se marca por su etiqueta y viaja con su tipo', async () => {
+    const onCerrar = vi.fn()
+    renderConProviders(<SepararDialog bloque={mixto()} onCerrar={onCerrar} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Separar líneas · Bloque 41' })
+    expect(within(dlg).getAllByText('otro')).toHaveLength(2)
+    expect(within(dlg).getAllByText('pieza')).toHaveLength(1)
+    await userEvent.click(within(dlg).getByRole('checkbox', { name: 'Separar Bolsas (ID O-5)' }))
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Separar (1)' }))
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(peticiones).toEqual([{ ruta: '/api/bloques-compra/41/separar', cuerpo: { lineas: [{ idCompra: 5, updatedAt: U, tipo: 'OTRO' }] } }])
+  })
+
+  it('«Juntar con…» manda el bloque entero, piezas y otros, y el destino cuenta sus otros', async () => {
+    const onCerrar = vi.fn()
+    const bloques = agruparEnBloques([
+      ...mixto().lineas,
+      l({ idCompra: 9, idBloque: 40, fechaBloque: '2026-10-08T10:00:00' }),
+      o({ idCompraOtro: 9, idBloque: 40, fechaBloque: '2026-10-08T10:00:00' }),
+    ])
+    renderConProviders(<JuntarDialog bloque={bloques.get('41')!} candidatos={[bloques.get('40')!]} onCerrar={onCerrar} />, { sesion: SESION_SUPER })
+    const dlg = await screen.findByRole('dialog', { name: 'Juntar Bloque 41 con…' })
+    const destino = within(dlg).getByRole('radio', { name: /Bloque 40/ })
+    expect(destino.closest('label')).toHaveTextContent('2 líneas (1 otro)')
+    await userEvent.click(destino)
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Juntar' }))
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(peticiones).toEqual([{
+      ruta: '/api/bloques-compra/41/juntar',
+      cuerpo: { destino: 40, lineas: [{ idCompra: 2, updatedAt: U, tipo: 'PIEZA' }, { idCompra: 2, updatedAt: U, tipo: 'OTRO' }, { idCompra: 5, updatedAt: U, tipo: 'OTRO' }] },
+    }])
   })
 })

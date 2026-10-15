@@ -5,29 +5,32 @@ import { Checkbox } from '@/shared/ui/checkbox'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useSepararBloque, vistaDe } from '../api'
 import { BadgeEstadoPedido } from '../BadgeEstadoPedido'
+import { PildoraTipo } from '../PildoraTipo'
+import { claveLinea, esCompra, idVisible, nombrePedido } from '../reglas'
 import { tratarFalloBloque } from './fallos'
-import { sePuedeMover, textoYaPedidasSeparar, type Bloque } from './reglas'
+import { etiquetaLinea, sePuedeMover, textoYaPedidasSeparar, type Bloque } from './reglas'
 
 type Props = { bloque: Bloque; onCerrar: () => void }
 
 /** «Separar líneas…» (spec §6.5): las marcadas pasan a un bloque nuevo del mismo proveedor; al menos una se queda. Las
  *  ya pedidas no piden otra confirmación: el aviso va dentro y el botón dice «Separar igualmente». Solo se marcan
- *  líneas vivas (pendiente, en camino o parcial); las recibidas y canceladas se ven pero no se pueden separar (2026-10-12). */
+ *  líneas vivas (pendiente, en camino o parcial); las recibidas y canceladas se ven pero no se pueden separar (2026-10-12).
+ *  0.9.15: piezas y otros, cada uno con su píldora y su ID («O-{id}» en un otro). */
 export function SepararDialog({ bloque, onCerrar }: Props) {
   const separar = useSepararBloque()
   const { mostrarAviso } = useAlerta()
-  const [marcadas, setMarcadas] = useState<Set<number>>(() => new Set())
+  const [marcadas, setMarcadas] = useState<Set<string>>(() => new Set())
   const [error, setError] = useState<string | null>(null)
-  const elegidas = bloque.lineas.filter((p) => marcadas.has(p.idCompra))
+  const elegidas = bloque.lineas.filter((p) => marcadas.has(claveLinea(p)))
   const todas = elegidas.length === bloque.lineas.length
   const yaPedidas = elegidas.filter((p) => p.estado !== 'pendiente').length
   const deshabilitado = elegidas.length === 0 || todas
 
-  function alternar(idCompra: number, marcada: boolean) {
+  function alternar(clave: string, marcada: boolean) {
     setMarcadas((m) => {
       const n = new Set(m)
-      if (marcada) n.add(idCompra)
-      else n.delete(idCompra)
+      if (marcada) n.add(clave)
+      else n.delete(clave)
       return n
     })
     setError(null)
@@ -51,15 +54,16 @@ export function SepararDialog({ bloque, onCerrar }: Props) {
       onConfirmar={() => void confirmar()} onCancelar={onCerrar}>
       <ul className="max-h-[50vh] overflow-y-auto rounded-lg border border-fila-sep bg-superficie">
         {bloque.lineas.map((p) => (
-          <li key={p.idCompra} className="border-b border-crema last:border-b-0">
+          <li key={claveLinea(p)} className="border-b border-crema last:border-b-0">
             <label className={cn('flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] text-azul-medio',
               sePuedeMover(p) ? 'cursor-pointer' : 'cursor-default opacity-60')}>
-              <Checkbox checked={marcadas.has(p.idCompra)} disabled={!sePuedeMover(p)} onCheckedChange={(v) => alternar(p.idCompra, v === true)}
-                aria-label={`Separar ${p.tipoComponente} (ID ${p.idCompra})`} className="bg-superficie" />
-              <span className="text-azul-gris">{p.idCompra}</span>
-              <b>{p.tipoComponente}</b>
-              <span>× {p.cantidad}</span>
-              <span className="ml-auto"><BadgeEstadoPedido pedido={p} /></span>
+              <Checkbox checked={marcadas.has(claveLinea(p))} disabled={!sePuedeMover(p)} onCheckedChange={(v) => alternar(claveLinea(p), v === true)}
+                aria-label={`Separar ${etiquetaLinea(p)}`} className="bg-superficie" />
+              <span className={cn('shrink-0', esCompra(p) ? 'text-azul-gris' : 'text-otro-text')}>{idVisible(p)}</span>
+              <PildoraTipo tipo={esCompra(p) ? 'pieza' : 'otro'} />
+              <b className="min-w-0 truncate">{nombrePedido(p)}</b>
+              <span className="shrink-0">× {p.cantidad}</span>
+              <span className="ml-auto shrink-0"><BadgeEstadoPedido pedido={p} /></span>
             </label>
           </li>
         ))}
