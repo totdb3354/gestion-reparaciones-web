@@ -269,3 +269,12 @@ Diferencias deliberadas, decididas en la spec `2026-10-14-v0913-casillas-y-expor
 - «Confirmar bloque», «Recibir todo» y «Cancelar bloque» con una casilla por cada línea que cambia, todas marcadas al abrir, y «Marcar todas»; solo se mandan las marcadas. «Borrar bloque» sin casillas; las parciales siguen en «No cambian» (`dialogos.test.tsx` «AccionBloqueDialog con casillas (0.9.13)», `bloques.spec.ts` «Recibir todo con una línea desmarcada…»).
 - «Exportar bloque en CSV» en el menú del bloque: todas las líneas del bloque aunque haya filtros, en `pedidos_bloque_<n>_<fecha>.csv` (`PedidosPage.bloques.test.tsx`, `bloques.spec.ts`).
 - El menú del bloque también lo ven el administrador y el técnico, solo con «Exportar bloque en CSV» (`reglas.test.ts`, `PedidosPage.bloques.test.tsx`).
+
+## 0.9.15 — Otros pedidos dentro de los bloques (sin equivalente en el JavaFX)
+
+Diferencias deliberadas, decididas en la spec `2026-10-14-v0915-anadir-otro-design.md` (raíz):
+
+- Pedidos es una sola lista: sin toggle «Componentes | Otros» ni «Nuevo otro pedido»; los otros van dentro del bloque de su proveedor con la píldora «otro» e ID «O-n», y el filtro «Tipo» separa piezas y otros (`reglas.test.ts`, `PedidosPage.bloques.test.tsx`, `pedidos.spec.ts`).
+- «+ Añadir otro» en «Nuevo pedido» y «Añadir otro…» en el menú del bloque; la línea de otro no entra en la previsión ni en «lo que falta» (`NuevoPedidoDialog.test.tsx`, `otros-en-bloques.spec.ts`).
+- Las acciones de bloque, separar, juntar y «Mover a bloque» valen para los otros (`dialogos.test.tsx`).
+- CSV con la columna «Tipo» tras «ID» (`columnas.test.tsx`, `PedidosPage.test.tsx`).
