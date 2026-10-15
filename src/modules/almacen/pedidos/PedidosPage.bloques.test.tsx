@@ -275,16 +275,15 @@ describe('otros dentro de los bloques (0.9.15)', () => {
     expect(t[3]).toContain('Cinta de embalar')
   })
 
-  it('filtro «Tipo: Otros»: solo el otro, su bloque desplegado con «mostrando 1 de 3»; «Limpiar filtros» vuelve a «Todos»', async () => {
+  it('el buscador encuentra el otro por su concepto: su bloque desplegado con «mostrando 1 de 3»; «Limpiar filtros» lo devuelve todo', async () => {
     otros = [otro41()]
     montar()
     await screen.findByText('Cinta de embalar')
-    await userEvent.click(screen.getByRole('radio', { name: 'Otros' }))
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'cinta de')
     expect(screen.getByText('mostrando 1 de 3')).toBeInTheDocument()
     expect(screen.queryByText('lcd-x-negro')).not.toBeInTheDocument()
     expect(screen.queryByText('Bloque 40')).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
-    expect(screen.getByRole('radio', { name: 'Todos' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('lcd-x-negro')).toBeInTheDocument()
   })
 

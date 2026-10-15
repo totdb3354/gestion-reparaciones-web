@@ -75,7 +75,7 @@ export const router = createBrowserRouter([
           },
           { path: '/stock', element: <StockPage /> },
           { path: '/stock/pedidos', element: <PedidosPage /> },
-          // 0.9.15: la página «Otros» ya no existe; su dirección abre Pedidos con «Tipo: Otros» (enlaces y marcadores viejos).
+          // 0.9.15: la página «Otros» ya no existe; su dirección abre Pedidos (enlaces y marcadores viejos).
           { path: '/stock/pedidos/otros', element: <RedirigirPedidosOtros /> },
           { path: '/stock/proveedores', element: <ProveedoresPage /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },

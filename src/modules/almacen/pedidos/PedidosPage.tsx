@@ -34,8 +34,7 @@ import { CantidadDialog } from './CantidadDialog'
 import { CABECERAS_CSV_PEDIDOS, claseFilaPedido, crearColumnasPedidos, filaCsvPedido } from './columnas'
 import { confirmacionDe } from './confirmaciones'
 import { filtrosPedidos, plegadoBloques, seleccionPedidos } from './estado'
-import { FiltroTipo } from './FiltroTipo'
-import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros, hayFiltros, tipoDesdeUrl } from './filtros'
+import { aplicarFiltrosPedidos, FILTROS_PEDIDOS_VACIOS, filtrosDesdeStock, firmaFiltros, hayFiltros } from './filtros'
 import { EditarOtroPedidoDialog } from './formulario/EditarOtroPedidoDialog'
 import { EditarPedidoDialog } from './formulario/EditarPedidoDialog'
 import { staleDataDe } from './formulario/errores'
@@ -63,15 +62,15 @@ const TRANSICION: Record<AccionDirecta | AccionConfirmada, AccionTransicion> = {
 type DialogoCantidad = { modo: 'parcial' | 'resto'; pedido: Pedido } | null
 type Confirmar = { accion: AccionConfirmada; pedido: Pedido } | null
 
-/** 0.9.15 (spec «Añadir otro» §5.1): la página «Otros» ya no existe; su dirección abre Pedidos con «Tipo: Otros». */
+/** 0.9.15 (spec «Añadir otro» §5.1): la página «Otros» ya no existe; su dirección abre Pedidos. */
 export function RedirigirPedidosOtros() {
-  return <Navigate to="/stock/pedidos?tipo=otros" replace />
+  return <Navigate to="/stock/pedidos" replace />
 }
 
 /** Pestaña "Pedidos" de StockView.fxml (spec 4b §6): filtros, la tabla, menú de transiciones (SUPERTECNICO), CSV y
  *  "Actualizado". 0.9.9: agrupada por bloques (spec «Pedidos por bloques» §6), con interruptor a la vista plana. 0.9.13: el
  *  menú del bloque lo ven todos; sin edición, solo con «Exportar bloque en CSV». 0.9.15 (spec «Añadir otro» §5.1): una
- *  sola lista con piezas y otros (fuera el toggle «Componentes | Otros» y «Nuevo otro pedido»), filtro «Tipo», menú de
+ *  sola lista con piezas y otros (fuera el toggle «Componentes | Otros» y «Nuevo otro pedido»), menú de
  *  fila de un otro con «Mover a bloque» y «Añadir otro…» en el menú del bloque. */
 export function PedidosPage() {
   const { sesion } = useSession()
@@ -116,20 +115,18 @@ export function PedidosPage() {
     return () => marcar(false)
   }, [hayModal, marcar])
 
-  // Llegada desde "En Camino" de Stock (S8, navegarAPedidosDeComponente :217-231) o desde la dirección antigua de «Otros»
-  // (0.9.15, `?tipo=otros`): los parámetros se leen una vez al montar, se aplican al store (lo demás, intacto, salvo
-  // «Tipo»: la llegada desde Stock lo pone en «Piezas» y `?tipo=otros` en «Otros») y se limpia la URL con replace. Desde Stock, en cuanto hay datos, se selecciona la primera fila filtrada y se desplaza a ella. Los
+  // Llegada desde "En Camino" de Stock (S8, navegarAPedidosDeComponente :217-231): los parámetros se leen una vez al montar,
+  // se aplican al store (lo demás, intacto) y se limpia la URL con replace. Desde Stock, en cuanto hay datos, se selecciona la primera fila filtrada y se desplaza a ella. Los
   // refs evitan repetirlo si el efecto vuelve a correr.
   const [llegada] = useState(() => filtrosDesdeStock(new URLSearchParams(location.search)))
-  const [llegadaTipo] = useState(() => tipoDesdeUrl(new URLSearchParams(location.search)))
   const llegadaAplicada = useRef(false)
   const primeraPendiente = useRef(llegada !== null)
   useEffect(() => {
-    if ((llegada === null && llegadaTipo === null) || llegadaAplicada.current) return
+    if (llegada === null || llegadaAplicada.current) return
     llegadaAplicada.current = true
-    filtrosPedidos.set((f) => ({ ...f, ...(llegada ?? {}), ...(llegada === null ? {} : { tipo: 'piezas' as const }), ...(llegadaTipo === null ? {} : { tipo: llegadaTipo }) }))
+    filtrosPedidos.set((f) => ({ ...f, ...llegada }))
     navigate(location.pathname, { replace: true })
-  }, [llegada, llegadaTipo, navigate, location.pathname])
+  }, [llegada, navigate, location.pathname])
   const datos = lineas.data
   useEffect(() => {
     if (!primeraPendiente.current || datos === undefined) return
@@ -362,8 +359,6 @@ export function PedidosPage() {
           onOpenChange={marcar}
           className="min-w-[140px]"
         />
-        {/* 0.9.15: «Tipo». Cuenta como filtro (bloques desplegados y «mostrando k de n») y «Limpiar filtros» lo vuelve a «Todos». */}
-        <FiltroTipo valor={filtros.tipo} onChange={(tipo) => setFiltros((f) => ({ ...f, tipo }))} />
         {/* El componente o el concepto (0.9.15) y, con solo cifras, el nº de bloque (0.9.9). */}
         <Input value={filtros.buscador} onChange={(e) => setFiltros((f) => ({ ...f, buscador: e.target.value }))}
           placeholder="Buscar componente o nº de bloque…" className="w-[200px] bg-superficie" />

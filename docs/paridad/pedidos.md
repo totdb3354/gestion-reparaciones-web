@@ -274,7 +274,7 @@ Diferencias deliberadas, decididas en la spec `2026-10-14-v0913-casillas-y-expor
 
 Diferencias deliberadas, decididas en la spec `2026-10-14-v0915-anadir-otro-design.md` (raíz):
 
-- Pedidos es una sola lista: sin toggle «Componentes | Otros» ni «Nuevo otro pedido»; los otros van dentro del bloque de su proveedor con la píldora «otro» e ID «O-n», y el filtro «Tipo» separa piezas y otros (`reglas.test.ts`, `PedidosPage.bloques.test.tsx`, `pedidos.spec.ts`).
+- Pedidos es una sola lista: sin toggle «Componentes | Otros» ni «Nuevo otro pedido»; los otros van dentro del bloque de su proveedor con la píldora «otro» e ID «O-n»; no hay filtro «Tipo» (el buscador encuentra un otro por su concepto) y la dirección antigua `/stock/pedidos/otros` abre Pedidos (`reglas.test.ts`, `PedidosPage.bloques.test.tsx`, `pedidos.spec.ts`).
 - «+ Añadir otro» en «Nuevo pedido» y «Añadir otro…» en el menú del bloque; la línea de otro no entra en la previsión ni en «lo que falta» (`NuevoPedidoDialog.test.tsx`, `otros-en-bloques.spec.ts`).
 - Las acciones de bloque, separar, juntar y «Mover a bloque» valen para los otros (`dialogos.test.tsx`).
 - CSV con la columna «Tipo» tras «ID» (`columnas.test.tsx`, `PedidosPage.test.tsx`).
