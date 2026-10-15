@@ -67,7 +67,7 @@ export function parametrosPedidos(c: Componente): string {
   return new URLSearchParams({ estados: 'pendiente,en camino,parcial', buscar: c.tipo }).toString()
 }
 
-export function crearColumnasStock({ onEnCamino, conPrevision = false, onAutoPedido }: { onEnCamino: (c: Componente) => void; conPrevision?: boolean; onAutoPedido?: (c: Componente, valor: boolean) => void }): ColumnDef<FilaStock>[] {
+export function crearColumnasStock({ onEnCamino, conPrevision = false, onAutoPedido }: { onEnCamino?: (c: Componente) => void; conPrevision?: boolean; onAutoPedido?: (c: Componente, valor: boolean) => void }): ColumnDef<FilaStock>[] {
   return [
     // La celda de DataTable es whitespace-nowrap con recorte: el nombre del grupo puede ser largo, así que el contenedor
     // vuelve a permitir el salto de línea (y parte palabras sin espacios) en vez de cortarse con "…".
@@ -86,6 +86,8 @@ export function crearColumnasStock({ onEnCamino, conPrevision = false, onAutoPed
       cell: ({ row }) => {
         const c = row.original
         if (c.enCamino <= 0) return '—'
+        // Sin onEnCamino (TECNICO, 0.9.16: no tiene Pedidos) el número va como texto, igual que "En Stock".
+        if (!onEnCamino) return String(c.enCamino)
         // Calco del Label con TEXTO_ACCION, cursor mano y subrayado al pasar (:305-324).
         return (
           <button type="button" onClick={(e) => { e.stopPropagation(); onEnCamino(c) }} className="cursor-pointer text-texto-accion hover:underline">
