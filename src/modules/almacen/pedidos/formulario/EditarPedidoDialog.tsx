@@ -10,9 +10,9 @@ import { Label } from '@/shared/ui/label'
 import { useProveedoresComponentes } from '../../proveedores/api'
 import { DialogoAlmacen } from '../../ui/DialogoAlmacen'
 import { useEditarCompra, useLineasPedido } from '../api'
-import { agruparEnBloques, destinoSugeridoEdicion, fechaCorta, situacion, textoLineas, textoMoverYaPedida, vivosDelProveedor } from '../bloques/reglas'
+import { agruparEnBloques, destinoSugeridoEdicion, textoMoverYaPedida } from '../bloques/reglas'
 import { useTasa } from '../tasa'
-import { VALOR_NUEVO } from './destinos'
+import { opcionesBloqueEdicion, VALOR_NUEVO } from './destinos'
 import { CLASE_CAMPO, CLASE_ETIQUETA, DIVISAS_EDICION, MSG_PEDIDO_MODIFICADO, textoTotalEdicion, validarEdicion } from './edicion'
 import { esBloqueInexistente, mensajeErrorGuardado, staleDataDe } from './errores'
 
@@ -46,14 +46,7 @@ export function EditarPedidoDialog({ pedido, onCerrar }: Props) {
   const proveedor = idProv !== null && activos.some((p) => p.idProv === idProv) ? idProv : null
   const cambiaProveedor = pedido !== null && proveedor !== null && proveedor !== pedido.idProv
   const nuevo = cambiaProveedor ? activos.find((p) => p.idProv === proveedor) : undefined
-  const opcionesBloque = cambiaProveedor && proveedor !== null
-    ? [
-        ...vivosDelProveedor(bloques, proveedor).map((b) => ({
-          valor: String(b.idBloque), etiqueta: `Bloque ${b.idBloque} · ${fechaCorta(b.fecha)} · ${textoLineas(b.lineas.length)} · ${situacion(b)}`,
-        })),
-        { valor: VALOR_NUEVO, etiqueta: 'Bloque nuevo' },
-      ]
-    : []
+  const opcionesBloque = cambiaProveedor && proveedor !== null ? opcionesBloqueEdicion(bloques, proveedor) : []
 
   function elegirProveedor(v: string) {
     const id = Number(v)

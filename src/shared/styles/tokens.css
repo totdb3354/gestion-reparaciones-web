@@ -146,6 +146,14 @@
      con el de cancelado. */
   --color-badge-en-camino-bg: #BBDEFB;
   --color-badge-en-camino-text: #1565C0;
+  /* Pedidos 0.9.15 (spec «Añadir otro» §5, prototipo y maqueta del modal): píldoras «pieza» (azul suave) y «otro» (lila),
+     el ID «O-n» de un otro, el borde del campo del concepto y el de «+ Añadir otro». */
+  --color-pieza-bg: #E3ECF7;
+  --color-pieza-text: #2F5A8A;
+  --color-otro-bg: #EDE3F7;
+  --color-otro-text: #6A3FA0;
+  --color-otro-borde: #B9A3D6;
+  --color-otro-boton: #8E6CBF;
 
   /* Gestión (sub-proyecto 6). Fondo de RegisterView.fxml (#EFEFEF, el mismo valor que fondo-login: token propio para no
      atar la página de técnicos al login), badge de estado de RegisterController :106-131 (colores a mano, sin constante en

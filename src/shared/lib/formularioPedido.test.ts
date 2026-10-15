@@ -16,6 +16,10 @@ describe('formularioPedido', () => {
     abrirNuevoPedido({ modo: 'vacio' })
     expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'vacio' } })
   })
+  it('«Añadir otro…» de un bloque (0.9.15): el de compra en modo bloque con `otro`', () => {
+    abrirNuevoPedido({ modo: 'bloque', idBloque: 41, idProv: 1, otro: true })
+    expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'bloque', idBloque: 41, idProv: 1, otro: true } })
+  })
   it('abrirNuevoOtroPedido abre el de otros y cerrarFormularioPedido lo cierra', () => {
     abrirNuevoOtroPedido()
     expect(formularioPedido.get()).toEqual({ tipo: 'otro' })

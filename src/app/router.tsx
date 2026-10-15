@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
-import { PedidosPage } from '@/modules/almacen/pedidos/PedidosPage'
+import { PedidosPage, RedirigirPedidosOtros } from '@/modules/almacen/pedidos/PedidosPage'
 import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
@@ -74,9 +74,9 @@ export const router = createBrowserRouter([
             children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="imei" /> }] }],
           },
           { path: '/stock', element: <StockPage /> },
-          // `key` por toggle: cada ruta monta su propia instancia (estado local, diálogos) en vez de reutilizar la anterior.
-          { path: '/stock/pedidos', element: <PedidosPage key="componentes" tipo="componentes" /> },
-          { path: '/stock/pedidos/otros', element: <PedidosPage key="otros" tipo="otros" /> },
+          { path: '/stock/pedidos', element: <PedidosPage /> },
+          // 0.9.15: la página «Otros» ya no existe; su dirección abre Pedidos con «Tipo: Otros» (enlaces y marcadores viejos).
+          { path: '/stock/pedidos/otros', element: <RedirigirPedidosOtros /> },
           { path: '/stock/proveedores', element: <ProveedoresPage /> },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },

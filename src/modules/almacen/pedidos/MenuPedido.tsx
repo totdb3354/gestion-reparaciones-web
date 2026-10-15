@@ -8,7 +8,7 @@ type Props = {
   onAccion: (accion: AccionMenu, pedido: Pedido) => void
   /** Aviso de menú abierto/cerrado para congelar el sondeo (D4 del 3a), como MenuComponente. Estable entre renders. */
   onInteraccion?: (abierto: boolean) => void
-  /** 0.9.9: «Mover a bloque ▸» (solo componentes). `sola`: la línea es la única de su bloque (sin «Bloque nuevo»). */
+  /** 0.9.9: «Mover a bloque ▸» (piezas y, desde la 0.9.15, otros). `sola`: la línea es la única de su bloque (sin «Bloque nuevo»). */
   mover?: { destinos: DestinoMover[]; sola: boolean; onMover: (idBloque: number | null) => void }
 }
 

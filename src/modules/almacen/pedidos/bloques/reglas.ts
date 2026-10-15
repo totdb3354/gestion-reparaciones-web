@@ -165,13 +165,14 @@ export function textoDesmarcadas(accion: AccionBloque, n: number): string {
   return `${pendiente ? 'Se quedan pendientes' : 'Se quedan en camino'} ${n} líneas: las desmarcadas no cambian.`
 }
 
-export type AccionMenuBloque = AccionBloque | 'anadir' | 'prevision' | 'separar' | 'juntar' | 'nota' | 'exportar'
+export type AccionMenuBloque = AccionBloque | 'anadir' | 'otro' | 'prevision' | 'separar' | 'juntar' | 'nota' | 'exportar'
 export type EntradaMenuBloque =
   | { accion: AccionMenuBloque; texto: string; deshabilitada: boolean; motivo: string | null; peligro: boolean }
   | 'separador'
 
 /** Menú del bloque (spec §6.4). `otrosVivos`: cuántos bloques vivos más tiene su proveedor. 0.9.13: «Exportar bloque en
- *  CSV» siempre disponible; sin `puedeEditar` (admin y técnico) es la única entrada. */
+ *  CSV» siempre disponible; sin `puedeEditar` (admin y técnico) es la única entrada. 0.9.15: «Añadir otro…» justo tras «Añadir líneas…», cerrado
+ *  como ella en un bloque terminado. */
 export function entradasMenuBloque(b: Bloque, otrosVivos: number, puedeEditar = true): EntradaMenuBloque[] {
   const entrada = (accion: AccionMenuBloque, texto: string, deshabilitada: boolean, motivo: string | null, peligro = false): EntradaMenuBloque =>
     ({ accion, texto, deshabilitada, motivo: deshabilitada ? motivo : null, peligro })
@@ -186,6 +187,7 @@ export function entradasMenuBloque(b: Bloque, otrosVivos: number, puedeEditar = 
     entrada('recibir', `Recibir todo (${enCamino})`, enCamino === 0, 'nada en camino'),
     'separador',
     entrada('anadir', 'Añadir líneas…', cerrado, TERMINADO),
+    entrada('otro', 'Añadir otro…', cerrado, TERMINADO),
     entrada('prevision', 'Añadir previsión…', cerrado, TERMINADO),
     entrada('separar', 'Separar líneas…', cerrado || b.lineas.length < 2, cerrado ? TERMINADO : 'solo tiene una línea'),
     entrada('juntar', 'Juntar con…', cerrado || otrosVivos === 0, cerrado ? TERMINADO : 'no hay otro bloque vivo de este proveedor'),

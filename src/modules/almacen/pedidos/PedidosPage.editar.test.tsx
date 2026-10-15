@@ -21,25 +21,24 @@ beforeEach(() => {
   )
 })
 
-describe('PedidosPage: "Editar" abre el editor de su tabla', () => {
-  it('componentes: "Editar" → "Editar pedido #7"; Guardar escribe y lo cierra', async () => {
-    renderConProviders(<PedidosPage tipo="componentes" />, { sesion: SESION_SUPER, ruta: '/stock/pedidos' })
+describe('PedidosPage: "Editar" abre el editor del tipo de la línea (0.9.15: piezas y otros en la misma lista)', () => {
+  it('pieza: "Editar" → "Editar pedido #7"; Guardar escribe y lo cierra', async () => {
+    renderConProviders(<PedidosPage />, { sesion: SESION_SUPER, ruta: '/stock/pedidos' })
     await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByRole('row', { name: /bat-x/ }) })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
     expect(await screen.findByRole('dialog', { name: 'Editar pedido #7' })).toBeInTheDocument()
     expect(screen.getByText('Componente:')).toBeInTheDocument()
-    // Dentro del diálogo: la celda "Proveedor" de la tabla también dice ACME.
     await within(screen.getByRole('dialog', { name: 'Editar pedido #7' })).findByText('ACME')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Editar pedido #7' })).not.toBeInTheDocument())
     expect(puts).toEqual(['compras/7'])
   })
 
-  it('otros: "Editar" → el editor de otros (con "Concepto:"); Cancelar lo cierra sin escribir', async () => {
-    renderConProviders(<PedidosPage tipo="otros" />, { sesion: SESION_SUPER, ruta: '/stock/pedidos/otros' })
+  it('otro: "Editar" → el editor de otros («Editar pedido #O-9», con "Concepto:"); Cancelar lo cierra sin escribir', async () => {
+    renderConProviders(<PedidosPage />, { sesion: SESION_SUPER, ruta: '/stock/pedidos' })
     await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByRole('row', { name: /Cinta de embalar/ }) })
     await userEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
-    expect(await screen.findByRole('dialog', { name: 'Editar pedido #9' })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Editar pedido #O-9' })).toBeInTheDocument()
     expect(screen.getByLabelText('Concepto:')).toHaveValue('Cinta de embalar')
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

@@ -94,27 +94,28 @@ describe('acciones de bloque', () => {
   it('menú del bloque con contadores, motivos y peligro', () => {
     const entradas = entradasMenuBloque(b, 0)
     expect(entradas.map((e) => (e === 'separador' ? '—' : e.texto))).toEqual([
-      'Confirmar bloque (1)', 'Recibir todo (1)', '—', 'Añadir líneas…', 'Añadir previsión…', 'Separar líneas…', 'Juntar con…', 'Añadir nota…',
-      'Exportar bloque en CSV', '—', 'Cancelar bloque (1)', 'Borrar bloque',
+      'Confirmar bloque (1)', 'Recibir todo (1)', '—', 'Añadir líneas…', 'Añadir otro…', 'Añadir previsión…', 'Separar líneas…', 'Juntar con…',
+      'Añadir nota…', 'Exportar bloque en CSV', '—', 'Cancelar bloque (1)', 'Borrar bloque',
     ])
     const porTexto = (t: string) => entradas.find((e) => e !== 'separador' && e.texto === t)
     expect(porTexto('Juntar con…')).toMatchObject({ deshabilitada: true, motivo: 'no hay otro bloque vivo de este proveedor' })
     expect(porTexto('Borrar bloque')).toMatchObject({ deshabilitada: true, motivo: 'hay líneas ya pedidas', peligro: true })
     expect(porTexto('Separar líneas…')).toMatchObject({ deshabilitada: false, motivo: null })
   })
-  it('«Añadir previsión…» va justo tras «Añadir líneas…» y en un bloque vivo está disponible', () => {
+  it('«Añadir otro…» va justo tras «Añadir líneas…» y «Añadir previsión…» después; en un bloque vivo están disponibles (0.9.15)', () => {
     const textos = entradasMenuBloque(b, 0).map((e) => (e === 'separador' ? '—' : e.texto))
     const i = textos.indexOf('Añadir líneas…')
-    expect(textos[i + 1]).toBe('Añadir previsión…')
-    const entrada = entradasMenuBloque(b, 0).find((e) => e !== 'separador' && e.accion === 'prevision')
-    expect(entrada).toMatchObject({ deshabilitada: false, peligro: false })
+    expect(textos.slice(i + 1, i + 3)).toEqual(['Añadir otro…', 'Añadir previsión…'])
+    for (const accion of ['otro', 'prevision']) {
+      expect(entradasMenuBloque(b, 0).find((e) => e !== 'separador' && e.accion === accion)).toMatchObject({ deshabilitada: false, peligro: false })
+    }
   })
-  it('un bloque terminado está cerrado: sin añadir, previsión, separar ni juntar', () => {
+  it('un bloque terminado está cerrado: sin añadir líneas ni otros, previsión, separar ni juntar', () => {
     const terminado = [...agruparEnBloques([
       l({ idCompra: 1, idBloque: 60, estado: 'recibido' }), l({ idCompra: 2, idBloque: 60, estado: 'cancelado' }),
     ]).values()][0]
     const porAccion = (a: string) => entradasMenuBloque(terminado, 3).find((e) => e !== 'separador' && e.accion === a)
-    for (const accion of ['anadir', 'prevision', 'separar', 'juntar']) {
+    for (const accion of ['anadir', 'otro', 'prevision', 'separar', 'juntar']) {
       expect(porAccion(accion)).toMatchObject({ deshabilitada: true, motivo: 'el bloque está terminado' })
     }
     expect(porAccion('nota')).toMatchObject({ deshabilitada: false })

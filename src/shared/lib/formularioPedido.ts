@@ -8,12 +8,13 @@ import { crearStore } from './store'
  *    lista recién cargada).
  *  - 'solicitudes': "Pedir piezas", con las listas PENDIENTE recién leídas; el formulario agrupa por componente.
  *  - 'bloque': «Añadir líneas…» de un bloque (proveedor y destino fijos); con `prevision`, «Añadir previsión…»: se aplica
- *    al abrir la previsión de su proveedor (0.9.9). */
+ *    al abrir la previsión de su proveedor (0.9.9); con `otro`, «Añadir otro…»: abre con una línea de otro y el cursor en
+ *    su concepto (0.9.15). */
 export type PrecargaPedido =
   | { modo: 'vacio' }
   | { modo: 'componentes'; idsCom: number[] }
   | { modo: 'solicitudes'; urgentes: SolicitudResumen[]; preventivas: SolicitudStock[] }
-  | { modo: 'bloque'; idBloque: number; idProv: number; prevision?: boolean }
+  | { modo: 'bloque'; idBloque: number; idProv: number; prevision?: boolean; otro?: boolean }
 
 export type FormularioPedidoAbierto = { tipo: 'compra'; precarga: PrecargaPedido } | { tipo: 'otro' }
 

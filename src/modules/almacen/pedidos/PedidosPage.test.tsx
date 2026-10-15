@@ -11,7 +11,7 @@ import { abrirNuevoPedido, cerrarFormularioPedido, formularioPedido } from '@/sh
 import type { Sesion } from '@/shared/session/storage'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { PedidosPage } from './PedidosPage'
+import { PedidosPage, RedirigirPedidosOtros } from './PedidosPage'
 import { BLOQUE_PRUEBA } from './formulario/datosPrueba'
 
 const U1 = '2026-09-20T08:30:00'
@@ -43,14 +43,17 @@ const otros: CompraOtro[] = [otroBase, { ...otroBase, idCompraOtro: 8, concepto:
 const proveedor = (idProv: number, nombre: string, activo: boolean, divisa = 'EUR'): Proveedor => ({ idProv, nombre, activo, divisa, comentario: '', tipo: 'COMPONENTES' })
 const proveedores = [proveedor(1, 'Proveedor A', true), proveedor(2, 'Proveedor B', true, 'USD'), proveedor(3, 'ACME', false)]
 const cargas = { compras: 0, otros: 0 }
+/** Lo que devuelve GET /api/compras-otros: ningún otro, salvo en los tests que los pintan (0.9.15). */
+let listaOtros: CompraOtro[] = []
 
 beforeEach(() => {
   localStorage.setItem('pedidos.agruparPorBloque', 'no')
   cargas.compras = 0
   cargas.otros = 0
+  listaOtros = []
   server.use(
     http.get('*/api/compras', () => { cargas.compras += 1; return HttpResponse.json(compras) }),
-    http.get('*/api/compras-otros', () => { cargas.otros += 1; return HttpResponse.json(otros) }),
+    http.get('*/api/compras-otros', () => { cargas.otros += 1; return HttpResponse.json(listaOtros) }),
     http.get('*/api/proveedores', () => HttpResponse.json(proveedores)),
   )
 })
@@ -62,8 +65,8 @@ afterEach(() => {
 function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
   return renderConRouter(
     [
-      { path: '/stock/pedidos', element: <PedidosPage key="componentes" tipo="componentes" /> },
-      { path: '/stock/pedidos/otros', element: <PedidosPage key="otros" tipo="otros" /> },
+      { path: '/stock/pedidos', element: <PedidosPage /> },
+      { path: '/stock/pedidos/otros', element: <RedirigirPedidosOtros /> },
       { path: '/stock', element: <p data-testid="stock">Stock</p> },
     ],
     { sesion, ruta },
@@ -72,10 +75,10 @@ function montar(sesion: Sesion = SESION_SUPER, ruta = '/stock/pedidos') {
 /** Por texto y no por rol: con un diálogo abierto Radix deja el resto aria-hidden. */
 const filaDe = (texto: string) => screen.getByText(texto).closest('tr') as HTMLElement
 const abrirMenu = (texto: string) => userEvent.pointer({ keys: '[MouseRight]', target: filaDe(texto) })
+/** Nombre de cada fila (componente o concepto) sin la píldora «pieza»/«otro» de delante (0.9.15). */
 const nombresEnTabla = () => {
-  const cabeceras = screen.getAllByRole('columnheader').map((c) => c.textContent)
-  const i = cabeceras.findIndex((t) => t === 'Componente' || t === 'Concepto')
-  return screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[i].textContent)
+  const i = screen.getAllByRole('columnheader').map((c) => c.textContent).indexOf('Componente / concepto')
+  return screen.getAllByRole('row').slice(1).map((r) => (within(r).getAllByRole('cell')[i].textContent ?? '').replace(/^(pieza|otro)/, ''))
 }
 /** Registra "id acción cuerpo" de cada PATCH de transición y responde con `respuesta`. */
 function registrarPatch(ruta: string, respuesta: () => Response = () => new HttpResponse(null, { status: 200 })) {
@@ -95,14 +98,15 @@ function handlersLayout() {
 }
 
 describe('PedidosPage: vista', () => {
-  it('título, toggle en Componentes, columnas, cancelados al final y pie "Actualizado"', async () => {
+  it('título sin toggle, columnas, cancelados al final, píldora «pieza» y pie "Actualizado"; lee piezas y otros', async () => {
     montar()
     expect(await screen.findByRole('heading', { name: 'Pedidos' })).toBeInTheDocument()
     await screen.findByText('lcd-x-negro')
-    expect(screen.getByRole('link', { name: 'Componentes' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Otros' })).not.toHaveAttribute('aria-current')
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Bloque', 'Pedido', 'Componente', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
+    expect(screen.queryByRole('link', { name: 'Componentes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Otros' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Bloque', 'Pedido', 'Componente / concepto', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
     expect(nombresEnTabla()).toEqual(['lcd-x-negro', 'bat-x', 'bat-y', 'cam-x', 'mc-x'])
+    expect(within(filaDe('lcd-x-negro')).getByText('pieza')).toBeInTheDocument()
     expect(within(filaDe('bat-x')).getByText('en_camino')).toBeInTheDocument()
     expect(within(filaDe('bat-x')).getByText('⚠')).toBeInTheDocument()
     expect(within(filaDe('bat-x')).getByText('10,00 $')).toBeInTheDocument()
@@ -112,24 +116,46 @@ describe('PedidosPage: vista', () => {
     expect(filaDe('mc-x')).toHaveClass('opacity-45')
     expect(screen.getByRole('button', { name: /^Actualizado \d\d:\d\d$/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Nuevo pedido' })).toBeInTheDocument()
-    // Solo se consulta la tabla visible.
-    expect(cargas.otros).toBe(0)
-  })
-  it('el toggle "Otros" cambia de ruta y de tabla y conserva los filtros', async () => {
-    const { router } = montar()
-    await screen.findByText('lcd-x-negro')
-    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'bat')
-    await userEvent.click(screen.getByRole('link', { name: 'Otros' }))
-    expect(router.state.location.pathname).toBe('/stock/pedidos/otros')
-    expect(screen.getByPlaceholderText('Buscar componente…')).toHaveValue('bat')
-    expect(await screen.findByText('Sin otros pedidos')).toBeInTheDocument()
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['ID', 'Pedido', 'Concepto', 'Proveedor', 'Cant.', 'P.Unit.', 'EUR', 'Estado'])
-    expect(screen.getByRole('button', { name: 'Nuevo otro pedido' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Nuevo pedido' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Otros' })).toHaveAttribute('aria-current', 'page')
-    await userEvent.clear(screen.getByPlaceholderText('Buscar componente…'))
-    expect(await screen.findByText('Cinta de embalar')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuevo otro pedido' })).not.toBeInTheDocument()
+    expect(cargas.compras).toBe(1)
     expect(cargas.otros).toBe(1)
+  })
+  it('piezas y otros en una sola lista: el otro con su píldora «otro», «O-{id}» y sin enlace; a igual fecha, las piezas primero', async () => {
+    listaOtros = otros
+    montar()
+    await screen.findByText('Cinta de embalar')
+    expect(nombresEnTabla()).toEqual(['lcd-x-negro', 'Cinta de embalar', 'Bolsas', 'bat-x', 'bat-y', 'cam-x', 'mc-x'])
+    const fila = filaDe('Cinta de embalar')
+    expect(within(fila).getByText('otro')).toBeInTheDocument()
+    expect(fila.querySelector('[data-columna="id"]')).toHaveTextContent('O-7')
+    expect(screen.queryByRole('button', { name: 'Cinta de embalar' })).not.toBeInTheDocument()
+  })
+  it('filtro «Tipo»: «Todos | Piezas | Otros», cuenta con los demás filtros y «Limpiar filtros» lo vuelve a «Todos»', async () => {
+    listaOtros = otros
+    montar()
+    await screen.findByText('Cinta de embalar')
+    const tipo = screen.getByRole('radiogroup', { name: 'Tipo' })
+    expect(within(tipo).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Todos', 'Piezas', 'Otros'])
+    expect(within(tipo).getByRole('radio', { name: 'Todos' })).toHaveAttribute('aria-checked', 'true')
+    await userEvent.click(within(tipo).getByRole('radio', { name: 'Otros' }))
+    expect(within(tipo).getByRole('radio', { name: 'Otros' })).toHaveAttribute('aria-checked', 'true')
+    expect(nombresEnTabla()).toEqual(['Cinta de embalar', 'Bolsas'])
+    await userEvent.click(within(tipo).getByRole('radio', { name: 'Piezas' }))
+    expect(nombresEnTabla()).toEqual(['lcd-x-negro', 'bat-x', 'bat-y', 'cam-x', 'mc-x'])
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'bolsas')
+    expect(screen.getByText('Sin pedidos')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(within(tipo).getByRole('radio', { name: 'Todos' })).toHaveAttribute('aria-checked', 'true')
+    expect(nombresEnTabla()).toHaveLength(7)
+  })
+  it('la dirección antigua /stock/pedidos/otros abre Pedidos con «Tipo: Otros» y limpia la URL', async () => {
+    listaOtros = otros
+    const { router } = montar(SESION_SUPER, '/stock/pedidos/otros')
+    await screen.findByText('Cinta de embalar')
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(router.state.location.pathname).toBe('/stock/pedidos')
+    expect(screen.getByRole('radio', { name: 'Otros' })).toHaveAttribute('aria-checked', 'true')
+    expect(nombresEnTabla()).toEqual(['Cinta de embalar', 'Bolsas'])
   })
   it.each([['ADMIN', SESION_ADMIN], ['TECNICO', SESION_TEC]] as const)('%s ve la tabla sin "Nuevo pedido" ni menú contextual', async (_rol, sesion) => {
     montar(sesion)
@@ -317,9 +343,10 @@ describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
     expect(screen.queryByText(MSG_MODIFICADO)).not.toBeInTheDocument()
     await waitFor(() => expect(cargas.compras).toBeGreaterThan(antes))
   })
-  it('"Revertir a En camino" de otros: una sola línea y la ruta de otros', async () => {
+  it('"Revertir a En camino" de un otro: una sola línea, «#O-{id}» y la ruta de otros', async () => {
+    listaOtros = otros
     const llamadas = registrarPatch('*/api/compras-otros/:id/:accion')
-    montar(SESION_SUPER, '/stock/pedidos/otros')
+    montar()
     await screen.findByText('Cinta de embalar')
     await abrirMenu('Cinta de embalar')
     await userEvent.click(screen.getByRole('menuitem', { name: 'Revertir a En camino' }))
@@ -327,6 +354,17 @@ describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
     expect(within(dlg).getByText('¿Revertir el pedido #O-7 de Cinta de embalar a En camino?', sinColapsar)).toBeInTheDocument()
     await userEvent.click(within(dlg).getByRole('button', { name: 'Revertir a En camino' }))
     await waitFor(() => expect(llamadas).toEqual([`7 desrecibir {"updatedAt":"${U1}"}`]))
+  })
+  it('un otro pendiente: su menú lleva «Mover a bloque» y «Confirmar pedido» va a /api/compras-otros (0.9.15)', async () => {
+    listaOtros = otros
+    const llamadas = registrarPatch('*/api/compras-otros/:id/:accion')
+    montar()
+    await screen.findByText('Bolsas')
+    await abrirMenu('Bolsas')
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Confirmar pedido', 'Editar', 'Borrar', 'Mover a bloque'])
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Confirmar pedido' }))
+    await waitFor(() => expect(llamadas).toEqual([`8 confirmar {"updatedAt":"${U1}"}`]))
+    await waitFor(() => expect(cargas.otros).toBe(2))
   })
   it('un 409 en cualquier otra transición avisa "Este pedido fue modificado por otro usuario…" y recarga', async () => {
     registrarPatch('*/api/compras/:id/:accion', () => HttpResponse.json({ message: 'El pedido ya no está pendiente' }, { status: 409 }))
@@ -339,15 +377,13 @@ describe('PedidosPage: menú y acciones (SUPERTECNICO)', () => {
     expect(screen.queryByText('El pedido ya no está pendiente')).not.toBeInTheDocument()
     await waitFor(() => expect(cargas.compras).toBe(2))
   })
-  it('"Nuevo pedido" y "Nuevo otro pedido" abren el formulario de alta en el sitio (store)', async () => {
+  it('"Nuevo pedido" abre el formulario de alta en el sitio (store); ya no hay «Nuevo otro pedido»', async () => {
     montar()
     await screen.findByText('lcd-x-negro')
+    expect(screen.queryByRole('button', { name: 'Nuevo otro pedido' })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo pedido' }))
     expect(formularioPedido.get()).toEqual({ tipo: 'compra', precarga: { modo: 'vacio' } })
     act(() => cerrarFormularioPedido())
-    await userEvent.click(screen.getByRole('link', { name: 'Otros' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Nuevo otro pedido' }))
-    expect(formularioPedido.get()).toEqual({ tipo: 'otro' })
   })
 })
 
@@ -372,6 +408,7 @@ describe('PedidosPage: refresco y CSV', () => {
     expect(screen.getByRole('dialog', { name: 'Recepción parcial' })).toBeInTheDocument()
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS * 2) })
     expect(cargas.compras).toBe(1)
+    expect(cargas.otros).toBe(1)
   })
   it('con el formulario de alta abierto el sondeo se congela y vuelve al cerrarlo', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
@@ -384,57 +421,42 @@ describe('PedidosPage: refresco y CSV', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_CONECTADO_MS) })
     await waitFor(() => expect(cargas.compras).toBeGreaterThan(1))
   })
-  it('"Actualizado HH:mm" recarga la tabla visible (Otros), no la de componentes (P7)', async () => {
-    montar(SESION_TEC, '/stock/pedidos/otros')
-    await screen.findByText('Cinta de embalar')
+  it('"Actualizado HH:mm" recarga las dos listas, piezas y otros (0.9.15)', async () => {
+    montar(SESION_TEC)
+    await screen.findByText('lcd-x-negro')
+    expect(cargas.compras).toBe(1)
     expect(cargas.otros).toBe(1)
     await userEvent.click(screen.getByRole('button', { name: /^Actualizado \d\d:\d\d$/ }))
+    await waitFor(() => expect(cargas.compras).toBe(2))
     await waitFor(() => expect(cargas.otros).toBe(2))
-    expect(cargas.compras).toBe(0)
   })
-  it('Descargar CSV en Componentes exporta la lista filtrada con el nombre y las cabeceras del JavaFX', async () => {
+  it('Descargar CSV exporta la lista visible, piezas y otros, con «Tipo» tras «ID» y «O-{id}» en los otros (0.9.15)', async () => {
+    listaOtros = otros
     const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     handlersLayout()
-    renderConProviders(<PedidosPage key="componentes" tipo="componentes" />, { sesion: SESION_SUPER, ruta: '/stock/pedidos', layout: <AppLayout /> })
-    await screen.findByText('lcd-x-negro')
-    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'bat')
+    renderConProviders(<PedidosPage />, { sesion: SESION_SUPER, ruta: '/stock/pedidos', layout: <AppLayout /> })
+    await screen.findByText('Cinta de embalar')
+    // «ba»: bat-x, bat-y y «Cinta de em-ba-lar».
+    await userEvent.type(screen.getByPlaceholderText('Buscar componente o nº de bloque…'), 'ba')
     await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [nombre, cabeceras, filas] = descargar.mock.calls[0]
     expect(nombre).toBe('pedidos')
     expect(cabeceras).toEqual(['ID', 'Tipo', 'Bloque', 'Nota del bloque', 'Fecha pedido', 'Componente', 'Cantidad', 'Urgente', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
     expect(filas).toEqual([
+      ['O-7', 'otro', '1', '', '20/09/2026 10:30', 'Cinta de embalar', '3', 'No', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'],
       ['2', 'pieza', '1', '', '19/09/2026 10:00', 'bat-x', '2', 'Sí', 'Proveedor B', '10,00', 'USD', '17,60', 'en_camino'],
       ['3', 'pieza', '1', '', '17/09/2026 10:00', 'bat-y', '10', 'No', 'Proveedor A', '12,50', 'EUR', '125,00', 'parcial'],
     ])
     descargar.mockRestore()
   })
-  it('Descargar CSV en Otros exporta pedidos_otros sin Urgente', async () => {
-    const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
-    handlersLayout()
-    renderConProviders(<PedidosPage key="otros" tipo="otros" />, { sesion: SESION_SUPER, ruta: '/stock/pedidos/otros', layout: <AppLayout /> })
-    await screen.findByText('Cinta de embalar')
-    await userEvent.click(screen.getByRole('button', { name: /Hola,/ }))
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
-    const [nombre, cabeceras, filas] = descargar.mock.calls[0]
-    expect(nombre).toBe('pedidos_otros')
-    expect(cabeceras).toEqual(['ID', 'Fecha pedido', 'Concepto', 'Cantidad', 'Proveedor', 'Precio unidad', 'Divisa', 'Total EUR', 'Estado'])
-    expect(filas).toEqual([
-      ['7', '20/09/2026 10:30', 'Cinta de embalar', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'recibido'],
-      ['8', '20/09/2026 10:30', 'Bolsas', '3', 'Proveedor A', '2,00', 'EUR', '6,00', 'pendiente'],
-    ])
-    descargar.mockRestore()
-  })
 })
 
-describe('PedidosPage: tablas fluidas', () => {
-  it('las dos tablas ocupan todo el ancho sin columna de relleno (ajuste fluido)', async () => {
-    const { container, unmount } = montar()
-    await screen.findByText('lcd-x-negro')
-    expect(container.querySelector('[data-relleno]')).toBeNull()
-    unmount()
-    const otrosMontada = montar(SESION_SUPER, '/stock/pedidos/otros')
+describe('PedidosPage: tabla fluida', () => {
+  it('la tabla, con piezas y otros, ocupa todo el ancho sin columna de relleno (ajuste fluido)', async () => {
+    listaOtros = otros
+    const { container } = montar()
     await screen.findByText('Cinta de embalar')
-    expect(otrosMontada.container.querySelector('[data-relleno]')).toBeNull()
+    expect(container.querySelector('[data-relleno]')).toBeNull()
   })
 })
