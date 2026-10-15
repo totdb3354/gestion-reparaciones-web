@@ -33,7 +33,7 @@ describe('barra superior (calco de MainView)', () => {
     expect(screen.getByRole('menuitem', { name: 'Cambiar contraseña' })).toBeInTheDocument()
   })
   it('"Cambiar contraseña" ya no navega a /cuenta/cambiar-password (la ruta desaparece; el diálogo lo abre en el sitio)', async () => {
-    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/stock/proveedores', rutas: <Route path="/cuenta/cambiar-password" element={<p>CUENTA</p>} /> })
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC, ruta: '/stock', rutas: <Route path="/cuenta/cambiar-password" element={<p>CUENTA</p>} /> })
     await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Cambiar contraseña' }))
     expect(screen.queryByText('CUENTA')).not.toBeInTheDocument()

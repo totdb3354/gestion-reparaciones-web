@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { PedidosPage, RedirigirPedidosOtros } from '@/modules/almacen/pedidos/PedidosPage'
 import { ProveedoresPage } from '@/modules/almacen/proveedores/ProveedoresPage'
+import { RequiereAccesoPedidos } from '@/modules/almacen/rutas'
 import { StockPage } from '@/modules/almacen/stock/StockPage'
 import { ClientesPage } from '@/modules/gestion/clientes/ClientesPage'
 import { LogsPage } from '@/modules/gestion/logs/LogsPage'
@@ -74,10 +75,16 @@ export const router = createBrowserRouter([
             children: [{ element: <RequiereSupertecnico />, children: [{ path: 'editar/:idRep', element: <FormularioEditarRuta origen="imei" /> }] }],
           },
           { path: '/stock', element: <StockPage /> },
-          { path: '/stock/pedidos', element: <PedidosPage /> },
-          // 0.9.15: la página «Otros» ya no existe; su dirección abre Pedidos (enlaces y marcadores viejos).
-          { path: '/stock/pedidos/otros', element: <RedirigirPedidosOtros /> },
-          { path: '/stock/proveedores', element: <ProveedoresPage /> },
+          {
+            // 0.9.16: Pedidos y Proveedores solo para SUPERTECNICO y ADMIN; el TECNICO por URL recibe el aviso y vuelve a /stock.
+            element: <RequiereAccesoPedidos />,
+            children: [
+              { path: '/stock/pedidos', element: <PedidosPage /> },
+              // 0.9.15: la página «Otros» ya no existe; su dirección abre Pedidos (enlaces y marcadores viejos).
+              { path: '/stock/pedidos/otros', element: <RedirigirPedidosOtros /> },
+              { path: '/stock/proveedores', element: <ProveedoresPage /> },
+            ],
+          },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },
           {
