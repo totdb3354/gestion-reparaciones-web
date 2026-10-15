@@ -234,6 +234,8 @@ test.describe('supertécnico: otros pedidos dentro de los bloques', () => {
     await elegirEnMenuBloque(page, bloque, /^Añadir otro…/)
     const dlg = page.getByRole('dialog', { name: `Añadir líneas · Bloque ${bloque}`, exact: true })
     const concepto = dlg.getByLabel('Concepto línea 1')
+    // El menú, al cerrarse (~150 ms), devuelve el foco a su ⋮: se espera a que se cierre del todo antes de mirar el foco.
+    await expect(page.getByRole('menu')).toHaveCount(0)
     await expect(concepto).toBeFocused()
     await concepto.fill(concepto2)
     await dlg.getByLabel('Precio línea 1').fill('1')
@@ -259,7 +261,8 @@ test.describe('supertécnico: otros pedidos dentro de los bloques', () => {
     await expect(cabecera(page, bloque)).toContainText('mostrando 1 de 3')
     await expect(filaDeId(page, String(idPieza))).toHaveCount(0)
     await expect(filaDeId(page, `O-${idOtro2}`)).toContainText(concepto2)
-    await buscador.fill('')
+    // Vuelve a dejar la lista filtrada por el bloque, como la dejó el test anterior, para el siguiente.
+    await buscador.fill(String(bloque))
     await expect(filaDeId(page, String(idPieza))).toHaveCount(1)
   })
 
