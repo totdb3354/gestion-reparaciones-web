@@ -117,8 +117,8 @@ export function PedidosPage() {
   }, [hayModal, marcar])
 
   // Llegada desde "En Camino" de Stock (S8, navegarAPedidosDeComponente :217-231) o desde la dirección antigua de «Otros»
-  // (0.9.15, `?tipo=otros`): los parámetros se leen una vez al montar, se aplican al store (lo demás, intacto) y se limpia
-  // la URL con replace. Desde Stock, en cuanto hay datos, se selecciona la primera fila filtrada y se desplaza a ella. Los
+  // (0.9.15, `?tipo=otros`): los parámetros se leen una vez al montar, se aplican al store (lo demás, intacto, salvo
+  // «Tipo»: la llegada desde Stock lo pone en «Piezas» y `?tipo=otros` en «Otros») y se limpia la URL con replace. Desde Stock, en cuanto hay datos, se selecciona la primera fila filtrada y se desplaza a ella. Los
   // refs evitan repetirlo si el efecto vuelve a correr.
   const [llegada] = useState(() => filtrosDesdeStock(new URLSearchParams(location.search)))
   const [llegadaTipo] = useState(() => tipoDesdeUrl(new URLSearchParams(location.search)))

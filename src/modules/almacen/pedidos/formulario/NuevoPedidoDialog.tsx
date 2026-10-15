@@ -298,7 +298,7 @@ export function NuevoPedidoDialog({ precarga, onCerrar }: Props) {
         ) : null}
         lineas={suyas}
         proveedores={proveedoresActivos}
-        vacio="Añade líneas o «Añadir previsión»."
+        vacio="Añade líneas, otros o «Añadir previsión»."
         seleccionada={seleccionada}
         desplazarA={desplazarA}
         onSeleccionar={seleccionar}
