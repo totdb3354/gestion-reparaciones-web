@@ -216,3 +216,11 @@ Diferencias deliberadas, decididas en la spec de las piezas de cada proveedor (r
 - Proveedores: clic derecho → «Piezas que vende…» (supertécnicos) abre «Piezas que vende · <proveedor>»: un renglón por tipo de pieza con su casilla y un desplegable de modelos («Todos los modelos» / «Seleccionados K de M»; los desmarcados quedan excluidos, los modelos nuevos entran solos); arranca rellenada con los tipos pedidos (spec 2026-10-12).
 - Stock gana la columna «Pendiente» (también en el CSV): lo apuntado en cualquier bloque y aún sin pedir.
 - «Pedir 60 d» descuenta lo pendiente.
+
+## 0.9.16 — El técnico sin Pedidos ni Proveedores (diferencia con el JavaFX)
+
+Diferencias deliberadas, decididas en la spec `2026-10-15-v0916-tecnico-sin-pedidos-design.md` (raíz):
+
+- La columna del técnico solo tiene «Stock actual»; Pedidos y Proveedores son de SUPERTECNICO y ADMIN (`rutas.test.tsx`, `navegacion.test.ts`, `SubNav.test.tsx`).
+- Para el técnico, «En Camino» es el número sin enlace a Pedidos (`columnas.test.tsx`, `StockPage.test.tsx`).
+- La barra «Pedido» del gráfico por SKU del técnico usa el «En Camino» de la fila; en el JavaFX y hasta la 0.9.15 iba a 0 (`StockPage.test.tsx`).

@@ -278,3 +278,7 @@ Diferencias deliberadas, decididas en la spec `2026-10-14-v0915-anadir-otro-desi
 - «+ Añadir otro» en «Nuevo pedido» y «Añadir otro…» en el menú del bloque; la línea de otro no entra en la previsión ni en «lo que falta» (`NuevoPedidoDialog.test.tsx`, `otros-en-bloques.spec.ts`).
 - Las acciones de bloque, separar, juntar y «Mover a bloque» valen para los otros (`dialogos.test.tsx`).
 - CSV con la columna «Tipo» tras «ID» (`columnas.test.tsx`, `PedidosPage.test.tsx`).
+
+## 0.9.16 — El técnico sin Pedidos (diferencia con el JavaFX)
+
+Diferencia deliberada, decidida en la spec `2026-10-15-v0916-tecnico-sin-pedidos-design.md` (raíz): el TECNICO ya no ve Pedidos, que en el JavaFX y hasta la 0.9.15 veía en solo lectura. Lo de arriba sobre «ADMIN y TECNICO sin "Nuevo…" ni menú» vale ahora solo para el ADMIN. Por URL, el técnico recibe el aviso de permisos y vuelve a Stock actual (`rutas.test.tsx`, `roles-stock.spec.ts`); el servidor le responde 403 (`RolesLecturasPedidosTest`).

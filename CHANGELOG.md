@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.16] - 2026-10-XX — El técnico sin Pedidos ni Proveedores
+
+- **Pedidos y Proveedores son del supertécnico y del administrador.** El técnico ya no los tiene en la columna: el grupo Stock le queda con «Stock actual». Si entra por la dirección, ve «No tienes permisos para realizar esta acción.» y vuelve a Stock actual. El administrador sigue viéndolos en solo lectura.
+- **Stock actual del técnico:** «En Camino» es el número, sin enlace a Pedidos, y la barra «Pedido» del gráfico de la pieza enseña lo que está en camino (antes marcaba 0).
+- Requiere el servidor 0.9.16: las lecturas de pedidos y proveedores (`GET /api/compras`, `/api/compras-otros` y `/api/proveedores`) dan 403 al técnico.
+
 ## [0.9.15] - 2026-10-15 — «Añadir otro»: los otros pedidos dentro del bloque de su proveedor
 
 - **Una sola lista en Pedidos.** Los otros pedidos (conceptos libres) van dentro del bloque de su proveedor, junto a las piezas. Cada línea lleva delante una píldora «pieza» u «otro» (las dos del mismo ancho), y el ID de un otro se ve como «O-88». Desaparecen el toggle «Componentes | Otros», la página «Otros» y «Nuevo otro pedido»; la dirección antigua simplemente abre Pedidos, y el buscador encuentra un otro por su concepto.
