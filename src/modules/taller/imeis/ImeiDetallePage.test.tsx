@@ -212,6 +212,12 @@ describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
     }),
   )
 
+  it('un solo día en stock se dice en singular', async () => {
+    server.use(http.get(`*/api/stock-telefonos/${A}`, () => HttpResponse.json(fichaMovil({ dias: 1 }))))
+    abrir()
+    expect(await screen.findByRole('region', { name: 'Ficha de NSYS' })).toHaveTextContent(/En stock 1 día(?!s)/)
+  })
+
   it('el supertécnico ve la ficha encima de los trabajos y abre el rastro en un panel lateral', async () => {
     const user = userEvent.setup()
     conNsys()
