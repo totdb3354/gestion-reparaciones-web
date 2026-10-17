@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.17] - 2026-10-XX — Stock de teléfonos y rastro
+
+- **Stock de teléfonos** (grupo nuevo «Teléfonos», solo supertécnico y administrador): los móviles que hay en la empresa según NSYS, por modelo y capacidad, con sus totales (listos, taller, revisión, de pedido y libres) y filtros de un clic por color, grado, batería, ubicación y estado. Busca cualquier IMEI, también los vendidos, y avisa de la hora de los datos de NSYS (en ámbar con retraso; banda roja si no llegan). Es de solo lectura.
+- **IMEIs** (supertécnico y administrador): el detalle lleva encima la ficha de NSYS y «Ver rastro», que abre en un panel lateral la línea de tiempo del teléfono (cajas, grados, venta y trabajos del taller). Un IMEI sin trabajos del taller también tiene detalle, y la lista avisa de los móviles de NSYS sin trabajos al filtrar por IMEI. El técnico ve IMEIs como hasta ahora.
+- El modelo que se rellena al escribir un IMEI sale del espejo de NSYS en vez de IMEIcheck. Si NSYS no conoce el IMEI, se escribe a mano, como cuando IMEIcheck fallaba.
+- Requiere el servidor 0.9.17 y la migración `migracion-nsys-espejo.sql`.
+
 ## [0.9.16] - 2026-10-15 — El técnico sin Pedidos ni Proveedores
 
 - **Pedidos y Proveedores son del supertécnico y del administrador.** El técnico ya no los tiene en la columna: el grupo Stock le queda con «Stock actual». Si entra por la dirección, ve «No tienes permisos para realizar esta acción.» y vuelve a Stock actual. El administrador sigue viéndolos en solo lectura.
