@@ -192,6 +192,8 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     const pildora = await screen.findByText('NSYS: comprobando…')
     expect(pildora).not.toHaveClass('bg-urgente-bg')
     expect(pildora).not.toHaveClass('text-fila-urgente-brd')
+    expect(pildora.querySelector('span')).not.toHaveClass('bg-verde-ok')
+    expect(pildora.querySelector('span')).toHaveClass('bg-gris-borde')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -201,6 +203,8 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     const pildora = await screen.findByText('NSYS: no se pudo comprobar')
     expect(pildora).not.toHaveClass('bg-urgente-bg')
     expect(pildora).not.toHaveClass('text-fila-urgente-brd')
+    expect(pildora.querySelector('span')).not.toHaveClass('bg-verde-ok')
+    expect(pildora.querySelector('span')).toHaveClass('bg-gris-borde')
     expect(screen.queryByText(/Todavía no ha llegado ningún dato/)).not.toBeInTheDocument()
   })
 

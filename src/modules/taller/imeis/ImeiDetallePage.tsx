@@ -28,8 +28,9 @@ import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 export function ImeiDetallePage() {
   const { imei = '' } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   // Desde el stock de teléfonos se vuelve a él (con su modelo y filtros); desde cualquier otro sitio, a la lista de IMEIs.
-  const volverA = (useLocation().state as { desde?: string } | null)?.desde === '/telefonos/stock' ? '/telefonos/stock' : '/reparaciones/imeis'
+  const volverA = (location.state as { desde?: string } | null)?.desde === '/telefonos/stock' ? '/telefonos/stock' : '/reparaciones/imeis'
   const { sesion } = useSession()
   const puedeEditar = esSuperTecnico(sesion)
   const trabajos = useTrabajos()
@@ -51,7 +52,7 @@ export function ImeiDetallePage() {
   const [peticionDesplazamiento, setPeticionDesplazamiento] = useState(0)
   const { acciones, dialogos } = useAccionesTrabajo({ tituloBorrar: TITULOS_BORRAR.trabajo, avisoReferencia: 'Este trabajo está siendo referenciado' })
   // El :imei de la URL, no el de la reparación: al cerrar se vuelve exactamente a este detalle.
-  const accionesMenu: AccionesHistorial = { ...acciones, editar: (rep) => void navigate(`/reparaciones/imeis/${imei}/editar/${rep.idRep}`) }
+  const accionesMenu: AccionesHistorial = { ...acciones, editar: (rep) => void navigate(`/reparaciones/imeis/${imei}/editar/${rep.idRep}`, { state: location.state }) }
   const columnas = useMemo(() => columnasTrabajo({
     conTipo: true,
     patronFechas: FMT,

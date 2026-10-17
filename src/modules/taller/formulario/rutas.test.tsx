@@ -193,6 +193,15 @@ describe('FormularioEditarRuta — cierre y "Salir sin guardar"', () => {
     await waitFor(() => expect(imei.router.state.location.pathname).toBe('/reparaciones/imeis/355400000000999'))
   })
 
+  it('al cerrar desde el detalle de un IMEI se conserva el state.desde (Volver al stock)', async () => {
+    const { router } = abrirRutaEditar('/reparaciones/imeis/355400000000999/editar/R20260916_5')
+    await screen.findByRole('dialog', { name: 'Editar reparación — R20260916_5' })
+    await act(() => router.navigate('/reparaciones/imeis/355400000000999/editar/R20260916_5', { replace: true, state: { desde: '/telefonos/stock' } }))
+    await cerrar()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reparaciones/imeis/355400000000999'))
+    expect(router.state.location.state).toEqual({ desde: '/telefonos/stock' })
+  })
+
   it('cerrar sin cambios cierra sin preguntar y restaura el title', async () => {
     const { router } = abrirRutaEditar()
     await screen.findByTestId('fila-bat')

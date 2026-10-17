@@ -19,7 +19,7 @@ export function PildoraNsys() {
   return (
     <span role="status" title={data?.motivoFallo ?? undefined}
       className={cn('ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES[nivel] ?? CLASES.OK)}>
-      <span aria-hidden className={cn('h-2 w-2 rounded-full', PUNTO[nivel] ?? PUNTO.OK)} />
+      <span aria-hidden className={cn('h-2 w-2 rounded-full', !data && (isPending || isError) ? 'bg-gris-borde' : (PUNTO[nivel] ?? PUNTO.OK))} />
       {texto}
     </span>
   )
