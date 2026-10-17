@@ -19,7 +19,7 @@ export function FichaMovil({ ficha, eventos, onVerRastro }: Props) {
         ? <span className={cn(CLASES_PILDORA, 'bg-azul-noche text-superficie')}>{venta ? `Vendido el ${venta}` : 'Vendido'}</span>
         : <span className={ficha.estado === 'DE_PEDIDO' ? 'font-bold text-fila-urgente-brd' : 'text-azul-gris'}>{textoEstadoMovil(ficha.estado)}</span>}
       <span>Lote <b className="text-azul-noche">{ficha.lote}</b></span>
-      {ficha.dias != null && <span>En stock <b className="text-azul-noche">{ficha.dias} días</b>{ficha.entradas > 1 && ` (${ficha.entradas} entradas)`}</span>}
+      {ficha.dias != null && <span>En stock <b className="text-azul-noche">{ficha.dias} {ficha.dias === 1 ? 'día' : 'días'}</b>{ficha.entradas > 1 && ` (${ficha.entradas} entradas)`}</span>}
       <button type="button" onClick={onVerRastro} disabled={eventos == null}
         className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-3xl border border-azul-noche bg-superficie px-3.5 py-1.5 text-[12px] font-bold text-azul-noche hover:bg-seleccion-suave disabled:cursor-default disabled:opacity-50">
         {eventos == null ? 'Ver rastro' : `Ver rastro (${eventos})`}

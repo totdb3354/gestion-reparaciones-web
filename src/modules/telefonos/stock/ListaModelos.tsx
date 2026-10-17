@@ -23,7 +23,7 @@ type Props = {
 /** La columna de la izquierda: modelo + capacidad con el total en stock y tres números (listos, taller y revisión) más los libres (opción C del prototipo, con los totales de la B). */
 export function ListaModelos({ grupos, elegido, texto, verNoCuenta, onTexto, onElegir }: Props) {
   return (
-    <nav aria-label="Modelos" className="max-h-[calc(100vh-260px)] overflow-auto rounded-md bg-superficie">
+    <nav aria-label="Modelos" className="max-h-[calc(100vh-300px)] overflow-auto rounded-md bg-superficie max-[1500px]:max-h-[calc(100vh-260px)]">
       <input aria-label="Buscar modelo" placeholder="Buscar modelo…" value={texto} onChange={(e) => onTexto(e.target.value)}
         className="m-2 h-[34px] w-[calc(100%-16px)] rounded border border-borde-input px-2.5 text-[12px]" />
       <div aria-hidden className="flex flex-wrap gap-1.5 border-b border-fila-sep px-3 pb-2">

@@ -51,6 +51,9 @@ test('navegación por grupos y columna lateral plegable', async ({ page }) => {
   await expect(page).toHaveURL(/\/reparaciones\/asignaciones$/)
   await expect(columna).toHaveCSS('width', '56px')
 
+  // El ratón sigue sobre el icono y su tooltip tapa el botón de desplegar: se aparta y se espera a que se cierre.
+  await page.mouse.move(700, 400)
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
   await page.getByRole('button', { name: 'Mostrar menú lateral' }).click()
   await expect(columna).toHaveCSS('width', '200px')
   await expect(columna.getByRole('link', { name: 'Historial', exact: true })).toHaveText('Historial')
