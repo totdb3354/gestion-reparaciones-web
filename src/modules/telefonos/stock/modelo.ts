@@ -1,4 +1,5 @@
 import type { MovilBuscado, MovilStock } from '@/shared/api/client'
+import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 import { diaNsys, nombreModeloNsys, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
 
 /** Reglas puras de «Stock de teléfonos» (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.2): grupos modelo + capacidad
@@ -23,7 +24,7 @@ export function grupoDe(m: MovilStock): string {
 
 export function valor(dim: Dimension, m: MovilStock): string {
   switch (dim) {
-    case 'color': return m.color ?? SIN_DATO
+    case 'color': return m.color || SIN_DATO
     case 'grado': return m.grado || SIN_DATO
     case 'bateria': return m.bateriaNueva ? BATERIA_NUEVA : BATERIA_ORIGINAL
     case 'ubicacion': return m.ubicacion ?? SIN_DATO
@@ -71,17 +72,45 @@ export function totales(moviles: MovilStock[]): Totales {
   return t
 }
 
-/** Grupos modelo + capacidad, del modelo más nuevo al más antiguo; los que no tienen modelo, al final. */
+/** Capacidad en GB («64GB» → 64, «1TB» → 1024); null si no se entiende. */
+export function capacidadGb(capacidad: string | null | undefined): number | null {
+  const r = /^\s*(\d+(?:[.,]\d+)?)\s*(GB|TB)\s*$/i.exec(capacidad ?? '')
+  if (!r) return null
+  return Number(r[1].replace(',', '.')) * (r[2].toUpperCase() === 'TB' ? 1024 : 1)
+}
+
+/** Rango del grupo: 0 con modelo del catálogo, 1 solo con modelo del maestro, 2 sin modelo. */
+function rango(m: MovilStock): number {
+  if (m.modelo) return 0
+  return m.modeloMaestro ? 1 : 2
+}
+
+/** Grupos modelo + capacidad en el orden de la tienda: modelos del catálogo del más nuevo al más antiguo, después los que
+ *  solo tienen modelo del maestro y al final los que no tienen modelo; dentro de un modelo, capacidad de menor a mayor. */
 export function agrupar(moviles: MovilStock[], verNoCuenta: boolean): Grupo[] {
   const mapa = new Map<string, MovilStock[]>()
   for (const m of moviles) {
     if (!verNoCuenta && !cuentaComoStock(m)) continue
     const clave = grupoDe(m)
-    mapa.set(clave, [...(mapa.get(clave) ?? []), m])
+    const lista = mapa.get(clave)
+    if (lista) lista.push(m)
+    else mapa.set(clave, [m])
   }
+  const indice = (m: MovilStock) => MODELOS_ORDENADOS.indexOf(m.modelo ?? '')
   return [...mapa.entries()]
     .map(([clave, lista]) => ({ clave, sinModelo: !lista[0].modelo && !lista[0].modeloMaestro, moviles: lista, totales: totales(lista) }))
-    .sort((a, b) => Number(a.sinModelo) - Number(b.sinModelo) || b.clave.localeCompare(a.clave, 'es', { numeric: true }))
+    .sort((a, b) => {
+      const ma = a.moviles[0]
+      const mb = b.moviles[0]
+      const porRango = rango(ma) - rango(mb)
+      if (porRango) return porRango
+      if (rango(ma) === 0 && indice(ma) !== indice(mb)) return indice(mb) - indice(ma)
+      if (rango(ma) === 1 && ma.modeloMaestro !== mb.modeloMaestro) return (mb.modeloMaestro ?? '').localeCompare(ma.modeloMaestro ?? '', 'es', { numeric: true })
+      const ga = capacidadGb(ma.capacidad)
+      const gb = capacidadGb(mb.capacidad)
+      if (ga !== gb) return ga === null ? 1 : gb === null ? -1 : ga - gb
+      return a.clave.localeCompare(b.clave, 'es', { numeric: true })
+    })
 }
 
 export function contarFiltros(f: Filtros): number {

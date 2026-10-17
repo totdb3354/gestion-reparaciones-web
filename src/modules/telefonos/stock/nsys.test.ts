@@ -6,7 +6,7 @@ import { minutosDesde, textoBanda, textoPildora } from './nsys'
 const AHORA = new Date('2026-10-16T11:43:00Z')
 
 describe('aviso de NSYS', () => {
-  it('minutos desde una hora de Madrid, sea cual sea la zona del navegador', () => {
+  it('minutos desde una hora de Madrid', () => {
     expect(minutosDesde('2026-10-16T13:31:00', AHORA)).toBe(12)
   })
 
@@ -18,6 +18,16 @@ describe('aviso de NSYS', () => {
       .toBe('NSYS: sin datos nuevos desde hace 5 h')
     expect(textoPildora(estadoNsys({ nivel: 'SIN_DATOS', ultimaExportacion: null }), AHORA)).toBe('NSYS: sin datos todavía')
     expect(textoPildora(estadoNsys({ ultimaExportacion: '2026-10-15T22:31:00' }), AHORA)).toBe('NSYS: exportación del 15/10 22:31')
+  })
+
+  it('una exportación en el futuro no da minutos negativos', () => {
+    expect(minutosDesde('2026-10-16T13:50:00', AHORA)).toBe(0)
+  })
+
+  it('pasada la medianoche de Madrid, la exportación de ayer no es «de hoy»', () => {
+    const despuesDeMedianoche = new Date('2026-10-15T22:10:00Z') // 16/10 00:10 en Madrid
+    expect(textoPildora(estadoNsys({ ultimaExportacion: '2026-10-15T23:50:00' }), despuesDeMedianoche))
+      .toBe('NSYS: exportación del 15/10 23:50')
   })
 
   it('la banda solo sale sin datos', () => {

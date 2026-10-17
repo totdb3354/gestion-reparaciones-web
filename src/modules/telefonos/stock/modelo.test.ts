@@ -24,6 +24,18 @@ describe('stock de teléfonos: grupos y totales', () => {
     expect(conTodo.totales).toEqual({ total: 3, libres: 2, dePedido: 1, listos: 1, taller: 1, revision: 1, noCuentan: 1 })
     expect(totales([D])).toEqual({ total: 0, libres: 0, dePedido: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
   })
+
+  it('orden de tienda: catálogo del más nuevo al más antiguo, capacidad en GB, luego solo maestro y sin modelo', () => {
+    const p = (modelo: string | null, capacidad: string | null, maestro: string | null = modelo) => movil({ modelo, modeloMaestro: maestro, capacidad })
+    const lista = [
+      p(null, null, null), p('xsmax', '64GB'), p(null, '128GB', '17e'), p('13promax', '1TB'), p('se2020', '64GB'),
+      p('16', '128GB'), p('13promax', '256GB'), p('16e', '128GB'), p('13promax', 'raro'), p('13promax', null),
+    ]
+    expect(agrupar(lista, false).map((g) => g.clave)).toEqual([
+      'iPhone 16e 128GB', 'iPhone 16 128GB', 'iPhone 13 Pro Max 256GB', 'iPhone 13 Pro Max 1TB', 'iPhone 13 Pro Max', 'iPhone 13 Pro Max raro',
+      'iPhone XS Max 64GB', 'iPhone SE 2020 64GB', 'iPhone 17e 128GB', 'Sin modelo en el maestro',
+    ])
+  })
 })
 
 describe('stock de teléfonos: filtros', () => {
