@@ -20,10 +20,13 @@ export function StockTelefonosPage() {
   const [verNoCuenta, setVerNoCuenta] = useState(false)
   const [textoModelo, setTextoModelo] = useState('')
   const [elegido, setElegido] = useState<string | null>(null)
-  const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
+  // Los filtros llevan la clave del modelo al que pertenecen: si el modelo efectivo cambia, valen como vacíos.
+  const [filtrosDe, setFiltrosDe] = useState<{ clave: string | null; filtros: Filtros }>({ clave: null, filtros: FILTROS_VACIOS })
   const grupos = useMemo(() => agrupar(moviles, verNoCuenta), [moviles, verNoCuenta])
   const visibles = grupos.filter((g) => g.clave.toLowerCase().includes(textoModelo.trim().toLowerCase()))
-  const grupo = grupos.find((g) => g.clave === elegido) ?? grupos[0] ?? null
+  const grupo = visibles.find((g) => g.clave === elegido) ?? visibles[0] ?? null
+  const filtros = filtrosDe.clave === (grupo?.clave ?? null) ? filtrosDe.filtros : FILTROS_VACIOS
+  const setFiltros = (f: Filtros) => setFiltrosDe({ clave: grupo?.clave ?? null, filtros: f })
   const filas = useMemo(() => (grupo ? ordenarTabla(grupo.moviles.filter((m) => pasa(m, filtros))) : []), [grupo, filtros])
   const enStock = moviles.filter(cuentaComoStock).length
   const abrir = useCallback((imeiSn: string) => navigate(`/reparaciones/imeis/${encodeURIComponent(imeiSn)}`), [navigate])
@@ -48,7 +51,7 @@ export function StockTelefonosPage() {
       </div>
       <div className="grid grid-cols-[280px_1fr] items-start gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos grupos={visibles} elegido={grupo?.clave ?? null} texto={textoModelo} verNoCuenta={verNoCuenta} onTexto={setTextoModelo}
-          onElegir={(clave) => { setElegido(clave); setFiltros(FILTROS_VACIOS) }} />
+          onElegir={setElegido} />
         <section aria-label="Móviles del modelo" className="min-w-0 rounded-md bg-superficie p-3">
           {grupo && (
             <>

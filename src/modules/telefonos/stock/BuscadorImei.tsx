@@ -15,8 +15,8 @@ export function BuscadorImei({ onElegir }: { onElegir: (imeiSn: string) => void 
     onElegir(imeiSn)
   }
   return (
-    <div className="relative">
-      <input type="search" aria-label="Buscar IMEI en todos los móviles" placeholder="Buscar IMEI en todos los móviles…" value={texto}
+    <div className="relative" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setAbierto(false) }}>
+      <input type="search" onFocus={() => setAbierto(true)} aria-label="Buscar IMEI en todos los móviles" placeholder="Buscar IMEI en todos los móviles…" value={texto}
         onChange={(e) => {
           setTexto(e.target.value.replace(/[^A-Za-z0-9]/g, ''))
           setAbierto(true)

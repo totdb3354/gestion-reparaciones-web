@@ -89,6 +89,52 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     expect(await screen.findByText('Detalle del IMEI')).toBeInTheDocument()
   })
 
+  it('el desplegable del buscador se cierra al salir y vuelve al enfocar', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([movilBuscado({ imeiSn: '353918700112233' })])))
+    abrir()
+    const caja = await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' })
+    await user.type(caja, '3539')
+    expect(await screen.findByRole('list', { name: 'Móviles encontrados' })).toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
+    expect(screen.queryByRole('list', { name: 'Móviles encontrados' })).not.toBeInTheDocument()
+    await user.click(caja)
+    expect(await screen.findByRole('list', { name: 'Móviles encontrados' })).toBeInTheDocument()
+  })
+
+  it('si la búsqueda de modelo oculta el elegido, el panel sigue al primero visible y sin filtros', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    await user.click(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul/ }))
+    expect(screen.getByRole('button', { name: 'Quitar filtros (1)' })).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: 'Buscar modelo' }), '14')
+    expect(screen.getByRole('heading', { level: 2, name: 'iPhone 14 128GB' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Quitar filtros/ })).not.toBeInTheDocument()
+    expect(filas()).toHaveLength(1)
+  })
+
+  it('si tras recargar el modelo elegido ya no existe, cae al primero sin filtros', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    await user.click(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul/ }))
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json([STOCK[4]])))
+    await queryClient.invalidateQueries()
+    expect(await screen.findByRole('heading', { level: 2, name: 'iPhone 14 128GB' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Quitar filtros/ })).not.toBeInTheDocument()
+    expect(filas()).toHaveLength(1)
+  })
+
+  it('volver a pulsar el modelo elegido no borra sus filtros', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    await user.click(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul/ }))
+    await user.click(screen.getByRole('button', { name: /^iPhone 13 128GB/ }))
+    expect(screen.getByRole('button', { name: 'Quitar filtros (1)' })).toBeInTheDocument()
+  })
+
   it('sin datos de NSYS sale la banda roja', async () => {
     server.use(http.get('*/api/stock-telefonos/estado', () => HttpResponse.json(estadoNsys({ nivel: 'SIN_DATOS', ultimaExportacion: null }))))
     abrir()
