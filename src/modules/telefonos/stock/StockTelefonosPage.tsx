@@ -62,9 +62,8 @@ export function StockTelefonosPage() {
               <FiltrosMoviles moviles={grupo.moviles} filtros={filtros} onCambiar={setFiltros} />
               <DataTable columns={columnas} data={filas} vacio="Ningún móvil con estos filtros" ajuste="fluido" alturaMax="calc(100vh - 390px)"
                 getRowId={(m) => `${m.imeiSn}|${m.lote}`} onAbrir={(m) => abrir(m.imeiSn)}
-                filaClase={(m) => cn('border-l-4', m.estado === 'DE_PEDIDO' ? 'border-l-fila-urgente-brd' : 'border-l-transparent',
-                  m.estado === 'NO_CUENTA' && 'text-texto-suave')} />
-              <p className="mt-2 text-[11.5px] text-azul-gris">El IMEI abre el detalle del móvil. El borde rojo marca los que están de pedido.</p>
+                filaClase={(m) => cn('border-l-4', 'border-l-transparent', !cuentaComoStock(m) && 'text-texto-suave')} />
+              <p className="mt-2 text-[11.5px] text-azul-gris">El IMEI abre el detalle del móvil. Con el interruptor también salen los que no cuentan como stock vendible (de pedido y otras cajas).</p>
             </>
           )}
           {!grupo && sinCargar && <p className="p-4 text-[12px] text-azul-gris">No se pudo cargar el stock de teléfonos.</p>}

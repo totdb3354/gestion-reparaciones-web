@@ -38,23 +38,25 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
   it('cabecera con el total en stock, la píldora de NSYS y los modelos con sus totales', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Stock de teléfonos' })).toBeInTheDocument()
-    expect(await screen.findByText('4 móviles en stock')).toBeInTheDocument()
+    expect(await screen.findByText('3 móviles en stock')).toBeInTheDocument()
     expect(screen.getByText(/^NSYS: /)).toHaveAttribute('role', 'status')
     const modelos = within(screen.getByRole('navigation', { name: 'Modelos' })).getAllByRole('button')
     expect(modelos.map((b) => b.textContent?.match(/^iPhone \d+ \d+GB/)?.[0])).toEqual(['iPhone 14 128GB', 'iPhone 13 128GB'])
     expect(modelos[1]).toHaveTextContent('2 libres')
+    expect(modelos[1]).not.toHaveTextContent('de pedido')
+    expect(within(screen.getByRole('navigation', { name: 'Modelos' })).queryByText('de pedido')).not.toBeInTheDocument()
   })
 
   it('al elegir un modelo salen sus móviles y los filtros de un clic se combinan', async () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
-    expect(filas()).toHaveLength(3)
-    expect(filas()[0]).toHaveTextContent('350000000000002')
-    expect(filas()[0]).toHaveClass('border-l-fila-urgente-brd')
+    expect(filas()).toHaveLength(2)
+    expect(filas()[0]).toHaveTextContent('350000000000001')
+    for (const f of filas()) expect(f).not.toHaveClass('border-l-fila-urgente-brd')
 
     await user.click(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul/ }))
-    expect(filas()).toHaveLength(2)
+    expect(filas()).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Ubicación' }))
     await user.click(screen.getByRole('checkbox', { name: 'Listos (1)' }))
     expect(filas()).toHaveLength(1)
@@ -62,7 +64,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
 
     await user.keyboard('{Escape}')
     await user.click(screen.getByRole('button', { name: 'Quitar filtros (2)' }))
-    expect(filas()).toHaveLength(3)
+    expect(filas()).toHaveLength(2)
   })
 
   it('el interruptor enseña lo que no cuenta como stock, en gris y fuera de los totales', async () => {
@@ -71,9 +73,25 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
     await user.click(screen.getByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
     expect(filas()).toHaveLength(4)
-    expect(screen.getByText('NO CUENTA')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^iPhone 13 128GB/ })).toHaveTextContent('1 no cuentan')
-    expect(screen.getByText('4 móviles en stock')).toBeInTheDocument()
+    expect(screen.getAllByText('NO CUENTA')).toHaveLength(2)
+    expect(screen.getByRole('button', { name: /^iPhone 13 128GB/ })).toHaveTextContent('2 no cuentan')
+    expect(screen.getByRole('button', { name: /^iPhone 13 128GB/ })).toHaveTextContent('2 libres')
+    expect(screen.getByText('3 móviles en stock')).toBeInTheDocument()
+  })
+
+  it('lo de pedido se oculta sin el interruptor y con él sale en gris, con NO CUENTA y sin borde rojo', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    expect(screen.queryByText('350000000000002')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
+    const fila = filas().find((f) => f.textContent?.includes('350000000000002'))!
+    expect(fila).toHaveTextContent('De pedido')
+    expect(fila).toHaveTextContent('NO CUENTA')
+    expect(fila).toHaveClass('text-texto-suave')
+    expect(fila).not.toHaveClass('border-l-fila-urgente-brd')
+    expect(within(fila).getByText('De pedido')).not.toHaveClass('text-fila-urgente-brd')
+    expect(screen.queryByText(/borde rojo/)).not.toBeInTheDocument()
   })
 
   it('el IMEI de una fila abre su detalle', async () => {
