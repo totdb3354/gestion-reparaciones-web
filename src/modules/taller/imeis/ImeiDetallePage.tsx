@@ -18,6 +18,9 @@ import { esAjeno, filasDetalle, textoTrabajos } from './agrupacion'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
 import { FMT } from './constantes'
 import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
+import { useFichaMovil, useRastro } from './apiNsys'
+import { FichaMovil } from './FichaMovil'
+import { PanelRastro } from './PanelRastro'
 import { useTrabajos } from './useTrabajos'
 
 /** Detalle de un IMEI: calco de AgrupadoController en modo DETALLE (título "Agrupado por IMEI" sin contador, filtros, barra
@@ -28,6 +31,12 @@ export function ImeiDetallePage() {
   const { sesion } = useSession()
   const puedeEditar = esSuperTecnico(sesion)
   const trabajos = useTrabajos()
+  // 0.9.17: la ficha de NSYS y el rastro, solo para SUPERTECNICO y ADMIN; el TECNICO ve el detalle como hoy.
+  const veNsys = esAdminOSuperTecnico(sesion)
+  const ficha = useFichaMovil(imei, veNsys)
+  const rastro = useRastro(imei, veNsys && !!ficha.data)
+  const [rastroAbierto, setRastroAbierto] = useState(false)
+  const sinTrabajos = !trabajos.some((t) => t.imei === imei)
   const [filtros] = useStore(filtrosImeis)
   // El maestro lo reselecciona al volver (también con el botón atrás del navegador).
   useEffect(() => { ultimoImeiVisto.set(imei) }, [imei])
@@ -54,6 +63,7 @@ export function ImeiDetallePage() {
     <div className="p-10">
       {/* El título de AgrupadoView.fxml es fijo (sin fx:id): se queda en el detalle; lblContador se oculta. */}
       <h1 className="mb-2 text-2xl font-bold text-azul-medio">Agrupado por IMEI</h1>
+      {veNsys && ficha.data && <FichaMovil ficha={ficha.data} eventos={rastro.data?.length ?? null} onVerRastro={() => setRastroAbierto(true)} />}
       <BarraFiltrosImeis modo="detalle" />
       {/* crearBarraNavegacion la inserta justo antes de la tabla, debajo de los filtros: HBox(12) con padding 6 0 6 0. */}
       <div className="flex items-center gap-3 py-1.5">
@@ -66,7 +76,7 @@ export function ImeiDetallePage() {
       <DataTable
         columns={columnas}
         data={detalle.filas}
-        vacio=""
+        vacio={sinTrabajos ? 'Este móvil no ha pasado por el taller' : ''}
         ajuste="estirar"
         // tabla.setFixedCellSize(44), la misma tabla que el maestro
         altoFila={44}
@@ -77,6 +87,10 @@ export function ImeiDetallePage() {
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent', esAjeno(r, filtros) && 'opacity-45')}
         menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} puedeCorregirCliente={esAdminOSuperTecnico(sesion)} acciones={accionesMenu} />}
       />
+      {rastroAbierto && rastro.data && (
+        <PanelRastro imei={imei} eventos={rastro.data} onCerrar={() => setRastroAbierto(false)}
+          onIrATrabajo={(idRep) => { setSeleccionada(idRep); setPeticionDesplazamiento((n) => n + 1) }} />
+      )}
       {dialogos}
       <Outlet />
     </div>

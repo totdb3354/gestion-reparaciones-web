@@ -5,11 +5,11 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 // eslint-disable-next-line no-restricted-imports -- solo "Descargar CSV" necesita el AppLayout real (TopBar/UserMenu); ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
-import { renderConProviders, renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import * as csv from '@/shared/lib/csv'
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
 import { handlersNotificaciones } from '../notificaciones/test/handlers'
-import { resumen, tecnico } from '../test/fabrica'
+import { eventoRastro, fichaMovil, resumen, tecnico } from '../test/fabrica'
 import { ImeiDetallePage } from './ImeiDetallePage'
 
 const A = '351900000000041'
@@ -195,5 +195,65 @@ describe('ImeiDetallePage (ficha docs/paridad/imeis.md, detalle)', () => {
     expect(filasCsv[1]).toEqual(['Glass', 'G20260912_1', `="${A}"`, 'AMAZON', 'tecnico_i', '12/09/2026 12:00', '12/09/2026 13:00', 'glassi16', 'Sí', '', 'No', 'No', ''])
     expect(filasCsv[2]).toEqual(['Pulido', 'P20260913_1', `="${A}"`, 'AMAZON', 'tecnico_i', '13/09/2026 12:00', '13/09/2026 13:00', '', 'No', '', 'No', 'No', ''])
     descargar.mockRestore()
+  })
+})
+
+describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
+  const conNsys = (pedidas: string[] = []) => server.use(
+    http.get(`*/api/stock-telefonos/${A}`, () => { pedidas.push('ficha'); return HttpResponse.json(fichaMovil()) }),
+    http.get(`*/api/stock-telefonos/${A}/rastro`, () => {
+      pedidas.push('rastro')
+      return HttpResponse.json([
+        eventoRastro(),
+        eventoRastro({ fecha: '2026-09-12T12:00:00', fuente: 'ERP', tipo: 'TRABAJO_TERMINADO', lote: null, de: null, a: null, aNsys: null,
+          idRep: 'G20260912_1', tecnico: 'tecnico_i', categoria: 'GLASS' }),
+      ])
+    }),
+  )
+
+  it('el supertécnico ve la ficha encima de los trabajos y abre el rastro en un panel lateral', async () => {
+    const user = userEvent.setup()
+    conNsys()
+    abrir()
+    const ficha = await screen.findByRole('region', { name: 'Ficha de NSYS' })
+    expect(ficha).toHaveTextContent('iPhone 16 128GB Negro')
+    expect(ficha).toHaveTextContent('Grado A (antes C) · batería nueva')
+    await user.click(await screen.findByRole('button', { name: 'Ver rastro (2)' }))
+    const panel = screen.getByRole('dialog', { name: 'Rastro' })
+    expect(within(panel).getByText('Pasa a Listos')).toBeInTheDocument()
+    expect(screen.getByText('IMEI: ' + A)).toBeInTheDocument()
+
+    await user.click(within(panel).getByRole('button', { name: 'Glass terminado' }))
+    expect(screen.getByRole('row', { name: /^Glass G20260912_1 / })).toHaveAttribute('aria-selected', 'true')
+
+    await user.click(within(panel).getByRole('button', { name: 'Cerrar el rastro' }))
+    expect(screen.queryByRole('dialog', { name: 'Rastro' })).not.toBeInTheDocument()
+  })
+
+  it('el admin también la ve', async () => {
+    conNsys()
+    abrir(SESION_ADMIN)
+    expect(await screen.findByRole('region', { name: 'Ficha de NSYS' })).toBeInTheDocument()
+  })
+
+  it('el técnico ve el detalle como hoy: no pide la ficha ni el rastro', async () => {
+    const pedidas: string[] = []
+    conNsys(pedidas)
+    abrir(SESION_TEC)
+    expect(await screen.findByText('• 3 trabajos')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Ficha de NSYS' })).not.toBeInTheDocument()
+    expect(pedidas).toEqual([])
+  })
+
+  it('si NSYS no conoce el IMEI no hay ficha ni aviso de error', async () => {
+    abrir()
+    expect(await screen.findByText('• 3 trabajos')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Ficha de NSYS' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
+  })
+
+  it('un IMEI sin trabajos del taller: la tabla lo dice', async () => {
+    renderConProviders(<ImeiDetallePage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis/350000000009999', patron: '/reparaciones/imeis/:imei' })
+    expect(await screen.findByText('Este móvil no ha pasado por el taller')).toBeInTheDocument()
   })
 })
