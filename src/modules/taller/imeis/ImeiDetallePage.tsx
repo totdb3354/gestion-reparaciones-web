@@ -21,7 +21,7 @@ import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
 import { useFichaMovil, useRastro } from './apiNsys'
 import { FichaMovil } from './FichaMovil'
 import { PanelRastro } from './PanelRastro'
-import { useTrabajos } from './useTrabajos'
+import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 
 /** Detalle de un IMEI: calco de AgrupadoController en modo DETALLE (título "Agrupado por IMEI" sin contador, filtros, barra
  *  "← Volver · IMEI · modelo · N trabajos" justo encima de la tabla y tabla de trabajos con Tipo). */
@@ -36,7 +36,8 @@ export function ImeiDetallePage() {
   const ficha = useFichaMovil(imei, veNsys)
   const rastro = useRastro(imei, veNsys && !!ficha.data)
   const [rastroAbierto, setRastroAbierto] = useState(false)
-  const sinTrabajos = !trabajos.some((t) => t.imei === imei)
+  const cargados = useTrabajosCargados()
+  const sinTrabajos = cargados && !trabajos.some((t) => t.imei === imei)
   const [filtros] = useStore(filtrosImeis)
   // El maestro lo reselecciona al volver (también con el botón atrás del navegador).
   useEffect(() => { ultimoImeiVisto.set(imei) }, [imei])

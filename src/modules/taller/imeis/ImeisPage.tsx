@@ -30,7 +30,7 @@ import { agruparVisibles, opcionesCliente } from './agrupacion'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
 import { FMT } from './constantes'
 import { CABECERAS_RESUMEN, filaResumen } from './csvImeis'
-import { useTrabajos } from './useTrabajos'
+import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 
 const SIN_CLIENTE_CLAVE = ''
 
@@ -60,7 +60,8 @@ export function ImeisPage() {
   const veNsys = esAdminOSuperTecnico(sesion)
   const { data: enNsys = [] } = useBuscarMoviles(filtros.imei.split(',')[0] ?? '', veNsys)
   // Contra todos los trabajos, no contra los grupos visibles: un IMEI con trabajos fuera de las fechas del filtro no es «sin trabajos».
-  const sinTrabajos = enNsys.filter((m) => !trabajos.some((t) => t.imei === m.imeiSn))
+  const cargados = useTrabajosCargados()
+  const sinTrabajos = !cargados ? [] : enNsys.filter((m) => !trabajos.some((t) => t.imei === m.imeiSn))
   // Al volver del detalle, el maestro reselecciona ese IMEI (y DataTable desplaza hasta él); el aviso se consume una vez.
   const [seleccionada, setSeleccionada] = useState<string | null>(() => ultimoImeiVisto.get())
   useEffect(() => { ultimoImeiVisto.reset() }, [])

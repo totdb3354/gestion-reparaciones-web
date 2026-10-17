@@ -340,3 +340,18 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
     expect(pedidas).toBe(0)
   })
 })
+
+describe('ImeisPage: el aviso de móviles sin trabajos espera al historial (0.9.17)', () => {
+  it('si el historial falla no se afirma que un móvil no tiene trabajos', async () => {
+    server.use(
+      http.get('*/api/reparaciones/historial', () => new HttpResponse(null, { status: 500 })),
+      http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+        { imeiSn: '353918700112233', modelo: '11', modeloMaestro: '11', capacidad: '64GB', color: 'Negro', estado: 'VENDIDO', ubicacion: null, fechaVenta: '2023-05-02' },
+      ])),
+    )
+    filtrosImeis.set({ ...filtrosImeis.get(), imei: '35391870' })
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()
+  })
+})

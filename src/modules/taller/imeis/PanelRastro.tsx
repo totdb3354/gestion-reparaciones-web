@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { EventoRastro } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { hayAntesDelHistorico, NOTA_ANTES_DEL_HISTORICO, verEvento } from './rastro'
@@ -13,11 +13,19 @@ type Props = { imei: string; eventos: EventoRastro[]; onCerrar: () => void; onIr
 /** El rastro del teléfono en un panel lateral sobre la vista de trabajos (0.9.17, spec §9.3; opción A del prototipo):
  *  línea de tiempo del más reciente al más antiguo. Un evento de taller resalta su fila en la tabla de detrás. */
 export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo }: Props) {
+  // onCerrar en una ref: el listener se registra una sola vez aunque el padre pase una función nueva en cada render.
+  const cerrar = useRef(onCerrar)
+  useEffect(() => { cerrar.current = onCerrar })
   useEffect(() => {
-    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') onCerrar() }
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      // Otro diálogo abierto (error, confirmación...) o un menú gestionan antes su Escape: no se cierra el rastro a la vez.
+      if (document.querySelector('[role="dialog"]:not([aria-label="Rastro"]), [role="alertdialog"], [role="menu"]')) return
+      cerrar.current()
+    }
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
-  }, [onCerrar])
+  }, [])
   return (
     <aside role="dialog" aria-label="Rastro" className="fixed inset-y-0 right-0 z-40 flex w-[min(500px,42vw)] min-w-[380px] flex-col bg-superficie shadow-[-6px_0_24px_rgba(0,18,50,0.25)]">
       <header className="flex items-center gap-2.5 border-b border-fila-sep px-[18px] py-3.5">

@@ -257,3 +257,28 @@ describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
     expect(await screen.findByText('Este móvil no ha pasado por el taller')).toBeInTheDocument()
   })
 })
+
+describe('ImeiDetallePage: sin trabajos solo con el historial cargado (0.9.17)', () => {
+  it('mientras carga el historial no dice que el móvil no ha pasado por el taller', async () => {
+    let soltar!: () => void
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(http.get('*/api/reparaciones/historial', async () => { await espera; return HttpResponse.json(reps) }))
+    abrir()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByText('Este móvil no ha pasado por el taller')).not.toBeInTheDocument()
+    soltar()
+    expect(await screen.findByText('• 3 trabajos')).toBeInTheDocument()
+    expect(screen.queryByText('Este móvil no ha pasado por el taller')).not.toBeInTheDocument()
+  })
+
+  it('si el historial falla tampoco lo dice', async () => {
+    server.use(
+      http.get('*/api/reparaciones/historial', () => new HttpResponse(null, { status: 500 })),
+      http.get('*/api/glass/historial', () => new HttpResponse(null, { status: 500 })),
+      http.get('*/api/pulidos/historial', () => new HttpResponse(null, { status: 500 })),
+    )
+    abrir()
+    await new Promise((r) => setTimeout(r, 300))
+    expect(screen.queryByText('Este móvil no ha pasado por el taller')).not.toBeInTheDocument()
+  })
+})
