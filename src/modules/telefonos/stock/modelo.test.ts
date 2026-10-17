@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { movil, movilBuscado } from '../test/fabrica'
 import {
-  agrupar, BATERIA_NUEVA, contarFiltros, FILTROS_VACIOS, grupoDe, muestraColor, opciones, ordenarTabla, pasa, textoBuscado, totales, valor,
+  agrupar, BATERIA_NUEVA, contarFiltros, cuentaComoStock, FILTROS_VACIOS, grupoDe, muestraColor, opciones, ordenarTabla, pasa, textoBuscado, totales, valor,
 } from './modelo'
 
 const A = movil({ imeiSn: '350000000000001', color: 'Azul', grado: 'A', ubicacion: 'Listos' })
@@ -18,11 +18,20 @@ describe('stock de teléfonos: grupos y totales', () => {
   })
 
   it('lo que no cuenta como stock solo sale con el interruptor y nunca suma en los totales', () => {
-    expect(agrupar([A, B, C, D], false)[0].moviles).toHaveLength(3)
+    expect(agrupar([A, B, C, D], false)[0].moviles).toHaveLength(2)
     const conTodo = agrupar([A, B, C, D], true)[0]
     expect(conTodo.moviles).toHaveLength(4)
-    expect(conTodo.totales).toEqual({ total: 3, libres: 2, dePedido: 1, listos: 1, taller: 1, revision: 1, noCuentan: 1 })
-    expect(totales([D])).toEqual({ total: 0, libres: 0, dePedido: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
+    expect(conTodo.totales).toEqual({ total: 2, libres: 2, listos: 1, taller: 0, revision: 1, noCuentan: 2 })
+    expect(totales([D])).toEqual({ total: 0, libres: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
+    expect(totales([B])).toEqual({ total: 0, libres: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
+  })
+
+  it('lo que esta de pedido no cuenta como stock vendible, como el Excel', () => {
+    expect(cuentaComoStock(B)).toBe(false)
+    expect(cuentaComoStock(D)).toBe(false)
+    expect(cuentaComoStock(A)).toBe(true)
+    expect(agrupar([B], false)).toEqual([])
+    expect(agrupar([B], true)[0].moviles).toEqual([B])
   })
 
   it('orden de tienda: catálogo del más nuevo al más antiguo, capacidad en GB, luego solo maestro y sin modelo', () => {
@@ -58,8 +67,9 @@ describe('stock de teléfonos: filtros', () => {
     expect(contarFiltros(f)).toBe(2)
   })
 
-  it('la tabla pone primero los de pedido y después por color y antigüedad', () => {
-    expect(ordenarTabla([C, A, B]).map((m) => m.imeiSn)).toEqual(['350000000000002', '350000000000001', '350000000000003'])
+  it('la tabla ordena por color y antigüedad; los de pedido no van primero', () => {
+    const V = movil({ imeiSn: '350000000000007', color: 'Verde', estado: 'DE_PEDIDO', dias: 900 })
+    expect(ordenarTabla([V, C, A, B]).map((m) => m.imeiSn)).toEqual(['350000000000002', '350000000000001', '350000000000003', '350000000000007'])
   })
 
   it('texto de un móvil encontrado por el buscador', () => {

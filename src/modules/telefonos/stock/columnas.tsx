@@ -41,14 +41,14 @@ export function columnasMoviles(abrir: (imeiSn: string) => void): ColumnDef<Movi
       cell: ({ row }) => (
         <>
           <span className={cn(CLASES_PILDORA, clasesUbicacion(row.original.ubicacion))}>{row.original.ubicacion ?? '—'}</span>
-          {row.original.estado === 'NO_CUENTA' && <span className="ml-1 text-[10px] font-extrabold text-azul-gris">NO CUENTA</span>}
+          {(row.original.estado === 'NO_CUENTA' || row.original.estado === 'DE_PEDIDO') && <span className="ml-1 text-[10px] font-extrabold text-azul-gris">NO CUENTA</span>}
         </>
       ),
     },
     {
       id: 'estado', header: 'Estado', size: 110,
       cell: ({ row }) => row.original.estado === 'DE_PEDIDO'
-        ? <span className="font-bold text-fila-urgente-brd">De pedido</span>
+        ? <span className="text-azul-gris">De pedido</span>
         : <span className="text-azul-gris">{textoEstadoMovil(row.original.estado)}</span>,
     },
     { id: 'dias', header: 'Días', size: 55, maxSize: 60, accessorFn: (m) => m.dias ?? '' },

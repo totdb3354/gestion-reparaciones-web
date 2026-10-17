@@ -8,7 +8,7 @@ import { diaNsys, nombreModeloNsys, textoEstadoMovil } from '@/shared/lib/telefo
 export type Dimension = 'color' | 'grado' | 'bateria' | 'ubicacion' | 'estado'
 export type Filtros = Record<Dimension, ReadonlySet<string>>
 export type Opcion = { valor: string; cuenta: number }
-export type Totales = { total: number; libres: number; dePedido: number; listos: number; taller: number; revision: number; noCuentan: number }
+export type Totales = { total: number; libres: number; listos: number; taller: number; revision: number; noCuentan: number }
 export type Grupo = { clave: string; sinModelo: boolean; moviles: MovilStock[]; totales: Totales }
 
 export const FILTROS_VACIOS: Filtros = { color: new Set(), grado: new Set(), bateria: new Set(), ubicacion: new Set(), estado: new Set() }
@@ -32,7 +32,8 @@ export function valor(dim: Dimension, m: MovilStock): string {
   }
 }
 
-export const cuentaComoStock = (m: MovilStock): boolean => m.estado !== 'NO_CUENTA'
+/** Solo el stock vendible cuenta: lo que está de pedido (vendido y sin liberar en NSYS) y las cajas que no cuentan, no. */
+export const cuentaComoStock = (m: MovilStock): boolean => m.estado === 'STOCK'
 
 /** ¿Pasa los filtros? `salvo`: una dimensión que no se aplica (para contar las opciones de esa misma dimensión). */
 export function pasa(m: MovilStock, f: Filtros, salvo?: Dimension): boolean {
@@ -55,15 +56,14 @@ export function opciones(moviles: MovilStock[], dim: Dimension, f: Filtros): Opc
 
 /** Totales de un grupo: solo cuentan los que cuentan como stock; los demás van aparte en `noCuentan`. */
 export function totales(moviles: MovilStock[]): Totales {
-  const t: Totales = { total: 0, libres: 0, dePedido: 0, listos: 0, taller: 0, revision: 0, noCuentan: 0 }
+  const t: Totales = { total: 0, libres: 0, listos: 0, taller: 0, revision: 0, noCuentan: 0 }
   for (const m of moviles) {
     if (!cuentaComoStock(m)) {
       t.noCuentan++
       continue
     }
     t.total++
-    if (m.estado === 'DE_PEDIDO') t.dePedido++
-    else t.libres++
+    t.libres++
     const u = m.ubicacion ?? ''
     if (u === 'Listos') t.listos++
     else if (u.startsWith('Taller')) t.taller++
@@ -117,10 +117,9 @@ export function contarFiltros(f: Filtros): number {
   return Object.values(f).reduce((n, s) => n + s.size, 0)
 }
 
-/** Orden de la tabla: primero los de pedido (son los urgentes), después por color y los que llevan más días arriba. */
+/** Orden de la tabla: por color y los que llevan más días arriba. */
 export function ordenarTabla(moviles: MovilStock[]): MovilStock[] {
-  return [...moviles].sort((a, b) => Number(b.estado === 'DE_PEDIDO') - Number(a.estado === 'DE_PEDIDO')
-    || (a.color ?? '').localeCompare(b.color ?? '', 'es') || (b.dias ?? 0) - (a.dias ?? 0))
+  return [...moviles].sort((a, b) => (a.color ?? '').localeCompare(b.color ?? '', 'es') || (b.dias ?? 0) - (a.dias ?? 0))
 }
 
 /** Lo que se dice de un móvil encontrado por el buscador de IMEI. */
