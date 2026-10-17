@@ -12,13 +12,15 @@ const PUNTO: Record<string, string> = { OK: 'bg-verde-ok', RETRASO: 'bg-ambar', 
 /** Píldora de la cabecera con la hora de la última exportación de NSYS (spec §5.7). El motivo del último fallo, al
  *  pasar el ratón. */
 export function PildoraNsys() {
-  const { data, isPending } = useEstadoNsys()
-  const nivel = data?.nivel ?? 'SIN_DATOS'
+  const { data, isPending, isError } = useEstadoNsys()
+  // Sin datos todavía (cargando) o sin poder preguntar (error): neutra, sin rojo ni un motivo que no sabemos.
+  const nivel = data ? data.nivel : isPending || isError ? 'OK' : 'SIN_DATOS'
+  const texto = data ? textoPildora(data) : isError ? 'NSYS: no se pudo comprobar' : isPending ? 'NSYS: comprobando…' : textoPildora(data)
   return (
     <span role="status" title={data?.motivoFallo ?? undefined}
       className={cn('ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES[nivel] ?? CLASES.OK)}>
       <span aria-hidden className={cn('h-2 w-2 rounded-full', PUNTO[nivel] ?? PUNTO.OK)} />
-      {isPending ? 'NSYS: comprobando…' : textoPildora(data)}
+      {texto}
     </span>
   )
 }

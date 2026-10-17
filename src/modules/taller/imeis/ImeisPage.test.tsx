@@ -308,7 +308,7 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
     ])))
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis',
       rutas: <Route path="/reparaciones/imeis/:imei" element={<p>Detalle del IMEI</p>} /> })
-    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '35391870')
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '353918700112233')
     // Por su texto: la capa de carga también usa role="status".
     const aviso = await screen.findByText(/También hay 1 móvil sin trabajos del taller con ese IMEI/)
     expect(aviso).toHaveAttribute('role', 'status')
@@ -324,9 +324,19 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
     ])))
     filtrosImeis.set({ ...filtrosImeis.get(), desde: '2030-01-01' })
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
-    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), A.slice(0, 8))
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), A)
     await new Promise((r) => setTimeout(r, 50))
     expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()
+  })
+
+  it('con un IMEI a medias no se pregunta a NSYS', async () => {
+    const user = userEvent.setup()
+    let pedidas = 0
+    server.use(http.get('*/api/stock-telefonos/buscar', () => { pedidas++; return HttpResponse.json([]) }))
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '3539187001122')
+    await new Promise((r) => setTimeout(r, 100))
+    expect(pedidas).toBe(0)
   })
 
   it('el técnico no busca en NSYS', async () => {
@@ -334,7 +344,7 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
     let pedidas = 0
     server.use(http.get('*/api/stock-telefonos/buscar', () => { pedidas++; return HttpResponse.json([]) }))
     renderConProviders(<ImeisPage />, { sesion: SESION_TEC, ruta: '/reparaciones/imeis' })
-    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '35391870')
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '353918700112233')
     // Margen para que una petición, si la hubiera, llegase a MSW.
     await new Promise((r) => setTimeout(r, 50))
     expect(pedidas).toBe(0)
@@ -349,7 +359,7 @@ describe('ImeisPage: el aviso de móviles sin trabajos espera al historial (0.9.
         { imeiSn: '353918700112233', modelo: '11', modeloMaestro: '11', capacidad: '64GB', color: 'Negro', estado: 'VENDIDO', ubicacion: null, fechaVenta: '2023-05-02' },
       ])),
     )
-    filtrosImeis.set({ ...filtrosImeis.get(), imei: '35391870' })
+    filtrosImeis.set({ ...filtrosImeis.get(), imei: '353918700112233' })
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
     await new Promise((r) => setTimeout(r, 300))
     expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()

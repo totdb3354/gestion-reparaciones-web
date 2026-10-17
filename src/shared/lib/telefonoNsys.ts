@@ -38,3 +38,11 @@ export function textoEstadoMovil(estado: string): string {
 export function diaNsys(iso: string): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
 }
+
+/** Grado de NSYS para leer: el «100» del final es la batería nueva (como `Normalizacion` del servidor), así que «A100» se
+ *  lee «A · batería nueva». Sin grado, una raya. */
+export function textoGrado(raw: string | null | undefined): string {
+  if (!raw) return '—'
+  if (raw.endsWith('100')) return `${raw.slice(0, -3) || '—'} · batería nueva`
+  return raw
+}

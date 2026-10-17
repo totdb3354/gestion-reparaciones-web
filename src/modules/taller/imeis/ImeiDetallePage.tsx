@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Outlet, useNavigate, useParams } from 'react-router'
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router'
 import { descargarCsv } from '@/shared/lib/csv'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
@@ -28,6 +28,8 @@ import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 export function ImeiDetallePage() {
   const { imei = '' } = useParams()
   const navigate = useNavigate()
+  // Desde el stock de teléfonos se vuelve a él (con su modelo y filtros); desde cualquier otro sitio, a la lista de IMEIs.
+  const volverA = (useLocation().state as { desde?: string } | null)?.desde === '/telefonos/stock' ? '/telefonos/stock' : '/reparaciones/imeis'
   const { sesion } = useSession()
   const puedeEditar = esSuperTecnico(sesion)
   const trabajos = useTrabajos()
@@ -68,7 +70,7 @@ export function ImeiDetallePage() {
       <BarraFiltrosImeis modo="detalle" />
       {/* crearBarraNavegacion la inserta justo antes de la tabla, debajo de los filtros: HBox(12) con padding 6 0 6 0. */}
       <div className="flex items-center gap-3 py-1.5">
-        <BotonSecundario onClick={() => navigate('/reparaciones/imeis')}>← Volver</BotonSecundario>
+        <BotonSecundario onClick={() => navigate(volverA)}>← Volver</BotonSecundario>
         <span aria-hidden="true" className="h-6 w-px bg-fila-sep" />
         <span className="text-[13px] font-bold text-azul-medio">IMEI: {imei}</span>
         {modelo && <span className="text-[12px] text-azul-gris">• {modelo}</span>}
@@ -77,7 +79,7 @@ export function ImeiDetallePage() {
       <DataTable
         columns={columnas}
         data={detalle.filas}
-        vacio={sinTrabajos ? 'Este móvil no ha pasado por el taller' : ''}
+        vacio={veNsys && sinTrabajos ? 'Este móvil no ha pasado por el taller' : ''}
         ajuste="estirar"
         // tabla.setFixedCellSize(44), la misma tabla que el maestro
         altoFila={44}

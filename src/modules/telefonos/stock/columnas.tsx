@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import type { MovilStock } from '@/shared/api/client'
-import { clasesUbicacion, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
+import { clasesUbicacion, textoEstadoMovil, textoGrado } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { muestraColor } from './modelo'
@@ -29,7 +29,7 @@ export function columnasMoviles(abrir: (imeiSn: string) => void): ColumnDef<Movi
       id: 'grado', header: 'Grado', size: 70, maxSize: 80,
       cell: ({ row }) => (
         <span className={cn(CLASES_PILDORA, row.original.grado === 'n/a' ? 'bg-fila-solicitud-bg text-fila-solicitud-brd' : 'bg-badge-neutro-bg text-azul-medio')}>
-          {row.original.grado}
+          {textoGrado(row.original.grado)}
         </span>
       ),
     },

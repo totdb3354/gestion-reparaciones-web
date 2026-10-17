@@ -7,7 +7,7 @@ import { crearQueryClient } from '@/shared/api/queryClient'
 import { guardarSesion, type Sesion } from '@/shared/session/storage'
 import { AlertaProvider } from '@/shared/ui/AlertaProvider'
 
-type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; layout?: ReactElement; patron?: string; queryClient?: QueryClient }
+type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; layout?: ReactElement; patron?: string; queryClient?: QueryClient; estado?: unknown }
 
 /** Render con el QueryClient de producción (única diferencia: sin reintentos), SessionProvider y MemoryRouter.
  *  `rutas` permite añadir <Route>s auxiliares. `layout` monta `ui` como ruta hija de ese elemento (mismo patrón
@@ -19,7 +19,7 @@ type Opciones = { sesion?: Sesion | null; ruta?: string; rutas?: ReactElement; l
  *  la recarga de una consulta (lo que en producción hacen el sondeo o el foco de la ventana). `queryClient` (opcional)
  *  permite pasar uno ya creado y precargado (`setQueryData` antes del render) para reproducir la caché "caliente" con
  *  la que se abre un formulario desde una vista que ya pidió los mismos datos (p. ej. el foco inicial de C25). */
-export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas, layout, patron, queryClient }: Opciones = {}) {
+export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/', rutas, layout, patron, queryClient, estado }: Opciones = {}) {
   if (sesion) guardarSesion(sesion)
   const qc = queryClient ?? crearQueryClient({ retry: false })
   const rutaUi = layout ? (
@@ -33,7 +33,7 @@ export function renderConProviders(ui: ReactElement, { sesion = null, ruta = '/'
     <QueryClientProvider client={qc}>
       <SessionProvider>
         <AlertaProvider>
-          <MemoryRouter initialEntries={[ruta]}>
+          <MemoryRouter initialEntries={[estado === undefined ? ruta : { pathname: ruta, state: estado }]}>
             <Routes>
               {rutaUi}
               {rutas}

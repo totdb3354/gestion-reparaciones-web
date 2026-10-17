@@ -1,5 +1,5 @@
 import type { EventoRastro } from '@/shared/api/client'
-import { diaNsys } from '@/shared/lib/telefonoNsys'
+import { diaNsys, textoGrado } from '@/shared/lib/telefonoNsys'
 
 /** Textos y colores del rastro (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.3). El servidor manda el evento
  *  estructurado y aquí se compone lo que se lee. Las horas son de Madrid, sin zona: se cortan del texto sin convertir. */
@@ -34,7 +34,7 @@ export function verEvento(e: EventoRastro): EventoVisible {
       if (e.aNsys === 'Pedidos realizados') return { fecha, titulo: 'De pedido (vendido, pendiente de envío)', detalle: desde, color: 'bg-fila-urgente-brd' }
       return { fecha, titulo: `Pasa a ${e.aNsys || 'sin caja'} · sale del stock`, detalle: desde, color: 'bg-gris-borde' }
     case 'GRADO':
-      return { fecha, titulo: `Se le pone el grado ${e.a ?? '—'}`, detalle: e.de ? `Antes: ${e.de}` : null, color: 'bg-ambar' }
+      return { fecha, titulo: `Se le pone el grado ${textoGrado(e.a)}`, detalle: e.de ? `Antes: ${textoGrado(e.de)}` : null, color: 'bg-ambar' }
     case 'PRODUCTO':
       return { fecha, titulo: 'Cambia el producto en NSYS', detalle: `${e.de ?? '—'} → ${e.a ?? '—'}`, color: 'bg-ambar' }
     case 'ESTADO':

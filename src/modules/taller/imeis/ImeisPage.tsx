@@ -5,6 +5,7 @@ import { esErrorGestionadoGlobalmente, mensajeDeError, MSG_TELEFONO_MODIFICADO, 
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
+import { imeisValidos } from '@/shared/lib/filtroImei'
 import { diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
@@ -58,7 +59,9 @@ export function ImeisPage() {
   const clientes = useMemo(() => opcionesCliente(trabajos), [trabajos])
   // 0.9.17: al filtrar por un IMEI, el supertécnico y el admin ven también los móviles de NSYS sin trabajos del taller.
   const veNsys = esAdminOSuperTecnico(sesion)
-  const { data: enNsys = [] } = useBuscarMoviles(filtros.imei.split(',')[0] ?? '', veNsys)
+  // Solo con un IMEI completo (15 dígitos, el primero escrito): con uno a medias saldría una lista de móviles sin relación.
+  const imeiCompleto = [...imeisValidos(filtros.imei)][0] ?? ''
+  const { data: enNsys = [] } = useBuscarMoviles(imeiCompleto, veNsys && imeiCompleto !== '')
   // Contra todos los trabajos, no contra los grupos visibles: un IMEI con trabajos fuera de las fechas del filtro no es «sin trabajos».
   const cargados = useTrabajosCargados()
   const sinTrabajos = !cargados ? [] : enNsys.filter((m) => !trabajos.some((t) => t.imei === m.imeiSn))

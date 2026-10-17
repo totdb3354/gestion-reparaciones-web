@@ -29,7 +29,7 @@ export function FiltrosMoviles({ moviles, filtros, onCambiar }: Props) {
             const marcado = filtros[dim].has(o.valor)
             const apagado = o.cuenta === 0 && !marcado
             return (
-              <button key={o.valor} type="button" aria-pressed={marcado} disabled={apagado} onClick={() => alternar(dim, o.valor)}
+              <button key={o.valor} type="button" aria-label={`${o.valor} ${o.cuenta}`} aria-pressed={marcado} disabled={apagado} onClick={() => alternar(dim, o.valor)}
                 className={cn('inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-[12px] font-bold',
                   marcado ? 'border-azul-noche bg-azul-noche text-superficie' : 'border-pill-borde bg-pill-bg text-azul-gris',
                   apagado && 'cursor-default opacity-35')}>

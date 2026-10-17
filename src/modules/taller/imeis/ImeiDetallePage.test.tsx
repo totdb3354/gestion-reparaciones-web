@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
+import { Route } from 'react-router'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -255,6 +256,44 @@ describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
   it('un IMEI sin trabajos del taller: la tabla lo dice', async () => {
     renderConProviders(<ImeiDetallePage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis/350000000009999', patron: '/reparaciones/imeis/:imei' })
     expect(await screen.findByText('Este móvil no ha pasado por el taller')).toBeInTheDocument()
+  })
+
+  it('el técnico no ve el texto de «no ha pasado por el taller»: su tabla vacía sigue vacía como hoy', async () => {
+    renderConProviders(<ImeiDetallePage />, { sesion: SESION_TEC, ruta: '/reparaciones/imeis/350000000009999', patron: '/reparaciones/imeis/:imei' })
+    expect(await screen.findByText('IMEI: 350000000009999')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('• 0 trabajos')).toBeInTheDocument())
+    expect(screen.queryByText('Este móvil no ha pasado por el taller')).not.toBeInTheDocument()
+  })
+
+  it('un cambio solo de batería no dice «(antes A)»', async () => {
+    server.use(http.get(`*/api/stock-telefonos/${A}`, () => HttpResponse.json(fichaMovil({ grado: 'A', gradoAnterior: 'A', bateriaNueva: true }))))
+    abrir()
+    const ficha = await screen.findByRole('region', { name: 'Ficha de NSYS' })
+    expect(ficha).toHaveTextContent('Grado A · batería nueva')
+    expect(ficha).not.toHaveTextContent('antes')
+  })
+
+  it('un grado vacío se ve como raya', async () => {
+    server.use(http.get(`*/api/stock-telefonos/${A}`, () => HttpResponse.json(fichaMovil({ grado: '', gradoAnterior: null, bateriaNueva: false }))))
+    abrir()
+    expect(await screen.findByRole('region', { name: 'Ficha de NSYS' })).toHaveTextContent(/Grado\s*—/)
+  })
+
+  it('«← Volver» va al stock de teléfonos si se llegó desde él, y a la lista de IMEIs si no', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderConProviders(<ImeiDetallePage />, {
+      sesion: SESION_SUPER, ruta: `/reparaciones/imeis/${A}`, patron: '/reparaciones/imeis/:imei', estado: { desde: '/telefonos/stock' },
+      rutas: <><Route path="/telefonos/stock" element={<p>Pantalla del stock</p>} /><Route path="/reparaciones/imeis" element={<p>Lista de IMEIs</p>} /></>,
+    })
+    await user.click(await screen.findByRole('button', { name: '← Volver' }))
+    expect(await screen.findByText('Pantalla del stock')).toBeInTheDocument()
+    unmount()
+    renderConProviders(<ImeiDetallePage />, {
+      sesion: SESION_SUPER, ruta: `/reparaciones/imeis/${A}`, patron: '/reparaciones/imeis/:imei',
+      rutas: <><Route path="/telefonos/stock" element={<p>Pantalla del stock</p>} /><Route path="/reparaciones/imeis" element={<p>Lista de IMEIs</p>} /></>,
+    })
+    await user.click(await screen.findByRole('button', { name: '← Volver' }))
+    expect(await screen.findByText('Lista de IMEIs')).toBeInTheDocument()
   })
 })
 

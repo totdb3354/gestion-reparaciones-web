@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { Route } from 'react-router'
+import { Route, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
@@ -23,9 +23,14 @@ beforeEach(() => {
   )
 })
 
+function DetalleFalso() {
+  const desde = (useLocation().state as { desde?: string } | null)?.desde
+  return <p>Detalle del IMEI{desde ? ` desde ${desde}` : ''}</p>
+}
+
 const abrir = () => renderConProviders(<StockTelefonosPage />, {
   sesion: SESION_SUPER, ruta: '/telefonos/stock',
-  rutas: <Route path="/reparaciones/imeis/:imei" element={<p>Detalle del IMEI</p>} />,
+  rutas: <Route path="/reparaciones/imeis/:imei" element={<DetalleFalso />} />,
 })
 const filas = () => screen.getAllByRole('row').slice(1)
 
@@ -75,7 +80,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await screen.findByRole('button', { name: 'Abrir 350000000000005' }))
-    expect(await screen.findByText('Detalle del IMEI')).toBeInTheDocument()
+    expect(await screen.findByText(/^Detalle del IMEI/)).toBeInTheDocument()
   })
 
   it('el buscador encuentra cualquier IMEI y abre su detalle', async () => {
@@ -86,7 +91,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     abrir()
     await user.type(await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' }), '3539')
     await user.click(await screen.findByRole('button', { name: /353918700112233 · iPhone 11 64GB Negro · Vendido el 02\/05\/2023/ }))
-    expect(await screen.findByText('Detalle del IMEI')).toBeInTheDocument()
+    expect(await screen.findByText(/^Detalle del IMEI/)).toBeInTheDocument()
   })
 
   it('el desplegable del buscador se cierra al salir y vuelve al enfocar', async () => {
@@ -139,5 +144,86 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     server.use(http.get('*/api/stock-telefonos/estado', () => HttpResponse.json(estadoNsys({ nivel: 'SIN_DATOS', ultimaExportacion: null }))))
     abrir()
     expect(await screen.findByRole('alert')).toHaveTextContent('Todavía no ha llegado ningún dato de NSYS.')
+  })
+
+  it('el IMEI de una fila abre el detalle diciendo que viene del stock', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: 'Abrir 350000000000005' }))
+    expect(await screen.findByText('Detalle del IMEI desde /telefonos/stock')).toBeInTheDocument()
+  })
+
+  it('la fila y el buscador también abren el detalle diciendo que vienen del stock', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([movilBuscado({ imeiSn: '353918700112233' })])))
+    const { unmount } = abrir()
+    await user.click((await within(await screen.findByRole('navigation', { name: 'Modelos' })).findAllByRole('button'))[0])
+    await user.dblClick(filas()[0])
+    expect(await screen.findByText('Detalle del IMEI desde /telefonos/stock')).toBeInTheDocument()
+    unmount()
+    abrir()
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' }), '3539')
+    await user.click(await screen.findByRole('button', { name: /353918700112233/ }))
+    expect(await screen.findByText('Detalle del IMEI desde /telefonos/stock')).toBeInTheDocument()
+  })
+
+  it('al volver de un móvil siguen el modelo, el filtro, el interruptor y la búsqueda de modelo', async () => {
+    const user = userEvent.setup()
+    const primera = abrir()
+    await user.click(await screen.findByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    await user.click(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul/ }))
+    await user.type(screen.getByRole('textbox', { name: 'Buscar modelo' }), 'iPhone 1')
+    await user.click(screen.getAllByRole('button', { name: /^Abrir / })[0])
+    expect(await screen.findByText(/^Detalle del IMEI/)).toBeInTheDocument()
+    primera.unmount()
+
+    abrir()
+    expect(await screen.findByRole('heading', { level: 2, name: 'iPhone 13 128GB' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar filtros (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Ver también lo que no cuenta como stock' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('textbox', { name: 'Buscar modelo' })).toHaveValue('iPhone 1')
+    expect(filas()).toHaveLength(3)
+  })
+
+  it('mientras NSYS no contesta la píldora es neutra, no roja', async () => {
+    server.use(http.get('*/api/stock-telefonos/estado', async () => { await new Promise(() => {}) }))
+    abrir()
+    const pildora = await screen.findByText('NSYS: comprobando…')
+    expect(pildora).not.toHaveClass('bg-urgente-bg')
+    expect(pildora).not.toHaveClass('text-fila-urgente-brd')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('si falla la consulta del estado la píldora lo dice sin banda roja', async () => {
+    server.use(http.get('*/api/stock-telefonos/estado', () => new HttpResponse(null, { status: 500 })))
+    abrir()
+    const pildora = await screen.findByText('NSYS: no se pudo comprobar')
+    expect(pildora).not.toHaveClass('bg-urgente-bg')
+    expect(pildora).not.toHaveClass('text-fila-urgente-brd')
+    expect(screen.queryByText(/Todavía no ha llegado ningún dato/)).not.toBeInTheDocument()
+  })
+
+  it('si la primera carga del stock falla no dice que hay 0 móviles', async () => {
+    server.use(http.get('*/api/stock-telefonos', () => new HttpResponse(null, { status: 500 })))
+    abrir()
+    expect(await screen.findByText('No se pudo cargar el stock de teléfonos.')).toBeInTheDocument()
+    expect(screen.queryByText('No hay móviles en stock.')).not.toBeInTheDocument()
+    expect(screen.queryByText(/móviles? en stock$/)).not.toBeInTheDocument()
+  })
+
+  it('un grado vacío se ve como raya en la tabla', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json([movil({ imeiSn: '350000000000009', grado: '' })])))
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    expect(within(filas()[0]).getAllByRole('cell')[2]).toHaveTextContent('—')
+  })
+
+  it('los chips de color y grado se leen con un espacio entre el nombre y el número', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    expect(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul \d+$/ })).toBeInTheDocument()
   })
 })

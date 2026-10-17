@@ -12,7 +12,7 @@ export function FichaMovil({ ficha, eventos, onVerRastro }: Props) {
     <section aria-label="Ficha de NSYS" className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg bg-superficie px-4 py-3 text-[12.5px] text-azul-medio">
       <span className="font-mono text-[17px] font-extrabold text-azul-noche">{ficha.imeiSn}</span>
       <span>{[nombreModeloNsys(ficha.modelo, ficha.modeloMaestro), ficha.capacidad, ficha.color].filter(Boolean).join(' ')}</span>
-      <span>Grado <b className="text-azul-noche">{ficha.grado}</b>{ficha.gradoAnterior && ` (antes ${ficha.gradoAnterior})`}{ficha.bateriaNueva && ' · batería nueva'}</span>
+      <span>Grado <b className="text-azul-noche">{ficha.grado || '—'}</b>{ficha.gradoAnterior && ficha.gradoAnterior !== ficha.grado && ` (antes ${ficha.gradoAnterior})`}{ficha.bateriaNueva && ' · batería nueva'}</span>
       {ficha.sku && <span>SKU <b className="font-mono text-azul-noche">{ficha.sku}</b></span>}
       {ficha.ubicacion && <span className={cn(CLASES_PILDORA, clasesUbicacion(ficha.ubicacion))}>{ficha.ubicacion}</span>}
       {ficha.estado === 'VENDIDO'
