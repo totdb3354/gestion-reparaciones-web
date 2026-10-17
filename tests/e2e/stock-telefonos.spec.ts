@@ -71,6 +71,9 @@ for (const [rol, varUsuario, varClave] of [['supertécnico', 'E2E_USER', 'E2E_PA
     const panel = page.getByRole('dialog', { name: 'Rastro' })
     await expect(panel).toBeVisible()
     await expect(panel.getByRole('listitem').first()).toBeVisible()
+    // El detalle sigue cargando los historiales del taller: mientras se ve la capa de carga, la app bloquea las teclas a
+    // propósito (CapaCarga). Se espera a que se quite antes de pulsar Escape.
+    await expect(page.getByTestId('capa-carga')).toHaveCount(0, { timeout: 30_000 })
     await page.keyboard.press('Escape')
     await expect(panel).toHaveCount(0)
   })
