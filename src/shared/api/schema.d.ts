@@ -1700,6 +1700,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["stock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/{imeiSn}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ficha"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/{imeiSn}/rastro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rastro"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["estado"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/buscar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["buscar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/solicitudes": {
         parameters: {
             query?: never;
@@ -3250,6 +3330,75 @@ export interface components {
             activo: boolean;
             esEstadistica: boolean;
             esGlass: boolean;
+        };
+        StockTelefonosMovilStock: {
+            imeiSn: string;
+            lote: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            color: string | null;
+            grado: string;
+            bateriaNueva: boolean;
+            esEsim: boolean;
+            sku: string | null;
+            ubicacion: string | null;
+            estado: string;
+            /** Format: int32 */
+            dias: number | null;
+        };
+        StockTelefonosFichaMovil: {
+            imeiSn: string;
+            lote: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            color: string | null;
+            grado: string;
+            bateriaNueva: boolean;
+            gradoAnterior: string | null;
+            sku: string | null;
+            ubicacion: string | null;
+            estado: string;
+            /** Format: int32 */
+            dias: number | null;
+            /** Format: int32 */
+            entradas: number;
+            /** Format: date */
+            fechaVenta: string | null;
+        };
+        EventoRastro: {
+            /** Format: date-time */
+            fecha: string;
+            soloDia: boolean;
+            fuente: string;
+            tipo: string;
+            lote: string | null;
+            de: string | null;
+            a: string | null;
+            aNsys: string | null;
+            idRep: string | null;
+            tecnico: string | null;
+            categoria: string | null;
+        };
+        StockTelefonosEstadoImportacion: {
+            /** Format: date-time */
+            ultimaExportacion: string | null;
+            nivel: string;
+            /** Format: date-time */
+            ultimoFallo: string | null;
+            motivoFallo: string | null;
+        };
+        StockTelefonosMovilBuscado: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            color: string | null;
+            estado: string;
+            ubicacion: string | null;
+            /** Format: date */
+            fechaVenta: string | null;
         };
         SolicitudResumen: {
             /** Format: int32 */
@@ -6851,6 +7000,112 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Tecnico"][];
+                };
+            };
+        };
+    };
+    stock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosMovilStock"][];
+                };
+            };
+        };
+    };
+    ficha: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imeiSn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosFichaMovil"];
+                };
+            };
+        };
+    };
+    rastro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imeiSn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EventoRastro"][];
+                };
+            };
+        };
+    };
+    estado: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosEstadoImportacion"];
+                };
+            };
+        };
+    };
+    buscar: {
+        parameters: {
+            query: {
+                imei: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosMovilBuscado"][];
                 };
             };
         };

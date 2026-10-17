@@ -68,6 +68,15 @@ export type RespuestaPrediccion = components['schemas']['PrediccionGlassRespuest
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
+/** Stock de teléfonos y rastro (0.9.17, pieza 1 del módulo de teléfonos): espejo de solo lectura de NSYS. `estado` del
+ *  móvil: STOCK, DE_PEDIDO, NO_CUENTA, VENDIDO o BAJA; `nivel` del aviso: OK, RETRASO o SIN_DATOS; fechas en hora de
+ *  Madrid, sin zona. */
+export type MovilStock = components['schemas']['StockTelefonosMovilStock']
+export type EstadoNsys = components['schemas']['StockTelefonosEstadoImportacion']
+export type MovilBuscado = components['schemas']['StockTelefonosMovilBuscado']
+export type FichaMovil = components['schemas']['StockTelefonosFichaMovil']
+export type EventoRastro = components['schemas']['EventoRastro']
+
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''
 export const TIMEOUT_MS = 15_000
 
