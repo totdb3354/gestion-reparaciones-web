@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { FormularioReparacion } from './FormularioReparacion'
 
 /** Ruta hija de Pendientes (`reparar/:idAsignacion`): el formulario se pinta sobre la lista, que sigue montada debajo. Cerrar
@@ -23,6 +23,8 @@ const LISTA_DE_ORIGEN = { historial: '/reparaciones/historial', 'historial-glass
 export function FormularioEditarRuta({ origen }: { origen: 'historial' | 'historial-glass' | 'imei' }) {
   const { idRep = '', imei = '' } = useParams()
   const navigate = useNavigate()
+  // El state (p. ej. desde: el stock de teléfonos) viaja de ida y vuelta para que «← Volver» del detalle siga igual.
+  const { state } = useLocation()
   const lista = origen === 'imei' ? `/reparaciones/imeis/${imei}` : LISTA_DE_ORIGEN[origen]
-  return <FormularioReparacion key={idRep} modo="editar" idRep={idRep} onCerrar={() => navigate(lista, { replace: true })} />
+  return <FormularioReparacion key={idRep} modo="editar" idRep={idRep} onCerrar={() => navigate(lista, { replace: true, state })} />
 }

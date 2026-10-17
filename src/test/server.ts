@@ -21,4 +21,10 @@ export const server = setupServer(
   // 0.9.15: los bloques llevan piezas y otros, así que «Nuevo pedido», los editores y Pedidos leen también los otros.
   http.get('*/api/compras-otros', () => HttpResponse.json([])),
   http.post('*/api/auth/evaluar-password', () => HttpResponse.json({ nota: 4, aceptable: true, mensaje: null })),
+  // 0.9.17: el detalle de IMEIs del supertécnico y del admin pide la ficha de NSYS (y su rastro) y la lista busca en el
+  // espejo al filtrar por IMEI. Por defecto NSYS no conoce el IMEI (404, la ficha no sale) y la búsqueda no encuentra nada.
+  // «buscar» va antes que «:imeiSn» porque el patrón también lo cubriría.
+  http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([])),
+  http.get('*/api/stock-telefonos/:imeiSn/rastro', () => HttpResponse.json([])),
+  http.get('*/api/stock-telefonos/:imeiSn', () => HttpResponse.json({ message: 'NSYS no conoce el IMEI' }, { status: 404 })),
 )

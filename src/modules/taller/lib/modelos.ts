@@ -1,21 +1,8 @@
 import type { Componente } from '@/shared/api/client'
 
-// traducirModelo vive en shared (lo usa también el diálogo de Proveedores de almacén): se reexporta para taller.
-export { traducirModelo } from '@/shared/lib/modelos'
-
-/** Catálogo de modelos en orden de tienda Apple (calco de FormularioReparacionController.MODELOS_ORDENADOS). Está
- *  también en el servidor (CatalogoPiezas.MODELOS_ORDENADOS, 0.9.9): un modelo nuevo se añade en los DOS sitios. */
-export const MODELOS_ORDENADOS: readonly string[] = [
-  '6s', '6splus', '7', '7plus', '8', '8plus', 'se2020',
-  'x', 'xr', 'xs', 'xsmax',
-  '11', '11pro', '11promax',
-  '12', '12mini', '12pro', '12promax',
-  '13', '13mini', '13pro', '13promax',
-  '14', '14plus', '14pro', '14promax',
-  '15', '15plus', '15pro', '15promax',
-  '16', '16e', '16plus', '16pro', '16promax',
-  '17', 'air', '17pro', '17promax',
-]
+// traducirModelo y MODELOS_ORDENADOS viven en shared (los usan también almacén y telefonos): se reexportan para taller.
+import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
+export { MODELOS_ORDENADOS, traducirModelo } from '@/shared/lib/modelos'
 
 /** Código de modelo de un SKU (calco de extraerModelo): en minúsculas, sin el prefijo del tipo y, si lo que queda empieza por
  *  "i", sin esa "i"; de los códigos de MODELOS_ORDENADOS que sean prefijo del resto gana el MÁS LARGO

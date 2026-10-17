@@ -13,3 +13,17 @@ export function traducirModelo(codigo: string | null | undefined): string {
   const variante = codigo.replace(/[0-9]/g, '')
   return `iPhone ${num}${SUFIJOS[variante] ?? ''}`
 }
+
+/** Catálogo de modelos en orden de tienda Apple (calco de FormularioReparacionController.MODELOS_ORDENADOS). Está
+ *  también en el servidor (CatalogoPiezas.MODELOS_ORDENADOS, 0.9.9): un modelo nuevo se añade en los DOS sitios. */
+export const MODELOS_ORDENADOS: readonly string[] = [
+  '6s', '6splus', '7', '7plus', '8', '8plus', 'se2020',
+  'x', 'xr', 'xs', 'xsmax',
+  '11', '11pro', '11promax',
+  '12', '12mini', '12pro', '12promax',
+  '13', '13mini', '13pro', '13promax',
+  '14', '14plus', '14pro', '14promax',
+  '15', '15plus', '15pro', '15promax',
+  '16', '16e', '16plus', '16pro', '16promax',
+  '17', 'air', '17pro', '17promax',
+]

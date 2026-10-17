@@ -17,9 +17,10 @@ describe('grupos de la columna lateral (0.9.14)', () => {
 
   it('supertécnico: Asignaciones y Pendientes en Reparaciones, Stock con Pedidos y Proveedores, sin Gestión', () => {
     const grupos = gruposNav(SESION_SUPER)
-    expect(grupos.map((g) => g.id)).toEqual(['reparaciones', 'stock', 'estadisticas', 'clientes'])
+    expect(grupos.map((g) => g.id)).toEqual(['reparaciones', 'stock', 'telefonos', 'estadisticas', 'clientes'])
     expect(grupos[0].enlaces.map((e) => e.label)).toEqual(['Asignaciones', 'Pendientes', 'Historial', 'IMEIs'])
     expect(grupos[1].enlaces.map((e) => e.label)).toEqual(['Stock actual', 'Pedidos', 'Proveedores'])
+    expect(grupos[2].enlaces.map((e) => [e.label, e.to])).toEqual([['Stock de teléfonos', '/telefonos/stock']])
   })
 
   it('admin: Gestión al final con Técnicos y Logs', () => {

@@ -59,3 +59,15 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{imeis-
 - El CSV propone el nombre `<base>_yyyy-MM-dd_HH-mm.csv`: "Guardar como" en Chrome y Edge, descarga del navegador en el resto (ficha `shell.md`, web 0.8.5).
 - El resaltado al copiar una celda es un cambio de fondo breve, sin animación.
 - "Editar observación" y "Editar cliente" solo se ofrecen cuando el teléfono tiene fila (`telefonoUpdatedAt`); el servidor exige esa fecha para guardar, y en el JavaFX guardar fallaba.
+
+## 0.9.17 — Ficha de NSYS y rastro (sin equivalente en el JavaFX)
+
+Añadido, decidido en la spec `2026-10-16-pieza1-stock-telefonos-design.md` (raíz). Para SUPERTECNICO y ADMIN:
+
+- el detalle lleva la ficha de NSYS y el panel del rastro;
+- admite IMEIs sin trabajos («Este móvil no ha pasado por el taller»);
+- la lista avisa de los móviles de NSYS sin trabajos.
+
+Pruebas: `ImeiDetallePage.test.tsx`, `ImeisPage.test.tsx` y `stock-telefonos.spec.ts`.
+
+La vista de trabajos, sus filtros, el menú de fila y el CSV no cambian. El TECNICO ve lo mismo que antes.

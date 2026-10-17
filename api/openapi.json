@@ -3719,6 +3719,129 @@
         }
       }
     },
+    "/api/stock-telefonos" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "stock",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StockTelefonosMovilStock"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/{imeiSn}" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "ficha",
+        "parameters" : [ {
+          "name" : "imeiSn",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StockTelefonosFichaMovil"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/{imeiSn}/rastro" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "rastro",
+        "parameters" : [ {
+          "name" : "imeiSn",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventoRastro"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/estado" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "estado",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StockTelefonosEstadoImportacion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/buscar" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "buscar",
+        "parameters" : [ {
+          "name" : "imei",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StockTelefonosMovilBuscado"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/solicitudes" : {
       "get" : {
         "tags" : [ "solicitud-controller" ],
@@ -7291,6 +7414,229 @@
           },
           "esGlass" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "StockTelefonosMovilStock" : {
+        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "esEsim", "estado", "grado", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "ubicacion" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "lote" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string"
+          },
+          "bateriaNueva" : {
+            "type" : "boolean"
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ubicacion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "dias" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          }
+        }
+      },
+      "StockTelefonosFichaMovil" : {
+        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "ubicacion" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "lote" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string"
+          },
+          "bateriaNueva" : {
+            "type" : "boolean"
+          },
+          "gradoAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ubicacion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "dias" : {
+            "type" : "integer",
+            "format" : "int32",
+            "nullable" : true
+          },
+          "entradas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fechaVenta" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
+          }
+        }
+      },
+      "EventoRastro" : {
+        "required" : [ "a", "aNsys", "categoria", "de", "fecha", "fuente", "idRep", "lote", "soloDia", "tecnico", "tipo" ],
+        "type" : "object",
+        "properties" : {
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "soloDia" : {
+            "type" : "boolean"
+          },
+          "fuente" : {
+            "type" : "string"
+          },
+          "tipo" : {
+            "type" : "string"
+          },
+          "lote" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "de" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "a" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "aNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idRep" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "tecnico" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "categoria" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "StockTelefonosEstadoImportacion" : {
+        "required" : [ "motivoFallo", "nivel", "ultimaExportacion", "ultimoFallo" ],
+        "type" : "object",
+        "properties" : {
+          "ultimaExportacion" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "nivel" : {
+            "type" : "string"
+          },
+          "ultimoFallo" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "motivoFallo" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "StockTelefonosMovilBuscado" : {
+        "required" : [ "capacidad", "color", "estado", "fechaVenta", "imeiSn", "modelo", "modeloMaestro", "ubicacion" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "ubicacion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fechaVenta" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
           }
         }
       },

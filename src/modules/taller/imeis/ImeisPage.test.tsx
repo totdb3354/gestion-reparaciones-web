@@ -299,3 +299,69 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     descargar.mockRestore()
   })
 })
+
+describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
+  it('el supertécnico que filtra por un IMEI ve también los móviles de NSYS sin trabajos y abre su detalle', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+      { imeiSn: '353918700112233', modelo: '11', modeloMaestro: '11', capacidad: '64GB', color: 'Negro', estado: 'VENDIDO', ubicacion: null, fechaVenta: '2023-05-02' },
+    ])))
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis',
+      rutas: <Route path="/reparaciones/imeis/:imei" element={<p>Detalle del IMEI</p>} /> })
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '353918700112233')
+    // Por su texto: la capa de carga también usa role="status".
+    const aviso = await screen.findByText(/También hay 1 móvil sin trabajos del taller con ese IMEI/)
+    expect(aviso).toHaveAttribute('role', 'status')
+    expect(aviso).toHaveTextContent('iPhone 11, vendido el 02/05/2023')
+    await user.click(within(aviso).getByRole('button', { name: '353918700112233' }))
+    expect(await screen.findByText('Detalle del IMEI')).toBeInTheDocument()
+  })
+
+  it('un IMEI con trabajos no sale en el aviso aunque los filtros de fecha lo escondan', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+      { imeiSn: A, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', estado: 'STOCK', ubicacion: 'Listos', fechaVenta: null },
+    ])))
+    filtrosImeis.set({ ...filtrosImeis.get(), desde: '2030-01-01' })
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), A)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()
+  })
+
+  it('con un IMEI a medias no se pregunta a NSYS', async () => {
+    const user = userEvent.setup()
+    let pedidas = 0
+    server.use(http.get('*/api/stock-telefonos/buscar', () => { pedidas++; return HttpResponse.json([]) }))
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '3539187001122')
+    await new Promise((r) => setTimeout(r, 100))
+    expect(pedidas).toBe(0)
+  })
+
+  it('el técnico no busca en NSYS', async () => {
+    const user = userEvent.setup()
+    let pedidas = 0
+    server.use(http.get('*/api/stock-telefonos/buscar', () => { pedidas++; return HttpResponse.json([]) }))
+    renderConProviders(<ImeisPage />, { sesion: SESION_TEC, ruta: '/reparaciones/imeis' })
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '353918700112233')
+    // Margen para que una petición, si la hubiera, llegase a MSW.
+    await new Promise((r) => setTimeout(r, 50))
+    expect(pedidas).toBe(0)
+  })
+})
+
+describe('ImeisPage: el aviso de móviles sin trabajos espera al historial (0.9.17)', () => {
+  it('si el historial falla no se afirma que un móvil no tiene trabajos', async () => {
+    server.use(
+      http.get('*/api/reparaciones/historial', () => new HttpResponse(null, { status: 500 })),
+      http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+        { imeiSn: '353918700112233', modelo: '11', modeloMaestro: '11', capacidad: '64GB', color: 'Negro', estado: 'VENDIDO', ubicacion: null, fechaVenta: '2023-05-02' },
+      ])),
+    )
+    filtrosImeis.set({ ...filtrosImeis.get(), imei: '353918700112233' })
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()
+  })
+})

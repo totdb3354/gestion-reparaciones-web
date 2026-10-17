@@ -24,7 +24,7 @@ export function guardarPlegada(plegada: boolean): void {
 /** Grupos plegados de la columna (0.9.14, spec «Navegación por grupos» §3): la misma preferencia del navegador. Un valor que
  *  no sea una lista equivale a ninguno plegado; los ids que no son de un grupo conocido se ignoran. */
 export const CLAVE_GRUPOS_PLEGADOS = 'columnaLateral.gruposPlegados'
-const IDS_GRUPOS: readonly IdGrupoNav[] = ['reparaciones', 'stock', 'estadisticas', 'clientes', 'gestion']
+const IDS_GRUPOS: readonly IdGrupoNav[] = ['reparaciones', 'stock', 'telefonos', 'estadisticas', 'clientes', 'gestion']
 const esIdGrupo = (v: unknown): v is IdGrupoNav => typeof v === 'string' && (IDS_GRUPOS as readonly string[]).includes(v)
 
 export function leerGruposPlegados(): Set<IdGrupoNav> {

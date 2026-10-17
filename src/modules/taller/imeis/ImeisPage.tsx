@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { esErrorGestionadoGlobalmente, mensajeDeError, MSG_TELEFONO_MODIFICADO, StaleDataError } from '@/shared/api/errors'
+import { useBuscarMoviles } from '@/shared/api/nsys'
 import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
+import { imeisValidos } from '@/shared/lib/filtroImei'
+import { diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
-import { esSuperTecnico } from '@/shared/session/storage'
+import { esAdminOSuperTecnico, esSuperTecnico } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { CeldaFechas } from '@/shared/ui/CeldaFechas'
 import { ContextMenuItem, ContextMenuSeparator } from '@/shared/ui/context-menu'
@@ -28,7 +31,7 @@ import { agruparVisibles, opcionesCliente } from './agrupacion'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
 import { FMT } from './constantes'
 import { CABECERAS_RESUMEN, filaResumen } from './csvImeis'
-import { useTrabajos } from './useTrabajos'
+import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 
 const SIN_CLIENTE_CLAVE = ''
 
@@ -54,6 +57,14 @@ export function ImeisPage() {
   const [filtros] = useStore(filtrosImeis)
   const grupos = useMemo(() => agruparVisibles(trabajos, filtros), [trabajos, filtros])
   const clientes = useMemo(() => opcionesCliente(trabajos), [trabajos])
+  // 0.9.17: al filtrar por un IMEI, el supertécnico y el admin ven también los móviles de NSYS sin trabajos del taller.
+  const veNsys = esAdminOSuperTecnico(sesion)
+  // Solo con un IMEI completo (15 dígitos, el primero escrito): con uno a medias saldría una lista de móviles sin relación.
+  const imeiCompleto = [...imeisValidos(filtros.imei)][0] ?? ''
+  const { data: enNsys = [] } = useBuscarMoviles(imeiCompleto, veNsys && imeiCompleto !== '')
+  // Contra todos los trabajos, no contra los grupos visibles: un IMEI con trabajos fuera de las fechas del filtro no es «sin trabajos».
+  const cargados = useTrabajosCargados()
+  const sinTrabajos = !cargados ? [] : enNsys.filter((m) => !trabajos.some((t) => t.imei === m.imeiSn))
   // Al volver del detalle, el maestro reselecciona ese IMEI (y DataTable desplaza hasta él); el aviso se consume una vez.
   const [seleccionada, setSeleccionada] = useState<string | null>(() => ultimoImeiVisto.get())
   useEffect(() => { ultimoImeiVisto.reset() }, [])
@@ -110,6 +121,18 @@ export function ImeisPage() {
         <PildoraContador texto={etiquetaContador(grupos.length, 'IMEI', 'IMEIs')} />
       </div>
       <BarraFiltrosImeis modo="maestro" opcionesCliente={clientes} />
+      {sinTrabajos.length > 0 && (
+        <div role="status" className="mb-2 rounded-lg border border-fila-edicion-brd bg-seleccion-suave px-3 py-2 text-[12.5px] text-azul-medio">
+          {sinTrabajos.length === 1 ? 'También hay 1 móvil' : `También hay ${sinTrabajos.length} móviles`} sin trabajos del taller con ese IMEI:{' '}
+          {sinTrabajos.map((m, i) => (
+            <span key={m.imeiSn}>
+              {i > 0 && ' · '}
+              <button type="button" onClick={() => abrir(m.imeiSn)} className="cursor-pointer font-bold text-texto-accion underline">{m.imeiSn}</button>
+              {` (${nombreModeloNsys(m.modelo, m.modeloMaestro)}${m.fechaVenta ? `, vendido el ${diaNsys(m.fechaVenta)}` : ''})`}
+            </span>
+          ))}
+        </div>
+      )}
       <DataTable
         columns={columnas}
         data={grupos}
