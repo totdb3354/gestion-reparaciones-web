@@ -28,22 +28,24 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
     imei,
     ...(conCapacidad ? [capacidad] : []),
     {
+      // En línea (no flex), para que la celda corte con «…» un color largo a 1366; el nombre entero, al pasar el ratón.
       id: 'color', header: 'Color', size: 90,
       cell: ({ row }) => (
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-pill-borde" style={{ background: muestraColor(row.original.color) }} />
+        <span title={row.original.color ?? undefined}>
+          <span aria-hidden className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full border border-pill-borde align-[-1px]" style={{ background: muestraColor(row.original.color) }} />
           {row.original.color ?? '—'}
         </span>
       ),
     },
     {
+      // Si no caben las marcas, la celda las corta con «…»: al pasar el ratón se leen todas.
       id: 'grado', header: 'Grado', size: 95, maxSize: 120,
       cell: ({ row }) => (
-        <>
+        <span title={[row.original.grado ?? '—', row.original.bateriaNueva && 'batería nueva', row.original.esEsim && 'eSIM'].filter(Boolean).join(' · ')}>
           <PildoraGrado grado={row.original.grado} />
           {row.original.bateriaNueva && <span title="Batería nueva" className={cn(MARCA, 'border-fila-recibido-brd text-fila-recibido-brd')}>100</span>}
           {row.original.esEsim && <span className={cn(MARCA, 'border-pill-borde text-azul-gris')}>eSIM</span>}
-        </>
+        </span>
       ),
     },
     {

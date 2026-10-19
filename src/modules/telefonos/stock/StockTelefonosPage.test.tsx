@@ -456,6 +456,17 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(screen.queryByRole('columnheader', { name: 'Batería' })).not.toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'Estado' })).not.toBeInTheDocument()
   })
+
+  it('Color y Grado, cortados con «…» a 1366, dicen todo al pasar el ratón (preprod 0.9.18)', async () => {
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json([
+      movil({ imeiSn: '350000000000032', color: 'Titanio Natural', grado: 'A', bateriaNueva: true, esEsim: true }),
+    ])))
+    abrir()
+    const fila = await primeraFila()
+    expect(within(celda(fila, 'Color')).getByTitle('Titanio Natural')).toHaveTextContent('Titanio Natural')
+    expect(within(celda(fila, 'Grado')).getByTitle('A · batería nueva · eSIM')).toHaveTextContent('A100eSIM')
+  })
+
   it('pegar varios IMEIs en el buscador abre el diálogo con lo pegado y lo comprueba; el botón lo abre vacío', async () => {
     const user = userEvent.setup()
     const pedidos: string[][] = []
