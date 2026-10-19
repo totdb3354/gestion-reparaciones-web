@@ -53,7 +53,12 @@ function Contenido({ textoInicial, onAbrirImei }: { textoInicial: string; onAbri
       <textarea aria-label="IMEIs" value={texto} onChange={(e) => setTexto(e.target.value)}
         className="h-[88px] w-full rounded-lg border border-borde-input px-2.5 py-2 font-mono text-[12px]" />
       <div className="flex items-center gap-2">
-        <BotonPrimario onClick={() => setPedido(analizar(texto))}>Comprobar</BotonPrimario>
+        <BotonPrimario onClick={() => {
+          const nuevo = analizar(texto)
+          // Misma lista → misma clave de consulta: tras un fallo no volvería a preguntar, así que se fuerza.
+          if (consulta.isError && pedido && nuevo.imeis.length === pedido.imeis.length && nuevo.imeis.every((x, i) => x === pedido.imeis[i])) void consulta.refetch()
+          setPedido(nuevo)
+        }}>Comprobar</BotonPrimario>
         {pedido && <span className="text-[11.5px] text-azul-gris">{`${pedido.lineas.length} líneas`}</span>}
         {pedido && !demasiados && !listo && !consulta.isError && <span className="text-[11.5px] text-azul-gris">Comprobando…</span>}
         <BotonSecundario className="ml-auto" disabled={!filas} onClick={() => {
@@ -62,6 +67,7 @@ function Contenido({ textoInicial, onAbrirImei }: { textoInicial: string; onAbri
           avisar({ texto: 'Copiado: pégalo en Excel', tipo: 'ok' })
         }}>Copiar el resultado (para Excel)</BotonSecundario>
       </div>
+      {consulta.isError && <p className="text-[12px] font-bold text-fila-urgente-brd">No se pudo comprobar la lista. Pulsa «Comprobar» para intentarlo otra vez.</p>}
       {demasiados && <p className="text-[12px] font-bold text-fila-urgente-brd">{`Como mucho ${MAX_IMEIS} IMEIs por vez: hay ${pedido.imeis.length}.`}</p>}
       {filas && (
         <>

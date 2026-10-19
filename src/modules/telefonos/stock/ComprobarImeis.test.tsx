@@ -56,4 +56,21 @@ describe('Comprobar una lista de IMEIs (spec 0.9.18 §4.9)', () => {
     await user.click(within(d).getByRole('button', { name: 'Abrir 350000000000001' }))
     expect(onAbrirImei).toHaveBeenCalledWith('350000000000001')
   })
+
+  it('si la comprobación falla lo dice, y «Comprobar» vuelve a preguntar', async () => {
+    let pedidas = 0
+    server.use(http.post('*/api/stock-telefonos/comprobar', () => {
+      pedidas++
+      return pedidas === 1 ? HttpResponse.json({ message: 'Fallo de prueba' }, { status: 400 }) : HttpResponse.json([movilComprobado({ imei: '350000000000001' })])
+    }))
+    const user = userEvent.setup()
+    abrirDialogo('350000000000001')
+    await user.click(within(await screen.findByRole('dialog', { name: 'Error' })).getByRole('button', { name: 'Aceptar' }))
+    const d = await dialogo()
+    expect(await within(d).findByText('No se pudo comprobar la lista. Pulsa «Comprobar» para intentarlo otra vez.')).toBeInTheDocument()
+    await user.click(within(d).getByRole('button', { name: 'Comprobar' }))
+    expect(await within(d).findByRole('table', { name: 'Resultado' })).toBeInTheDocument()
+    expect(pedidas).toBe(2)
+    expect(within(d).queryByText(/No se pudo comprobar/)).not.toBeInTheDocument()
+  })
 })
