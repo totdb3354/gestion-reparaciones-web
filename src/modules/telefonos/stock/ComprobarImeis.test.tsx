@@ -27,6 +27,14 @@ describe('Comprobar una lista de IMEIs (spec 0.9.18 §4.9)', () => {
     for (const cifra of ['1 en stock', '1 no está en NSYS', '1 repetido', '1 no es un IMEI']) expect(within(d).getByText(cifra)).toBeInTheDocument()
   })
 
+  it('con una sola línea, «1 línea» en singular', async () => {
+    responder()
+    abrirDialogo('350000000000001')
+    const d = await dialogo()
+    await within(d).findByRole('table', { name: 'Resultado' })
+    expect(within(d).getByText('1 línea')).toBeInTheDocument()
+  })
+
   it('sin nada pegado espera a «Comprobar»; con más de 500 avisa y no pregunta', async () => {
     let pedidas = 0
     server.use(http.post('*/api/stock-telefonos/comprobar', () => {

@@ -9,12 +9,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - **Stock de teléfonos** (supertécnico y administrador):
   - la columna de la izquierda tiene una fila por modelo, con sus capacidades en pastillas y la barra listos / taller / revisión; el buscador acepta un modelo o un SKU, entero o el principio;
   - el modelo se abre con pestañas de capacidad, y una tabla color × grado sustituye a los chips de color y de grado;
-  - la tabla de móviles dice **quién tiene cada móvil** (las asignaciones abiertas de reparación, glass y pulido, con la llegada de la glass), avisa de los móviles en caja de taller sin asignar y de los descuadres (un trabajo abierto con el móvil en Listos o de pedido) y tiene un filtro «Técnico»;
+  - la tabla de móviles dice **quién tiene cada móvil** (las asignaciones abiertas de reparación, glass y pulido, con la llegada de la glass), avisa de los móviles en caja de taller sin asignar y de los descuadres (un trabajo abierto de hace más de una hora con el móvil en Listos o de pedido) y tiene un filtro «Técnico»;
   - el grado lleva color por familias;
-  - «Pegar varios IMEIs» comprueba una lista de hasta 500 IMEIs, también los vendidos, y copia el resultado para Excel;
+  - «Pegar varios IMEIs» comprueba una lista de hasta 500 IMEIs, también los vendidos, y copia el resultado para Excel; si la comprobación falla, lo dice y se puede reintentar;
   - la píldora de NSYS abre la lista de las últimas importaciones, con los huecos y el progreso del histórico.
 - **Barra superior** (supertécnico y administrador): un aviso rojo «NSYS sin datos» en cualquier página cuando no llegan datos de NSYS.
-- **IMEIs** (supertécnico y administrador): la ficha de NSYS dice cuándo se revisó el móvil o desde cuándo espera la revisión, y el rastro rotula «Revisado →».
+- **IMEIs** (supertécnico y administrador): la ficha de NSYS dice cuándo se revisó el móvil o desde cuándo espera la revisión, y el rastro rotula «Revisado →». Un móvil en «Funcionalidad pendiente» también sale como pendiente de revisar, y su revisión es el paso a una caja.
 - Requiere el servidor 0.9.18. Sin migración.
 
 ## [0.9.17] - 2026-10-XX — Stock de teléfonos y rastro

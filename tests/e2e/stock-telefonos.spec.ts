@@ -131,7 +131,7 @@ test.describe('0.9.18: Quién lo tiene, SKU, varios IMEIs e importaciones', () =
   test('el supertécnico ve «Quién lo tiene», el filtro Técnico y la tabla color × grado', async () => {
     const tabla = pagina.getByRole('region', { name: 'Tabla de móviles' })
     await expect(tabla.getByRole('columnheader', { name: 'Quién lo tiene' })).toBeVisible()
-    await expect(pagina.getByRole('button', { name: 'Técnico' })).toBeVisible()
+    await expect(pagina.getByRole('button', { name: 'Técnico', exact: true })).toBeVisible()
     await expect(pagina.getByRole('table', { name: 'Color y grado' })).toBeVisible()
   })
 

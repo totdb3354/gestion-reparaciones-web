@@ -17,18 +17,18 @@ export type OpcionesColumnas = { conCapacidad?: boolean; sku?: FiltroSku | null 
  *  que abre el detalle. */
 export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad = false, sku = null }: OpcionesColumnas = {}): ColumnDef<Movil>[] {
   const imei: ColumnDef<Movil> = {
-    id: 'imei', header: 'IMEI', size: 150, maxSize: 160,
+    id: 'imei', header: 'IMEI', size: 125, maxSize: 160,
     cell: ({ row }) => (
       <button type="button" aria-label={`Abrir ${row.original.imeiSn}`} onClick={(e) => { e.stopPropagation(); abrir(row.original.imeiSn) }}
         className="cursor-pointer font-mono text-[11.5px] text-azul-noche hover:underline">{row.original.imeiSn}</button>
     ),
   }
-  const capacidad: ColumnDef<Movil> = { id: 'capacidad', header: 'Cap.', size: 70, maxSize: 80, accessorFn: (m) => textoCapacidad(capacidadDe(m)) }
+  const capacidad: ColumnDef<Movil> = { id: 'capacidad', header: 'Cap.', size: 55, maxSize: 80, accessorFn: (m) => textoCapacidad(capacidadDe(m)) }
   return [
     imei,
     ...(conCapacidad ? [capacidad] : []),
     {
-      id: 'color', header: 'Color', size: 110,
+      id: 'color', header: 'Color', size: 90,
       cell: ({ row }) => (
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-pill-borde" style={{ background: muestraColor(row.original.color) }} />
@@ -37,7 +37,7 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
       ),
     },
     {
-      id: 'grado', header: 'Grado', size: 110, maxSize: 120,
+      id: 'grado', header: 'Grado', size: 95, maxSize: 120,
       cell: ({ row }) => (
         <>
           <PildoraGrado grado={row.original.grado} />
@@ -47,7 +47,7 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
       ),
     },
     {
-      id: 'sku', header: 'SKU', size: 150,
+      id: 'sku', header: 'SKU', size: 135,
       cell: ({ row }) => {
         const valor = row.original.sku
         const partes = valor ? partesSku(valor, sku) : null
@@ -59,17 +59,17 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
       },
     },
     {
-      id: 'ubicacion', header: 'Ubicación', size: 190,
+      id: 'ubicacion', header: 'Ubicación', size: 145,
       cell: ({ row }) => (
-        <>
+        <span className="whitespace-normal">
           <span className={cn(CLASES_PILDORA, clasesUbicacion(row.original.ubicacion))}>{row.original.ubicacion ?? '—'}</span>
           {(row.original.estado === 'NO_CUENTA' || row.original.estado === 'DE_PEDIDO') && (
             <span className={cn(MARCA, 'border-pill-borde text-azul-gris')}>{`NO CUENTA · ${textoEstadoMovil(row.original.estado)}`}</span>
           )}
-        </>
+        </span>
       ),
     },
-    { id: 'quien', header: 'Quién lo tiene', size: 210, cell: ({ row }) => <CeldaQuien quien={row.original.quien} /> },
-    { id: 'dias', header: 'Días', size: 55, maxSize: 60, accessorFn: (m) => m.dias ?? '' },
+    { id: 'quien', header: 'Quién lo tiene', size: 160, cell: ({ row }) => <CeldaQuien quien={row.original.quien} /> },
+    { id: 'dias', header: 'Días', size: 45, maxSize: 60, accessorFn: (m) => m.dias ?? '' },
   ]
 }

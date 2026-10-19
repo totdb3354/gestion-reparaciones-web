@@ -59,7 +59,7 @@ function Contenido({ textoInicial, onAbrirImei }: { textoInicial: string; onAbri
           if (consulta.isError && pedido && nuevo.imeis.length === pedido.imeis.length && nuevo.imeis.every((x, i) => x === pedido.imeis[i])) void consulta.refetch()
           setPedido(nuevo)
         }}>Comprobar</BotonPrimario>
-        {pedido && <span className="text-[11.5px] text-azul-gris">{`${pedido.lineas.length} líneas`}</span>}
+        {pedido && <span className="text-[11.5px] text-azul-gris">{`${pedido.lineas.length} ${pedido.lineas.length === 1 ? 'línea' : 'líneas'}`}</span>}
         {pedido && !demasiados && !listo && !consulta.isError && <span className="text-[11.5px] text-azul-gris">Comprobando…</span>}
         <BotonSecundario className="ml-auto" disabled={!filas} onClick={() => {
           if (!filas) return

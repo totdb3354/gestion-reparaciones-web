@@ -77,4 +77,21 @@ describe('«Quién lo tiene» (spec 0.9.18 §4.7)', () => {
     expect(r.etiquetas).toEqual([])
     expect(r.titulo).toBe('')
   })
+
+  it('el descuadre nombra solo a quien lleva más de 60 minutos; el filtro Técnico sigue con todos', () => {
+    // 12:42 son 61 minutos antes de las 13:43; 13:33, 10 minutos.
+    const r = q({ ubicacion: 'Listos', trabajos: [
+      trabajo({ tecnico: 'Técnico 1', desde: '2026-10-16T12:42:00' }),
+      trabajo({ categoria: 'PULIDO', tecnico: 'Técnico 2', desde: '2026-10-16T13:33:00' })] })
+    expect(r.descuadre).toBe(true)
+    expect(r.texto).toBe('⚠ Técnico 1: trabajo abierto')
+    expect(r.etiquetas).toEqual(['Técnico 1', 'Técnico 2', CON_DESCUADRE])
+  })
+
+  it('una respuesta sin trabajos (servidor 0.9.17) no rompe la pantalla', () => {
+    const sinTrabajos = { ...movil({ ubicacion: 'Listos' }), trabajos: undefined } as unknown as MovilStock
+    const r = quienLoTiene(sinTrabajos, AHORA)
+    expect(r.texto).toBe('—')
+    expect(r.etiquetas).toEqual([])
+  })
 })

@@ -49,7 +49,8 @@ function detalle(t: TrabajoAbierto, hoy: string): string {
 export function quienLoTiene(m: Datos, ahora: number): Quien {
   const fecha = new Date(ahora)
   const hoy = diaDeHoyEnMadrid(fecha)
-  const trabajos = [...m.trabajos].sort((a, b) => (ORDEN_CATEGORIA[a.categoria] ?? 9) - (ORDEN_CATEGORIA[b.categoria] ?? 9))
+  // `?? []`: una respuesta sin trabajos (servidor 0.9.17 en una vuelta atrás a medias) no rompe la pantalla.
+  const trabajos = [...(m.trabajos ?? [])].sort((a, b) => (ORDEN_CATEGORIA[a.categoria] ?? 9) - (ORDEN_CATEGORIA[b.categoria] ?? 9))
   const hayReparacion = trabajos.some((t) => t.categoria === 'REPARACION')
   const partes = trabajos.map((t): ParteQuien => {
     if (t.categoria === 'GLASS') {
@@ -61,9 +62,11 @@ export function quienLoTiene(m: Datos, ahora: number): Quien {
   // Un móvil de pedido ya no está en su caja de taller, aunque sea la última que se le conoce.
   const enCaja = m.estado !== 'DE_PEDIDO' && (m.ubicacion ?? '').startsWith('Taller') && trabajos.length === 0
   const fueraDelTaller = m.estado === 'DE_PEDIDO' || m.ubicacion === 'Listos'
-  const descuadre = fueraDelTaller && trabajos.some((t) => minutosDesde(t.desde, fecha) > MINUTOS_DESCUADRE)
+  // El texto del descuadre nombra solo a quien lleva el trabajo más de 60 minutos; las etiquetas, a todos.
+  const tarde = fueraDelTaller ? [...new Set(trabajos.filter((t) => minutosDesde(t.desde, fecha) > MINUTOS_DESCUADRE).map((t) => t.tecnico))] : []
+  const descuadre = tarde.length > 0
   const caja = m.estado === 'DE_PEDIDO' ? 'Pedidos realizados' : (m.ubicacion ?? '')
-  const texto = descuadre ? `⚠ ${tecnicos.join(' · ')}: trabajo abierto`
+  const texto = descuadre ? `⚠ ${tarde.join(' · ')}: trabajo abierto`
     : enCaja ? '⚠ En caja, sin asignar'
       : partes.length === 0 ? '—'
         : partes.map((p) => [p.prefijo, p.tecnico, p.sufijo, p.entrega?.texto].filter(Boolean).join(' ')).join(' · ')
