@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, diaNsys, textoGrado, nombreModeloNsys, textoEstadoMovil } from './telefonoNsys'
+import { clasesUbicacion, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -35,5 +35,13 @@ describe('textoGrado', () => {
     expect(textoGrado('')).toBe('—')
     expect(textoGrado(null)).toBe('—')
     expect(textoGrado(undefined)).toBe('—')
+  })
+
+  it('días desde un día de NSYS, con el día de hoy en Madrid', () => {
+    const ahora = new Date('2026-10-16T22:30:00Z') // 17/10 00:30 en Madrid
+    expect(diasDesdeNsys('2026-10-16', ahora)).toBe(1)
+    expect(diasDesdeNsys('2026-10-17', ahora)).toBe(0)
+    expect(diasDesdeNsys('2026-10-20', ahora)).toBe(0)
+    expect(diasDesdeNsys('2026-09-17', ahora)).toBe(30)
   })
 })

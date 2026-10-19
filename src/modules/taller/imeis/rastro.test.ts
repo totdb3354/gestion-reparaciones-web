@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { eventoRastro } from '../test/fabrica'
-import { fechaRastro, hayAntesDelHistorico, verEvento } from './rastro'
+import { fechaRastro, hayAntesDelHistorico, textoRevision, verEvento } from './rastro'
 
 describe('textos del rastro (spec pieza 1 §9.3)', () => {
   it('fechas: con hora o solo el día', () => {
@@ -29,5 +29,25 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
   it('la nota del histórico sale si hay eventos de antes de dic. 2023', () => {
     expect(hayAntesDelHistorico([eventoRastro(), eventoRastro({ fecha: '2023-03-14T00:00:00', soloDia: true })])).toBe(true)
     expect(hayAntesDelHistorico([eventoRastro({ fecha: '2023-12-01T09:00:00' })])).toBe(false)
+  })
+
+  it('el cambio de caja que es la revisión: «Revisado → caja», con su marca (spec 0.9.18 §5.3)', () => {
+    expect(verEvento(eventoRastro({ de: 'En revisión', a: 'Taller · Pulir', aNsys: 'CAJA PULIR', revision: 'ENTRADA' })))
+      .toMatchObject({ titulo: 'Revisado → Taller · Pulir', detalle: 'Desde: En revisión', revision: true })
+    expect(verEvento(eventoRastro({ de: 'Devolución', a: 'Listos', revision: 'DEVOLUCION' })).titulo).toBe('Revisado (devolución) → Listos')
+    expect(verEvento(eventoRastro({ de: 'En revisión', a: null, aNsys: 'Desguace', revision: 'ENTRADA' })).titulo).toBe('Revisado → Desguace')
+    expect(verEvento(eventoRastro()).revision).toBeFalsy()
+  })
+
+  it('la ficha: pendiente de revisar, revisado o nada (spec 0.9.18 §5.2)', () => {
+    const ahora = new Date('2026-10-19T10:00:00Z')
+    const sin = { revisadoEl: null, revisadoDevolucion: false, pendienteRevisionDesde: null }
+    expect(textoRevision({ ...sin, pendienteRevisionDesde: '2026-10-15' }, ahora)).toBe('Pendiente de revisar desde hace 4 días')
+    expect(textoRevision({ ...sin, pendienteRevisionDesde: '2026-10-18' }, ahora)).toBe('Pendiente de revisar desde hace 1 día')
+    expect(textoRevision({ ...sin, pendienteRevisionDesde: '2026-10-19' }, ahora)).toBe('Pendiente de revisar desde hoy')
+    expect(textoRevision({ ...sin, revisadoEl: '2026-10-17T10:31:00' }, ahora)).toBe('Revisado el 17/10/2026, hacia las 10:31')
+    expect(textoRevision({ ...sin, revisadoEl: '2026-10-17T10:31:00', revisadoDevolucion: true }, ahora))
+      .toBe('Revisado (devolución) el 17/10/2026, hacia las 10:31')
+    expect(textoRevision(sin, ahora)).toBeNull()
   })
 })

@@ -7,6 +7,7 @@ import { setupServer } from 'msw/node'
  * el SubNav de <AppLayout/>: cualquier test que monte el layout con SESION_SUPER las dispara aunque su vista no tenga
  * nada que ver con Asignaciones. Una lista vacía deja el badge oculto, así que no altera lo que esos tests comprueban.
  * Además, la nota de la contraseña: «Muy segura», para que los formularios de contraseña de cualquier test se puedan guardar.
+ * Y desde la 0.9.18, el estado de NSYS y la lista de importaciones (el indicador de la barra superior).
  */
 export const server = setupServer(
   http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
@@ -24,6 +25,13 @@ export const server = setupServer(
   // 0.9.17: el detalle de IMEIs del supertécnico y del admin pide la ficha de NSYS (y su rastro) y la lista busca en el
   // espejo al filtrar por IMEI. Por defecto NSYS no conoce el IMEI (404, la ficha no sale) y la búsqueda no encuentra nada.
   // «buscar» va antes que «:imeiSn» porque el patrón también lo cubriría.
+  // 0.9.18: el indicador «NSYS sin datos» de la barra superior pide el estado en cualquier vista del supertécnico y del
+  // admin: por defecto, al día (no se pinta). La lista de importaciones de la píldora, vacía. Van antes que «:imeiSn», que
+  // también las cubriría.
+  http.get('*/api/stock-telefonos/estado', () =>
+    HttpResponse.json({ ultimaExportacion: '2026-10-16T13:31:00', nivel: 'OK', ultimoFallo: null, motivoFallo: null })),
+  http.get('*/api/stock-telefonos/importaciones', () =>
+    HttpResponse.json({ importaciones: [], historico: { total: 0, hechos: 0, ultimo: null, hasta: null } })),
   http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn/rastro', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn', () => HttpResponse.json({ message: 'NSYS no conoce el IMEI' }, { status: 404 })),

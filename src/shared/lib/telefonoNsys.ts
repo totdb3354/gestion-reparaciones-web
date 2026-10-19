@@ -46,3 +46,12 @@ export function textoGrado(raw: string | null | undefined): string {
   if (raw.endsWith('100')) return `${raw.slice(0, -3) || '—'} · batería nueva`
   return raw
 }
+
+const DIA_MADRID = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' })
+const aDiaUtc = (dia: string) => Date.UTC(Number(dia.slice(0, 4)), Number(dia.slice(5, 7)) - 1, Number(dia.slice(8, 10)))
+
+/** Días desde un día de NSYS («2026-10-15», hora de Madrid) hasta hoy en Madrid, sea cual sea la zona del navegador; 0 si
+ *  es hoy o después (0.9.18: «Pendiente de revisar desde hace N días»). */
+export function diasDesdeNsys(dia: string, ahora: Date = new Date()): number {
+  return Math.max(0, Math.round((aDiaUtc(DIA_MADRID.format(ahora)) - aDiaUtc(dia)) / 86_400_000))
+}

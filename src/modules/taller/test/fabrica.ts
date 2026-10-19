@@ -148,13 +148,13 @@ export function fichaMovil(p: Partial<FichaMovil> = {}): FichaMovil {
   return {
     imeiSn: '351900000000041', lote: 'BT-9001', modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro',
     grado: 'A', bateriaNueva: true, gradoAnterior: 'C', sku: 'i16128NegroA100', ubicacion: 'Listos', estado: 'DE_PEDIDO',
-    dias: 12, entradas: 1, fechaVenta: null, ...p,
+    dias: 12, entradas: 1, fechaVenta: null, revisadoEl: null, revisadoDevolucion: false, pendienteRevisionDesde: null, ...p,
   }
 }
 
 export function eventoRastro(p: Partial<EventoRastro> = {}): EventoRastro {
   return {
     fecha: '2026-09-12T13:01:00', soloDia: false, fuente: 'NSYS', tipo: 'UBICACION', lote: 'BT-9001', de: 'Taller · Glass',
-    a: 'Listos', aNsys: 'CAJA LISTOS', idRep: null, tecnico: null, categoria: null, ...p,
+    a: 'Listos', aNsys: 'CAJA LISTOS', idRep: null, tecnico: null, categoria: null, revision: null, ...p,
   }
 }

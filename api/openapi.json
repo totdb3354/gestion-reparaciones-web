@@ -896,6 +896,37 @@
         }
       }
     },
+    "/api/stock-telefonos/comprobar" : {
+      "post" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "comprobar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StockTelefonosPeticionComprobar"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StockTelefonosMovilComprobado"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/solicitudes-stock" : {
       "get" : {
         "tags" : [ "solicitud-stock-controller" ],
@@ -3795,6 +3826,34 @@
         }
       }
     },
+    "/api/stock-telefonos/importaciones" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "importaciones",
+        "parameters" : [ {
+          "name" : "limite",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StockTelefonosListaImportaciones"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stock-telefonos/estado" : {
       "get" : {
         "tags" : [ "stock-telefonos-controller" ],
@@ -5638,6 +5697,93 @@
           }
         }
       },
+      "StockTelefonosPeticionComprobar" : {
+        "required" : [ "imeis" ],
+        "type" : "object",
+        "properties" : {
+          "imeis" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "StockTelefonosMovilComprobado" : {
+        "required" : [ "bateriaNueva", "capacidad", "color", "encontrado", "estado", "fechaVenta", "grado", "imei", "modelo", "modeloMaestro", "trabajos", "ubicacion" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "encontrado" : {
+            "type" : "boolean"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "bateriaNueva" : {
+            "type" : "boolean"
+          },
+          "ubicacion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "estado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fechaVenta" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
+          },
+          "trabajos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrabajoAbierto"
+            }
+          }
+        }
+      },
+      "TrabajoAbierto" : {
+        "required" : [ "categoria", "desde", "entregado", "tecnico" ],
+        "type" : "object",
+        "properties" : {
+          "categoria" : {
+            "type" : "string"
+          },
+          "tecnico" : {
+            "type" : "string"
+          },
+          "desde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entregado" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          }
+        }
+      },
       "SolicitudStockInsertarRequest" : {
         "required" : [ "descripcion", "idCom" ],
         "type" : "object",
@@ -7418,7 +7564,7 @@
         }
       },
       "StockTelefonosMovilStock" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "esEsim", "estado", "grado", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "esEsim", "estado", "grado", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "trabajos", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7467,11 +7613,17 @@
             "type" : "integer",
             "format" : "int32",
             "nullable" : true
+          },
+          "trabajos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrabajoAbierto"
+            }
           }
         }
       },
       "StockTelefonosFichaMovil" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "revisadoDevolucion", "revisadoEl", "sku", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7530,11 +7682,24 @@
             "type" : "string",
             "format" : "date",
             "nullable" : true
+          },
+          "revisadoEl" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "revisadoDevolucion" : {
+            "type" : "boolean"
+          },
+          "pendienteRevisionDesde" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
           }
         }
       },
       "EventoRastro" : {
-        "required" : [ "a", "aNsys", "categoria", "de", "fecha", "fuente", "idRep", "lote", "soloDia", "tecnico", "tipo" ],
+        "required" : [ "a", "aNsys", "categoria", "de", "fecha", "fuente", "idRep", "lote", "revision", "soloDia", "tecnico", "tipo" ],
         "type" : "object",
         "properties" : {
           "fecha" : {
@@ -7576,6 +7741,82 @@
           },
           "categoria" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "revision" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "StockTelefonosFilaImportacion" : {
+        "required" : [ "cambios", "fechaExportacion", "fichero", "filas", "motivo", "resultado", "segundos" ],
+        "type" : "object",
+        "properties" : {
+          "fichero" : {
+            "type" : "string"
+          },
+          "fechaExportacion" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "resultado" : {
+            "type" : "string"
+          },
+          "filas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cambios" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "segundos" : {
+            "type" : "integer",
+            "format" : "int64",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "StockTelefonosListaImportaciones" : {
+        "required" : [ "historico", "importaciones" ],
+        "type" : "object",
+        "properties" : {
+          "importaciones" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StockTelefonosFilaImportacion"
+            }
+          },
+          "historico" : {
+            "$ref" : "#/components/schemas/StockTelefonosProgresoHistorico"
+          }
+        }
+      },
+      "StockTelefonosProgresoHistorico" : {
+        "required" : [ "hasta", "hechos", "total", "ultimo" ],
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hechos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ultimo" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "hasta" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           }
         }
