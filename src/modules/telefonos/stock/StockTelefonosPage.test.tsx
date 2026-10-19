@@ -193,6 +193,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(screen.getByTestId('pastilla-sku')).toHaveTextContent('SKU empieza por i13')
     expect(filas().map(imeiDe)).toEqual(['350000000000006', '350000000000001'])
     expect(within(filas()[0]).getByText('i13', { selector: 'mark' })).toBeInTheDocument()
+    expect(within(filas()[0]).getByText('i13', { selector: 'mark' }).closest('[title]')).toHaveAttribute('title', 'i13256RosaB')
     expect(buscador()).toHaveValue('')
   })
 

@@ -52,7 +52,7 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
         const valor = row.original.sku
         const partes = valor ? partesSku(valor, sku) : null
         return (
-          <span className="font-mono text-[11.5px]">
+          <span className="font-mono text-[11.5px]" title={valor ?? undefined}>
             {partes ? <><mark className="bg-amarillo/60 text-azul-noche">{partes[0]}</mark>{partes[1]}</> : (valor ?? '—')}
           </span>
         )

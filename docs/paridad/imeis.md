@@ -77,6 +77,6 @@ La vista de trabajos, sus filtros, el menú de fila y el CSV no cambian. El TECN
 Añadido, decidido en la spec `2026-10-19-v0918-stock-telefonos-quien-lo-tiene-design.md` (raíz). Para SUPERTECNICO y ADMIN:
 
 - la ficha de NSYS dice «Revisado el …» o «Pendiente de revisar desde hace N días»;
-- en el rastro, el paso de «sin caja» a una caja se rotula «Revisado → …», con su marca en la leyenda.
+- en el rastro, el paso de «sin caja» o de «Funcionalidad pendiente» a una caja se rotula «Revisado → …» (o «Revisado (devolución) → …»), con su marca en la leyenda.
 
 Pruebas: `FichaMovil.test.tsx`, `PanelRastro.test.tsx` y `rastro.test.ts`. El TECNICO ve lo mismo que antes.
