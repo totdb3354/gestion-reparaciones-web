@@ -19,9 +19,10 @@ export function PildoraNsys() {
   // Sin datos todavía (cargando) o sin poder preguntar (error): neutra, sin rojo ni un motivo que no sabemos.
   const nivel = data ? data.nivel : isPending || isError ? 'OK' : 'SIN_DATOS'
   const texto = data ? textoPildora(data) : isError ? 'NSYS: no se pudo comprobar' : isPending ? 'NSYS: comprobando…' : textoPildora(data)
+  // aria-label: Chromium no saca el nombre del botón del role=status de dentro (lo vio la E2E de preprod).
   return (
     <Popover>
-      <PopoverTrigger className="ml-auto cursor-pointer rounded-full">
+      <PopoverTrigger aria-label={texto} className="ml-auto cursor-pointer rounded-full">
         <span role="status" title={data?.motivoFallo ?? undefined}
           className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES[nivel] ?? CLASES.OK)}>
           <span aria-hidden className={cn('h-2 w-2 rounded-full', !data && (isPending || isError) ? 'bg-gris-borde' : (PUNTO[nivel] ?? PUNTO.OK))} />
