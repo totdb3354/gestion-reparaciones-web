@@ -210,6 +210,83 @@ export function textoBuscado(m: MovilBuscado): string {
   return m.ubicacion ?? SIN_DATO
 }
 
+export type Casilla = { total: number; reparto: Reparto }
+/** La tabla color × grado (spec 0.9.18 §4.4): filas de color, columnas de grado y sus totales. */
+export type Matriz = {
+  colores: string[]
+  grados: string[]
+  casillas: ReadonlyMap<string, Casilla>
+  porColor: ReadonlyMap<string, number>
+  porGrado: ReadonlyMap<string, number>
+  total: number
+}
+
+const CASILLA_VACIA: Casilla = { total: 0, reparto: { listos: 0, taller: 0, revision: 0 } }
+const claveCasilla = (color: string, grado: string) => `${color}\u0000${grado}`
+
+/** La tabla de los móviles que se ven del modelo: solo el stock, con los filtros de batería, ubicación y técnico pero sin su
+ *  propia selección de color y grado, para verla entera con lo elegido resaltado. Los colores y grados elegidos salen
+ *  aunque se queden a cero, para poder quitarlos. Colores por orden alfabético; grados, en su orden de siempre. */
+export function matriz(moviles: Movil[], f: Filtros): Matriz {
+  const base = moviles.filter((m) => cuentaComoStock(m) && pasa(m, f, ['color', 'grado']))
+  const color = (m: Movil) => valores('color', m)[0]
+  const grado = (m: Movil) => valores('grado', m)[0]
+  const colores = [...new Set([...base.map(color), ...f.color])].sort((a, b) => a.localeCompare(b, 'es'))
+  const grados = [...new Set([...base.map(grado), ...f.grado])].sort(compararGrados)
+  const grupos = new Map<string, Movil[]>()
+  const porColor = new Map<string, number>()
+  const porGrado = new Map<string, number>()
+  for (const m of base) {
+    const k = claveCasilla(color(m), grado(m))
+    grupos.set(k, [...(grupos.get(k) ?? []), m])
+    porColor.set(color(m), (porColor.get(color(m)) ?? 0) + 1)
+    porGrado.set(grado(m), (porGrado.get(grado(m)) ?? 0) + 1)
+  }
+  const casillas = new Map([...grupos].map(([k, xs]) => [k, { total: xs.length, reparto: reparto(xs) }] as const))
+  return { colores, grados, casillas, porColor, porGrado, total: base.length }
+}
+
+export function casilla(m: Matriz, color: string, grado: string): Casilla {
+  return m.casillas.get(claveCasilla(color, grado)) ?? CASILLA_VACIA
+}
+
+/** El detalle al pasar el ratón: «Grafito A: 4 listos · 2 en taller · 1 en revisión». */
+export function tituloCasilla(color: string, grado: string, c: Casilla): string {
+  return `${color} ${grado}: ${c.reparto.listos} listos · ${c.reparto.taller} en taller · ${c.reparto.revision} en revisión`
+}
+
+const solo = (s: ReadonlySet<string>, v: string) => s.size === 1 && s.has(v)
+
+/** ¿Va resaltada la casilla? Con algo elegido, las que caen dentro del color y del grado elegidos. */
+export function casillaElegida(f: Filtros, color: string, grado: string): boolean {
+  if (f.color.size === 0 && f.grado.size === 0) return false
+  return (f.color.size === 0 || f.color.has(color)) && (f.grado.size === 0 || f.grado.has(grado))
+}
+
+/** ¿Va resaltada la cabecera? Un color (o un grado) elegido solo, sin el otro. */
+export const colorElegido = (f: Filtros, color: string): boolean => f.color.has(color) && f.grado.size === 0
+export const gradoElegido = (f: Filtros, grado: string): boolean => f.grado.has(grado) && f.color.size === 0
+
+/** Clic en una casilla: filtra por ese color y ese grado, y volver a pulsarla lo quita. Con Ctrl (o Cmd) suma su color y su
+ *  grado a lo elegido, como el prototipo: Grafito A + Oro B deja Grafito y Oro en A y B. */
+export function pulsarCasilla(f: Filtros, color: string, grado: string, sumar: boolean): Filtros {
+  if (sumar) return { ...f, color: new Set([...f.color, color]), grado: new Set([...f.grado, grado]) }
+  if (solo(f.color, color) && solo(f.grado, grado)) return { ...f, color: new Set(), grado: new Set() }
+  return { ...f, color: new Set([color]), grado: new Set([grado]) }
+}
+
+/** Clic en un color de la cabecera: solo ese color, de cualquier grado; volver a pulsarlo lo quita. */
+export function pulsarColor(f: Filtros, color: string): Filtros {
+  if (solo(f.color, color) && f.grado.size === 0) return { ...f, color: new Set() }
+  return { ...f, color: new Set([color]), grado: new Set() }
+}
+
+/** Clic en un grado de la cabecera: solo ese grado, de cualquier color; volver a pulsarlo lo quita. */
+export function pulsarGrado(f: Filtros, grado: string): Filtros {
+  if (solo(f.grado, grado) && f.color.size === 0) return { ...f, grado: new Set() }
+  return { ...f, grado: new Set([grado]), color: new Set() }
+}
+
 /** Muestra de color de la tabla (las del prototipo, en español y en inglés). Las que no están, en gris. */
 const MUESTRAS: Record<string, string> = {
   azul: '#3b6fd1', blue: '#3b6fd1', medianoche: '#1d2533', midnight: '#1d2533', blanco: '#f4f4f4', white: '#f4f4f4',

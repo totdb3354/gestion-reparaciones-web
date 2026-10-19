@@ -12,9 +12,10 @@ import { columnasMoviles } from './columnas'
 import { claveFiltros, estadoStockTelefonos } from './estado'
 import { FiltrosMoviles } from './FiltrosMoviles'
 import { ListaModelos } from './ListaModelos'
+import { MatrizColorGrado } from './MatrizColorGrado'
 import {
-  capacidadDe, cuentaComoStock, FILTROS_VACIOS, modeloDe, modelosLista, ordenarTabla, pasa, pasaSku, pestanasCapacidad, preparar,
-  type Filtros, type FiltroSku,
+  capacidadDe, contarFiltros, cuentaComoStock, FILTROS_VACIOS, modeloDe, modelosLista, ordenarTabla, pasa, pasaSku, pestanasCapacidad,
+  preparar, type Filtros, type FiltroSku,
 } from './modelo'
 import { PastillaSku } from './PastillaSku'
 import { PestanasCapacidad } from './PestanasCapacidad'
@@ -24,8 +25,9 @@ const PIE = '"Quién lo tiene" sale de las asignaciones abiertas del ERP, al mom
 
 /** «Stock de teléfonos» (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.2; 0.9.18, spec «Columna compacta, SKU, Quién lo
  *  tiene y Revisado» §4): una fila por modelo a la izquierda, con el buscador de modelo o SKU, y a la derecha el modelo con
- *  sus pestañas de capacidad, el filtro de SKU, sus filtros y sus móviles. Solo lectura: los datos vienen del espejo de NSYS
- *  y de las asignaciones abiertas del ERP. Un móvil abre su detalle de IMEIs, con la ficha de NSYS y el rastro. */
+ *  sus pestañas de capacidad, la tabla color × grado, los filtros y sus móviles. Ocupa la ventana sin scroll de página: el
+ *  scroll va dentro de la columna y de la tabla. Solo lectura: los datos vienen del espejo de NSYS y de las asignaciones
+ *  abiertas del ERP. Un móvil abre su detalle de IMEIs, con la ficha de NSYS y el rastro. */
 export function StockTelefonosPage() {
   const navigate = useNavigate()
   const stock = useStockTelefonos()
@@ -55,18 +57,19 @@ export function StockTelefonosPage() {
     [modelo, capacidad, sku],
   )
   const filas = useMemo(() => ordenarTabla(delModelo.filter((m) => pasa(m, filtros))), [delModelo, filtros])
+  const activos = contarFiltros(filtros) + (sku ? 1 : 0)
   const enStock = moviles.filter(cuentaComoStock).length
   const abrir = useCallback((imeiSn: string) => navigate(`/reparaciones/imeis/${encodeURIComponent(imeiSn)}`, { state: { desde: '/telefonos/stock' } }), [navigate])
   const columnas = useMemo(() => columnasMoviles(abrir, { conCapacidad: capacidad === null, sku }), [abrir, capacidad, sku])
   return (
-    <div className="p-10 max-[1500px]:p-5">
-      <div className="mb-2 flex flex-wrap items-center gap-3">
+    <div className="flex h-[calc(100vh-var(--spacing-navbar))] flex-col p-10 max-[1500px]:p-5">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-azul-medio">Stock de teléfonos</h1>
         {!sinCargar && <PildoraContador texto={`${enStock} ${enStock === 1 ? 'móvil' : 'móviles'} en stock`} />}
         <PildoraNsys />
       </div>
       <BandaNsys />
-      <div className="mb-3 flex flex-wrap items-center gap-4">
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-4">
         <BuscadorImei onElegir={abrir} />
         <button type="button" role="switch" aria-checked={verNoCuenta} onClick={() => setEstado((e) => ({ ...e, verNoCuenta: !e.verNoCuenta }))}
           className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-azul-medio">
@@ -76,25 +79,35 @@ export function StockTelefonosPage() {
           Ver también lo que no cuenta como stock
         </button>
       </div>
-      <div className="grid grid-cols-[270px_1fr] items-start gap-3 max-[1500px]:grid-cols-[230px_1fr]">
+      <div className="grid min-h-0 flex-1 grid-cols-[270px_1fr] gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos modelos={visibles} elegido={modelo?.clave ?? null} capacidad={capacidad}
           onAbrir={(m, c) => abrirModelo({ modelo: m, capacidad: c, sku: null })}
           buscador={<BuscadorModelo lista={lista} moviles={moviles} texto={textoModelo} sugerencias={sugerencias}
             onTexto={(t) => setEstado((e) => ({ ...e, textoModelo: t }))} onAbrir={abrirModelo} />} />
-        <section aria-label="Móviles del modelo" className="min-w-0 rounded-md bg-superficie p-3">
+        <section aria-label="Móviles del modelo" className="flex min-h-0 min-w-0 flex-col gap-2 rounded-md bg-superficie p-3">
           {modelo && (
             <>
-              <div className="mb-2 flex flex-wrap items-center gap-2.5">
+              <div className="flex shrink-0 flex-wrap items-center gap-2.5">
                 <h2 className="text-base font-bold text-azul-noche">{modelo.clave}</h2>
                 <PestanasCapacidad pestanas={pestanas} elegida={capacidad} onElegir={(c) => abrirModelo({ modelo: modelo.clave, capacidad: c, sku: null })} />
                 <PildoraContador texto={`${filas.length} ${filas.length === 1 ? 'móvil' : 'móviles'}`} />
                 {sku && <PastillaSku sku={sku} onQuitar={() => cambiarFiltros(filtros, null)} />}
+                {activos > 0 && (
+                  <button type="button" onClick={() => cambiarFiltros(FILTROS_VACIOS, null)} className="cursor-pointer text-[12px] font-bold text-texto-accion hover:underline">
+                    Quitar filtros ({activos})
+                  </button>
+                )}
               </div>
-              <FiltrosMoviles moviles={delModelo} filtros={filtros} onCambiar={(f) => cambiarFiltros(f, sku)} />
-              <DataTable columns={columnas} data={filas} vacio="Ningún móvil con estos filtros" ajuste="fluido" alturaMax="calc(100vh - 430px)"
-                getRowId={(m) => `${m.imeiSn}|${m.lote}`} onAbrir={(m) => abrir(m.imeiSn)}
-                filaClase={(m) => cn('border-l-4', 'border-l-transparent', !cuentaComoStock(m) && 'text-texto-suave')} />
-              <p className="mt-2 text-[11.5px] text-azul-gris">{PIE}</p>
+              <div className="flex shrink-0 items-start gap-4 overflow-x-auto">
+                <MatrizColorGrado moviles={delModelo} filtros={filtros} onCambiar={(f) => cambiarFiltros(f, sku)} />
+                <FiltrosMoviles moviles={delModelo} filtros={filtros} onCambiar={(f) => cambiarFiltros(f, sku)} />
+              </div>
+              <div role="region" aria-label="Tabla de móviles" className="min-h-0 flex-1">
+                <DataTable columns={columnas} data={filas} vacio="Ningún móvil con estos filtros" ajuste="fluido" alturaMax="100%"
+                  getRowId={(m) => `${m.imeiSn}|${m.lote}`} onAbrir={(m) => abrir(m.imeiSn)}
+                  filaClase={(m) => cn('border-l-4', 'border-l-transparent', !cuentaComoStock(m) && 'text-texto-suave')} />
+              </div>
+              <p className="shrink-0 text-[11.5px] text-azul-gris">{PIE}</p>
             </>
           )}
           {!modelo && sinCargar && <p className="p-4 text-[12px] text-azul-gris">No se pudo cargar el stock de teléfonos.</p>}

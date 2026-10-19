@@ -23,7 +23,7 @@ export function ListaModelos({ modelos, elegido, capacidad, buscador, onAbrir }:
     filaElegida.current?.scrollIntoView({ block: 'nearest' })
   }, [elegido])
   return (
-    <nav aria-label="Modelos" className="flex max-h-[calc(100vh-300px)] min-h-0 flex-col overflow-hidden rounded-md bg-superficie max-[1500px]:max-h-[calc(100vh-260px)]">
+    <nav aria-label="Modelos" className="flex min-h-0 flex-col overflow-hidden rounded-md bg-superficie">
       <div className="border-b border-fila-sep p-2">{buscador}</div>
       <div aria-hidden className="flex gap-3 border-b border-fila-sep px-3 py-1.5 text-[10.5px] text-azul-gris">
         {LEYENDA.map(([color, texto]) => (

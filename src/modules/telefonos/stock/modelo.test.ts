@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { movilBuscado, trabajo, visto } from '../test/fabrica'
 import {
-  BATERIA_NUEVA, capacidadCorta, contarFiltros, cuentaComoStock, FILTROS_VACIOS, modelosLista, muestraColor, opciones, ordenarTabla, pasa,
-  normalizar, partesSku, pasaSku, pestanasCapacidad, reparto, textoBuscado, textoCapacidad, valores,
+  BATERIA_NUEVA, capacidadCorta, casilla, casillaElegida, colorElegido, contarFiltros, cuentaComoStock, FILTROS_VACIOS, gradoElegido, matriz, modelosLista, muestraColor, opciones, ordenarTabla, pasa,
+  normalizar, partesSku, pasaSku, pestanasCapacidad, pulsarCasilla, pulsarColor, pulsarGrado, reparto, textoBuscado, textoCapacidad,
+  tituloCasilla, valores,
 } from './modelo'
 import { CON_DESCUADRE, SIN_ASIGNAR } from './quien'
 
@@ -151,5 +152,60 @@ describe('stock de teléfonos: filtro de SKU (spec 0.9.18 §4.2)', () => {
     expect(partesSku('i13PRO128GrafitoA', { texto: 'i13PRO128GrafitoA', exacto: true })).toEqual(['i13PRO128GrafitoA', ''])
     expect(partesSku('i14128AzulA', { texto: 'i13', exacto: false })).toBeNull()
     expect(partesSku('i13PRO128GrafitoA', null)).toBeNull()
+  })
+})
+
+describe('stock de teléfonos: tabla color × grado (spec 0.9.18 §4.4)', () => {
+  const X = [
+    visto({ imeiSn: '350000000000041', color: 'Grafito', grado: 'A', ubicacion: 'Listos' }),
+    visto({ imeiSn: '350000000000042', color: 'Grafito', grado: 'A', ubicacion: 'Taller · Pulir', bateriaNueva: true }),
+    visto({ imeiSn: '350000000000043', color: 'Grafito', grado: 'n/a', ubicacion: 'En revisión' }),
+    visto({ imeiSn: '350000000000044', color: 'Oro', grado: 'B', ubicacion: 'Listos' }),
+    visto({ imeiSn: '350000000000045', color: 'Oro', grado: 'A', ubicacion: 'Listos', estado: 'DE_PEDIDO' }),
+  ]
+
+  it('cuenta solo el stock, con sus totales y el reparto de cada casilla', () => {
+    const m = matriz(X, FILTROS_VACIOS)
+    expect(m.colores).toEqual(['Grafito', 'Oro'])
+    expect(m.grados).toEqual(['A', 'B', 'n/a'])
+    expect(casilla(m, 'Grafito', 'A')).toEqual({ total: 2, reparto: { listos: 1, taller: 1, revision: 0 } })
+    expect(casilla(m, 'Oro', 'A').total).toBe(0)
+    expect(m.porColor.get('Grafito')).toBe(3)
+    expect(m.porGrado.get('A')).toBe(2)
+    expect(m.total).toBe(4)
+    expect(tituloCasilla('Grafito', 'A', casilla(m, 'Grafito', 'A'))).toBe('Grafito A: 1 listos · 1 en taller · 0 en revisión')
+  })
+
+  it('respeta los demás filtros pero no su propia selección; lo elegido sale aunque se quede a cero', () => {
+    const m = matriz(X, { ...FILTROS_VACIOS, bateria: new Set([BATERIA_NUEVA]), color: new Set(['Oro']) })
+    expect(m.total).toBe(1)
+    expect(casilla(m, 'Grafito', 'A').total).toBe(1)
+    expect(m.colores).toEqual(['Grafito', 'Oro'])
+  })
+
+  it('una casilla filtra por ese color y ese grado, y volver a pulsarla lo quita; con Ctrl suma su color y su grado', () => {
+    const f1 = pulsarCasilla(FILTROS_VACIOS, 'Grafito', 'A', false)
+    expect([...f1.color, ...f1.grado]).toEqual(['Grafito', 'A'])
+    expect(contarFiltros(pulsarCasilla(f1, 'Grafito', 'A', false))).toBe(0)
+    const f2 = pulsarCasilla(f1, 'Oro', 'B', true)
+    expect([...f2.color]).toEqual(['Grafito', 'Oro'])
+    expect([...f2.grado]).toEqual(['A', 'B'])
+    expect(casillaElegida(f2, 'Oro', 'A')).toBe(true)
+    expect(casillaElegida(f1, 'Oro', 'A')).toBe(false)
+    expect(casillaElegida(FILTROS_VACIOS, 'Oro', 'A')).toBe(false)
+  })
+
+  it('el color o el grado de la cabecera filtra solo por eso, y volver a pulsarlo lo quita', () => {
+    const porColor = pulsarColor(pulsarCasilla(FILTROS_VACIOS, 'Grafito', 'A', false), 'Oro')
+    expect([...porColor.color]).toEqual(['Oro'])
+    expect(porColor.grado.size).toBe(0)
+    expect(colorElegido(porColor, 'Oro')).toBe(true)
+    expect(pulsarColor(porColor, 'Oro').color.size).toBe(0)
+    const porGrado = pulsarGrado(porColor, 'B')
+    expect([...porGrado.grado]).toEqual(['B'])
+    expect(porGrado.color.size).toBe(0)
+    expect(gradoElegido(porGrado, 'B')).toBe(true)
+    expect(casillaElegida(porGrado, 'Grafito', 'B')).toBe(true)
+    expect(pulsarGrado(porGrado, 'B').grado.size).toBe(0)
   })
 })

@@ -36,7 +36,9 @@ const abrir = () => renderConProviders(<StockTelefonosPage />, {
   sesion: SESION_SUPER, ruta: '/telefonos/stock',
   rutas: <Route path="/reparaciones/imeis/:imei" element={<DetalleFalso />} />,
 })
-const filas = () => screen.getAllByRole('row').slice(1)
+const filas = () => within(screen.getByRole('region', { name: 'Tabla de móviles' })).getAllByRole('row').slice(1)
+const primeraFila = async () => (await within(await screen.findByRole('region', { name: 'Tabla de móviles' })).findAllByRole('row'))[1]
+const matriz = () => screen.getByRole('table', { name: 'Color y grado' })
 const imeiDe = (fila: HTMLElement) => fila.textContent?.match(/3500000000000\d\d/)?.[0]
 const lista = () => screen.getByRole('navigation', { name: 'Modelos' })
 const modelosDeLaLista = () => within(lista()).getAllByRole('button', { name: / en stock$/ }).map((b) => b.getAttribute('aria-label'))
@@ -45,7 +47,7 @@ const celda = (fila: HTMLElement, columna: string) => {
   const cabeceras = within(fila.closest('table') as HTMLElement).getAllByRole('columnheader')
   return within(fila).getAllByRole('cell')[cabeceras.findIndex((c) => c.textContent === columna)]
 }
-const colorAzul = () => within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul/ })
+const colorAzul = () => within(matriz()).getByRole('button', { name: 'Color Azul' })
 const interruptor = () => screen.getByRole('switch', { name: 'Ver también lo que no cuenta como stock' })
 
 describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
@@ -91,7 +93,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(filas().map(imeiDe)).toEqual(['350000000000007'])
   })
 
-  it('al elegir un modelo salen sus móviles y los filtros de un clic se combinan', async () => {
+  it('al elegir un modelo salen sus móviles y los filtros se combinan', async () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await screen.findByRole('button', { name: 'iPhone 13 128GB: 2' }))
@@ -101,7 +103,8 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     await user.click(screen.getByRole('button', { name: 'Ubicación' }))
     await user.click(screen.getByRole('checkbox', { name: 'Listos (1)' }))
     expect(filas()).toHaveLength(1)
-    expect(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Rosa/ })).toBeDisabled()
+    // La tabla color × grado respeta los demás filtros: en Listos no hay ningún Rosa, así que su fila desaparece.
+    expect(within(matriz()).queryByRole('button', { name: 'Color Rosa' })).not.toBeInTheDocument()
     await user.keyboard('{Escape}')
     await user.click(screen.getByRole('button', { name: 'Quitar filtros (2)' }))
     expect(filas()).toHaveLength(2)
@@ -364,14 +367,43 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
   it('un grado vacío se ve como raya en la tabla', async () => {
     server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json([movil({ imeiSn: '350000000000009', grado: '' })])))
     abrir()
-    expect(celda((await screen.findAllByRole('row'))[1], 'Grado')).toHaveTextContent('—')
+    expect(celda(await primeraFila(), 'Grado')).toHaveTextContent('—')
   })
 
-  it('los chips de color y grado se leen con un espacio entre el nombre y el número', async () => {
+  it('la tabla color × grado cuenta el stock y filtra por casilla, color, grado y Ctrl+clic', async () => {
     const user = userEvent.setup()
     abrir()
-    await user.click(await screen.findByRole('button', { name: 'iPhone 13 128GB: 2' }))
-    expect(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul \d+$/ })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'iPhone 13: 3 en stock' }))
+    expect(screen.queryByRole('group', { name: 'Color' })).not.toBeInTheDocument()
+    // Del iPhone 13 en stock: Azul A (001), Rosa B (006, 256 GB) y Rosa n/a (003, en revisión).
+    expect(within(matriz()).getByRole('button', { name: 'Azul A: 1' })).toHaveAttribute('title', 'Azul A: 1 listos · 0 en taller · 0 en revisión')
+    expect(within(matriz()).getByRole('button', { name: 'Rosa n/a: 1' })).toHaveAttribute('title', 'Rosa n/a: 0 listos · 0 en taller · 1 en revisión')
+    await user.click(within(matriz()).getByRole('button', { name: 'Rosa B: 1' }))
+    expect(filas().map(imeiDe)).toEqual(['350000000000006'])
+    expect(within(matriz()).getByRole('button', { name: 'Azul A: 1' })).toBeInTheDocument()
+    await user.click(within(matriz()).getByRole('button', { name: 'Rosa B: 1' }))
+    expect(filas()).toHaveLength(3)
+    await user.click(within(matriz()).getByRole('button', { name: 'Color Rosa' }))
+    expect(filas().map(imeiDe)).toEqual(['350000000000006', '350000000000003'])
+    await user.click(within(matriz()).getByRole('button', { name: 'Grado A' }))
+    expect(filas().map(imeiDe)).toEqual(['350000000000001'])
+    await user.click(within(matriz()).getByRole('button', { name: 'Rosa B: 1' }))
+    await user.keyboard('{Control>}')
+    await user.click(within(matriz()).getByRole('button', { name: 'Azul A: 1' }))
+    await user.keyboard('{/Control}')
+    expect(filas().map(imeiDe)).toEqual(['350000000000006', '350000000000001'])
+    expect(screen.getByRole('button', { name: 'Quitar filtros (4)' })).toBeInTheDocument()
+  })
+
+  it('«Quitar filtros» cuenta también el SKU y lo quita todo', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await screen.findByText('4 móviles en stock')
+    await user.type(screen.getByRole('textbox', { name: 'Buscar modelo o SKU' }), 'i13{Enter}')
+    await user.click(colorAzul())
+    await user.click(screen.getByRole('button', { name: 'Quitar filtros (2)' }))
+    expect(screen.queryByTestId('pastilla-sku')).not.toBeInTheDocument()
+    expect(filas()).toHaveLength(3)
   })
 
   const CON_TRABAJOS = [
@@ -414,7 +446,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
       movil({ imeiSn: '350000000000031', grado: 'MsB', bateriaNueva: true, esEsim: true }),
     ])))
     abrir()
-    const grado = celda((await screen.findAllByRole('row'))[1], 'Grado')
+    const grado = celda(await primeraFila(), 'Grado')
     expect(within(grado).getByText('MsB')).toHaveClass('border-tipo-glass-text')
     expect(within(grado).getByText('100')).toHaveAttribute('title', 'Batería nueva')
     expect(within(grado).getByText('eSIM')).toBeInTheDocument()
