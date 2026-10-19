@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { movilBuscado, trabajo, visto } from '../test/fabrica'
 import {
   BATERIA_NUEVA, capacidadCorta, contarFiltros, cuentaComoStock, FILTROS_VACIOS, modelosLista, muestraColor, opciones, ordenarTabla, pasa,
-  pestanasCapacidad, reparto, textoBuscado, textoCapacidad, valores,
+  normalizar, partesSku, pasaSku, pestanasCapacidad, reparto, textoBuscado, textoCapacidad, valores,
 } from './modelo'
 import { CON_DESCUADRE, SIN_ASIGNAR } from './quien'
 
@@ -129,5 +129,27 @@ describe('stock de teléfonos: filtros', () => {
     expect(muestraColor('midnight')).toBe('#1d2533')
     expect(muestraColor('Titanio desierto')).toBe('#cccccc')
     expect(muestraColor(null)).toBe('#cccccc')
+  })
+})
+
+describe('stock de teléfonos: filtro de SKU (spec 0.9.18 §4.2)', () => {
+  const G = visto({ sku: 'i13PRO128GrafitoA' })
+  it('sin mayúsculas ni espacios', () => {
+    expect(normalizar(' i13 PRO ')).toBe('i13pro')
+  })
+
+  it('SKU exacto o que empieza por lo escrito; sin SKU, no pasa', () => {
+    expect(pasaSku(G, null)).toBe(true)
+    expect(pasaSku(G, { texto: 'i13pro128grafitoa', exacto: true })).toBe(true)
+    expect(pasaSku(G, { texto: 'i13PRO128', exacto: true })).toBe(false)
+    expect(pasaSku(G, { texto: 'i13 pro', exacto: false })).toBe(true)
+    expect(pasaSku(visto({ sku: null }), { texto: 'i13', exacto: false })).toBe(false)
+  })
+
+  it('la parte buscada del SKU, para resaltarla', () => {
+    expect(partesSku('i13PRO128GrafitoA', { texto: 'i13pro', exacto: false })).toEqual(['i13PRO', '128GrafitoA'])
+    expect(partesSku('i13PRO128GrafitoA', { texto: 'i13PRO128GrafitoA', exacto: true })).toEqual(['i13PRO128GrafitoA', ''])
+    expect(partesSku('i14128AzulA', { texto: 'i13', exacto: false })).toBeNull()
+    expect(partesSku('i13PRO128GrafitoA', null)).toBeNull()
   })
 })

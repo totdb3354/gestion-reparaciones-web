@@ -31,7 +31,7 @@ export function ListaModelos({ modelos, elegido, capacidad, buscador, onAbrir }:
         ))}
       </div>
       <ul className="min-h-0 flex-1 overflow-y-auto">
-        {modelos.length === 0 && <li className="p-4 text-[12px] text-azul-gris">Ningún modelo</li>}
+        {modelos.length === 0 && <li className="p-4 text-[12px] text-azul-gris">Ningún modelo ni SKU en stock empieza así.</li>}
         {modelos.map((g) => {
           const activo = g.clave === elegido
           return (

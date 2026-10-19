@@ -172,6 +172,27 @@ export function contarFiltros(f: Filtros): number {
   return Object.values(f).reduce((n, s) => n + s.size, 0)
 }
 
+/** El filtro de SKU de la cabecera del modelo (spec 0.9.18 §4.2): un SKU exacto o los que empiezan por un texto. */
+export type FiltroSku = { texto: string; exacto: boolean }
+
+/** Para comparar SKU y nombres de modelo: sin mayúsculas ni espacios. */
+export const normalizar = (texto: string): string => texto.toLowerCase().replace(/\s+/g, '')
+
+export function pasaSku(m: MovilStock, sku: FiltroSku | null): boolean {
+  if (!sku) return true
+  if (!m.sku) return false
+  const q = normalizar(sku.texto)
+  return sku.exacto ? normalizar(m.sku) === q : normalizar(m.sku).startsWith(q)
+}
+
+/** La parte del SKU que coincide con el filtro, para resaltarla en la columna SKU: [resaltado, resto], o null. Los SKU no
+ *  llevan espacios: se corta por el largo de lo buscado sin espacios. */
+export function partesSku(sku: string, filtro: FiltroSku | null): [string, string] | null {
+  if (!filtro || !normalizar(sku).startsWith(normalizar(filtro.texto))) return null
+  const n = filtro.exacto ? sku.length : normalizar(filtro.texto).length
+  return [sku.slice(0, n), sku.slice(n)]
+}
+
 /** Orden de la tabla (spec 0.9.18 §4.6): primero lo que cuenta; dentro de eso, los descuadres y los «en caja, sin
  *  asignar»; luego por días, de menos a más (sin días, al final). */
 export function ordenarTabla(moviles: Movil[]): Movil[] {

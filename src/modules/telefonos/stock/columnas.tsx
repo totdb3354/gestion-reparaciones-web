@@ -3,18 +3,19 @@ import { clasesUbicacion, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { CeldaQuien } from './CeldaQuien'
-import { capacidadDe, muestraColor, textoCapacidad, type Movil } from './modelo'
+import { capacidadDe, muestraColor, partesSku, textoCapacidad, type FiltroSku, type Movil } from './modelo'
 import { PildoraGrado } from './PildoraGrado'
 
 const MARCA = 'ml-1 inline-block rounded border px-1 align-[1px] text-[10px] font-bold'
 
-/** `conCapacidad`: con la pestaña «Todas», la columna «Cap.» detrás del IMEI (spec §4.3). */
-export type OpcionesColumnas = { conCapacidad?: boolean }
+/** `conCapacidad`: con la pestaña «Todas», la columna «Cap.» detrás del IMEI (spec §4.3). `sku`: el filtro de SKU, cuya
+ *  parte buscada se resalta en la columna SKU (§4.2). */
+export type OpcionesColumnas = { conCapacidad?: boolean; sku?: FiltroSku | null }
 
 /** Columnas de la tabla de móviles (0.9.18, spec §4.6): IMEI · (Cap.) · Color · Grado (con «100» si la batería es nueva y
  *  «eSIM») · SKU · Ubicación (con «NO CUENTA · …» si no cuenta como stock) · Quién lo tiene · Días. El IMEI es un botón
  *  que abre el detalle. */
-export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad = false }: OpcionesColumnas = {}): ColumnDef<Movil>[] {
+export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad = false, sku = null }: OpcionesColumnas = {}): ColumnDef<Movil>[] {
   const imei: ColumnDef<Movil> = {
     id: 'imei', header: 'IMEI', size: 150, maxSize: 160,
     cell: ({ row }) => (
@@ -45,7 +46,18 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
         </>
       ),
     },
-    { id: 'sku', header: 'SKU', size: 150, cell: ({ row }) => <span className="font-mono text-[11.5px]">{row.original.sku ?? '—'}</span> },
+    {
+      id: 'sku', header: 'SKU', size: 150,
+      cell: ({ row }) => {
+        const valor = row.original.sku
+        const partes = valor ? partesSku(valor, sku) : null
+        return (
+          <span className="font-mono text-[11.5px]">
+            {partes ? <><mark className="bg-amarillo/60 text-azul-noche">{partes[0]}</mark>{partes[1]}</> : (valor ?? '—')}
+          </span>
+        )
+      },
+    },
     {
       id: 'ubicacion', header: 'Ubicación', size: 190,
       cell: ({ row }) => (
