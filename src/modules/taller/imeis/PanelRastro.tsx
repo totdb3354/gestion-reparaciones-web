@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { EventoRastro } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
@@ -7,6 +8,15 @@ const LEYENDA: [string, string][] = [
   ['bg-texto-suave', 'Lote'], ['bg-ambar', 'Revisión'], ['bg-tipo-reparacion-text', 'Taller'], ['bg-fila-recibido-brd', 'Listos'],
   ['bg-fila-urgente-brd', 'De pedido'], ['bg-azul-noche', 'Vendido'], ['bg-fila-solicitud-brd', 'Devolución'], ['bg-gris-borde', 'No cuenta como stock'],
 ]
+
+/** La marca del evento de revisión (0.9.18, spec §5.3): un círculo verde con un ✓, en el rastro y en la leyenda. */
+function MarcaRevision({ className }: { className?: string }) {
+  return (
+    <span aria-hidden data-testid="marca-revision" className={cn('flex items-center justify-center rounded-full bg-verde-ok text-superficie', className)}>
+      <Check className="size-2.5" strokeWidth={4} />
+    </span>
+  )
+}
 
 type Props = { imei: string; eventos: EventoRastro[]; onCerrar: () => void; onIrATrabajo: (idRep: string) => void }
 
@@ -38,6 +48,7 @@ export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo }: Props) {
           {LEYENDA.map(([color, texto]) => (
             <li key={texto} className="flex items-center gap-1.5"><span className={cn('h-2.5 w-2.5 rounded-full', color)} />{texto}</li>
           ))}
+          <li className="flex items-center gap-1.5"><MarcaRevision className="h-3 w-3" />Revisado</li>
         </ul>
         <p className="mb-3 text-[11.5px] text-azul-gris">Las horas de NSYS son las de la exportación en que se vio el cambio (± 30 min). Las del ERP son exactas.</p>
         {eventos.length === 0 && <p className="text-[12px] text-azul-gris">Todavía no hay eventos.</p>}
@@ -47,7 +58,9 @@ export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo }: Props) {
             const idRep = e.idRep
             return (
               <li key={i} className="relative mb-3">
-                <span aria-hidden className={cn('absolute top-[3px] -left-[35px] h-3.5 w-3.5 rounded-full border-[3px] border-superficie', v.color)} />
+                {v.revision
+                  ? <MarcaRevision className="absolute top-[1px] -left-[37px] h-[18px] w-[18px] border-[3px] border-superficie" />
+                  : <span aria-hidden className={cn('absolute top-[3px] -left-[35px] h-3.5 w-3.5 rounded-full border-[3px] border-superficie', v.color)} />}
                 <div className="text-[11px] font-bold text-azul-gris">
                   {v.fecha}
                   <span className={cn('ml-1.5 rounded px-1.5 text-[9.5px] font-extrabold', e.fuente === 'ERP' ? 'bg-recibido-bg text-recibido-text' : 'bg-badge-neutro-bg text-azul-gris')}>{e.fuente}</span>
