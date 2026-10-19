@@ -1,6 +1,7 @@
 import type {
   EstadoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, TrabajoAbierto,
 } from '@/shared/api/client'
+import { preparar, type Movil } from '../stock/modelo'
 
 /** Datos inventados del stock de teléfonos (repos públicos). */
 export function movil(p: Partial<MovilStock> = {}): MovilStock {
@@ -9,6 +10,14 @@ export function movil(p: Partial<MovilStock> = {}): MovilStock {
     grado: 'A', bateriaNueva: false, esEsim: false, sku: 'i13128AzulA', ubicacion: 'Listos', estado: 'STOCK', dias: 6,
     trabajos: [], ...p,
   }
+}
+
+/** 16/10/2026 13:43 en Madrid (CEST, UTC+2), en milisegundos: la «hora de la carga» de los tests de reglas. */
+export const AHORA = Date.parse('2026-10-16T11:43:00Z')
+
+/** Un móvil ya preparado para las reglas, con «Quién lo tiene» calculado a las 13:43 del 16/10. */
+export function visto(p: Partial<MovilStock> = {}, ahora: number = AHORA): Movil {
+  return preparar([movil(p)], ahora)[0]
 }
 
 /** Un trabajo abierto: por defecto, una reparación de «Técnico 1» asignada el 16/10 a las 09:00 (Madrid). */

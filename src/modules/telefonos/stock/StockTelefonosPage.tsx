@@ -10,8 +10,10 @@ import { columnasMoviles } from './columnas'
 import { estadoStockTelefonos } from './estado'
 import { FiltrosMoviles } from './FiltrosMoviles'
 import { ListaModelos } from './ListaModelos'
-import { agrupar, cuentaComoStock, FILTROS_VACIOS, ordenarTabla, pasa, type Filtros } from './modelo'
+import { agrupar, cuentaComoStock, FILTROS_VACIOS, ordenarTabla, pasa, preparar, type Filtros } from './modelo'
 import { BandaNsys, PildoraNsys } from './PildoraNsys'
+
+const PIE = '"Quién lo tiene" sale de las asignaciones abiertas del ERP, al momento; la caja, de la última exportación de NSYS. Pasa el ratón por encima para ver desde cuándo. El IMEI abre el detalle del móvil.'
 
 /** «Stock de teléfonos» (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.2; opción C del prototipo aprobado):
  *  modelo + capacidad a la izquierda, sus móviles a la derecha con filtros de un clic. Solo lectura: los datos vienen del
@@ -19,7 +21,8 @@ import { BandaNsys, PildoraNsys } from './PildoraNsys'
 export function StockTelefonosPage() {
   const navigate = useNavigate()
   const stock = useStockTelefonos()
-  const moviles = useMemo(() => stock.data ?? [], [stock.data])
+  // «Quién lo tiene» se calcula a la hora de la carga (dataUpdatedAt): el sondeo de 60 s lo vuelve a calcular.
+  const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
   const [{ verNoCuenta, textoModelo, elegido, filtrosDe }, setEstado] = useStore(estadoStockTelefonos)
   const grupos = useMemo(() => agrupar(moviles, verNoCuenta), [moviles, verNoCuenta])
@@ -63,7 +66,7 @@ export function StockTelefonosPage() {
               <DataTable columns={columnas} data={filas} vacio="Ningún móvil con estos filtros" ajuste="fluido" alturaMax="calc(100vh - 390px)"
                 getRowId={(m) => `${m.imeiSn}|${m.lote}`} onAbrir={(m) => abrir(m.imeiSn)}
                 filaClase={(m) => cn('border-l-4', 'border-l-transparent', !cuentaComoStock(m) && 'text-texto-suave')} />
-              <p className="mt-2 text-[11.5px] text-azul-gris">El IMEI abre el detalle del móvil. Con el interruptor también salen los que no cuentan como stock vendible (de pedido y otras cajas).</p>
+              <p className="mt-2 text-[11.5px] text-azul-gris">{PIE}</p>
             </>
           )}
           {!grupo && sinCargar && <p className="p-4 text-[12px] text-azul-gris">No se pudo cargar el stock de teléfonos.</p>}

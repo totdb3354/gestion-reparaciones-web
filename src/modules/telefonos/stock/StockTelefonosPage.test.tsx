@@ -5,7 +5,7 @@ import { Route, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { estadoNsys, movil, movilBuscado } from '../test/fabrica'
+import { estadoNsys, movil, movilBuscado, trabajo } from '../test/fabrica'
 import { StockTelefonosPage } from './StockTelefonosPage'
 
 const STOCK = [
@@ -73,7 +73,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
     await user.click(screen.getByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
     expect(filas()).toHaveLength(4)
-    expect(screen.getAllByText('NO CUENTA')).toHaveLength(2)
+    expect(screen.getAllByText(/^NO CUENTA · /)).toHaveLength(2)
     expect(screen.getByRole('button', { name: /^iPhone 13 128GB/ })).toHaveTextContent('2 no cuentan')
     expect(screen.getByRole('button', { name: /^iPhone 13 128GB/ })).toHaveTextContent('2 libres')
     expect(screen.getByText('3 móviles en stock')).toBeInTheDocument()
@@ -90,7 +90,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     expect(fila).toHaveTextContent('NO CUENTA')
     expect(fila).toHaveClass('text-texto-suave')
     expect(fila).not.toHaveClass('border-l-fila-urgente-brd')
-    expect(within(fila).getByText('De pedido')).not.toHaveClass('text-fila-urgente-brd')
+    expect(within(fila).getByText('NO CUENTA · De pedido')).not.toHaveClass('text-fila-urgente-brd')
     expect(screen.queryByText(/borde rojo/)).not.toBeInTheDocument()
   })
 
@@ -247,5 +247,59 @@ describe('Stock de teléfonos (spec pieza 1 §9.2)', () => {
     abrir()
     await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
     expect(within(screen.getByRole('group', { name: 'Color' })).getByRole('button', { name: /^Azul \d+$/ })).toBeInTheDocument()
+  })
+
+  const CON_TRABAJOS = [
+    movil({ imeiSn: '350000000000011', ubicacion: 'Taller · Reparación', dias: 3,
+      trabajos: [trabajo({ tecnico: 'Técnico 1' }), trabajo({ categoria: 'GLASS', tecnico: 'Técnico 3' })] }),
+    movil({ imeiSn: '350000000000012', ubicacion: 'Taller · Glass', dias: 5 }),
+    movil({ imeiSn: '350000000000013', ubicacion: 'Listos', dias: 1, trabajos: [trabajo({ tecnico: 'Técnico 2', desde: '2026-01-12T09:00:00' })] }),
+  ]
+  const imeiDe = (fila: HTMLElement) => fila.textContent?.match(/3500000000000\d\d/)?.[0]
+
+  it('«Quién lo tiene»: el descuadre y la caja sin asignar primero, con sus avisos junto a los filtros', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json(CON_TRABAJOS)))
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    expect(screen.getByRole('columnheader', { name: 'Quién lo tiene' })).toBeInTheDocument()
+    expect(filas().map(imeiDe)).toEqual(['350000000000013', '350000000000012', '350000000000011'])
+    expect(filas()[0]).toHaveTextContent('⚠ Técnico 2: trabajo abierto')
+    expect(filas()[1]).toHaveTextContent('⚠ En caja, sin asignar')
+    expect(filas()[2]).toHaveTextContent('Técnico 1 · glass Técnico 3 sin entregar')
+    expect(within(filas()[2]).getByText('Técnico 1').closest('[title]')).toHaveAttribute('title',
+      'Reparación de Técnico 1 desde el 16/10 · Glass de Técnico 3 desde el 16/10: el móvil aún no le ha llegado')
+    expect(screen.getByText('⚠ 1 en caja de taller sin asignar')).toBeInTheDocument()
+    expect(screen.getByText('⚠ 1 con descuadre')).toBeInTheDocument()
+  })
+
+  it('el filtro Técnico: un técnico, los sin asignar y los descuadres; un móvil sale si coincide uno', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json(CON_TRABAJOS)))
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    await user.click(screen.getByRole('button', { name: 'Técnico' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Técnico 3 (1)' }))
+    expect(filas().map(imeiDe)).toEqual(['350000000000011'])
+    await user.click(screen.getByRole('checkbox', { name: 'Sin asignar (en caja de taller) (1)' }))
+    expect(filas().map(imeiDe)).toEqual(['350000000000012', '350000000000011'])
+    await user.click(screen.getByRole('checkbox', { name: 'Con descuadre (1)' }))
+    expect(filas()).toHaveLength(3)
+    expect(screen.getByRole('button', { name: 'Técnico' })).toHaveTextContent('Técnico: 3')
+  })
+
+  it('el grado lleva su color y las marcas de batería nueva y eSIM', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json([
+      movil({ imeiSn: '350000000000031', grado: 'MsB', bateriaNueva: true, esEsim: true }),
+    ])))
+    abrir()
+    await user.click(await screen.findByRole('button', { name: /^iPhone 13 128GB/ }))
+    const celda = within(filas()[0]).getAllByRole('cell')[2]
+    expect(within(celda).getByText('MsB')).toHaveClass('border-tipo-glass-text')
+    expect(within(celda).getByText('100')).toHaveAttribute('title', 'Batería nueva')
+    expect(within(celda).getByText('eSIM')).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Batería' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Estado' })).not.toBeInTheDocument()
   })
 })

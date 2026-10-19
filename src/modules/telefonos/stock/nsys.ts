@@ -12,6 +12,11 @@ function ahoraEnMadrid(ahora: Date): string {
   return MADRID.format(ahora).replace(',', '')
 }
 
+/** «2026-10-16»: el día de hoy en Madrid. */
+export function diaDeHoyEnMadrid(ahora: Date = new Date()): string {
+  return ahoraEnMadrid(ahora).slice(0, 10)
+}
+
 /** Una hora de pared (sin zona) a minutos desde una referencia fija, para restar dos horas de Madrid. */
 function aMinutos(fechaHora: string): number {
   const [d, h] = fechaHora.replace('T', ' ').split(' ')

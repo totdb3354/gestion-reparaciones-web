@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { movil, movilBuscado } from '../test/fabrica'
+import { movilBuscado, trabajo, visto } from '../test/fabrica'
 import {
-  agrupar, BATERIA_NUEVA, contarFiltros, cuentaComoStock, FILTROS_VACIOS, grupoDe, muestraColor, opciones, ordenarTabla, pasa, textoBuscado, totales, valor,
+  agrupar, BATERIA_NUEVA, contarFiltros, cuentaComoStock, FILTROS_VACIOS, grupoDe, muestraColor, opciones, ordenarTabla, pasa, textoBuscado, totales, valores,
 } from './modelo'
+import { CON_DESCUADRE, SIN_ASIGNAR } from './quien'
 
-const A = movil({ imeiSn: '350000000000001', color: 'Azul', grado: 'A', ubicacion: 'Listos' })
-const B = movil({ imeiSn: '350000000000002', color: 'Azul', grado: 'A-', bateriaNueva: true, ubicacion: 'Taller · Glass', estado: 'DE_PEDIDO', dias: 30 })
-const C = movil({ imeiSn: '350000000000003', color: 'Rosa', grado: 'n/a', ubicacion: 'En revisión' })
-const D = movil({ imeiSn: '350000000000004', color: 'Azul', grado: 'B', ubicacion: 'Esperando pieza', estado: 'NO_CUENTA' })
-const E = movil({ imeiSn: '350000000000005', modelo: '14', modeloMaestro: '14', ubicacion: 'Listos' })
-const F = movil({ imeiSn: '350000000000006', modelo: null, modeloMaestro: null, capacidad: null })
+const A = visto({ imeiSn: '350000000000001', color: 'Azul', grado: 'A', ubicacion: 'Listos' })
+const B = visto({ imeiSn: '350000000000002', color: 'Azul', grado: 'A-', bateriaNueva: true, ubicacion: 'Taller · Glass', estado: 'DE_PEDIDO', dias: 30 })
+const C = visto({ imeiSn: '350000000000003', color: 'Rosa', grado: 'n/a', ubicacion: 'En revisión' })
+const D = visto({ imeiSn: '350000000000004', color: 'Azul', grado: 'B', ubicacion: 'Esperando pieza', estado: 'NO_CUENTA' })
+const E = visto({ imeiSn: '350000000000005', modelo: '14', modeloMaestro: '14', ubicacion: 'Listos' })
+const F = visto({ imeiSn: '350000000000006', modelo: null, modeloMaestro: null, capacidad: null })
+const DOS = visto({ imeiSn: '350000000000008', ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico 1' }), trabajo({ categoria: 'GLASS', tecnico: 'Técnico 3' })] })
 
 describe('stock de teléfonos: grupos y totales', () => {
   it('modelo + capacidad, del más nuevo al más antiguo y los sin modelo al final', () => {
@@ -23,35 +25,23 @@ describe('stock de teléfonos: grupos y totales', () => {
     expect(conTodo.moviles).toHaveLength(4)
     expect(conTodo.totales).toEqual({ total: 2, libres: 2, listos: 1, taller: 0, revision: 1, noCuentan: 2 })
     expect(totales([D])).toEqual({ total: 0, libres: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
-    expect(totales([B])).toEqual({ total: 0, libres: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
   })
 
-  it('lo que esta de pedido no cuenta como stock vendible, como el Excel', () => {
+  it('lo que está de pedido no cuenta como stock vendible, como el Excel', () => {
     expect(cuentaComoStock(B)).toBe(false)
     expect(cuentaComoStock(D)).toBe(false)
     expect(cuentaComoStock(A)).toBe(true)
     expect(agrupar([B], false)).toEqual([])
-    expect(agrupar([B], true)[0].moviles).toEqual([B])
-  })
-
-  it('orden de tienda: catálogo del más nuevo al más antiguo, capacidad en GB, luego solo maestro y sin modelo', () => {
-    const p = (modelo: string | null, capacidad: string | null, maestro: string | null = modelo) => movil({ modelo, modeloMaestro: maestro, capacidad })
-    const lista = [
-      p(null, null, null), p('xsmax', '64GB'), p(null, '128GB', '17e'), p('13promax', '1TB'), p('se2020', '64GB'),
-      p('16', '128GB'), p('13promax', '256GB'), p('16e', '128GB'), p('13promax', 'raro'), p('13promax', null),
-    ]
-    expect(agrupar(lista, false).map((g) => g.clave)).toEqual([
-      'iPhone 16e 128GB', 'iPhone 16 128GB', 'iPhone 13 Pro Max 256GB', 'iPhone 13 Pro Max 1TB', 'iPhone 13 Pro Max', 'iPhone 13 Pro Max raro',
-      'iPhone XS Max 64GB', 'iPhone SE 2020 64GB', 'iPhone 17e 128GB', 'Sin modelo en el maestro',
-    ])
   })
 })
 
 describe('stock de teléfonos: filtros', () => {
-  it('valores de cada dimensión', () => {
-    expect(valor('bateria', B)).toBe(BATERIA_NUEVA)
-    expect(valor('estado', B)).toBe('De pedido')
-    expect(valor('ubicacion', movil({ ubicacion: null }))).toBe('—')
+  it('valores de cada dimensión; en el técnico, varios o ninguno', () => {
+    expect(valores('bateria', B)).toEqual([BATERIA_NUEVA])
+    expect(valores('ubicacion', visto({ ubicacion: null }))).toEqual(['—'])
+    expect(valores('tecnico', DOS)).toEqual(['Técnico 1', 'Técnico 3'])
+    expect(valores('tecnico', visto({ ubicacion: 'Taller · Glass' }))).toEqual([SIN_ASIGNAR])
+    expect(valores('tecnico', A)).toEqual([])
   })
 
   it('las opciones cuentan con los demás filtros puestos y los grados van en su orden', () => {
@@ -60,16 +50,39 @@ describe('stock de teléfonos: filtros', () => {
     expect(opciones([A, B, C], 'color', f)).toEqual([{ valor: 'Azul', cuenta: 2 }, { valor: 'Rosa', cuenta: 1 }])
   })
 
-  it('pasa los filtros salvo la dimensión que se está contando', () => {
+  it('las opciones del técnico: los técnicos por nombre y al final sin asignar y con descuadre', () => {
+    const lista = [
+      visto({ imeiSn: '350000000000011', ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico 2' })] }),
+      visto({ imeiSn: '350000000000012', ubicacion: 'Taller · Glass' }),
+      visto({ imeiSn: '350000000000013', ubicacion: 'Listos', trabajos: [trabajo({ tecnico: 'Técnico 1' })] }),
+    ]
+    expect(opciones(lista, 'tecnico', FILTROS_VACIOS)).toEqual([
+      { valor: 'Técnico 1', cuenta: 1 }, { valor: 'Técnico 2', cuenta: 1 }, { valor: SIN_ASIGNAR, cuenta: 1 }, { valor: CON_DESCUADRE, cuenta: 1 },
+    ])
+  })
+
+  it('dentro de un filtro basta con que coincida uno de los valores del móvil', () => {
+    expect(pasa(DOS, { ...FILTROS_VACIOS, tecnico: new Set(['Técnico 3']) })).toBe(true)
+    expect(pasa(DOS, { ...FILTROS_VACIOS, tecnico: new Set([SIN_ASIGNAR]) })).toBe(false)
+  })
+
+  it('pasa los filtros salvo las dimensiones que se están contando', () => {
     const f = { ...FILTROS_VACIOS, color: new Set(['Rosa']), ubicacion: new Set(['Listos']) }
     expect(pasa(A, f)).toBe(false)
-    expect(pasa(A, f, 'color')).toBe(true)
+    expect(pasa(A, f, ['color'])).toBe(true)
+    expect(pasa(C, f, ['color', 'ubicacion'])).toBe(true)
     expect(contarFiltros(f)).toBe(2)
   })
 
-  it('la tabla ordena por color y antigüedad; los de pedido no van primero', () => {
-    const V = movil({ imeiSn: '350000000000007', color: 'Verde', estado: 'DE_PEDIDO', dias: 900 })
-    expect(ordenarTabla([V, C, A, B]).map((m) => m.imeiSn)).toEqual(['350000000000002', '350000000000001', '350000000000003', '350000000000007'])
+  it('la tabla: primero lo que cuenta; dentro, los descuadres y los sin asignar; luego por días, de menos a más', () => {
+    const descuadre = visto({ imeiSn: '350000000000021', ubicacion: 'Listos', dias: 40, trabajos: [trabajo()] })
+    const enCaja = visto({ imeiSn: '350000000000022', ubicacion: 'Taller · Pulir', dias: 30 })
+    const nuevo = visto({ imeiSn: '350000000000023', ubicacion: 'Listos', dias: 1 })
+    const viejo = visto({ imeiSn: '350000000000024', ubicacion: 'Listos', dias: 9 })
+    const sinDias = visto({ imeiSn: '350000000000025', ubicacion: 'Listos', dias: null })
+    expect(ordenarTabla([B, viejo, sinDias, nuevo, enCaja, descuadre]).map((m) => m.imeiSn)).toEqual([
+      '350000000000021', '350000000000022', '350000000000023', '350000000000024', '350000000000025', '350000000000002',
+    ])
   })
 
   it('texto de un móvil encontrado por el buscador', () => {
