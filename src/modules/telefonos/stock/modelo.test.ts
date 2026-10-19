@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { movilBuscado, trabajo, visto } from '../test/fabrica'
 import {
-  agrupar, BATERIA_NUEVA, contarFiltros, cuentaComoStock, FILTROS_VACIOS, grupoDe, muestraColor, opciones, ordenarTabla, pasa, textoBuscado, totales, valores,
+  BATERIA_NUEVA, capacidadCorta, contarFiltros, cuentaComoStock, FILTROS_VACIOS, modelosLista, muestraColor, opciones, ordenarTabla, pasa,
+  pestanasCapacidad, reparto, textoBuscado, textoCapacidad, valores,
 } from './modelo'
 import { CON_DESCUADRE, SIN_ASIGNAR } from './quien'
 
@@ -13,25 +14,56 @@ const E = visto({ imeiSn: '350000000000005', modelo: '14', modeloMaestro: '14', 
 const F = visto({ imeiSn: '350000000000006', modelo: null, modeloMaestro: null, capacidad: null })
 const DOS = visto({ imeiSn: '350000000000008', ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico 1' }), trabajo({ categoria: 'GLASS', tecnico: 'Técnico 3' })] })
 
-describe('stock de teléfonos: grupos y totales', () => {
-  it('modelo + capacidad, del más nuevo al más antiguo y los sin modelo al final', () => {
-    expect(grupoDe(A)).toBe('iPhone 13 128GB')
-    expect(agrupar([A, F, E, B], false).map((g) => g.clave)).toEqual(['iPhone 14 128GB', 'iPhone 13 128GB', 'Sin modelo en el maestro'])
+describe('stock de teléfonos: una fila por modelo (spec 0.9.18 §4.1) y pestañas de capacidad (§4.3)', () => {
+  it('una fila por modelo: del catálogo del más nuevo al más antiguo, los del maestro después y los sin modelo al final', () => {
+    expect(modelosLista([A, F, E], false).map((g) => g.clave)).toEqual(['iPhone 14', 'iPhone 13', 'Sin modelo en el maestro'])
+    const p = (modelo: string | null, capacidad: string | null, maestro: string | null = modelo) => visto({ modelo, modeloMaestro: maestro, capacidad })
+    const lista = [
+      p(null, null, null), p('xsmax', '64GB'), p(null, '128GB', '17e'), p('13promax', '1TB'), p('se2020', '64GB'),
+      p('16', '128GB'), p('13promax', '256GB'), p('16e', '128GB'),
+    ]
+    expect(modelosLista(lista, false).map((g) => g.clave)).toEqual([
+      'iPhone 16e', 'iPhone 16', 'iPhone 13 Pro Max', 'iPhone XS Max', 'iPhone SE 2020', 'iPhone 17e', 'Sin modelo en el maestro',
+    ])
   })
 
-  it('lo que no cuenta como stock solo sale con el interruptor y nunca suma en los totales', () => {
-    expect(agrupar([A, B, C, D], false)[0].moviles).toHaveLength(2)
-    const conTodo = agrupar([A, B, C, D], true)[0]
-    expect(conTodo.moviles).toHaveLength(4)
-    expect(conTodo.totales).toEqual({ total: 2, libres: 2, listos: 1, taller: 0, revision: 1, noCuentan: 2 })
-    expect(totales([D])).toEqual({ total: 0, libres: 0, listos: 0, taller: 0, revision: 0, noCuentan: 1 })
+  it('el total y las capacidades cuentan solo el stock, también con el interruptor; capacidades de menor a mayor', () => {
+    const fila = modelosLista([A, B, C, D, visto({ imeiSn: '350000000000009', capacidad: '1TB' }),
+      visto({ imeiSn: '350000000000010', capacidad: '256GB', estado: 'DE_PEDIDO' })], true)[0]
+    expect(fila.clave).toBe('iPhone 13')
+    expect(fila.total).toBe(3)
+    expect(fila.capacidades).toEqual([{ capacidad: '128GB', stock: 2 }, { capacidad: '256GB', stock: 0 }, { capacidad: '1TB', stock: 1 }])
+    expect(fila.reparto).toEqual({ listos: 2, taller: 0, revision: 1 })
+    expect(fila.moviles).toHaveLength(6)
+    expect(modelosLista([A, B, C, D], false)[0].moviles).toHaveLength(2)
+  })
+
+  it('con el interruptor apagado solo salen los modelos con stock', () => {
+    expect(modelosLista([B, D], false)).toEqual([])
+    expect(modelosLista([B, D], true).map((g) => g.clave)).toEqual(['iPhone 13'])
+  })
+
+  it('las pestañas: «Todas» y cada capacidad del modelo; sin stock, apagadas salvo con el interruptor si tienen algo', () => {
+    const todos = [A, C, visto({ imeiSn: '350000000000010', capacidad: '512GB', estado: 'DE_PEDIDO' })]
+    expect(pestanasCapacidad(todos, false)).toEqual([
+      { capacidad: null, stock: 2, activa: true }, { capacidad: '128GB', stock: 2, activa: true }, { capacidad: '512GB', stock: 0, activa: false },
+    ])
+    expect(pestanasCapacidad(todos, true)[2]).toEqual({ capacidad: '512GB', stock: 0, activa: true })
+  })
+
+  it('textos de la capacidad: «128 GB» en las pestañas y «128» en las pastillas', () => {
+    expect(textoCapacidad('128GB')).toBe('128 GB')
+    expect(textoCapacidad('1TB')).toBe('1 TB')
+    expect(textoCapacidad('—')).toBe('—')
+    expect(capacidadCorta('128GB')).toBe('128')
+    expect(capacidadCorta('1TB')).toBe('1TB')
   })
 
   it('lo que está de pedido no cuenta como stock vendible, como el Excel', () => {
     expect(cuentaComoStock(B)).toBe(false)
     expect(cuentaComoStock(D)).toBe(false)
     expect(cuentaComoStock(A)).toBe(true)
-    expect(agrupar([B], false)).toEqual([])
+    expect(reparto([B, D])).toEqual({ listos: 0, taller: 0, revision: 0 })
   })
 })
 

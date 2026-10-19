@@ -1,57 +1,64 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
-import type { Grupo } from './modelo'
-
-const MINI = 'inline-block min-w-5 rounded-lg px-1.5 text-center text-[10.5px] font-bold'
-const VERDE = 'bg-fila-recibido-bg text-fila-recibido-brd'
-const AZUL = 'bg-tipo-reparacion-bg text-tipo-reparacion-text'
-const AMBAR = 'bg-fila-solicitud-bg text-fila-solicitud-brd'
-
-function Mini({ clase, titulo, children }: { clase: string; titulo?: string; children: ReactNode }) {
-  return <span title={titulo} className={cn(MINI, clase)}>{children}</span>
-}
+import { BarraReparto } from './BarraReparto'
+import { capacidadCorta, type ModeloLista } from './modelo'
 
 type Props = {
-  grupos: Grupo[]
+  modelos: ModeloLista[]
   elegido: string | null
-  texto: string
-  verNoCuenta: boolean
-  onTexto: (texto: string) => void
-  onElegir: (clave: string) => void
+  capacidad: string | null
+  /** El buscador de la cabecera de la columna. */
+  buscador: ReactNode
+  onAbrir: (modelo: string, capacidad: string | null) => void
 }
 
-/** La columna de la izquierda: modelo + capacidad con el total en stock y tres números (listos, taller y revisión) más los libres (opción C del prototipo, con los totales de la B). */
-export function ListaModelos({ grupos, elegido, texto, verNoCuenta, onTexto, onElegir }: Props) {
+const LEYENDA: [string, string][] = [['bg-fila-recibido-brd', 'listos'], ['bg-tipo-reparacion-text', 'taller'], ['bg-ambar', 'revisión']]
+
+/** La columna de la izquierda (0.9.18, spec «Columna compacta, SKU, Quién lo tiene y Revisado» §4.1): una fila por modelo
+ *  con su total en stock, una pastilla por capacidad con stock y la barra listos / taller / revisión en el borde de abajo.
+ *  El nombre abre el modelo con «Todas»; una pastilla, con esa capacidad. La fila elegida se resalta y se desplaza a la vista. */
+export function ListaModelos({ modelos, elegido, capacidad, buscador, onAbrir }: Props) {
+  const filaElegida = useRef<HTMLLIElement>(null)
+  useEffect(() => {
+    filaElegida.current?.scrollIntoView({ block: 'nearest' })
+  }, [elegido])
   return (
-    <nav aria-label="Modelos" className="max-h-[calc(100vh-300px)] overflow-auto rounded-md bg-superficie max-[1500px]:max-h-[calc(100vh-260px)]">
-      <input aria-label="Buscar modelo" placeholder="Buscar modelo…" value={texto} onChange={(e) => onTexto(e.target.value)}
-        className="m-2 h-[34px] w-[calc(100%-16px)] rounded border border-borde-input px-2.5 text-[12px]" />
-      <div aria-hidden className="flex flex-wrap gap-1.5 border-b border-fila-sep px-3 pb-2">
-        <Mini clase={VERDE}>listos</Mini><Mini clase={AZUL}>taller</Mini><Mini clase={AMBAR}>revisión</Mini>
+    <nav aria-label="Modelos" className="flex max-h-[calc(100vh-300px)] min-h-0 flex-col overflow-hidden rounded-md bg-superficie max-[1500px]:max-h-[calc(100vh-260px)]">
+      <div className="border-b border-fila-sep p-2">{buscador}</div>
+      <div aria-hidden className="flex gap-3 border-b border-fila-sep px-3 py-1.5 text-[10.5px] text-azul-gris">
+        {LEYENDA.map(([color, texto]) => (
+          <span key={texto} className="flex items-center gap-1"><i className={cn('h-2 w-2 rounded-sm', color)} />{texto}</span>
+        ))}
       </div>
-      {grupos.length === 0 && <p className="p-4 text-[12px] text-azul-gris">Ningún modelo</p>}
-      {grupos.map((g) => {
-        const t = g.totales
-        const activo = g.clave === elegido
-        return (
-          <button key={g.clave} type="button" aria-pressed={activo} onClick={() => onElegir(g.clave)}
-            className={cn('flex w-full cursor-pointer items-center gap-2 border-b border-fila-sep px-3 py-2 text-left',
-              activo ? 'bg-azul-noche text-texto-nav-activo' : 'text-azul-medio hover:bg-seleccion-suave')}>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-bold">{g.clave}</span>
-              <span className="mt-0.5 flex flex-wrap items-center gap-1">
-                <Mini clase={VERDE} titulo="Listos">{t.listos}</Mini>
-                <Mini clase={AZUL} titulo="En el taller">{t.taller}</Mini>
-                <Mini clase={AMBAR} titulo="En revisión">{t.revision}</Mini>
-                <span className={cn('text-[11px]', activo ? 'text-[#c9d3e6]' : 'text-azul-gris')}>
-                  · {t.libres} libres{verNoCuenta && t.noCuentan > 0 ? ` · ${t.noCuentan} no cuentan` : ''}
-                </span>
-              </span>
-            </span>
-            <span className="text-[15px] font-extrabold">{t.total}</span>
-          </button>
-        )
-      })}
+      <ul className="min-h-0 flex-1 overflow-y-auto">
+        {modelos.length === 0 && <li className="p-4 text-[12px] text-azul-gris">Ningún modelo</li>}
+        {modelos.map((g) => {
+          const activo = g.clave === elegido
+          return (
+            <li key={g.clave} ref={activo ? filaElegida : undefined} className={cn('relative border-b border-fila-sep px-3 pt-1.5 pb-2.5', activo && 'bg-seleccion-suave')}>
+              <button type="button" aria-label={`${g.clave}: ${g.total} en stock`} aria-pressed={activo && capacidad === null} onClick={() => onAbrir(g.clave, null)}
+                className="flex w-full cursor-pointer items-baseline text-left">
+                <span className="text-[13px] font-bold text-azul-medio">{g.clave}</span>
+                <span className="ml-auto text-[15px] font-extrabold text-azul-noche">{g.total}</span>
+              </button>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {g.capacidades.filter((c) => c.stock > 0).map((c) => {
+                  const on = activo && capacidad === c.capacidad
+                  return (
+                    <button key={c.capacidad} type="button" aria-label={`${g.clave} ${c.capacidad}: ${c.stock}`} aria-pressed={on} onClick={() => onAbrir(g.clave, c.capacidad)}
+                      className={cn('group cursor-pointer rounded-md border px-1.5 py-px text-[11.5px] font-semibold whitespace-nowrap',
+                        on ? 'border-azul-noche bg-azul-noche text-superficie' : 'border-pill-borde bg-pill-bg text-azul-medio hover:border-azul-noche hover:bg-azul-noche hover:text-superficie')}>
+                      {capacidadCorta(c.capacidad)}
+                      <span className={cn('ml-1', on ? 'text-[#c9d3e6]' : 'text-azul-gris group-hover:text-[#c9d3e6]')}>{c.stock}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <BarraReparto reparto={g.reparto} className="absolute inset-x-0 bottom-0 h-1" />
+            </li>
+          )
+        })}
+      </ul>
     </nav>
   )
 }
