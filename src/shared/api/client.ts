@@ -74,6 +74,15 @@ export type EstadoNsys = components['schemas']['StockTelefonosEstadoImportacion'
 export type MovilBuscado = components['schemas']['StockTelefonosMovilBuscado']
 export type FichaMovil = components['schemas']['StockTelefonosFichaMovil']
 export type EventoRastro = components['schemas']['EventoRastro']
+/** 0.9.18 (spec «Columna compacta, SKU, Quién lo tiene y Revisado»): los trabajos abiertos de cada móvil (`categoria`
+ *  REPARACION, GLASS o PULIDO; `entregado`, solo en la glass), la comprobación de una lista de IMEIs y la lista de
+ *  importaciones de la píldora (`resultado` OK, RECHAZADO, ERROR o EN_CURSO; `historico.total` = 0 si no hay histórico).
+ *  Horas de Madrid, sin zona. */
+export type TrabajoAbierto = components['schemas']['TrabajoAbierto']
+export type MovilComprobado = components['schemas']['StockTelefonosMovilComprobado']
+export type ListaImportaciones = components['schemas']['StockTelefonosListaImportaciones']
+export type ImportacionNsys = components['schemas']['StockTelefonosFilaImportacion']
+export type ProgresoHistorico = components['schemas']['StockTelefonosProgresoHistorico']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */

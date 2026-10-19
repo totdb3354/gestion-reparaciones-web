@@ -9,8 +9,8 @@ import { guardarSesion } from '@/shared/session/storage'
 import { server } from '@/test/server'
 import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
-import { useEstadoNsys, useStockTelefonos } from './api'
-import { estadoNsys, movil } from './test/fabrica'
+import { useComprobarImeis, useEstadoNsys, useImportacionesNsys, useStockTelefonos } from './api'
+import { estadoNsys, listaImportaciones, movil, movilComprobado } from './test/fabrica'
 
 function envoltorio() {
   guardarSesion(SESION_SUPER)
@@ -43,5 +43,40 @@ describe('api del stock de teléfonos', () => {
     const largo = renderHook(() => useBuscarMoviles(' 3500 '), { wrapper: envoltorio() })
     await waitFor(() => expect(largo.result.current.isSuccess).toBe(true))
     expect(pedidas).toEqual(['3500'])
+  })
+
+  it('el estado de NSYS no pregunta si no está activo (el técnico)', () => {
+    let pedidas = 0
+    server.use(http.get('*/api/stock-telefonos/estado', () => {
+      pedidas++
+      return HttpResponse.json(estadoNsys())
+    }))
+    const estado = renderHook(() => useEstadoNsys(false), { wrapper: envoltorio() })
+    expect(estado.result.current.fetchStatus).toBe('idle')
+    expect(pedidas).toBe(0)
+  })
+
+  it('la lista de importaciones pide las últimas 20', async () => {
+    const limites: (string | null)[] = []
+    server.use(http.get('*/api/stock-telefonos/importaciones', ({ request }) => {
+      limites.push(new URL(request.url).searchParams.get('limite'))
+      return HttpResponse.json(listaImportaciones())
+    }))
+    const lista = renderHook(() => useImportacionesNsys(), { wrapper: envoltorio() })
+    await waitFor(() => expect(lista.result.current.data?.importaciones).toHaveLength(1))
+    expect(limites).toEqual(['20'])
+  })
+
+  it('comprobar manda los IMEIs en el cuerpo y sin IMEIs no pregunta', async () => {
+    const cuerpos: unknown[] = []
+    server.use(http.post('*/api/stock-telefonos/comprobar', async ({ request }) => {
+      cuerpos.push(await request.json())
+      return HttpResponse.json([movilComprobado()])
+    }))
+    const vacio = renderHook(() => useComprobarImeis([]), { wrapper: envoltorio() })
+    expect(vacio.result.current.fetchStatus).toBe('idle')
+    const lleno = renderHook(() => useComprobarImeis(['350000000000001']), { wrapper: envoltorio() })
+    await waitFor(() => expect(lleno.result.current.data).toHaveLength(1))
+    expect(cuerpos).toEqual([{ imeis: ['350000000000001'] }])
   })
 })

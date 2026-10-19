@@ -324,6 +324,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/comprobar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["comprobar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/solicitudes-stock": {
         parameters: {
             query?: never;
@@ -1748,6 +1764,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/importaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["importaciones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/estado": {
         parameters: {
             query?: never;
@@ -2688,6 +2720,32 @@ export interface components {
         TecnicoNombreRequest: {
             nombre: string;
         };
+        StockTelefonosPeticionComprobar: {
+            imeis: string[];
+        };
+        StockTelefonosMovilComprobado: {
+            imei: string;
+            encontrado: boolean;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            color: string | null;
+            grado: string | null;
+            bateriaNueva: boolean;
+            ubicacion: string | null;
+            estado: string | null;
+            /** Format: date */
+            fechaVenta: string | null;
+            trabajos: components["schemas"]["TrabajoAbierto"][];
+        };
+        TrabajoAbierto: {
+            categoria: string;
+            tecnico: string;
+            /** Format: date-time */
+            desde: string;
+            /** Format: date-time */
+            entregado: string | null;
+        };
         SolicitudStockInsertarRequest: {
             /** Format: int32 */
             idCom: number;
@@ -3346,6 +3404,7 @@ export interface components {
             estado: string;
             /** Format: int32 */
             dias: number | null;
+            trabajos: components["schemas"]["TrabajoAbierto"][];
         };
         StockTelefonosFichaMovil: {
             imeiSn: string;
@@ -3366,6 +3425,11 @@ export interface components {
             entradas: number;
             /** Format: date */
             fechaVenta: string | null;
+            /** Format: date-time */
+            revisadoEl: string | null;
+            revisadoDevolucion: boolean;
+            /** Format: date */
+            pendienteRevisionDesde: string | null;
         };
         EventoRastro: {
             /** Format: date-time */
@@ -3380,6 +3444,34 @@ export interface components {
             idRep: string | null;
             tecnico: string | null;
             categoria: string | null;
+            revision: string | null;
+        };
+        StockTelefonosFilaImportacion: {
+            fichero: string;
+            /** Format: date-time */
+            fechaExportacion: string;
+            resultado: string;
+            /** Format: int32 */
+            filas: number;
+            /** Format: int32 */
+            cambios: number;
+            /** Format: int64 */
+            segundos: number | null;
+            motivo: string | null;
+        };
+        StockTelefonosListaImportaciones: {
+            importaciones: components["schemas"]["StockTelefonosFilaImportacion"][];
+            historico: components["schemas"]["StockTelefonosProgresoHistorico"];
+        };
+        StockTelefonosProgresoHistorico: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            hechos: number;
+            /** Format: date-time */
+            ultimo: string | null;
+            /** Format: date-time */
+            hasta: string | null;
         };
         StockTelefonosEstadoImportacion: {
             /** Format: date-time */
@@ -4603,6 +4695,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    comprobar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockTelefonosPeticionComprobar"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosMovilComprobado"][];
+                };
             };
         };
     };
@@ -7064,6 +7180,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EventoRastro"][];
+                };
+            };
+        };
+    };
+    importaciones: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosListaImportaciones"];
                 };
             };
         };
