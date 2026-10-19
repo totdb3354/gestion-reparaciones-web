@@ -1,13 +1,15 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
+import { BotonSecundario } from '@/shared/ui/Botones'
 import { DataTable } from '@/shared/ui/DataTable'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
 import { useStockTelefonos } from '../api'
 import { filtrarModelos, sugerenciasSku, type Destino } from './buscador'
 import { BuscadorImei } from './BuscadorImei'
 import { BuscadorModelo } from './BuscadorModelo'
+import { ComprobarImeis } from './ComprobarImeis'
 import { columnasMoviles } from './columnas'
 import { claveFiltros, estadoStockTelefonos } from './estado'
 import { FiltrosMoviles } from './FiltrosMoviles'
@@ -35,6 +37,8 @@ export function StockTelefonosPage() {
   const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
   const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe }, setEstado] = useStore(estadoStockTelefonos)
+  // El diálogo de «Pegar varios IMEIs»: null cerrado; si no, lo que se pegó (vacío con el botón).
+  const [varios, setVarios] = useState<string | null>(null)
   const lista = useMemo(() => modelosLista(moviles, verNoCuenta), [moviles, verNoCuenta])
   const sugerencias = useMemo(() => sugerenciasSku(moviles, textoModelo), [moviles, textoModelo])
   const visibles = filtrarModelos(lista, textoModelo, sugerencias)
@@ -70,7 +74,8 @@ export function StockTelefonosPage() {
       </div>
       <BandaNsys />
       <div className="mb-3 flex shrink-0 flex-wrap items-center gap-4">
-        <BuscadorImei onElegir={abrir} />
+        <BuscadorImei onElegir={abrir} onPegarVarios={setVarios} />
+        <BotonSecundario onClick={() => setVarios('')}>Pegar varios IMEIs</BotonSecundario>
         <button type="button" role="switch" aria-checked={verNoCuenta} onClick={() => setEstado((e) => ({ ...e, verNoCuenta: !e.verNoCuenta }))}
           className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-azul-medio">
           <span className={cn('relative h-[18px] w-[34px] rounded-full transition-colors', verNoCuenta ? 'bg-verde-ok' : 'bg-pill-borde')}>
@@ -115,6 +120,7 @@ export function StockTelefonosPage() {
           {!modelo && !sinCargar && stock.data && <p className="p-4 text-[12px] text-azul-gris">No hay móviles en stock.</p>}
         </section>
       </div>
+      <ComprobarImeis abierto={varios !== null} textoInicial={varios ?? ''} onCerrar={() => setVarios(null)} onAbrirImei={abrir} />
     </div>
   )
 }

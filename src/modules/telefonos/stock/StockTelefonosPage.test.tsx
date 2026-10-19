@@ -1,11 +1,11 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { estadoNsys, movil, movilBuscado, trabajo } from '../test/fabrica'
+import { estadoNsys, movil, movilBuscado, movilComprobado, trabajo } from '../test/fabrica'
 import { StockTelefonosPage } from './StockTelefonosPage'
 
 // iPhone 13: 128GB con 001 (Listos) y 003 (En revisión), 256GB con 006 y 512GB solo de pedido (007); además 002 de pedido
@@ -454,5 +454,38 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(within(grado).getByText('eSIM')).toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'Batería' })).not.toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'Estado' })).not.toBeInTheDocument()
+  })
+  it('pegar varios IMEIs en el buscador abre el diálogo con lo pegado y lo comprueba; el botón lo abre vacío', async () => {
+    const user = userEvent.setup()
+    const pedidos: string[][] = []
+    server.use(http.post('*/api/stock-telefonos/comprobar', async ({ request }) => {
+      const { imeis } = (await request.json()) as { imeis: string[] }
+      pedidos.push(imeis)
+      return HttpResponse.json(imeis.map((i) => movilComprobado({ imei: i })))
+    }))
+    abrir()
+    const caja = await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' })
+    await user.click(caja)
+    await user.paste('350000000000001\n350000000000002')
+    const dialogo = await screen.findByRole('dialog', { name: 'Comprobar una lista de IMEIs' })
+    expect(within(dialogo).getByRole('textbox', { name: 'IMEIs' })).toHaveValue('350000000000001\n350000000000002')
+    expect(await within(dialogo).findByText('2 en stock')).toBeInTheDocument()
+    expect(pedidos).toEqual([['350000000000001', '350000000000002']])
+    expect(caja).toHaveValue('')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Comprobar una lista de IMEIs' })).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Pegar varios IMEIs' }))
+    const vacio = await screen.findByRole('dialog', { name: 'Comprobar una lista de IMEIs' })
+    expect(within(vacio).getByRole('textbox', { name: 'IMEIs' })).toHaveValue('')
+  })
+
+  it('pegar un solo IMEI en el buscador lo deja en el buscador', async () => {
+    const user = userEvent.setup()
+    abrir()
+    const caja = await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' })
+    await user.click(caja)
+    await user.paste('350000000000001')
+    expect(caja).toHaveValue('350000000000001')
+    expect(screen.queryByRole('dialog', { name: 'Comprobar una lista de IMEIs' })).not.toBeInTheDocument()
   })
 })

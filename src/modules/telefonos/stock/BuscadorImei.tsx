@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import { nombreModeloNsys } from '@/shared/lib/telefonoNsys'
 import { textoBuscado } from './modelo'
+import { imeisEn } from './varios'
 
 /** Buscador de IMEI en todos los móviles del espejo, también los vendidos: con 4 caracteres o más sugiere hasta 10; al
- *  elegir uno (o Enter con el IMEI exacto) se abre su detalle. */
-export function BuscadorImei({ onElegir }: { onElegir: (imeiSn: string) => void }) {
+ *  elegir uno (o Enter con el IMEI exacto) se abre su detalle. Pegar más de un IMEI abre «Comprobar una lista de IMEIs» con lo pegado. */
+export function BuscadorImei({ onElegir, onPegarVarios }: { onElegir: (imeiSn: string) => void; onPegarVarios: (texto: string) => void }) {
   const [texto, setTexto] = useState('')
   const [abierto, setAbierto] = useState(false)
   const limpio = texto.trim()
@@ -20,6 +21,15 @@ export function BuscadorImei({ onElegir }: { onElegir: (imeiSn: string) => void 
         onChange={(e) => {
           setTexto(e.target.value.replace(/[^A-Za-z0-9]/g, ''))
           setAbierto(true)
+        }}
+        onPaste={(e) => {
+          // Con más de un IMEI, lo pegado va al diálogo de «Pegar varios IMEIs» (spec 0.9.18 §4.9).
+          const pegado = e.clipboardData.getData('text')
+          if (imeisEn(pegado) > 1) {
+            e.preventDefault()
+            setAbierto(false)
+            onPegarVarios(pegado)
+          }
         }}
         onKeyDown={(e) => {
           if (e.key === 'Escape') setAbierto(false)
