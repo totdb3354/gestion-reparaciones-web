@@ -375,6 +375,8 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     abrir()
     await user.click(await screen.findByRole('button', { name: 'iPhone 13: 3 en stock' }))
     expect(screen.queryByRole('group', { name: 'Color' })).not.toBeInTheDocument()
+    // El bloque de la tabla color × grado tiene tope de alto y scroll propio (spec §4.6).
+    expect(matriz().parentElement).toHaveClass('max-h-[45%]', 'overflow-auto')
     // Del iPhone 13 en stock: Azul A (001), Rosa B (006, 256 GB) y Rosa n/a (003, en revisión).
     expect(within(matriz()).getByRole('button', { name: 'Azul A: 1' })).toHaveAttribute('title', 'Azul A: 1 listos · 0 en taller · 0 en revisión')
     expect(within(matriz()).getByRole('button', { name: 'Rosa n/a: 1' })).toHaveAttribute('title', 'Rosa n/a: 0 listos · 0 en taller · 1 en revisión')

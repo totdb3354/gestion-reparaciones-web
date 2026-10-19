@@ -98,7 +98,8 @@ export function StockTelefonosPage() {
                   </button>
                 )}
               </div>
-              <div className="flex shrink-0 items-start gap-4 overflow-x-auto">
+              {/* Con muchos colores, la tabla color × grado no pasa del 45 % del panel y se desplaza sola: la de móviles siempre conserva sitio (spec §4.6). */}
+              <div className="flex max-h-[45%] shrink-0 items-start gap-4 overflow-auto">
                 <MatrizColorGrado moviles={delModelo} filtros={filtros} onCambiar={(f) => cambiarFiltros(f, sku)} />
                 <FiltrosMoviles moviles={delModelo} filtros={filtros} onCambiar={(f) => cambiarFiltros(f, sku)} />
               </div>
