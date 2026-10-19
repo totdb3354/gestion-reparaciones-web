@@ -115,3 +115,38 @@ describe('"Cambiar contraseña" desde el menú de usuario (spec §6.3, G6)', () 
     expect(screen.getByText('Hola, tecnico_n')).toBeInTheDocument()
   })
 })
+
+describe('indicador de NSYS en la barra superior (0.9.18, spec §4.12)', () => {
+  const estado = (nivel: string) => ({ ultimaExportacion: nivel === 'SIN_DATOS' ? null : '2026-10-16T13:31:00', nivel, ultimoFallo: null, motivoFallo: null })
+
+  it.each([['supertécnico', SESION_SUPER], ['admin', SESION_ADMIN]])('%s: sale con SIN_DATOS y lleva a Stock de teléfonos', async (_rol, sesion) => {
+    server.use(...handlersNotificaciones(), http.get('*/api/stock-telefonos/estado', () => HttpResponse.json(estado('SIN_DATOS'))))
+    renderConProviders(<AppLayout />, { sesion, rutas: <Route path="/telefonos/stock" element={<p>STOCK DE TELÉFONOS</p>} /> })
+    await userEvent.click(await screen.findByRole('link', { name: 'NSYS sin datos' }))
+    expect(await screen.findByText('STOCK DE TELÉFONOS')).toBeInTheDocument()
+  })
+
+  it.each(['RETRASO', 'OK'])('con %s no sale', async (nivel) => {
+    let pedidas = 0
+    server.use(...handlersNotificaciones(), http.get('*/api/stock-telefonos/estado', () => {
+      pedidas++
+      return HttpResponse.json(estado(nivel))
+    }))
+    renderConProviders(<AppLayout />, { sesion: SESION_SUPER })
+    await waitFor(() => expect(pedidas).toBe(1))
+    expect(screen.queryByRole('link', { name: 'NSYS sin datos' })).not.toBeInTheDocument()
+  })
+
+  it('el técnico no pregunta el estado de NSYS ni ve el indicador', async () => {
+    let pedidas = 0
+    server.use(http.get('*/api/stock-telefonos/estado', () => {
+      pedidas++
+      return HttpResponse.json(estado('SIN_DATOS'))
+    }))
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC })
+    expect(screen.getByText('FSGR:')).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(pedidas).toBe(0)
+    expect(screen.queryByRole('link', { name: 'NSYS sin datos' })).not.toBeInTheDocument()
+  })
+})
