@@ -13,6 +13,18 @@ type RespuestaLote = { creadas: { idRep: string; imei: string; idTec: number; ca
 let api: { ctx: APIRequestContext; headers: Record<string, string> } | null = null
 /** Asignación de prueba creada por este fichero (y su IMEI sintético); afterAll borra todo lo que cuelga de ese IMEI. */
 let creada: { idRep: string; imei: string } | null = null
+/** Pieza que el técnico pone como «Nueva» y guarda: el supertécnico la pasa luego a reutilizada (y el stock la recupera). */
+let piezaNueva: { tipo: string; stockAntes: number } | null = null
+
+/** Stock actual de un SKU (por su texto) según GET /api/componentes/agrupados, con la sesión de API del supertécnico. */
+async function stockPorApi(tipo: string): Promise<number> {
+  const r = await api!.ctx.get('/api/componentes/agrupados', { headers: api!.headers })
+  expect(r.status(), 'GET /api/componentes/agrupados').toBe(200)
+  const todos = Object.values((await r.json()) as Record<string, { tipo: string; stock: number }[]>).flat()
+  const c = todos.find((x) => x.tipo === tipo)
+  if (!c) throw new Error(`El SKU ${tipo} no está en el catálogo`)
+  return c.stock
+}
 
 /** IMEI sintético de 15 dígitos, distinto en cada ejecución: "000000" + los 9 últimos dígitos de la marca de tiempo. */
 const imeiSintetico = () => `000000${String(Date.now()).slice(-9)}`
@@ -36,6 +48,8 @@ const MODELOS = [
 ]
 /** Tipos que no son fila del formulario de Reparación: acciones y los dos de Glass. */
 const TIPOS_SIN_FILA = ['otro', 'g', 'mc']
+/** Chasis y tapa piden color además de «Nueva»: la prueba usa otras filas para no depender del color. */
+const CON_COLOR = ['cha', 'tapa']
 
 /** Modelo de un SKU: sin el prefijo del tipo ni la "i" inicial, el código más largo del catálogo que sea prefijo del resto. */
 function modeloDeSku(sku: string, prefijo: string): string | null {
@@ -48,8 +62,8 @@ function modeloDeSku(sku: string, prefijo: string): string | null {
 
 /**
  * Modelo del teléfono sintético (el servidor lo exige en una asignación de Reparación): `E2E_MODELO_PRUEBA` si está definido;
- * si no, el primero del catálogo que, según GET /api/componentes/agrupados, tiene un tipo con algún SKU activo con stock
- * (para guardar la fila) y otro con todos sus SKU activos a 0 (para solicitar la pieza).
+ * si no, el primero del catálogo que, según GET /api/componentes/agrupados, tiene un tipo **sin color** con algún SKU activo con
+ * stock (para «Nueva» y guardar la fila) y otro **sin color** con todos sus SKU activos a 0 (para «Solicitar pieza»).
  */
 async function elegirModeloDePrueba(): Promise<string> {
   if (process.env.E2E_MODELO_PRUEBA) return process.env.E2E_MODELO_PRUEBA
@@ -58,7 +72,7 @@ async function elegirModeloDePrueba(): Promise<string> {
   const agrupados = (await respuesta.json()) as Record<string, { tipo: string; stock: number; activo: boolean }[]>
   const porModelo = new Map<string, Map<string, number[]>>()
   for (const [prefijo, skus] of Object.entries(agrupados)) {
-    if (TIPOS_SIN_FILA.includes(prefijo)) continue
+    if (TIPOS_SIN_FILA.includes(prefijo) || CON_COLOR.includes(prefijo)) continue
     for (const c of skus) {
       const modelo = c.activo ? modeloDeSku(c.tipo, prefijo) : null
       if (modelo === null) continue
@@ -114,10 +128,11 @@ const esBorrador = (metodo: string) => (r: { url(): string; request(): { method(
 
 /**
  * Guion del técnico (spec §11). ESCRIBE: crea por la API su propia asignación de Reparación (IMEI sintético, técnico de
- * TEC_USER), guarda una fila (consume una unidad de stock de prueba), registra una solicitud de pieza y termina. Si el test
- * termine o no, afterAll borra la asignación, las reparaciones, la solicitud y el teléfono de ese IMEI.
+ * TEC_USER), pone una pieza como «Nueva» y guarda la fila (consume una unidad de stock de prueba), prueba «Reutilizada» y
+ * «Volver atrás», registra una solicitud con «Solicitar pieza» y termina. Si el test termine o no, afterAll borra la asignación,
+ * las reparaciones, la solicitud y el teléfono de ese IMEI.
  */
-test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', async ({ page }) => {
+test('técnico: borrador recuperado, nueva y guardar fila, reutilizada y volver, solicitar pieza y terminar', async ({ page }) => {
   credenciales('E2E_USER', 'E2E_PASS')
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   await entrar(page, usuario, clave)
@@ -139,15 +154,17 @@ test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', 
     await page.getByRole('option').first().click()
   }
 
-  // Activar la primera fila que tenga stock
-  const fila = formulario
-    .locator('[data-testid^="fila-"]')
-    .filter({ has: page.getByRole('button', { name: /^Sumar /, disabled: false }) })
-    .first()
+  // «Nueva» en la primera fila sin color que la ofrezca (su SKU por defecto tiene stock): ya pone 1 y Stock enseña lo que quedará
+  const sinColor = '[data-testid^="fila-"]:not([data-testid="fila-cha"]):not([data-testid="fila-tapa"])'
+  const fila = formulario.locator(sinColor).filter({ has: page.getByRole('button', { name: /^Nueva /, disabled: false }) }).first()
   await expect(fila).toBeVisible()
   const prefijo = ((await fila.getAttribute('data-testid')) ?? '').replace('fila-', '')
-  await fila.getByRole('button', { name: /^Sumar / }).click()
+  await fila.getByRole('button', { name: /^Nueva / }).click()
   await expect(formulario.getByTestId(`contador-${prefijo}`)).toHaveText('1')
+  await expect(formulario.getByTestId(`marca-${prefijo}`)).toContainText('+ Nueva')
+  const tipoSku = (await fila.getByRole('combobox', { name: /^SKU de / }).innerText()).trim()
+  const stockAntes = await stockPorApi(tipoSku)
+  await expect(formulario.getByTestId(`stock-${prefijo}`)).toHaveText(`${stockAntes} → ${stockAntes - 1}`)
 
   // Cerrar: no pregunta y vuelca el borrador en ese momento
   const volcado = page.waitForResponse(esBorrador('PUT'))
@@ -160,6 +177,7 @@ test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', 
   await expect(formulario).toBeVisible()
   await expect(formulario.getByTestId('banda-borrador')).toContainText('✓ Borrador recuperado')
   await expect(formulario.getByTestId(`contador-${prefijo}`)).toHaveText('1')
+  await expect(formulario.getByTestId(`marca-${prefijo}`)).toContainText('+ Nueva') // el borrador recupera la elección
 
   // "✓ Guardar fila" en dos clics
   const botonDerecho = formulario.getByTestId(`boton-derecho-${prefijo}`)
@@ -168,18 +186,26 @@ test('técnico: borrador recuperado, guardar fila, solicitar pieza y terminar', 
   await expect(botonDerecho).toHaveText('✓ Confirmar')
   await botonDerecho.click()
   await expect(botonDerecho).toHaveText(/^✓ Guardada [0-9]{2}\/[0-9]{2} [0-9]{2}:[0-9]{2}$/)
+  expect(await stockPorApi(tipoSku), 'la pieza nueva gasta una del stock').toBe(stockAntes - 1)
+  piezaNueva = { tipo: tipoSku, stockAntes }
 
-  // Solicitar pieza (local) en la fila sin stock. Al confirmar, data-variante pasa a "confirmada": la sub-fila se vuelve a
-  // localizar por su data-testid, porque un localizador que filtre por "sinStock" dejaría de encontrarla.
-  const sinStock = formulario.locator('[data-testid^="subfila-"][data-variante="sinStock"]').first()
-  await expect(sinStock).toBeVisible()
-  const subfila = formulario.getByTestId((await sinStock.getAttribute('data-testid')) ?? '')
-  await subfila.getByRole('button', { name: 'Solicitar pieza' }).click()
+  // Fila sin color y sin stock: el botón de la celda del SKU ya dice «Solicitar <tipo>». Antes, «Reutilizada» (contador «—»)
+  // y «Volver atrás» (la fila vuelve a los dos botones).
+  const filaSinStock = formulario.locator(sinColor).filter({ has: page.getByRole('button', { name: /^Solicitar / }) }).first()
+  await expect(filaSinStock).toBeVisible()
+  const prefijoSinStock = ((await filaSinStock.getAttribute('data-testid')) ?? '').replace('fila-', '')
+  await filaSinStock.getByRole('button', { name: /^Reutilizada / }).click()
+  await expect(formulario.getByTestId(`contador-${prefijoSinStock}`)).toHaveText('—')
+  await expect(formulario.getByTestId(`marca-${prefijoSinStock}`)).toContainText('↺ Reutilizada')
+  await filaSinStock.getByRole('button', { name: /^Volver atrás / }).click()
+  await filaSinStock.getByRole('button', { name: /^Solicitar / }).click()
   const solicitar = page.getByRole('dialog', { name: /^Solicitar pieza — / })
   await solicitar.getByPlaceholder('Describe la pieza que necesitas (opcional)...').fill('Smoke e2e')
   await solicitar.getByRole('button', { name: 'Confirmar: solicitar pieza' }).click()
+  const subfila = formulario.getByTestId(`subfila-${prefijoSinStock}`)
   await expect(subfila).toHaveAttribute('data-variante', 'confirmada')
   await expect(subfila).toContainText('✓  Solicitud de reposición pendiente — Smoke e2e')
+  await expect(formulario.getByTestId(`marca-${prefijoSinStock}`)).toContainText('Solicitada')
 
   // "Terminar asignación" en dos clics y vuelta a la lista
   const terminar = formulario.getByTestId('zona-guardar').getByRole('button')
@@ -236,8 +262,7 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   await expect(edicion).toBeVisible()
 
   // Con una pieza editada se provoca un cambio y se sale sin guardar; una acción "otro" no tiene fila editada y cierra sin más.
-  // El cambio es la observación, el único control de la fila editada que está siempre habilitado ("Reutilizado" va
-  // deshabilitado con cantidad > 0 y "+" con el stock a 0) y que nunca deja el cambio como inválido.
+  // El cambio es la observación, que nunca deja el cambio como inválido.
   const editada = edicion.locator('[data-estado="editada"]')
   if ((await editada.count()) > 0) {
     const papelera = editada.getByRole('button', { name: /^Borrar observación de / })
@@ -257,14 +282,37 @@ test('supertécnico: campana con badge, rechazar y recuperar, editar y salir sin
   }
   await expect(page).toHaveURL(/\/reparaciones\/historial$/)
   await expect(edicion).toBeHidden()
+
+  // La pieza que el técnico guardó como nueva pasa a reutilizada: el stock recupera la unidad (spec 0.9.19 §2, edición).
+  expect(piezaNueva, 'pieza nueva guardada por el test del técnico').not.toBeNull()
+  const reps = await api!.ctx.get(`/api/reparaciones/imei/${imeiPrueba}`, { headers: api!.headers })
+  expect(reps.status(), `GET /api/reparaciones/imei/${imeiPrueba}`).toBe(200)
+  const idR = ((await reps.json()) as { idRep: string }[]).map((r) => r.idRep).find((id) => id.startsWith('R'))
+  expect(idR, 'la R… de la fila guardada').toBeTruthy()
+  await page.goto(`/reparaciones/historial/editar/${idR}`)
+  const edicionPrueba = page.getByRole('dialog', { name: /^Editar reparación — / })
+  await expect(edicionPrueba).toBeVisible()
+  const editadaPrueba = edicionPrueba.locator('[data-estado="editada"]')
+  await editadaPrueba.getByRole('button', { name: /^Volver atrás / }).click()
+  await editadaPrueba.getByRole('button', { name: /^Reutilizada / }).click()
+  const guardarCambios = edicionPrueba.getByTestId('zona-guardar').getByRole('button')
+  await expect(guardarCambios).toHaveText('Guardar cambios')
+  await guardarCambios.click()
+  await expect(guardarCambios).toHaveText('✓  Confirmar terminar')
+  await guardarCambios.click()
+  await expect(edicionPrueba).toBeHidden()
+  expect(await stockPorApi(piezaNueva!.tipo), 'pasar a reutilizada devuelve la unidad').toBe(piezaNueva!.stockAntes)
+  const detalle = await api!.ctx.get(`/api/reparaciones/${idR}/detalle-edicion`, { headers: api!.headers })
+  expect(detalle.status(), `GET /api/reparaciones/${idR}/detalle-edicion`).toBe(200)
+  expect(((await detalle.json()) as { esReutilizado: boolean }).esReutilizado).toBe(true)
 })
 
 /**
  * Limpieza con la sesión de API del beforeAll (supertécnico), de todo lo que cuelga del IMEI sintético:
  * 1. si la asignación de prueba sigue abierta (el test cayó antes de terminar), se borra por su id;
  * 2. después se borran por DELETE /api/reparaciones/{idRep} todas las reparaciones que queden del IMEI: primero las R… que
- *    creó el test (la fila guardada devuelve su unidad al stock y con ellas se van sus Reparacion_componente, incluida la
- *    solicitud de pieza) y al final la asignación ya cerrada;
+ *    creó el test (si el test cayó antes de pasarla a reutilizada, la fila guardada devuelve su unidad al stock; con ellas se
+ *    van sus Reparacion_componente, incluida la solicitud de pieza) y al final la asignación ya cerrada;
  * 3. se comprueba que no queda ninguna reparación del IMEI ni ninguna solicitud de pieza suya;
  * 4. se borra el teléfono que creó el lote (DELETE /api/telefonos/{imei}) y se comprueba que ya no existe.
  * Los fallos se señalan con expect.soft nombrando la ruta, sin tapar el fallo original.
@@ -274,6 +322,7 @@ test.afterAll(async () => {
   const restante = creada
   api = null
   creada = null
+  piezaNueva = null
   if (!sesion) return
   try {
     if (!restante) return
