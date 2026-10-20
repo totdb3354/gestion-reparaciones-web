@@ -6,6 +6,7 @@ import {
   usePanelCarga, type EstadoPanelCarga, type PanelCarga as Recordado,
 } from '@/shared/lib/panelCarga'
 import { cn } from '@/shared/lib/utils'
+import { ATRIBUTO_ENCIMA_DE_VENTANAS } from '@/shared/ui/dialog'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdminOSuperTecnico } from '@/shared/session/storage'
 import { useCargaTecnicos } from '../api'
@@ -20,6 +21,8 @@ const MSG_ERROR = 'No se pudo cargar la carga de técnicos.'
 const MSG_SIN_TECNICOS = 'Sin técnicos activos'
 /** Nombre accesible de la lista: puede haber otras listas en la pantalla. */
 const ETIQUETA_LISTA = 'Carga por técnico'
+/** Hay una ventana abierta si existe su fondo oscuro (el mismo criterio que usa la capa CSS del panel). */
+const hayVentanaAbierta = () => document.querySelector('[data-slot="dialog-overlay"]') !== null
 
 /** Panel flotante «Carga de técnicos» (spec 0.9.20): en cualquier pantalla, solo para supertécnico y admin; para el resto
  *  no monta nada ni pide nada. Abierto, minimizado (pastilla) o cerrado, según lo que recuerde el navegador. */
@@ -61,11 +64,14 @@ function useCongelado<T>(valor: T, congelado: boolean): T {
   return congela ? copia : valor
 }
 
-/** Pulsar un técnico: Asignaciones con su filtro en solitario; el panel sigue abierto (spec 0.9.20 §2). */
+/** Pulsar un técnico: Asignaciones con su filtro en solitario; el panel sigue abierto (spec 0.9.20 §2). Con una ventana
+ *  abierta fuera de Asignaciones no hace nada: navegar la cerraría y se perdería lo que tuviera sin guardar. En Asignaciones
+ *  sí: filtra la tabla de detrás y la ventana no se toca. */
 function useElegirTecnico() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   return (idTec: number) => {
+    if (hayVentanaAbierta() && pathname !== RUTA_ASIGNACIONES) return
     pedirFiltroPorTecnico(idTec)
     if (pathname !== RUTA_ASIGNACIONES) navigate(RUTA_ASIGNACIONES)
   }
@@ -78,6 +84,11 @@ type PropsVista = {
   onPointerLeave: () => void
 }
 
+/** Capa del panel y la pastilla (spec 0.9.20 §2, «Capas»): z-30 normalmente (bajo la campana, el rastro y los menús); con
+ *  una ventana abierta (existe su fondo oscuro), por encima de ella (z-[55]) y por debajo de la capa de carga (z-[60]). */
+const CAPA = 'z-30 [body:has([data-slot=dialog-overlay])_&]:z-[55]'
+const ENCIMA = { [ATRIBUTO_ENCIMA_DE_VENTANAS]: '' }
+
 function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: PropsVista & { error: boolean }) {
   const cajaRef = useRef<HTMLElement>(null)
   useColocarAnclado(cajaRef, recordado.ancla)
@@ -89,9 +100,15 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
       ref={cajaRef}
       aria-label="Carga de técnicos"
       data-testid="panel-carga"
+      {...ENCIMA}
+      style={{ pointerEvents: 'auto' }}
+      // Con una ventana abierta, tocar el panel no mueve el foco: se queda en el campo de la ventana (si no, Radix lo
+      // devuelve ahí con el texto entero seleccionado y lo medio escrito se pisaría). Sin ventana, los botones toman el
+      // foco como siempre. Los eventos de puntero, los clics y los arrastres no cambian.
+      onMouseDown={(e) => { if (hayVentanaAbierta()) e.preventDefault() }}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
-      className="fixed z-30 flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg"
+      className={cn(CAPA, 'fixed flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg')}
     >
       <div
         {...asa}
@@ -105,7 +122,14 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
         <BotonIcono etiqueta="Minimizar el panel de carga" titulo="Minimizar" onClick={minimizarPanelCarga}>–</BotonIcono>
         <BotonIcono etiqueta="Cerrar el panel de carga" titulo="Cerrar" onClick={cerrarPanelCarga}>×</BotonIcono>
       </div>
-      <div className="max-h-[min(400px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5">
+      <div
+        // Con una ventana abierta, el bloqueo de scroll de Radix (oyente en `document`) cancela la rueda y el arrastre
+        // táctil fuera de ella. Parar la propagación evita que lleguen y el navegador desplaza la lista de forma nativa
+        // (suave, con inercia, táctil), con o sin ventana. Mismo patrón que `noCancelarDesplazamiento` en shared/ui/popover.tsx.
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        className="max-h-[min(400px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5"
+      >
         {filas === null ? (
           error ? (
             <p role="alert" className="py-4 text-center text-[12.5px] text-texto-error">{MSG_ERROR}</p>
@@ -160,6 +184,10 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       ref={cajaRef}
       {...asa}
       data-testid="pastilla-carga"
+      {...ENCIMA}
+      style={{ pointerEvents: 'auto' }}
+      // Igual que en el panel: con una ventana abierta, tocar la pastilla no le quita el foco a su campo.
+      onMouseDown={(e) => { if (hayVentanaAbierta()) e.preventDefault() }}
       onClick={(e) => {
         if (e.target instanceof Element && e.target.closest('[data-no-arrastre]')) return
         abrirPanelCarga()
@@ -167,7 +195,10 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       title="Clic: abrir el panel · arrastra para moverla"
-      className="fixed z-30 flex cursor-grab touch-none items-center gap-2 rounded-[20px] bg-azul-noche py-[7px] pr-2 pl-3.5 text-[12px] font-bold whitespace-nowrap text-superficie shadow-lg select-none hover:bg-azul-noche-hover"
+      className={cn(
+        CAPA,
+        'fixed flex cursor-grab touch-none items-center gap-2 rounded-[20px] bg-azul-noche py-[7px] pr-2 pl-3.5 text-[12px] font-bold whitespace-nowrap text-superficie shadow-lg select-none hover:bg-azul-noche-hover',
+      )}
     >
       <button type="button" aria-label="Abrir el panel de carga" className="flex cursor-pointer items-center gap-2">
         <span>Carga</span>

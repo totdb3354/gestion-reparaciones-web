@@ -12,6 +12,7 @@ import {
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { desglose, filaCarga } from '../../test/fabrica'
+import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
 import { PanelCarga } from './PanelCarga'
 
 // Pedidos: B 95 (≥ 90), A 50, C 0. Total: A 95 y C 92 (los dos ≥ 90), B 0. El toggle reordena y cambia el contador.
@@ -406,5 +407,214 @@ describe('PanelCarga: pulsar un técnico', () => {
     expect(recibidos).toEqual([2])
     expect(panel()).toBeInTheDocument()
     baja()
+  })
+})
+
+describe('PanelCarga: con una ventana abierta', () => {
+  const montarConVentana = () =>
+    renderConProviders(
+      <>
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Asignar trabajos</DialogTitle>
+          </DialogContent>
+        </Dialog>
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER },
+    )
+  const ventana = () => screen.getByRole('dialog', { name: 'Asignar trabajos' })
+  const tick = () => act(() => new Promise<void>((r) => setTimeout(r, 0)))
+
+  it('el panel recibe el ratón: Total se pulsa y la ventana sigue', async () => {
+    servirCarga()
+    montarConVentana()
+    await tick()
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true }))
+    expect(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(ventana()).toBeInTheDocument()
+  })
+
+  it('minimizar y reabrir desde la pastilla no cierran la ventana', async () => {
+    servirCarga()
+    montarConVentana()
+    await tick()
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Minimizar el panel de carga', hidden: true }))
+    expect(screen.getByTestId('pastilla-carga')).toBeInTheDocument()
+    expect(ventana()).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir el panel de carga', hidden: true }))
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })).toBeInTheDocument()
+    expect(ventana()).toBeInTheDocument()
+  })
+
+  it('el panel y la pastilla llevan la marca y la capa que sube con una ventana abierta', async () => {
+    servirCarga()
+    montarConVentana()
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    expect(panelAbierto).toHaveAttribute('data-encima-de-ventanas')
+    expect(panelAbierto.className).toContain('dialog-overlay')
+    act(() => minimizarPanelCarga())
+    const pastillaViva = await screen.findByTestId('pastilla-carga')
+    expect(pastillaViva).toHaveAttribute('data-encima-de-ventanas')
+    expect(pastillaViva.className).toContain('dialog-overlay')
+  })
+
+  it('la rueda y el arrastre táctil sobre la lista no llegan a `document` con una ventana abierta (Radix los cancelaría ahí)', async () => {
+    servirCarga()
+    montarConVentana()
+    await tick()
+    const lista = await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
+    const contenedor = lista.parentElement!
+    const oyente = vi.fn()
+    document.addEventListener('wheel', oyente)
+    document.addEventListener('touchmove', oyente)
+    try {
+      fireEvent.wheel(contenedor, { deltaY: 120 })
+      fireEvent.touchMove(contenedor)
+      expect(oyente).not.toHaveBeenCalled()
+    } finally {
+      document.removeEventListener('wheel', oyente)
+      document.removeEventListener('touchmove', oyente)
+    }
+  })
+
+  it('la rueda sobre la lista tampoco llega a `document` sin ventana abierta', async () => {
+    servirCarga()
+    montar()
+    const lista = await esperarLista()
+    const oyente = vi.fn()
+    document.addEventListener('wheel', oyente)
+    try {
+      fireEvent.wheel(lista.parentElement!, { deltaY: 120 })
+      expect(oyente).not.toHaveBeenCalled()
+    } finally {
+      document.removeEventListener('wheel', oyente)
+    }
+  })
+
+  it('tocar el panel no le quita el foco al campo de la ventana ni selecciona su texto', async () => {
+    servirCarga()
+    renderConProviders(
+      <>
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Asignar trabajos</DialogTitle>
+            <input aria-label="IMEI" />
+          </DialogContent>
+        </Dialog>
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER },
+    )
+    await tick()
+    const campo = screen.getByRole('textbox', { name: 'IMEI' }) as HTMLInputElement
+    campo.focus()
+    await userEvent.type(campo, '35123')
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true }))
+    await tick()
+    expect(document.activeElement).toBe(campo)
+    expect(campo.selectionStart).toBe(5)
+    expect(campo.selectionEnd).toBe(5)
+  })
+
+  it('pulsar la pastilla no le quita el foco al campo de la ventana y abre el panel', async () => {
+    servirCarga()
+    renderConProviders(
+      <>
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Asignar trabajos</DialogTitle>
+            <input aria-label="IMEI" />
+          </DialogContent>
+        </Dialog>
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER },
+    )
+    await tick()
+    const campo = screen.getByRole('textbox', { name: 'IMEI' }) as HTMLInputElement
+    campo.focus()
+    await userEvent.type(campo, '35123')
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Minimizar el panel de carga', hidden: true }))
+    campo.focus()
+    campo.setSelectionRange(5, 5)
+    await userEvent.click(await screen.findByRole('button', { name: 'Abrir el panel de carga', hidden: true }))
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })).toBeInTheDocument()
+    expect(document.activeElement).toBe(campo)
+    expect(campo.selectionStart).toBe(5)
+    expect(campo.selectionEnd).toBe(5)
+  })
+
+  describe('pulsar un técnico con una ventana abierta', () => {
+    const montarEn = (ruta: string) => {
+      function Marco() {
+        return (
+          <>
+            <Outlet />
+            <Dialog open>
+              <DialogContent aria-describedby={undefined}>
+                <DialogTitle>Asignar trabajos</DialogTitle>
+              </DialogContent>
+            </Dialog>
+            <PanelCarga />
+          </>
+        )
+      }
+      return renderConRouter(
+        [
+          {
+            element: <Marco />,
+            children: [
+              { path: '/stock', element: <p>STOCK</p> },
+              { path: '/reparaciones/asignaciones', element: <p>ASIGNACIONES</p> },
+            ],
+          },
+        ],
+        { sesion: SESION_SUPER, ruta },
+      )
+    }
+
+    it('fuera de Asignaciones no navega ni pide filtro (se perdería lo no guardado)', async () => {
+      servirCarga()
+      const recibidos: number[] = []
+      const baja = recibirFiltroPorTecnico((idTec) => {
+        recibidos.push(idTec)
+      })
+      const { router } = montarEn('/stock')
+      try {
+        await tick()
+        await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
+        const boton = within(screen.getByRole('region', { name: 'Carga de técnicos', hidden: true })).getByText('Técnico B').closest('button')!
+        await userEvent.click(boton)
+        await tick()
+        expect(router.state.location.pathname).toBe('/stock')
+        expect(recibidos).toEqual([])
+        expect(ventana()).toBeInTheDocument()
+      } finally {
+        baja()
+      }
+    })
+
+    it('en Asignaciones pide el filtro (filtra la tabla de detrás sin perder nada)', async () => {
+      servirCarga()
+      const recibidos: number[] = []
+      const baja = recibirFiltroPorTecnico((idTec) => {
+        recibidos.push(idTec)
+      })
+      const { router } = montarEn('/reparaciones/asignaciones')
+      try {
+        await tick()
+        await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
+        await userEvent.click(within(screen.getByRole('region', { name: 'Carga de técnicos', hidden: true })).getByText('Técnico B').closest('button')!)
+        await waitFor(() => expect(recibidos).toEqual([2]))
+        expect(router.state.location.pathname).toBe('/reparaciones/asignaciones')
+      } finally {
+        baja()
+      }
+    })
   })
 })

@@ -169,6 +169,8 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Si la consulta falla sin datos previos, el panel muestra un mensaje en el hueco de la lista y **la tabla no se ve afectada**: son dos consultas independientes. El mensaje se queda en el panel, sin apilar además el diálogo de error global.
 - [x] **Diferencia deliberada (0.9.20):** el panel no congela el sondeo de la tabla (D4): estando abierto todo el día, la tabla dejaría de refrescarse.
 - [x] **Diferencia deliberada (0.9.20):** el panel no es modal: flota sobre cualquier pantalla (supertécnico y admin), sale de fábrica arriba a la derecha, bajo la barra superior, se arrastra a la esquina que se quiera y la recuerda, y con el ratón encima no se repinta.
+- [x] **Diferencia deliberada (0.9.20):** con una ventana abierta (por ejemplo «Asignar trabajos»), el panel queda por encima de su fondo oscuro y se puede usar; tocarlo no cierra la ventana. El JavaFX abría la carga en una ventana aparte del sistema.
+- [x] Con una ventana abierta fuera de Asignaciones, pulsar un técnico no hace nada: navegar cerraría esa ventana y se perdería lo que no estuviera guardado.
 
 ## Diálogo "Técnicos de glass"
 
