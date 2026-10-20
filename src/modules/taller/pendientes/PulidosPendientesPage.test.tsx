@@ -55,8 +55,81 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
     expect(completar).toBeDisabled()
     await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_2' }))
     await userEvent.click(completar)
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Completar 1 pulido' })).getByRole('button', { name: 'Completar 1 pulido' }))
     await waitFor(() => expect(ids).toEqual({ ids: ['AP20260916_2'] }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled())
+  })
+  it('antes de completar pide confirmación con cuántos y cuáles; Cancelar no completa y conserva la selección', async () => {
+    let peticiones = 0
+    server.use(http.post('*/api/pulidos/asignaciones/completar-lote', () => { peticiones++; return new HttpResponse(null, { status: 204 }) }))
+    abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completar seleccionados' }))
+    const dlg = screen.getByRole('dialog', { name: 'Completar 2 pulidos' })
+    // Una línea por IMEI, con el modelo si lo tiene.
+    expect(dlg).toHaveTextContent('Has seleccionado 2 pulidos:')
+    expect(within(dlg).getByText(/Has seleccionado/).textContent).toBe('Has seleccionado 2 pulidos:\n351200000000021 · iPhone 13\n358300000000121')
+    // El foco va a Cancelar (ConfirmDialog): un Enter despistado no completa.
+    expect(within(dlg).getByRole('button', { name: 'Cancelar' })).toHaveFocus()
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(peticiones).toBe(0)
+    expect(screen.getAllByRole('checkbox').map((c) => c.getAttribute('aria-checked'))).toEqual(['true', 'true'])
+  })
+  it('con más de cinco, la confirmación lista los cinco primeros y cuántos más', async () => {
+    const muchas = Array.from({ length: 7 }, (_, i) => resumen({ idRep: `AP20260916_${i + 1}`, imei: `35120000000010${i}`, modelo: null }))
+    server.use(http.get('*/api/pulidos/asignaciones', () => HttpResponse.json(muchas)))
+    abrir()
+    await screen.findByText('AP20260916_7')
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completar seleccionados' }))
+    const dlg = screen.getByRole('dialog', { name: 'Completar 7 pulidos' })
+    expect(within(dlg).getByText(/Has seleccionado/).textContent).toBe(
+      'Has seleccionado 7 pulidos:\n351200000000100\n351200000000101\n351200000000102\n351200000000103\n351200000000104\n… y 2 más')
+  })
+  it('con el filtro por IMEI, «Seleccionar todo» marca solo los que se ven y se completa solo ese (incidencia del taller)', async () => {
+    let ids: unknown = null
+    server.use(http.post('*/api/pulidos/asignaciones/completar-lote', async ({ request }) => { ids = await request.json(); return new HttpResponse(null, { status: 204 }) }))
+    abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.type(screen.getByPlaceholderText('Filtrar por IMEI'), '351200000000021')
+    expect(screen.queryByText('AP20260916_2')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completar seleccionados' }))
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Completar 1 pulido' })).getByRole('button', { name: 'Completar 1 pulido' }))
+    await waitFor(() => expect(ids).toEqual({ ids: ['AP20260916_1'] }))
+    // Al quitar el filtro, el otro sigue sin marcar.
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_2' })).toHaveAttribute('aria-checked', 'false')
+  })
+  it('una recarga con la confirmación abierta vacía la selección, pero se completa lo que se estaba confirmando', async () => {
+    let ids: unknown = null
+    server.use(http.post('*/api/pulidos/asignaciones/completar-lote', async ({ request }) => { ids = await request.json(); return new HttpResponse(null, { status: 204 }) }))
+    const { queryClient } = abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completar seleccionados' }))
+    await queryClient.invalidateQueries({ queryKey: claveAsignaciones('PULIDO') })
+    // hidden: con el diálogo abierto, Radix oculta el resto de la página a la accesibilidad.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1', hidden: true })).toHaveAttribute('aria-checked', 'false'))
+    const dlg = screen.getByRole('dialog', { name: 'Completar 1 pulido' })
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Completar 1 pulido' }))
+    await waitFor(() => expect(ids).toEqual({ ids: ['AP20260916_1'] }))
+  })
+  it('una casilla marcada que el filtro oculta no se completa ni se cuenta', async () => {
+    let ids: unknown = null
+    server.use(http.post('*/api/pulidos/asignaciones/completar-lote', async ({ request }) => { ids = await request.json(); return new HttpResponse(null, { status: 204 }) }))
+    abrir()
+    await screen.findByText('AP20260916_1')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_2' }))
+    await userEvent.type(screen.getByPlaceholderText('Filtrar por IMEI'), '351200000000021')
+    // Lo único marcado está oculto: no hay nada que completar.
+    expect(screen.getByRole('button', { name: 'Completar seleccionados' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar AP20260916_1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completar seleccionados' }))
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Completar 1 pulido' })).getByRole('button', { name: 'Completar 1 pulido' }))
+    await waitFor(() => expect(ids).toEqual({ ids: ['AP20260916_1'] }))
   })
   it('si "Completar seleccionados" falla, muestra el mensaje y conserva la selección sin recargar (el JavaFX solo la vacía tras guardar)', async () => {
     let peticiones = 0
@@ -76,6 +149,7 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
     await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
     const completar = screen.getByRole('button', { name: 'Completar seleccionados' })
     await userEvent.click(completar)
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Completar 2 pulidos' })).getByRole('button', { name: 'Completar 2 pulidos' }))
     // Mientras se guarda no se puede volver a pulsar (en el JavaFX la llamada bloquea la ventana).
     expect(completar).toBeDisabled()
     await userEvent.click(completar)
