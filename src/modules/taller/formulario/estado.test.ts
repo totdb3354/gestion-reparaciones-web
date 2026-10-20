@@ -101,7 +101,7 @@ describe('estado del formulario (1): estado inicial, modelo y cabecera', () => {
     const e = conModelo('14')
     expect(e.filas.map((f) => f.prefijo)).toContain('cam')
     expect(reducir(e, { tipo: 'SUMAR', prefijo: 'cam' })).toBe(e)
-    expect(reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cam', valor: true })).toBe(e)
+    expect(reducir(e, { tipo: 'ELEGIR', prefijo: 'cam', eleccion: 'reutilizada' })).toBe(e)
     expect(reducir(e, { tipo: 'PONER_OBSERVACION', prefijo: 'cam', texto: 'rota' })).toBe(e)
   })
 
@@ -142,35 +142,44 @@ describe('estado del formulario (1): estado inicial, modelo y cabecera', () => {
 
 describe('estado del formulario (1): filas', () => {
   it('sumar respeta el stock y deshabilita Reutilizado', () => {
-    const uno = aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'lcd' }) // lcdi13: stock 1
+    const uno = aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }) // lcdi13: stock 1
     expect(fila(uno, 'lcd').cantidad).toBe(1)
     expect(fila(uno, 'lcd').controles).toMatchObject({ mas: false, menos: true, reutilizado: false })
     expect(filaActiva(fila(uno, 'lcd'))).toBe(true)
     // en el límite el clic ya no suma ni cuenta como cambio
     expect(reducir(uno, { tipo: 'SUMAR', prefijo: 'lcd' })).toBe(uno)
     // con margen, "+" sigue encendido
-    const bat = fila(aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'bat' }), 'bat')
+    const bat = fila(aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }), 'bat')
     expect(bat.controles).toMatchObject({ mas: true, menos: true, reutilizado: false })
     // cantidad > 0 y Reutilizado son excluyentes
-    expect(reducir(uno, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true })).toBe(uno)
+    expect(reducir(uno, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'reutilizada' })).toBe(uno)
   })
 
   it('restar hasta cero rehabilita Reutilizado', () => {
-    const dos = aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'SUMAR', prefijo: 'bat' })
+    const dos = aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'SUMAR', prefijo: 'bat' })
     const uno = reducir(dos, { tipo: 'RESTAR', prefijo: 'bat' })
     expect(fila(uno, 'bat').cantidad).toBe(1)
     expect(fila(uno, 'bat').controles).toMatchObject({ mas: true, menos: true, reutilizado: false })
     const cero = reducir(uno, { tipo: 'RESTAR', prefijo: 'bat' })
     expect(fila(cero, 'bat').cantidad).toBe(0)
-    expect(fila(cero, 'bat').controles).toMatchObject({ mas: true, menos: false, reutilizado: true })
+    // spec 0.9.19 §2 (cambio 1): «−» hasta 0 deja la fila sin elegir
+    expect(fila(cero, 'bat').eleccion).toBeNull()
+    expect(fila(cero, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
     expect(reducir(cero, { tipo: 'RESTAR', prefijo: 'bat' })).toBe(cero)
     // restar desde el límite vuelve a encender "+"
-    const lcd = aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'RESTAR', prefijo: 'lcd' })
-    expect(fila(lcd, 'lcd').controles.mas).toBe(true)
+    const catalogoDos = agrupados()
+    catalogoDos.bat = [componente({ idCom: 107, tipo: 'bati13oem', stock: 2 })]
+    const limite = aplicar(conModelo('13', { agrupados: catalogoDos }), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'SUMAR', prefijo: 'bat' })
+    expect(fila(limite, 'bat').controles.mas).toBe(false)
+    expect(fila(reducir(limite, { tipo: 'RESTAR', prefijo: 'bat' }), 'bat').controles.mas).toBe(true)
+    // spec 0.9.19 §2 (cambio 1): con un solo stock, «−» hasta 0 deja la fila sin elegir y sin «+»
+    const lcd = aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'RESTAR', prefijo: 'lcd' })
+    expect(fila(lcd, 'lcd')).toMatchObject({ eleccion: null, cantidad: 0 })
+    expect(fila(lcd, 'lcd').controles.mas).toBe(false)
   })
 
   it('marcar Reutilizado deshabilita + y -', () => {
-    const e = aplicar(conModelo('13'), { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    const e = aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     const bat = fila(e, 'bat')
     expect(bat.reutilizado).toBe(true)
     expect(bat.cantidad).toBe(0)
@@ -179,33 +188,34 @@ describe('estado del formulario (1): filas', () => {
     expect(reducir(e, { tipo: 'SUMAR', prefijo: 'bat' })).toBe(e)
   })
 
-  it('desmarcar Reutilizado habilita + aunque el stock sea 0 y el clic no suma', () => {
-    const marcada = aplicar(conModelo('14'), { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true }) // bati14: stock 0
-    const e = reducir(marcada, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: false })
+  it('volver atrás de Reutilizado deja la fila sin elegir y el clic no suma (spec 0.9.19 §2, cambio 2)', () => {
+    const marcada = aplicar(conModelo('14'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' }) // bati14: stock 0
+    const e = reducir(marcada, { tipo: 'VOLVER', prefijo: 'bat' })
     expect(fila(e, 'bat').reutilizado).toBe(false)
-    expect(fila(e, 'bat').controles).toMatchObject({ mas: true, menos: false, reutilizado: true })
+    expect(fila(e, 'bat').eleccion).toBeNull()
+    expect(fila(e, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
     expect(reducir(e, { tipo: 'SUMAR', prefijo: 'bat' })).toBe(e)
     expect(fila(e, 'bat').cantidad).toBe(0)
   })
 
-  it('cambiar de SKU pone a cero si la cantidad supera el nuevo stock', () => {
+  it('con Nueva, cambiar de SKU ajusta la cantidad al nuevo stock', () => {
     // tres baterías del mismo modelo con stock 5, 1 y 2
     const catalogo = agrupados()
     catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 5 }), componente({ idCom: 106, tipo: 'bati13alta', stock: 1 }),
       componente({ idCom: 107, tipo: 'bati13oem', stock: 2 })]
-    const dos = aplicar(conModelo('13', { agrupados: catalogo }), { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'SUMAR', prefijo: 'bat' })
+    const dos = aplicar(conModelo('13', { agrupados: catalogo }), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'SUMAR', prefijo: 'bat' })
     // al de stock 2: la cantidad cabe, pero "+" se apaga por estar en el límite
     const justo = reducir(dos, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 107 })
     expect(fila(justo, 'bat')).toMatchObject({ idCom: 107, cantidad: 2 })
     expect(fila(justo, 'bat').controles).toMatchObject({ mas: false, menos: true, reutilizado: false })
     expect(stockDe(fila(justo, 'bat'))).toBe(2)
-    // al de stock 1: la cantidad no cabe → 0 y Reutilizado vuelve
+    // spec 0.9.19 §2 (cambio 3): al de stock 1 la cantidad se ajusta al stock (antes 0)
     const vacia = reducir(dos, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 106 })
-    expect(fila(vacia, 'bat')).toMatchObject({ idCom: 106, cantidad: 0 })
-    expect(fila(vacia, 'bat').controles).toMatchObject({ mas: true, menos: false, reutilizado: true })
+    expect(fila(vacia, 'bat')).toMatchObject({ idCom: 106, cantidad: 1 })
+    expect(fila(vacia, 'bat').controles).toMatchObject({ mas: false, menos: true })
     // con Reutilizado marcado, cambiar de SKU no enciende "+"
     const reutilizada = aplicar(conModelo('13', { agrupados: catalogo }),
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true }, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 107 })
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' }, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 107 })
     expect(fila(reutilizada, 'bat').controles.mas).toBe(false)
     // un SKU que no está entre las opciones, o el mismo, no cambia nada
     expect(reducir(dos, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 102 })).toBe(dos)
@@ -232,7 +242,7 @@ describe('estado del formulario (1): filas', () => {
     const trabajado = aplicar(conModelo('13'),
       { tipo: 'SUMAR', prefijo: 'bat' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true })
+      { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'reutilizada' })
     const e = reducir(trabajado, { tipo: 'CAMBIAR_MODELO', modelo: '14' })
     expect(e.modelo).toBe('14')
     expect(fila(e, 'bat')).toMatchObject({ idCom: 102, cantidad: 0, reutilizado: false, observacion: null })
@@ -258,7 +268,7 @@ describe('estado del formulario (1): filas', () => {
       const e: EstadoFormulario = { ...base, filas: base.filas.map((f) => (f.prefijo === 'bat' ? { ...f, ...parcial } : f)) }
       expect(reducir(e, { tipo: 'SUMAR', prefijo: 'bat' })).toBe(e)
       expect(reducir(e, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 101 })).toBe(e)
-      expect(reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })).toBe(e)
+      expect(reducir(e, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })).toBe(e)
       expect(reducir(e, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'x' })).toBe(e)
       expect(reducir(e, { tipo: 'BORRAR_OBSERVACION', prefijo: 'bat' })).toBe(e)
     }
@@ -268,9 +278,9 @@ describe('estado del formulario (1): filas', () => {
     let e = conModelo('13')
     expect(e.revision).toBe(1)
     const pasos: AccionFormulario[] = [
-      { tipo: 'SUMAR', prefijo: 'bat' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' },
       { tipo: 'RESTAR', prefijo: 'bat' },
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
       { tipo: 'BORRAR_OBSERVACION', prefijo: 'bat' },
       { tipo: 'CAMBIAR_MODELO', modelo: '14' },
@@ -294,10 +304,10 @@ describe('acciones del borrador en el reductor (REEMPLAZAR y DESBLOQUEAR_BORRADA
    *  guardada (R20260916_6) y otra pendiente. */
   function conGuardadas(): EstadoFormulario {
     let e = reducir(estadoInicial(datosBorrador), { tipo: 'CAMBIAR_MODELO', modelo: '13' })
-    e = reducir(e, { tipo: 'SUMAR', prefijo: 'bat' })
+    e = reducir(e, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     e = reducir(e, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'Batería hinchada' })
     e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_5', fecha: '16/09 09:15' })
-    e = reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true })
+    e = reducir(e, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'reutilizada' })
     e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'lcd', idRep: 'R20260916_7', fecha: '16/09 09:18' })
     e = reducir(e, { tipo: 'ANADIR_ACCION' })
     e = reducir(e, { tipo: 'ESCRIBIR_ACCION', id: e.otros[0].id, texto: 'Limpieza del conector de carga' })
@@ -317,8 +327,9 @@ describe('acciones del borrador en el reductor (REEMPLAZAR y DESBLOQUEAR_BORRADA
     const antes = conGuardadas()
     const e = reducir(antes, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ['R20260916_7', 'R20260916_6'] })
     expect(filaDe(e, 'bat')).toMatchObject({ guardada: null, cantidad: 0, reutilizado: false, observacion: null, confirmandoGuardar: false, guardando: false })
-    // bati13 tiene stock 5: "+" habilitado, "-" no (está a 0), y el resto de controles de vuelta
-    expect(filaDe(e, 'bat').controles).toEqual({ mas: true, menos: false, reutilizado: true, sku: true, observacion: true })
+    // spec 0.9.19 §2 (cambio 8): vuelve sin elegir, con «+» y «−» apagados
+    expect(filaDe(e, 'bat').eleccion).toBeNull()
+    expect(filaDe(e, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
     expect(filaDe(e, 'bat').idCom).toBe(101)
     expect(filaDe(e, 'lcd').guardada).toEqual({ idRep: 'R20260916_7', fecha: '16/09 09:18' })
     expect(e.otros[0].guardada).toEqual({ idRep: 'R20260916_6', fecha: '16/09 09:20' })
@@ -334,7 +345,7 @@ describe('acciones del borrador en el reductor (REEMPLAZAR y DESBLOQUEAR_BORRADA
   })
   it('una fila desbloqueada con el SKU sin stock deja "+" deshabilitado', () => {
     let e = reducir(estadoInicial(datosBorrador), { tipo: 'CAMBIAR_MODELO', modelo: '14' })
-    e = reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    e = reducir(e, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_8', fecha: '16/09 10:00' })
     e = reducir(e, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: [] })
     expect(filaDe(e, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
@@ -347,7 +358,7 @@ describe('acciones del borrador en el reductor (REEMPLAZAR y DESBLOQUEAR_BORRADA
   })
   it('una fila o acción recuperada sin id ("?") se desbloquea siempre', () => {
     let e = reducir(estadoInicial(datosBorrador), { tipo: 'CAMBIAR_MODELO', modelo: '13' })
-    e = reducir(e, { tipo: 'SUMAR', prefijo: 'cam' })
+    e = reducir(e, { tipo: 'ELEGIR', prefijo: 'cam', eleccion: 'nueva' })
     e = reducir(e, { tipo: 'FILA_GUARDADA', prefijo: 'cam', idRep: '?', fecha: '' })
     e = reducir(e, { tipo: 'DESBLOQUEAR_BORRADAS', idsExistentes: ['R20260916_5'] })
     expect(filaDe(e, 'cam').guardada).toBeNull()

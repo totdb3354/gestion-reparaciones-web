@@ -1,4 +1,4 @@
-import { componenteDe, controlesIniciales, enlazarAlAbrir, reducir, type ControlesFila, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
+import { componenteDe, controlesIniciales, enlazarAlAbrir, reducir, type ControlesFila, type Eleccion, type EstadoFormulario, type FilaEstado, type OtraAccion } from './estado'
 
 /** Borrador del formulario con el MISMO JSON que escribe el cliente de escritorio (BorradorContenido, campo a campo): los dos
  *  clientes leen y escriben el mismo borrador de una asignación. El servidor lo guarda opaco. */
@@ -29,6 +29,8 @@ function capturarFila(fila: FilaEstado): BorradorFila | null {
       idRepGenerado: fila.guardada.idRep, fechaGuardado: fila.guardada.fecha,
     }
   }
+  // Una fila elegida sin SKU (chasis o tapa sin color) no se guarda: no hay pieza a la que atarla (spec 0.9.19 §2).
+  if (fila.idCom === null) return null
   const agotadoNuevo = fila.agotado !== null
   if (fila.cantidad === 0 && !fila.reutilizado && fila.observacion === null && !agotadoNuevo) return null
   return {
@@ -125,7 +127,7 @@ function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
   if (base.idCom === null) return base
   if (f.guardada) {
     return {
-      ...base, cantidad: f.cantidad > 0 ? f.cantidad : base.cantidad, reutilizado: f.reutilizado || base.reutilizado, controles: CONTROLES_BLOQUEADOS,
+      ...base, cantidad: f.cantidad > 0 ? f.cantidad : base.cantidad, reutilizado: f.reutilizado || base.reutilizado, eleccion: f.reutilizado || base.reutilizado ? 'reutilizada' : 'nueva', controles: CONTROLES_BLOQUEADOS,
       guardada: { idRep: f.idRepGenerado ?? '?', fecha: f.fechaGuardado ?? '' }, confirmandoGuardar: false, guardando: false, agotado: null,
       recibidoPendienteUso: false,
     }
@@ -134,17 +136,19 @@ function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
     // Variante según el stock ACTUAL: lo que se descontará nunca supera lo que hay ahora (0 si el SKU se quedó sin stock).
     const stock = componenteDe(base)?.stock ?? 0
     return {
-      ...base, cantidad: Math.min(Math.max(0, f.cantidad), Math.max(0, stock)), reutilizado: false, observacion: null, controles: CONTROLES_BLOQUEADOS,
+      ...base, cantidad: Math.min(Math.max(0, f.cantidad), Math.max(0, stock)), reutilizado: false, eleccion: 'nueva', observacion: null, controles: CONTROLES_BLOQUEADOS,
       agotado: { descripcion: f.descripcionAgotado ?? null, registrado: false }, confirmandoGuardar: false, recibidoPendienteUso: false,
     }
   }
   // Normal: "Reutilizado", cantidad (mínimo 0, SIN revalidar contra el stock) y observación. De los controles solo se
   // recalcula "-", como en la referencia.
-  const cantidad = Math.max(0, f.cantidad)
+  const cantidad = f.reutilizado ? 0 : Math.max(0, f.cantidad)
   const observacion = f.observacion !== undefined && f.observacion.trim() !== '' ? f.observacion : base.observacion
+  // La elección se deduce (el JSON es el del JavaFX y no la guarda): reutilizado → Reutilizada; cantidad → Nueva.
+  const eleccion: Eleccion = f.reutilizado ? 'reutilizada' : cantidad > 0 ? 'nueva' : null
   return {
-    ...base, reutilizado: f.reutilizado, cantidad, observacion, controles: { ...base.controles, menos: cantidad > 0 }, confirmandoGuardar: false,
-    recibidoPendienteUso: base.recibidoPendienteUso && cantidad === 0 && !f.reutilizado,
+    ...base, reutilizado: f.reutilizado, eleccion, cantidad, observacion, controles: { ...base.controles, menos: cantidad > 0 },
+    confirmandoGuardar: false, recibidoPendienteUso: base.recibidoPendienteUso && cantidad === 0 && !f.reutilizado,
   }
 }
 

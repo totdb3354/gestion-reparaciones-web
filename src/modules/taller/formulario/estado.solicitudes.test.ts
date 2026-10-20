@@ -32,7 +32,7 @@ function accion(estado: EstadoFormulario, posicion: number): OtraAccion {
 }
 /** Fila de batería activa (contador 1) con el primer clic de "✓ Guardar fila" ya dado. */
 function batConfirmando(): EstadoFormulario {
-  return aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' })
+  return aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' })
 }
 function batGuardada(): EstadoFormulario {
   return aplicar(batConfirmando(),
@@ -77,7 +77,7 @@ describe('estado del formulario (2): solicitudes ya guardadas', () => {
     expect(bat.controles).toEqual({ mas: false, menos: false, reutilizado: false, sku: false, observacion: true })
     expect(botonDerecho(e, bat)).toEqual({ tipo: 'enCamino' })
     expect(subFila(e, bat)).toEqual({ tipo: 'confirmada', texto: '✓  Solicitud de reposición pendiente', lapizHabilitado: false })
-    expect(reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })).toBe(e)
+    expect(reducir(e, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })).toBe(e)
   })
 
   it('gestionada con stock deja la fila normal con "✓ Recibido"', () => {
@@ -113,8 +113,10 @@ describe('estado del formulario (2): solicitudes ya guardadas', () => {
     expect(bat.idCom).toBe(102) // por defecto habría salido 108, que tiene stock
     expect(bat.solicitud).toBeNull()
     expect(bat.controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
-    // ninguna marca de rechazo: la fila vuelve a ofrecer "Solicitar pieza"
-    expect(subFila(e, bat)).toEqual({ tipo: 'sinStock' })
+    // ninguna marca de rechazo: la fila vuelve a ofrecer "Solicitar pieza" (spec 0.9.19 §2, cambio 4: la banda solo sale con Nueva)
+    expect(subFila(e, bat)).toEqual({ tipo: 'oculta' })
+    const nueva = reducir(e, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
+    expect(subFila(nueva, fila(nueva, 'bat'))).toEqual({ tipo: 'sinStock' })
     expect(botonDerecho(e, bat)).toEqual({ tipo: 'ninguno' })
     expect(reducir(e, { tipo: 'CAMBIAR_MODELO', modelo: '13' }).modelo).toBe('13')
   })
@@ -165,7 +167,7 @@ describe('estado del formulario (2): solicitudes ya guardadas', () => {
     // un cambio que no activa la fila no apaga el indicador
     const conNota = reducir(e, { tipo: 'PONER_OBSERVACION', prefijo: 'lcd', texto: 'llegó hoy' })
     expect(botonDerecho(conNota, fila(conNota, 'lcd'))).toEqual({ tipo: 'recibido' })
-    const activa = reducir(e, { tipo: 'SUMAR', prefijo: 'lcd' })
+    const activa = reducir(e, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' })
     expect(botonDerecho(activa, fila(activa, 'lcd'))).toEqual({ tipo: 'guardarFila', texto: '✓ Guardar fila', deshabilitado: false })
     const inactiva = reducir(activa, { tipo: 'RESTAR', prefijo: 'lcd' })
     expect(botonDerecho(inactiva, fila(inactiva, 'lcd'))).toEqual({ tipo: 'ninguno' })
@@ -188,14 +190,14 @@ describe('estado del formulario (2): solicitudes ya guardadas', () => {
 
   it('marcar Reutilizado en fila con solicitud pendiente la activa', () => {
     const e = estadoInicial(datosNuevo({ solicitudes: [solicitudAsignacion()] }))
-    const marcada = reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    const marcada = reducir(e, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     expect(fila(marcada, 'bat').reutilizado).toBe(true)
     expect(filaActiva(fila(marcada, 'bat'))).toBe(true)
     expect(zonaGuardarVisible(marcada)).toBe(true)
     expect(botonDerecho(marcada, fila(marcada, 'bat'))).toEqual({ tipo: 'ninguno' }) // nunca "✓ Guardar fila" con solicitud activa
     expect(reducir(marcada, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' })).toBe(marcada)
     // al desmarcar, "+" sigue apagado: la fila sigue siendo de solicitud
-    const desmarcada = reducir(marcada, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: false })
+    const desmarcada = reducir(marcada, { tipo: 'VOLVER', prefijo: 'bat' })
     expect(fila(desmarcada, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: false, observacion: true })
     expect(zonaGuardarVisible(desmarcada)).toBe(false)
   })
@@ -205,21 +207,22 @@ describe('estado del formulario (2): sub-fila de agotado y solicitud local', () 
   it('subFila: sin stock, límite, oculta con Reutilizado, oculta en editar', () => {
     expect(TEXTO_SIN_STOCK).toBe('⚠  Sin stock disponible. Solicita la pieza para que el admin gestione el pedido.')
     expect(TEXTO_LIMITE).toBe('⚠  Stock agotado. Puedes descontar los componentes fallidos y solicitar reposición.')
-    // sin stock: se evalúa ya al pintar la fila por primera vez
+    // spec 0.9.19 §2 (cambio 4): las bandas de pedir solo salen con Nueva; sin elegir o Reutilizada, ocultas
     const catorce = conModelo('14')
-    expect(subFila(catorce, fila(catorce, 'bat'))).toEqual({ tipo: 'sinStock' })
-    // la variante sin stock no mira "Reutilizado"
-    const reutilizadaSinStock = reducir(catorce, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
-    expect(subFila(reutilizadaSinStock, fila(reutilizadaSinStock, 'bat'))).toEqual({ tipo: 'sinStock' })
+    expect(subFila(catorce, fila(catorce, 'bat'))).toEqual({ tipo: 'oculta' })
+    const reutilizadaSinStock = reducir(catorce, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
+    expect(subFila(reutilizadaSinStock, fila(reutilizadaSinStock, 'bat'))).toEqual({ tipo: 'oculta' })
+    const nuevaSinStock = reducir(catorce, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
+    expect(subFila(nuevaSinStock, fila(nuevaSinStock, 'bat'))).toEqual({ tipo: 'sinStock' })
     // límite: contador = stock (lcdi13 tiene 1), con N = stock del SKU
     const trece = conModelo('13')
     expect(subFila(trece, fila(trece, 'lcd'))).toEqual({ tipo: 'oculta' })
-    const enLimite = reducir(trece, { tipo: 'SUMAR', prefijo: 'lcd' })
+    const enLimite = reducir(trece, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' })
     expect(subFila(enLimite, fila(enLimite, 'lcd'))).toEqual({ tipo: 'limite', stock: 1 })
-    const conMargen = reducir(trece, { tipo: 'SUMAR', prefijo: 'bat' })
+    const conMargen = reducir(trece, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     expect(subFila(conMargen, fila(conMargen, 'bat'))).toEqual({ tipo: 'oculta' })
     // con "Reutilizado" y stock no hay sub-fila
-    const reutilizada = reducir(trece, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true })
+    const reutilizada = reducir(trece, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'reutilizada' })
     expect(subFila(reutilizada, fila(reutilizada, 'lcd'))).toEqual({ tipo: 'oculta' })
     // fila sin SKU para el modelo
     expect(subFila(catorce, fila(catorce, 'cam'))).toEqual({ tipo: 'oculta' })
@@ -231,7 +234,7 @@ describe('estado del formulario (2): sub-fila de agotado y solicitud local', () 
 
   it('confirmar agotado bloquea la fila, borra la observación y conserva la cantidad en límite', () => {
     const enLimite = aplicar(conModelo('13'),
-      { tipo: 'SUMAR', prefijo: 'lcd' },
+      { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'lcd', texto: 'pantalla con líneas' })
     const e = reducir(enLimite, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '  negra original \n' })
     const lcd = fila(e, 'lcd')
@@ -244,7 +247,7 @@ describe('estado del formulario (2): sub-fila de agotado y solicitud local', () 
     expect(filaActiva(lcd)).toBe(true)
     expect(e.revision).toBe(enLimite.revision + 1)
     for (const a of [
-      { tipo: 'RESTAR', prefijo: 'lcd' }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true },
+      { tipo: 'RESTAR', prefijo: 'lcd' }, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'reutilizada' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'lcd', texto: 'x' }, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'lcd' },
       { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'otra vez' },
     ] satisfies AccionFormulario[]) expect(reducir(e, a)).toBe(e)
@@ -261,14 +264,14 @@ describe('estado del formulario (2): sub-fila de agotado y solicitud local', () 
     expect(subFila(sinStock, fila(sinStock, 'bat'))).toEqual({
       tipo: 'confirmada', texto: '✓  Solicitud de reposición pendiente', lapizHabilitado: true,
     })
-    const limite = aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' })
+    const limite = aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' })
     expect(subFila(limite, fila(limite, 'lcd'))).toEqual({
       tipo: 'confirmada', texto: '✓  1 uds. se descontarán al guardar — solicitud pendiente', lapizHabilitado: true,
     })
     const conTexto = reducir(conModelo('14'), { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: 'batería hinchada' })
     expect(subFila(conTexto, fila(conTexto, 'bat'))).toMatchObject({ texto: '✓  Solicitud de reposición pendiente — batería hinchada' })
     const limiteConTexto = aplicar(conModelo('13'),
-      { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'negra original' })
+      { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'negra original' })
     expect(subFila(limiteConTexto, fila(limiteConTexto, 'lcd'))).toMatchObject({
       texto: '✓  1 uds. se descontarán al guardar — solicitud pendiente — negra original',
     })
@@ -294,16 +297,17 @@ describe('estado del formulario (2): sub-fila de agotado y solicitud local', () 
   })
 
   it('cancelar agotado devuelve la fila y recalcula la variante', () => {
-    const limite = aplicar(conModelo('13'), { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'x' })
+    const limite = aplicar(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'x' })
     const e = reducir(limite, { tipo: 'CANCELAR_AGOTADO', prefijo: 'lcd' })
-    expect(fila(e, 'lcd')).toMatchObject({ agotado: null, cantidad: 0, reutilizado: false })
-    expect(fila(e, 'lcd').controles).toEqual({ mas: true, menos: false, reutilizado: true, sku: true, observacion: true })
+    // spec 0.9.19 §2 (cambio 7): «Cancelar solicitud» deja la fila sin elegir, como la «×»
+    expect(fila(e, 'lcd')).toMatchObject({ agotado: null, cantidad: 0, reutilizado: false, eleccion: null })
+    expect(fila(e, 'lcd').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
     expect(subFila(e, fila(e, 'lcd'))).toEqual({ tipo: 'oculta' }) // con contador 0 ya no está en el límite
     expect(e.revision).toBe(limite.revision + 1)
     const sinStock = aplicar(conModelo('14'),
       { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: '' }, { tipo: 'CANCELAR_AGOTADO', prefijo: 'bat' })
     expect(fila(sinStock, 'bat').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: true })
-    expect(subFila(sinStock, fila(sinStock, 'bat'))).toEqual({ tipo: 'sinStock' })
+    expect(subFila(sinStock, fila(sinStock, 'bat'))).toEqual({ tipo: 'oculta' }) // cambios 4 y 7: sin elegir, sin banda
     expect(zonaGuardarVisible(sinStock)).toBe(false)
   })
 })
@@ -313,12 +317,12 @@ describe('estado del formulario (2): guardar fila', () => {
     const base = conModelo('13')
     expect(botonDerecho(base, fila(base, 'bat'))).toEqual({ tipo: 'ninguno' })
     expect(reducir(base, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' })).toBe(base) // fila inactiva
-    const activa = reducir(base, { tipo: 'SUMAR', prefijo: 'bat' })
+    const activa = reducir(base, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     expect(botonDerecho(activa, fila(activa, 'bat'))).toEqual({ tipo: 'guardarFila', texto: '✓ Guardar fila', deshabilitado: false })
-    const reutilizada = aplicar(base, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })
+    const reutilizada = aplicar(base, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'reutilizada' })
     expect(botonDerecho(reutilizada, fila(reutilizada, 'cha'))).toMatchObject({ tipo: 'guardarFila', texto: '✓ Guardar fila' })
     // convive con la sub-fila de stock agotado cuando cantidad = stock
-    const enLimite = reducir(base, { tipo: 'SUMAR', prefijo: 'lcd' })
+    const enLimite = reducir(base, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' })
     expect(botonDerecho(enLimite, fila(enLimite, 'lcd'))).toMatchObject({ tipo: 'guardarFila' })
     expect(subFila(enLimite, fila(enLimite, 'lcd'))).toEqual({ tipo: 'limite', stock: 1 })
     // primer clic: "✓ Confirmar" (no es un cambio de datos); el segundo INICIO no procede sin el primero
@@ -336,7 +340,7 @@ describe('estado del formulario (2): guardar fila', () => {
       expect(botonDerecho(e, fila(e, 'bat'))).toEqual({ tipo: 'guardarFila', texto: '✓ Guardar fila', deshabilitado: false })
     }
     // un cambio en OTRA fila no lo toca
-    const otra = aplicar(confirmando, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'SUMAR', prefijo: 'cha' })
+    const otra = aplicar(confirmando, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })
     expect(fila(otra, 'bat').confirmandoGuardar).toBe(true)
     // segundo clic: en vuelo, botón deshabilitado y la fila no admite cambios
     const enVuelo = reducir(confirmando, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' })
@@ -351,8 +355,8 @@ describe('estado del formulario (2): guardar fila', () => {
 
   it('fila guardada ignora sumar, SKU, Reutilizado, observación y cambio de modelo', () => {
     const conNota = aplicar(conModelo('13'),
-      { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
-      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'SUMAR', prefijo: 'cha' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' },
       { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' }, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' },
       { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_9', fecha: '16/09 09:15' })
     const bat = fila(conNota, 'bat')
@@ -363,7 +367,7 @@ describe('estado del formulario (2): guardar fila', () => {
     expect(subFila(conNota, bat)).toEqual({ tipo: 'oculta' })
     for (const a of [
       { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'RESTAR', prefijo: 'bat' }, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 101 },
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'x' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'x' },
       { tipo: 'BORRAR_OBSERVACION', prefijo: 'bat' }, // la papelera de una fila guardada está deshabilitada
       { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: '' },
       { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_99', fecha: '16/09 10:00' },
@@ -374,7 +378,7 @@ describe('estado del formulario (2): guardar fila', () => {
     expect(fila(otroModelo, 'cha').cantidad).toBe(0)
     // una guardada con "Reutilizado": contador 0 y casilla marcada (y apagada)
     const reutilizada = aplicar(conModelo('13'),
-      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'reutilizada' },
       { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'cha' }, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'cha' },
       { tipo: 'FILA_GUARDADA', prefijo: 'cha', idRep: 'R20260916_11', fecha: '16/09 09:30' })
     expect(fila(reutilizada, 'cha')).toMatchObject({ cantidad: 0, reutilizado: true, controles: { reutilizado: false } })
@@ -487,8 +491,8 @@ describe('estado del formulario (2): zona de guardar', () => {
   it('zona visible: fila activa, agotado local, acción con texto, fila guardada, acción guardada', () => {
     expect(zonaGuardarVisible(estadoInicial(datosNuevo()))).toBe(false)
     expect(zonaGuardarVisible(conModelo('13'))).toBe(false)
-    expect(zonaGuardarVisible(reducir(conModelo('13'), { tipo: 'SUMAR', prefijo: 'bat' }))).toBe(true)
-    expect(zonaGuardarVisible(reducir(conModelo('13'), { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true }))).toBe(true)
+    expect(zonaGuardarVisible(reducir(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }))).toBe(true)
+    expect(zonaGuardarVisible(reducir(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' }))).toBe(true)
     expect(zonaGuardarVisible(reducir(conModelo('14'), { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: '' }))).toBe(true)
     expect(zonaGuardarVisible(reducir(conModelo('13'), { tipo: 'ANADIR_ACCION' }))).toBe(false) // línea vacía
     expect(zonaGuardarVisible(conAccion('Limpieza de altavoz'))).toBe(true)
@@ -510,7 +514,7 @@ describe('estado del formulario (2): zona de guardar', () => {
   })
 
   it('"✓  Confirmar terminar" no vuelve atrás y tras FALLO_GUARDADO pide dos clics', () => {
-    const activa = reducir(conModelo('13'), { tipo: 'SUMAR', prefijo: 'bat' })
+    const activa = reducir(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     expect(reducir(activa, { tipo: 'INICIO_GUARDADO' })).toBe(activa) // el primer clic nunca ejecuta
     const primerClic = reducir(activa, { tipo: 'PEDIR_CONFIRMACION_GUARDAR' })
     expect(primerClic.guardado).toEqual({ clics: 1, textoConfirmacion: true, enCurso: false })

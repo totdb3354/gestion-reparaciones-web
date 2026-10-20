@@ -5,7 +5,7 @@ import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { useAgotarComponente, useCompleta, useEditarReparacion, useGuardarFila } from './api'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import {
-  accionPideConfirmacion, cuerpoGuardarAccion, cuerpoGuardarFila, planGuardarCambios, planTerminar, reducir,
+  accionPideConfirmacion, cuerpoGuardarAccion, cuerpoGuardarFila, planGuardarCambios, planTerminar, reducir, textoFaltaSku,
   type AccionFormulario, type EstadoFormulario,
 } from './estado'
 
@@ -190,6 +190,12 @@ export function useGuardado({ estado, dispatch, onGuardado, antesDeCerrar }: Arg
 
   function pulsarGuardar() {
     if (estado.guardado.enCurso) return
+    // Una fila con «Nueva» o «Reutilizada» elegida y sin SKU (chasis o tapa sin color) no deja seguir (spec 0.9.19 §2).
+    const falta = textoFaltaSku(estado)
+    if (falta !== null) {
+      mostrarError(falta)
+      return
+    }
     if (estado.guardado.clics === 0) {
       dispatch({ tipo: 'PEDIR_CONFIRMACION_GUARDAR' })
       return

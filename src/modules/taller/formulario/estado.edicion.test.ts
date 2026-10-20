@@ -50,15 +50,16 @@ describe('estado del formulario (3): modo edición', () => {
     const bat = fila(e, 'bat')
     expect(bat).toMatchObject({ rol: 'editada', idCom: 101, cantidad: 2, reutilizado: false, observacion: 'conector dañado' })
     expect(bat.original).toEqual({ idCom: 101, cantidad: 2, reutilizado: false, observacion: 'conector dañado' })
-    // cantidad > 0: "Reutilizado" apagado; "+" según stock; "-" encendido
-    expect(bat.controles).toEqual({ mas: true, menos: true, reutilizado: false, sku: true, observacion: true })
+    // spec 0.9.19 §2 (cambio 5): elegida «Nueva» al abrir; «+» según stock, «−» encendido y «Reutilizada» siempre elegible con la «×»
+    expect(bat.eleccion).toBe('nueva')
+    expect(bat.controles).toEqual({ mas: true, menos: true, reutilizado: true, sku: true, observacion: true })
     expect(e.filas.filter((f) => f.rol === 'editada')).toHaveLength(1)
     expect(fila(e, 'lcd')).toMatchObject({ rol: 'normal', idCom: 111, original: null }) // el resto, filtrado por el modelo
     expect(etiquetaImei(e)).toBe(`IMEI: ${IMEI}  ·  Editando R20260916_5`)
     expect(tituloPestana(e)).toBe('Editar reparación — R20260916_5')
     expect(hayCambioEnFilaEditada(e)).toBe(false)
     expect(zonaGuardarVisible(e)).toBe(false)
-    // si era reutilizada: "+" y "-" apagados y la casilla encendida
+    // si era reutilizada: "+" y "-" apagados y «Reutilizada» elegida
     const reutilizada = estadoInicial(datosEditar({ detalle: detalleEdicion({ esReutilizado: true, cantidad: 0 }) }))
     expect(fila(reutilizada, 'bat')).toMatchObject({ reutilizado: true, cantidad: 0 })
     expect(fila(reutilizada, 'bat').controles).toMatchObject({ mas: false, menos: false, reutilizado: true })
@@ -112,7 +113,7 @@ describe('estado del formulario (3): modo edición', () => {
     expect(lcd.controles).toEqual({ mas: false, menos: false, reutilizado: false, sku: false, observacion: false })
     expect(botonDerecho(e, lcd)).toEqual({ tipo: 'yaReparado' })
     expect(reducir(e, { tipo: 'SUMAR', prefijo: 'lcd' })).toBe(e)
-    expect(reducir(e, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'lcd', valor: true })).toBe(e)
+    expect(reducir(e, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'reutilizada' })).toBe(e)
     expect(fila(e, 'bat').rol).toBe('editada')
     expect(botonDerecho(e, fila(e, 'bat'))).toEqual({ tipo: 'ninguno' })
     expect(fila(e, 'cha').rol).toBe('normal')
@@ -148,7 +149,7 @@ describe('estado del formulario (3): modo edición', () => {
     const menos = reducir(e, { tipo: 'RESTAR', prefijo: 'bat' })
     expect(previsionStock(menos, fila(menos, 'bat'))).toEqual({ texto: '5 → 6', tendencia: 'sube' })
     // "Reutilizado" no descuenta
-    const reutilizada = reducir(menos, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    const reutilizada = reducir(menos, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     expect(previsionStock(reutilizada, fila(reutilizada, 'bat'))).toEqual({ texto: '5 → 6', tendencia: 'sube' })
     // otro SKU: no se le devuelve nada y se le descuenta la cantidad
     const otroSku = reducir(e, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 107 })
@@ -170,12 +171,14 @@ describe('estado del formulario (3): modo edición', () => {
     expect(fila(ida, 'bat')).toMatchObject({ idCom: 107, cantidad: 3 })
     const vuelta = reducir(ida, { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 101 })
     expect(fila(vuelta, 'bat')).toMatchObject({ idCom: 101, cantidad: 3 })
-    expect(fila(vuelta, 'bat').controles.mas).toBe(fila(ida, 'bat').controles.mas)
+    // spec 0.9.19 §2 (cambio 3): con Nueva, «+» se recalcula con el stock del SKU (3 ≥ 2: apagado)
+    expect(fila(ida, 'bat').controles.mas).toBe(true)
+    expect(fila(vuelta, 'bat').controles.mas).toBe(false)
     expect(hayCambioEnFilaEditada(vuelta)).toBe(false)
-    // a un SKU que NO es el original y tiene menos stock que la cantidad, sí se pone a 0
+    // a un SKU que NO es el original y tiene menos stock que la cantidad: spec 0.9.19 §2 (cambio 3), se ajusta al stock (antes 0)
     const aOtro = reducir(estadoInicial(datosEditar({ agrupados: catalogo, detalle: detalleEdicion({ cantidad: 3 }) })),
       { tipo: 'CAMBIAR_SKU', prefijo: 'bat', idCom: 107 }) // bati13oem: stock 2 < 3
-    expect(fila(aOtro, 'bat')).toMatchObject({ idCom: 107, cantidad: 0 })
+    expect(fila(aOtro, 'bat')).toMatchObject({ idCom: 107, cantidad: 2 })
   })
 
   it('cambio inválido oculta la zona y marca el contador', () => {
@@ -187,10 +190,10 @@ describe('estado del formulario (3): modo edición', () => {
     expect(zonaGuardarVisible(aCero)).toBe(false)
     expect(hayCambiosSinGuardar(aCero)).toBe(false) // cerrar así no pregunta: el cambio se pierde
     // ni aunque haya una fila nueva activa
-    const conFilaNueva = reducir(aCero, { tipo: 'SUMAR', prefijo: 'lcd' })
+    const conFilaNueva = reducir(aCero, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' })
     expect(zonaGuardarVisible(conFilaNueva)).toBe(false)
     // con "Reutilizado" el cambio vuelve a ser válido
-    const valida = reducir(aCero, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    const valida = reducir(aCero, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     expect(filaEditadaInvalida(valida)).toBe(false)
     expect(zonaGuardarVisible(valida)).toBe(true)
     expect(reducir(aCero, { tipo: 'PEDIR_CONFIRMACION_GUARDAR' })).toBe(aCero)
@@ -219,7 +222,7 @@ describe('estado del formulario (3): modo edición', () => {
 
   it('fila nueva activa en edición muestra la zona y no ofrece "✓ Guardar fila" ni sub-fila', () => {
     const e = estadoInicial(datosEditar({ detalle: detalleEdicion({ idCom: 102 }) })) // modelo 14; lcdi14 tiene stock 3
-    const activa = aplicar(e, { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'SUMAR', prefijo: 'lcd' })
+    const activa = aplicar(e, { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'SUMAR', prefijo: 'lcd' })
     expect(fila(activa, 'lcd').cantidad).toBe(3) // en el límite la cantidad simplemente no pasa del stock
     expect(reducir(activa, { tipo: 'SUMAR', prefijo: 'lcd' })).toBe(activa)
     expect(zonaGuardarVisible(activa)).toBe(true)
@@ -235,7 +238,7 @@ describe('estado del formulario (3): modo edición', () => {
     const editando = reducir(estadoInicial(datosEditar()), { tipo: 'SUMAR', prefijo: 'bat' })
     expect(hayCambiosSinGuardar(editando)).toBe(true)
     expect(hayCambiosSinGuardar(estadoInicial(datosEditar()))).toBe(false)
-    const nuevo = reducir(conModelo('13'), { tipo: 'SUMAR', prefijo: 'bat' })
+    const nuevo = reducir(conModelo('13'), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     expect(zonaGuardarVisible(nuevo)).toBe(true)
     expect(hayCambiosSinGuardar(nuevo)).toBe(false) // el flujo nuevo nunca pregunta: lo cubre el borrador
   })
@@ -244,7 +247,7 @@ describe('estado del formulario (3): modo edición', () => {
 describe('estado del formulario (3): cuerpos de las llamadas', () => {
   it('cuerpoGuardarFila y cuerpoGuardarAccion con incidencia y técnico de la sesión', () => {
     const e = aplicar(conModelo('13', { incidencia: 'R20260910_2' }),
-      { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
       { tipo: 'ANADIR_ACCION' }, { tipo: 'ESCRIBIR_ACCION', id: 1, texto: '  Limpieza de altavoz ' })
     expect(filaDeCuerpo(fila(e, 'bat'))).toEqual({
       idCom: 101, cantidad: 1, reutilizado: false, observacion: 'conector dañado', prefijo: 'bat', ...FILA_VACIA,
@@ -259,7 +262,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
       imei: IMEI, idTec: 4, idRepAnterior: 'R20260910_2',
     })
     // sin incidencia, sin observación: null
-    const sinNada = aplicar(conModelo('13'), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })
+    const sinNada = aplicar(conModelo('13'), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'reutilizada' })
     expect(cuerpoGuardarFila(sinNada, 'cha', 4)).toEqual({
       filas: [{ idCom: 131, cantidad: 0, reutilizado: true, observacion: null, prefijo: 'cha', ...FILA_VACIA }],
       imei: IMEI, idTec: 4, idRepAnterior: null,
@@ -277,8 +280,8 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
     const e = aplicar(conModelo('13', { agrupados: catalogo }),
       // se confirman en orden inverso al de las filas: el plan sigue el orden de FILAS (lcd antes que cam)
       { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'cam', descripcion: 'cámara trasera' },
-      { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' },
-      { tipo: 'SUMAR', prefijo: 'bat' })
+      { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     const plan = planTerminar(e, 4)
     expect(plan.agotados).toEqual([
       { prefijo: 'lcd', cuerpo: { idCom: 111, cantidad: 1, descripcion: null } }, // límite: el stock
@@ -295,9 +298,9 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
     const catalogo = agrupados()
     catalogo.cam = [componente({ idCom: 121, tipo: 'cami13', stock: 0, stockMinimo: 1 })]
     const e = aplicar(conModelo('13', { agrupados: catalogo }),
-      { tipo: 'SUMAR', prefijo: 'lcd' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' },
+      { tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' }, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' },
       { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'cam', descripcion: '' },
-      { tipo: 'SUMAR', prefijo: 'bat' })
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     expect(planTerminar(e, 4).agotados.map((a) => a.prefijo)).toEqual(['lcd', 'cam'])
     // el 1.º se registró y el 2.º falló: el reintento continúa con los que faltan
     const trasElPrimero = aplicar(e, { tipo: 'AGOTADO_REGISTRADO', prefijo: 'lcd' }, { tipo: 'FALLO_GUARDADO' })
@@ -321,7 +324,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
 
   it('planTerminar: filas vacías con filas guardadas → completa con filas []', () => {
     const e = aplicar(conModelo('13'),
-      { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' }, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }, { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' }, { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' },
       { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_9', fecha: '16/09 09:15' },
       { tipo: 'ANADIR_ACCION' }, { tipo: 'ESCRIBIR_ACCION', id: 1, texto: 'Limpieza de altavoz' },
       { tipo: 'PEDIR_CONFIRMACION_ACCION', id: 1 }, { tipo: 'INICIO_GUARDAR_ACCION', id: 1 },
@@ -335,7 +338,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
 
   it('planTerminar incluye la fila de solicitud con Reutilizado y las acciones pendientes', () => {
     const e = aplicar(estadoInicial(datosNuevo({ incidencia: 'R20260910_2', solicitudes: [solicitudAsignacion(), solicitudAsignacion({ idCom: 112 })] })),
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' },
       { tipo: 'ANADIR_ACCION' }, { tipo: 'ESCRIBIR_ACCION', id: 1, texto: ' Limpieza de altavoz ' },
       { tipo: 'ANADIR_ACCION' }) // la segunda línea, vacía, no se envía
     const plan = planTerminar(e, 4)
@@ -353,7 +356,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
 
   it('planTerminar en glass no lleva categoria', () => {
     const e = aplicar(estadoInicial(datosNuevo({ modo: 'glass', idAsignacion: 'AG20260916_2' })),
-      { tipo: 'CAMBIAR_MODELO', modelo: '13' }, { tipo: 'SUMAR', prefijo: 'g' })
+      { tipo: 'CAMBIAR_MODELO', modelo: '13' }, { tipo: 'ELEGIR', prefijo: 'g', eleccion: 'nueva' })
     expect(planTerminar(e, 6).completa).toEqual({
       filas: [{ idCom: 141, cantidad: 1, reutilizado: false, observacion: null, prefijo: 'g', ...FILA_VACIA }],
       imei: IMEI, idTec: 6, idRepAnterior: null, idAsignacion: 'AG20260916_2', categoria: null,
@@ -365,7 +368,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
     // pieza: fila editada + fila nueva + acción nueva
     const pieza = aplicar(estadoInicial(datosEditar()),
       { tipo: 'SUMAR', prefijo: 'bat' }, { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'conector dañado' },
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cam', valor: true },
+      { tipo: 'ELEGIR', prefijo: 'cam', eleccion: 'reutilizada' },
       { tipo: 'ANADIR_ACCION' }, { tipo: 'ESCRIBIR_ACCION', id: 1, texto: ' Limpieza de altavoz ' })
     expect(planGuardarCambios(pieza)).toEqual({
       editarAccion: null,
@@ -389,7 +392,7 @@ describe('estado del formulario (3): cuerpos de las llamadas', () => {
     })
     // edición de una G…: categoria 'G' en los dos completa
     const glass = aplicar(estadoInicial(datosEditar({ idRep: 'G20260916_7', detalle: detalleEdicion({ idCom: 141, idTec: 6 }) })),
-      { tipo: 'SUMAR', prefijo: 'mc' }, { tipo: 'ANADIR_ACCION' }, { tipo: 'ESCRIBIR_ACCION', id: 1, texto: 'Limpieza de marco' })
+      { tipo: 'ELEGIR', prefijo: 'mc', eleccion: 'nueva' }, { tipo: 'ANADIR_ACCION' }, { tipo: 'ESCRIBIR_ACCION', id: 1, texto: 'Limpieza de marco' })
     const planGlass = planGuardarCambios(glass)
     expect(planGlass.editarFila).toBeNull()
     expect(planGlass.completaFilas).toMatchObject({ idTec: 6, categoria: 'G', idAsignacion: null, idRepAnterior: null })

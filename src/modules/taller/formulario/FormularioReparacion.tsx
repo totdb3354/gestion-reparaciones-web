@@ -26,14 +26,15 @@ type Props =
  *  activas (no hay banda de conflicto) ni borrador. */
 type CargaFormulario = { datos: DatosNuevo | DatosEditar; asignacionesActivas: AsignacionActiva[]; borradorJson: string | null }
 
-/** Cabecera de columnas: mismos anchos que las celdas de cada fila (la observación, 280 fijo). El botón derecho no tiene columna. */
+/** Cabecera de columnas: mismos anchos que las celdas de cada fila (la observación, 250 fijo). El botón derecho no tiene columna.
+ *  0.9.19: «¿Reutilizado?» (110) pasa a «Pieza» (140) y la observación de 280 a 250; el total sigue en 870. */
 const COLUMNAS = [
   { texto: 'Unit (+/-)', clase: 'w-[70px]' },
   { texto: 'Componente', clase: 'w-[100px]' },
   { texto: 'SKU', clase: 'w-[240px]' },
   { texto: 'Stock', clase: 'w-[70px] text-center' },
-  { texto: '¿Reutilizado?', clase: 'w-[110px]' },
-  { texto: 'Observación', clase: 'w-[280px]' },
+  { texto: 'Pieza', clase: 'w-[140px]' },
+  { texto: 'Observación', clase: 'w-[250px]' },
 ] as const
 
 /** El formulario de reparación como diálogo modal sobre la lista. La URL lo gobierna: quien lo monta (formulario/rutas.tsx)

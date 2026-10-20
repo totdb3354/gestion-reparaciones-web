@@ -3,7 +3,7 @@ import { agrupados, componente, detalleEdicion, solicitudAsignacion } from '../t
 import { aplicarBorrador, capturar, type BorradorFila } from './borrador'
 import {
   type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario, type FilaEstado,
-  chasisResaltados, estadoInicial, reducir, subFila,
+  chasisResaltados, estadoInicial, filaActiva, reducir, subFila,
 } from './estado'
 
 /** Catálogo del modelo 16 con chasis SIM y eSIM y tapas (spec 0.9.7 §9). */
@@ -37,15 +37,20 @@ describe('chasis y tapa sin SKU preseleccionado (spec 0.9.7 §9.1)', () => {
     expect(fila(e, 'cha').idCom).toBeNull()
     expect(fila(e, 'tapa').idCom).toBeNull()
     expect(fila(e, 'bat').idCom).toBe(205)
-    expect(fila(e, 'cha').controles).toEqual({ mas: false, menos: false, reutilizado: false, sku: true, observacion: false })
+    // spec 0.9.19 §2 (cambio 6): «Reutilizada» se puede elegir antes que el color
+    expect(fila(e, 'cha').controles).toEqual({ mas: false, menos: false, reutilizado: true, sku: true, observacion: false })
   })
-  it('sin SKU, "+" y "Reutilizado" no hacen nada y no sale la sub-fila de sin stock', () => {
+  it('sin SKU, "+" no hace nada, "Reutilizada" se elige sin que la fila cuente y no sale la sub-fila de sin stock', () => {
     const e = modelo16()
-    expect(aplicar(e, { tipo: 'SUMAR', prefijo: 'cha' }, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cha', valor: true })).toBe(e)
+    expect(reducir(e, { tipo: 'SUMAR', prefijo: 'cha' })).toBe(e)
+    // spec 0.9.19 §2 (cambio 6): «Reutilizada» se puede elegir antes que el color, pero la fila no cuenta hasta tener SKU
+    const r = reducir(e, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'reutilizada' })
+    expect(fila(r, 'cha')).toMatchObject({ eleccion: 'reutilizada', idCom: null })
+    expect(filaActiva(fila(r, 'cha'))).toBe(false)
     expect(subFila(e, fila(e, 'cha'))).toEqual({ tipo: 'oculta' })
   })
   it('al elegir el SKU se encienden los controles y se puede sumar', () => {
-    const e = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 204 }, { tipo: 'SUMAR', prefijo: 'cha' })
+    const e = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 204 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })
     expect(fila(e, 'cha')).toMatchObject({ idCom: 204, cantidad: 1 })
   })
   it('al cambiar de modelo vuelven a sin elegir', () => {
@@ -72,7 +77,7 @@ describe('enlace de color chasis ↔ tapa (spec 0.9.7 §9.1)', () => {
   })
   it('el enlace no cambia la cantidad ni "Reutilizado" de la otra fila', () => {
     const e = aplicar(modelo16(),
-      { tipo: 'CAMBIAR_SKU', prefijo: 'tapa', idCom: 211 }, { tipo: 'SUMAR', prefijo: 'tapa' },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'tapa', idCom: 211 }, { tipo: 'ELEGIR', prefijo: 'tapa', eleccion: 'nueva' },
       { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 203 })
     expect(fila(e, 'tapa')).toMatchObject({ idCom: 212, cantidad: 1, reutilizado: false })
   })
@@ -121,7 +126,7 @@ describe('al abrir y con el borrador (spec 0.9.7 §9.3)', () => {
     expect(fila(e, 'tapa').idCom).toBe(212)
   })
   it('el borrador recupera el chasis elegido y su cantidad', () => {
-    const elegido = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 202 }, { tipo: 'SUMAR', prefijo: 'cha' })
+    const elegido = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 202 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })
     const recuperado = aplicarBorrador(estadoInicial(datosNuevo()), capturar(elegido))
     expect(fila(recuperado, 'cha')).toMatchObject({ idCom: 202, cantidad: 1 })
     expect(fila(recuperado, 'cha').controles.menos).toBe(true)
@@ -147,7 +152,7 @@ describe('al abrir y con el borrador (spec 0.9.7 §9.3)', () => {
     expect(fila(recuperado, 'cha')).toMatchObject({ idCom: null, guardada: null, cantidad: 0 })
   })
   it('la tapa sigue al chasis recuperado aunque no venga en el borrador, sin subir revision', () => {
-    const usado = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 204 }, { tipo: 'SUMAR', prefijo: 'cha' })
+    const usado = aplicar(modelo16(), { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 204 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })
     const borrador = capturar(usado)
     expect(borrador.filas.map((f) => f.prefijo)).not.toContain('tapa')
     const antes = estadoInicial(datosNuevo())
@@ -155,5 +160,18 @@ describe('al abrir y con el borrador (spec 0.9.7 §9.3)', () => {
     expect(fila(recuperado, 'cha')).toMatchObject({ idCom: 204, cantidad: 1 })
     expect(fila(recuperado, 'tapa')).toMatchObject({ idCom: 212, cantidad: 0 })
     expect(recuperado.revision).toBe(antes.revision)
+  })
+})
+
+describe('observacion al llegar el color por el enlace (revision final 0.9.19)', () => {
+  it('tapa «Nueva» sin color: el color le llega al elegir el chasis y se activa su observacion', () => {
+    const e = aplicar(
+      modelo16(),
+      { tipo: 'ELEGIR', prefijo: 'tapa', eleccion: 'nueva' },
+      { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 201 },
+    )
+    expect(fila(e, 'tapa').idCom).toBe(211)
+    expect(fila(e, 'tapa').controles.observacion).toBe(true)
   })
 })
