@@ -70,6 +70,12 @@ reparadas (consume una unidad de dos SKU con stock), la corrige desde el modal y
 reparaciones devuelven su unidad al stock). Quedan líneas `CORREGIR_CLIENTE_TRABAJO` en el registro. Con
 `ADMIN_USER`/`ADMIN_PASS` comprueba el menú y busca esas líneas en «Ver logs» (solo lectura). Solo contra un entorno de
 pruebas.
+`pulidos.spec.ts` también **escribe**: con `E2E_USER` crea por la API dos asignaciones de pulido de dos IMEIs sintéticos
+para el técnico de `TEC_USER`. Con `TEC_USER`, en «Mis pulidos pendientes», filtra por el primero y comprueba que «Seleccionar
+todo» y «Completar seleccionados» completan solo ese, tras la confirmación «Completar 1 pulido» (si dijera otro número, falla
+sin confirmar), y que «Cancelar» en la del segundo no lo completa. Al final borra los pulidos, las asignaciones y los teléfonos
+de los dos IMEIs. Quedan líneas `CREAR_ASIGNACION_PULIDO`, `COMPLETAR_PULIDO_LOTE` y `ELIMINAR_REPARACION` en el registro.
+Solo contra un entorno de pruebas.
 Sin credenciales (o sin `E2E_IMEI_PRUEBA`/`E2E_TEC_PRUEBA` en el caso
 de `asignar.spec.ts`, sin `E2E_SKU_PRUEBA` en el de `stock.spec.ts` y `pedidos.spec.ts`, o sin `ADMIN_USER`/`ADMIN_PASS` en el de
 `gestion.spec.ts`) en el entorno, los tests se saltan.
