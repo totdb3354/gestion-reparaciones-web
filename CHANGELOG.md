@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.19] - 2026-10-XX — Completar pulidos: solo lo que se ve, con confirmación
+
+- **Mis pulidos pendientes:** con el filtro por IMEI, «Seleccionar todo» marcaba también los pulidos que el filtro ocultaba, y «Completar seleccionados» los completaba todos. Ahora «Seleccionar todo» y «Completar seleccionados» solo cuentan las filas que se ven; una casilla marcada que el filtro oculta ni se cuenta ni se completa.
+- «Completar seleccionados» pide confirmación: «Completar N pulidos», con los IMEIs (los cinco primeros y cuántos más). Cancelar no completa nada y deja la selección.
+- Solo web: funciona con el servidor 0.9.18. Sin migración.
+
 ## [0.9.18] - 2026-10-20 — Stock de teléfonos: quién lo tiene, SKU y revisado
 
 - **Stock de teléfonos** (supertécnico y administrador):
