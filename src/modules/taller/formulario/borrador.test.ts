@@ -24,7 +24,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
     expect(serializar(e)).toBe(BORRADOR_JAVAFX)
   })
   it('serializar omite cadenas nulas y escribe solicitudNueva false', () => {
-    const e = aplicarAcciones(conModelo13(), { tipo: 'SUMAR', prefijo: 'bat' })
+    const e = aplicarAcciones(conModelo13(), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     const json = serializar(e)!
     expect(json).toBe('{"modelo":"13","filas":[{"prefijo":"bat","idCom":101,"cantidad":1,"reutilizado":false,"solicitudNueva":false,"agotadoConfirmado":false,"guardada":false}],"otros":[]}')
     expect(json).not.toContain('null')
@@ -33,7 +33,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
   it('fila guardada se captura sin observación', () => {
     const e = aplicarAcciones(
       conModelo13(),
-      { tipo: 'SUMAR', prefijo: 'bat' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'Batería hinchada' },
       { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_5', fecha: '16/09 09:15' },
     )
@@ -45,7 +45,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
     const e = aplicarAcciones(
       conModelo13(),
       { tipo: 'PONER_OBSERVACION', prefijo: 'lcd', texto: 'Pantalla con líneas verticales' },
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cam', valor: true },
+      { tipo: 'ELEGIR', prefijo: 'cam', eleccion: 'reutilizada' },
     )
     expect(capturar(e).filas.map((f) => f.prefijo)).toEqual(['lcd', 'cam'])
     expect(capturar(e).filas[0]).toMatchObject({ cantidad: 0, observacion: 'Pantalla con líneas verticales' })
@@ -62,7 +62,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
     const delServidor = estadoInicial(datos({ solicitudes: [solicitudAsignacion({ idCom: 102, descripcionSolicitud: 'Batería original' })] }))
     expect(fila(delServidor, 'bat').solicitud).not.toBeNull()
     expect(capturar(delServidor).filas).toEqual([])
-    const reutilizada = reducir(delServidor, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    const reutilizada = reducir(delServidor, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     expect(capturar(reutilizada).filas).toEqual([
       { prefijo: 'bat', idCom: 102, cantidad: 0, reutilizado: true, solicitudNueva: false, agotadoConfirmado: false, guardada: false },
     ])

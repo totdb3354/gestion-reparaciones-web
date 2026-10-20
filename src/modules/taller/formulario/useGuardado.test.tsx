@@ -7,6 +7,7 @@ import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { agrupados, detalleEdicion } from '../test/fabrica'
 import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
+import { sumarOElegir } from './test/acciones'
 import { conRegistro, type LlamadaRegistrada } from './test/handlers'
 import { fechaGuardado, useGuardado } from './useGuardado'
 
@@ -23,7 +24,7 @@ function ArnesFila() {
   const bat = estado.filas.find((f) => f.prefijo === 'bat')
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar</button>
       <button onClick={() => guardarFila('bat')}>guardar fila</button>
       <output data-testid="bat">{JSON.stringify({ confirmando: bat?.confirmandoGuardar, guardando: bat?.guardando, guardada: bat?.guardada })}</output>
     </div>
@@ -143,7 +144,7 @@ function ArnesAccion({ onGuardado, antesDeCerrar }: { onGuardado: () => void; an
   const bat = estado.filas.find((f) => f.prefijo === 'bat')
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar</button>
       <button onClick={() => guardarFila('bat')}>guardar fila</button>
       <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir</button>
       <button onClick={() => accion && dispatch({ tipo: 'ESCRIBIR_ACCION', id: accion.id, texto: '  Limpieza de conector  ' })}>escribir</button>
@@ -377,9 +378,9 @@ function ArnesEdicion({ datos, onGuardado }: { datos: DatosEditar; onGuardado: (
   const ultima = estado.otros[estado.otros.length - 1]
   return (
     <>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar bat</button>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'mc' })}>sumar mc</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar bat</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'mc'))}>sumar mc</button>
       <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir acción</button>
       <button onClick={() => ultima && dispatch({ tipo: 'ESCRIBIR_ACCION', id: ultima.id, texto: 'Limpieza interna' })}>escribir acción</button>
       {zonaGuardarVisible(estado) && <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>}
@@ -477,8 +478,8 @@ function ArnesFilas() {
   const cam = estado.filas.find((f) => f.prefijo === 'cam')
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar bat</button>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar bat</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
       <button onClick={() => guardarFila('bat')}>guardar bat</button>
       <button onClick={() => guardarFila('cam')}>guardar cam</button>
       <output data-testid="bat">{JSON.stringify({ guardando: bat?.guardando, guardada: bat?.guardada })}</output>
@@ -538,18 +539,18 @@ function ArnesTerminarDosAgotados({ onGuardado }: { onGuardado: () => void }) {
   const [estado, dispatch] = useReducer(reducir, DATOS, estadoInicial)
   const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado })
   const agotarLcd = () => {
-    dispatch({ tipo: 'SUMAR', prefijo: 'lcd' })
+    dispatch({ tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' })
     dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'Sin stock' })
   }
   const agotarCha = () => {
     dispatch({ tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 })
-    dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
+    dispatch({ tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })
     dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
     dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'cha', descripcion: 'Sin stock' })
   }
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
       <button onClick={agotarLcd}>agotar lcd</button>
       <button onClick={agotarCha}>agotar cha</button>
       <button onClick={pulsarGuardar}>terminar</button>
