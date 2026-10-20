@@ -102,9 +102,10 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
       data-testid="panel-carga"
       {...ENCIMA}
       style={{ pointerEvents: 'auto' }}
-      // Tocar el panel no mueve el foco: se queda en el campo de la ventana (si no, Radix lo devuelve ahí con el texto
-      // entero seleccionado y lo medio escrito se pisaría). Los eventos de puntero, los clics y los arrastres no cambian.
-      onMouseDown={(e) => e.preventDefault()}
+      // Con una ventana abierta, tocar el panel no mueve el foco: se queda en el campo de la ventana (si no, Radix lo
+      // devuelve ahí con el texto entero seleccionado y lo medio escrito se pisaría). Sin ventana, los botones toman el
+      // foco como siempre. Los eventos de puntero, los clics y los arrastres no cambian.
+      onMouseDown={(e) => { if (hayVentanaAbierta()) e.preventDefault() }}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       className={cn(CAPA, 'fixed flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg')}
@@ -122,11 +123,11 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
         <BotonIcono etiqueta="Cerrar el panel de carga" titulo="Cerrar" onClick={cerrarPanelCarga}>×</BotonIcono>
       </div>
       <div
-        // Con una ventana abierta, Radix cancela la rueda fuera de ella y la lista no se movería: se desplaza a mano.
-        // Sin ventana se deja el desplazamiento nativo.
-        onWheel={(e) => {
-          if (hayVentanaAbierta()) e.currentTarget.scrollTop += e.deltaY
-        }}
+        // Con una ventana abierta, el bloqueo de scroll de Radix (oyente en `document`) cancela la rueda y el arrastre
+        // táctil fuera de ella. Parar la propagación evita que lleguen y el navegador desplaza la lista de forma nativa
+        // (suave, con inercia, táctil), con o sin ventana. Mismo patrón que `noCancelarDesplazamiento` en shared/ui/popover.tsx.
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
         className="max-h-[min(400px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5"
       >
         {filas === null ? (
@@ -185,8 +186,8 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       data-testid="pastilla-carga"
       {...ENCIMA}
       style={{ pointerEvents: 'auto' }}
-      // Igual que en el panel: tocar la pastilla no le quita el foco al campo de la ventana abierta.
-      onMouseDown={(e) => e.preventDefault()}
+      // Igual que en el panel: con una ventana abierta, tocar la pastilla no le quita el foco a su campo.
+      onMouseDown={(e) => { if (hayVentanaAbierta()) e.preventDefault() }}
       onClick={(e) => {
         if (e.target instanceof Element && e.target.closest('[data-no-arrastre]')) return
         abrirPanelCarga()

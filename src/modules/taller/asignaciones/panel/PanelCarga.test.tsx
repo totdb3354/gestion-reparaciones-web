@@ -461,28 +461,37 @@ describe('PanelCarga: con una ventana abierta', () => {
     expect(pastillaViva.className).toContain('dialog-overlay')
   })
 
-  it('la rueda sobre la lista la desplaza a mano con una ventana abierta (Radix cancela la rueda fuera de ella) y no sin ventana', async () => {
+  it('la rueda y el arrastre táctil sobre la lista no llegan a `document` con una ventana abierta (Radix los cancelaría ahí)', async () => {
     servirCarga()
     montarConVentana()
     await tick()
     const lista = await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
     const contenedor = lista.parentElement!
-    // jsdom no tiene maquetación: scrollTop no se puede fijar en un elemento sin desbordar, se simula con un valor propio.
-    let top = 0
-    Object.defineProperty(contenedor, 'scrollTop', { get: () => top, set: (v: number) => { top = v }, configurable: true })
-    fireEvent.wheel(contenedor, { deltaY: 120 })
-    expect(top).toBe(120)
+    const oyente = vi.fn()
+    document.addEventListener('wheel', oyente)
+    document.addEventListener('touchmove', oyente)
+    try {
+      fireEvent.wheel(contenedor, { deltaY: 120 })
+      fireEvent.touchMove(contenedor)
+      expect(oyente).not.toHaveBeenCalled()
+    } finally {
+      document.removeEventListener('wheel', oyente)
+      document.removeEventListener('touchmove', oyente)
+    }
   })
 
-  it('sin ventana abierta la rueda no se toca (desplaza el navegador)', async () => {
+  it('la rueda sobre la lista tampoco llega a `document` sin ventana abierta', async () => {
     servirCarga()
     montar()
     const lista = await esperarLista()
-    const contenedor = lista.parentElement!
-    let top = 0
-    Object.defineProperty(contenedor, 'scrollTop', { get: () => top, set: (v: number) => { top = v }, configurable: true })
-    fireEvent.wheel(contenedor, { deltaY: 120 })
-    expect(top).toBe(0)
+    const oyente = vi.fn()
+    document.addEventListener('wheel', oyente)
+    try {
+      fireEvent.wheel(lista.parentElement!, { deltaY: 120 })
+      expect(oyente).not.toHaveBeenCalled()
+    } finally {
+      document.removeEventListener('wheel', oyente)
+    }
   })
 
   it('tocar el panel no le quita el foco al campo de la ventana ni selecciona su texto', async () => {
@@ -506,6 +515,35 @@ describe('PanelCarga: con una ventana abierta', () => {
     const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
     await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true }))
     await tick()
+    expect(document.activeElement).toBe(campo)
+    expect(campo.selectionStart).toBe(5)
+    expect(campo.selectionEnd).toBe(5)
+  })
+
+  it('pulsar la pastilla no le quita el foco al campo de la ventana y abre el panel', async () => {
+    servirCarga()
+    renderConProviders(
+      <>
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Asignar trabajos</DialogTitle>
+            <input aria-label="IMEI" />
+          </DialogContent>
+        </Dialog>
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER },
+    )
+    await tick()
+    const campo = screen.getByRole('textbox', { name: 'IMEI' }) as HTMLInputElement
+    campo.focus()
+    await userEvent.type(campo, '35123')
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Minimizar el panel de carga', hidden: true }))
+    campo.focus()
+    campo.setSelectionRange(5, 5)
+    await userEvent.click(await screen.findByRole('button', { name: 'Abrir el panel de carga', hidden: true }))
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })).toBeInTheDocument()
     expect(document.activeElement).toBe(campo)
     expect(campo.selectionStart).toBe(5)
     expect(campo.selectionEnd).toBe(5)

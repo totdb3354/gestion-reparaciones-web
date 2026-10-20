@@ -248,11 +248,15 @@ test('con «Asignar trabajos» abierto, el panel queda por encima y se puede usa
   const asa = await caja.getByTitle('Arrastra para moverlo').boundingBox()
   const cuerpo = await ventana.boundingBox()
   if (!asa || !cuerpo) throw new Error('Sin caja para el asa del panel o para la ventana')
-  await page.mouse.move(asa.x + asa.width / 2, asa.y + asa.height / 2)
+  const antes = await caja.boundingBox()
+  if (!antes) throw new Error('Sin caja para el panel')
+  // Se pulsa en la zona del ⋮⋮ (a 1366 px el centro del asa cae sobre el botón «Pedidos», que no arrastra).
+  await page.mouse.move(asa.x + 20, asa.y + asa.height / 2)
   await page.mouse.down()
   await page.mouse.move(cuerpo.x + cuerpo.width / 2, cuerpo.y + cuerpo.height / 2, { steps: 10 })
   await page.mouse.up()
   await page.mouse.move(2, 2)
+  expect((await caja.boundingBox())!.x).toBeLessThan(antes.x - 100)
   await expect(ventana).toBeVisible()
   await expect(caja).toBeVisible()
   // 5. Escape cierra la ventana (sin nada en la cola no pregunta) y el panel sigue.
