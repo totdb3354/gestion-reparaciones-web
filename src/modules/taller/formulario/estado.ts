@@ -145,7 +145,6 @@ export type AccionFormulario =
   | { tipo: 'CAMBIAR_SKU'; prefijo: string; idCom: number }
   | { tipo: 'ELEGIR'; prefijo: string; eleccion: 'nueva' | 'reutilizada' } // celda del SKU (0.9.19)
   | { tipo: 'VOLVER'; prefijo: string } // «×» de la marca: la fila vuelve sin elegir, con su SKU (0.9.19)
-  | { tipo: 'MARCAR_REUTILIZADO'; prefijo: string; valor: boolean } // alias temporal: true = ELEGIR reutilizada, false = VOLVER
   | { tipo: 'PONER_OBSERVACION'; prefijo: string; texto: string } // recorta; vacío = sin efecto
   | { tipo: 'BORRAR_OBSERVACION'; prefijo: string }
   // guardar fila, agotado local, otras acciones y zona de guardar
@@ -905,8 +904,6 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
       return cambiarFila(estado, accion.prefijo, (f) => elegir(f, accion.eleccion))
     case 'VOLVER':
       return cambiarFila(estado, accion.prefijo, volver)
-    case 'MARCAR_REUTILIZADO': // alias temporal (lo quita la Task 4)
-      return cambiarFila(estado, accion.prefijo, (f) => (accion.valor ? elegir(f, 'reutilizada') : volver(f)))
     case 'PONER_OBSERVACION':
       return cambiarFila(estado, accion.prefijo, (f) => ponerObservacion(f, accion.texto))
     case 'BORRAR_OBSERVACION':

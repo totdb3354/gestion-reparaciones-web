@@ -47,7 +47,7 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     expect(screen.getByText('IMEI: 355400000000111')).toBeInTheDocument()
     expect(screen.getByText('Filtrar por modelo:')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Filtrar por modelo' })).toHaveTextContent('— Selecciona modelo —')
-    for (const columna of ['Unit (+/-)', 'Componente', 'SKU', 'Stock', '¿Reutilizado?', 'Observación']) expect(screen.getByText(columna)).toBeInTheDocument()
+    for (const columna of ['Unit (+/-)', 'Componente', 'SKU', 'Stock', 'Pieza', 'Observación']) expect(screen.getByText(columna)).toBeInTheDocument()
     expect(screen.getByText('Selecciona un modelo de iPhone para continuar')).toBeInTheDocument()
     expect(screen.queryByTestId('fila-bat')).not.toBeInTheDocument()
     expect(screen.queryByTestId('banda-conflicto')).not.toBeInTheDocument()
@@ -84,6 +84,8 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     })
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 16')
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Chasis' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Tapa trasera' }))
     const chasis = screen.getByRole('combobox', { name: 'SKU de Chasis' })
     expect(chasis).toHaveTextContent('— Elige color —')
     expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('— Elige color —')
@@ -116,6 +118,8 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     })
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 16')
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Tapa trasera' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Chasis' }))
     await userEvent.click(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' }))
     await userEvent.click(within(screen.getByRole('listbox', { name: 'SKU de Tapa trasera' })).getByRole('button', { name: 'Teal' }))
     expect(screen.getByRole('combobox', { name: 'SKU de Tapa trasera' })).toHaveTextContent('tapai16teal')
@@ -149,7 +153,7 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 16')
     expect(screen.getByTestId('fila-cha')).toHaveAttribute('data-estado', 'sinSku')
-    expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent(/^—$/)
+    expect(screen.getByRole('button', { name: 'Solicitar Chasis' })).toBeDisabled() // sin elegir no hay combo (0.9.19)
   })
 
   it('las opciones del combo son los modelos con SKU activo, traducidos y en orden de tienda', async () => {
@@ -222,7 +226,7 @@ describe('FormularioReparacion · filas y "✓ Guardar fila"', () => {
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
     const bat = within(screen.getByTestId('fila-bat'))
-    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(bat.getByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Confirmar')
     expect(escrituras(llamadas)).toEqual([])
@@ -250,7 +254,7 @@ describe('FormularioReparacion · filas y "✓ Guardar fila"', () => {
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
     const bat = within(screen.getByTestId('fila-bat'))
-    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(bat.getByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
     expect(screen.getByTestId('boton-derecho-bat')).toHaveTextContent('✓ Guardar fila')
@@ -262,7 +266,7 @@ describe('FormularioReparacion · filas y "✓ Guardar fila"', () => {
     server.use(http.post('*/api/reparaciones/:idAsignacion/filas', () => HttpResponse.json({ message: 'La asignación ya fue eliminada o completada' }, { status: 409 })))
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
-    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     expect(await screen.findByText('No se pudo guardar la fila: La asignación ya fue eliminada o completada')).toBeInTheDocument()
@@ -280,7 +284,7 @@ describe('FormularioReparacion · filas y "✓ Guardar fila"', () => {
     server.use(http.post('*/api/reparaciones/:idAsignacion/filas', async () => { await puerta; return HttpResponse.json({ value: 'R20260916_9' }) }))
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
-    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     await waitFor(() => expect(screen.getByTestId('boton-derecho-bat')).toBeDisabled())
@@ -295,7 +299,8 @@ describe('FormularioReparacion · solicitud de pieza y solicitudes ya guardadas'
     const { llamadas } = abrir()
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 14')
-    await userEvent.click(within(screen.getByTestId('subfila-bat')).getByRole('button', { name: 'Solicitar pieza' }))
+    // 0.9.19: sin ningún SKU con stock, «Solicitar Batería» en la celda del SKU abre el diálogo (no hay banda en una fila sin tocar).
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar Batería' }))
     await userEvent.click(within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' })).getByRole('button', { name: 'Confirmar: solicitar pieza' }))
     const sub = screen.getByTestId('subfila-bat')
     expect(sub).toHaveAttribute('data-variante', 'confirmada')
@@ -329,16 +334,27 @@ async function terminar() {
 /** Elige el SKU de la fila en su combo (chasis y tapa no vienen preseleccionados, spec 0.9.7 §9). La lista de chasis y
  *  tapa enseña el nombre del color, no el SKU: la opción se localiza por su `title`, que es el SKU completo. */
 async function elegirSku(prefijo: string, tipo: string, sku: string) {
-  await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('combobox', { name: `SKU de ${tipo}` }))
+  const fila = within(screen.getByTestId(`fila-${prefijo}`))
+  // 0.9.19: sin elegir no hay combo; «Nueva» lo enseña (y al elegir el SKU el contador pasa a 1).
+  if (fila.queryByRole('combobox', { name: `SKU de ${tipo}` }) === null) await userEvent.click(fila.getByRole('button', { name: `Nueva ${tipo}` }))
+  await userEvent.click(fila.getByRole('combobox', { name: `SKU de ${tipo}` }))
   const lista = await screen.findByRole('listbox', { name: `SKU de ${tipo}` })
   await userEvent.click(within(lista).getByTitle(sku))
 }
 async function sumar(prefijo: string, tipo: string, veces = 1) {
-  for (let i = 0; i < veces; i++) await userEvent.click(within(screen.getByTestId(`fila-${prefijo}`)).getByRole('button', { name: `Sumar ${tipo}` }))
+  // 0.9.19: el primer «+» de una fila sin elegir es «Nueva» (ya pone 1).
+  for (let i = 0; i < veces; i++) {
+    const fila = within(screen.getByTestId(`fila-${prefijo}`))
+    await userEvent.click(fila.queryByRole('button', { name: `Nueva ${tipo}` }) ?? fila.getByRole('button', { name: `Sumar ${tipo}` }))
+  }
 }
 /** Abre el diálogo de la sub-fila, escribe la descripción (si la hay) y confirma. */
 async function solicitar(prefijo: string, boton: 'Solicitar pieza' | 'Solicitar y descontar stock', descripcion?: string) {
-  await userEvent.click(within(screen.getByTestId(`subfila-${prefijo}`)).getByRole('button', { name: boton }))
+  // 0.9.19: en una fila sin tocar y sin ningún SKU con stock no hay banda; se usa «Solicitar <tipo>» en la celda del SKU.
+  const directo = screen.queryByTestId(`subfila-${prefijo}`) === null
+  await userEvent.click(directo
+    ? within(screen.getByTestId(`fila-${prefijo}`)).getByRole('button', { name: /^Solicitar (?!pieza$)/ })
+    : within(screen.getByTestId(`subfila-${prefijo}`)).getByRole('button', { name: boton }))
   const dlg = within(await screen.findByRole('dialog', { name: /^Solicitar pieza — / }))
   if (descripcion) await userEvent.type(dlg.getByRole('textbox'), descripcion)
   await userEvent.click(dlg.getByRole('button', { name: /^Confirmar: / }))
@@ -439,7 +455,7 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     await sumar('lcd', 'Pantalla')
     await solicitar('lcd', 'Solicitar y descontar stock')
     await elegirSku('cha', 'Chasis', 'chai13negro')
-    await sumar('cha', 'Chasis', 2)
+    await sumar('cha', 'Chasis') // elegir el SKU ya pone 1
     await solicitar('cha', 'Solicitar y descontar stock', 'Marco doblado')
     await sumar('bat', 'Batería')
     await escribirAccion('Limpieza de conector')
@@ -486,7 +502,7 @@ describe('FormularioReparacion · zona de guardar y "Terminar asignación"', () 
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
     await elegirSku('cha', 'Chasis', 'chai13negro')
-    await sumar('cha', 'Chasis', 2)
+    await sumar('cha', 'Chasis') // elegir el SKU ya pone 1
     await solicitar('cha', 'Solicitar y descontar stock')
     await sumar('lcd', 'Pantalla')
     await solicitar('lcd', 'Solicitar y descontar stock')
@@ -622,7 +638,7 @@ describe('FormularioReparacion — borrador persistente', () => {
 
   it('✕ vuelca el borrador en ese momento (PUT) y cierra sin preguntar', async () => {
     const { llamadas, onCerrar } = abrirNuevo()
-    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }))
     expect(onCerrar).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
@@ -632,7 +648,7 @@ describe('FormularioReparacion — borrador persistente', () => {
 
   it('Atrás del navegador hace lo mismo que la ✕: vuelca el borrador en ese momento (PUT) y sale sin preguntar', async () => {
     const { llamadas, router } = abrirNuevoDesdeLista()
-    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva Batería' }))
     await act(async () => { await router.navigate(-1) })
     expect(router.state.location.pathname).toBe('/lista')
     await waitFor(() => expect(delBorrador(llamadas)).toHaveLength(1))
@@ -661,7 +677,7 @@ describe('FormularioReparacion — borrador persistente', () => {
     abrirNuevo()
     await screen.findByTestId('fila-bat')
     expect(avisaAlSalir()).toBe(false)
-    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Batería' }))
     expect(avisaAlSalir()).toBe(true)
     // El autoguardado (2 s después del último cambio) lo vuelca: ya no hay nada que perder.
     await waitFor(() => expect(avisaAlSalir()).toBe(false), { timeout: 4000 })
@@ -676,7 +692,7 @@ describe('FormularioReparacion — borrador persistente', () => {
 
   it('guardar una fila vuelca el borrador al momento, sin esperar los 2 s', async () => {
     const { llamadas } = abrirNuevo()
-    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     await userEvent.click(screen.getByTestId('boton-derecho-bat'))
     // waitFor espera 1 s como mucho: si el volcado dependiera del retardo de 2 s, no llegaría.
@@ -686,7 +702,7 @@ describe('FormularioReparacion — borrador persistente', () => {
 
   it('"Terminar asignación": el DELETE del borrador va después de completa y antes de cerrar, y al desmontar no se reescribe', async () => {
     const { llamadas, onCerrar, unmount } = abrirNuevo()
-    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(botonZona())
     await userEvent.click(botonZona())
     await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
@@ -732,6 +748,7 @@ describe('FormularioReparacion — variante glass', () => {
     expect(screen.getAllByTestId(/^fila-/).map((f) => f.getAttribute('data-testid'))).toEqual(['fila-g', 'fila-mc'])
     expect(within(screen.getByTestId('fila-g')).getByText('Glass')).toBeInTheDocument()
     expect(within(screen.getByTestId('fila-mc')).getByText('Marco')).toBeInTheDocument()
+    await userEvent.click(within(screen.getByTestId('fila-g')).getByRole('button', { name: 'Nueva Glass' })) // sin elegir no hay combo (0.9.19)
     expect(screen.getByRole('combobox', { name: 'SKU de Glass' })).toHaveTextContent('gi13')
     expect(screen.getByTestId('otras-acciones')).toBeInTheDocument()
   })
@@ -741,7 +758,7 @@ describe('FormularioReparacion — variante glass', () => {
     expect(await screen.findByRole('dialog', { name: 'Nueva reparación — IMEI 355400000000222' })).toBeInTheDocument()
     expect(document.title).toBe('Nueva reparación — IMEI 355400000000222')
     expect(screen.getByText('IMEI: 355400000000222')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Sumar Glass' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Glass' }))
     expect(within(screen.getByTestId('zona-guardar')).getByRole('button').textContent).toBe('Terminar asignación')
   })
 
@@ -771,11 +788,11 @@ describe('FormularioReparacion — variante glass', () => {
 
   it('"✓ Guardar fila" y "Terminar asignación" no llevan categoria (el servidor la deduce del prefijo AG)', async () => {
     const { llamadas, onCerrar } = abrirGlass()
-    await userEvent.click(await screen.findByRole('button', { name: 'Sumar Glass' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva Glass' }))
     await userEvent.click(screen.getByTestId('boton-derecho-g'))
     await userEvent.click(screen.getByTestId('boton-derecho-g'))
     await waitFor(() => expect(screen.getByTestId('fila-g')).toHaveAttribute('data-estado', 'guardada'))
-    await userEvent.click(screen.getByRole('button', { name: 'Sumar Marco' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Marco' }))
     const zona = () => within(screen.getByTestId('zona-guardar')).getByRole('button')
     await userEvent.click(zona())
     await userEvent.click(zona())
@@ -857,7 +874,7 @@ describe('FormularioReparacion — modo edición', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Restar Batería' }))
     expect(screen.getByTestId('contador-bat')).toHaveClass('text-rojo-cancelar', 'font-bold')
     expect(screen.queryByTestId('zona-guardar')).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Batería' }))
     await userEvent.click(screen.getByRole('button', { name: 'Sumar Batería' }))
     expect(botonZona().textContent).toBe('Guardar cambios')
   })
@@ -870,7 +887,6 @@ describe('FormularioReparacion — modo edición', () => {
     expect(screen.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
     // En edición el chasis también sale sin elegir: se elige para que la fila nueva esté realmente activa.
     await elegirSku('cha', 'Chasis', 'chai13negro')
-    await userEvent.click(screen.getByRole('button', { name: 'Sumar Chasis' }))
     expect(screen.getByTestId('contador-cha')).toHaveTextContent('1')
     expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
     expect(screen.queryByTestId('subfila-cha')).not.toBeInTheDocument()
@@ -892,7 +908,7 @@ describe('FormularioReparacion — modo edición', () => {
   it('"Guardar cambios" → "✓  Confirmar terminar" → PUT, completa de filas y completa de acciones con el idTec original; cierra', async () => {
     const { llamadas, onCerrar } = abrirEditar()
     await userEvent.click(await screen.findByRole('button', { name: 'Sumar Batería' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Sumar Cámara' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva Cámara' }))
     await userEvent.click(screen.getByRole('button', { name: '+ Añadir acción' }))
     // "+ Añadir acción" deja el foco en la línea nueva: se escribe directamente.
     await userEvent.keyboard('Limpieza interna')

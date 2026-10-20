@@ -37,7 +37,7 @@ const MODELO_13: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '13' }
 const MODELO_14: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '14' }
 
 describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de componente)', () => {
-  it('pinta contador, nombre, SKU, stock, Reutilizado y "Añadir observación"', () => {
+  it('pinta contador, nombre, los dos botones de la elección (0.9.19: sin elegir no hay combo), stock y "Añadir observación"', () => {
     montar([MODELO_13])
     const fila = screen.getByTestId('fila-bat')
     expect(fila).toHaveAttribute('data-estado', 'normal')
@@ -45,10 +45,10 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
     expect(screen.getByTestId('contador-bat')).toHaveClass('text-gris-borde')
     expect(within(fila).getByText('Batería')).toBeInTheDocument()
-    expect(within(fila).getByRole('combobox', { name: 'SKU de Batería' })).toHaveTextContent('bati13')
+    expect(within(fila).queryByRole('combobox', { name: 'SKU de Batería' })).not.toBeInTheDocument()
+    expect(within(fila).getByRole('button', { name: 'Nueva Batería' })).toBeEnabled()
+    expect(within(fila).getByRole('button', { name: 'Reutilizada Batería' })).toBeEnabled()
     expect(screen.getByTestId('stock-bat')).toHaveTextContent('5')
-    expect(within(fila).getByText('Reutilizado')).toBeInTheDocument()
-    expect(within(fila).getByRole('checkbox', { name: 'Reutilizado Batería' })).not.toBeChecked()
     expect(within(fila).getByRole('button', { name: 'Añadir observación' })).toBeEnabled()
     expect(within(fila).getByRole('button', { name: 'Restar Batería' })).toBeDisabled()
     expect(screen.queryByTestId('boton-derecho-bat')).not.toBeInTheDocument()
@@ -56,6 +56,7 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
 
   it('el SKU sin stock sale en rojo y el bajo en ámbar, en la lista y en el botón', async () => {
     montar([])
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Nueva Batería' })) // sin elegir no hay combo
     const combo = within(screen.getByTestId('fila-bat')).getByRole('combobox', { name: 'SKU de Batería' })
     await userEvent.click(combo)
     const opciones = await screen.findAllByRole('option')
@@ -75,33 +76,35 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(fila).toHaveAttribute('data-estado', 'sinSku')
     expect(fila).toHaveClass('opacity-40')
     expect(screen.getByTestId('stock-cha')).toHaveTextContent('—')
-    const combo = within(fila).getByRole('combobox', { name: 'SKU de Chasis' })
-    expect(combo).toBeDisabled()
-    expect(combo).toHaveTextContent('—')
+    // 0.9.19: sin elegir no hay combo; la celda del SKU lleva los dos botones, deshabilitados, y no hay casilla.
+    expect(within(fila).queryByRole('combobox', { name: 'SKU de Chasis' })).not.toBeInTheDocument()
+    expect(within(fila).getByRole('button', { name: 'Solicitar Chasis' })).toBeDisabled() // sin ningún SKU con stock, «Nueva» es «Solicitar»
+    expect(within(fila).getByRole('button', { name: 'Reutilizada Chasis' })).toBeDisabled()
     expect(within(fila).getByRole('button', { name: 'Sumar Chasis' })).toBeDisabled()
     expect(within(fila).getByRole('button', { name: 'Restar Chasis' })).toBeDisabled()
-    expect(within(fila).getByRole('checkbox', { name: 'Reutilizado Chasis' })).toBeDisabled()
+    expect(within(fila).queryByRole('checkbox')).not.toBeInTheDocument()
     expect(within(fila).getByRole('button', { name: 'Añadir observación' })).toBeDisabled()
   })
 
   it('+ y - despachan y respetan el deshabilitado', async () => {
     montar([MODELO_13])
     const bat = within(screen.getByTestId('fila-bat'))
-    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(bat.getByRole('button', { name: 'Nueva Batería' }))
     expect(screen.getByTestId('contador-bat')).toHaveTextContent('1')
     expect(screen.getByTestId('contador-bat')).toHaveClass('text-texto-incidencia')
-    expect(bat.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeDisabled()
+    expect(bat.queryByRole('button', { name: 'Reutilizada Batería' })).not.toBeInTheDocument()
     await userEvent.click(bat.getByRole('button', { name: 'Restar Batería' }))
+    // 0.9.19 (cambio 1): «−» hasta 0 deja la fila sin elegir.
     expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
-    expect(bat.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeEnabled()
+    expect(bat.getByRole('button', { name: 'Reutilizada Batería' })).toBeEnabled()
     // Pantalla: stock 1 → tras sumar una, "+" se deshabilita.
     const lcd = within(screen.getByTestId('fila-lcd'))
-    await userEvent.click(lcd.getByRole('button', { name: 'Sumar Pantalla' }))
+    await userEvent.click(lcd.getByRole('button', { name: 'Nueva Pantalla' }))
     expect(lcd.getByRole('button', { name: 'Sumar Pantalla' })).toBeDisabled()
-    // Reutilizado deshabilita + y -.
+    // Reutilizada deshabilita + y -.
     const cam = within(screen.getByTestId('fila-cam'))
-    await userEvent.click(cam.getByRole('checkbox', { name: 'Reutilizado Cámara' }))
-    expect(cam.getByRole('checkbox', { name: 'Reutilizado Cámara' })).toBeChecked()
+    await userEvent.click(cam.getByRole('button', { name: 'Reutilizada Cámara' }))
+    expect(screen.getByTestId('marca-cam')).toHaveTextContent('↺ Reutilizada')
     expect(cam.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
     expect(cam.getByRole('button', { name: 'Restar Cámara' })).toBeDisabled()
   })
@@ -148,7 +151,7 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
   it('"✓ Guardar fila" aparece con la fila activa, pasa a "✓ Confirmar" y cualquier cambio lo devuelve', async () => {
     const { alGuardar } = montar([MODELO_13])
     const bat = within(screen.getByTestId('fila-bat'))
-    await userEvent.click(bat.getByRole('button', { name: 'Sumar Batería' }))
+    await userEvent.click(bat.getByRole('button', { name: 'Nueva Batería' }))
     const boton = screen.getByTestId('boton-derecho-bat')
     expect(boton).toHaveTextContent('✓ Guardar fila')
     expect(boton).toHaveClass('bg-azul-noche', 'h-[27px]')
@@ -160,15 +163,15 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     await userEvent.click(bat.getByRole('button', { name: 'Restar Batería' }))
     await userEvent.click(bat.getByRole('button', { name: 'Restar Batería' }))
     expect(screen.queryByTestId('boton-derecho-bat')).not.toBeInTheDocument()
-    // Con "Reutilizado" también se ofrece.
-    await userEvent.click(within(screen.getByTestId('fila-lcd')).getByRole('checkbox', { name: 'Reutilizado Pantalla' }))
+    // Con "Reutilizada" también se ofrece.
+    await userEvent.click(within(screen.getByTestId('fila-lcd')).getByRole('button', { name: 'Reutilizada Pantalla' }))
     expect(screen.getByTestId('boton-derecho-lcd')).toHaveTextContent('✓ Guardar fila')
   })
 
   it('fila guardada: verde, "✓ Guardada dd/MM HH:mm" y todo deshabilitado, también la papelera', () => {
     montar([
       MODELO_13,
-      { tipo: 'SUMAR', prefijo: 'bat' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'Conector sucio' },
       { tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' },
       { tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' },
@@ -186,19 +189,19 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(bat.getByRole('combobox', { name: 'SKU de Batería' })).toBeDisabled()
     expect(bat.getByRole('button', { name: 'Sumar Batería' })).toBeDisabled()
     expect(bat.getByRole('button', { name: 'Restar Batería' })).toBeDisabled()
-    expect(bat.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeDisabled()
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('+ Nueva')
+    expect(bat.queryByRole('button', { name: 'Volver atrás Batería' })).not.toBeInTheDocument()
     expect(bat.getByRole('button', { name: 'Borrar observación de Batería' })).toBeDisabled()
   })
 
-  it('en camino: botón derecho "⚠ En camino" deshabilitado y Reutilizado deshabilitado', () => {
+  it('en camino: botón derecho "⚠ En camino" deshabilitado y sin "↺ Reutilizada"', () => {
     montar([], [solicitudAsignacion({ enCamino: true })])
     const boton = screen.getByTestId('boton-derecho-bat')
     expect(boton).toHaveTextContent('⚠ En camino')
     expect(boton).toBeDisabled()
     expect(boton).toHaveClass('bg-tipo-reparacion-bg', 'text-tipo-reparacion-text', 'rounded-none')
-    const casilla = within(screen.getByTestId('fila-bat')).getByRole('checkbox', { name: 'Reutilizado Batería' })
-    expect(casilla).toBeDisabled()
-    expect(casilla).not.toBeChecked()
+    expect(within(screen.getByTestId('fila-bat')).queryByRole('button', { name: 'Reutilizada Batería' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('marca-bat')).not.toBeInTheDocument()
   })
 
   it('recibido: "✓ Recibido" deshabilitado en una fila editable; al activarla pasa a "✓ Guardar fila" y ya no vuelve', async () => {
@@ -210,7 +213,7 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(boton).toHaveClass('bg-recibido-bg', 'text-recibido-text')
     const lcd = within(screen.getByTestId('fila-lcd'))
     expect(screen.getByTestId('fila-lcd')).toHaveAttribute('data-estado', 'normal')
-    await userEvent.click(lcd.getByRole('button', { name: 'Sumar Pantalla' }))
+    await userEvent.click(lcd.getByRole('button', { name: 'Nueva Pantalla' }))
     expect(screen.getByTestId('boton-derecho-lcd')).toHaveTextContent('✓ Guardar fila')
     await userEvent.click(lcd.getByRole('button', { name: 'Restar Pantalla' }))
     expect(screen.queryByTestId('boton-derecho-lcd')).not.toBeInTheDocument()
@@ -235,7 +238,7 @@ describe('FilaComponente — modo edición', () => {
     expect(screen.getByTestId('contador-bat')).toHaveTextContent('1')
     expect(screen.getByTestId('stock-bat').textContent).toBe('5 → 5')
     expect(screen.getByTestId('stock-bat')).toHaveClass('font-bold', 'text-azul-gris')
-    expect(screen.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeDisabled()
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('+ Nueva')
     expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
   })
 
@@ -266,19 +269,20 @@ describe('FilaComponente — modo edición', () => {
     expect(screen.getByRole('button', { name: 'Sumar Pantalla' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Restar Pantalla' })).toBeDisabled()
     expect(screen.getByRole('combobox', { name: 'SKU de Pantalla' })).toBeDisabled()
-    expect(screen.getByRole('checkbox', { name: 'Reutilizado Pantalla' })).toBeDisabled()
+    expect(screen.queryByTestId('marca-lcd')).not.toBeInTheDocument()
   })
 
   it('fila nueva activa en edición: fondo normal, sin "✓ Guardar fila"; con el SKU a 0, "+" deshabilitado', () => {
-    const activa = pintarFila(reducir(estadoEditar(), { tipo: 'SUMAR', prefijo: 'cam' }), 'cam')
+    const activa = pintarFila(reducir(estadoEditar(), { tipo: 'ELEGIR', prefijo: 'cam', eleccion: 'nueva' }), 'cam')
     expect(screen.getByTestId('fila-cam')).toHaveAttribute('data-estado', 'normal')
     expect(screen.getByTestId('contador-cam')).toHaveTextContent('1')
     expect(screen.queryByText('✓ Guardar fila')).not.toBeInTheDocument()
-    expect(screen.getByTestId('stock-cam').textContent).toBe('4')
+    expect(screen.getByTestId('stock-cam').textContent).toBe('4 → 3') // 0.9.19 (cambio 9): también la Nueva sin guardar
     activa.unmount()
     const sinStock = { ...agrupados(), cam: [componente({ idCom: 121, tipo: 'cami13', stock: 0, stockMinimo: 1 })] }
     pintarFila(estadoEditar({ agrupados: sinStock }), 'cam')
     expect(screen.getByRole('button', { name: 'Sumar Cámara' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Nueva Cámara' })).toBeDisabled()
   })
 
   it('fila ya reparada de un tipo sin SKU para el modelo elegido: se pinta yaReparado (verde), no sinSku (gris atenuado)', () => {
@@ -301,5 +305,85 @@ describe('FilaComponente — modo edición', () => {
     expect(chasis.opciones.length).toBeGreaterThan(0)
     pintarFila(estado, 'cha')
     expect(screen.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent(/^—$/)
+  })
+})
+
+describe('0.9.19 · la elección en la celda del SKU (spec §2)', () => {
+  it('sin elegir: «+ Nueva» y «↺ Reutilizada» en lugar del desplegable; contador apagado y sin marca', () => {
+    montar([MODELO_13])
+    const bat = within(screen.getByTestId('fila-bat'))
+    expect(bat.queryByRole('combobox', { name: 'SKU de Batería' })).not.toBeInTheDocument()
+    expect(bat.getByRole('button', { name: 'Nueva Batería' })).toHaveTextContent('+ Nueva')
+    expect(bat.getByRole('button', { name: 'Reutilizada Batería' })).toHaveTextContent('↺ Reutilizada')
+    expect(bat.getByRole('button', { name: 'Sumar Batería' })).toBeDisabled()
+    expect(screen.queryByTestId('marca-bat')).not.toBeInTheDocument()
+  })
+
+  it('«Nueva»: desplegable, contador en 1, «5 → 4» y marca con «×» que vuelve atrás', async () => {
+    montar([MODELO_13])
+    const bat = within(screen.getByTestId('fila-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Nueva Batería' }))
+    expect(bat.getByRole('combobox', { name: 'SKU de Batería' })).toHaveTextContent('bati13')
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('1')
+    expect(screen.getByTestId('stock-bat')).toHaveTextContent('5 → 4')
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('+ Nueva')
+    expect(bat.getByRole('button', { name: 'Sumar Batería' })).toBeEnabled()
+    await userEvent.click(bat.getByRole('button', { name: 'Volver atrás Batería' }))
+    expect(bat.getByRole('button', { name: 'Nueva Batería' })).toBeInTheDocument()
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+  })
+
+  it('«Reutilizada»: contador «—», sin «+», stock sin flecha y marca «↺ Reutilizada»', async () => {
+    montar([MODELO_13])
+    const bat = within(screen.getByTestId('fila-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Reutilizada Batería' }))
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('—')
+    expect(bat.getByRole('button', { name: 'Sumar Batería' })).toBeDisabled()
+    expect(screen.getByTestId('stock-bat')).toHaveTextContent(/^5$/)
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('↺ Reutilizada')
+  })
+
+  it('ningún SKU con stock: «Solicitar pieza» abre el diálogo y la fila queda «Solicitada»; cancelar no cambia nada', async () => {
+    montar([MODELO_14]) // bati14: stock 0, el único del modelo
+    const bat = within(screen.getByTestId('fila-bat'))
+    expect(bat.queryByRole('button', { name: 'Nueva Batería' })).not.toBeInTheDocument()
+    await userEvent.click(bat.getByRole('button', { name: 'Solicitar Batería' }))
+    let dlg = within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' }))
+    await userEvent.click(dlg.getByRole('button', { name: 'Cancelar' }))
+    expect(bat.getByRole('button', { name: 'Solicitar Batería' })).toBeInTheDocument()
+    await userEvent.click(bat.getByRole('button', { name: 'Solicitar Batería' }))
+    dlg = within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' }))
+    await userEvent.click(dlg.getByRole('button', { name: 'Confirmar: solicitar pieza' }))
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('Solicitada')
+    expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+  })
+
+  it('solicitud guardada pendiente: SKU fijo y «↺ Reutilizada» en «Pieza»; en camino, sin botón', async () => {
+    montar([], [solicitudAsignacion()]) // pendiente de bati14 → modelo 14
+    const bat = within(screen.getByTestId('fila-bat'))
+    expect(bat.getByRole('combobox', { name: 'SKU de Batería' })).toBeDisabled()
+    expect(screen.queryByTestId('marca-bat')).not.toBeInTheDocument()
+    await userEvent.click(bat.getByRole('button', { name: 'Reutilizada Batería' }))
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('↺ Reutilizada')
+    await userEvent.click(bat.getByRole('button', { name: 'Volver atrás Batería' }))
+    expect(bat.getByRole('button', { name: 'Reutilizada Batería' })).toBeInTheDocument()
+  })
+
+  it('solicitud en camino: sin «↺ Reutilizada»', () => {
+    montar([], [solicitudAsignacion({ enCamino: true })])
+    expect(within(screen.getByTestId('fila-bat')).queryByRole('button', { name: 'Reutilizada Batería' })).not.toBeInTheDocument()
+  })
+
+  it('chasis: «Nueva» enseña «— Elige color —»; al elegirlo, el contador pasa a 1', async () => {
+    montar([MODELO_13])
+    const cha = within(screen.getByTestId('fila-cha'))
+    await userEvent.click(cha.getByRole('button', { name: 'Nueva Chasis' }))
+    const combo = cha.getByRole('combobox', { name: 'SKU de Chasis' })
+    expect(combo).toHaveTextContent('— Elige color —')
+    expect(screen.getByTestId('contador-cha')).toHaveTextContent('0')
+    await userEvent.click(combo)
+    // chai13negro: «negro» no está en la tabla de colores, así que la opción se llama por su token (opcionesSku).
+    await userEvent.click(within(await screen.findByRole('listbox', { name: 'SKU de Chasis' })).getByRole('button', { name: 'negro' }))
+    expect(screen.getByTestId('contador-cha')).toHaveTextContent('1')
   })
 })
