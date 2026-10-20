@@ -8,6 +8,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 - **Carga de técnicos** (supertécnico y administrador): la ventana que bloqueaba la pantalla pasa a ser un **panel flotante** que se ve en cualquier pantalla mientras se trabaja.
   - Sale abierto de fábrica arriba a la derecha, bajo la barra superior; si se cierra, se vuelve a abrir con «Carga técnicos» de Asignaciones.
+  - Queda por encima de cualquier ventana abierta (por ejemplo «Asignar trabajos») y se puede usar mientras tanto; tocarlo no cierra la ventana.
   - Se arrastra por la cabecera y se queda en la esquina más cercana; «–» lo minimiza a una pastilla con mini-barras y cuántos técnicos están al 90 % o más.
   - Se actualiza solo: lo que hace el usuario, al momento (cualquier escritura vuelve a pedir la carga); lo demás, cada 30 s (5 s sin conexión). Con el ratón encima no cambia.
   - Pulsar un técnico lleva a Asignaciones con su filtro, y el panel sigue abierto.

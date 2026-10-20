@@ -12,6 +12,7 @@ import {
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
 import { desglose, filaCarga } from '../../test/fabrica'
+import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
 import { PanelCarga } from './PanelCarga'
 
 // Pedidos: B 95 (≥ 90), A 50, C 0. Total: A 95 y C 92 (los dos ≥ 90), B 0. El toggle reordena y cambia el contador.
@@ -406,5 +407,57 @@ describe('PanelCarga: pulsar un técnico', () => {
     expect(recibidos).toEqual([2])
     expect(panel()).toBeInTheDocument()
     baja()
+  })
+})
+
+describe('PanelCarga: con una ventana abierta', () => {
+  const montarConVentana = () =>
+    renderConProviders(
+      <>
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Asignar trabajos</DialogTitle>
+          </DialogContent>
+        </Dialog>
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER },
+    )
+  const ventana = () => screen.getByRole('dialog', { name: 'Asignar trabajos' })
+  const tick = () => act(() => new Promise<void>((r) => setTimeout(r, 0)))
+
+  it('el panel recibe el ratón: Total se pulsa y la ventana sigue', async () => {
+    servirCarga()
+    montarConVentana()
+    await tick()
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true }))
+    expect(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(ventana()).toBeInTheDocument()
+  })
+
+  it('minimizar y reabrir desde la pastilla no cierran la ventana', async () => {
+    servirCarga()
+    montarConVentana()
+    await tick()
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Minimizar el panel de carga', hidden: true }))
+    expect(screen.getByTestId('pastilla-carga')).toBeInTheDocument()
+    expect(ventana()).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir el panel de carga', hidden: true }))
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })).toBeInTheDocument()
+    expect(ventana()).toBeInTheDocument()
+  })
+
+  it('el panel y la pastilla llevan la marca y la capa que sube con una ventana abierta', async () => {
+    servirCarga()
+    montarConVentana()
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    expect(panelAbierto).toHaveAttribute('data-encima-de-ventanas')
+    expect(panelAbierto.className).toContain('dialog-overlay')
+    act(() => minimizarPanelCarga())
+    const pastillaViva = await screen.findByTestId('pastilla-carga')
+    expect(pastillaViva).toHaveAttribute('data-encima-de-ventanas')
+    expect(pastillaViva.className).toContain('dialog-overlay')
   })
 })

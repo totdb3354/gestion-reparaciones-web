@@ -219,3 +219,33 @@ test('el técnico no tiene panel de carga ni pide la carga', async ({ page }) =>
   await page.waitForTimeout(2_000)
   expect(pedidas).toEqual([])
 })
+
+test('con «Asignar trabajos» abierto, el panel queda por encima y se puede usar sin cerrar la ventana', async ({ page }) => {
+  const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
+  await page.setViewportSize({ width: 1366, height: 768 })
+  await entrar(page, usuario, clave)
+  await page.goto('/reparaciones/asignaciones')
+  await page.getByRole('button', { name: 'Asignar', exact: true }).click()
+  const ventana = page.getByRole('dialog', { name: 'Asignar trabajos' })
+  await expect(ventana).toBeVisible()
+  // Con la ventana abierta Radix pone aria-hidden en lo de fuera: el panel se localiza por testid y sus botones, incluyendo lo oculto.
+  const caja = page.getByTestId('panel-carga')
+  await expect(caja).toBeVisible()
+  // 1. Total: el clic comprueba que el panel recibe el ratón (si el fondo oscuro lo tapara, fallaría).
+  const total = caja.getByRole('button', { name: 'Total', includeHidden: true })
+  await total.click()
+  await expect(total).toHaveAttribute('aria-pressed', 'true')
+  await expect(ventana).toBeVisible()
+  // 2. Minimizar: aparece la pastilla y la ventana sigue.
+  await caja.getByRole('button', { name: 'Minimizar el panel de carga', includeHidden: true }).click()
+  await expect(pastilla(page)).toBeVisible()
+  await expect(ventana).toBeVisible()
+  // 3. Abrir desde la pastilla: vuelve el panel y la ventana sigue.
+  await pastilla(page).getByRole('button', { name: 'Abrir el panel de carga', includeHidden: true }).click()
+  await expect(caja).toBeVisible()
+  await expect(ventana).toBeVisible()
+  // 4. Escape cierra la ventana (sin nada en la cola no pregunta) y el panel sigue.
+  await page.keyboard.press('Escape')
+  await expect(ventana).toHaveCount(0)
+  await expect(caja).toBeVisible()
+})

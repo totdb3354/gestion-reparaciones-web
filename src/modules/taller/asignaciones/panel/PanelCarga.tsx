@@ -6,6 +6,7 @@ import {
   usePanelCarga, type EstadoPanelCarga, type PanelCarga as Recordado,
 } from '@/shared/lib/panelCarga'
 import { cn } from '@/shared/lib/utils'
+import { ATRIBUTO_ENCIMA_DE_VENTANAS } from '@/shared/ui/dialog'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdminOSuperTecnico } from '@/shared/session/storage'
 import { useCargaTecnicos } from '../api'
@@ -78,6 +79,11 @@ type PropsVista = {
   onPointerLeave: () => void
 }
 
+/** Capa del panel y la pastilla (spec 0.9.20 §2, «Capas»): z-30 normalmente (bajo la campana, el rastro y los menús); con
+ *  una ventana abierta (existe su fondo oscuro), por encima de ella (z-[55]) y por debajo de la capa de carga (z-[60]). */
+const CAPA = 'z-30 [body:has([data-slot=dialog-overlay])_&]:z-[55]'
+const ENCIMA = { [ATRIBUTO_ENCIMA_DE_VENTANAS]: '' }
+
 function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: PropsVista & { error: boolean }) {
   const cajaRef = useRef<HTMLElement>(null)
   useColocarAnclado(cajaRef, recordado.ancla)
@@ -89,9 +95,11 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
       ref={cajaRef}
       aria-label="Carga de técnicos"
       data-testid="panel-carga"
+      {...ENCIMA}
+      style={{ pointerEvents: 'auto' }}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
-      className="fixed z-30 flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg"
+      className={cn(CAPA, 'fixed flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg')}
     >
       <div
         {...asa}
@@ -160,6 +168,8 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       ref={cajaRef}
       {...asa}
       data-testid="pastilla-carga"
+      {...ENCIMA}
+      style={{ pointerEvents: 'auto' }}
       onClick={(e) => {
         if (e.target instanceof Element && e.target.closest('[data-no-arrastre]')) return
         abrirPanelCarga()
@@ -167,7 +177,10 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       title="Clic: abrir el panel · arrastra para moverla"
-      className="fixed z-30 flex cursor-grab touch-none items-center gap-2 rounded-[20px] bg-azul-noche py-[7px] pr-2 pl-3.5 text-[12px] font-bold whitespace-nowrap text-superficie shadow-lg select-none hover:bg-azul-noche-hover"
+      className={cn(
+        CAPA,
+        'fixed flex cursor-grab touch-none items-center gap-2 rounded-[20px] bg-azul-noche py-[7px] pr-2 pl-3.5 text-[12px] font-bold whitespace-nowrap text-superficie shadow-lg select-none hover:bg-azul-noche-hover',
+      )}
     >
       <button type="button" aria-label="Abrir el panel de carga" className="flex cursor-pointer items-center gap-2">
         <span>Carga</span>
