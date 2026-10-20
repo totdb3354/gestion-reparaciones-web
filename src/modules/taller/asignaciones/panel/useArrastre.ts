@@ -21,6 +21,7 @@ export function useArrastre(cajaRef: RefObject<HTMLElement | null>, onSoltar: (a
   const anularClic = useRef(false)
 
   function onPointerDown(e: EventoPuntero<HTMLElement>) {
+    anularClic.current = false // un arrastre anterior no debe tragarse un clic que no es suyo
     if (e.button !== 0) return
     if (e.target instanceof Element && e.target.closest('[data-no-arrastre]')) return
     const caja = cajaRef.current
@@ -30,7 +31,6 @@ export function useArrastre(cajaRef: RefObject<HTMLElement | null>, onSoltar: (a
       id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top,
       ancho: r.width, alto: r.height, izq: r.left, arriba: r.top, movido: false,
     }
-    anularClic.current = false
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
@@ -50,15 +50,25 @@ export function useArrastre(cajaRef: RefObject<HTMLElement | null>, onSoltar: (a
     caja.style.bottom = ''
   }
 
-  function terminar(e: EventoPuntero<HTMLElement>) {
+  /** Cierra el arrastre; devuelve si hubo movimiento. Al soltar, el ancla se guarda; en una cancelación también. */
+  function terminar(e: EventoPuntero<HTMLElement>): boolean {
     const a = enCurso.current
-    if (!a || e.pointerId !== a.id) return
+    if (!a || e.pointerId !== a.id) return false
     enCurso.current = null
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
-    if (!a.movido) return
+    if (!a.movido) return false
     if (cajaRef.current) delete cajaRef.current.dataset.arrastrando
-    anularClic.current = true
     onSoltar(anclaAlSoltar({ izq: a.izq, arriba: a.arriba, ancho: a.ancho, alto: a.alto }, huecoVentana()))
+    return true
+  }
+
+  // Solo al soltar llega un clic detrás; tras una cancelación no, y la marca se quedaría puesta.
+  function onPointerUp(e: EventoPuntero<HTMLElement>) {
+    if (terminar(e)) anularClic.current = true
+  }
+
+  function onPointerCancel(e: EventoPuntero<HTMLElement>) {
+    terminar(e)
   }
 
   function onClickCapture(e: EventoRaton<HTMLElement>) {
@@ -68,5 +78,5 @@ export function useArrastre(cajaRef: RefObject<HTMLElement | null>, onSoltar: (a
     e.stopPropagation()
   }
 
-  return { onPointerDown, onPointerMove, onPointerUp: terminar, onPointerCancel: terminar, onClickCapture }
+  return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClickCapture }
 }

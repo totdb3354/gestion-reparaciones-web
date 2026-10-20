@@ -7,7 +7,7 @@ import { CLAVE_CARGA_TECNICOS } from '@/shared/api/cargaTecnicos'
 import type { CargaTecnicosRespuesta } from '@/shared/api/client'
 import { INTERVALO_CARGA_MS } from '@/shared/api/refresco'
 import {
-  CLAVE_PANEL_CARGA, cerrarPanelCarga, minimizarPanelCarga, moverPanelCarga, panelCarga, recibirFiltroPorTecnico,
+  abrirPanelCarga, CLAVE_PANEL_CARGA, cerrarPanelCarga, minimizarPanelCarga, moverPanelCarga, panelCarga, recibirFiltroPorTecnico,
 } from '@/shared/lib/panelCarga'
 import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
@@ -221,6 +221,51 @@ describe('PanelCarga: actualización', () => {
     await act(() => queryClient.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS }))
     expect(await within(pastilla()).findByText('2 al 90 %+')).toBeInTheDocument()
   })
+
+  it('minimizar con el ratón encima y reabrir desde fuera no deja el panel congelado', async () => {
+    servirCarga()
+    const { queryClient } = montar()
+    await esperarLista()
+    fireEvent.pointerEnter(panel())
+    await userEvent.click(within(panel()).getByRole('button', { name: 'Minimizar el panel de carga' }))
+    act(() => abrirPanelCarga())
+    servirCarga(SIGUIENTE)
+    await act(() => queryClient.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS }))
+    await waitFor(() => expect(nombres()).toEqual(['Técnico C', 'Técnico A', 'Técnico B']))
+  })
+
+  it('cerrar con el ratón encima y reabrir desde fuera no deja el panel congelado', async () => {
+    servirCarga()
+    const { queryClient } = montar()
+    await esperarLista()
+    fireEvent.pointerEnter(panel())
+    await userEvent.click(within(panel()).getByRole('button', { name: 'Cerrar el panel de carga' }))
+    act(() => abrirPanelCarga())
+    servirCarga(SIGUIENTE)
+    await act(() => queryClient.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS }))
+    await waitFor(() => expect(nombres()).toEqual(['Técnico C', 'Técnico A', 'Técnico B']))
+  })
+
+  it('si el refresco falla teniendo datos, se siguen viendo y no sale el mensaje de error', async () => {
+    servirCarga()
+    const { queryClient } = montar()
+    await esperarLista()
+    server.use(http.get('*/api/reparaciones/carga-tecnicos', () => new HttpResponse(null, { status: 500 })))
+    await act(() => queryClient.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS }))
+    await act(() => new Promise((r) => setTimeout(r, 50)))
+    expect(nombres()).toEqual(['Técnico B', 'Técnico A', 'Técnico C'])
+    expect(screen.queryByText('No se pudo cargar la carga de técnicos.')).not.toBeInTheDocument()
+  })
+
+  it('la pastilla sin datos solo dice «Carga»', async () => {
+    server.use(http.get('*/api/reparaciones/carga-tecnicos', () => new HttpResponse(null, { status: 500 })))
+    minimizarPanelCarga()
+    montar()
+    const caja = await screen.findByTestId('pastilla-carga')
+    await act(() => new Promise((r) => setTimeout(r, 50)))
+    expect(within(caja).getByText('Carga')).toBeInTheDocument()
+    expect(within(caja).queryByText(/al 90 %\+/)).not.toBeInTheDocument()
+  })
 })
 
 describe('PanelCarga: arrastre', () => {
@@ -236,7 +281,7 @@ describe('PanelCarga: arrastre', () => {
     fireEvent.pointerMove(caja, { pointerId: 1, clientX: 200, clientY: 150 })
     expect(caja).toHaveStyle({ left: '0px', top: '64px' })
     fireEvent.pointerUp(caja, { pointerId: 1, clientX: 200, clientY: 150 })
-    fireEvent.click(abrir) // el clic que el navegador manda al soltar
+    fireEvent.click(caja) // el clic que el navegador manda al soltar: con la captura, al contenedor
     expect(panelCarga.get()).toMatchObject({ estado: 'minimizado', ancla: { esq: 'tl', x: 0, y: 0 } })
     expect(guardado()).toMatchObject({ ancla: { esq: 'tl', x: 0, y: 0 } })
     expect(screen.getByTestId('pastilla-carga')).toHaveStyle({ left: '0px', top: '64px' })
@@ -251,7 +296,28 @@ describe('PanelCarga: arrastre', () => {
     fireEvent.pointerDown(abrir, { pointerId: 1, button: 0, clientX: 500, clientY: 400 })
     fireEvent.pointerMove(caja, { pointerId: 1, clientX: 502, clientY: 401 })
     fireEvent.pointerUp(caja, { pointerId: 1, clientX: 502, clientY: 401 })
-    fireEvent.click(abrir)
+    fireEvent.click(caja) // con la captura del puntero, el navegador manda el clic al contenedor, no al botón
+    expect(await esperarLista()).toBeInTheDocument()
+  })
+
+  it('con el teclado (Intro sobre «Abrir») la pastilla se abre sin eventos de puntero', async () => {
+    servirCarga()
+    minimizarPanelCarga()
+    montar()
+    const caja = await screen.findByTestId('pastilla-carga')
+    fireEvent.click(within(caja).getByRole('button', { name: 'Abrir el panel de carga' }))
+    expect(await esperarLista()).toBeInTheDocument()
+  })
+
+  it('un arrastre cancelado no se traga el siguiente clic del teclado', async () => {
+    servirCarga()
+    minimizarPanelCarga()
+    montar()
+    const caja = await screen.findByTestId('pastilla-carga')
+    fireEvent.pointerDown(caja, { pointerId: 1, button: 0, clientX: 500, clientY: 400 })
+    fireEvent.pointerMove(caja, { pointerId: 1, clientX: 200, clientY: 150 })
+    fireEvent.pointerCancel(caja, { pointerId: 1 })
+    fireEvent.click(within(caja).getByRole('button', { name: 'Abrir el panel de carga' }))
     expect(await esperarLista()).toBeInTheDocument()
   })
 

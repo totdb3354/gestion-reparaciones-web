@@ -35,9 +35,14 @@ function PanelCargaVisible() {
   const consulta = useCargaTecnicos(recordado.estado !== 'cerrado')
   // Ratón encima (o arrastrando): se pinta la última copia, para que ninguna fila se mueva bajo el cursor. Se apunta en QUÉ
   // estado entró el ratón: al minimizar o cerrar con el ratón encima, el `pointerleave` no llega (la caja desaparece), y así
-  // la pastilla o el panel nuevos no se quedan congelados.
+  // la pastilla o el panel nuevos no se quedan congelados. Además, en cada cambio de estado se olvida el «encima»: si no, al
+  // volver a ese estado desde fuera (teclado, botón de la barra azul) sin pasar el ratón, el panel seguiría congelado.
   const [encimaDe, setEncimaDe] = useState<EstadoPanelCarga | null>(null)
-  if (recordado.estado === 'cerrado' && encimaDe !== null) setEncimaDe(null)
+  const [estadoVisto, setEstadoVisto] = useState(recordado.estado)
+  if (estadoVisto !== recordado.estado) {
+    setEstadoVisto(recordado.estado)
+    setEncimaDe(null)
+  }
   const datos = useCongelado(consulta.data, encimaDe === recordado.estado)
   const raton = { onPointerEnter: () => setEncimaDe(recordado.estado), onPointerLeave: () => setEncimaDe(null) }
 
@@ -138,7 +143,9 @@ function BotonIcono({ etiqueta, titulo, onClick, children }: { etiqueta: string;
 }
 
 /** Minimizado: «Carga», una mini-barra por técnico (en el orden de la lista) y cuántos están al 90 % o más. La pastilla
- *  entera es el asa; un clic sin arrastrar la abre. Sin datos, solo «Carga». */
+ *  entera es el asa; un clic sin arrastrar la abre. Sin datos, solo «Carga». Abre el contenedor, no el botón interior:
+ *  `useArrastre` captura el puntero en la pastilla y el navegador manda entonces el clic al contenedor, no al botón. El
+ *  botón sigue ahí para el teclado: Intro o Espacio sobre él lanzan un clic que sube hasta el contenedor. */
 function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVista) {
   const cajaRef = useRef<HTMLDivElement>(null)
   useColocarAnclado(cajaRef, recordado.ancla)
@@ -150,12 +157,16 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       ref={cajaRef}
       {...asa}
       data-testid="pastilla-carga"
+      onClick={(e) => {
+        if (e.target instanceof Element && e.target.closest('[data-no-arrastre]')) return
+        abrirPanelCarga()
+      }}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       title="Clic: abrir el panel · arrastra para moverla"
       className="fixed z-30 flex cursor-grab touch-none items-center gap-2 rounded-[20px] bg-azul-noche py-[7px] pr-2 pl-3.5 text-[12px] font-bold whitespace-nowrap text-superficie shadow-lg select-none hover:bg-azul-noche-hover"
     >
-      <button type="button" onClick={abrirPanelCarga} aria-label="Abrir el panel de carga" className="flex cursor-pointer items-center gap-2">
+      <button type="button" aria-label="Abrir el panel de carga" className="flex cursor-pointer items-center gap-2">
         <span>Carga</span>
         {filas !== null && (
           <>
