@@ -142,7 +142,7 @@ function aplicarFila(fila: FilaEstado, f: BorradorFila): FilaEstado {
   }
   // Normal: "Reutilizado", cantidad (mínimo 0, SIN revalidar contra el stock) y observación. De los controles solo se
   // recalcula "-", como en la referencia.
-  const cantidad = Math.max(0, f.cantidad)
+  const cantidad = f.reutilizado ? 0 : Math.max(0, f.cantidad)
   const observacion = f.observacion !== undefined && f.observacion.trim() !== '' ? f.observacion : base.observacion
   // La elección se deduce (el JSON es el del JavaFX y no la guarda): reutilizado → Reutilizada; cantidad → Nueva.
   const eleccion: Eleccion = f.reutilizado ? 'reutilizada' : cantidad > 0 ? 'nueva' : null

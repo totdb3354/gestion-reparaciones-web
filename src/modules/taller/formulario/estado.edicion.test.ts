@@ -59,7 +59,7 @@ describe('estado del formulario (3): modo edición', () => {
     expect(tituloPestana(e)).toBe('Editar reparación — R20260916_5')
     expect(hayCambioEnFilaEditada(e)).toBe(false)
     expect(zonaGuardarVisible(e)).toBe(false)
-    // si era reutilizada: "+" y "-" apagados y la casilla encendida
+    // si era reutilizada: "+" y "-" apagados y «Reutilizada» elegida
     const reutilizada = estadoInicial(datosEditar({ detalle: detalleEdicion({ esReutilizado: true, cantidad: 0 }) }))
     expect(fila(reutilizada, 'bat')).toMatchObject({ reutilizado: true, cantidad: 0 })
     expect(fila(reutilizada, 'bat').controles).toMatchObject({ mas: false, menos: false, reutilizado: true })

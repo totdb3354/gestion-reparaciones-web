@@ -235,6 +235,11 @@ describe('borrador: la elección se deduce al recuperarlo (0.9.19)', () => {
     expect(fila(e, 'cam')).toMatchObject({ eleccion: null, observacion: 'Mancha' })
   })
 
+  it('una fila de borrador reutilizada con cantidad se recupera con cantidad 0', () => {
+    const e = aplicarBorrador(estadoInicial(datos()), contenido({ modelo: '13', filas: [filaBorrador({ prefijo: 'bat', idCom: 101, reutilizado: true, cantidad: 2 })] }))
+    expect(fila(e, 'bat')).toMatchObject({ eleccion: 'reutilizada', reutilizado: true, cantidad: 0 })
+  })
+
   it('agotado confirmado → Nueva pedida; guardada → su elección', () => {
     const pedida = aplicarBorrador(estadoInicial(datos()), contenido({
       modelo: '14', filas: [filaBorrador({ prefijo: 'bat', idCom: 102, agotadoConfirmado: true, descripcionAgotado: 'urge' })],

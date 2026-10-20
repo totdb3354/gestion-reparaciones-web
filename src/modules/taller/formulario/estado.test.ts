@@ -198,7 +198,7 @@ describe('estado del formulario (1): filas', () => {
     expect(fila(e, 'bat').cantidad).toBe(0)
   })
 
-  it('cambiar de SKU pone a cero si la cantidad supera el nuevo stock', () => {
+  it('con Nueva, cambiar de SKU ajusta la cantidad al nuevo stock', () => {
     // tres baterías del mismo modelo con stock 5, 1 y 2
     const catalogo = agrupados()
     catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 5 }), componente({ idCom: 106, tipo: 'bati13alta', stock: 1 }),

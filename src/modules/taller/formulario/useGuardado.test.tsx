@@ -381,6 +381,7 @@ function ArnesEdicion({ datos, onGuardado }: { datos: DatosEditar; onGuardado: (
       <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar bat</button>
       <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
       <button onClick={() => dispatch(sumarOElegir(estado, 'mc'))}>sumar mc</button>
+      <button onClick={() => dispatch({ tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })}>nueva cha</button>
       <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir acción</button>
       <button onClick={() => ultima && dispatch({ tipo: 'ESCRIBIR_ACCION', id: ultima.id, texto: 'Limpieza interna' })}>escribir acción</button>
       {zonaGuardarVisible(estado) && <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>}
@@ -683,6 +684,15 @@ describe('useGuardado · fila elegida sin SKU (0.9.19)', () => {
     expect(within(aviso).getByText('Falta elegir el SKU de: Chasis.')).toBeInTheDocument()
     await userEvent.click(within(aviso).getByRole('button', { name: 'Aceptar' }))
     expect(screen.getByTestId('guardar')).toHaveTextContent('Terminar asignación')
+    expect(escrituras(llamadas)).toEqual([])
+  })
+
+  it('en edicion: una fila nueva de chasis con Nueva y sin color avisa «Falta elegir el SKU de: Chasis.» y no escribe nada', async () => {
+    const { llamadas } = montarEdicion()
+    await pulsar('nueva cha')
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText('Falta elegir el SKU de: Chasis.')).toBeInTheDocument()
     expect(escrituras(llamadas)).toEqual([])
   })
 })

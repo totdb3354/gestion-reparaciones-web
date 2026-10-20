@@ -146,7 +146,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
     expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar Batería' })).toBeEnabled()
   })
 
-  it('solicitud pendiente del servidor: sub-fila verde con lápiz deshabilitado que no abre nada; Reutilizado y observación siguen activos', async () => {
+  it('solicitud pendiente del servidor: sub-fila verde con lápiz deshabilitado que no abre nada; «↺ Reutilizada» y observación siguen activos', async () => {
     montar([], [solicitudAsignacion({ descripcionSolicitud: 'Urgente para cliente' })])
     const sub = screen.getByTestId('subfila-bat')
     expect(sub).toHaveAttribute('data-variante', 'confirmada')
