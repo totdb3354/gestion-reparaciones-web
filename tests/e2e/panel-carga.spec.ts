@@ -94,21 +94,22 @@ async function crearAsignacion(idTec: number): Promise<{ imei: string; idRep: st
   return { imei, idRep: rep.idRep }
 }
 
-test('el panel recuerda estado, sitio y alcance al recargar, y la barra lo abre', async ({ page }) => {
+test('el panel recuerda estado, sitio y alcance al recargar, y «Carga técnicos» lo vuelve a abrir', async ({ page }) => {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await page.setViewportSize({ width: 1366, height: 768 })
   await entrar(page, usuario, clave)
-  // Navegador limpio: de fábrica, abierto abajo a la derecha.
+  // Navegador limpio: de fábrica, abierto arriba a la derecha, bajo la barra azul.
   await expect(panel(page)).toBeVisible()
   const inicio = (await panel(page).boundingBox())!
   expect(inicio.x + inicio.width).toBeGreaterThan(1366 - 40)
-  expect(inicio.y + inicio.height).toBeGreaterThan(768 - 40)
+  expect(inicio.y).toBeLessThan(64 + 40)
+  expect(inicio.y).toBeGreaterThanOrEqual(64)
 
-  // Arrastrar por la cabecera hacia arriba a la izquierda.
+  // Arrastrar por la cabecera a la izquierda y algo abajo: sigue en el cuarto de arriba a la izquierda.
   const asa = (await panel(page).getByTitle('Arrastra para moverlo').boundingBox())!
   await page.mouse.move(asa.x + 20, asa.y + asa.height / 2)
   await page.mouse.down()
-  await page.mouse.move(asa.x - 800, asa.y - 400, { steps: 12 })
+  await page.mouse.move(asa.x - 800, asa.y + 60, { steps: 12 })
   await page.mouse.up()
   const movido = (await panel(page).boundingBox())!
   expect(movido.x).toBeLessThan(1366 / 2)
@@ -133,13 +134,15 @@ test('el panel recuerda estado, sitio y alcance al recargar, y la barra lo abre'
   await page.reload()
   await expect(panel(page).getByRole('button', { name: 'Total' })).toHaveAttribute('aria-pressed', 'true')
 
-  // Cerrar con la ×: al recargar sigue cerrado; el botón «Carga» de la barra lo abre.
+  // Cerrar con la ×: al recargar sigue cerrado; la barra no tiene botón «Carga» y «Carga técnicos» de Asignaciones lo abre.
   await panel(page).getByRole('button', { name: 'Cerrar el panel de carga' }).click()
   await page.reload()
   await expect(page.getByText('FSGR:')).toBeVisible()
   await expect(panel(page)).toHaveCount(0)
   await expect(pastilla(page)).toHaveCount(0)
-  await page.getByRole('banner').getByRole('button', { name: 'Carga', exact: true }).click()
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Carga', exact: true })).toHaveCount(0)
+  await page.goto('/reparaciones/asignaciones')
+  await page.getByRole('button', { name: 'Carga técnicos' }).click()
   await expect(panel(page)).toBeVisible()
 })
 
@@ -153,8 +156,15 @@ test('lo que asigna otro PC llega antes de 35 s y lo que borra uno mismo, al mom
   await expect(panel(page)).toBeVisible()
   // Total: la asignación de prueba no lleva cliente y en Pedidos no contaría.
   await panel(page).getByRole('button', { name: 'Total' }).click()
-  // Con el ratón encima el panel no repinta (spec «Con el ratón encima no cambia»): se aparta a la columna izquierda.
-  await page.mouse.move(5, 450)
+  // De fábrica sale arriba a la derecha y taparía la papelera de la tabla: se lleva abajo a la izquierda (se recuerda).
+  const asa = (await panel(page).getByTitle('Arrastra para moverlo').boundingBox())!
+  await page.mouse.move(asa.x + 20, asa.y + asa.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(40, 880, { steps: 12 })
+  await page.mouse.up()
+  // Con el ratón encima el panel no repinta (spec «Con el ratón encima no cambia»): se aparta a una zona neutra, fuera del
+  // panel ya movido (que ocupa la esquina de abajo a la izquierda, unos 340 px de ancho).
+  await page.mouse.move(700, 450)
   const fila = panel(page).getByRole('listitem').filter({ has: page.getByText(nombreTec!, { exact: true }) })
   await expect(fila).toHaveCount(1)
   test.skip(await fila.getByText('sin jornada hoy').isVisible(), 'Fin de semana: sin jornada no se mide la carga')
@@ -195,7 +205,7 @@ test('pulsar un técnico desde otra pantalla lleva a Asignaciones filtrada por �
   await expect(panel(page)).toBeVisible()
 })
 
-test('el técnico no tiene ni el botón «Carga» ni el panel, ni pide la carga', async ({ page }) => {
+test('el técnico no tiene panel de carga ni pide la carga', async ({ page }) => {
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   const pedidas: string[] = []
   page.on('request', (r) => {

@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  CLAVE_PANEL_CARGA, PANEL_DE_FABRICA, abrirPanelCarga, alternarPanelCarga, cambiarAlcancePanelCarga, cerrarPanelCarga,
+  CLAVE_PANEL_CARGA, PANEL_DE_FABRICA, abrirPanelCarga, cambiarAlcancePanelCarga, cerrarPanelCarga,
   leerPanelCarga, minimizarPanelCarga, moverPanelCarga, panelCarga, pedirFiltroPorTecnico, recibirFiltroPorTecnico,
   usePanelCarga,
 } from './panelCarga'
@@ -10,8 +10,8 @@ import { reiniciarStores } from './store'
 const guardado = () => JSON.parse(localStorage.getItem(CLAVE_PANEL_CARGA) ?? 'null')
 
 describe('leerPanelCarga', () => {
-  it('sin nada guardado: abierto, Pedidos, abajo a la derecha a 16 px', () => {
-    expect(leerPanelCarga()).toEqual({ estado: 'abierto', alcance: 'pedidos', ancla: { esq: 'br', x: 16, y: 16 } })
+  it('sin nada guardado: abierto, Pedidos, arriba a la derecha a 16 px', () => {
+    expect(leerPanelCarga()).toEqual({ estado: 'abierto', alcance: 'pedidos', ancla: { esq: 'tr', x: 16, y: 16 } })
   })
 
   it('lee lo guardado', () => {
@@ -26,7 +26,7 @@ describe('leerPanelCarga', () => {
 
   it('cada campo inválido cae a lo de fábrica sin arrastrar a los demás', () => {
     localStorage.setItem(CLAVE_PANEL_CARGA, JSON.stringify({ estado: 'flotando', alcance: 'total', ancla: { esq: 'br', x: -5, y: 3 } }))
-    expect(leerPanelCarga()).toEqual({ estado: 'abierto', alcance: 'total', ancla: { esq: 'br', x: 16, y: 16 } })
+    expect(leerPanelCarga()).toEqual({ estado: 'abierto', alcance: 'total', ancla: { esq: 'tr', x: 16, y: 16 } })
   })
 
   it('si el navegador no deja leer, lo de fábrica', () => {
@@ -52,16 +52,6 @@ describe('acciones del panel', () => {
     cerrarPanelCarga()
     expect(panelCarga.get().estado).toBe('cerrado')
     abrirPanelCarga()
-    expect(panelCarga.get().estado).toBe('abierto')
-  })
-
-  it('el botón de la barra: abierto → cerrado; minimizado o cerrado → abierto', () => {
-    alternarPanelCarga()
-    expect(panelCarga.get().estado).toBe('cerrado')
-    alternarPanelCarga()
-    expect(panelCarga.get().estado).toBe('abierto')
-    minimizarPanelCarga()
-    alternarPanelCarga()
     expect(panelCarga.get().estado).toBe('abierto')
   })
 

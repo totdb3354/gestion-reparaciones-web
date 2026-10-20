@@ -21,8 +21,8 @@ export type Caja = { izq: number; arriba: number; ancho: number; alto: number }
 /** Posición `fixed`: solo los dos lados que tocan (`right` o `left`, `bottom` o `top`). */
 export type EstiloAnclado = { left?: number; right?: number; top?: number; bottom?: number }
 
-/** De fábrica: abajo a la derecha, a 16 px. */
-export const ANCLA_DE_FABRICA: Ancla = { esq: 'br', x: 16, y: 16 }
+/** De fábrica: arriba a la derecha, bajo la barra azul, a 16 px. */
+export const ANCLA_DE_FABRICA: Ancla = { esq: 'tr', x: 16, y: 16 }
 
 /** Alto de la barra azul (`--spacing-navbar` de tokens.css): la caja nunca se mete debajo. */
 export const ALTO_BARRA_PX = 64

@@ -14,7 +14,7 @@ export type PanelCarga = { estado: EstadoPanelCarga; alcance: AlcancePanelCarga;
 /** Clave de localStorage. Es del navegador, no del usuario (en el taller se comparten PCs), y cerrar sesión no la borra. */
 export const CLAVE_PANEL_CARGA = 'panelCarga'
 
-/** De fábrica: abierto, en Pedidos, abajo a la derecha a 16 px. */
+/** De fábrica: abierto, en Pedidos, arriba a la derecha a 16 px. */
 export const PANEL_DE_FABRICA: PanelCarga = { estado: 'abierto', alcance: 'pedidos', ancla: ANCLA_DE_FABRICA }
 
 /** Lo guardado, campo a campo: lo que no se pueda leer o no tenga forma válida se queda en lo de fábrica. */
@@ -62,8 +62,6 @@ export const cerrarPanelCarga = () => cambiar({ estado: 'cerrado' })
 export const cambiarAlcancePanelCarga = (alcance: AlcancePanelCarga) => cambiar({ alcance })
 /** Se llama al SOLTAR un arrastre, no en cada movimiento. */
 export const moverPanelCarga = (ancla: Ancla) => cambiar({ ancla })
-/** Botón «Carga» de la barra azul: abierto → cerrado; minimizado o cerrado → abierto. */
-export const alternarPanelCarga = () => cambiar({ estado: panelCarga.get().estado === 'abierto' ? 'cerrado' : 'abierto' })
 
 export function usePanelCarga(): PanelCarga {
   return useStore(panelCarga)[0]

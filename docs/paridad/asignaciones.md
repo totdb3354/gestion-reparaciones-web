@@ -148,7 +148,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 
 ## Panel "Carga de técnicos" (ventana modal hasta la 0.9.19)
 
-- [x] El botón de la cabecera («Carga técnicos») y el botón «Carga» de la barra superior abren el panel "Carga de técnicos", con el toggle **Pedidos | Total** al lado del título. **Diferencia deliberada (0.9.20):** el alcance se recuerda en el navegador; ya no vuelve a Pedidos en cada apertura.
+- [x] El botón de la cabecera («Carga técnicos») abre el panel "Carga de técnicos" (y es la única forma de reabrirlo tras cerrarlo), con el toggle **Pedidos | Total** al lado del título. **Diferencia deliberada (0.9.20):** el alcance se recuerda en el navegador; ya no vuelve a Pedidos en cada apertura.
 - [x] Cambiar de alcance **no vuelve al servidor**: la respuesta trae los dos alcances y el toggle es instantáneo, como en el JavaFX (`carga-tecnicos-alcance`).
 - [x] Los datos salen de `GET /api/reparaciones/carga-tecnicos`, que exige SUPERTECNICO o ADMIN y devuelve `{ pedidos, total }`. El cálculo se ha movido del cliente al servidor sin cambiar de resultado (D3), con la suite del cliente portada tal cual.
 - [x] El día de la semana se resuelve en **Europe/Madrid**, no en la zona del proceso, o el fin de semana se desplazaría y la carga saldría a cero un día entero.
@@ -168,7 +168,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] **Diferencia deliberada (0.9.20):** con el panel abierto o minimizado la carga se pide cada 30 s (5 s sin conexión) y tras cada escritura del navegador; cerrado no se pide.
 - [x] Si la consulta falla sin datos previos, el panel muestra un mensaje en el hueco de la lista y **la tabla no se ve afectada**: son dos consultas independientes. El mensaje se queda en el panel, sin apilar además el diálogo de error global.
 - [x] **Diferencia deliberada (0.9.20):** el panel no congela el sondeo de la tabla (D4): estando abierto todo el día, la tabla dejaría de refrescarse.
-- [x] **Diferencia deliberada (0.9.20):** el panel no es modal: flota sobre cualquier pantalla (supertécnico y admin), se arrastra a la esquina que se quiera y la recuerda, y con el ratón encima no se repinta.
+- [x] **Diferencia deliberada (0.9.20):** el panel no es modal: flota sobre cualquier pantalla (supertécnico y admin), sale de fábrica arriba a la derecha, bajo la barra superior, se arrastra a la esquina que se quiera y la recuerda, y con el ratón encima no se repinta.
 
 ## Diálogo "Técnicos de glass"
 

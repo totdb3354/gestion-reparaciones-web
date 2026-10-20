@@ -95,13 +95,13 @@ describe('PanelCarga: quién lo ve', () => {
     expect(peticiones.n).toBe(0)
   })
 
-  it('el supertécnico, de fábrica: abierto, en Pedidos, de más a menos carga y abajo a la derecha', async () => {
+  it('el supertécnico, de fábrica: abierto, en Pedidos, de más a menos carga y arriba a la derecha', async () => {
     servirCarga()
     montar()
     await esperarLista()
     expect(nombres()).toEqual(['Técnico B', 'Técnico A', 'Técnico C'])
     expect(within(panel()).getByRole('button', { name: 'Pedidos' })).toHaveAttribute('aria-pressed', 'true')
-    expect(panel()).toHaveStyle({ right: '16px', bottom: '16px' })
+    expect(panel()).toHaveStyle({ right: '16px', top: '80px' })
   })
 
   it('el admin también lo ve', async () => {
@@ -362,7 +362,7 @@ describe('PanelCarga: arrastre', () => {
     const asa = within(panel()).getByTitle('Arrastra para moverlo')
     fireEvent.pointerDown(within(panel()).getByRole('button', { name: 'Total' }), { pointerId: 1, button: 0, clientX: 500, clientY: 400 })
     fireEvent.pointerMove(asa, { pointerId: 1, clientX: 100, clientY: 100 })
-    expect(panel()).toHaveStyle({ right: '16px', bottom: '16px' }) // empezó en un botón: no hay arrastre
+    expect(panel()).toHaveStyle({ right: '16px', top: '80px' }) // empezó en un botón: no hay arrastre
     fireEvent.pointerUp(asa, { pointerId: 1, clientX: 100, clientY: 100 })
     fireEvent.pointerDown(asa, { pointerId: 2, button: 0, clientX: 500, clientY: 400 })
     fireEvent.pointerMove(asa, { pointerId: 2, clientX: 900, clientY: 700 })
