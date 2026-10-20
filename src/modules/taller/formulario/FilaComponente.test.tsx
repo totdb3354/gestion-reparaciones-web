@@ -385,5 +385,21 @@ describe('0.9.19 · la elección en la celda del SKU (spec §2)', () => {
     // chai13negro: «negro» no está en la tabla de colores, así que la opción se llama por su token (opcionesSku).
     await userEvent.click(within(await screen.findByRole('listbox', { name: 'SKU de Chasis' })).getByRole('button', { name: 'negro' }))
     expect(screen.getByTestId('contador-cha')).toHaveTextContent('1')
+    expect(cha.getByRole('button', { name: 'Añadir observación' })).toBeEnabled()
+  })
+
+  it('chasis sin ningun color con stock: «Solicitar Chasis» elige Nueva y enseña «— Elige color —» (no abre dialogo)', async () => {
+    const a = agrupados()
+    a.cha = a.cha.map((c) => ({ ...c, stock: 0 }))
+    const d: DatosNuevo = { ...datos([]), agrupados: a }
+    const Sin = () => {
+      const [estado, dispatch] = useReducer(reducir, d, (x) => [MODELO_13].reduce(reducir, estadoInicial(x)))
+      return <div>{estado.filas.map((f) => <FilaComponente key={f.prefijo} estado={estado} fila={f} dispatch={dispatch} onGuardarFila={() => {}} />)}</div>
+    }
+    renderConProviders(<Sin />)
+    const cha = within(screen.getByTestId('fila-cha'))
+    await userEvent.click(cha.getByRole('button', { name: 'Solicitar Chasis' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(cha.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent('— Elige color —')
   })
 })

@@ -217,4 +217,13 @@ describe('0.9.19 · «Nueva» o «Reutilizada» en la celda del SKU (spec §2)',
     const e = aplicar(conModelo('13'), nueva('bat'), { tipo: 'CAMBIAR_MODELO', modelo: '14' })
     expect(fila(e, 'bat')).toMatchObject({ eleccion: null, cantidad: 0 })
   })
+  it('chasis «Nueva»: al elegir el color se activa la observacion', () => {
+    const e = aplicar(conModelo('13'), nueva('cha'))
+    expect(fila(e, 'cha').controles.observacion).toBe(false)
+    const c = reducir(e, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 })
+    expect(fila(c, 'cha').controles.observacion).toBe(true)
+    const o = reducir(c, { tipo: 'PONER_OBSERVACION', prefijo: 'cha', texto: 'rayado' })
+    expect(o).not.toBe(c)
+    expect(fila(o, 'cha').observacion).toBe('rayado')
+  })
 })

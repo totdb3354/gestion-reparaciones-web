@@ -574,7 +574,9 @@ function cambiarSku(fila: FilaEstado, idCom: number): FilaEstado | null {
     // En la fila editada, volver a su SKU original conserva la cantidad.
     const esElOriginal = fila.original !== null && fila.original.idCom === idCom
     const cantidad = esElOriginal && fila.cantidad > 0 ? fila.cantidad : cantidadNueva(fila, c)
-    return { ...fila, idCom, cantidad, controles: { ...fila.controles, mas: cantidad < c.stock, menos: cantidad > 0 } }
+    // La primera elección de chasis o tapa (idCom null) enciende la observación, como en Reutilizada.
+    const observacion = fila.idCom === null ? true : fila.controles.observacion
+    return { ...fila, idCom, cantidad, controles: { ...fila.controles, mas: cantidad < c.stock, menos: cantidad > 0, observacion } }
   }
   // Sin elegir o Reutilizada: solo cambia el SKU. La primera elección de chasis o tapa enciende la observación.
   if (fila.idCom === null) return { ...fila, idCom, controles: CONTROLES_SIN_ELEGIR }

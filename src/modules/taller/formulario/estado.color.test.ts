@@ -162,3 +162,16 @@ describe('al abrir y con el borrador (spec 0.9.7 §9.3)', () => {
     expect(recuperado.revision).toBe(antes.revision)
   })
 })
+
+describe('observacion al llegar el color por el enlace (revision final 0.9.19)', () => {
+  it('tapa «Nueva» sin color: el color le llega al elegir el chasis y se activa su observacion', () => {
+    const e = aplicar(
+      modelo16(),
+      { tipo: 'ELEGIR', prefijo: 'tapa', eleccion: 'nueva' },
+      { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' },
+      { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 201 },
+    )
+    expect(fila(e, 'tapa').idCom).toBe(211)
+    expect(fila(e, 'tapa').controles.observacion).toBe(true)
+  })
+})

@@ -156,9 +156,11 @@ test('técnico: borrador recuperado, nueva y guardar fila, reutilizada y volver,
 
   // «Nueva» en la primera fila sin color que la ofrezca (su SKU por defecto tiene stock): ya pone 1 y Stock enseña lo que quedará
   const sinColor = '[data-testid^="fila-"]:not([data-testid="fila-cha"]):not([data-testid="fila-tapa"])'
-  const fila = formulario.locator(sinColor).filter({ has: page.getByRole('button', { name: /^Nueva /, disabled: false }) }).first()
-  await expect(fila).toBeVisible()
-  const prefijo = ((await fila.getAttribute('data-testid')) ?? '').replace('fila-', '')
+  const candidata = formulario.locator(sinColor).filter({ has: page.getByRole('button', { name: /^Nueva /, disabled: false }) }).first()
+  await expect(candidata).toBeVisible()
+  const prefijo = ((await candidata.getAttribute('data-testid')) ?? '').replace('fila-', '')
+  // Re-anclada por su testid: el filtro por «Nueva» deja de cumplirse al pulsarla.
+  const fila = formulario.getByTestId(`fila-${prefijo}`)
   await fila.getByRole('button', { name: /^Nueva / }).click()
   await expect(formulario.getByTestId(`contador-${prefijo}`)).toHaveText('1')
   await expect(formulario.getByTestId(`marca-${prefijo}`)).toContainText('+ Nueva')
@@ -191,9 +193,11 @@ test('técnico: borrador recuperado, nueva y guardar fila, reutilizada y volver,
 
   // Fila sin color y sin stock: el botón de la celda del SKU ya dice «Solicitar <tipo>». Antes, «Reutilizada» (contador «—»)
   // y «Volver atrás» (la fila vuelve a los dos botones).
-  const filaSinStock = formulario.locator(sinColor).filter({ has: page.getByRole('button', { name: /^Solicitar / }) }).first()
-  await expect(filaSinStock).toBeVisible()
-  const prefijoSinStock = ((await filaSinStock.getAttribute('data-testid')) ?? '').replace('fila-', '')
+  const candidataSinStock = formulario.locator(sinColor).filter({ has: page.getByRole('button', { name: /^Solicitar / }) }).first()
+  await expect(candidataSinStock).toBeVisible()
+  const prefijoSinStock = ((await candidataSinStock.getAttribute('data-testid')) ?? '').replace('fila-', '')
+  // Re-anclada por su testid: el filtro por «Solicitar» deja de cumplirse al pulsar «Reutilizada».
+  const filaSinStock = formulario.getByTestId(`fila-${prefijoSinStock}`)
   await filaSinStock.getByRole('button', { name: /^Reutilizada / }).click()
   await expect(formulario.getByTestId(`contador-${prefijoSinStock}`)).toHaveText('—')
   await expect(formulario.getByTestId(`marca-${prefijoSinStock}`)).toContainText('↺ Reutilizada')
