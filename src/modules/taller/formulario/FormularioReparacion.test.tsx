@@ -153,7 +153,7 @@ describe('FormularioReparacion · cabecera, avisos y cierre (ficha docs/paridad/
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 16')
     expect(screen.getByTestId('fila-cha')).toHaveAttribute('data-estado', 'sinSku')
-    expect(screen.getByRole('button', { name: 'Solicitar Chasis' })).toBeDisabled() // sin elegir no hay combo (0.9.19)
+    expect(screen.getByRole('button', { name: 'Nueva Chasis' })).toBeDisabled() // sin elegir no hay combo (0.9.19)
   })
 
   it('las opciones del combo son los modelos con SKU activo, traducidos y en orden de tienda', async () => {

@@ -130,6 +130,7 @@ describe('0.9.19 · «Nueva» o «Reutilizada» en la celda del SKU (spec §2)',
     expect(botonNueva(e13, fila(e13, 'bat'))).toBe('nueva')
     const e14 = conModelo('14')
     expect(botonNueva(e14, fila(e14, 'bat'))).toBe('solicitar')
+    expect(botonNueva(e14, fila(e14, 'cha'))).toBe('deshabilitada') // fila sin SKU para el modelo (spec 0.9.19 §2)
     const catalogo = agrupados()
     catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 0 })]
     catalogo.cam = [componente({ idCom: 121, tipo: 'cami13', stock: 0 })]

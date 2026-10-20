@@ -78,7 +78,7 @@ describe('FilaComponente (ficha docs/paridad/formulario.md · Filas de component
     expect(screen.getByTestId('stock-cha')).toHaveTextContent('—')
     // 0.9.19: sin elegir no hay combo; la celda del SKU lleva los dos botones, deshabilitados, y no hay casilla.
     expect(within(fila).queryByRole('combobox', { name: 'SKU de Chasis' })).not.toBeInTheDocument()
-    expect(within(fila).getByRole('button', { name: 'Solicitar Chasis' })).toBeDisabled() // sin ningún SKU con stock, «Nueva» es «Solicitar»
+    expect(within(fila).getByRole('button', { name: 'Nueva Chasis' })).toBeDisabled()
     expect(within(fila).getByRole('button', { name: 'Reutilizada Chasis' })).toBeDisabled()
     expect(within(fila).getByRole('button', { name: 'Sumar Chasis' })).toBeDisabled()
     expect(within(fila).getByRole('button', { name: 'Restar Chasis' })).toBeDisabled()

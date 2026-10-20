@@ -849,6 +849,7 @@ export type BotonNueva = 'nueva' | 'solicitar' | 'deshabilitada'
 /** Botón de la izquierda de la celda del SKU (spec 0.9.19 §2): «+ Nueva» si algún SKU de la fila tiene stock (en la fila
  *  editada cuenta lo que devolvería su pieza original); si ninguno, «Solicitar pieza» (en edición no se pide: deshabilitado). */
 export function botonNueva(e: EstadoFormulario, fila: FilaEstado): BotonNueva {
+  if (fila.opciones.length === 0) return 'deshabilitada' // fila sin SKU para el modelo: los dos botones, deshabilitados (spec 0.9.19 §2)
   if (fila.opciones.some((c) => stockParaNueva(fila, c) > 0)) return 'nueva'
   return e.modo === 'editar' ? 'deshabilitada' : 'solicitar'
 }
