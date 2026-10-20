@@ -22,6 +22,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - **Formulario de reparación: «Nueva» o «Reutilizada» en la celda del SKU.** Cada pieza empieza eligiendo, donde estaba el desplegable, si es **nueva** (gasta del stock) o **reutilizada** (no gasta); después sale el desplegable. Con «Nueva» el contador se pone en 1 y Stock enseña lo que quedará («5 → 4»); con «Reutilizada» el contador enseña «—». La columna «¿Reutilizado?» pasa a «Pieza», con la marca «+ Nueva», «↺ Reutilizada» o «Solicitada» y una «×» para volver atrás («−» hasta 0 también). Si ningún SKU de la pieza tiene stock, el botón ya dice «Solicitar pieza». La banda «Sin stock… Solicitar pieza» solo sale con «Nueva». Con una pieza elegida sin SKU (chasis o tapa sin color), «Terminar» avisa «Falta elegir el SKU de: …». Al editar una reparación, la «×» permite pasar una pieza de nueva a reutilizada y al revés (el servidor ya ajusta el stock). Una pieza «Nueva» sin stock y sin pedir tampoco deja terminar («Sin stock: …»), y con una solicitud la marca dice «Solicitada».
 - Solo web: funciona con el servidor 0.9.18. Sin migración.
 
+## [0.9.18.1] - 2026-10-20 — Stock de teléfonos: el descuadre no cuenta los de pedido
+
+- **Stock de teléfonos** (supertécnico y administrador): un móvil de pedido («Pedidos realizados») con un trabajo abierto ya no sale como descuadre. Tiene dueño, pero se repara ahí hasta que NSYS lo pone Released: sale el técnico, como en cualquier otro trabajo. El descuadre queda para un trabajo abierto de hace más de una hora con el móvil en Listos. Cambia en la tabla, en el aviso «con descuadre», en el filtro «Técnico» y en «Pegar varios IMEIs».
+- Solo web: funciona con el servidor 0.9.18. Sin migración.
+
 ## [0.9.18] - 2026-10-20 — Stock de teléfonos: quién lo tiene, SKU y revisado
 
 - **Stock de teléfonos** (supertécnico y administrador):

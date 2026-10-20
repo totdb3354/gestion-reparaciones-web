@@ -53,16 +53,28 @@ describe('«Quién lo tiene» (spec 0.9.18 §4.7)', () => {
     expect(r.texto).toBe('—')
   })
 
-  it('descuadre: trabajo abierto hace más de 60 minutos con el móvil en Listos o de pedido', () => {
+  it('descuadre: trabajo abierto hace más de 60 minutos con el móvil en Listos', () => {
     // AHORA es el 16/10 a las 13:43 en Madrid; 12:42 son 61 minutos.
     const listos = q({ ubicacion: 'Listos', trabajos: [trabajo({ desde: '2026-10-16T12:42:00' })] })
     expect(listos.descuadre).toBe(true)
     expect(listos.texto).toBe('⚠ Técnico 1: trabajo abierto')
     expect(listos.etiquetas).toEqual(['Técnico 1', CON_DESCUADRE])
     expect(listos.titulo).toBe('Reparación de Técnico 1 desde el 16/10 · NSYS dice "Listos", pero hay un trabajo abierto. ¿Falta cerrarlo o mover la caja?')
-    const pedido = q({ ubicacion: 'Taller · Reparación', estado: 'DE_PEDIDO', trabajos: [trabajo()] })
-    expect(pedido.descuadre).toBe(true)
-    expect(pedido.titulo).toContain('NSYS dice "Pedidos realizados"')
+  })
+
+  it('un móvil de pedido con trabajo abierto no es descuadre: tiene dueño, pero se repara hasta el Released (0.9.18.1)', () => {
+    // El trabajo por defecto es de las 09:00: 4 h 43 min antes de AHORA.
+    const r = q({ ubicacion: 'Taller · Reparación', estado: 'DE_PEDIDO', trabajos: [trabajo()] })
+    expect(r.descuadre).toBe(false)
+    expect(r.texto).toBe('Técnico 1')
+    expect(r.etiquetas).toEqual(['Técnico 1'])
+    expect(r.titulo).toBe('Reparación de Técnico 1 desde el 16/10')
+  })
+
+  it('tampoco si la última caja que se conoce del móvil de pedido es Listos (0.9.18.1)', () => {
+    const r = q({ ubicacion: 'Listos', estado: 'DE_PEDIDO', trabajos: [trabajo()] })
+    expect(r.descuadre).toBe(false)
+    expect(r.texto).toBe('Técnico 1')
   })
 
   it('con 60 minutos justos todavía no es descuadre: la caja de NSYS llega con retraso', () => {
