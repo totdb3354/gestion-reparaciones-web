@@ -3,7 +3,9 @@ import { diaDeHoyEnMadrid, minutosDesde } from './nsys'
 
 /** «Quién lo tiene» (0.9.18, spec «Columna compacta, SKU, Quién lo tiene y Revisado» §4.7): las asignaciones abiertas del
  *  ERP cruzadas con la caja de NSYS. Los trabajos son del momento; la caja, de la última exportación (hasta ~35 min de
- *  retraso), por eso el descuadre espera 60 minutos. Las horas son de Madrid, sin zona: se cortan del texto. */
+ *  retraso), por eso el descuadre espera 60 minutos. Las horas son de Madrid, sin zona: se cortan del texto.
+ *  0.9.18.1 (spec «El descuadre no cuenta los móviles de pedido»): un móvil de pedido tiene dueño, pero se repara ahí hasta
+ *  que NSYS lo pone Released, así que solo da descuadre un móvil en stock en «Listos». */
 
 export const MINUTOS_DESCUADRE = 60
 export const SIN_ASIGNAR = 'Sin asignar (en caja de taller)'
@@ -59,20 +61,21 @@ export function quienLoTiene(m: Datos, ahora: number): Quien {
     return { prefijo: null, tecnico: t.tecnico, sufijo: t.categoria === 'PULIDO' ? '(pulido)' : null, entrega: null }
   })
   const tecnicos = [...new Set(trabajos.map((t) => t.tecnico))]
-  // Un móvil de pedido ya no está en su caja de taller, aunque sea la última que se le conoce.
+  // Un móvil de pedido no da «en caja»: al pasar a «Pedidos realizados» su última caja se congela, y ya reparado, esperando
+  // el Released, seguiría pareciendo en el taller.
   const enCaja = m.estado !== 'DE_PEDIDO' && (m.ubicacion ?? '').startsWith('Taller') && trabajos.length === 0
-  const fueraDelTaller = m.estado === 'DE_PEDIDO' || m.ubicacion === 'Listos'
+  // Solo un móvil en stock: la ubicación de uno de pedido es su última caja, y puede ser «Listos».
+  const enListos = m.estado !== 'DE_PEDIDO' && m.ubicacion === 'Listos'
   // El texto del descuadre nombra solo a quien lleva el trabajo más de 60 minutos; las etiquetas, a todos.
-  const tarde = fueraDelTaller ? [...new Set(trabajos.filter((t) => minutosDesde(t.desde, fecha) > MINUTOS_DESCUADRE).map((t) => t.tecnico))] : []
+  const tarde = enListos ? [...new Set(trabajos.filter((t) => minutosDesde(t.desde, fecha) > MINUTOS_DESCUADRE).map((t) => t.tecnico))] : []
   const descuadre = tarde.length > 0
-  const caja = m.estado === 'DE_PEDIDO' ? 'Pedidos realizados' : (m.ubicacion ?? '')
   const texto = descuadre ? `⚠ ${tarde.join(' · ')}: trabajo abierto`
     : enCaja ? '⚠ En caja, sin asignar'
       : partes.length === 0 ? '—'
         : partes.map((p) => [p.prefijo, p.tecnico, p.sufijo, p.entrega?.texto].filter(Boolean).join(' ')).join(' · ')
   const titulo = [
     ...trabajos.map((t) => detalle(t, hoy)),
-    ...(descuadre ? [`NSYS dice "${caja}", pero hay un trabajo abierto. ¿Falta cerrarlo o mover la caja?`] : []),
+    ...(descuadre ? ['NSYS dice "Listos", pero hay un trabajo abierto. ¿Falta cerrarlo o mover la caja?'] : []),
     ...(enCaja ? ['Está en una caja de taller y nadie lo tiene asignado'] : []),
   ].join(' · ')
   const etiquetas = [...tecnicos, ...(enCaja ? [SIN_ASIGNAR] : []), ...(descuadre ? [CON_DESCUADRE] : [])]
