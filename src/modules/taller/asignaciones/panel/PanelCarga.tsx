@@ -21,6 +21,8 @@ const MSG_ERROR = 'No se pudo cargar la carga de técnicos.'
 const MSG_SIN_TECNICOS = 'Sin técnicos activos'
 /** Nombre accesible de la lista: puede haber otras listas en la pantalla. */
 const ETIQUETA_LISTA = 'Carga por técnico'
+/** Hay una ventana abierta si existe su fondo oscuro (el mismo criterio que usa la capa CSS del panel). */
+const hayVentanaAbierta = () => document.querySelector('[data-slot="dialog-overlay"]') !== null
 
 /** Panel flotante «Carga de técnicos» (spec 0.9.20): en cualquier pantalla, solo para supertécnico y admin; para el resto
  *  no monta nada ni pide nada. Abierto, minimizado (pastilla) o cerrado, según lo que recuerde el navegador. */
@@ -62,11 +64,14 @@ function useCongelado<T>(valor: T, congelado: boolean): T {
   return congela ? copia : valor
 }
 
-/** Pulsar un técnico: Asignaciones con su filtro en solitario; el panel sigue abierto (spec 0.9.20 §2). */
+/** Pulsar un técnico: Asignaciones con su filtro en solitario; el panel sigue abierto (spec 0.9.20 §2). Con una ventana
+ *  abierta fuera de Asignaciones no hace nada: navegar la cerraría y se perdería lo que tuviera sin guardar. En Asignaciones
+ *  sí: filtra la tabla de detrás y la ventana no se toca. */
 function useElegirTecnico() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   return (idTec: number) => {
+    if (hayVentanaAbierta() && pathname !== RUTA_ASIGNACIONES) return
     pedirFiltroPorTecnico(idTec)
     if (pathname !== RUTA_ASIGNACIONES) navigate(RUTA_ASIGNACIONES)
   }
@@ -97,6 +102,9 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
       data-testid="panel-carga"
       {...ENCIMA}
       style={{ pointerEvents: 'auto' }}
+      // Tocar el panel no mueve el foco: se queda en el campo de la ventana (si no, Radix lo devuelve ahí con el texto
+      // entero seleccionado y lo medio escrito se pisaría). Los eventos de puntero, los clics y los arrastres no cambian.
+      onMouseDown={(e) => e.preventDefault()}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       className={cn(CAPA, 'fixed flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg')}
@@ -113,7 +121,14 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
         <BotonIcono etiqueta="Minimizar el panel de carga" titulo="Minimizar" onClick={minimizarPanelCarga}>–</BotonIcono>
         <BotonIcono etiqueta="Cerrar el panel de carga" titulo="Cerrar" onClick={cerrarPanelCarga}>×</BotonIcono>
       </div>
-      <div className="max-h-[min(400px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5">
+      <div
+        // Con una ventana abierta, Radix cancela la rueda fuera de ella y la lista no se movería: se desplaza a mano.
+        // Sin ventana se deja el desplazamiento nativo.
+        onWheel={(e) => {
+          if (hayVentanaAbierta()) e.currentTarget.scrollTop += e.deltaY
+        }}
+        className="max-h-[min(400px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5"
+      >
         {filas === null ? (
           error ? (
             <p role="alert" className="py-4 text-center text-[12.5px] text-texto-error">{MSG_ERROR}</p>
@@ -170,6 +185,8 @@ function Pastilla({ recordado, datos, onPointerEnter, onPointerLeave }: PropsVis
       data-testid="pastilla-carga"
       {...ENCIMA}
       style={{ pointerEvents: 'auto' }}
+      // Igual que en el panel: tocar la pastilla no le quita el foco al campo de la ventana abierta.
+      onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => {
         if (e.target instanceof Element && e.target.closest('[data-no-arrastre]')) return
         abrirPanelCarga()

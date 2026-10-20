@@ -460,4 +460,123 @@ describe('PanelCarga: con una ventana abierta', () => {
     expect(pastillaViva).toHaveAttribute('data-encima-de-ventanas')
     expect(pastillaViva.className).toContain('dialog-overlay')
   })
+
+  it('la rueda sobre la lista la desplaza a mano con una ventana abierta (Radix cancela la rueda fuera de ella) y no sin ventana', async () => {
+    servirCarga()
+    montarConVentana()
+    await tick()
+    const lista = await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
+    const contenedor = lista.parentElement!
+    // jsdom no tiene maquetación: scrollTop no se puede fijar en un elemento sin desbordar, se simula con un valor propio.
+    let top = 0
+    Object.defineProperty(contenedor, 'scrollTop', { get: () => top, set: (v: number) => { top = v }, configurable: true })
+    fireEvent.wheel(contenedor, { deltaY: 120 })
+    expect(top).toBe(120)
+  })
+
+  it('sin ventana abierta la rueda no se toca (desplaza el navegador)', async () => {
+    servirCarga()
+    montar()
+    const lista = await esperarLista()
+    const contenedor = lista.parentElement!
+    let top = 0
+    Object.defineProperty(contenedor, 'scrollTop', { get: () => top, set: (v: number) => { top = v }, configurable: true })
+    fireEvent.wheel(contenedor, { deltaY: 120 })
+    expect(top).toBe(0)
+  })
+
+  it('tocar el panel no le quita el foco al campo de la ventana ni selecciona su texto', async () => {
+    servirCarga()
+    renderConProviders(
+      <>
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Asignar trabajos</DialogTitle>
+            <input aria-label="IMEI" />
+          </DialogContent>
+        </Dialog>
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER },
+    )
+    await tick()
+    const campo = screen.getByRole('textbox', { name: 'IMEI' }) as HTMLInputElement
+    campo.focus()
+    await userEvent.type(campo, '35123')
+    const panelAbierto = await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })
+    await userEvent.click(within(panelAbierto).getByRole('button', { name: 'Total', hidden: true }))
+    await tick()
+    expect(document.activeElement).toBe(campo)
+    expect(campo.selectionStart).toBe(5)
+    expect(campo.selectionEnd).toBe(5)
+  })
+
+  describe('pulsar un técnico con una ventana abierta', () => {
+    const montarEn = (ruta: string) => {
+      function Marco() {
+        return (
+          <>
+            <Outlet />
+            <Dialog open>
+              <DialogContent aria-describedby={undefined}>
+                <DialogTitle>Asignar trabajos</DialogTitle>
+              </DialogContent>
+            </Dialog>
+            <PanelCarga />
+          </>
+        )
+      }
+      return renderConRouter(
+        [
+          {
+            element: <Marco />,
+            children: [
+              { path: '/stock', element: <p>STOCK</p> },
+              { path: '/reparaciones/asignaciones', element: <p>ASIGNACIONES</p> },
+            ],
+          },
+        ],
+        { sesion: SESION_SUPER, ruta },
+      )
+    }
+
+    it('fuera de Asignaciones no navega ni pide filtro (se perdería lo no guardado)', async () => {
+      servirCarga()
+      const recibidos: number[] = []
+      const baja = recibirFiltroPorTecnico((idTec) => {
+        recibidos.push(idTec)
+      })
+      const { router } = montarEn('/stock')
+      try {
+        await tick()
+        await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
+        const boton = within(screen.getByRole('region', { name: 'Carga de técnicos', hidden: true })).getByText('Técnico B').closest('button')!
+        await userEvent.click(boton)
+        await tick()
+        expect(router.state.location.pathname).toBe('/stock')
+        expect(recibidos).toEqual([])
+        expect(ventana()).toBeInTheDocument()
+      } finally {
+        baja()
+      }
+    })
+
+    it('en Asignaciones pide el filtro (filtra la tabla de detrás sin perder nada)', async () => {
+      servirCarga()
+      const recibidos: number[] = []
+      const baja = recibirFiltroPorTecnico((idTec) => {
+        recibidos.push(idTec)
+      })
+      const { router } = montarEn('/reparaciones/asignaciones')
+      try {
+        await tick()
+        await screen.findByRole('list', { name: 'Carga por técnico', hidden: true })
+        await userEvent.click(within(screen.getByRole('region', { name: 'Carga de técnicos', hidden: true })).getByText('Técnico B').closest('button')!)
+        await waitFor(() => expect(recibidos).toEqual([2]))
+        expect(router.state.location.pathname).toBe('/reparaciones/asignaciones')
+      } finally {
+        baja()
+      }
+    })
+  })
 })

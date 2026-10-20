@@ -244,7 +244,18 @@ test('con «Asignar trabajos» abierto, el panel queda por encima y se puede usa
   await pastilla(page).getByRole('button', { name: 'Abrir el panel de carga', includeHidden: true }).click()
   await expect(caja).toBeVisible()
   await expect(ventana).toBeVisible()
-  // 4. Escape cierra la ventana (sin nada en la cola no pregunta) y el panel sigue.
+  // 4. Arrastrar el panel por su asa y soltarlo sobre la ventana: el soltar no cuenta como clic fuera y la ventana sigue.
+  const asa = await caja.getByTitle('Arrastra para moverlo').boundingBox()
+  const cuerpo = await ventana.boundingBox()
+  if (!asa || !cuerpo) throw new Error('Sin caja para el asa del panel o para la ventana')
+  await page.mouse.move(asa.x + asa.width / 2, asa.y + asa.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(cuerpo.x + cuerpo.width / 2, cuerpo.y + cuerpo.height / 2, { steps: 10 })
+  await page.mouse.up()
+  await page.mouse.move(2, 2)
+  await expect(ventana).toBeVisible()
+  await expect(caja).toBeVisible()
+  // 5. Escape cierra la ventana (sin nada en la cola no pregunta) y el panel sigue.
   await page.keyboard.press('Escape')
   await expect(ventana).toHaveCount(0)
   await expect(caja).toBeVisible()
