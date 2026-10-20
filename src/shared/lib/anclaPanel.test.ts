@@ -26,8 +26,8 @@ describe('anclaAlSoltar', () => {
 })
 
 describe('estiloAnclado', () => {
-  it('de fábrica: right y bottom a 16 px', () => {
-    expect(estiloAnclado(ANCLA_DE_FABRICA, 340, 430, HUECO)).toEqual({ right: 16, bottom: 16 })
+  it('de fábrica: arriba a la derecha, right 16 y top 64 + 16', () => {
+    expect(estiloAnclado(ANCLA_DE_FABRICA, 340, 430, HUECO)).toEqual({ right: 16, top: 80 })
   })
 
   it('arriba: top suma el alto de la barra azul', () => {

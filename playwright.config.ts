@@ -10,7 +10,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
-    // 0.9.20: el panel de carga de técnicos sale abierto de fábrica para el supertécnico y el admin, y flota abajo a la
+    // 0.9.20: el panel de carga de técnicos sale abierto de fábrica para el supertécnico y el admin, y flota arriba a la
     // derecha, encima de la vista. Las E2E entran con él cerrado, como si el usuario lo hubiera cerrado, para que no tape
     // botones. panel-carga.spec.ts lo prueba desde cero con su propio `test.use`.
     storageState: {
