@@ -35,6 +35,14 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
   }
 }
 
+/** Cuántos y cuáles va a completar: una línea por IMEI (con el modelo si lo tiene), las cinco primeras y cuántas más. */
+const MAX_LINEAS_CONFIRMAR = 5
+function textoConfirmarCompletar(reps: ReparacionResumen[]): string {
+  const lineas = reps.slice(0, MAX_LINEAS_CONFIRMAR).map((r) => { const modelo = traducirModelo(r.modelo); return modelo ? `${r.imei} · ${modelo}` : r.imei })
+  if (reps.length > MAX_LINEAS_CONFIRMAR) lineas.push(`… y ${reps.length - MAX_LINEAS_CONFIRMAR} más`)
+  return [`Has seleccionado ${etiquetaContador(reps.length, 'pulido', 'pulidos')}:`, ...lineas].join('\n')
+}
+
 export function PulidosPendientesPage() {
   const { sesion } = useSession()
   const esSuper = esSuperTecnico(sesion)
@@ -51,18 +59,28 @@ export function PulidosPendientesPage() {
   const borrar = useBorrarAsignacionPulido()
 
   const visibles = useMemo(() => { const imeis = imeisValidos(filtroImei); return data.filter((r) => pasaImeis(r.imei, imeis)) }, [data, filtroImei])
+  // Solo cuenta lo que se ve. El JavaFX marcaba con «Seleccionar todo» también lo que el filtro ocultaba y lo completaba:
+  // con el filtro por IMEI en un pulido se completaban todos (incidencia del taller, 2026-10-20). Una casilla marcada que
+  // el filtro oculta se conserva, pero ni se cuenta ni se completa.
+  const marcados = useMemo(() => visibles.filter((r) => seleccionados.has(r.idRep)), [visibles, seleccionados])
+  // Lo que enseña el diálogo de confirmación y lo que se manda al confirmar: una recarga con el diálogo abierto vacía la
+  // selección, pero no cambia lo que el técnico está confirmando.
+  const [aCompletar, setACompletar] = useState<ReparacionResumen[] | null>(null)
 
   function marcar(id: string, marcado: boolean) {
     setSeleccionados((prev) => { const s = new Set(prev); if (marcado) s.add(id); else s.delete(id); return s })
   }
   function seleccionarTodo() {
-    setSeleccionados((prev) => (data.length > 0 && prev.size === data.length ? new Set() : new Set(data.map((r) => r.idRep))))
+    setSeleccionados((prev) => (visibles.length > 0 && visibles.every((r) => prev.has(r.idRep)) ? new Set() : new Set(visibles.map((r) => r.idRep))))
   }
-  // Calco de completarSeleccionados: la selección se vacía (y la lista se recarga, useCompletarPulidos) solo si el
-  // guardado va bien; si falla, el diálogo de error y la selección se quedan.
+  // Calco de completarSeleccionados, con confirmación: la selección se vacía (y la lista se recarga, useCompletarPulidos)
+  // solo si el guardado va bien; si falla, el diálogo de error y la selección se quedan.
   function completarSeleccionados() {
-    if (seleccionados.size === 0) return
-    completar.mutate([...seleccionados], { onSuccess: () => setSeleccionados(new Set()) })
+    if (marcados.length > 0) setACompletar(marcados)
+  }
+  function confirmarCompletar() {
+    if (aCompletar) completar.mutate(aCompletar.map((r) => r.idRep), { onSuccess: () => setSeleccionados(new Set()) })
+    setACompletar(null)
   }
 
   const columnas = useMemo<ColumnDef<ReparacionResumen>[]>(() => {
@@ -98,7 +116,7 @@ export function PulidosPendientesPage() {
         <BotonSecundario className="ml-6" onClick={seleccionarTodo}>Seleccionar todo</BotonSecundario>
         {/* Deshabilitado también mientras se guarda: la selección ya no se vacía al pulsar y un segundo clic repetiría el
             lote (en el JavaFX la llamada bloquea la ventana). */}
-        <BotonPrimario disabled={seleccionados.size === 0 || completar.isPending} onClick={completarSeleccionados}>Completar seleccionados</BotonPrimario>
+        <BotonPrimario disabled={marcados.length === 0 || completar.isPending} onClick={completarSeleccionados}>Completar seleccionados</BotonPrimario>
       </div>
       <DataTable
         columns={columnas}
@@ -111,6 +129,14 @@ export function PulidosPendientesPage() {
         menuFila={(r, celda) => <MenuCopiarCelda texto={textoCelda(r, celda.columnaId)} celda={celda} />}
       />
       <EtiquetaActualizado actualizadoEn={dataUpdatedAt} onRecargar={() => refetch({ throwOnError: true })} />
+      <ConfirmDialog
+        abierto={aCompletar !== null}
+        titulo={`Completar ${etiquetaContador(aCompletar?.length ?? 0, 'pulido', 'pulidos')}`}
+        descripcion={textoConfirmarCompletar(aCompletar ?? [])}
+        textoAccion={`Completar ${etiquetaContador(aCompletar?.length ?? 0, 'pulido', 'pulidos')}`}
+        onCancelar={() => setACompletar(null)}
+        onConfirmar={confirmarCompletar}
+      />
       <ConfirmDialog
         abierto={aBorrar !== null}
         titulo={`Borrar asignación ${aBorrar?.idRep ?? ''}`}
