@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type CargaTecnicosRespuesta, type ReparacionResumen } from '@/shared/api/client'
-import { useIntervaloRefresco } from '@/shared/api/refresco'
+import { INTERVALO_CARGA_MS, useIntervaloRefresco } from '@/shared/api/refresco'
+import { CLAVE_CARGA_TECNICOS } from '@/shared/api/cargaTecnicos'
 import { CLAVE_TECNICOS } from '../api'
 import { ordenarPendientes } from '../lib/filtros'
 import { tipoDe } from './filtros'
 import type { CambioGlass } from './tecnicosGlass'
 
 export const CLAVE_ASIGNACIONES_TODAS = ['asignaciones', 'todas'] as const
-export const CLAVE_CARGA_TECNICOS = ['carga-tecnicos'] as const
 
 /** Las tres categorías, SIN ?tecnico=: la vista del supertécnico es la lista completa. Toda llamada que llega
  *  aquí es una respuesta real del servidor, así que de paso vacía `filasOptimistas`: lo que hubiera pintado por
@@ -68,29 +68,33 @@ export function useTotalAsignaciones({ sondea }: { sondea: boolean }) {
   })
 }
 
-/** Solo se pide con la ventana de carga abierta: no tiene sentido sondearla de fondo.
+/** Carga de técnicos: la piden el panel flotante (abierto o minimizado) y el modal «Asignar trabajos». Habilitada, se
+ *  refresca cada 30 s (5 s con el banner de conexión; spec 0.9.20 §2) y al volver a la pestaña; sin habilitar, no pide nada.
+ *  Lo que escribe el propio usuario la recarga al momento: lo hace la regla general del QueryClient.
  *
- *  `silenciarError`: el aviso lo pone la ventana con su propio literal, en el hueco de la lista (spec §14, "la
- *  ventana se abre con un mensaje en vez de la lista, y la tabla no se ve afectada"). Sin esto, la política global
- *  del QueryClient apilaría además su diálogo encima de la ventana y el usuario vería dos avisos del mismo fallo. */
+ *  `silenciarError`: el aviso lo pone el panel con su propio literal, en el hueco de la lista; sin esto, la política global
+ *  del QueryClient apilaría además su diálogo. `sinCapa`: ni el sondeo ni la primera carga (al entrar con el panel recordado
+ *  abierto) encienden la capa de carga, que bloquearía la pantalla por un panel de fondo. */
 export function useCargaTecnicos(habilitada: boolean) {
+  const intervalo = useIntervaloRefresco(habilitada, INTERVALO_CARGA_MS)
   return useQuery({
     queryKey: CLAVE_CARGA_TECNICOS,
     queryFn: async (): Promise<CargaTecnicosRespuesta> =>
       (await api.GET('/api/reparaciones/carga-tecnicos')).data ?? { pedidos: [], total: [] },
     enabled: habilitada,
-    meta: { silenciarError: true },
+    refetchInterval: intervalo,
+    meta: { silenciarError: true, sinCapa: true },
   })
 }
 
-/** Para `onSettled`: lanza la recarga de la lista y de la carga, y no la espera. TanStack aguarda la promesa que
- *  devuelve onSettled antes de llamar a los callbacks de cada `mutate`, así que esperarla retrasaría el aviso del
- *  409 hasta después de recargar las tres listas (mismo motivo que useRecargarSinEsperar en taller/api.ts). */
+/** Para `onSettled`: lanza la recarga de la lista y no la espera. TanStack aguarda la promesa que devuelve onSettled antes
+ *  de llamar a los callbacks de cada `mutate`, así que esperarla retrasaría el aviso del 409 hasta después de recargar las
+ *  tres listas (mismo motivo que useRecargarSinEsperar en taller/api.ts). La carga de técnicos no va aquí: la recarga la
+ *  regla general del QueryClient tras cualquier escritura (0.9.20), y pedirla también aquí la duplicaría. */
 function useRecargar() {
   const qc = useQueryClient()
   return () => {
     void qc.invalidateQueries({ queryKey: CLAVE_ASIGNACIONES_TODAS })
-    void qc.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS })
   }
 }
 

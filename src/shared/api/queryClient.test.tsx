@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_TEC } from '@/test/render'
 import { api } from './client'
+import { CLAVE_CARGA_TECNICOS } from './cargaTecnicos'
 import { estaConectado, reportarExito } from './conexion'
 
 /** Botón que dispara una mutación real (POST /api/clientes). El aviso al usuario, si toca, lo pone el
@@ -172,5 +173,71 @@ describe('crearQueryClient: la sesión guardada ya no es la de esta pestaña', (
     expect(peticiones).toBe(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(estaConectado()).toBe(true)
+  })
+})
+
+/** Mira la carga de técnicos como el panel: un observador activo de su clave. */
+function VistaCargaTecnicos() {
+  useQuery({ queryKey: CLAVE_CARGA_TECNICOS, queryFn: async () => (await api.GET('/api/reparaciones/carga-tecnicos')).data ?? null })
+  return null
+}
+
+function contarCargasTecnicos() {
+  const cargas = { n: 0 }
+  server.use(
+    http.get('*/api/reparaciones/carga-tecnicos', () => {
+      cargas.n += 1
+      return HttpResponse.json({ pedidos: [], total: [] })
+    }),
+  )
+  return cargas
+}
+
+describe('crearQueryClient: cada escritura vuelve a pedir la carga de técnicos (0.9.20)', () => {
+  beforeEach(() => reportarExito())
+
+  it('una escritura que sale bien la vuelve a pedir', async () => {
+    const cargas = contarCargasTecnicos()
+    server.use(http.post('*/api/clientes', () => HttpResponse.json({ idCli: 1, nombre: 'x', activo: true })))
+    renderConProviders(
+      <>
+        <VistaCargaTecnicos />
+        <BotonMutacion />
+      </>,
+    )
+    await waitFor(() => expect(cargas.n).toBe(1))
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    await waitFor(() => expect(cargas.n).toBe(2))
+  })
+
+  it('una que falla, también: un 409 es que algo ha cambiado por debajo', async () => {
+    const cargas = contarCargasTecnicos()
+    server.use(http.post('*/api/clientes', () => HttpResponse.json({ message: 'Modificado' }, { status: 409 })))
+    renderConProviders(
+      <>
+        <VistaCargaTecnicos />
+        <BotonMutacion />
+      </>,
+    )
+    await waitFor(() => expect(cargas.n).toBe(1))
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    await waitFor(() => expect(cargas.n).toBe(2))
+  })
+
+  it('sin nadie mirando la carga, ninguna petición', async () => {
+    const cargas = contarCargasTecnicos()
+    let escrito = false
+    server.use(
+      http.post('*/api/clientes', () => {
+        escrito = true
+        return HttpResponse.json({ idCli: 1, nombre: 'x', activo: true })
+      }),
+    )
+    renderConProviders(<BotonMutacion />)
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    await waitFor(() => expect(escrito).toBe(true))
+    await new Promise((r) => setTimeout(r, 50))
+    expect(cargas.n).toBe(0)
   })
 })

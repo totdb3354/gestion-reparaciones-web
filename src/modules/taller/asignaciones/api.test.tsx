@@ -1,10 +1,11 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
+import { INTERVALO_CARGA_MS } from '@/shared/api/refresco'
 import { server } from '@/test/server'
 import { CLAVE_TECNICOS_ACTIVOS, useTecnicos } from '../api'
 import { tecnico } from '../test/fabrica'
@@ -113,6 +114,30 @@ describe('useCargaTecnicos', () => {
     const abierta = renderHook(() => useCargaTecnicos(true), { wrapper: envoltorio() })
     await waitFor(() => expect(abierta.result.current.isSuccess).toBe(true))
     expect(llamadas).toBe(1)
+  })
+
+  it('habilitada, vuelve a pedir cada 30 s (panel de carga en directo, 0.9.20)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      let llamadas = 0
+      server.use(http.get('*/api/reparaciones/carga-tecnicos', () => { llamadas++; return HttpResponse.json({ pedidos: [], total: [] }) }))
+      const { result } = renderHook(() => useCargaTecnicos(true), { wrapper: envoltorio() })
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(llamadas).toBe(1)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(INTERVALO_CARGA_MS)
+      })
+      await waitFor(() => expect(llamadas).toBe(2))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('no enciende la capa de carga ni el diálogo global (meta sinCapa y silenciarError)', async () => {
+    const { qc, Wrapper } = envoltorioConQc()
+    const { result } = renderHook(() => useCargaTecnicos(true), { wrapper: Wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(qc.getQueryCache().find({ queryKey: ['carga-tecnicos'] })?.meta).toEqual({ silenciarError: true, sinCapa: true })
   })
 })
 

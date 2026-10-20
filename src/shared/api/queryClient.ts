@@ -1,5 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { ConexionError, esErrorGestionadoGlobalmente, mensajeDeError, mensajeSinConexion } from './errors'
+import { CLAVE_CARGA_TECNICOS } from './cargaTecnicos'
 import { emitirError } from '@/shared/ui/alertas'
 
 // Tipa `meta` de consultas y mutaciones: sin esto es `Record<string, unknown> | undefined` y `silenciarError` no está
@@ -30,7 +31,7 @@ function avisarSinConexion(error: ConexionError) {
  *  los tests ejerciten lo que corre en producción. Los tests solo pueden tocar `retry`. */
 export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClient {
   const retry = opciones.retry ?? false
-  return new QueryClient({
+  const qc: QueryClient = new QueryClient({
     defaultOptions: {
       queries: { retry, refetchOnWindowFocus: true, staleTime: 0 },
       mutations: { retry },
@@ -68,6 +69,14 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
         if (mutation.meta?.silenciarError === true) return
         avisar(error)
       },
+      // 0.9.20 (panel de carga): TODA escritura de este navegador, bien o mal (un 409 es que algo cambió por debajo),
+      // vuelve a pedir la carga de técnicos. Una sola regla en vez de una invalidación en cada botón: así el panel refleja
+      // al momento lo que hace el usuario, en la pantalla que sea. Sin nadie mirando la carga (panel cerrado y sin «Asignar
+      // trabajos» abierto), invalidar no hace ninguna petición. `void`: no retrasa el final de la mutación.
+      onSettled() {
+        void qc.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS })
+      },
     }),
   })
+  return qc
 }

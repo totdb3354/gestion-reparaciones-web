@@ -21,6 +21,9 @@ export const server = setupServer(
   http.get('*/api/compras', () => HttpResponse.json([])),
   // 0.9.15: los bloques llevan piezas y otros, así que «Nuevo pedido», los editores y Pedidos leen también los otros.
   http.get('*/api/compras-otros', () => HttpResponse.json([])),
+  // 0.9.20: el panel de carga de técnicos vive en el marco y sale abierto de fábrica para el supertécnico y el admin, así
+  // que cualquier test que monte el layout con esas sesiones pide la carga. Vacía: el panel dice «Sin técnicos activos».
+  http.get('*/api/reparaciones/carga-tecnicos', () => HttpResponse.json({ pedidos: [], total: [] })),
   http.post('*/api/auth/evaluar-password', () => HttpResponse.json({ nota: 4, aceptable: true, mensaje: null })),
   // 0.9.17: el detalle de IMEIs del supertécnico y del admin pide la ficha de NSYS (y su rastro) y la lista busca en el
   // espejo al filtrar por IMEI. Por defecto NSYS no conoce el IMEI (404, la ficha no sale) y la búsqueda no encuentra nada.
