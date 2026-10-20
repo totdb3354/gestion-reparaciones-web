@@ -49,6 +49,21 @@ function servirCarga(respuesta: CargaTecnicosRespuesta = RESPUESTA) {
   return peticiones
 }
 
+/** Como `servirCarga`, pero la respuesta espera a `soltar()`: deja el panel en la primera carga el tiempo que haga falta. */
+function servirCargaRetenida() {
+  let soltar!: () => void
+  const espera = new Promise<void>((r) => {
+    soltar = r
+  })
+  server.use(
+    http.get('*/api/reparaciones/carga-tecnicos', async () => {
+      await espera
+      return HttpResponse.json(RESPUESTA)
+    }),
+  )
+  return { soltar }
+}
+
 const montar = (sesion = SESION_SUPER) => renderConProviders(<PanelCarga />, { sesion })
 const panel = () => screen.getByRole('region', { name: 'Carga de técnicos' })
 const esperarLista = async () =>
@@ -209,6 +224,25 @@ describe('PanelCarga: actualización', () => {
     expect(nombres()).toEqual(['Técnico B', 'Técnico A', 'Técnico C'])
     fireEvent.pointerLeave(panel())
     expect(nombres()).toEqual(['Técnico C', 'Técnico A', 'Técnico B'])
+  })
+
+  it('mientras llega la primera respuesta, el panel dice «Cargando…»', async () => {
+    const compuerta = servirCargaRetenida()
+    montar()
+    expect(await within(await screen.findByRole('region', { name: 'Carga de técnicos' })).findByText('Cargando…')).toBeInTheDocument()
+    compuerta.soltar()
+    await esperarLista()
+  })
+
+  it('con el ratón encima durante la primera carga, la lista sale en cuanto llegan los datos', async () => {
+    const compuerta = servirCargaRetenida()
+    montar()
+    await screen.findByRole('region', { name: 'Carga de técnicos' })
+    fireEvent.pointerEnter(panel())
+    compuerta.soltar()
+    // Aún no se había pintado nada: no hay copia que congelar, así que no se queda en «Cargando…» hasta que salga el ratón.
+    expect(await esperarLista()).toBeInTheDocument()
+    expect(nombres()).toEqual(['Técnico B', 'Técnico A', 'Técnico C'])
   })
 
   it('si se minimiza con el ratón encima, la pastilla no se queda congelada', async () => {

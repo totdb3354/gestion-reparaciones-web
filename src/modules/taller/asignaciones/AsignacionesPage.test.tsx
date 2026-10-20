@@ -462,10 +462,13 @@ describe('AsignacionesPage · pulsar un técnico en el panel de carga (0.9.20)',
       { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones' },
     )
     expect(await screen.findByText('AG20260916_2')).toBeInTheDocument()
+    // Otro filtro ya puesto (prefijo de IMEI que deja pasar la fila de A20260916_1): el relevo de técnico no debe quitarlo.
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filtrar por IMEI' }), '00000000000000')
     await userEvent.click(await filaDelPanel('Técnico B'))
     expect(await screen.findByText('1 asignación')).toBeInTheDocument()
     expect(screen.getByText('A20260916_1')).toBeInTheDocument()
     expect(screen.queryByText('AG20260916_2')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Filtrar por IMEI' })).toHaveValue('00000000000000')
     // El filtro «Técnico» se rotula con el nombre cuando hay uno solo marcado.
     expect(screen.getByRole('button', { name: 'Técnico B' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()

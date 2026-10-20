@@ -51,11 +51,14 @@ function PanelCargaVisible() {
   return <Ventana recordado={recordado} datos={datos} error={consulta.isError} {...raton} />
 }
 
-/** `valor`, salvo mientras `congelado`: entonces, el último que se pintó. Ajuste de estado durante el render, sin efecto. */
+/** `valor`, salvo mientras `congelado`: entonces, el último que se pintó. Solo congela si ya hay algo pintado (`copia`
+ *  definida): con el ratón encima durante la primera carga no hay nada que conservar y los datos salen al llegar. Ajuste de
+ *  estado durante el render, sin efecto. */
 function useCongelado<T>(valor: T, congelado: boolean): T {
   const [copia, setCopia] = useState(valor)
-  if (!congelado && copia !== valor) setCopia(valor)
-  return congelado ? copia : valor
+  const congela = congelado && copia !== undefined
+  if (!congela && copia !== valor) setCopia(valor)
+  return congela ? copia : valor
 }
 
 /** Pulsar un técnico: Asignaciones con su filtro en solitario; el panel sigue abierto (spec 0.9.20 §2). */

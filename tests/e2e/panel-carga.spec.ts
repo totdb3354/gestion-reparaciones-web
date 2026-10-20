@@ -153,6 +153,8 @@ test('lo que asigna otro PC llega antes de 35 s y lo que borra uno mismo, al mom
   await expect(panel(page)).toBeVisible()
   // Total: la asignación de prueba no lleva cliente y en Pedidos no contaría.
   await panel(page).getByRole('button', { name: 'Total' }).click()
+  // Con el ratón encima el panel no repinta (spec «Con el ratón encima no cambia»): se aparta a la columna izquierda.
+  await page.mouse.move(5, 450)
   const fila = panel(page).getByRole('listitem').filter({ has: page.getByText(nombreTec!, { exact: true }) })
   await expect(fila).toHaveCount(1)
   test.skip(await fila.getByText('sin jornada hoy').isVisible(), 'Fin de semana: sin jornada no se mide la carga')
@@ -169,6 +171,7 @@ test('lo que asigna otro PC llega antes de 35 s y lo que borra uno mismo, al mom
   await page.getByPlaceholder('Filtrar por IMEI').fill(creada.imei)
   const filaTabla = page.getByRole('row').filter({ hasText: creada.idRep })
   await expect(filaTabla).toHaveCount(1)
+  await expect(fila).toHaveCount(1) // tras recargar, la fila del técnico ya está pintada antes de leerla
   await expect.poll(total).toBe(conAsignacion)
   await filaTabla.getByRole('button', { name: 'Borrar asignación' }).click()
   const confirmar = page.getByRole('dialog', { name: `Borrar asignación ${creada.idRep}` })

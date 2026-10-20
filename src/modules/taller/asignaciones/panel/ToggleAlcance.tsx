@@ -12,7 +12,8 @@ const ALCANCES: { clave: Alcance; etiqueta: string }[] = [
  *  los dos alcances). `data-no-arrastre`: va en la cabecera, que es el asa del arrastre. */
 export function ToggleAlcance({ valor, onCambio }: { valor: Alcance; onCambio: (alcance: Alcance) => void }) {
   return (
-    <div role="group" aria-label="Alcance de la carga" className="inline-flex">
+    // title="": la cabecera lleva «Arrastra para moverlo» y los botones lo heredarían como tooltip; vacío lo corta.
+    <div role="group" aria-label="Alcance de la carga" title="" className="inline-flex">
       {ALCANCES.map((a, i) => (
         <button
           key={a.clave}

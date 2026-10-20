@@ -15,12 +15,12 @@ Las tres que la spec ya anunciaba:
 
 - **La tabla no se ordena por columna** (D5). El orden urgente → con cliente → resto es funcional: lo que corre va arriba. Ordenar por otra cosa entierra lo urgente sin avisar, así que la web podría ordenar y deliberadamente no lo hace (el JavaFX apaga el `sortable` de todas sus columnas por el mismo motivo).
 - **Aviso con "Deshacer" de 8 s** en reasignar, urgente y chasis (D2). El JavaFX escribe al instante y sin confirmación; en un navegador un clic o una tecla de más cambian un desplegable sin querer y eso mueve trabajo entre técnicos en silencio. El gesto se calca tal cual y se le añade la vuelta atrás, que no estorba y evita el daño.
-- **El refresco se congela** mientras haya un menú, un desplegable, un editor o una de las dos ventanas abiertos (D4). Sin eso la fila se mueve bajo el cursor y la acción se pierde o cae en otra fila; verificado en el JavaFX durante la sesión de capturas.
+- **El refresco se congela** mientras haya un menú, un desplegable, un editor o la ventana «Técnicos de glass» abiertos (D4). Sin eso la fila se mueve bajo el cursor y la acción se pierde o cae en otra fila; verificado en el JavaFX durante la sesión de capturas.
 
 Las que han aparecido al implementar:
 
 - **El ancho del desplegable de la celda Técnico (96 px) no es un calco.** El `ComboBox` del JavaFX no declara ancho (`setMaxWidth(MAX_VALUE)`: llena la celda) y el combo navy de la web exige un número; 96 es el ancho de columna menos el padding de la celda. Es una elección de la web, no un valor verificado contra las capturas.
-- **La ventana de carga ordena los empates con `localeCompare('es')`.** El JavaFX usa el orden natural de `String`, donde una inicial acentuada cae detrás de la Z. En una interfaz en español el orden del idioma es el correcto.
+- **El panel de carga ordena los empates con `localeCompare('es')`.** El JavaFX usa el orden natural de `String`, donde una inicial acentuada cae detrás de la Z. En una interfaz en español el orden del idioma es el correcto.
 - **Tercer nivel de desempate por identificador de técnico en la carga.** El JavaFX solo tiene dos (carga y nombre), así que en fin de semana —todos a 0— su lista puede bailar entre refrescos. El tercer nivel la deja estable sin cambiar nada más.
 - **"Técnicos de glass" intenta todos los cambios y no aborta al primer fallo.** El JavaFX deja el resto sin mandar. Intentarlo todo y repintar los checks desde el servidor le dice al usuario qué quedó guardado y qué no, en vez de dejarlo a ciegas.
 - **El 409 del editor de comentario muestra el mensaje del servidor**, no el literal del JavaFX. Cumple igual la regla de errores (avisa y recarga); darle un literal propio exigía tocar la capa de API compartida, fuera del alcance de este sub-proyecto.
@@ -29,7 +29,7 @@ Las que han aparecido al implementar:
 De presentación, heredadas de los sub-proyectos anteriores y comunes a toda la web:
 
 - El botón "Asignar" va en su **propia fila** bajo los filtros; en el JavaFX comparte el `FlowPane` con ellos (con 24 px de margen). Con los cinco filtros delante, en una sola fila se corta en cuanto la ventana se estrecha.
-- Las dos ventanas de la cabecera y los tres editores son **diálogos modales dentro de la página**, no ventanas del sistema: no se pueden mover ni redimensionar (las del JavaFX también son modales, pero sí se redimensionan).
+- La ventana «Técnicos de glass» y los tres editores son **diálogos modales dentro de la página**, no ventanas del sistema: no se pueden mover ni redimensionar (las del JavaFX también son modales, pero sí se redimensionan). El panel de carga (0.9.20) no es modal: es un panel flotante que se arrastra.
 - Mientras el modal "Asignar trabajos" no exista (sub-proyecto 3b), el botón "Asignar" está **deshabilitado y con tooltip**, en su sitio, igual que se hizo en el sub-proyecto 2 con las acciones que terminaban en Almacén.
 
 ### El aviso de urgente nombra el teléfono, no la fila
@@ -42,7 +42,7 @@ El servidor propaga el urgente a todas las asignaciones abiertas del IMEI: marca
 - [x] Entrada "Asignaciones" en la columna lateral de Reparaciones, primera, solo para SUPERTECNICO y ADMIN; el TECNICO no la ve.
 - [x] Badge del lateral en "Asignaciones" con el **total** de asignaciones pendientes (reparación + glass + pulido, sin filtros; calco de `lblBadgeAsignaciones` = `getTotalItems()`), con el tope "99+" y oculto a cero, como el de Pendientes; **oculto para el ADMIN** (§12). Sale de la misma consulta que la tabla, así que con la vista abierta no añade peticiones ni rompe el congelado del sondeo; en el resto de vistas del taller se refresca con el intervalo general, como el poller del JavaFX (`asig-lista`).
 - [x] Refresco periódico con el intervalo del resto de la web (60 s; 5 s con el banner de conexión activo) y al volver a la pestaña, como el poller y la recarga al recuperar el foco del JavaFX.
-- [x] (D4) Un contador de interacciones abiertas suspende el sondeo mientras haya un menú contextual, un desplegable de filtro, el desplegable de técnico de una celda, un editor, el diálogo de borrado o una de las dos ventanas de la cabecera; se reanuda al cerrarse la última. El contador se libera también al desmontar y nunca baja de cero.
+- [x] (D4) Un contador de interacciones abiertas suspende el sondeo mientras haya un menú contextual, un desplegable de filtro, el desplegable de técnico de una celda, un editor, el diálogo de borrado o la ventana «Técnicos de glass»; se reanuda al cerrarse la última. El contador se libera también al desmontar y nunca baja de cero.
 - [x] Etiqueta "Actualizado HH:mm" abajo a la derecha (10 px, gris, hora local del equipo), clicable para recargar y con subrayado al pasar por encima, como el `lblUltimaActualizacion` del supertécnico. Si esa recarga manual falla por conexión se muestra el diálogo.
 
 ## Cabecera
@@ -203,7 +203,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Se reutiliza el mapeo de errores del sub-proyecto 0: sin conexión y timeout muestran el banner; 401 lleva al inicio de sesión; 403 muestra el aviso de permisos.
 - [x] 409 en el editor de cliente: avisa con el literal de "el teléfono lo cambió otro usuario" y recarga la lista.
 - [x] Un fallo en cualquiera de las escrituras de la tabla (reasignar, urgente, chasis, comentario, borrado) lo cuenta el manejador global de mutaciones, sin duplicar el aviso.
-- [x] La carga de técnicos y los técnicos de glass silencian el manejador global a propósito y pintan su error **dentro** de su ventana.
+- [x] La carga de técnicos y los técnicos de glass silencian el manejador global a propósito y pintan su error **dentro** de su ventana o panel.
 
 ## Comportamientos del JavaFX calcados a propósito
 
