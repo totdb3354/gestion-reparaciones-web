@@ -24,7 +24,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
     expect(serializar(e)).toBe(BORRADOR_JAVAFX)
   })
   it('serializar omite cadenas nulas y escribe solicitudNueva false', () => {
-    const e = aplicarAcciones(conModelo13(), { tipo: 'SUMAR', prefijo: 'bat' })
+    const e = aplicarAcciones(conModelo13(), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
     const json = serializar(e)!
     expect(json).toBe('{"modelo":"13","filas":[{"prefijo":"bat","idCom":101,"cantidad":1,"reutilizado":false,"solicitudNueva":false,"agotadoConfirmado":false,"guardada":false}],"otros":[]}')
     expect(json).not.toContain('null')
@@ -33,7 +33,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
   it('fila guardada se captura sin observación', () => {
     const e = aplicarAcciones(
       conModelo13(),
-      { tipo: 'SUMAR', prefijo: 'bat' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' },
       { tipo: 'PONER_OBSERVACION', prefijo: 'bat', texto: 'Batería hinchada' },
       { tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_5', fecha: '16/09 09:15' },
     )
@@ -45,7 +45,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
     const e = aplicarAcciones(
       conModelo13(),
       { tipo: 'PONER_OBSERVACION', prefijo: 'lcd', texto: 'Pantalla con líneas verticales' },
-      { tipo: 'MARCAR_REUTILIZADO', prefijo: 'cam', valor: true },
+      { tipo: 'ELEGIR', prefijo: 'cam', eleccion: 'reutilizada' },
     )
     expect(capturar(e).filas.map((f) => f.prefijo)).toEqual(['lcd', 'cam'])
     expect(capturar(e).filas[0]).toMatchObject({ cantidad: 0, observacion: 'Pantalla con líneas verticales' })
@@ -62,7 +62,7 @@ describe('borrador: capturar y serializar (mismo JSON que el cliente de escritor
     const delServidor = estadoInicial(datos({ solicitudes: [solicitudAsignacion({ idCom: 102, descripcionSolicitud: 'Batería original' })] }))
     expect(fila(delServidor, 'bat').solicitud).not.toBeNull()
     expect(capturar(delServidor).filas).toEqual([])
-    const reutilizada = reducir(delServidor, { tipo: 'MARCAR_REUTILIZADO', prefijo: 'bat', valor: true })
+    const reutilizada = reducir(delServidor, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'reutilizada' })
     expect(capturar(reutilizada).filas).toEqual([
       { prefijo: 'bat', idCom: 102, cantidad: 0, reutilizado: true, solicitudNueva: false, agotadoConfirmado: false, guardada: false },
     ])
@@ -216,5 +216,48 @@ describe('aplicarBorrador (recuperación, después de cargar componentes y solic
     expect(e.revision).toBe(base.revision)
     expect(e.volcados).toBe(base.volcados)
     expect(base.borradorRecuperado).toBe(false) // no muta la entrada
+  })
+})
+
+describe('borrador: la elección se deduce al recuperarlo (0.9.19)', () => {
+  it('reutilizado → Reutilizada; cantidad → Nueva; solo observación → sin elegir', () => {
+    const b = contenido({
+      modelo: '13',
+      filas: [
+        filaBorrador({ prefijo: 'bat', idCom: 101, reutilizado: true }),
+        filaBorrador({ prefijo: 'lcd', idCom: 111, cantidad: 1 }),
+        filaBorrador({ prefijo: 'cam', idCom: 121, observacion: 'Mancha' }),
+      ],
+    })
+    const e = aplicarBorrador(estadoInicial(datos()), b)
+    expect(fila(e, 'bat')).toMatchObject({ eleccion: 'reutilizada', reutilizado: true, cantidad: 0 })
+    expect(fila(e, 'lcd')).toMatchObject({ eleccion: 'nueva', cantidad: 1 })
+    expect(fila(e, 'cam')).toMatchObject({ eleccion: null, observacion: 'Mancha' })
+  })
+
+  it('una fila de borrador reutilizada con cantidad se recupera con cantidad 0', () => {
+    const e = aplicarBorrador(estadoInicial(datos()), contenido({ modelo: '13', filas: [filaBorrador({ prefijo: 'bat', idCom: 101, reutilizado: true, cantidad: 2 })] }))
+    expect(fila(e, 'bat')).toMatchObject({ eleccion: 'reutilizada', reutilizado: true, cantidad: 0 })
+  })
+
+  it('agotado confirmado → Nueva pedida; guardada → su elección', () => {
+    const pedida = aplicarBorrador(estadoInicial(datos()), contenido({
+      modelo: '14', filas: [filaBorrador({ prefijo: 'bat', idCom: 102, agotadoConfirmado: true, descripcionAgotado: 'urge' })],
+    }))
+    expect(fila(pedida, 'bat')).toMatchObject({ eleccion: 'nueva', cantidad: 0, agotado: { descripcion: 'urge', registrado: false } })
+    const guardadas = aplicarBorrador(estadoInicial(datos()), contenido({
+      modelo: '13',
+      filas: [
+        filaBorrador({ prefijo: 'bat', idCom: 101, reutilizado: true, guardada: true, idRepGenerado: 'R20260916_9', fechaGuardado: '16/09 09:15' }),
+        filaBorrador({ prefijo: 'lcd', idCom: 111, cantidad: 1, guardada: true, idRepGenerado: 'R20260916_8', fechaGuardado: '16/09 09:10' }),
+      ],
+    }))
+    expect(fila(guardadas, 'bat')).toMatchObject({ eleccion: 'reutilizada', guardada: { idRep: 'R20260916_9', fecha: '16/09 09:15' } })
+    expect(fila(guardadas, 'lcd')).toMatchObject({ eleccion: 'nueva', cantidad: 1 })
+  })
+
+  it('una fila elegida sin SKU no llega al borrador', () => {
+    const e = aplicarAcciones(conModelo13(), { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'reutilizada' })
+    expect(capturar(e).filas).toEqual([])
   })
 })

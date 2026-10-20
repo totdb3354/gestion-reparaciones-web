@@ -29,11 +29,13 @@ const montar = (acciones: AccionFormulario[], solicitudes: SolicitudAsignacion[]
 // Modelo 14: batería bati14 (idCom 102) con stock 0. Modelo 13: chasis chai13negro (idCom 131) con stock 2.
 const MODELO_13: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '13' }
 const MODELO_14: AccionFormulario = { tipo: 'CAMBIAR_MODELO', modelo: '14' }
-const CHASIS_AL_LIMITE: AccionFormulario[] = [MODELO_13, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'SUMAR', prefijo: 'cha' }, { tipo: 'SUMAR', prefijo: 'cha' }]
+const CHASIS_AL_LIMITE: AccionFormulario[] = [MODELO_13, { tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 }, { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' }, { tipo: 'SUMAR', prefijo: 'cha' }]
+// 0.9.19: las bandas de pedir solo salen con «Nueva» (spec 4); bati14 es el único SKU del modelo 14 y no tiene stock.
+const BATERIA_NUEVA_SIN_STOCK: AccionFormulario[] = [MODELO_14, { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }]
 
 describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotado y solicitud de pieza)', () => {
   it('variante sin stock: texto literal y botón "Solicitar pieza"', () => {
-    montar([MODELO_14])
+    montar(BATERIA_NUEVA_SIN_STOCK)
     const sub = screen.getByTestId('subfila-bat')
     expect(sub).toHaveAttribute('data-variante', 'sinStock')
     expect(sub).toHaveClass('bg-form-agotado-bg', 'pl-[70px]')
@@ -57,7 +59,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
   })
 
   it('diálogo sin stock: título "Solicitar pieza — <tipo>", dos líneas de cabecera, placeholder, "Confirmar: solicitar pieza"; Cancelar no cambia nada', async () => {
-    montar([MODELO_14])
+    montar(BATERIA_NUEVA_SIN_STOCK)
     await userEvent.click(within(screen.getByTestId('subfila-bat')).getByRole('button', { name: 'Solicitar pieza' }))
     const dlg = within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' }))
     expect(dlg.getByText('Sin stock disponible.')).toBeInTheDocument()
@@ -81,7 +83,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
   })
 
   it('confirmar deja la sub-fila verde con lápiz y sin botón ámbar, bloquea la fila y oculta el botón derecho', async () => {
-    montar([MODELO_14])
+    montar(BATERIA_NUEVA_SIN_STOCK)
     await userEvent.click(within(screen.getByTestId('subfila-bat')).getByRole('button', { name: 'Solicitar pieza' }))
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirmar: solicitar pieza' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -95,7 +97,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
     expect(within(sub).getByRole('button', { name: 'Editar descripción de solicitud de Batería' })).toBeEnabled()
     const bat = within(screen.getByTestId('fila-bat'))
     expect(bat.getByRole('combobox', { name: 'SKU de Batería' })).toBeDisabled()
-    expect(bat.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeDisabled()
+    expect(screen.getByTestId('marca-bat')).toHaveTextContent('Solicitada')
     expect(bat.getByRole('button', { name: 'Añadir observación' })).toBeDisabled()
     expect(screen.queryByTestId('boton-derecho-bat')).not.toBeInTheDocument()
   })
@@ -112,7 +114,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
   })
 
   it('lápiz abre "Editar descripción de solicitud" con tres botones; "Guardar descripción" actualiza sin subir revision; "Cancelar" no cambia; "Cancelar solicitud" devuelve la sub-fila amarilla', async () => {
-    montar([MODELO_14, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: 'Batería hinchada' }])
+    montar([...BATERIA_NUEVA_SIN_STOCK, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: 'Batería hinchada' }])
     const lapiz = () => within(screen.getByTestId('subfila-bat')).getByRole('button', { name: 'Editar descripción de solicitud de Batería' })
     const revision = screen.getByTestId('revision').textContent
     await userEvent.click(lapiz())
@@ -138,14 +140,13 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
     dlg = within(await screen.findByRole('dialog', { name: 'Editar descripción de solicitud' }))
     await userEvent.click(dlg.getByRole('button', { name: 'Cancelar solicitud' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    const sub = screen.getByTestId('subfila-bat')
-    expect(sub).toHaveAttribute('data-variante', 'sinStock')
-    expect(sub).toHaveClass('bg-form-agotado-bg')
-    expect(within(sub).getByRole('button', { name: 'Solicitar pieza' })).toBeInTheDocument()
-    expect(within(screen.getByTestId('fila-bat')).getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeEnabled()
+    // 0.9.19 (spec 4 y 7): «Cancelar solicitud» deja la fila sin elegir y sin banda; vuelven «Solicitar» y «Reutilizada».
+    expect(screen.queryByTestId('subfila-bat')).not.toBeInTheDocument()
+    expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Reutilizada Batería' })).toBeEnabled()
+    expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar pieza Batería' })).toBeEnabled()
   })
 
-  it('solicitud pendiente del servidor: sub-fila verde con lápiz deshabilitado que no abre nada; Reutilizado y observación siguen activos', async () => {
+  it('solicitud pendiente del servidor: sub-fila verde con lápiz deshabilitado que no abre nada; «↺ Reutilizada» y observación siguen activos', async () => {
     montar([], [solicitudAsignacion({ descripcionSolicitud: 'Urgente para cliente' })])
     const sub = screen.getByTestId('subfila-bat')
     expect(sub).toHaveAttribute('data-variante', 'confirmada')
@@ -156,7 +157,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
     await userEvent.click(lapiz)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     const bat = within(screen.getByTestId('fila-bat'))
-    expect(bat.getByRole('checkbox', { name: 'Reutilizado Batería' })).toBeEnabled()
+    expect(bat.getByRole('button', { name: 'Reutilizada Batería' })).toBeEnabled()
     expect(bat.getByRole('button', { name: 'Añadir observación' })).toBeEnabled()
     expect(bat.getByRole('button', { name: 'Sumar Batería' })).toBeDisabled()
     expect(bat.getByRole('combobox', { name: 'SKU de Batería' })).toBeDisabled()
@@ -164,7 +165,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
   })
 
   it('rechazada: SKU en rojo y sub-fila amarilla "Solicitar pieza", sin ninguna marca', () => {
-    montar([], [solicitudAsignacion({ estadoSolicitud: 'RECHAZADA' })])
+    montar([{ tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' }], [solicitudAsignacion({ estadoSolicitud: 'RECHAZADA' })]) // sin elegir no se pinta el combo
     const combo = within(screen.getByTestId('fila-bat')).getByRole('combobox', { name: 'SKU de Batería' })
     expect(combo).toHaveTextContent('bati14')
     expect(combo.outerHTML).toContain('text-rojo-sin-stock')

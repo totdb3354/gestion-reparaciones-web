@@ -3,6 +3,7 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { agrupados, BORRADOR_JAVAFX, detalleEdicion } from '../test/fabrica'
 import { estadoInicial, reducir, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
+import { sumarOElegir } from './test/acciones'
 import { borradorEnReposo, RETARDO_BORRADOR_MS, useBorrador } from './useBorrador'
 
 // Temporizadores falsos + red real es frágil: el hook se prueba contra un ./api sustituido. El tráfico HTTP de estas tres
@@ -74,10 +75,10 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
   it('no escribe nada hasta 2 s después del último cambio y reinicia con cada cambio', async () => {
     const { result } = montar(null)
     expect(result.current.borrador.listo).toBe(true)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(1500)
     expect(api.guardarBorrador).not.toHaveBeenCalled()
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(1999)
     expect(api.guardarBorrador).not.toHaveBeenCalled()
     await avanzar(1)
@@ -88,7 +89,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('borrador vacío → DELETE; con contenido → PUT { contenido }', async () => {
     const { result } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(RETARDO_BORRADOR_MS)
     expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
     expect(contenidoDe(0)).toMatchObject({
@@ -106,7 +107,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('volcados dispara un PUT inmediato (fila guardada) y el temporizador pendiente no lo repite', async () => {
     const { result } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     act(() => result.current.dispatch({ tipo: 'PEDIR_CONFIRMACION_FILA', prefijo: 'bat' }))
     act(() => result.current.dispatch({ tipo: 'INICIO_GUARDAR_FILA', prefijo: 'bat' }))
     act(() => result.current.dispatch({ tipo: 'FILA_GUARDADA', prefijo: 'bat', idRep: 'R20260916_9', fecha: '16/09 09:15' }))
@@ -148,14 +149,14 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('StrictMode sin borrador: un cambio real sigue autoguardando a los 2 s', async () => {
     const { result } = montar(null, { estricto: true })
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(RETARDO_BORRADOR_MS)
     expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
   })
 
   it('StrictMode sin borrador: un desmontaje real tras un cambio sigue volcando', async () => {
     const { result, unmount } = montar(null, { estricto: true })
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     unmount()
     await asentar()
     expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
@@ -213,7 +214,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('volcarAhora cancela el temporizador', async () => {
     const { result } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(500)
     await act(async () => { await result.current.borrador.volcarAhora() })
     expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
@@ -223,11 +224,11 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('descartar hace DELETE y después ningún cambio vuelve a escribir, tampoco al desmontar', async () => {
     const { result, unmount } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await act(async () => { await result.current.borrador.descartar() })
     expect(api.borrarBorrador).toHaveBeenCalledTimes(1)
     expect(api.borrarBorrador).toHaveBeenCalledWith(ID)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(5000)
     unmount()
     await asentar()
@@ -237,7 +238,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('tras GUARDADO_COMPLETADO (borradorDescartado) tampoco escribe', async () => {
     const { result } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     act(() => result.current.dispatch({ tipo: 'GUARDADO_COMPLETADO' }))
     await avanzar(5000)
     await act(async () => { await result.current.borrador.volcarAhora() })
@@ -246,7 +247,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('desmontar (Atrás) vuelca sin esperar los 2 s', async () => {
     const { result, unmount } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     unmount()
     await asentar()
     expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
@@ -255,7 +256,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
 
   it('✕ y desmontaje seguidos con el mismo contenido escriben una sola vez', async () => {
     const { result, unmount } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await act(async () => { await result.current.borrador.volcarAhora() })
     unmount()
     await asentar()
@@ -265,7 +266,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
   it('un fallo del PUT no muestra nada y el volcado de cerrar lo reintenta una vez', async () => {
     api.guardarBorrador.mockRejectedValueOnce(new Error('sin red'))
     const { result } = montar(null)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'bat' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'bat')))
     await avanzar(RETARDO_BORRADOR_MS)
     expect(api.guardarBorrador).toHaveBeenCalledTimes(1)
     await act(async () => { await result.current.borrador.volcarAhora() })
@@ -292,7 +293,7 @@ describe('useBorrador (ficha docs/paridad/formulario.md, sección Borrador)', ()
   it('modo editar: el hook inactivo no llama a nada', async () => {
     const { result, unmount } = montar(null, { datos: DATOS_EDITAR, activo: false })
     expect(result.current.borrador.listo).toBe(true)
-    act(() => result.current.dispatch({ tipo: 'SUMAR', prefijo: 'cam' }))
+    act(() => result.current.dispatch(sumarOElegir(result.current.estado, 'cam')))
     await avanzar(5000)
     await act(async () => { await result.current.borrador.volcarAhora() })
     await act(async () => { await result.current.borrador.descartar() })

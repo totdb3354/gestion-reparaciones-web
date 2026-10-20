@@ -5,8 +5,9 @@ import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { agrupados, detalleEdicion } from '../test/fabrica'
-import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
+import { agrupados, componente, detalleEdicion } from '../test/fabrica'
+import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
+import { sumarOElegir } from './test/acciones'
 import { conRegistro, type LlamadaRegistrada } from './test/handlers'
 import { fechaGuardado, useGuardado } from './useGuardado'
 
@@ -23,7 +24,7 @@ function ArnesFila() {
   const bat = estado.filas.find((f) => f.prefijo === 'bat')
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar</button>
       <button onClick={() => guardarFila('bat')}>guardar fila</button>
       <output data-testid="bat">{JSON.stringify({ confirmando: bat?.confirmandoGuardar, guardando: bat?.guardando, guardada: bat?.guardada })}</output>
     </div>
@@ -143,7 +144,7 @@ function ArnesAccion({ onGuardado, antesDeCerrar }: { onGuardado: () => void; an
   const bat = estado.filas.find((f) => f.prefijo === 'bat')
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar</button>
       <button onClick={() => guardarFila('bat')}>guardar fila</button>
       <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir</button>
       <button onClick={() => accion && dispatch({ tipo: 'ESCRIBIR_ACCION', id: accion.id, texto: '  Limpieza de conector  ' })}>escribir</button>
@@ -377,9 +378,10 @@ function ArnesEdicion({ datos, onGuardado }: { datos: DatosEditar; onGuardado: (
   const ultima = estado.otros[estado.otros.length - 1]
   return (
     <>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar bat</button>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'mc' })}>sumar mc</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar bat</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'mc'))}>sumar mc</button>
+      <button onClick={() => dispatch({ tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })}>nueva cha</button>
       <button onClick={() => dispatch({ tipo: 'ANADIR_ACCION' })}>añadir acción</button>
       <button onClick={() => ultima && dispatch({ tipo: 'ESCRIBIR_ACCION', id: ultima.id, texto: 'Limpieza interna' })}>escribir acción</button>
       {zonaGuardarVisible(estado) && <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>}
@@ -477,8 +479,8 @@ function ArnesFilas() {
   const cam = estado.filas.find((f) => f.prefijo === 'cam')
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'bat' })}>sumar bat</button>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'bat'))}>sumar bat</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
       <button onClick={() => guardarFila('bat')}>guardar bat</button>
       <button onClick={() => guardarFila('cam')}>guardar cam</button>
       <output data-testid="bat">{JSON.stringify({ guardando: bat?.guardando, guardada: bat?.guardada })}</output>
@@ -538,18 +540,18 @@ function ArnesTerminarDosAgotados({ onGuardado }: { onGuardado: () => void }) {
   const [estado, dispatch] = useReducer(reducir, DATOS, estadoInicial)
   const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado })
   const agotarLcd = () => {
-    dispatch({ tipo: 'SUMAR', prefijo: 'lcd' })
+    dispatch({ tipo: 'ELEGIR', prefijo: 'lcd', eleccion: 'nueva' })
     dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: 'Sin stock' })
   }
   const agotarCha = () => {
     dispatch({ tipo: 'CAMBIAR_SKU', prefijo: 'cha', idCom: 131 })
-    dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
+    dispatch({ tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' })
     dispatch({ tipo: 'SUMAR', prefijo: 'cha' })
     dispatch({ tipo: 'CONFIRMAR_AGOTADO', prefijo: 'cha', descripcion: 'Sin stock' })
   }
   return (
     <div>
-      <button onClick={() => dispatch({ tipo: 'SUMAR', prefijo: 'cam' })}>sumar cam</button>
+      <button onClick={() => dispatch(sumarOElegir(estado, 'cam'))}>sumar cam</button>
       <button onClick={agotarLcd}>agotar lcd</button>
       <button onClick={agotarCha}>agotar cha</button>
       <button onClick={pulsarGuardar}>terminar</button>
@@ -657,5 +659,66 @@ describe('useGuardado · claves de idempotencia · guardar cambios (edición)', 
     await waitFor(() => expect(onGuardado).toHaveBeenCalledTimes(1))
     expect(cabeceras).toHaveLength(2)
     expect(cabeceras[1]).toBe(cabeceras[0])
+  })
+})
+
+/** Chasis elegido como Nueva sin color y batería Nueva (modelo 13). */
+function ArnesSinColor() {
+  const [estado, dispatch] = useReducer(reducir, DATOS, (d) =>
+    ([
+      { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'nueva' },
+      { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' },
+    ] satisfies AccionFormulario[]).reduce(reducir, estadoInicial(d)),
+  )
+  const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado: () => {} })
+  return <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>
+}
+
+describe('useGuardado · fila elegida sin SKU (0.9.19)', () => {
+  it('no pasa a confirmar: avisa «Falta elegir el SKU de: Chasis.» y no escribe nada', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    renderConProviders(<ArnesSinColor />, { sesion: SESION_TEC })
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText('Falta elegir el SKU de: Chasis.')).toBeInTheDocument()
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByTestId('guardar')).toHaveTextContent('Terminar asignación')
+    expect(escrituras(llamadas)).toEqual([])
+  })
+
+  it('en edicion: una fila nueva de chasis con Nueva y sin color avisa «Falta elegir el SKU de: Chasis.» y no escribe nada', async () => {
+    const { llamadas } = montarEdicion()
+    await pulsar('nueva cha')
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText('Falta elegir el SKU de: Chasis.')).toBeInTheDocument()
+    expect(escrituras(llamadas)).toEqual([])
+  })
+})
+
+/** Batería Nueva sobre un SKU sin stock y sin pedir (modelo 13 con bati13 a 0). */
+function ArnesNuevaSinStock() {
+  const [estado, dispatch] = useReducer(reducir, DATOS, (d) => {
+    const catalogo = agrupados()
+    catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 0 })]
+    return reducir(estadoInicial({ ...d, agrupados: catalogo }), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
+  })
+  const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado: () => {} })
+  return <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>
+}
+
+describe('useGuardado · Nueva sin stock y sin pedir (0.9.19)', () => {
+  it('no pasa a confirmar: avisa «Sin stock: Batería. …» y no escribe nada', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    renderConProviders(<ArnesNuevaSinStock />, { sesion: SESION_TEC })
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText('Sin stock: Batería. Pídela con «Solicitar pieza» o quítala con la ×.')).toBeInTheDocument()
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByTestId('guardar')).toHaveTextContent('Terminar asignación')
+    expect(screen.getByTestId('guardar')).not.toHaveTextContent('Confirmar terminar')
+    expect(escrituras(llamadas)).toEqual([])
   })
 })

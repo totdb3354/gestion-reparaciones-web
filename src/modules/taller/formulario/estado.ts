@@ -23,9 +23,12 @@ export type AgotadoLocal = { descripcion: string | null; registrado: boolean }
 export type SolicitudServidor = { estado: 'pendiente' | 'enCamino'; descripcion: string | null }
 export type RolFila = 'normal' | 'editada' | 'yaReparado' // 'editada' y 'yaReparado' solo en modo editar
 export type OriginalEdicion = { idCom: number; cantidad: number; reutilizado: boolean; observacion: string | null }
+/** Lo que se eligió en la celda del SKU (spec 0.9.19 §2): «Nueva» gasta del stock, «Reutilizada» no; null = sin elegir (la
+ *  celda enseña los dos botones). */
+export type Eleccion = 'nueva' | 'reutilizada' | null
 
-/** Habilitado de los controles, mantenido por el reductor paso a paso como lo hace la referencia (no se deriva: así se
- *  calcan rarezas como "+" habilitado con stock 0 tras desmarcar Reutilizado). Una fila sin SKU para el modelo
+/** Habilitado de los controles, mantenido por el reductor paso a paso (no se deriva). `reutilizado` = se puede elegir
+ *  «Reutilizada» (desde la 0.9.19 ya no hay casilla); «+» y «−» solo cuentan con «Nueva». Una fila sin SKU para el modelo
  *  (opciones vacías) se pinta siempre deshabilitada y atenuada, diga lo que diga este campo. */
 export type ControlesFila = { mas: boolean; menos: boolean; reutilizado: boolean; sku: boolean; observacion: boolean }
 
@@ -37,6 +40,7 @@ export type FilaEstado = {
   idCom: number | null // SKU elegido; null si opciones está vacío o, en chasis y tapa, hasta que se elige (spec 0.9.7 §9)
   cantidad: number
   reutilizado: boolean
+  eleccion: Eleccion
   observacion: string | null
   controles: ControlesFila
   rol: RolFila
@@ -139,7 +143,8 @@ export type AccionFormulario =
   | { tipo: 'SUMAR'; prefijo: string }
   | { tipo: 'RESTAR'; prefijo: string }
   | { tipo: 'CAMBIAR_SKU'; prefijo: string; idCom: number }
-  | { tipo: 'MARCAR_REUTILIZADO'; prefijo: string; valor: boolean }
+  | { tipo: 'ELEGIR'; prefijo: string; eleccion: 'nueva' | 'reutilizada' } // celda del SKU (0.9.19)
+  | { tipo: 'VOLVER'; prefijo: string } // «×» de la marca: la fila vuelve sin elegir, con su SKU (0.9.19)
   | { tipo: 'PONER_OBSERVACION'; prefijo: string; texto: string } // recorta; vacío = sin efecto
   | { tipo: 'BORRAR_OBSERVACION'; prefijo: string }
   // guardar fila, agotado local, otras acciones y zona de guardar
@@ -170,8 +175,11 @@ export type AccionFormulario =
 // ───────────────────────────── Filas: construcción ─────────────────────────────
 
 const CONTROLES_APAGADOS: ControlesFila = { mas: false, menos: false, reutilizado: false, sku: false, observacion: false }
-/** Chasis o tapa con opciones pero sin SKU elegido: solo el combo encendido (spec 0.9.7 §9). */
-const CONTROLES_SOLO_SKU: ControlesFila = { ...CONTROLES_APAGADOS, sku: true }
+/** Chasis o tapa con opciones pero sin SKU elegido: el combo y «Reutilizada» (se puede elegir antes que el color; spec 0.9.7
+ *  §9 y 0.9.19 §2). */
+const CONTROLES_SOLO_SKU: ControlesFila = { ...CONTROLES_APAGADOS, reutilizado: true, sku: true }
+/** Fila con SKU y sin elegir (0.9.19): los dos botones; «+» y «−» esperan a «Nueva». */
+const CONTROLES_SIN_ELEGIR: ControlesFila = { mas: false, menos: false, reutilizado: true, sku: true, observacion: true }
 
 type BaseFila = Pick<FilaEstado, 'prefijo' | 'nombre' | 'skus'>
 
@@ -198,6 +206,7 @@ function filaLimpia(base: BaseFila, modelo: string | null): FilaEstado {
     idCom: elegido ? elegido.idCom : null,
     cantidad: 0,
     reutilizado: false,
+    eleccion: null,
     observacion: null,
     controles: elegido ? controlesIniciales(elegido) : opciones.length > 0 ? CONTROLES_SOLO_SKU : CONTROLES_APAGADOS,
     rol: 'normal',
@@ -288,6 +297,7 @@ function aplicarSolicitud(fila: FilaEstado, sol: SolicitudAsignacion): FilaEstad
     idCom: c.idCom,
     cantidad: 0,
     reutilizado: false,
+    eleccion: null,
     solicitud: null,
     recibidoPendienteUso: false,
     controles: controlesIniciales(c),
@@ -377,8 +387,8 @@ function buscarComponente(agrupados: ComponentesAgrupados, idCom: number): { pre
   return null
 }
 
-/** Fila en edición: SKU, cantidad, "Reutilizado" y observación originales. "+" apagado con stock ≤ 0; si era reutilizada,
- *  "+" y "-" apagados; si no y cantidad > 0, "Reutilizado" apagado. */
+/** Fila en edición: SKU, cantidad, «Reutilizado» y observación originales, y la elección que les corresponde (0.9.19): con
+ *  la «×» se puede cambiar de nueva a reutilizada y al revés. «+» y «−» solo con «Nueva»; «+» apagado con stock ≤ 0. */
 function filaEditada(base: BaseFila, c: Componente, modelo: string | null, detalle: DetalleEdicion): FilaEstado {
   const skus = base.skus.some((s) => s.idCom === c.idCom) ? base.skus : [...base.skus, c]
   const limpia = filaLimpia({ prefijo: base.prefijo, nombre: base.nombre, skus }, modelo)
@@ -386,6 +396,7 @@ function filaEditada(base: BaseFila, c: Componente, modelo: string | null, detal
   const cantidad = Math.max(0, detalle.cantidad)
   const reutilizado = detalle.esReutilizado
   const observacion = textoONull(detalle.observacion)
+  const eleccion: Eleccion = reutilizado ? 'reutilizada' : cantidad > 0 ? 'nueva' : null
   return {
     ...limpia,
     skus,
@@ -393,11 +404,12 @@ function filaEditada(base: BaseFila, c: Componente, modelo: string | null, detal
     idCom: c.idCom,
     cantidad,
     reutilizado,
+    eleccion,
     observacion,
     controles: {
-      mas: !reutilizado && c.stock > 0,
-      menos: !reutilizado && cantidad > 0,
-      reutilizado: reutilizado || cantidad === 0,
+      mas: eleccion === 'nueva' && c.stock > 0,
+      menos: eleccion === 'nueva' && cantidad > 0,
+      reutilizado: true,
       sku: true,
       observacion: true,
     },
@@ -489,8 +501,9 @@ export function filaVisible(e: EstadoFormulario, fila: FilaEstado): boolean {
   return (e.modelosPorTipo[fila.prefijo] ?? []).includes(e.modelo)
 }
 
+/** Fila que se enviará: con SKU y con pieza (nueva, reutilizada o solicitud local). Una fila elegida sin SKU no cuenta. */
 export function filaActiva(fila: FilaEstado): boolean {
-  return fila.cantidad > 0 || fila.reutilizado || (fila.agotado !== null && fila.solicitud === null)
+  return fila.idCom !== null && (fila.cantidad > 0 || fila.reutilizado || (fila.agotado !== null && fila.solicitud === null))
 }
 
 // ───────────────────────────── Reductor ─────────────────────────────
@@ -517,7 +530,7 @@ function cambiarFila(estado: EstadoFormulario, prefijo: string, cambio: (fila: F
 
 function sumar(fila: FilaEstado): FilaEstado | null {
   const c = componenteDe(fila)
-  if (bloqueada(fila) || fila.solicitud !== null || c === null || !fila.controles.mas || fila.cantidad >= c.stock) return null
+  if (bloqueada(fila) || fila.eleccion !== 'nueva' || fila.solicitud !== null || c === null || !fila.controles.mas || fila.cantidad >= c.stock) return null
   const cantidad = fila.cantidad + 1
   return { ...fila, cantidad, controles: { ...fila.controles, mas: cantidad < c.stock, menos: true, reutilizado: false } }
 }
@@ -526,6 +539,8 @@ function restar(fila: FilaEstado): FilaEstado | null {
   const c = componenteDe(fila)
   if (bloqueada(fila) || fila.solicitud !== null || c === null || !fila.controles.menos || fila.cantidad <= 0) return null
   const cantidad = fila.cantidad - 1
+  // Una Nueva que baja a 0 vuelve sin elegir con su SKU (spec 0.9.19 §2, «Volver atrás»).
+  if (cantidad === 0 && fila.eleccion === 'nueva') return { ...fila, cantidad: 0, eleccion: null, controles: CONTROLES_SIN_ELEGIR }
   return {
     ...fila,
     cantidad,
@@ -538,29 +553,69 @@ function restar(fila: FilaEstado): FilaEstado | null {
   }
 }
 
+/** Stock que puede gastar una Nueva: el del SKU y, en la fila editada con su SKU original nuevo, también lo que devolvería. */
+function stockParaNueva(fila: FilaEstado, c: Componente): number {
+  const o = fila.original
+  const devuelve = fila.rol === 'editada' && o !== null && o.idCom === c.idCom && !o.reutilizado ? o.cantidad : 0
+  return c.stock + devuelve
+}
+
+/** Cantidad de una Nueva tras elegirla o cambiar de SKU: la que tenía (mínimo 1) sin pasar del stock; 0 si no hay stock. */
+function cantidadNueva(fila: FilaEstado, c: Componente): number {
+  const stock = stockParaNueva(fila, c)
+  return stock <= 0 ? 0 : Math.min(Math.max(fila.cantidad, 1), stock)
+}
+
 function cambiarSku(fila: FilaEstado, idCom: number): FilaEstado | null {
   const c = fila.opciones.find((o) => o.idCom === idCom)
   if (bloqueada(fila) || fila.solicitud !== null || !fila.controles.sku || c === undefined || idCom === fila.idCom) return null
-  // Primera elección de chasis o tapa: controles como una fila recién puesta sobre ese SKU.
-  if (fila.idCom === null) return { ...fila, idCom, controles: controlesIniciales(c) }
-  // En la fila en edición, volver al componente original ni pone a 0 ni toca "+".
-  const esElOriginal = fila.original !== null && fila.original.idCom === idCom
-  const seVacia = !esElOriginal && fila.cantidad > c.stock
-  const cantidad = seVacia ? 0 : fila.cantidad
-  const controles: ControlesFila = { ...fila.controles }
-  if (seVacia) {
-    controles.reutilizado = true
-    controles.menos = false
+  if (fila.eleccion === 'nueva') {
+    // Nueva (spec 0.9.19 §2): 1 si el SKU tiene stock (o la que tenía, sin pasarse); 0 sin stock, con la banda de pedirla.
+    // En la fila editada, volver a su SKU original conserva la cantidad.
+    const esElOriginal = fila.original !== null && fila.original.idCom === idCom
+    const cantidad = esElOriginal && fila.cantidad > 0 ? fila.cantidad : cantidadNueva(fila, c)
+    // La primera elección de chasis o tapa (idCom null) enciende la observación, como en Reutilizada.
+    const observacion = fila.idCom === null ? true : fila.controles.observacion
+    return { ...fila, idCom, cantidad, controles: { ...fila.controles, mas: cantidad < c.stock, menos: cantidad > 0, observacion } }
   }
-  if (!fila.reutilizado && !esElOriginal) controles.mas = cantidad < c.stock
-  return { ...fila, idCom, cantidad, controles }
+  // Sin elegir o Reutilizada: solo cambia el SKU. La primera elección de chasis o tapa enciende la observación.
+  if (fila.idCom === null) return { ...fila, idCom, controles: CONTROLES_SIN_ELEGIR }
+  return { ...fila, idCom }
 }
 
-function marcarReutilizado(fila: FilaEstado, valor: boolean): FilaEstado | null {
-  if (bloqueada(fila) || !fila.controles.reutilizado || valor === fila.reutilizado) return null
-  if (valor) return { ...fila, reutilizado: true, controles: { ...fila.controles, mas: false, menos: false } }
-  // Al desmarcar, "+" se enciende SIN mirar el stock (con stock 0 el clic no suma); en una fila con solicitud sigue apagado.
-  return { ...fila, reutilizado: false, controles: { ...fila.controles, mas: fila.solicitud === null, menos: fila.cantidad > 0 } }
+/** «+ Nueva» / «↺ Reutilizada» de la celda del SKU (spec 0.9.19 §2), solo sobre una fila sin elegir. «Nueva» pone 1 si el SKU
+ *  tiene stock (0 sin stock o, en chasis y tapa, hasta elegir el color). «Reutilizada» no gasta y, con una solicitud guardada,
+ *  solo vale mientras no esté en camino (`controles.reutilizado`). */
+function elegir(fila: FilaEstado, eleccion: 'nueva' | 'reutilizada'): FilaEstado | null {
+  if (bloqueada(fila) || fila.eleccion !== null) return null
+  if (eleccion === 'reutilizada') {
+    if (!fila.controles.reutilizado) return null
+    return { ...fila, eleccion, reutilizado: true, cantidad: 0, controles: { ...fila.controles, mas: false, menos: false } }
+  }
+  if (fila.solicitud !== null) return null
+  const c = componenteDe(fila)
+  const cantidad = c === null ? 0 : cantidadNueva({ ...fila, cantidad: 0 }, c)
+  return {
+    ...fila,
+    eleccion,
+    reutilizado: false,
+    cantidad,
+    controles: { ...fila.controles, mas: c !== null && cantidad < c.stock, menos: cantidad > 0, reutilizado: false },
+  }
+}
+
+/** «×» de la marca (spec 0.9.19 §2): la fila vuelve sin elegir con su SKU; con una solicitud local sin registrar, la cancela.
+ *  Una guardada, en vuelo, ya reparada o con la solicitud ya registrada en el servidor no vuelve. */
+function volver(fila: FilaEstado): FilaEstado | null {
+  if (fila.eleccion === null || fila.guardada !== null || fila.guardando || fila.rol === 'yaReparado') return null
+  if (fila.agotado !== null && fila.agotado.registrado) return null
+  const controles: ControlesFila =
+    fila.solicitud !== null
+      ? { mas: false, menos: false, reutilizado: fila.solicitud.estado !== 'enCamino', sku: false, observacion: true }
+      : fila.idCom === null
+        ? CONTROLES_SOLO_SKU
+        : CONTROLES_SIN_ELEGIR
+  return { ...fila, eleccion: null, cantidad: 0, reutilizado: false, agotado: null, controles }
 }
 
 function ponerObservacion(fila: FilaEstado, texto: string): FilaEstado | null {
@@ -624,14 +679,18 @@ function falloGuardarFila(estado: EstadoFormulario, prefijo: string): EstadoForm
 }
 
 /** Confirmar es LOCAL: bloquea la fila, borra su observación y deja el contador en lo que se enviará a agotar-componente
- *  (0 en "sin stock", el stock en "límite"). Solo procede si la sub-fila ofrece alguna de las dos variantes. */
+ *  (0 en "sin stock", el stock en "límite"). Procede si la banda ofrece alguna de las dos variantes o, sobre una fila sin
+ *  elegir cuyo botón es «Solicitar pieza» (spec 0.9.19 §2), como si fuera Nueva. Deja la fila en «Nueva». */
 function confirmarAgotado(estado: EstadoFormulario, prefijo: string, descripcion: string): EstadoFormulario {
   return cambiarFila(estado, prefijo, (fila) => {
-    const variante = subFila(estado, fila)
+    const directa = fila.eleccion === null && !bloqueada(fila) && botonNueva(estado, fila) === 'solicitar'
+    const base: FilaEstado = directa ? { ...fila, eleccion: 'nueva' } : fila
+    const variante = subFila(estado, base)
     if (fila.guardando || (variante.tipo !== 'sinStock' && variante.tipo !== 'limite')) return null
     return {
-      ...fila,
+      ...base,
       cantidad: variante.tipo === 'limite' ? variante.stock : 0,
+      reutilizado: false,
       observacion: null,
       agotado: { descripcion: textoONull(descripcion), registrado: false },
       controles: CONTROLES_APAGADOS,
@@ -646,17 +705,11 @@ function editarDescripcionAgotado(estado: EstadoFormulario, prefijo: string, des
   )
 }
 
+/** «Cancelar solicitud» de la banda (solicitud local sin registrar): como la «×», la fila vuelve sin elegir con su SKU. */
 function cancelarAgotado(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
-  return cambiarFila(estado, prefijo, (fila) => {
-    if (fila.agotado === null || fila.agotado.registrado) return null
-    const stock = stockDe(fila) ?? 0
-    return {
-      ...fila,
-      agotado: null,
-      cantidad: 0,
-      controles: { mas: !fila.reutilizado && stock > 0, menos: false, reutilizado: true, sku: true, observacion: true },
-    }
-  })
+  return cambiarFila(estado, prefijo, (fila) =>
+    fila.agotado === null || fila.agotado.registrado ? null : volver({ ...fila, eleccion: fila.eleccion ?? 'nueva' }),
+  )
 }
 
 function agotadoRegistrado(estado: EstadoFormulario, prefijo: string): EstadoFormulario {
@@ -710,7 +763,7 @@ function pedirConfirmacionAccion(estado: EstadoFormulario, id: number): EstadoFo
 // ───────────────────────────── Reductor: zona de guardar ─────────────────────────────
 
 function pedirConfirmacionGuardar(estado: EstadoFormulario): EstadoFormulario {
-  if (!zonaGuardarVisible(estado) || estado.guardado.enCurso || estado.guardado.clics === 1) return estado
+  if (!zonaGuardarVisible(estado) || estado.guardado.enCurso || estado.guardado.clics === 1 || avisoAntesDeGuardar(estado) !== null) return estado
   return { ...estado, guardado: { ...estado.guardado, clics: 1, textoConfirmacion: true } }
 }
 
@@ -724,8 +777,8 @@ function desbloquearBorradas(estado: EstadoFormulario, idsExistentes: string[]):
     if (fila.guardada === null || existen.has(fila.guardada.idRep)) return fila
     cambio = true
     return {
-      ...fila, guardada: null, cantidad: 0, reutilizado: false, observacion: null, confirmandoGuardar: false, guardando: false,
-      controles: { mas: (componenteDe(fila)?.stock ?? 0) > 0, menos: false, reutilizado: true, sku: true, observacion: true },
+      ...fila, guardada: null, cantidad: 0, reutilizado: false, eleccion: null, observacion: null, confirmandoGuardar: false,
+      guardando: false, controles: fila.idCom === null ? CONTROLES_SOLO_SKU : CONTROLES_SIN_ELEGIR,
     }
   })
   const otros = estado.otros.map((a): OtraAccion => {
@@ -791,6 +844,77 @@ export function chasisResaltados(e: EstadoFormulario): Set<number> {
   return new Set(chasis.opciones.filter((o) => mismoColor(leerSku(o.tipo, PREFIJO_CHASIS), color)).map((o) => o.idCom))
 }
 
+// ───────────────────────────── Selectores: elección (0.9.19) ─────────────────────────────
+
+export type BotonNueva = 'nueva' | 'solicitar' | 'deshabilitada'
+
+/** Botón de la izquierda de la celda del SKU (spec 0.9.19 §2): «+ Nueva» si algún SKU de la fila tiene stock (en la fila
+ *  editada cuenta lo que devolvería su pieza original); si ninguno, «Solicitar pieza» (en edición no se pide: deshabilitado). */
+export function botonNueva(e: EstadoFormulario, fila: FilaEstado): BotonNueva {
+  if (fila.opciones.length === 0) return 'deshabilitada' // fila sin SKU para el modelo: los dos botones, deshabilitados (spec 0.9.19 §2)
+  if (fila.opciones.some((c) => stockParaNueva(fila, c) > 0)) return 'nueva'
+  return e.modo === 'editar' ? 'deshabilitada' : 'solicitar'
+}
+
+/** La celda del SKU enseña los dos botones: fila sin elegir, sin solicitud guardada, ni guardada ni ya reparada. */
+export function muestraEleccion(fila: FilaEstado): boolean {
+  return fila.eleccion === null && fila.solicitud === null && fila.guardada === null && fila.rol !== 'yaReparado'
+}
+
+export type MarcaPieza = { tipo: 'nueva' | 'reutilizada' | 'solicitada'; quitar: boolean }
+
+/** Marca de la columna «Pieza». `quitar` = lleva «×» (no en guardadas, en vuelo, ya reparadas ni con la solicitud registrada). */
+export function marcaPieza(fila: FilaEstado): MarcaPieza | null {
+  const quitar = fila.guardada === null && !fila.guardando && fila.rol !== 'yaReparado' && fila.agotado?.registrado !== true
+  if (fila.eleccion === 'reutilizada') return { tipo: 'reutilizada', quitar }
+  if (fila.eleccion === 'nueva') return { tipo: fila.agotado !== null ? 'solicitada' : 'nueva', quitar }
+  return null
+}
+
+/** «↺ Reutilizada» en «Pieza» de una solicitud guardada pendiente (sustituye a la casilla de antes; en camino, no). */
+export function reutilizadaJuntoASolicitud(fila: FilaEstado): boolean {
+  return fila.solicitud !== null && fila.eleccion === null && fila.controles.reutilizado && !bloqueada(fila)
+}
+
+/** Elección hecha y sin SKU (chasis o tapa sin color): no deja terminar. */
+export function filaElegidaSinSku(fila: FilaEstado): boolean {
+  return fila.guardada === null && fila.eleccion !== null && fila.idCom === null
+}
+
+export function filasElegidasSinSku(e: EstadoFormulario): FilaEstado[] {
+  return e.filas.filter(filaElegidaSinSku)
+}
+
+/** Aviso de «Terminar asignación» / «Guardar cambios», o null si no falta ningún SKU. */
+export function textoFaltaSku(e: EstadoFormulario): string | null {
+  const faltan = filasElegidasSinSku(e)
+  return faltan.length === 0 ? null : `Falta elegir el SKU de: ${faltan.map((f) => f.nombre).join(', ')}.`
+}
+
+/** «Nueva» sobre un SKU sin stock, sin solicitud: no se guardaría nada y la marca dice «+ Nueva» (spec 0.9.19 §2, ajuste del
+ *  20/10). No deja terminar: hay que pedirla o quitarla. */
+export function filaNuevaSinStock(fila: FilaEstado): boolean {
+  return fila.guardada === null && fila.eleccion === 'nueva' && fila.idCom !== null && fila.cantidad === 0 && fila.agotado === null
+}
+
+/** Aviso de las filas Nueva sin stock, o null. En edición no se pueden pedir piezas: se pide otro SKU. */
+export function textoSinStock(e: EstadoFormulario): string | null {
+  const filas = e.filas.filter(filaNuevaSinStock)
+  if (filas.length === 0) return null
+  const nombres = filas.map((f) => f.nombre).join(', ')
+  const una = filas.length === 1
+  return e.modo === 'editar'
+    ? `Sin stock: ${nombres}. Elige otro SKU o ${una ? 'quítala' : 'quítalas'} con la ×.`
+    : `Sin stock: ${nombres}. ${una ? 'Pídela' : 'Pídelas'} con «Solicitar pieza» o ${una ? 'quítala' : 'quítalas'} con la ×.`
+}
+
+/** Lo que impide guardar y se avisa al pulsar «Terminar asignación» / «Guardar cambios»: SKU que falta y Nueva sin stock, cada
+ *  uno en su línea; null si no hay nada. */
+export function avisoAntesDeGuardar(e: EstadoFormulario): string | null {
+  const avisos = [textoFaltaSku(e), textoSinStock(e)].filter((t): t is string => t !== null)
+  return avisos.length === 0 ? null : avisos.join('\n')
+}
+
 export function reducir(estado: EstadoFormulario, accion: AccionFormulario): EstadoFormulario {
   switch (accion.tipo) {
     case 'CAMBIAR_MODELO':
@@ -803,8 +927,10 @@ export function reducir(estado: EstadoFormulario, accion: AccionFormulario): Est
       const tras = cambiarFila(estado, accion.prefijo, (f) => cambiarSku(f, accion.idCom))
       return tras === estado ? estado : enlazarColor(tras, accion.prefijo)
     }
-    case 'MARCAR_REUTILIZADO':
-      return cambiarFila(estado, accion.prefijo, (f) => marcarReutilizado(f, accion.valor))
+    case 'ELEGIR':
+      return cambiarFila(estado, accion.prefijo, (f) => elegir(f, accion.eleccion))
+    case 'VOLVER':
+      return cambiarFila(estado, accion.prefijo, volver)
     case 'PONER_OBSERVACION':
       return cambiarFila(estado, accion.prefijo, (f) => ponerObservacion(f, accion.texto))
     case 'BORRAR_OBSERVACION':
@@ -955,8 +1081,10 @@ export function subFila(e: EstadoFormulario, fila: FilaEstado): SubFila {
     const texto = stock > 0 ? `✓  ${stock} uds. se descontarán al guardar — solicitud pendiente` : TEXTO_SOLICITUD_PENDIENTE
     return { tipo: 'confirmada', texto: conDescripcion(texto, fila.agotado.descripcion), lapizHabilitado: !fila.agotado.registrado }
   }
+  // Las bandas de pedir solo salen con «Nueva» (spec 0.9.19 §2): sin elegir o Reutilizada, nunca.
+  if (fila.eleccion !== 'nueva') return { tipo: 'oculta' }
   if (stock === 0) return { tipo: 'sinStock' }
-  if (!fila.reutilizado && fila.cantidad >= stock) return { tipo: 'limite', stock }
+  if (fila.cantidad >= stock) return { tipo: 'limite', stock }
   return { tipo: 'oculta' }
 }
 
@@ -1014,7 +1142,7 @@ function accionesPendientes(e: EstadoFormulario): OtraAccion[] {
 export function zonaGuardarVisible(e: EstadoFormulario): boolean {
   if (e.modo === 'editar') return zonaVisibleEnEdicion(e)
   return (
-    e.filas.some((f) => f.guardada !== null || filaActiva(f)) ||
+    e.filas.some((f) => f.guardada !== null || filaActiva(f) || filaElegidaSinSku(f) || filaNuevaSinStock(f)) ||
     e.otros.some((a) => a.guardada !== null) ||
     accionesPendientes(e).length > 0
   )
@@ -1070,7 +1198,8 @@ function filasNuevasEnEdicion(e: EstadoFormulario): FilaEstado[] {
 function zonaVisibleEnEdicion(e: EstadoFormulario): boolean {
   if (filaEditadaInvalida(e) || accionEditadaInvalida(e)) return false
   return (
-    hayCambioEnFilaEditada(e) || hayCambioEnAccionEditada(e) || filasNuevasEnEdicion(e).length > 0 || accionesPendientes(e).length > 0
+    hayCambioEnFilaEditada(e) || hayCambioEnAccionEditada(e) || filasNuevasEnEdicion(e).length > 0 || accionesPendientes(e).length > 0 ||
+    e.filas.some((f) => f.rol === 'normal' && (filaElegidaSinSku(f) || filaNuevaSinStock(f)))
   )
 }
 
@@ -1081,15 +1210,22 @@ export function hayCambiosSinGuardar(e: EstadoFormulario): boolean {
 
 export type PrevisionStock = { texto: string; tendencia: 'baja' | 'sube' | 'igual' }
 
-/** "<stock> → <previsto>" de la fila editada: previsto = stock + devuelto − descontado. Devuelto = la cantidad original si el
- *  SKU sigue siendo el original y no era reutilizada; descontado = 0 con "Reutilizado", si no la cantidad. */
+/** "<stock> → <previsto>". Fila editada: previsto = stock + devuelto − descontado (devuelto = la cantidad original si el SKU
+ *  sigue siendo el original y no era reutilizada; descontado = 0 con "Reutilizado", si no la cantidad). Nueva sin guardar
+ *  (0.9.19): lo que quedará al guardar, stock − cantidad. */
 export function previsionStock(e: EstadoFormulario, fila: FilaEstado): PrevisionStock | null {
   const stock = stockDe(fila)
-  if (e.modo !== 'editar' || fila.rol !== 'editada' || fila.original === null || stock === null) return null
-  const devuelto = fila.idCom === fila.original.idCom && !fila.original.reutilizado ? fila.original.cantidad : 0
-  const descontado = fila.reutilizado ? 0 : fila.cantidad
-  const previsto = stock + devuelto - descontado
-  return { texto: `${stock} → ${previsto}`, tendencia: previsto < stock ? 'baja' : previsto > stock ? 'sube' : 'igual' }
+  if (stock === null) return null
+  if (e.modo === 'editar' && fila.rol === 'editada' && fila.original !== null) {
+    const devuelto = fila.idCom === fila.original.idCom && !fila.original.reutilizado ? fila.original.cantidad : 0
+    const descontado = fila.reutilizado ? 0 : fila.cantidad
+    const previsto = stock + devuelto - descontado
+    return { texto: `${stock} → ${previsto}`, tendencia: previsto < stock ? 'baja' : previsto > stock ? 'sube' : 'igual' }
+  }
+  if (fila.rol === 'normal' && fila.guardada === null && fila.eleccion === 'nueva' && fila.cantidad > 0) {
+    return { texto: `${stock} → ${stock - fila.cantidad}`, tendencia: 'baja' }
+  }
+  return null
 }
 
 // ───────────────────────────── Cuerpos de las llamadas ─────────────────────────────
