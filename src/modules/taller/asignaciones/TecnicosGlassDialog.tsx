@@ -57,7 +57,7 @@ export function TecnicosGlassDialog({ abierto, soloLectura, onCerrar, onInteracc
 
   useLayoutEffect(() => {
     if (!abierto) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- cada apertura arranca del estado del servidor, como el diálogo nuevo del JavaFX (patrón de CargaTecnicosDialog)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- cada apertura arranca del estado del servidor, como el diálogo nuevo del JavaFX (patrón de SelectorLista)
     setMarcados({})
     setError(null)
   }, [abierto])

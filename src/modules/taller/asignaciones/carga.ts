@@ -92,3 +92,13 @@ export function textoDesglose(f: FilaCarga, alcance: Alcance): string {
   if (tramos.length === 0) return alcance === 'pedidos' ? 'sin carga de cliente' : 'sin carga'
   return tramos.join(' — ')
 }
+
+/** Técnicos al 90 % o más en el alcance (el contador de la pastilla, spec 0.9.20). Sin jornada no hay porcentaje: no cuenta. */
+export function cuantosAlta(filas: FilaCarga[]): number {
+  return filas.filter((f) => !f.sinJornada && nivelCarga(pctTotal(f)) === 'alta').length
+}
+
+/** Alto en px de la mini-barra de la pastilla: el total saturado al 100 %, sobre 16 px, con un mínimo de 3 para que se vea. */
+export function altoMiniBarra(f: FilaCarga): number {
+  return Math.max(3, Math.round((anchoBarra(pctTotal(f), f.sinJornada) * 16) / 100))
+}

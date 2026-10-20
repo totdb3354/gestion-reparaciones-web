@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CargaTecnicosRespuesta } from '@/shared/api/client'
 import { desglose, filaCarga } from '../test/fabrica'
-import { anchoBarra, formatearPct, nivelCarga, ordenarPorCarga, pctTotal, textoDesglose, textoTramo } from './carga'
+import { altoMiniBarra, anchoBarra, cuantosAlta, formatearPct, nivelCarga, ordenarPorCarga, pctTotal, textoDesglose, textoTramo } from './carga'
 
 describe('pctTotal y nivelCarga', () => {
   it('el total del día es lo hecho más lo pendiente y puede pasar de 100', () => {
@@ -62,5 +62,25 @@ describe('textoTramo y textoDesglose', () => {
   it('sin nada en ninguno de los dos tramos, el texto depende del alcance', () => {
     expect(textoDesglose(filaCarga({}), 'pedidos')).toBe('sin carga de cliente')
     expect(textoDesglose(filaCarga({}), 'total')).toBe('sin carga')
+  })
+})
+
+describe('pastilla del panel (0.9.20)', () => {
+  it('cuantosAlta cuenta los de 90 % o más, sin los que no tienen jornada', () => {
+    expect(
+      cuantosAlta([
+        filaCarga({ idTec: 1, pctHecho: 40, pctPendiente: 50 }), // 90
+        filaCarga({ idTec: 2, pctPendiente: 89 }),
+        filaCarga({ idTec: 3, pctHecho: 80, pctPendiente: 60 }), // 140
+        filaCarga({ idTec: 4, pctPendiente: 95, sinJornada: true }),
+      ]),
+    ).toBe(2)
+  })
+
+  it('altoMiniBarra: proporcional sobre 16 px, saturado y con mínimo de 3', () => {
+    expect(altoMiniBarra(filaCarga({ pctHecho: 25, pctPendiente: 25 }))).toBe(8)
+    expect(altoMiniBarra(filaCarga({ pctHecho: 100, pctPendiente: 60 }))).toBe(16)
+    expect(altoMiniBarra(filaCarga())).toBe(3)
+    expect(altoMiniBarra(filaCarga({ pctPendiente: 80, sinJornada: true }))).toBe(3)
   })
 })

@@ -2,11 +2,14 @@ import { intervaloRefresco, useConexion } from './conexion'
 
 export const INTERVALO_CONECTADO_MS = 60_000
 export const INTERVALO_DESCONECTADO_MS = 5_000
+/** 0.9.20: el panel de carga de técnicos se refresca cada 30 s (con el banner, cada 5 s como todo). */
+export const INTERVALO_CARGA_MS = 30_000
 
 /**
  * Calco de Poller.java: las vistas que sondean recargan cada 60 s, y cada 5 s mientras el banner de conexión
  * está activo. `activo = false` para las vistas que no sondean (ADMIN en el taller, Clientes, Estadísticas).
  * Uso: `useQuery({ ..., refetchInterval: useIntervaloRefresco(sondea) })`.
+ * `conectadoMs`: otro ritmo con conexión (el panel de carga, `INTERVALO_CARGA_MS`); sin conexión siempre es 5 s.
  *
  * CONTRATO DE ERRORES de las consultas (crearQueryClient, QueryCache.onError):
  * - Un fallo de conexión (red, timeout, 5xx) abre el diálogo "Sin conexión con el servidor: <detalle>" SOLO en el
@@ -18,10 +21,10 @@ export const INTERVALO_DESCONECTADO_MS = 5_000
  * - Una recarga MANUAL (EtiquetaActualizado) con datos en pantalla solo enciende el banner por esta vía; por eso
  *   la etiqueta muestra ella misma el diálogo cuando su `refetch({ throwOnError: true })` falla por conexión.
  */
-export function useIntervaloRefresco(activo = true): number | false {
+export function useIntervaloRefresco(activo = true, conectadoMs = INTERVALO_CONECTADO_MS): number | false {
   const conectado = useConexion()
   if (!activo) return false
-  return conectado ? INTERVALO_CONECTADO_MS : INTERVALO_DESCONECTADO_MS
+  return conectado ? conectadoMs : INTERVALO_DESCONECTADO_MS
 }
 
 export { intervaloRefresco }

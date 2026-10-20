@@ -93,7 +93,7 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
           <DialogDescription className="text-[11px] text-azul-gris">
             Elige el tipo, escanea IMEIs y configúralos. Los técnicos se mantienen entre IMEIs. Se guardan todos al final.
           </DialogDescription>
-          {/* toggle-pill del JavaFX: mismas clases que el toggle Pedidos | Total de CargaTecnicosDialog */}
+          {/* toggle-pill del JavaFX: las clases que llevaba el toggle Pedidos | Total de la ventana de carga (el panel de la 0.9.20 usa ToggleAlcance, más pequeño) */}
           <div className="inline-flex" role="group" aria-label="Tipo de trabajo">
             {PESTANAS.map(({ p, etiqueta }, i) => {
               const c = contadorPestana(estado, p)

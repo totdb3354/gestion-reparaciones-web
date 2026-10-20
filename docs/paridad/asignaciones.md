@@ -15,12 +15,12 @@ Las tres que la spec ya anunciaba:
 
 - **La tabla no se ordena por columna** (D5). El orden urgente → con cliente → resto es funcional: lo que corre va arriba. Ordenar por otra cosa entierra lo urgente sin avisar, así que la web podría ordenar y deliberadamente no lo hace (el JavaFX apaga el `sortable` de todas sus columnas por el mismo motivo).
 - **Aviso con "Deshacer" de 8 s** en reasignar, urgente y chasis (D2). El JavaFX escribe al instante y sin confirmación; en un navegador un clic o una tecla de más cambian un desplegable sin querer y eso mueve trabajo entre técnicos en silencio. El gesto se calca tal cual y se le añade la vuelta atrás, que no estorba y evita el daño.
-- **El refresco se congela** mientras haya un menú, un desplegable, un editor o una de las dos ventanas abiertos (D4). Sin eso la fila se mueve bajo el cursor y la acción se pierde o cae en otra fila; verificado en el JavaFX durante la sesión de capturas.
+- **El refresco se congela** mientras haya un menú, un desplegable, un editor o la ventana «Técnicos de glass» abiertos (D4). Sin eso la fila se mueve bajo el cursor y la acción se pierde o cae en otra fila; verificado en el JavaFX durante la sesión de capturas.
 
 Las que han aparecido al implementar:
 
 - **El ancho del desplegable de la celda Técnico (96 px) no es un calco.** El `ComboBox` del JavaFX no declara ancho (`setMaxWidth(MAX_VALUE)`: llena la celda) y el combo navy de la web exige un número; 96 es el ancho de columna menos el padding de la celda. Es una elección de la web, no un valor verificado contra las capturas.
-- **La ventana de carga ordena los empates con `localeCompare('es')`.** El JavaFX usa el orden natural de `String`, donde una inicial acentuada cae detrás de la Z. En una interfaz en español el orden del idioma es el correcto.
+- **El panel de carga ordena los empates con `localeCompare('es')`.** El JavaFX usa el orden natural de `String`, donde una inicial acentuada cae detrás de la Z. En una interfaz en español el orden del idioma es el correcto.
 - **Tercer nivel de desempate por identificador de técnico en la carga.** El JavaFX solo tiene dos (carga y nombre), así que en fin de semana —todos a 0— su lista puede bailar entre refrescos. El tercer nivel la deja estable sin cambiar nada más.
 - **"Técnicos de glass" intenta todos los cambios y no aborta al primer fallo.** El JavaFX deja el resto sin mandar. Intentarlo todo y repintar los checks desde el servidor le dice al usuario qué quedó guardado y qué no, en vez de dejarlo a ciegas.
 - **El 409 del editor de comentario muestra el mensaje del servidor**, no el literal del JavaFX. Cumple igual la regla de errores (avisa y recarga); darle un literal propio exigía tocar la capa de API compartida, fuera del alcance de este sub-proyecto.
@@ -29,7 +29,7 @@ Las que han aparecido al implementar:
 De presentación, heredadas de los sub-proyectos anteriores y comunes a toda la web:
 
 - El botón "Asignar" va en su **propia fila** bajo los filtros; en el JavaFX comparte el `FlowPane` con ellos (con 24 px de margen). Con los cinco filtros delante, en una sola fila se corta en cuanto la ventana se estrecha.
-- Las dos ventanas de la cabecera y los tres editores son **diálogos modales dentro de la página**, no ventanas del sistema: no se pueden mover ni redimensionar (las del JavaFX también son modales, pero sí se redimensionan).
+- La ventana «Técnicos de glass» y los tres editores son **diálogos modales dentro de la página**, no ventanas del sistema: no se pueden mover ni redimensionar (las del JavaFX también son modales, pero sí se redimensionan). El panel de carga (0.9.20) no es modal: es un panel flotante que se arrastra.
 - Mientras el modal "Asignar trabajos" no exista (sub-proyecto 3b), el botón "Asignar" está **deshabilitado y con tooltip**, en su sitio, igual que se hizo en el sub-proyecto 2 con las acciones que terminaban en Almacén.
 
 ### El aviso de urgente nombra el teléfono, no la fila
@@ -42,7 +42,7 @@ El servidor propaga el urgente a todas las asignaciones abiertas del IMEI: marca
 - [x] Entrada "Asignaciones" en la columna lateral de Reparaciones, primera, solo para SUPERTECNICO y ADMIN; el TECNICO no la ve.
 - [x] Badge del lateral en "Asignaciones" con el **total** de asignaciones pendientes (reparación + glass + pulido, sin filtros; calco de `lblBadgeAsignaciones` = `getTotalItems()`), con el tope "99+" y oculto a cero, como el de Pendientes; **oculto para el ADMIN** (§12). Sale de la misma consulta que la tabla, así que con la vista abierta no añade peticiones ni rompe el congelado del sondeo; en el resto de vistas del taller se refresca con el intervalo general, como el poller del JavaFX (`asig-lista`).
 - [x] Refresco periódico con el intervalo del resto de la web (60 s; 5 s con el banner de conexión activo) y al volver a la pestaña, como el poller y la recarga al recuperar el foco del JavaFX.
-- [x] (D4) Un contador de interacciones abiertas suspende el sondeo mientras haya un menú contextual, un desplegable de filtro, el desplegable de técnico de una celda, un editor, el diálogo de borrado o una de las dos ventanas de la cabecera; se reanuda al cerrarse la última. El contador se libera también al desmontar y nunca baja de cero.
+- [x] (D4) Un contador de interacciones abiertas suspende el sondeo mientras haya un menú contextual, un desplegable de filtro, el desplegable de técnico de una celda, un editor, el diálogo de borrado o la ventana «Técnicos de glass»; se reanuda al cerrarse la última. El contador se libera también al desmontar y nunca baja de cero.
 - [x] Etiqueta "Actualizado HH:mm" abajo a la derecha (10 px, gris, hora local del equipo), clicable para recargar y con subrayado al pasar por encima, como el `lblUltimaActualizacion` del supertécnico. Si esa recarga manual falla por conexión se muestra el diálogo.
 
 ## Cabecera
@@ -146,15 +146,15 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] "Cancelar" no borra. Tras borrar se recargan la lista y la carga de técnicos.
 - [x] Mientras la confirmación está abierta el sondeo se congela (D4): una recarga movería la fila y la confirmación caería sobre otra.
 
-## Ventana "Carga de técnicos"
+## Panel "Carga de técnicos" (ventana modal hasta la 0.9.19)
 
-- [x] El botón de la cabecera abre la ventana "Carga de técnicos", con el toggle **Pedidos | Total** al lado del título y **Pedidos** activo en cada apertura (`carga-tecnicos`).
+- [x] El botón de la cabecera («Carga técnicos») y el botón «Carga» de la barra superior abren el panel "Carga de técnicos", con el toggle **Pedidos | Total** al lado del título. **Diferencia deliberada (0.9.20):** el alcance se recuerda en el navegador; ya no vuelve a Pedidos en cada apertura.
 - [x] Cambiar de alcance **no vuelve al servidor**: la respuesta trae los dos alcances y el toggle es instantáneo, como en el JavaFX (`carga-tecnicos-alcance`).
 - [x] Los datos salen de `GET /api/reparaciones/carga-tecnicos`, que exige SUPERTECNICO o ADMIN y devuelve `{ pedidos, total }`. El cálculo se ha movido del cliente al servidor sin cambiar de resultado (D3), con la suite del cliente portada tal cual.
 - [x] El día de la semana se resuelve en **Europe/Madrid**, no en la zona del proceso, o el fin de semana se desplazaría y la carga saldría a cero un día entero.
 - [x] El tramo "hecho hoy" degrada a vacío si su consulta falla: la respuesta se queda en solo-pendiente en vez de dar error, igual que la tolerancia del JavaFX.
 - [x] Una fila por técnico **activo**, con ceros para quien no tenga carga, ordenadas de mayor a menor carga del día (lo hecho más lo pendiente).
-- [x] Cada fila: nombre (110 px, negrita, recortado con elipsis) + dos barras en el mismo carril y la misma escala, saturadas al 100 % — arriba 10 px con el total del día en el color de su nivel, debajo 5 px en verde con el progreso de lo completado hoy — + el hueco fijo de 140 px con las cifras.
+- [x] Cada fila: nombre (72 px desde la 0.9.20; 110 en la ventana, negrita, recortado con elipsis) + dos barras en el mismo carril y la misma escala, saturadas al 100 % — arriba 10 px con el total del día en el color de su nivel, debajo 5 px en verde con el progreso de lo completado hoy — + el hueco fijo de 58 px (140 en la ventana) con las cifras.
 - [x] Colores por nivel del total: ≥ 90 rojo #E53935, ≥ 70 ámbar #F9A825, resto azul #1565C0; y los tonos oscuros del texto #C62828 / #B26A00 / #0D47A1. Carril #E8EAF0.
 - [x] Punto de identidad del alcance activo antes de la cifra: violeta #7B1FA2 en Pedidos, azul #1565C0 en Total.
 - [x] Cifras: el porcentaje total redondeado a entero y teñido por su nivel, con "✓ N%" en verde (#2E7D32) debajo.
@@ -162,12 +162,13 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Tooltip de la fila: "Pendiente: … — Hecho hoy: …" con el desglose (normales · chasis · por cerrar · glass · en espera de pieza) omitiendo los ceros, el tramo vacío omitido entero y, si los dos lo están, "sin carga de cliente" en Pedidos o "sin carga" en Total. Segunda línea: "Click: ver sus asignaciones" (`carga-tecnicos-fila-resaltada`).
 - [x] El tooltip usa el plural fijo del JavaFX también con uno ("1 normales"): es calco literal, fijado con un test a propósito.
 - [x] Al pasar el ratón por la lista, **las demás filas se atenúan** y la de debajo del cursor conserva la opacidad; el hueco entre filas pertenece a alguna fila, así que no hay zona muerta que atenúe sin resaltar nada.
-- [x] Pulsar una fila **cierra la ventana y deja la tabla filtrada por ese técnico en solitario**; el resto de filtros se queda como estaba (`carga-tecnicos-click-tecnico`).
+- [x] Pulsar una fila deja la tabla **filtrada por ese técnico en solitario**; el resto de filtros se queda como estaba (`carga-tecnicos-click-tecnico`). **Diferencia deliberada (0.9.20):** el panel no se cierra, y desde otra pantalla lleva a Asignaciones con ese filtro.
 - [x] La fila entera es un botón: se puede enfocar y activar con el teclado.
-- [x] Botón "Cerrar" abajo a la derecha.
-- [x] La consulta solo se pide con la ventana abierta; no se sondea de fondo.
-- [x] Si la consulta falla, la ventana se abre con un mensaje en el hueco de la lista y **la tabla de fondo no se ve afectada**: son dos consultas independientes. El mensaje se queda dentro de la ventana, sin apilar además el diálogo de error global.
-- [x] Abrir y cerrar la ventana congela y reanuda el sondeo (D4).
+- [x] **Diferencia deliberada (0.9.20):** sin botón "Cerrar" abajo; en la cabecera, «–» minimiza a una pastilla y «×» cierra. Escape y un clic fuera no lo cierran.
+- [x] **Diferencia deliberada (0.9.20):** con el panel abierto o minimizado la carga se pide cada 30 s (5 s sin conexión) y tras cada escritura del navegador; cerrado no se pide.
+- [x] Si la consulta falla sin datos previos, el panel muestra un mensaje en el hueco de la lista y **la tabla no se ve afectada**: son dos consultas independientes. El mensaje se queda en el panel, sin apilar además el diálogo de error global.
+- [x] **Diferencia deliberada (0.9.20):** el panel no congela el sondeo de la tabla (D4): estando abierto todo el día, la tabla dejaría de refrescarse.
+- [x] **Diferencia deliberada (0.9.20):** el panel no es modal: flota sobre cualquier pantalla (supertécnico y admin), se arrastra a la esquina que se quiera y la recuerda, y con el ratón encima no se repinta.
 
 ## Diálogo "Técnicos de glass"
 
@@ -189,7 +190,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] El menú contextual se queda en **"Copiar celda"** y nada más (`asig-admin-menu`).
 - [x] La celda Técnico se muestra como **texto plano**, sin desplegable y sin ningún subtexto: el nombre y nada más, como el `setText(getNombreTecnico())` del JavaFX en solo lectura. La llegada de una glass entregada la sigue contando el badge de la columna Estado.
 - [x] Las casillas de "Técnicos de glass" salen deshabilitadas y el único botón es "Cerrar" (sin "Aceptar" ni "Cancelar").
-- [x] Los cinco filtros, "Limpiar filtros" y la ventana de carga funcionan con normalidad para el ADMIN.
+- [x] Los cinco filtros, "Limpiar filtros" y el panel de carga funcionan con normalidad para el ADMIN.
 - [x] Esto es la capa visible, no la protección: reasignar, urgente, chasis, el comentario, el borrado y los técnicos de glass exigen ya **SUPERTECNICO** en el servidor, y la carga de técnicos exige SUPERTECNICO o ADMIN.
 
 ## CSV
@@ -202,7 +203,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Se reutiliza el mapeo de errores del sub-proyecto 0: sin conexión y timeout muestran el banner; 401 lleva al inicio de sesión; 403 muestra el aviso de permisos.
 - [x] 409 en el editor de cliente: avisa con el literal de "el teléfono lo cambió otro usuario" y recarga la lista.
 - [x] Un fallo en cualquiera de las escrituras de la tabla (reasignar, urgente, chasis, comentario, borrado) lo cuenta el manejador global de mutaciones, sin duplicar el aviso.
-- [x] La carga de técnicos y los técnicos de glass silencian el manejador global a propósito y pintan su error **dentro** de su ventana.
+- [x] La carga de técnicos y los técnicos de glass silencian el manejador global a propósito y pintan su error **dentro** de su ventana o panel.
 
 ## Comportamientos del JavaFX calcados a propósito
 

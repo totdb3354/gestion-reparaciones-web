@@ -1,6 +1,7 @@
 import { useIsFetching, useIsMutating, type Query } from '@tanstack/react-query'
 import { Outlet } from 'react-router'
 import { FormulariosPedido } from '@/modules/almacen/pedidos/formulario/FormulariosPedido'
+import { PanelCarga } from '@/modules/taller/asignaciones/panel/PanelCarga'
 import { VigilanciaInactividad } from '@/shared/session/VigilanciaInactividad'
 import { CapaCarga } from '@/shared/ui/CapaCarga'
 import { AvisoVersion } from '@/shared/version/AvisoVersion'
@@ -36,6 +37,8 @@ export function AppLayout() {
       </div>
       {/* Formularios de alta de pedido (P1): modal sobre la vista actual, abierto desde el store compartido. */}
       <FormulariosPedido />
+      {/* 0.9.20: el panel de carga de técnicos flota sobre cualquier vista (solo supertécnico y admin; lo decide él). */}
+      <PanelCarga />
       <CapaCarga activa={capaActiva} />
       {/* Aquí y no en main.tsx: solo existe con sesión abierta, que es justo cuando hay algo que vigilar. */}
       <VigilanciaInactividad />

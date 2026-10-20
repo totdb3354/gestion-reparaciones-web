@@ -3,16 +3,20 @@ import userEvent from '@testing-library/user-event'
 import { focusManager } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Outlet } from 'react-router'
 // eslint-disable-next-line no-restricted-imports -- el badge del lateral vive en el SubNav del AppLayout real; ver su uso más abajo.
 import { AppLayout } from '@/app/shell/AppLayout'
 import { server } from '@/test/server'
 import * as csv from '@/shared/lib/csv'
+import type { CargaTecnicosRespuesta } from '@/shared/api/client'
 import { INTERVALO_CONECTADO_MS } from '@/shared/api/refresco'
+import { cerrarPanelCarga } from '@/shared/lib/panelCarga'
 import { TEXTO_COPIAR_CELDA } from '@/shared/ui/MenuCopiarCelda'
-import { renderConProviders, SESION_SUPER } from '@/test/render'
+import { renderConProviders, renderConRouter, SESION_SUPER } from '@/test/render'
 import { handlersNotificaciones } from '../notificaciones/test/handlers'
-import { resumen, tecnico } from '../test/fabrica'
+import { filaCarga, resumen, tecnico } from '../test/fabrica'
 import { AsignacionesPage } from './AsignacionesPage'
+import { PanelCarga } from './panel/PanelCarga'
 
 // Una fila por categoría, en el orden en que las devuelve el servidor (reparación, glass, pulido) y con los tres
 // rangos del orden de prioridad repartidos a contrapelo: la urgente llega la segunda y la de cliente la tercera.
@@ -222,24 +226,24 @@ describe('AsignacionesPage · el sondeo se congela mientras hay algo abierto (D4
     await waitFor(() => expect(cargas.n).toBe(2))
   })
 
-  // El tercer tipo de consumidor: las dos ventanas de la cabecera, que avisan por ref en vez de por dependencia
-  // del efecto. Se prueba la de carga; la de glass usa exactamente el mismo mecanismo.
-  it('la ventana de carga de técnicos congela el sondeo, y cerrarla lo reanuda', async () => {
+  // 0.9.20: la carga ya no es una ventana sino el panel flotante, que se queda abierto todo el día. Si congelara el sondeo,
+  // la tabla no se refrescaría nunca.
+  it('«Carga técnicos» abre el panel de carga y el sondeo sigue', async () => {
     const cargas = contarCargas()
-    server.use(http.get('*/api/reparaciones/carga-tecnicos', () => HttpResponse.json({ pedidos: [], total: [] })))
+    cerrarPanelCarga()
     vi.useFakeTimers({ shouldAdvanceTime: true })
     const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    abrir()
+    renderConProviders(
+      <>
+        <AsignacionesPage />
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones' },
+    )
     await screen.findByText('A20260916_1')
     expect(cargas.n).toBe(1)
-
     await usuario.click(screen.getByRole('button', { name: 'Carga técnicos' }))
-    await screen.findByRole('dialog')
-    await avanzar(INTERVALO_CONECTADO_MS * 2)
-    expect(cargas.n).toBe(1)
-
-    await usuario.keyboard('{Escape}')
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()
     await avanzar(INTERVALO_CONECTADO_MS)
     await waitFor(() => expect(cargas.n).toBe(2))
   })
@@ -424,5 +428,78 @@ describe('AsignacionesPage · CSV (spec SP6 §6.5)', () => {
       ['AP20260916_3', 'Pulido', 'Técnico A', '="000000000000003"', 'iPhone 14', '16/09/2026 09:02', '', 'CLIENTE A', 'Técnico F', 'No', 'No', 'No', '', 'No'],
     ])
     descargar.mockRestore()
+  })
+})
+
+describe('AsignacionesPage · pulsar un técnico en el panel de carga (0.9.20)', () => {
+  const CARGA: CargaTecnicosRespuesta = {
+    pedidos: [filaCarga({ idTec: 1, nombre: 'Técnico A', pctPendiente: 30 }), filaCarga({ idTec: 2, nombre: 'Técnico B', pctPendiente: 60 })],
+    total: [filaCarga({ idTec: 1, nombre: 'Técnico A', pctPendiente: 30 }), filaCarga({ idTec: 2, nombre: 'Técnico B', pctPendiente: 60 })],
+  }
+
+  beforeEach(() => {
+    server.use(
+      http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([resumen({ idRep: 'A20260916_1', imei: '000000000000001', idTec: 2 })])),
+      http.get('*/api/glass/asignaciones', () => HttpResponse.json([resumen({ idRep: 'AG20260916_2', imei: '000000000000002', idTec: 1 })])),
+      http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),
+      http.get('*/api/tecnicos/activos', () => HttpResponse.json([tecnico({ idTec: 1, nombre: 'Técnico A' }), tecnico({ idTec: 2, nombre: 'Técnico B' })])),
+      http.get('*/api/reparaciones/carga-tecnicos', () => HttpResponse.json(CARGA)),
+    )
+  })
+
+  const filaDelPanel = async (nombre: string) => {
+    const region = await screen.findByRole('region', { name: 'Carga de técnicos' })
+    const lista = await within(region).findByRole('list', { name: 'Carga por técnico' })
+    return within(lista).getByText(nombre).closest('button')!
+  }
+
+  it('con la vista abierta: la tabla queda filtrada por ese técnico en solitario y el panel sigue', async () => {
+    renderConProviders(
+      <>
+        <AsignacionesPage />
+        <PanelCarga />
+      </>,
+      { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones' },
+    )
+    expect(await screen.findByText('AG20260916_2')).toBeInTheDocument()
+    // Otro filtro ya puesto (prefijo de IMEI que deja pasar la fila de A20260916_1): el relevo de técnico no debe quitarlo.
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filtrar por IMEI' }), '00000000000000')
+    await userEvent.click(await filaDelPanel('Técnico B'))
+    expect(await screen.findByText('1 asignación')).toBeInTheDocument()
+    expect(screen.getByText('A20260916_1')).toBeInTheDocument()
+    expect(screen.queryByText('AG20260916_2')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Filtrar por IMEI' })).toHaveValue('00000000000000')
+    // El filtro «Técnico» se rotula con el nombre cuando hay uno solo marcado.
+    expect(screen.getByRole('button', { name: 'Técnico B' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()
+  })
+
+  it('desde otra pantalla: lleva a Asignaciones con ese filtro y el panel sigue', async () => {
+    function Marco() {
+      return (
+        <>
+          <Outlet />
+          <PanelCarga />
+        </>
+      )
+    }
+    renderConRouter(
+      [
+        {
+          element: <Marco />,
+          children: [
+            { path: '/stock', element: <p>STOCK</p> },
+            { path: '/reparaciones/asignaciones', element: <AsignacionesPage /> },
+          ],
+        },
+      ],
+      { sesion: SESION_SUPER, ruta: '/stock' },
+    )
+    expect(await screen.findByText('STOCK')).toBeInTheDocument()
+    await userEvent.click(await filaDelPanel('Técnico B'))
+    expect(await screen.findByText('A20260916_1')).toBeInTheDocument()
+    expect(await screen.findByText('1 asignación')).toBeInTheDocument()
+    expect(screen.queryByText('AG20260916_2')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()
   })
 })

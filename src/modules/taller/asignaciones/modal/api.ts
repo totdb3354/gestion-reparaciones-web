@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type PeticionLote, type PeticionPrediccion, type RespuestaLote } from '@/shared/api/client'
 import { CLAVE_CONTADORES } from '../../api'
-import { CLAVE_ASIGNACIONES_TODAS, CLAVE_CARGA_TECNICOS } from '../api'
+import { CLAVE_ASIGNACIONES_TODAS } from '../api'
 
 /** Cliente del IMEI en BD, o null (vacío, desconocido en la lista o error: calco, se traga). */
 export async function pedirClienteBd(imei: string, idsClientes: Set<number>): Promise<number | null> {
@@ -60,7 +60,7 @@ export function useGuardarLote() {
     meta: { silenciarError: true },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: CLAVE_ASIGNACIONES_TODAS })
-      void qc.invalidateQueries({ queryKey: CLAVE_CARGA_TECNICOS })
+      // La carga de técnicos la recarga la regla general del QueryClient (0.9.20).
       void qc.invalidateQueries({ queryKey: ['asignaciones'] }) // pendientes de los técnicos
       void qc.invalidateQueries({ queryKey: CLAVE_CONTADORES })
     },
