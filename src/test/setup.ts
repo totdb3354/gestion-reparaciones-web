@@ -22,15 +22,17 @@ Element.prototype.scrollIntoView ??= () => {}
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   cleanup()
+  // La sesión y su señal de actividad viven en localStorage; sessionStorage guarda el mensaje del login de la pestaña. Se
+  // vacían ANTES de reiniciar los stores: los que se leen del navegador (crearStoreLeido, p. ej. el panel de carga) releen
+  // al reiniciarse, y con el almacenamiento aún lleno heredarían lo del test anterior.
+  localStorage.clear()
+  sessionStorage.clear()
   // Los stores de módulo (filtros del taller) sobreviven entre tests de un mismo fichero: se vuelven a su valor inicial
   // después de desmontar, igual que al cerrar sesión.
   reiniciarStores()
   server.resetHandlers()
-  // La sesión y su señal de actividad viven en localStorage; sessionStorage guarda el mensaje del login de la pestaña.
-  localStorage.clear()
   // Además del almacenamiento, la pestaña olvida la sesión que había adoptado.
   borrarSesion()
-  sessionStorage.clear()
   reportarExito()
   // El disparo de sesión expirada es global y de una sola vez: sin rearmar, un test lo dejaría gastado
   // para los siguientes.

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { crearStore, reiniciarStores, useStore } from './store'
+import { crearStore, crearStoreLeido, reiniciarStores, useStore } from './store'
 
 describe('crearStore', () => {
   it('guarda, notifica y reinicia', () => {
@@ -36,5 +36,18 @@ describe('crearStore', () => {
     expect(result.current[0].size).toBe(0)
     act(() => result.current[1](new Set(['a'])))
     expect(result.current[0].has('a')).toBe(true)
+  })
+})
+
+describe('crearStoreLeido (0.9.20)', () => {
+  it('lee la fuente al crearse y la relee al reiniciar, en vez de volver al valor del arranque', () => {
+    let fuente = 'guardado'
+    const s = crearStoreLeido(() => fuente)
+    expect(s.get()).toBe('guardado')
+    s.set('cambiado')
+    expect(s.get()).toBe('cambiado')
+    fuente = 'lo que diga el navegador ahora'
+    reiniciarStores()
+    expect(s.get()).toBe('lo que diga el navegador ahora')
   })
 })

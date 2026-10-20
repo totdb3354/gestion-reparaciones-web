@@ -15,7 +15,18 @@ const registrados = new Set<Pick<Store<unknown>, 'reset'>>()
 /** Para estado de módulo (se crea una vez, al cargar el fichero): el store queda registrado para reiniciarStores y no se
  *  da de baja, así que no debe crearse dentro de un componente. */
 export function crearStore<T>(inicial: T): Store<T> {
-  let valor = inicial
+  return registrar(() => inicial)
+}
+
+/** Como crearStore, pero el valor de partida se LEE (p. ej. de localStorage) al crear el store y cada vez que se reinicia:
+ *  reiniciarStores no lo devuelve a lo que había al cargar el fichero, sino a lo que diga la fuente en ese momento (0.9.20,
+ *  panel de carga: lo recordado es del navegador y sobrevive al cierre de sesión). */
+export function crearStoreLeido<T>(leer: () => T): Store<T> {
+  return registrar(leer)
+}
+
+function registrar<T>(inicial: () => T): Store<T> {
+  let valor = inicial()
   const listeners = new Set<() => void>()
   const avisar = () => listeners.forEach((l) => l())
   const store: Store<T> = {
@@ -29,7 +40,7 @@ export function crearStore<T>(inicial: T): Store<T> {
       return () => listeners.delete(cb)
     },
     reset: () => {
-      valor = inicial
+      valor = inicial()
       avisar()
     },
   }
