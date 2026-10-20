@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.18] - 2026-10-XX — Stock de teléfonos: quién lo tiene, SKU y revisado
+## [0.9.18] - 2026-10-20 — Stock de teléfonos: quién lo tiene, SKU y revisado
 
 - **Stock de teléfonos** (supertécnico y administrador):
   - la columna de la izquierda tiene una fila por modelo, con sus capacidades en pastillas y la barra listos / taller / revisión; el buscador acepta un modelo o un SKU, entero o el principio;
