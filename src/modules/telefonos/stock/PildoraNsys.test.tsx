@@ -11,6 +11,14 @@ const abrirPildora = () => renderConProviders(<PildoraNsys />, { sesion: SESION_
 const popover = () => screen.queryByRole('dialog', { name: 'Importaciones de NSYS' })
 
 describe('píldora de NSYS: lista de importaciones (spec 0.9.18 §4.11)', () => {
+  it('el botón lleva el texto de la píldora como nombre: Chromium no lo saca del role=status de dentro (E2E de preprod)', async () => {
+    abrirPildora()
+    const estado = await screen.findByRole('status')
+    await waitFor(() => expect(estado.textContent).not.toMatch(/comprobando/))
+    expect(estado.textContent).toMatch(/^NSYS: /)
+    expect(estado.closest('button')).toHaveAttribute('aria-label', estado.textContent)
+  })
+
   it('al pulsarla abre las últimas importaciones con su resultado, sus cambios, sus segundos, el motivo y los huecos', async () => {
     server.use(http.get('*/api/stock-telefonos/importaciones', () => HttpResponse.json(listaImportaciones({ importaciones: [
       importacion({ fechaExportacion: '2026-10-16T13:31:00', resultado: 'EN_CURSO', cambios: 0, segundos: null }),
