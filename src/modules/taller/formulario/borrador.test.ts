@@ -218,3 +218,41 @@ describe('aplicarBorrador (recuperación, después de cargar componentes y solic
     expect(base.borradorRecuperado).toBe(false) // no muta la entrada
   })
 })
+
+describe('borrador: la elección se deduce al recuperarlo (0.9.19)', () => {
+  it('reutilizado → Reutilizada; cantidad → Nueva; solo observación → sin elegir', () => {
+    const b = contenido({
+      modelo: '13',
+      filas: [
+        filaBorrador({ prefijo: 'bat', idCom: 101, reutilizado: true }),
+        filaBorrador({ prefijo: 'lcd', idCom: 111, cantidad: 1 }),
+        filaBorrador({ prefijo: 'cam', idCom: 121, observacion: 'Mancha' }),
+      ],
+    })
+    const e = aplicarBorrador(estadoInicial(datos()), b)
+    expect(fila(e, 'bat')).toMatchObject({ eleccion: 'reutilizada', reutilizado: true, cantidad: 0 })
+    expect(fila(e, 'lcd')).toMatchObject({ eleccion: 'nueva', cantidad: 1 })
+    expect(fila(e, 'cam')).toMatchObject({ eleccion: null, observacion: 'Mancha' })
+  })
+
+  it('agotado confirmado → Nueva pedida; guardada → su elección', () => {
+    const pedida = aplicarBorrador(estadoInicial(datos()), contenido({
+      modelo: '14', filas: [filaBorrador({ prefijo: 'bat', idCom: 102, agotadoConfirmado: true, descripcionAgotado: 'urge' })],
+    }))
+    expect(fila(pedida, 'bat')).toMatchObject({ eleccion: 'nueva', cantidad: 0, agotado: { descripcion: 'urge', registrado: false } })
+    const guardadas = aplicarBorrador(estadoInicial(datos()), contenido({
+      modelo: '13',
+      filas: [
+        filaBorrador({ prefijo: 'bat', idCom: 101, reutilizado: true, guardada: true, idRepGenerado: 'R20260916_9', fechaGuardado: '16/09 09:15' }),
+        filaBorrador({ prefijo: 'lcd', idCom: 111, cantidad: 1, guardada: true, idRepGenerado: 'R20260916_8', fechaGuardado: '16/09 09:10' }),
+      ],
+    }))
+    expect(fila(guardadas, 'bat')).toMatchObject({ eleccion: 'reutilizada', guardada: { idRep: 'R20260916_9', fecha: '16/09 09:15' } })
+    expect(fila(guardadas, 'lcd')).toMatchObject({ eleccion: 'nueva', cantidad: 1 })
+  })
+
+  it('una fila elegida sin SKU no llega al borrador', () => {
+    const e = aplicarAcciones(conModelo13(), { tipo: 'ELEGIR', prefijo: 'cha', eleccion: 'reutilizada' })
+    expect(capturar(e).filas).toEqual([])
+  })
+})
