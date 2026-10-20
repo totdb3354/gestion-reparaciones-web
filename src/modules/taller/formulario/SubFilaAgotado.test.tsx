@@ -143,7 +143,7 @@ describe('SubFilaAgotado (ficha docs/paridad/formulario.md · Sub-fila de agotad
     // 0.9.19 (spec 4 y 7): «Cancelar solicitud» deja la fila sin elegir y sin banda; vuelven «Solicitar» y «Reutilizada».
     expect(screen.queryByTestId('subfila-bat')).not.toBeInTheDocument()
     expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Reutilizada Batería' })).toBeEnabled()
-    expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar Batería' })).toBeEnabled()
+    expect(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar pieza Batería' })).toBeEnabled()
   })
 
   it('solicitud pendiente del servidor: sub-fila verde con lápiz deshabilitado que no abre nada; «↺ Reutilizada» y observación siguen activos', async () => {

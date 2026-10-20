@@ -96,7 +96,7 @@ function CeldaEleccion({ estado, fila, dispatch, inerte, onSolicitar }: {
   return (
     <div className="flex w-[240px] gap-1.5">
       {izquierda === 'solicitar' ? (
-        <button type="button" aria-label={`Solicitar ${tipo}`} disabled={inerte} onClick={onSolicitar}
+        <button type="button" aria-label={`Solicitar pieza ${tipo}`} disabled={inerte} onClick={onSolicitar}
           className={cn(CLASE_ELEGIR, 'border-ambar bg-form-agotado-bg text-form-agotado-text')}>
           Solicitar pieza
         </button>
@@ -136,7 +136,7 @@ function CeldaPieza({ fila, dispatch, inerte }: { fila: FilaEstado; dispatch: Di
           className={cn('inline-flex h-6 items-center gap-0.5 rounded-xl pl-2.5 text-[11px] font-bold whitespace-nowrap', marca.quitar && !inerte ? 'pr-1' : 'pr-2.5', CLASES_MARCA[marca.tipo])}>
           {TEXTO_MARCA[marca.tipo]}
           {marca.quitar && !inerte && (
-            <button type="button" aria-label={`Volver atrás ${tipo}`} title="Volver atrás: la fila queda como al principio"
+            <button type="button" aria-label={`Volver atrás ${tipo}`} title={marca.tipo === 'solicitada' ? 'Volver atrás: cancela la solicitud y la fila queda como al principio' : 'Volver atrás: la fila queda como al principio'}
               onClick={() => dispatch({ tipo: 'VOLVER', prefijo })}
               className="h-[18px] w-[18px] cursor-pointer rounded-full bg-transparent p-0 text-[13px] leading-none hover:bg-black/10">
               ×

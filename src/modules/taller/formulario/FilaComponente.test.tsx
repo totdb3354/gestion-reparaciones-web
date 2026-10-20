@@ -347,15 +347,30 @@ describe('0.9.19 · la elección en la celda del SKU (spec §2)', () => {
     montar([MODELO_14]) // bati14: stock 0, el único del modelo
     const bat = within(screen.getByTestId('fila-bat'))
     expect(bat.queryByRole('button', { name: 'Nueva Batería' })).not.toBeInTheDocument()
-    await userEvent.click(bat.getByRole('button', { name: 'Solicitar Batería' }))
+    await userEvent.click(bat.getByRole('button', { name: 'Solicitar pieza Batería' }))
     let dlg = within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' }))
     await userEvent.click(dlg.getByRole('button', { name: 'Cancelar' }))
-    expect(bat.getByRole('button', { name: 'Solicitar Batería' })).toBeInTheDocument()
-    await userEvent.click(bat.getByRole('button', { name: 'Solicitar Batería' }))
+    expect(bat.getByRole('button', { name: 'Solicitar pieza Batería' })).toBeInTheDocument()
+    await userEvent.click(bat.getByRole('button', { name: 'Solicitar pieza Batería' }))
     dlg = within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' }))
     await userEvent.click(dlg.getByRole('button', { name: 'Confirmar: solicitar pieza' }))
     expect(screen.getByTestId('marca-bat')).toHaveTextContent('Solicitada')
     expect(screen.getByTestId('contador-bat')).toHaveTextContent('0')
+  })
+
+  it('la × de «Solicitada» explica que cancela la solicitud; la de «+ Nueva» no', async () => {
+    montar([MODELO_14])
+    const bat = within(screen.getByTestId('fila-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Solicitar pieza Batería' }))
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' })).getByRole('button', { name: 'Confirmar: solicitar pieza' }))
+    expect(bat.getByRole('button', { name: 'Volver atrás Batería' })).toHaveAttribute('title', 'Volver atrás: cancela la solicitud y la fila queda como al principio')
+  })
+
+  it('la × de «+ Nueva» conserva su texto de siempre', async () => {
+    montar([MODELO_13])
+    const bat = within(screen.getByTestId('fila-bat'))
+    await userEvent.click(bat.getByRole('button', { name: 'Nueva Batería' }))
+    expect(bat.getByRole('button', { name: 'Volver atrás Batería' })).toHaveAttribute('title', 'Volver atrás: la fila queda como al principio')
   })
 
   it('solicitud guardada pendiente: SKU fijo y «↺ Reutilizada» en «Pieza»; en camino, sin botón', async () => {
@@ -398,7 +413,7 @@ describe('0.9.19 · la elección en la celda del SKU (spec §2)', () => {
     }
     renderConProviders(<Sin />)
     const cha = within(screen.getByTestId('fila-cha'))
-    await userEvent.click(cha.getByRole('button', { name: 'Solicitar Chasis' }))
+    await userEvent.click(cha.getByRole('button', { name: 'Solicitar pieza Chasis' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(cha.getByRole('combobox', { name: 'SKU de Chasis' })).toHaveTextContent('— Elige color —')
   })

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { agrupados, componente, detalleEdicion, solicitudAsignacion } from '../test/fabrica'
 import {
   type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario, type FilaEstado,
-  botonNueva, estadoInicial, filaActiva, filaEditadaInvalida, filaElegidaSinSku, marcaPieza, muestraEleccion, planGuardarCambios,
-  planTerminar, previsionStock, reducir, reutilizadaJuntoASolicitud, subFila, textoFaltaSku, zonaGuardarVisible,
+  avisoAntesDeGuardar, botonNueva, estadoInicial, filaActiva, filaEditadaInvalida, filaElegidaSinSku, filaNuevaSinStock, marcaPieza, muestraEleccion, planGuardarCambios,
+  planTerminar, previsionStock, reducir, reutilizadaJuntoASolicitud, subFila, textoFaltaSku, textoSinStock, zonaGuardarVisible,
 } from './estado'
 
 const IMEI = '355400000000111'
@@ -225,5 +225,54 @@ describe('0.9.19 · «Nueva» o «Reutilizada» en la celda del SKU (spec §2)',
     const o = reducir(c, { tipo: 'PONER_OBSERVACION', prefijo: 'cha', texto: 'rayado' })
     expect(o).not.toBe(c)
     expect(fila(o, 'cha').observacion).toBe('rayado')
+  })
+})
+
+describe('0.9.19 · ajustes: Nueva sin stock y marca «Solicitada»', () => {
+  const TEXTO_1 = 'Sin stock: Batería. Pídela con «Solicitar pieza» o quítala con la ×.'
+
+  it('Nueva sobre un SKU sin stock y sin pedir: avisa, muestra la zona y no deja confirmar; pedirla o volver lo arregla', () => {
+    const n = reducir(conModelo('14'), nueva('bat')) // bati14: stock 0
+    expect(filaNuevaSinStock(fila(n, 'bat'))).toBe(true)
+    expect(zonaGuardarVisible(n)).toBe(true)
+    expect(textoSinStock(n)).toBe(TEXTO_1)
+    expect(reducir(n, { tipo: 'PEDIR_CONFIRMACION_GUARDAR' })).toBe(n)
+    const pedida = reducir(n, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'bat', descripcion: '' })
+    expect(textoSinStock(pedida)).toBeNull()
+    expect(textoSinStock(reducir(n, volver('bat')))).toBeNull()
+  })
+
+  it('varias filas Nueva sin stock: plural', () => {
+    const catalogo = agrupados()
+    catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 0 })]
+    catalogo.cam = [componente({ idCom: 121, tipo: 'cami13', stock: 0 })]
+    const e = aplicar(conModelo('13', { agrupados: catalogo }), nueva('bat'), nueva('cam'))
+    expect(textoSinStock(e)).toBe('Sin stock: Batería, Cámara. Pídelas con «Solicitar pieza» o quítalas con la ×.')
+  })
+
+  it('avisoAntesDeGuardar: primero el SKU que falta, luego el sin stock, separados por salto de línea', () => {
+    const catalogo = agrupados()
+    catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 0 })]
+    const e = aplicar(conModelo('13', { agrupados: catalogo }), nueva('cha'), nueva('bat'))
+    expect(avisoAntesDeGuardar(e)).toBe(`Falta elegir el SKU de: Chasis.
+${TEXTO_1}`)
+    expect(avisoAntesDeGuardar(conModelo('13'))).toBeNull()
+  })
+
+  it('edición: una fila nueva con Nueva sobre un SKU sin stock avisa de elegir otro SKU', () => {
+    const catalogo = agrupados()
+    catalogo.cam = [componente({ idCom: 121, tipo: 'cami13', stock: 0 })]
+    const e = reducir(estadoInicial(datosEditar({ agrupados: catalogo })), nueva('cam'))
+    expect(filaNuevaSinStock(fila(e, 'cam'))).toBe(true)
+    expect(zonaGuardarVisible(e)).toBe(true)
+    expect(textoSinStock(e)).toBe('Sin stock: Cámara. Elige otro SKU o quítala con la ×.')
+  })
+
+  it('variante límite: Nueva con cantidad = stock y «Solicitar y descontar stock» → «Solicitada»; la × vuelve al principio', () => {
+    const n = reducir(conModelo('13'), nueva('lcd')) // lcdi13: stock 1 → cantidad 1
+    const s = reducir(n, { tipo: 'CONFIRMAR_AGOTADO', prefijo: 'lcd', descripcion: '' })
+    expect(fila(s, 'lcd').agotado).not.toBeNull()
+    expect(marcaPieza(fila(s, 'lcd'))).toEqual({ tipo: 'solicitada', quitar: true })
+    expect(fila(reducir(s, volver('lcd')), 'lcd')).toMatchObject({ eleccion: null, cantidad: 0, agotado: null })
   })
 })
