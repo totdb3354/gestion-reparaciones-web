@@ -146,15 +146,15 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] "Cancelar" no borra. Tras borrar se recargan la lista y la carga de técnicos.
 - [x] Mientras la confirmación está abierta el sondeo se congela (D4): una recarga movería la fila y la confirmación caería sobre otra.
 
-## Ventana "Carga de técnicos"
+## Panel "Carga de técnicos" (ventana modal hasta la 0.9.19)
 
-- [x] El botón de la cabecera abre la ventana "Carga de técnicos", con el toggle **Pedidos | Total** al lado del título y **Pedidos** activo en cada apertura (`carga-tecnicos`).
+- [x] El botón de la cabecera («Carga técnicos») y el botón «Carga» de la barra superior abren el panel "Carga de técnicos", con el toggle **Pedidos | Total** al lado del título. **Diferencia deliberada (0.9.20):** el alcance se recuerda en el navegador; ya no vuelve a Pedidos en cada apertura.
 - [x] Cambiar de alcance **no vuelve al servidor**: la respuesta trae los dos alcances y el toggle es instantáneo, como en el JavaFX (`carga-tecnicos-alcance`).
 - [x] Los datos salen de `GET /api/reparaciones/carga-tecnicos`, que exige SUPERTECNICO o ADMIN y devuelve `{ pedidos, total }`. El cálculo se ha movido del cliente al servidor sin cambiar de resultado (D3), con la suite del cliente portada tal cual.
 - [x] El día de la semana se resuelve en **Europe/Madrid**, no en la zona del proceso, o el fin de semana se desplazaría y la carga saldría a cero un día entero.
 - [x] El tramo "hecho hoy" degrada a vacío si su consulta falla: la respuesta se queda en solo-pendiente en vez de dar error, igual que la tolerancia del JavaFX.
 - [x] Una fila por técnico **activo**, con ceros para quien no tenga carga, ordenadas de mayor a menor carga del día (lo hecho más lo pendiente).
-- [x] Cada fila: nombre (110 px, negrita, recortado con elipsis) + dos barras en el mismo carril y la misma escala, saturadas al 100 % — arriba 10 px con el total del día en el color de su nivel, debajo 5 px en verde con el progreso de lo completado hoy — + el hueco fijo de 140 px con las cifras.
+- [x] Cada fila: nombre (72 px desde la 0.9.20; 110 en la ventana, negrita, recortado con elipsis) + dos barras en el mismo carril y la misma escala, saturadas al 100 % — arriba 10 px con el total del día en el color de su nivel, debajo 5 px en verde con el progreso de lo completado hoy — + el hueco fijo de 58 px (140 en la ventana) con las cifras.
 - [x] Colores por nivel del total: ≥ 90 rojo #E53935, ≥ 70 ámbar #F9A825, resto azul #1565C0; y los tonos oscuros del texto #C62828 / #B26A00 / #0D47A1. Carril #E8EAF0.
 - [x] Punto de identidad del alcance activo antes de la cifra: violeta #7B1FA2 en Pedidos, azul #1565C0 en Total.
 - [x] Cifras: el porcentaje total redondeado a entero y teñido por su nivel, con "✓ N%" en verde (#2E7D32) debajo.
@@ -162,12 +162,13 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] Tooltip de la fila: "Pendiente: … — Hecho hoy: …" con el desglose (normales · chasis · por cerrar · glass · en espera de pieza) omitiendo los ceros, el tramo vacío omitido entero y, si los dos lo están, "sin carga de cliente" en Pedidos o "sin carga" en Total. Segunda línea: "Click: ver sus asignaciones" (`carga-tecnicos-fila-resaltada`).
 - [x] El tooltip usa el plural fijo del JavaFX también con uno ("1 normales"): es calco literal, fijado con un test a propósito.
 - [x] Al pasar el ratón por la lista, **las demás filas se atenúan** y la de debajo del cursor conserva la opacidad; el hueco entre filas pertenece a alguna fila, así que no hay zona muerta que atenúe sin resaltar nada.
-- [x] Pulsar una fila **cierra la ventana y deja la tabla filtrada por ese técnico en solitario**; el resto de filtros se queda como estaba (`carga-tecnicos-click-tecnico`).
+- [x] Pulsar una fila deja la tabla **filtrada por ese técnico en solitario**; el resto de filtros se queda como estaba (`carga-tecnicos-click-tecnico`). **Diferencia deliberada (0.9.20):** el panel no se cierra, y desde otra pantalla lleva a Asignaciones con ese filtro.
 - [x] La fila entera es un botón: se puede enfocar y activar con el teclado.
-- [x] Botón "Cerrar" abajo a la derecha.
-- [x] La consulta solo se pide con la ventana abierta; no se sondea de fondo.
-- [x] Si la consulta falla, la ventana se abre con un mensaje en el hueco de la lista y **la tabla de fondo no se ve afectada**: son dos consultas independientes. El mensaje se queda dentro de la ventana, sin apilar además el diálogo de error global.
-- [x] Abrir y cerrar la ventana congela y reanuda el sondeo (D4).
+- [x] **Diferencia deliberada (0.9.20):** sin botón "Cerrar" abajo; en la cabecera, «–» minimiza a una pastilla y «×» cierra. Escape y un clic fuera no lo cierran.
+- [x] **Diferencia deliberada (0.9.20):** con el panel abierto o minimizado la carga se pide cada 30 s (5 s sin conexión) y tras cada escritura del navegador; cerrado no se pide.
+- [x] Si la consulta falla sin datos previos, el panel muestra un mensaje en el hueco de la lista y **la tabla no se ve afectada**: son dos consultas independientes. El mensaje se queda en el panel, sin apilar además el diálogo de error global.
+- [x] **Diferencia deliberada (0.9.20):** el panel no congela el sondeo de la tabla (D4): estando abierto todo el día, la tabla dejaría de refrescarse.
+- [x] **Diferencia deliberada (0.9.20):** el panel no es modal: flota sobre cualquier pantalla (supertécnico y admin), se arrastra a la esquina que se quiera y la recuerda, y con el ratón encima no se repinta.
 
 ## Diálogo "Técnicos de glass"
 
@@ -189,7 +190,7 @@ Anchos en píxeles, los `prefWidth` del FXML.
 - [x] El menú contextual se queda en **"Copiar celda"** y nada más (`asig-admin-menu`).
 - [x] La celda Técnico se muestra como **texto plano**, sin desplegable y sin ningún subtexto: el nombre y nada más, como el `setText(getNombreTecnico())` del JavaFX en solo lectura. La llegada de una glass entregada la sigue contando el badge de la columna Estado.
 - [x] Las casillas de "Técnicos de glass" salen deshabilitadas y el único botón es "Cerrar" (sin "Aceptar" ni "Cancelar").
-- [x] Los cinco filtros, "Limpiar filtros" y la ventana de carga funcionan con normalidad para el ADMIN.
+- [x] Los cinco filtros, "Limpiar filtros" y el panel de carga funcionan con normalidad para el ADMIN.
 - [x] Esto es la capa visible, no la protección: reasignar, urgente, chasis, el comentario, el borrado y los técnicos de glass exigen ya **SUPERTECNICO** en el servidor, y la carga de técnicos exige SUPERTECNICO o ADMIN.
 
 ## CSV
