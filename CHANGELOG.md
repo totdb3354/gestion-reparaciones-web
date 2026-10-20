@@ -4,6 +4,11 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.18.1] - 2026-10-XX — Stock de teléfonos: el descuadre no cuenta los de pedido
+
+- **Stock de teléfonos** (supertécnico y administrador): un móvil de pedido («Pedidos realizados») con un trabajo abierto ya no sale como descuadre. Tiene dueño, pero se repara ahí hasta que NSYS lo pone Released: sale el técnico, como en cualquier otro trabajo. El descuadre queda para un trabajo abierto de hace más de una hora con el móvil en Listos. Cambia en la tabla, en el aviso «con descuadre», en el filtro «Técnico» y en «Pegar varios IMEIs».
+- Solo web: funciona con el servidor 0.9.18. Sin migración.
+
 ## [0.9.18] - 2026-10-20 — Stock de teléfonos: quién lo tiene, SKU y revisado
 
 - **Stock de teléfonos** (supertécnico y administrador):
