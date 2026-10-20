@@ -15,7 +15,6 @@ import { opcionesCliente } from '../imeis/agrupacion'
 import { etiquetaContador } from '../lib/filtros'
 import { useAsignacionesTodas, useBorrarAsignacion } from './api'
 import { BarraFiltros } from './BarraFiltros'
-import { CargaTecnicosDialog } from './CargaTecnicosDialog'
 import { claseFilaAsignacion, crearColumnas } from './columnas'
 import { contarTecnicosPorImei } from './conteoTecnicos'
 import { CABECERAS_ASIGNACIONES, filaAsignacionCsv, NOMBRE_CSV_ASIGNACIONES } from './csv'
@@ -26,6 +25,7 @@ import { AsignarTrabajosDialog } from './modal/AsignarTrabajosDialog'
 import { TecnicosGlassDialog } from './TecnicosGlassDialog'
 import { useAccionConDeshacer } from './useAccionConDeshacer'
 import { useInteraccionesAbiertas } from '@/shared/lib/useInteraccionesAbiertas'
+import { abrirPanelCarga, recibirFiltroPorTecnico } from '@/shared/lib/panelCarga'
 
 /** Tope del contador, calco de actualizarContador() del JavaFX ("999+ asignaciones"). */
 const TOPE_CONTADOR = 999
@@ -40,7 +40,7 @@ export function AsignacionesPage() {
   // vista usa ya exigen el rol en el servidor, así que ocultar los controles es comodidad, no la protección.
   const { sesion } = useSession()
   const soloLectura = esAdmin(sesion)
-  // D4: mientras haya un menú, un desplegable, un editor o una de las dos ventanas abiertos, el sondeo se
+  // D4: mientras haya un menú, un desplegable, un editor o la ventana de técnicos de glass abiertos, el sondeo se
   // congela. `marcar` es estable entre renders (useInteraccionesAbiertas lo memoiza sin dependencias), y eso es lo
   // que exigen BarraFiltros, MenuAsignacion, useEditores y el efecto del borrado: lo llevan en las dependencias de
   // su efecto, y con una identidad nueva por render el aviso parpadearía false→true y descongelaría el sondeo a
@@ -61,9 +61,10 @@ export function AsignacionesPage() {
   // `useBorrarAsignacion` (./api), aquí solo se le pasa la fila. El diálogo también cuenta para D4: mientras esté
   // abierto el sondeo debe congelarse, o la recarga movería la fila bajo el cursor y confirmaría sobre otra.
   const [aBorrar, setABorrar] = useState<ReparacionResumen | null>(null)
-  // La ventana de carga del JavaFX: su consulta es independiente de la de la tabla, así que si falla una la otra
-  // sigue en pie (spec §14). Solo se pide con la ventana abierta.
-  const [cargaAbierta, setCargaAbierta] = useState(false)
+  // Pulsar un técnico en el panel de carga (0.9.20): el filtro de técnico con ese técnico EN SOLITARIO y el resto como
+  // estaba (calco de la ventana de antes: `idsTecFiltro.clear()` del JavaFX). Llega por un aviso de un solo uso porque el
+  // panel vive en el marco, fuera de la vista: si se pulsó desde otra pantalla, se recoge al montarse.
+  useEffect(() => recibirFiltroPorTecnico((idTec) => setFiltros((f) => ({ ...f, tecnicos: [idTec] }))), [])
   // El diálogo de técnicos de glass: se lleva la consulta de técnicos dentro, que es la misma que ya usa la vista.
   const [glassAbierto, setGlassAbierto] = useState(false)
   // El modal "Asignar trabajos" se monta solo mientras está abierto: cada apertura empieza con el estado vacío y
@@ -119,7 +120,7 @@ export function AsignacionesPage() {
         <h1 className="text-2xl font-bold text-azul-medio">Asignaciones pendientes</h1>
         <PildoraContador texto={etiquetaContador(visibles.length, 'asignación', 'asignaciones', TOPE_CONTADOR)} />
         <BotonSecundario className="ml-auto" onClick={() => setGlassAbierto(true)}>Técnicos de glass</BotonSecundario>
-        <BotonSecundario onClick={() => setCargaAbierta(true)}>Carga técnicos</BotonSecundario>
+        <BotonSecundario onClick={abrirPanelCarga}>Carga técnicos</BotonSecundario>
       </div>
       {/* Filtrado en memoria sobre lo ya cargado (spec 3a, D7): ningún control vuelve al servidor.
           `onInteraccion` es el aviso de desplegable abierto, que congela el sondeo mientras esté desplegado. */}
@@ -174,14 +175,6 @@ export function AsignacionesPage() {
           setABorrar(null)
           borrarAsignacion.mutate({ fila })
         }}
-      />
-      {/* Pulsar una fila cierra la ventana y deja el filtro de técnico puesto en ese técnico EN SOLITARIO (calco
-          del JavaFX: `idsTecFiltro.clear()` antes de añadirlo); el resto de filtros se queda como estaba. */}
-      <CargaTecnicosDialog
-        abierto={cargaAbierta}
-        onCerrar={() => setCargaAbierta(false)}
-        onFiltrarPorTecnico={(idTec) => setFiltros((f) => ({ ...f, tecnicos: [idTec] }))}
-        onInteraccion={marcar}
       />
       {/* Quién entra en la glass automática: al aceptar solo se mandan los cambios, y si alguno falla el diálogo
           se queda abierto con el aviso. Para el ADMIN los checks van deshabilitados y solo queda "Cerrar". */}

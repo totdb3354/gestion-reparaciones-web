@@ -16,6 +16,32 @@ describe('barra superior (calco de MainView)', () => {
     expect(within(screen.getByRole('banner')).getAllByRole('link').map((l) => l.getAttribute('href'))).toEqual(['/'])
     expect(screen.getByText('Hola, tecnico_n')).toBeInTheDocument()
   })
+  it('el botón «Carga» (0.9.20) va antes de la campana del supertécnico y abre y cierra el panel', async () => {
+    server.use(...handlersNotificaciones())
+    renderConProviders(<AppLayout />, { sesion: SESION_SUPER })
+    const boton = screen.getByRole('button', { name: 'Carga' })
+    const campana = await screen.findByRole('button', { name: 'Notificaciones' })
+    expect(boton.compareDocumentPosition(campana) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // De fábrica el panel sale abierto.
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()
+    expect(boton).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(boton)
+    expect(screen.queryByRole('region', { name: 'Carga de técnicos' })).not.toBeInTheDocument()
+    expect(boton).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(boton)
+    expect(screen.getByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()
+  })
+
+  it('el admin también tiene «Carga» y el panel; el técnico, ninguno de los dos', async () => {
+    const admin = renderConProviders(<AppLayout />, { sesion: SESION_ADMIN })
+    expect(screen.getByRole('button', { name: 'Carga' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Carga de técnicos' })).toBeInTheDocument()
+    admin.unmount()
+    localStorage.clear()
+    renderConProviders(<AppLayout />, { sesion: SESION_TEC })
+    expect(screen.queryByRole('button', { name: 'Carga' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Carga de técnicos' })).not.toBeInTheDocument()
+  })
   it('el menú de usuario de un técnico no tiene opciones de admin y "Descargar CSV" va deshabilitado', async () => {
     renderConProviders(<AppLayout />, { sesion: SESION_TEC })
     await userEvent.click(screen.getByRole('button', { name: /Hola, tecnico_n/ }))

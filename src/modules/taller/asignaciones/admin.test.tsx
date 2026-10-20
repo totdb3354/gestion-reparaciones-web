@@ -2,12 +2,14 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { cerrarPanelCarga } from '@/shared/lib/panelCarga'
 import type { Sesion } from '@/shared/session/storage'
 import { TEXTO_COPIAR_CELDA } from '@/shared/ui/MenuCopiarCelda'
 import { renderConProviders, SESION_ADMIN, SESION_SUPER } from '@/test/render'
 import { server } from '@/test/server'
 import { filaCarga, resumen, tecnico } from '../test/fabrica'
 import { AsignacionesPage } from './AsignacionesPage'
+import { PanelCarga } from './panel/PanelCarga'
 
 // Dos filas bastan para lo que se mira aquí (qué controles hay y cuáles no); el orden y el contenido de la tabla
 // ya los cubre AsignacionesPage.test.tsx.
@@ -100,8 +102,15 @@ describe('AsignacionesPage · el ADMIN entra en solo lectura', () => {
     expect(screen.queryByRole('button', { name: 'Aceptar' })).not.toBeInTheDocument()
   })
 
-  it('los filtros y la ventana de carga siguen funcionando', async () => {
-    abrir(SESION_ADMIN)
+  it('los filtros y el panel de carga siguen funcionando', async () => {
+    cerrarPanelCarga()
+    renderConProviders(
+      <>
+        <AsignacionesPage />
+        <PanelCarga />
+      </>,
+      { sesion: SESION_ADMIN, ruta: '/reparaciones/asignaciones' },
+    )
     await screen.findByText('A20260916_1')
     expect(screen.getByText('2 asignaciones')).toBeInTheDocument()
 
@@ -110,12 +119,12 @@ describe('AsignacionesPage · el ADMIN entra en solo lectura', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
     expect(await screen.findByText('2 asignaciones')).toBeInTheDocument()
 
-    // La ventana de carga no escribe nada, así que el ADMIN la abre igual que el supertécnico. El ADMIN no tiene
-    // técnico en sesión (idTec null) y la lista no lo usa para nada: sale la de todos los técnicos activos.
+    // El panel de carga no escribe nada, así que el ADMIN lo abre igual que el supertécnico. El ADMIN no tiene técnico en
+    // sesión (idTec null) y la lista no lo usa para nada: sale la de todos los técnicos activos.
     await userEvent.click(screen.getByRole('button', { name: 'Carga técnicos' }))
-    const ventana = await screen.findByRole('dialog')
-    expect(await within(ventana).findByRole('list', { name: 'Carga por técnico' })).toBeInTheDocument()
-    expect(within(ventana).getByText('Técnico A')).toBeInTheDocument()
+    const panel = await screen.findByRole('region', { name: 'Carga de técnicos' })
+    expect(await within(panel).findByRole('list', { name: 'Carga por técnico' })).toBeInTheDocument()
+    expect(within(panel).getByText('Técnico A')).toBeInTheDocument()
   })
 })
 
