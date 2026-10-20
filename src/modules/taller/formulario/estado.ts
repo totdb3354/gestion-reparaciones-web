@@ -763,7 +763,7 @@ function pedirConfirmacionAccion(estado: EstadoFormulario, id: number): EstadoFo
 // ───────────────────────────── Reductor: zona de guardar ─────────────────────────────
 
 function pedirConfirmacionGuardar(estado: EstadoFormulario): EstadoFormulario {
-  if (!zonaGuardarVisible(estado) || estado.guardado.enCurso || estado.guardado.clics === 1 || textoFaltaSku(estado) !== null) return estado
+  if (!zonaGuardarVisible(estado) || estado.guardado.enCurso || estado.guardado.clics === 1 || avisoAntesDeGuardar(estado) !== null) return estado
   return { ...estado, guardado: { ...estado.guardado, clics: 1, textoConfirmacion: true } }
 }
 
@@ -867,7 +867,7 @@ export type MarcaPieza = { tipo: 'nueva' | 'reutilizada' | 'solicitada'; quitar:
 export function marcaPieza(fila: FilaEstado): MarcaPieza | null {
   const quitar = fila.guardada === null && !fila.guardando && fila.rol !== 'yaReparado' && fila.agotado?.registrado !== true
   if (fila.eleccion === 'reutilizada') return { tipo: 'reutilizada', quitar }
-  if (fila.eleccion === 'nueva') return { tipo: fila.agotado !== null && fila.cantidad === 0 ? 'solicitada' : 'nueva', quitar }
+  if (fila.eleccion === 'nueva') return { tipo: fila.agotado !== null ? 'solicitada' : 'nueva', quitar }
   return null
 }
 
@@ -889,6 +889,30 @@ export function filasElegidasSinSku(e: EstadoFormulario): FilaEstado[] {
 export function textoFaltaSku(e: EstadoFormulario): string | null {
   const faltan = filasElegidasSinSku(e)
   return faltan.length === 0 ? null : `Falta elegir el SKU de: ${faltan.map((f) => f.nombre).join(', ')}.`
+}
+
+/** «Nueva» sobre un SKU sin stock, sin solicitud: no se guardaría nada y la marca dice «+ Nueva» (spec 0.9.19 §2, ajuste del
+ *  20/10). No deja terminar: hay que pedirla o quitarla. */
+export function filaNuevaSinStock(fila: FilaEstado): boolean {
+  return fila.guardada === null && fila.eleccion === 'nueva' && fila.idCom !== null && fila.cantidad === 0 && fila.agotado === null
+}
+
+/** Aviso de las filas Nueva sin stock, o null. En edición no se pueden pedir piezas: se pide otro SKU. */
+export function textoSinStock(e: EstadoFormulario): string | null {
+  const filas = e.filas.filter(filaNuevaSinStock)
+  if (filas.length === 0) return null
+  const nombres = filas.map((f) => f.nombre).join(', ')
+  const una = filas.length === 1
+  return e.modo === 'editar'
+    ? `Sin stock: ${nombres}. Elige otro SKU o ${una ? 'quítala' : 'quítalas'} con la ×.`
+    : `Sin stock: ${nombres}. ${una ? 'Pídela' : 'Pídelas'} con «Solicitar pieza» o ${una ? 'quítala' : 'quítalas'} con la ×.`
+}
+
+/** Lo que impide guardar y se avisa al pulsar «Terminar asignación» / «Guardar cambios»: SKU que falta y Nueva sin stock, cada
+ *  uno en su línea; null si no hay nada. */
+export function avisoAntesDeGuardar(e: EstadoFormulario): string | null {
+  const avisos = [textoFaltaSku(e), textoSinStock(e)].filter((t): t is string => t !== null)
+  return avisos.length === 0 ? null : avisos.join('\n')
 }
 
 export function reducir(estado: EstadoFormulario, accion: AccionFormulario): EstadoFormulario {
@@ -1118,7 +1142,7 @@ function accionesPendientes(e: EstadoFormulario): OtraAccion[] {
 export function zonaGuardarVisible(e: EstadoFormulario): boolean {
   if (e.modo === 'editar') return zonaVisibleEnEdicion(e)
   return (
-    e.filas.some((f) => f.guardada !== null || filaActiva(f) || filaElegidaSinSku(f)) ||
+    e.filas.some((f) => f.guardada !== null || filaActiva(f) || filaElegidaSinSku(f) || filaNuevaSinStock(f)) ||
     e.otros.some((a) => a.guardada !== null) ||
     accionesPendientes(e).length > 0
   )
@@ -1175,7 +1199,7 @@ function zonaVisibleEnEdicion(e: EstadoFormulario): boolean {
   if (filaEditadaInvalida(e) || accionEditadaInvalida(e)) return false
   return (
     hayCambioEnFilaEditada(e) || hayCambioEnAccionEditada(e) || filasNuevasEnEdicion(e).length > 0 || accionesPendientes(e).length > 0 ||
-    e.filas.some((f) => f.rol === 'normal' && filaElegidaSinSku(f))
+    e.filas.some((f) => f.rol === 'normal' && (filaElegidaSinSku(f) || filaNuevaSinStock(f)))
   )
 }
 

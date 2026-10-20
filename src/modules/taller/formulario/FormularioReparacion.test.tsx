@@ -299,8 +299,8 @@ describe('FormularioReparacion · solicitud de pieza y solicitudes ya guardadas'
     const { llamadas } = abrir()
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 14')
-    // 0.9.19: sin ningún SKU con stock, «Solicitar Batería» en la celda del SKU abre el diálogo (no hay banda en una fila sin tocar).
-    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar Batería' }))
+    // 0.9.19: sin ningún SKU con stock, «Solicitar pieza Batería» en la celda del SKU abre el diálogo (no hay banda en una fila sin tocar).
+    await userEvent.click(within(screen.getByTestId('fila-bat')).getByRole('button', { name: 'Solicitar pieza Batería' }))
     await userEvent.click(within(await screen.findByRole('dialog', { name: 'Solicitar pieza — Batería' })).getByRole('button', { name: 'Confirmar: solicitar pieza' }))
     const sub = screen.getByTestId('subfila-bat')
     expect(sub).toHaveAttribute('data-variante', 'confirmada')

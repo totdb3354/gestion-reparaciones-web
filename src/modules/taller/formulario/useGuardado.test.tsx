@@ -5,7 +5,7 @@ import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { agrupados, detalleEdicion } from '../test/fabrica'
+import { agrupados, componente, detalleEdicion } from '../test/fabrica'
 import { estadoInicial, reducir, textoBotonGuardar, zonaGuardarVisible, type AccionFormulario, type DatosEditar, type DatosNuevo, type EstadoFormulario } from './estado'
 import { sumarOElegir } from './test/acciones'
 import { conRegistro, type LlamadaRegistrada } from './test/handlers'
@@ -693,6 +693,32 @@ describe('useGuardado · fila elegida sin SKU (0.9.19)', () => {
     await userEvent.click(screen.getByTestId('guardar'))
     const aviso = await screen.findByRole('dialog', { name: 'Error' })
     expect(within(aviso).getByText('Falta elegir el SKU de: Chasis.')).toBeInTheDocument()
+    expect(escrituras(llamadas)).toEqual([])
+  })
+})
+
+/** Batería Nueva sobre un SKU sin stock y sin pedir (modelo 13 con bati13 a 0). */
+function ArnesNuevaSinStock() {
+  const [estado, dispatch] = useReducer(reducir, DATOS, (d) => {
+    const catalogo = agrupados()
+    catalogo.bat = [componente({ idCom: 101, tipo: 'bati13', stock: 0 })]
+    return reducir(estadoInicial({ ...d, agrupados: catalogo }), { tipo: 'ELEGIR', prefijo: 'bat', eleccion: 'nueva' })
+  })
+  const { pulsarGuardar } = useGuardado({ estado, dispatch, onGuardado: () => {} })
+  return <button data-testid="guardar" onClick={pulsarGuardar}>{textoBotonGuardar(estado)}</button>
+}
+
+describe('useGuardado · Nueva sin stock y sin pedir (0.9.19)', () => {
+  it('no pasa a confirmar: avisa «Sin stock: Batería. …» y no escribe nada', async () => {
+    const { handlers, llamadas } = conRegistro()
+    server.use(...handlers)
+    renderConProviders(<ArnesNuevaSinStock />, { sesion: SESION_TEC })
+    await userEvent.click(screen.getByTestId('guardar'))
+    const aviso = await screen.findByRole('dialog', { name: 'Error' })
+    expect(within(aviso).getByText('Sin stock: Batería. Pídela con «Solicitar pieza» o quítala con la ×.')).toBeInTheDocument()
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByTestId('guardar')).toHaveTextContent('Terminar asignación')
+    expect(screen.getByTestId('guardar')).not.toHaveTextContent('Confirmar terminar')
     expect(escrituras(llamadas)).toEqual([])
   })
 })
