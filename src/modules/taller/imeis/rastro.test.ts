@@ -52,4 +52,16 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
       .toBe('Revisado (devolución) el 17/10/2026, hacia las 10:31')
     expect(textoRevision(sin, ahora)).toBeNull()
   })
+
+  it('lo del taller (spec 0.9.21 §2.4)', () => {
+    const taller = (p: Parameters<typeof eventoRastro>[0]) =>
+      eventoRastro({ fuente: 'TALLER', lote: null, aNsys: null, tecnico: 'Imad', origen: 'MANO', ...p })
+    expect(verEvento(taller({ tipo: 'TALLER_CAMBIO', dato: 'COLOR', de: 'Azul', a: 'Rojo', motivo: 'chasis rojo' })))
+      .toMatchObject({ titulo: 'Taller: color Azul → Rojo (a mano · Imad · «chasis rojo»)', detalle: null, color: 'bg-taller' })
+    expect(verEvento(taller({ tipo: 'TALLER_VUELTA', dato: 'GRADO', de: 'A100', a: 'B', motivo: null })).titulo)
+      .toBe('Vuelve a lo de NSYS: grado A100 → B (a mano · Imad)')
+    expect(verEvento(taller({ tipo: 'TALLER_PASADO', dato: 'GRADO', de: 'A100', a: 'A100' })).titulo).toBe('Pasado a NSYS: grado A100')
+    expect(verEvento(taller({ tipo: 'TALLER_MANDA_NSYS', dato: 'COLOR', de: 'Rojo', a: 'Verde' })).titulo)
+      .toBe('Manda NSYS: color Verde (el del taller, Rojo, deja de valer)')
+  })
 })

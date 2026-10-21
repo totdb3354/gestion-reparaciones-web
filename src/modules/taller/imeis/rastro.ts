@@ -8,6 +8,16 @@ export type EventoVisible = { fecha: string; titulo: string; detalle: string | n
 const CATEGORIA: Record<string, string> = { GLASS: 'glass', PULIDO: 'pulido', REPARACION: 'reparación' }
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
+/** 0.9.21 (spec «SKU del taller» §2.4): los cambios del taller por encima de NSYS. */
+const DATO: Record<string, string> = { COLOR: 'color', GRADO: 'grado' }
+const ORIGEN: Record<string, string> = { MANO: 'a mano', REPARACION: 'por una reparación' }
+const dato = (e: EventoRastro) => DATO[e.dato ?? ''] ?? 'dato'
+
+/** «(a mano · Imad · «motivo»)»: cómo, quién y por qué; sin motivo, el paréntesis acaba en el nombre. */
+function comoTaller(e: EventoRastro): string {
+  return `(${[ORIGEN[e.origen ?? ''] ?? 'a mano', e.tecnico ?? '—', e.motivo ? `«${e.motivo}»` : null].filter(Boolean).join(' · ')})`
+}
+
 export function fechaRastro(iso: string, soloDia: boolean): string {
   const dia = diaNsys(iso)
   return soloDia ? dia : `${dia} ${iso.slice(11, 16)}`
@@ -55,6 +65,14 @@ export function verEvento(e: EventoRastro): EventoVisible {
       return { fecha, titulo: `Trabajo de ${CATEGORIA[e.categoria ?? ''] ?? 'taller'} asignado a ${e.tecnico ?? '—'}`, detalle: null, color: 'bg-tipo-reparacion-text' }
     case 'TRABAJO_TERMINADO':
       return { fecha, titulo: `${mayuscula(CATEGORIA[e.categoria ?? ''] ?? 'trabajo')} terminado`, detalle: e.tecnico, color: 'bg-tipo-reparacion-text' }
+    case 'TALLER_CAMBIO':
+      return { fecha, titulo: `Taller: ${dato(e)} ${e.de ?? '—'} → ${e.a ?? '—'} ${comoTaller(e)}`, detalle: null, color: 'bg-taller' }
+    case 'TALLER_VUELTA':
+      return { fecha, titulo: `Vuelve a lo de NSYS: ${dato(e)} ${e.de ?? '—'} → ${e.a ?? '—'} ${comoTaller(e)}`, detalle: null, color: 'bg-taller' }
+    case 'TALLER_PASADO':
+      return { fecha, titulo: `Pasado a NSYS: ${dato(e)} ${e.a ?? e.de ?? '—'}`, detalle: null, color: 'bg-fila-recibido-brd' }
+    case 'TALLER_MANDA_NSYS':
+      return { fecha, titulo: `Manda NSYS: ${dato(e)} ${e.a ?? '—'} (el del taller, ${e.de ?? '—'}, deja de valer)`, detalle: null, color: 'bg-ambar' }
     default:
       return { fecha, titulo: e.tipo, detalle: null, color: 'bg-gris-borde' }
   }
