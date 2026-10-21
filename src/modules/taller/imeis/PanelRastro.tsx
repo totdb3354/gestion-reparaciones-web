@@ -6,7 +6,7 @@ import { hayAntesDelHistorico, NOTA_ANTES_DEL_HISTORICO, verEvento } from './ras
 
 const LEYENDA: [string, string][] = [
   ['bg-texto-suave', 'Lote'], ['bg-ambar', 'Revisión'], ['bg-tipo-reparacion-text', 'Taller'], ['bg-fila-recibido-brd', 'Listos'],
-  ['bg-fila-urgente-brd', 'De pedido'], ['bg-azul-noche', 'Vendido'], ['bg-fila-solicitud-brd', 'Devolución'], ['bg-gris-borde', 'No cuenta como stock'],
+  ['bg-fila-urgente-brd', 'De pedido'], ['bg-azul-noche', 'Vendido'], ['bg-fila-solicitud-brd', 'Devolución'], ['bg-gris-borde', 'No cuenta como stock'], ['bg-taller', 'Lo del taller'],
 ]
 
 /** La marca del evento de revisión (0.9.18, spec §5.3): un círculo verde con un ✓, en el rastro y en la leyenda. */
@@ -63,7 +63,8 @@ export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo }: Props) {
                   : <span aria-hidden className={cn('absolute top-[3px] -left-[35px] h-3.5 w-3.5 rounded-full border-[3px] border-superficie', v.color)} />}
                 <div className="text-[11px] font-bold text-azul-gris">
                   {v.fecha}
-                  <span className={cn('ml-1.5 rounded px-1.5 text-[9.5px] font-extrabold', e.fuente === 'ERP' ? 'bg-recibido-bg text-recibido-text' : 'bg-badge-neutro-bg text-azul-gris')}>{e.fuente}</span>
+                  <span className={cn('ml-1.5 rounded px-1.5 text-[9.5px] font-extrabold', e.fuente === 'ERP' ? 'bg-recibido-bg text-recibido-text'
+                    : e.fuente === 'TALLER' ? 'bg-taller-bg text-taller-text' : 'bg-badge-neutro-bg text-azul-gris')}>{e.fuente}</span>
                 </div>
                 {idRep
                   ? <button type="button" onClick={() => onIrATrabajo(idRep)} className="cursor-pointer text-left text-[13px] font-bold text-azul-noche underline decoration-dotted">{v.titulo}</button>

@@ -5,6 +5,7 @@ import { avisar } from '@/shared/ui/avisos'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/dialog'
+import { MarcaTaller } from '@/shared/ui/MarcaTaller'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { MAX_IMEIS, useComprobarImeis } from '../api'
 import { CeldaQuien } from './CeldaQuien'
@@ -94,8 +95,8 @@ function Contenido({ textoInicial, onAbrirImei }: { textoInicial: string; onAbri
                         ) : f.linea.texto}
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap">{m ? modeloYCapacidad(m) : ''}</td>
-                      <td className="px-2 py-1">{m?.color ?? ''}</td>
-                      <td className="px-2 py-1">{m && <PildoraGrado grado={m.grado} />}</td>
+                      <td className="px-2 py-1">{m && <MarcaTaller nsys={m.colorNsys}>{m.color ?? ''}</MarcaTaller>}</td>
+                      <td className="px-2 py-1">{m && <MarcaTaller nsys={m.gradoNsys}><PildoraGrado grado={m.grado} /></MarcaTaller>}</td>
                       <td className="px-2 py-1">{m?.ubicacion && <span className={cn(CLASES_PILDORA, clasesUbicacion(m.ubicacion))}>{m.ubicacion}</span>}</td>
                       <td className="px-2 py-1">{m && <CeldaQuien quien={quienLoTiene({ ubicacion: m.ubicacion, estado: m.estado ?? '', trabajos: m.trabajos }, ahora)} />}</td>
                       <td className={cn('px-2 py-1 font-bold whitespace-nowrap', falta && 'text-fila-urgente-brd', m && m.estado !== 'STOCK' && 'text-fila-solicitud-brd')}>{textoEstado(f)}</td>

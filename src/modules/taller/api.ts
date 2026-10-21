@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Cliente, type ContadoresPendientes, type ReparacionResumen, type ResultadoEntregaGlass, type Tecnico, type TrabajoCerrado } from '@/shared/api/client'
+import { CLAVE_FICHA_MOVIL, CLAVE_POR_PASAR_NSYS, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { useSession } from '@/shared/session/SessionProvider'
 import { esAdmin, esSuperTecnico } from '@/shared/session/storage'
@@ -198,8 +199,9 @@ export function useCorregirCliente() {
     onSettled: recargar,
   })
 }
+/** Borrar una R… cambia el color y el grado del móvil (0.9.21): recarga también su ficha, rastro, stock y «Por pasar a NSYS». */
 export function useBorrarReparacion() {
-  const recargar = useRecargarSinEsperar(...HISTORIALES)
+  const recargar = useRecargarSinEsperar(...HISTORIALES, CLAVE_FICHA_MOVIL, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_POR_PASAR_NSYS)
   return useMutation({
     mutationFn: ({ idRep, motivo }: { idRep: string; motivo: string }) =>
       api.DELETE('/api/reparaciones/{idRep}', { params: { path: { idRep } }, body: { motivo } }),

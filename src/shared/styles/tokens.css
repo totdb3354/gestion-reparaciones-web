@@ -168,4 +168,9 @@
   /* Aviso breve (spec 2026-10-13 §2.7): iconos «i» (informativo) y «!» (ámbar, caso de seguridad). El «✓» usa verde-ok. */
   --color-aviso-info: #8FA3C2;
   --color-aviso-warn: #F5B942;
+  /* SKU del taller (0.9.21, prototipo «SKU del taller»): la marca «taller», el punto y la fuente TALLER del rastro, la vista
+     previa del diálogo «Corregir…» y el texto de «Por pasar a NSYS». */
+  --color-taller: #7C3AED;
+  --color-taller-bg: #F1EAFE;
+  --color-taller-text: #6D28D9;
 }

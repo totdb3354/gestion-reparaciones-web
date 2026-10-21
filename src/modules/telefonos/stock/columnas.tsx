@@ -1,6 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { clasesUbicacion, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
+import { clasesUbicacion, SIN_SKU_MAESTRO, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
+import { MarcaTaller } from '@/shared/ui/MarcaTaller'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { CeldaQuien } from './CeldaQuien'
 import { capacidadDe, muestraColor, partesSku, textoCapacidad, type FiltroSku, type Movil } from './modelo'
@@ -14,7 +15,8 @@ export type OpcionesColumnas = { conCapacidad?: boolean; sku?: FiltroSku | null 
 
 /** Columnas de la tabla de móviles (0.9.18, spec §4.6): IMEI · (Cap.) · Color · Grado (con «100» si la batería es nueva y
  *  «eSIM») · SKU · Ubicación (con «NO CUENTA · …» si no cuenta como stock) · Quién lo tiene · Días. El IMEI es un botón
- *  que abre el detalle. */
+ *  que abre el detalle. Desde la 0.9.21 (spec «SKU del taller» §2.4), color, grado y SKU son los que valen: si el taller los
+ *  cambia, llevan la marca «taller» y, debajo, lo de NSYS. */
 export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad = false, sku = null }: OpcionesColumnas = {}): ColumnDef<Movil>[] {
   const imei: ColumnDef<Movil> = {
     id: 'imei', header: 'IMEI', size: 125, maxSize: 160,
@@ -31,21 +33,25 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
       // En línea (no flex), para que la celda corte con «…» un color largo a 1366; el nombre entero, al pasar el ratón.
       id: 'color', header: 'Color', size: 90,
       cell: ({ row }) => (
-        <span title={row.original.color ?? undefined}>
-          <span aria-hidden className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full border border-pill-borde align-[-1px]" style={{ background: muestraColor(row.original.color) }} />
-          {row.original.color ?? '—'}
-        </span>
+        <MarcaTaller nsys={row.original.colorNsys}>
+          <span title={row.original.color ?? undefined}>
+            <span aria-hidden className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full border border-pill-borde align-[-1px]" style={{ background: muestraColor(row.original.color) }} />
+            {row.original.color ?? '—'}
+          </span>
+        </MarcaTaller>
       ),
     },
     {
       // Si no caben las marcas, la celda las corta con «…»: al pasar el ratón se leen todas.
       id: 'grado', header: 'Grado', size: 95, maxSize: 120,
       cell: ({ row }) => (
-        <span title={[row.original.grado ?? '—', row.original.bateriaNueva && 'batería nueva', row.original.esEsim && 'eSIM'].filter(Boolean).join(' · ')}>
-          <PildoraGrado grado={row.original.grado} />
-          {row.original.bateriaNueva && <span title="Batería nueva" className={cn(MARCA, 'border-fila-recibido-brd text-fila-recibido-brd')}>100</span>}
-          {row.original.esEsim && <span className={cn(MARCA, 'border-pill-borde text-azul-gris')}>eSIM</span>}
-        </span>
+        <MarcaTaller nsys={row.original.gradoNsys}>
+          <span title={[row.original.grado ?? '—', row.original.bateriaNueva && 'batería nueva', row.original.esEsim && 'eSIM'].filter(Boolean).join(' · ')}>
+            <PildoraGrado grado={row.original.grado} />
+            {row.original.bateriaNueva && <span title="Batería nueva" className={cn(MARCA, 'border-fila-recibido-brd text-fila-recibido-brd')}>100</span>}
+            {row.original.esEsim && <span className={cn(MARCA, 'border-pill-borde text-azul-gris')}>eSIM</span>}
+          </span>
+        </MarcaTaller>
       ),
     },
     {
@@ -53,10 +59,14 @@ export function columnasMoviles(abrir: (imeiSn: string) => void, { conCapacidad 
       cell: ({ row }) => {
         const valor = row.original.sku
         const partes = valor ? partesSku(valor, sku) : null
+        // Sin SKU por un cambio del taller (el maestro no lo da): «sin SKU en el maestro»; sin SKU de NSYS, la raya de siempre.
+        const vacio = row.original.skuNsys != null ? <i className="font-sans text-fila-solicitud-brd">{SIN_SKU_MAESTRO}</i> : '—'
         return (
-          <span className="font-mono text-[11.5px]" title={valor ?? undefined}>
-            {partes ? <><mark className="bg-amarillo/60 text-azul-noche">{partes[0]}</mark>{partes[1]}</> : (valor ?? '—')}
-          </span>
+          <MarcaTaller nsys={row.original.skuNsys}>
+            <span className="font-mono text-[11.5px]" title={valor ?? undefined}>
+              {partes ? <><mark className="bg-amarillo/60 text-azul-noche">{partes[0]}</mark>{partes[1]}</> : (valor ?? vacio)}
+            </span>
+          </MarcaTaller>
         )
       },
     },

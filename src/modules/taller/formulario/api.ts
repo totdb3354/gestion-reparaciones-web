@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, type UseMutationResult, type Use
 import {
   api, type AgotarRequest, type AsignacionActiva, type EditarReparacionRequest, type GuardarFilaRequest, type InsertarCompletaRequest,
 } from '@/shared/api/client'
+import { CLAVE_FICHA_MOVIL, CLAVE_POR_PASAR_NSYS, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
 import { MSG_NO_ENCONTRADO, NoEncontradoError, PermisoError } from '@/shared/api/errors'
 import { CLAVE_CONTADORES, claveAsignaciones, claveHistorial } from '../api'
 import type { DatosEditar, DatosNuevo } from './estado'
@@ -174,10 +175,12 @@ export async function idsReparacionesDelImei(imei: string): Promise<string[]> {
 const CLAVES_AL_CERRAR: readonly (readonly unknown[])[] = [
   claveAsignaciones('REPARACION'), claveAsignaciones('GLASS'), claveAsignaciones('PULIDO'), CLAVE_CONTADORES,
   claveHistorial('REPARACION'), claveHistorial('GLASS'), claveHistorial('PULIDO'), CLAVE_NOTIF,
+  // 0.9.21: editar una R… cambia el color y el grado del móvil; el detalle del IMEI sigue montado debajo del formulario.
+  CLAVE_FICHA_MOVIL, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_POR_PASAR_NSYS,
 ]
 
 /** Al cerrar el formulario, se haya guardado o no: recarga la lista de debajo (pendientes e historiales), los contadores de
- *  Pendientes y la campana. Lanza las recargas y no las espera: cerrar no debe quedarse colgado de la red. */
+ *  Pendientes, la campana y lo del móvil en NSYS (ficha, rastro, stock y «Por pasar»). Lanza las recargas y no las espera: cerrar no debe quedarse colgado de la red. */
 export function useRecargarAlCerrar(): () => void {
   const qc = useQueryClient()
   return useCallback(() => {

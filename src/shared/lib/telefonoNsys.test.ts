@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil } from './telefonoNsys'
+import { clasesUbicacion, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -43,5 +43,13 @@ describe('textoGrado', () => {
     expect(diasDesdeNsys('2026-10-17', ahora)).toBe(0)
     expect(diasDesdeNsys('2026-10-20', ahora)).toBe(0)
     expect(diasDesdeNsys('2026-09-17', ahora)).toBe(30)
+  })
+})
+
+describe('lo que hay que poner en NSYS (0.9.21)', () => {
+  it('producto y grado; sin producto, buscarlo a mano', () => {
+    expect(textoPoner('Apple iPhone 13 128GB Blue', 'A100')).toBe('Apple iPhone 13 128GB Blue · grado A100')
+    expect(textoPoner(null, 'B')).toBe('(ningún móvil de ese color en NSYS: búscalo a mano) · grado B')
+    expect(textoPoner('Apple iPhone 13 128GB Blue', null)).toBe('Apple iPhone 13 128GB Blue · grado —')
   })
 })

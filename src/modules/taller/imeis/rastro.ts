@@ -8,6 +8,27 @@ export type EventoVisible = { fecha: string; titulo: string; detalle: string | n
 const CATEGORIA: Record<string, string> = { GLASS: 'glass', PULIDO: 'pulido', REPARACION: 'reparación' }
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
+/** 0.9.21 (spec «SKU del taller»): los cambios del taller por encima de NSYS (pieza 1) y lo que hacen las reparaciones
+ *  (pieza 2). */
+const DATO: Record<string, string> = { COLOR: 'color', GRADO: 'grado' }
+const dato = (e: EventoRastro) => DATO[e.dato ?? ''] ?? 'dato'
+
+/** «(a mano · Supertécnico 1 · «motivo»)» o, desde una reparación, «(reparación R… · Técnico 2 · chasis chai13red nuevo)»: cómo,
+ *  quién y por qué (la pieza, sin comillas); sin motivo, el paréntesis acaba en el nombre. */
+function comoTaller(e: EventoRastro): string {
+  const partes = e.origen === 'REPARACION'
+    ? [`reparación ${e.idRep ?? '—'}`, e.tecnico ?? '—', e.motivo]
+    : ['a mano', e.tecnico ?? '—', e.motivo ? `«${e.motivo}»` : null]
+  return `(${partes.filter(Boolean).join(' · ')})`
+}
+
+/** Los avisos de la pieza 2 sin la pieza: «(reparación R… · Técnico 2)». */
+const deReparacion = (e: EventoRastro) => `(reparación ${e.idRep ?? '—'} · ${e.tecnico ?? '—'})`
+/** «del chasis chai13xxx» o «de la tapa tapai13xxx», por el prefijo del SKU. */
+const delaPieza = (sku: string | null) => ((sku ?? '').toLowerCase().startsWith('tapa') ? `de la tapa ${sku}` : `del chasis ${sku ?? '—'}`)
+/** «borró» o «editó», por la causa del tipo (…_BORRADA o …_EDITADA). */
+const causa = (e: EventoRastro) => (e.tipo.endsWith('_BORRADA') ? 'borró' : 'editó')
+
 export function fechaRastro(iso: string, soloDia: boolean): string {
   const dia = diaNsys(iso)
   return soloDia ? dia : `${dia} ${iso.slice(11, 16)}`
@@ -55,6 +76,24 @@ export function verEvento(e: EventoRastro): EventoVisible {
       return { fecha, titulo: `Trabajo de ${CATEGORIA[e.categoria ?? ''] ?? 'taller'} asignado a ${e.tecnico ?? '—'}`, detalle: null, color: 'bg-tipo-reparacion-text' }
     case 'TRABAJO_TERMINADO':
       return { fecha, titulo: `${mayuscula(CATEGORIA[e.categoria ?? ''] ?? 'trabajo')} terminado`, detalle: e.tecnico, color: 'bg-tipo-reparacion-text' }
+    case 'TALLER_CAMBIO':
+      return { fecha, titulo: `Taller: ${dato(e)} ${e.de ?? '—'} → ${e.a ?? '—'} ${comoTaller(e)}`, detalle: null, color: 'bg-taller' }
+    case 'TALLER_VUELTA':
+      return { fecha, titulo: `Vuelve a lo de NSYS: ${dato(e)} ${e.de ?? '—'} → ${e.a ?? '—'} ${comoTaller(e)}`, detalle: null, color: 'bg-taller' }
+    case 'TALLER_PASADO':
+      return { fecha, titulo: `Pasado a NSYS: ${dato(e)} ${e.a ?? e.de ?? '—'}`, detalle: null, color: 'bg-fila-recibido-brd' }
+    case 'TALLER_MANDA_NSYS':
+      return { fecha, titulo: `Manda NSYS: ${dato(e)} ${e.a ?? '—'} (el del taller, ${e.de ?? '—'}, deja de valer)`, detalle: null, color: 'bg-ambar' }
+    case 'TALLER_SIN_COLOR':
+      return { fecha, titulo: `Taller: el color ${delaPieza(e.de)} no se puede deducir: lo corregirá un supertécnico ${deReparacion(e)}`, detalle: null, color: 'bg-ambar' }
+    case 'TALLER_SIN_GRADO':
+      return { fecha, titulo: `Taller: el grado (${e.de ?? '—'}) no se puede calcular: lo corregirá un supertécnico ${comoTaller(e)}`, detalle: null, color: 'bg-ambar' }
+    case 'TALLER_DESHECHO_BORRADA':
+    case 'TALLER_DESHECHO_EDITADA':
+      return { fecha, titulo: `Se deshace: ${dato(e)} ${e.de ?? '—'} → ${e.a ?? '—'} (se ${causa(e)} la reparación ${e.idRep ?? '—'} · ${e.tecnico ?? '—'})`, detalle: null, color: 'bg-taller' }
+    case 'TALLER_SIN_DESHACER_BORRADA':
+    case 'TALLER_SIN_DESHACER_EDITADA':
+      return { fecha, titulo: `Se ${causa(e)} la reparación ${e.idRep ?? '—'} que cambió el ${dato(e)}; corrígelo a mano si hace falta (${e.tecnico ?? '—'})`, detalle: null, color: 'bg-ambar' }
     default:
       return { fecha, titulo: e.tipo, detalle: null, color: 'bg-gris-borde' }
   }

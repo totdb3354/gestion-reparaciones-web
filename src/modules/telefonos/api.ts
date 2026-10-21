@@ -1,15 +1,16 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
-import { api, type EstadoNsys, type ListaImportaciones, type MovilComprobado, type MovilStock } from '@/shared/api/client'
+import { api, type EstadoNsys, type FilaPorPasar, type ListaImportaciones, type MovilComprobado, type MovilStock } from '@/shared/api/client'
+import { CLAVE_POR_PASAR_NSYS, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 
-export const CLAVE_STOCK_TELEFONOS = ['telefonos', 'stock'] as const
 export const CLAVE_ESTADO_NSYS = ['telefonos', 'estado'] as const
 export const CLAVE_IMPORTACIONES_NSYS = ['telefonos', 'importaciones'] as const
 /** Como mucho los IMEIs que se comprueban de una vez (spec 0.9.18 §4.9; el servidor da 400 por encima). */
 export const MAX_IMEIS = 500
 
-/** GET /api/stock-telefonos: los móviles que están en la empresa, con sus trabajos abiertos (0.9.18). Los filtros se
- *  aplican en la pantalla (spec §8). Sondea como las demás vistas: la importación trae datos nuevos cada 5 min. */
+/** GET /api/stock-telefonos: los móviles que están en la empresa, con sus trabajos abiertos (0.9.18) y lo que vale del taller
+ *  (0.9.21). Los filtros se aplican en la pantalla (spec §8). Sondea como las demás vistas: la importación trae datos nuevos
+ *  cada 5 min. */
 export function useStockTelefonos(): UseQueryResult<MovilStock[]> {
   const intervalo = useIntervaloRefresco(true)
   return useQuery({
@@ -59,6 +60,18 @@ export function useComprobarImeis(imeis: string[]): UseQueryResult<MovilComproba
     staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,
+    meta: { sinCapa: true },
+  })
+}
+
+/** GET /api/stock-telefonos/por-pasar (spec 0.9.21 §2.4): lo que hay que cambiar a mano en NSYS, para la pestaña y su número.
+ *  Sondea como el stock: la lista se vacía sola con cada importación. */
+export function usePorPasarNsys(): UseQueryResult<FilaPorPasar[]> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: CLAVE_POR_PASAR_NSYS,
+    queryFn: async () => (await api.GET('/api/stock-telefonos/por-pasar')).data ?? [],
+    refetchInterval: intervalo,
     meta: { sinCapa: true },
   })
 }

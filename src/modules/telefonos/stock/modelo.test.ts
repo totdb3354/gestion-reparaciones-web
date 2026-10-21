@@ -209,3 +209,13 @@ describe('stock de teléfonos: tabla color × grado (spec 0.9.18 §4.4)', () => 
     expect(pulsarGrado(porGrado, 'B').grado.size).toBe(0)
   })
 })
+
+describe('lo del taller en las cuentas (spec 0.9.21 §2.4)', () => {
+  it('los filtros y la tabla color × grado cuentan el color y el grado que valen, no los de NSYS', () => {
+    const rojo = visto({ imeiSn: '350000000000021', color: 'Rojo', colorNsys: 'Azul', grado: 'A', gradoNsys: 'C' })
+    const m = matriz([rojo], FILTROS_VACIOS)
+    expect(m.colores).toEqual(['Rojo'])
+    expect(m.grados).toEqual(['A'])
+    expect(opciones([rojo], 'color', FILTROS_VACIOS)).toEqual([{ valor: 'Rojo', cuenta: 1 }])
+  })
+})

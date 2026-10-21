@@ -4,13 +4,23 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.21] - 2026-10-XX
+## [0.9.21] - 2026-10-XX — Corrección en NSYS y SKU del taller
 
 - **Correcciones de NSYS** (supertécnico y administrador): cuando NSYS corrige un móvil dándolo de baja y dándolo de alta en otro lote (por ejemplo, tras cambiarle el chasis de color en el taller), el ERP lo trata como el mismo móvil.
   - En el rastro, una sola línea «Corrección en NSYS (lote … → …)» con el móvil antes y después, en vez de «Estado en NSYS: Removed» y «Vuelve a entrar».
   - En la ficha del IMEI y en la tabla de Stock de teléfonos, los días cuentan desde que entró el primer lote; la ficha cuenta solo las entradas de verdad, conserva la revisión y la espera de antes de la corrección y, si es de pedido, su última caja.
 - **Carga de técnicos:** el panel flotante es un poco más grande (440 px de ancho en vez de 340), con más sitio para el nombre del técnico, la letra algo mayor y la lista más alta. Si tapa algo, se minimiza como antes.
-- Servidor y web. Sin migración.
+- Corrección en NSYS: servidor y web, sin migración. Panel de carga: solo web.
+- **SKU del taller: lo del taller por encima de NSYS.**
+  - **Stock de teléfonos, ficha del IMEI, «Pegar varios IMEIs» y buscador de IMEI** (supertécnico y administrador): el color, el grado y el SKU que se ven son **los que valen**: lo que el taller ha cambiado manda sobre NSYS hasta que NSYS lo alcance. Las celdas cambiadas llevan la marca «taller» y, debajo, lo que dice NSYS («NSYS: Azul»). Los filtros y la tabla color × grado cuentan lo que vale.
+  - **«Corregir color, grado o batería…»** en la ficha de NSYS del IMEI: color (los del maestro para ese modelo, capacidad y eSIM), grado (A, A-, B o C, con «Batería nueva (100)» y «Mensaje de pieza (Ms)») y motivo obligatorio, con la vista previa del SKU nuevo (o «sin SKU en el maestro», que se guarda igual) y de lo que habrá que poner en NSYS. «Volver a lo de NSYS» quita lo del taller. Queda en el registro de actividad (`CORREGIR_MOVIL_TALLER`) y en el rastro.
+  - **Pestaña «Por pasar a NSYS (N)»** en el stock de teléfonos: lo que hay que cambiar a mano en NSYS (producto y grado), con el SKU nuevo, quién y por qué; «Exportar a Excel» la copia para pegarla. Se vacía sola cuando la importación ve NSYS igual; si después NSYS pone otra cosa, manda NSYS.
+  - **Rastro:** los cambios del taller, «Pasado a NSYS», «Manda NSYS» y «Vuelve a lo de NSYS».
+- **Las reparaciones cambian solas el color y el grado del móvil** (pieza 2 del SKU del taller): al guardar una reparación con **chasis** o **tapa trasera** (nueva o reutilizada), el móvil pasa al color de la pieza (deducido del maestro) y a grado **A**, conservando «Ms» y «100»; con **batería nueva**, el grado lleva «100»; con batería reutilizada, se le quita. Solo en los móviles que están en NSYS; glass y marco no cambian nada. Si el color no se puede deducir, o el grado no es de la forma de NSYS (ID, F, n/a…), ese dato no cambia y el rastro lo avisa para corregirlo a mano.
+- **Formulario de reparación:** encima de «Terminar asignación» / «Guardar cambios», una banda dice cómo quedará el móvil: «Al guardar, este móvil pasará a: Rojo · A100 (ahora: Azul · B)». No añade clics ni bloquea.
+- **Editar o borrar una reparación** deshace lo suyo si nadie lo ha cambiado después ni ha pasado ya a NSYS; si no, el rastro avisa para corregirlo a mano.
+- **Rastro y «Por pasar a NSYS»:** «Taller: color Azul → Rojo (reparación R… · quién · chasis chai13red nuevo)», «Se deshace: …» y los avisos; en «Por qué», «Color: reparación R… · quién · pieza».
+- Requiere el servidor de la 0.9.21 y la migración `migracion-sku-taller.sql` (tablas `Taller_cambio` y `Taller_aviso`). La web 0.9.20 funciona con ese servidor.
 
 ## [0.9.20] - 2026-10-21 — Carga de técnicos: panel flotante en directo
 

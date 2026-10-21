@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { StaleDataError } from '@/shared/api/errors'
+import { CLAVE_FICHA_MOVIL, CLAVE_POR_PASAR_NSYS, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
@@ -11,7 +12,7 @@ import { server } from '@/test/server'
 import { SESION_SUPER, SESION_TEC } from '@/test/render'
 import {
   useAsignaciones, useContadoresPendientes, useDeshacerLlegada, useEditarObservacionTelefono, useEntregaGlass, useHistorial, useMarcarLlegada,
-  usePorCerrar,
+  useBorrarReparacion, usePorCerrar,
 } from './api'
 
 function envoltorio(sesion: typeof SESION_TEC) {
@@ -105,5 +106,21 @@ describe('api del taller', () => {
     await act(async () => { expect(await llegada.result.current.mutateAsync('AG1')).toEqual(creado) })
     const deshacer = renderHook(() => useDeshacerLlegada(), { wrapper })
     await act(async () => { expect((await deshacer.result.current.mutateAsync('AG1'))?.idRepBorrado).toBe('R20261013_101') })
+  })
+})
+
+describe('useBorrarReparacion: lo del móvil en NSYS (0.9.21)', () => {
+  it('al borrar una R… recarga la ficha, el rastro, el stock y «Por pasar a NSYS»', async () => {
+    guardarSesion(SESION_SUPER)
+    server.use(http.delete('*/api/reparaciones/:idRep', () => new HttpResponse(null, { status: 204 })))
+    const qc = crearQueryClient({ retry: false })
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}><SessionProvider>{children}</SessionProvider></QueryClientProvider>
+    )
+    const claves = [[...CLAVE_FICHA_MOVIL, '350000000000001'], [...CLAVE_RASTRO_MOVIL, '350000000000001'], [...CLAVE_STOCK_TELEFONOS, 'x'], [...CLAVE_POR_PASAR_NSYS]]
+    for (const clave of claves) qc.setQueryData(clave, [])
+    const h = renderHook(() => useBorrarReparacion(), { wrapper })
+    await act(async () => { await h.result.current.mutateAsync({ idRep: 'R1', motivo: 'x' }) })
+    for (const clave of claves) await waitFor(() => expect(qc.getQueryState(clave)?.isInvalidated).toBe(true))
   })
 })

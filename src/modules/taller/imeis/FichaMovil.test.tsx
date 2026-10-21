@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import { fichaMovil } from '../test/fabrica'
 import { FichaMovil } from './FichaMovil'
 
@@ -19,5 +20,42 @@ describe('ficha de NSYS: revisado (spec 0.9.18 §5.2)', () => {
   it('sin datos, nada', () => {
     ficha()
     expect(screen.queryByText(/Revisado|Pendiente de revisar/)).not.toBeInTheDocument()
+  })
+})
+
+describe('ficha de NSYS: lo del taller (spec 0.9.21 §2.4)', () => {
+  const region = () => screen.getByRole('region', { name: 'Ficha de NSYS' })
+
+  it('color, grado y SKU del taller con la marca y lo de NSYS al lado, y lo que hay que poner en NSYS', () => {
+    ficha({ color: 'Rosa', colorNsys: 'Negro', grado: 'A', bateriaNueva: true, gradoNsys: 'B', gradoAnterior: 'C',
+      sku: 'i16128RosaA100', skuNsys: 'i16128NegroB', porPasar: true, ponerProducto: 'Apple iPhone 16 128GB Pink', ponerGrado: 'A100' })
+    expect(region()).toHaveTextContent('iPhone 16 128GB Rosa taller NSYS: Negro')
+    expect(region()).toHaveTextContent('Grado A · batería nueva taller NSYS: B')
+    expect(region()).not.toHaveTextContent('antes')
+    expect(region()).toHaveTextContent('SKU i16128RosaA100 taller NSYS: i16128NegroB')
+    expect(region()).toHaveTextContent('Por pasar a NSYS: Apple iPhone 16 128GB Pink · grado A100')
+  })
+
+  it('sin SKU en el maestro y sin ningún móvil de ese color en NSYS', () => {
+    ficha({ color: 'Verde', colorNsys: 'Negro', sku: null, skuNsys: 'i16128NegroA100', porPasar: true, ponerProducto: null, ponerGrado: 'A100' })
+    expect(region()).toHaveTextContent('SKU sin SKU en el maestro taller NSYS: i16128NegroA100')
+    expect(region()).toHaveTextContent('Por pasar a NSYS: (ningún móvil de ese color en NSYS: búscalo a mano) · grado A100')
+  })
+
+  it('sin nada del taller, como antes y sin «Por pasar a NSYS»', () => {
+    ficha()
+    expect(region()).toHaveTextContent('Grado A (antes C) · batería nueva')
+    expect(screen.queryByText('taller')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Por pasar a NSYS/)).not.toBeInTheDocument()
+  })
+
+  it('«Corregir color, grado o batería…» solo si quien pinta la ficha lo ofrece', async () => {
+    const { unmount } = ficha()
+    expect(screen.queryByRole('button', { name: 'Corregir color, grado o batería…' })).not.toBeInTheDocument()
+    unmount()
+    const onCorregir = vi.fn()
+    render(<FichaMovil ficha={fichaMovil()} eventos={3} onVerRastro={() => {}} onCorregir={onCorregir} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir color, grado o batería…' }))
+    expect(onCorregir).toHaveBeenCalledTimes(1)
   })
 })
