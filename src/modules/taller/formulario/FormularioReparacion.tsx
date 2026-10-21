@@ -13,9 +13,11 @@ import { DialogoSalirSinGuardar } from './DialogoSalirSinGuardar'
 import { estadoInicial, filaVisible, filasVisibles, hayCambiosSinGuardar, reducir, textoConflicto, tituloPestana, type DatosEditar, type DatosNuevo } from './estado'
 import { FilaComponente } from './FilaComponente'
 import { OtrasAcciones } from './OtrasAcciones'
+import { peticionPreviaTaller, textoBandaTaller } from './skuTaller'
 import { SubFilaAgotado } from './SubFilaAgotado'
 import { useBorrador } from './useBorrador'
 import { useGuardado } from './useGuardado'
+import { usePreviaTaller } from './usePreviaTaller'
 import { ZonaGuardar } from './ZonaGuardar'
 
 type Props =
@@ -129,6 +131,8 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
   }, [onCerrar])
   // Guardar de verdad no vuelca: borra el borrador (antesDeCerrar; en edición no llama a nada) y cierra con el onCerrar de las props.
   const guardado = useGuardado({ estado, dispatch, onGuardado: alGuardar, antesDeCerrar: descartar })
+  // 0.9.21 (pieza 2 del SKU del taller): lo que el guardado cambiará en el móvil, en una banda encima del botón.
+  const avisoTaller = textoBandaTaller(usePreviaTaller(peticionPreviaTaller(estado)))
   // F5, cerrar la pestaña o salir de la web: en edición, con cambios sin guardar; en flujo nuevo y Glass, con cambios que aún
   // no han llegado al borrador (los 2 s del autoguardado).
   useAvisoAlSalir(estado.modo === 'editar' ? hayCambiosSinGuardar(estado) : sinVolcar)
@@ -178,7 +182,7 @@ function FormularioCargado({ carga, onCerrar }: { carga: CargaFormulario; onCerr
             )}
             <OtrasAcciones estado={estado} dispatch={dispatch} onGuardarAccion={guardado.guardarAccion} />
           </div>
-          <ZonaGuardar estado={estado} onPulsar={guardado.pulsarGuardar} />
+          <ZonaGuardar estado={estado} aviso={avisoTaller} onPulsar={guardado.pulsarGuardar} />
         </div>
         {estado.modo === 'editar' ? <GuardiaSalida hayCambios={hayCambiosSinGuardar(estado)} salidaLibre={salidaLibre} /> : <GuardiaAtras volcarAhora={volcarAhora} />}
       </DialogContent>
