@@ -98,7 +98,7 @@ export function StockTelefonosPage() {
           Ver también lo que no cuenta como stock
         </button>
       </div>
-      {vista === 'por-pasar' ? <PorPasarNsys filas={porPasar.data ?? []} cargando={porPasar.isPending} onAbrirImei={abrir} /> : (
+      {vista === 'por-pasar' ? <PorPasarNsys filas={porPasar.data ?? []} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} /> : (
       <div className="grid min-h-0 flex-1 grid-cols-[270px_1fr] gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos modelos={visibles} elegido={modelo?.clave ?? null} capacidad={capacidad}
           onAbrir={(m, c) => abrirModelo({ modelo: m, capacidad: c, sku: null })}

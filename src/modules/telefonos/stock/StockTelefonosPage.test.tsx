@@ -570,6 +570,18 @@ describe('Stock de teléfonos: «Por pasar a NSYS» (spec 0.9.21 §2.4)', () => 
     expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()
   })
 
+  it('si la lista no carga lo dice y no afirma que no haya nada por pasar', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/por-pasar', () => new HttpResponse(null, { status: 500 })))
+    abrir()
+    // El 500 saca el diálogo de error de siempre; se cierra para llegar a la pestaña.
+    const error = await screen.findByRole('dialog', { name: 'Error' })
+    await user.click(within(error).getByRole('button', { name: /Aceptar|Cerrar|OK/i }))
+    await user.click(await screen.findByRole('button', { name: /^Por pasar a NSYS/ }))
+    expect(await screen.findByText('No se pudo cargar la lista.')).toBeInTheDocument()
+    expect(screen.queryByText('Nada por pasar: NSYS está al día con el taller.')).not.toBeInTheDocument()
+  })
+
   it('«Exportar a Excel» copia la lista para pegarla en Excel', async () => {
     const user = userEvent.setup()
     server.use(http.get('*/api/stock-telefonos/por-pasar', () => HttpResponse.json([filaPorPasar()])))

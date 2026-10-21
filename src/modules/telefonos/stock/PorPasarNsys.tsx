@@ -6,7 +6,7 @@ import { BotonSecundario } from '@/shared/ui/Botones'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
 import { modeloDeFila, paraExcel, textoDesde, textoPorQue } from './porPasar'
 
-type Props = { filas: FilaPorPasar[]; cargando: boolean; onAbrirImei: (imeiSn: string) => void }
+type Props = { filas: FilaPorPasar[]; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void }
 
 const COLUMNAS = ['IMEI', 'Modelo', 'En NSYS hoy', 'Poner en NSYS', 'SKU nuevo', 'Por qué', 'Desde']
 const CELDA = 'px-2 py-1.5 align-top'
@@ -15,7 +15,7 @@ const GRIS = 'block text-[11px] text-azul-gris'
 /** La pestaña «Por pasar a NSYS» del stock de teléfonos (0.9.21, spec «SKU del taller» §2.4; variante «A · se vacía sola»
  *  del prototipo): lo que hay que cambiar a mano en NSYS, de cualquier modelo, los más antiguos primero. Sin botones por fila:
  *  cada una se va sola cuando la importación ve NSYS igual. El IMEI abre su detalle. */
-export function PorPasarNsys({ filas, cargando, onAbrirImei }: Props) {
+export function PorPasarNsys({ filas, cargando, error, onAbrirImei }: Props) {
   return (
     <section aria-label="Por pasar a NSYS" className="flex min-h-0 flex-1 flex-col gap-2 rounded-md bg-superficie p-3">
       <div className="flex shrink-0 flex-wrap items-center gap-3">
@@ -36,7 +36,7 @@ export function PorPasarNsys({ filas, cargando, onAbrirImei }: Props) {
             {filas.length === 0 && (
               <tr>
                 <td colSpan={COLUMNAS.length} className="px-2 py-3 text-[12px] text-azul-gris">
-                  {cargando ? 'Cargando…' : 'Nada por pasar: NSYS está al día con el taller.'}
+                  {cargando ? 'Cargando…' : error ? 'No se pudo cargar la lista.' : 'Nada por pasar: NSYS está al día con el taller.'}
                 </td>
               </tr>
             )}
