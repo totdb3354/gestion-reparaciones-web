@@ -12,10 +12,13 @@ export type EstadoStock = {
   /** La pestaña de capacidad del modelo elegido; null es «Todas». */
   capacidad: string | null
   filtrosDe: { clave: string | null; filtros: Filtros; sku: FiltroSku | null }
+  /** 0.9.21: la pestaña de la pantalla, la de los móviles o «Por pasar a NSYS». */
+  vista: 'moviles' | 'por-pasar'
 }
 
 export const estadoStockTelefonos = crearStore<EstadoStock>({
   verNoCuenta: false, textoModelo: '', elegido: null, capacidad: null, filtrosDe: { clave: null, filtros: FILTROS_VACIOS, sku: null },
+  vista: 'moviles',
 })
 
 /** La clave de los filtros: el modelo y su pestaña («Todas» = cadena vacía). */
