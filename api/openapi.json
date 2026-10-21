@@ -7699,7 +7699,7 @@
         }
       },
       "EventoRastro" : {
-        "required" : [ "a", "aNsys", "categoria", "de", "fecha", "fuente", "idRep", "lote", "revision", "soloDia", "tecnico", "tipo" ],
+        "required" : [ "a", "aNsys", "categoria", "de", "fecha", "fuente", "idRep", "lote", "loteAnterior", "revision", "soloDia", "tecnico", "tipo" ],
         "type" : "object",
         "properties" : {
           "fecha" : {
@@ -7744,6 +7744,10 @@
             "nullable" : true
           },
           "revision" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "loteAnterior" : {
             "type" : "string",
             "nullable" : true
           }

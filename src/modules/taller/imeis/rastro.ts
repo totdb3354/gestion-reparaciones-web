@@ -48,6 +48,9 @@ export function verEvento(e: EventoRastro): EventoVisible {
       return { fecha, titulo: 'Vendido (Released)', detalle: e.soloDia ? 'Del fichero de NSYS: solo se sabe el día' : null, color: 'bg-azul-noche' }
     case 'VENTA_DESHECHA':
       return { fecha, titulo: 'Venta deshecha en NSYS', detalle: e.a ? `Vuelve a ${e.a}` : null, color: 'bg-fila-solicitud-brd' }
+    case 'CORRECCION':
+      // 0.9.21: NSYS da de baja el lote y da de alta el IMEI en otro para corregir el móvil (spec «corrección en NSYS» §3).
+      return { fecha, titulo: `Corrección en NSYS (lote ${e.loteAnterior ?? '—'} → ${e.lote ?? '—'})`, detalle: `${e.de ?? '—'} → ${e.a ?? '—'}`, color: 'bg-ambar' }
     case 'TRABAJO_ASIGNADO':
       return { fecha, titulo: `Trabajo de ${CATEGORIA[e.categoria ?? ''] ?? 'taller'} asignado a ${e.tecnico ?? '—'}`, detalle: null, color: 'bg-tipo-reparacion-text' }
     case 'TRABAJO_TERMINADO':

@@ -155,6 +155,6 @@ export function fichaMovil(p: Partial<FichaMovil> = {}): FichaMovil {
 export function eventoRastro(p: Partial<EventoRastro> = {}): EventoRastro {
   return {
     fecha: '2026-09-12T13:01:00', soloDia: false, fuente: 'NSYS', tipo: 'UBICACION', lote: 'BT-9001', de: 'Taller · Glass',
-    a: 'Listos', aNsys: 'CAJA LISTOS', idRep: null, tecnico: null, categoria: null, revision: null, ...p,
+    a: 'Listos', aNsys: 'CAJA LISTOS', idRep: null, tecnico: null, categoria: null, revision: null, loteAnterior: null, ...p,
   }
 }
