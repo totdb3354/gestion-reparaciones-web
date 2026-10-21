@@ -93,6 +93,13 @@ Añadido, decidido en la spec `2026-10-21-v0921-sku-del-taller-base-design.md` (
 - el rastro lleva los cambios del taller (fuente «TALLER»): «Taller: …», «Vuelve a lo de NSYS: …», «Pasado a NSYS: …» y
   «Manda NSYS: …».
 
+Desde la pieza 2 (`2026-10-21-v0921-sku-del-taller-automatico-design.md`), el rastro también cuenta lo que hacen las
+reparaciones:
+- «Taller: color Azul → Rojo (reparación R… · <quién> · chasis chai13red nuevo)» y «Vuelve a lo de NSYS: … (reparación …)»;
+- «Se deshace: color Rojo → Azul (se borró la reparación R… · <quién>)» (o «se editó»);
+- avisos: «Taller: el color del chasis <SKU> no se puede deducir: …», «Taller: el grado (ID) no se puede calcular: …» y «Se borró
+  la reparación R… que cambió el color; corrígelo a mano si hace falta (<quién>)».
+
 Pruebas: `FichaMovil.test.tsx`, `CorregirTallerDialog.test.tsx`, `corregir.test.ts`, `rastro.test.ts`, `PanelRastro.test.tsx`,
 `ImeiDetallePage.test.tsx` y `sku-taller.spec.ts`. El TECNICO ve lo mismo que antes. El `PATCH /api/telefonos/{imei}/atributos`
 del JavaFX cambiaba `Telefono`, que ya no se enseña: no es este dato.
