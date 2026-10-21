@@ -21,7 +21,7 @@ export function FilaTecnico({ fila, alcance, onElegir }: { fila: FilaCarga; alca
       title={`${textoDesglose(fila, alcance)}\n${PISTA_CLICK}`}
       className="flex w-full cursor-pointer items-center gap-2 rounded px-1 py-1 text-left hover:bg-seleccion-suave"
     >
-      <span className="w-[72px] shrink-0 truncate text-[12.5px] font-bold text-azul-medio">{fila.nombre}</span>
+      <span className="w-[100px] shrink-0 truncate text-[13px] font-bold text-azul-medio">{fila.nombre}</span>
       {/* Las dos barras comparten carril y escala: cuando la verde alcanza a la de arriba, el día está hecho. */}
       <span className="flex flex-1 flex-col gap-[3px]">
         <span className="block h-[10px] rounded bg-carga-pista">
