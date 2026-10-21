@@ -10,7 +10,7 @@ import { renderConProviders, renderConRouter, SESION_ADMIN, SESION_SUPER, SESION
 import * as csv from '@/shared/lib/csv'
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
 import { handlersNotificaciones } from '../notificaciones/test/handlers'
-import { eventoRastro, fichaMovil, resumen, tecnico } from '../test/fabrica'
+import { eventoRastro, fichaMovil, opcionesTaller, resumen, tecnico } from '../test/fabrica'
 import { ImeiDetallePage } from './ImeiDetallePage'
 
 const A = '351900000000041'
@@ -325,5 +325,19 @@ describe('ImeiDetallePage: sin trabajos solo con el historial cargado (0.9.17)',
     abrir()
     await new Promise((r) => setTimeout(r, 300))
     expect(screen.queryByText('Este móvil no ha pasado por el taller')).not.toBeInTheDocument()
+  })
+})
+
+describe('ImeiDetallePage: «Corregir…» desde la ficha (0.9.21)', () => {
+  it('el supertécnico abre el diálogo desde la ficha de NSYS', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.get(`*/api/stock-telefonos/${A}`, () => HttpResponse.json(fichaMovil())),
+      http.get(`*/api/stock-telefonos/${A}/colores`, () => HttpResponse.json(opcionesTaller())),
+    )
+    abrir()
+    const ficha = await screen.findByRole('region', { name: 'Ficha de NSYS' })
+    await user.click(within(ficha).getByRole('button', { name: 'Corregir color, grado o batería…' }))
+    expect(await screen.findByRole('dialog', { name: `Corregir ${A}` })).toBeInTheDocument()
   })
 })

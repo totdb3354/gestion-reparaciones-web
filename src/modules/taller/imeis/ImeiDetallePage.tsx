@@ -19,6 +19,7 @@ import { BarraFiltrosImeis } from './BarraFiltrosImeis'
 import { FMT } from './constantes'
 import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
 import { useFichaMovil, useRastro } from './apiNsys'
+import { CorregirTallerDialog } from './CorregirTallerDialog'
 import { FichaMovil } from './FichaMovil'
 import { PanelRastro } from './PanelRastro'
 import { useTrabajos, useTrabajosCargados } from './useTrabajos'
@@ -39,6 +40,7 @@ export function ImeiDetallePage() {
   const ficha = useFichaMovil(imei, veNsys)
   const rastro = useRastro(imei, veNsys && !!ficha.data)
   const [rastroAbierto, setRastroAbierto] = useState(false)
+  const [corrigiendo, setCorrigiendo] = useState(false)
   const cargados = useTrabajosCargados()
   const sinTrabajos = cargados && !trabajos.some((t) => t.imei === imei)
   const [filtros] = useStore(filtrosImeis)
@@ -67,7 +69,10 @@ export function ImeiDetallePage() {
     <div className="p-10">
       {/* El título de AgrupadoView.fxml es fijo (sin fx:id): se queda en el detalle; lblContador se oculta. */}
       <h1 className="mb-2 text-2xl font-bold text-azul-medio">Agrupado por IMEI</h1>
-      {veNsys && ficha.data && <FichaMovil ficha={ficha.data} eventos={rastro.data?.length ?? null} onVerRastro={() => setRastroAbierto(true)} />}
+      {veNsys && ficha.data && <FichaMovil ficha={ficha.data} eventos={rastro.data?.length ?? null} onVerRastro={() => setRastroAbierto(true)}
+        onCorregir={() => setCorrigiendo(true)} />}
+      {/* 0.9.21: solo SUPERTECNICO y ADMIN (veNsys) y solo si el IMEI está en el espejo (ficha.data). */}
+      {veNsys && ficha.data && <CorregirTallerDialog ficha={ficha.data} abierto={corrigiendo} onCerrar={() => setCorrigiendo(false)} />}
       <BarraFiltrosImeis modo="detalle" />
       {/* crearBarraNavegacion la inserta justo antes de la tabla, debajo de los filtros: HBox(12) con padding 6 0 6 0. */}
       <div className="flex items-center gap-3 py-1.5">
