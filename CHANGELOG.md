@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.20] - 2026-10-XX — Carga de técnicos: panel flotante en directo
+## [0.9.20] - 2026-10-21 — Carga de técnicos: panel flotante en directo
 
 - **Carga de técnicos** (supertécnico y administrador): la ventana que bloqueaba la pantalla pasa a ser un **panel flotante** que se ve en cualquier pantalla mientras se trabaja.
   - Sale abierto de fábrica arriba a la derecha, bajo la barra superior; si se cierra, se vuelve a abrir con «Carga técnicos» de Asignaciones.
@@ -15,8 +15,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
   - El navegador recuerda si estaba abierto, minimizado o cerrado, dónde y en qué alcance (Pedidos/Total).
   - Ya no congela el refresco de la tabla de Asignaciones.
 - Solo web: funciona con el servidor 0.9.18. Sin migración.
+- La 0.9.19 no salió sola: llegó a producción dentro de esta versión.
 
-## [0.9.19] - 2026-10-XX — Completar pulidos: solo lo que se ve, con confirmación
+## [0.9.19] - 2026-10-21 — Completar pulidos: solo lo que se ve, con confirmación
 
 - **Mis pulidos pendientes:** con el filtro por IMEI, «Seleccionar todo» marcaba también los pulidos que el filtro ocultaba, y «Completar seleccionados» los completaba todos. Ahora «Seleccionar todo» y «Completar seleccionados» solo cuentan las filas que se ven; una casilla marcada que el filtro oculta ni se cuenta ni se completa.
 - «Completar seleccionados» pide confirmación: «Completar N pulidos», con los IMEIs (los cinco primeros y cuántos más). Cancelar no completa nada y deja la selección.
