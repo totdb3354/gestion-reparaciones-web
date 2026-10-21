@@ -9,6 +9,7 @@ import { setupServer } from 'msw/node'
  * Además, la nota de la contraseña: «Muy segura», para que los formularios de contraseña de cualquier test se puedan guardar.
  * Y desde la 0.9.18, el estado de NSYS y la lista de importaciones (el indicador de la barra superior).
  * Y desde la 0.9.21, la lista "Por pasar a NSYS" (vacía).
+ * Y desde la 0.9.21, la previa del SKU del taller (fuera de NSYS).
  */
 export const server = setupServer(
   http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
@@ -26,6 +27,12 @@ export const server = setupServer(
   // que cualquier test que monte el layout con esas sesiones pide la carga. Vacía: el panel dice «Sin técnicos activos».
   http.get('*/api/reparaciones/carga-tecnicos', () => HttpResponse.json({ pedidos: [], total: [] })),
   http.post('*/api/auth/evaluar-password', () => HttpResponse.json({ nota: 4, aceptable: true, mensaje: null })),
+  // 0.9.21 (pieza 2 del SKU del taller): el formulario de reparación pide la previa de la banda al elegir un chasis, una tapa
+  // o una batería. Por defecto, NSYS no conoce el IMEI: no hay banda y el formulario deja de preguntar.
+  http.post('*/api/reparaciones/sku-taller/previsualizar', () => HttpResponse.json({
+    enNsys: false, antes: { color: null, grado: null }, despues: { color: null, grado: null }, colorSinDeducir: false,
+    gradoSinCalcular: false,
+  })),
   // 0.9.17: el detalle de IMEIs del supertécnico y del admin pide la ficha de NSYS (y su rastro) y la lista busca en el
   // espejo al filtrar por IMEI. Por defecto NSYS no conoce el IMEI (404, la ficha no sale) y la búsqueda no encuentra nada.
   // «buscar» va antes que «:imeiSn» porque el patrón también lo cubriría.

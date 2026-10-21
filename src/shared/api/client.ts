@@ -95,6 +95,13 @@ export type OpcionesTaller = components['schemas']['OpcionesTaller']
 export type OpcionColor = components['schemas']['OpcionColor']
 export type SkuMaestro = components['schemas']['SkuMaestro']
 export type PeticionTaller = components['schemas']['StockTelefonosPeticionTaller']
+/** 0.9.21 (spec «SKU del taller», pieza 2): la banda del formulario de reparación. Se piden las filas que se van a guardar
+ *  (`idRep` null en las nuevas; el de la reparación que se edita) y llega lo que vale ahora y lo que valdrá (iguales si nada
+ *  cambia), con los avisos; `enNsys` false: NSYS no conoce el IMEI. */
+export type PreviaTaller = components['schemas']['PreviaTaller']
+export type ValoresTaller = components['schemas']['ValoresTaller']
+export type PeticionPreviaTaller = components['schemas']['PeticionPreviaTaller']
+export type FilaPreviaTaller = components['schemas']['FilaPreviaTaller']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */

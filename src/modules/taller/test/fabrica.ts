@@ -1,6 +1,6 @@
 import type {
   AsignacionActiva, Componente, ComponentesAgrupados, DesgloseCarga, DetalleEdicion, FilaCarga, Reparacion, ReparacionResumen,
-  SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico, EventoRastro, FichaMovil, OpcionesTaller,
+  SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico, EventoRastro, FichaMovil, OpcionesTaller, PreviaTaller,
 } from '@/shared/api/client'
 
 /** Fila completa con valores por defecto; cada test sobrescribe lo que le importa. */
@@ -172,5 +172,13 @@ export function opcionesTaller(p: Partial<OpcionesTaller> = {}): OpcionesTaller 
       { color: 'Negro', grado: 'B', sku: 'i16128NegroB' },
     ],
     ...p,
+  }
+}
+
+/** 0.9.21 (pieza 2 del SKU del taller): la previa de la banda; por defecto, un móvil de NSYS Azul · B al que nada cambia. */
+export function previaTaller(p: Partial<PreviaTaller> = {}): PreviaTaller {
+  return {
+    enNsys: true, antes: { color: 'Azul', grado: 'B' }, despues: { color: 'Azul', grado: 'B' }, colorSinDeducir: false,
+    gradoSinCalcular: false, ...p,
   }
 }

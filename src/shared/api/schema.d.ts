@@ -436,6 +436,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reparaciones/sku-taller/previsualizar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["previsualizar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reparaciones/completa": {
         parameters: {
             query?: never;
@@ -2848,6 +2864,27 @@ export interface components {
             cantidad: number;
             descripcion: string | null;
         };
+        FilaPreviaTaller: {
+            idRep: string | null;
+            /** Format: int32 */
+            idCom: number;
+            reutilizada: boolean;
+        };
+        PeticionPreviaTaller: {
+            imei: string;
+            filas: components["schemas"]["FilaPreviaTaller"][];
+        };
+        PreviaTaller: {
+            enNsys: boolean;
+            antes: components["schemas"]["ValoresTaller"];
+            despues: components["schemas"]["ValoresTaller"];
+            colorSinDeducir: boolean;
+            gradoSinCalcular: boolean;
+        };
+        ValoresTaller: {
+            color: string | null;
+            grado: string | null;
+        };
         ReparacionInsertarCompletaRequest: {
             filas: components["schemas"]["FilaReparacion"][];
             imei: string;
@@ -5046,6 +5083,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    previsualizar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionPreviaTaller"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PreviaTaller"];
+                };
             };
         };
     };

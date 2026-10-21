@@ -1203,6 +1203,34 @@
         }
       }
     },
+    "/api/reparaciones/sku-taller/previsualizar" : {
+      "post" : {
+        "tags" : [ "sku-taller-controller" ],
+        "operationId" : "previsualizar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PeticionPreviaTaller"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviaTaller"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reparaciones/completa" : {
       "post" : {
         "tags" : [ "reparacion-controller" ],
@@ -6037,6 +6065,73 @@
             "format" : "int32"
           },
           "descripcion" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "FilaPreviaTaller" : {
+        "required" : [ "idCom", "idRep", "reutilizada" ],
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idCom" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reutilizada" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PeticionPreviaTaller" : {
+        "required" : [ "filas", "imei" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "filas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaPreviaTaller"
+            }
+          }
+        }
+      },
+      "PreviaTaller" : {
+        "required" : [ "antes", "colorSinDeducir", "despues", "enNsys", "gradoSinCalcular" ],
+        "type" : "object",
+        "properties" : {
+          "enNsys" : {
+            "type" : "boolean"
+          },
+          "antes" : {
+            "$ref" : "#/components/schemas/ValoresTaller"
+          },
+          "despues" : {
+            "$ref" : "#/components/schemas/ValoresTaller"
+          },
+          "colorSinDeducir" : {
+            "type" : "boolean"
+          },
+          "gradoSinCalcular" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ValoresTaller" : {
+        "required" : [ "color", "grado" ],
+        "type" : "object",
+        "properties" : {
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
             "type" : "string",
             "nullable" : true
           }
