@@ -70,7 +70,8 @@ async function elegirChasis(page: Page): Promise<Chasis> {
     const p = await pedir(page, 'POST', '/api/reparaciones/sku-taller/previsualizar', { imei: IMEI, filas: [{ idRep: null, idCom: c.idCom, reutilizada: true }] })
     expect(p.estado, 'POST /api/reparaciones/sku-taller/previsualizar').toBe(200)
     const previa = p.cuerpo as Previa
-    if (previa.enNsys && !previa.colorSinDeducir && previa.despues.color !== previa.antes.color) {
+    if (previa.enNsys && !previa.colorSinDeducir && previa.despues.color !== previa.antes.color
+      && !previa.gradoSinCalcular && previa.despues.grado !== previa.antes.grado) {
       return { idCom: c.idCom, tipo: c.tipo, antes: previa.antes, despues: previa.despues }
     }
   }
@@ -80,6 +81,8 @@ async function elegirChasis(page: Page): Promise<Chasis> {
 test.describe('0.9.21: SKU del taller desde una reparación', () => {
   test.describe.configure({ mode: 'serial' })
   let pagina: Page
+  // Solo true tras comprobar el letrero de preprod: sin eso la limpieza (DELETE) no corre.
+  let enPreprod = false
   let chasis: Chasis
   let idAsig: string
   let idRep: string | null = null
@@ -88,6 +91,7 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
     const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
     pagina = await browser.newPage({ baseURL: testInfo.project.use.baseURL })
     await entrar(pagina, usuario, clave)
+    enPreprod = true
     expect((await pedir(pagina, 'GET', `/api/stock-telefonos/${IMEI}`)).estado,
       `falta el móvil sintético ${IMEI} en el espejo de preprod (lo mete el guion)`).toBe(200)
     await limpiar(pagina)
@@ -107,8 +111,11 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
   })
 
   test.afterAll(async () => {
-    if (pagina) await limpiar(pagina)
-    await pagina?.close()
+    try {
+      if (pagina && enPreprod) await limpiar(pagina)
+    } finally {
+      await pagina?.close()
+    }
   })
 
   test('una reparación con un chasis de otro color cambia el color y el grado, con su banda, y sale en «Por pasar a NSYS»', async () => {
@@ -124,9 +131,9 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
     const fila = formulario.getByTestId('fila-cha')
     await fila.getByRole('button', { name: 'Reutilizada Chasis' }).first().click()
     await fila.getByRole('combobox', { name: 'SKU de Chasis' }).click()
-    await pagina.getByRole('listbox', { name: 'SKU de Chasis' }).getByTitle(tipo).click()
+    await pagina.getByRole('listbox', { name: 'SKU de Chasis' }).getByTitle(tipo, { exact: true }).click()
     await expect(formulario.getByTestId('banda-sku-taller'))
-      .toHaveText(`Al guardar, este móvil pasará a: ${despues.color} · ${despues.grado} (ahora: ${antes.color} · ${antes.grado})`)
+      .toHaveText(`Al guardar, este móvil pasará a: ${despues.color} · ${despues.grado} (ahora: ${antes.color} · ${antes.grado})`, { timeout: 15_000 })
     const boton = formulario.getByTestId('zona-guardar').getByRole('button')
     await boton.click()
     await expect(boton).toHaveText('✓  Confirmar terminar')

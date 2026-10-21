@@ -49,11 +49,14 @@ test.describe('0.9.21: SKU del taller', () => {
   test.describe.configure({ mode: 'serial' })
   // Una sola sesión para los dos: el entorno limita los inicios de sesión por minuto.
   let pagina: Page
+  // Solo true tras comprobar el letrero de preprod: sin eso la limpieza (DELETE) no corre.
+  let enPreprod = false
 
   test.beforeAll(async ({ browser }, testInfo) => {
     const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
     pagina = await browser.newPage({ baseURL: testInfo.project.use.baseURL })
     await entrar(pagina, usuario, clave)
+    enPreprod = true
     expect((await pedir(pagina, 'GET', `/api/stock-telefonos/${IMEI}`)).estado,
       `falta el móvil sintético ${IMEI} en el espejo de preprod (lo mete el guion)`).toBe(200)
     await limpiar(pagina, 'E2E: limpieza previa')
@@ -62,8 +65,11 @@ test.describe('0.9.21: SKU del taller', () => {
   })
 
   test.afterAll(async () => {
-    if (pagina) await limpiar(pagina, 'E2E: limpieza')
-    await pagina?.close()
+    try {
+      if (pagina && enPreprod) await limpiar(pagina, 'E2E: limpieza')
+    } finally {
+      await pagina?.close()
+    }
   })
 
   test('corregir el grado lo pone en la ficha, en el rastro y en «Por pasar a NSYS»', async () => {
