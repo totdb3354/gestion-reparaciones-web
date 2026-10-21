@@ -3445,6 +3445,7 @@ export interface components {
             tecnico: string | null;
             categoria: string | null;
             revision: string | null;
+            loteAnterior: string | null;
         };
         StockTelefonosFilaImportacion: {
             fichero: string;

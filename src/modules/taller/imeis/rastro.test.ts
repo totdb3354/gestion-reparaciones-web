@@ -20,6 +20,8 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
     expect(verEvento(eventoRastro({ tipo: 'ESTADO', de: 'InProcess', a: 'Available' })).titulo).toBe('Estado en NSYS: Available')
     expect(verEvento(eventoRastro({ tipo: 'VENTA', soloDia: true })).detalle).toBe('Del fichero de NSYS: solo se sabe el día')
     expect(verEvento(eventoRastro({ tipo: 'VENTA_DESHECHA', a: 'Available' })).titulo).toBe('Venta deshecha en NSYS')
+    expect(verEvento(eventoRastro({ tipo: 'CORRECCION', lote: 'BT-1345', loteAnterior: 'BT-1333', de: '512GB Amarillo · A', a: '512GB Negro · A100', aNsys: null })))
+      .toMatchObject({ titulo: 'Corrección en NSYS (lote BT-1333 → BT-1345)', detalle: '512GB Amarillo · A → 512GB Negro · A100', color: 'bg-ambar' })
     expect(verEvento(eventoRastro({ fuente: 'ERP', tipo: 'TRABAJO_ASIGNADO', idRep: 'AG1', tecnico: 'Técnico 3', categoria: 'GLASS' })).titulo)
       .toBe('Trabajo de glass asignado a Técnico 3')
     expect(verEvento(eventoRastro({ fuente: 'ERP', tipo: 'TRABAJO_TERMINADO', idRep: 'G1', tecnico: 'Técnico 3', categoria: 'GLASS' })))
