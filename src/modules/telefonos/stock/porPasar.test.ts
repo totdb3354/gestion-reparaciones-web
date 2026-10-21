@@ -27,4 +27,9 @@ describe('lista «Por pasar a NSYS» (spec 0.9.21 §2.4)', () => {
       + '\ti13128AzulA100\tGrado: a mano · Técnico 1 · «batería nueva»\t20/10/2026 10:31')
     expect(dos).toContain('(ningún móvil de ese color en NSYS: búscalo a mano) · grado A100\tsin SKU en el maestro\tGrado: a mano · Técnico 1 · «uno dos»')
   })
+
+  it('por qué desde una reparación: la reparación, quién y la pieza, sin comillas (spec 0.9.21 pieza 2 §2.5)', () => {
+    expect(textoPorQue(porQue({ dato: 'COLOR', origen: 'REPARACION', idRep: 'R20261021_3', usuario: 'Técnico 2', motivo: 'chasis chai13red nuevo' })))
+      .toBe('Color: reparación R20261021_3 · Técnico 2 · chasis chai13red nuevo')
+  })
 })

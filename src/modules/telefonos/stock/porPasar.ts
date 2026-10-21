@@ -5,10 +5,13 @@ import { diaNsys, nombreModeloNsys, SIN_SKU_MAESTRO, textoPoner } from '@/shared
 
 const DATO: Record<string, string> = { COLOR: 'Color', GRADO: 'Grado' }
 
-/** «Color: a mano · Supertécnico 1 · «motivo»»; el de una reparación (pieza 2), «Grado: reparación R… · Técnico 2». */
+/** «Color: a mano · Técnico 1 · «motivo»»; el de una reparación (pieza 2), «Color: reparación R… · Técnico 2 · chasis chai13red
+ *  nuevo» (la pieza, sin comillas). */
 export function textoPorQue(p: PorQueTaller): string {
-  const como = p.origen === 'REPARACION' ? `reparación ${p.idRep ?? '—'}` : 'a mano'
-  return `${DATO[p.dato] ?? p.dato}: ${[como, p.usuario ?? '—', p.motivo ? `«${p.motivo}»` : null].filter(Boolean).join(' · ')}`
+  const reparacion = p.origen === 'REPARACION'
+  const como = reparacion ? `reparación ${p.idRep ?? '—'}` : 'a mano'
+  const motivo = !p.motivo ? null : reparacion ? p.motivo : `«${p.motivo}»`
+  return `${DATO[p.dato] ?? p.dato}: ${[como, p.usuario ?? '—', motivo].filter(Boolean).join(' · ')}`
 }
 
 /** «iPhone 13 128GB». */
