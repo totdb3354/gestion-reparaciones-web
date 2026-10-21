@@ -81,6 +81,61 @@
         }
       }
     },
+    "/api/stock-telefonos/{imeiSn}/taller" : {
+      "put" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "corregir",
+        "parameters" : [ {
+          "name" : "imeiSn",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StockTelefonosPeticionTaller"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "volver",
+        "parameters" : [ {
+          "name" : "imeiSn",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StockTelefonosPeticionVolver"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/reparaciones/{idRep}" : {
       "put" : {
         "tags" : [ "reparacion-controller" ],
@@ -3826,6 +3881,53 @@
         }
       }
     },
+    "/api/stock-telefonos/{imeiSn}/colores" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "colores",
+        "parameters" : [ {
+          "name" : "imeiSn",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OpcionesTaller"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/por-pasar" : {
+      "get" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "porPasar",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FilaPorPasar"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stock-telefonos/importaciones" : {
       "get" : {
         "tags" : [ "stock-telefonos-controller" ],
@@ -5322,6 +5424,23 @@
           }
         }
       },
+      "StockTelefonosPeticionTaller" : {
+        "required" : [ "color", "grado", "motivo" ],
+        "type" : "object",
+        "properties" : {
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      },
       "ReparacionEditarRequest" : {
         "required" : [ "esReutilizadoNuevo", "idComNuevo", "nNuevas", "observacionNueva", "updatedAt" ],
         "type" : "object",
@@ -5710,7 +5829,7 @@
         }
       },
       "StockTelefonosMovilComprobado" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "encontrado", "estado", "fechaVenta", "grado", "imei", "modelo", "modeloMaestro", "trabajos", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "encontrado", "estado", "fechaVenta", "grado", "gradoNsys", "imei", "modelo", "modeloMaestro", "trabajos", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -5760,6 +5879,14 @@
             "items" : {
               "$ref" : "#/components/schemas/TrabajoAbierto"
             }
+          },
+          "colorNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoNsys" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
@@ -7564,7 +7691,7 @@
         }
       },
       "StockTelefonosMovilStock" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "esEsim", "estado", "grado", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "trabajos", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "dias", "esEsim", "estado", "grado", "gradoNsys", "imeiSn", "lote", "modelo", "modeloMaestro", "sku", "skuNsys", "trabajos", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7619,11 +7746,23 @@
             "items" : {
               "$ref" : "#/components/schemas/TrabajoAbierto"
             }
+          },
+          "colorNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "skuNsys" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
       "StockTelefonosFichaMovil" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "revisadoDevolucion", "revisadoEl", "sku", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "gradoNsys", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "ponerGrado", "ponerProducto", "porPasar", "revisadoDevolucion", "revisadoEl", "sku", "skuNsys", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7695,11 +7834,34 @@
             "type" : "string",
             "format" : "date",
             "nullable" : true
+          },
+          "colorNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "skuNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "porPasar" : {
+            "type" : "boolean"
+          },
+          "ponerProducto" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ponerGrado" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
       "EventoRastro" : {
-        "required" : [ "a", "aNsys", "categoria", "de", "fecha", "fuente", "idRep", "lote", "loteAnterior", "revision", "soloDia", "tecnico", "tipo" ],
+        "required" : [ "a", "aNsys", "categoria", "dato", "de", "fecha", "fuente", "idRep", "lote", "loteAnterior", "motivo", "origen", "revision", "soloDia", "tecnico", "tipo" ],
         "type" : "object",
         "properties" : {
           "fecha" : {
@@ -7748,6 +7910,143 @@
             "nullable" : true
           },
           "loteAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "dato" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "origen" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "OpcionColor" : {
+        "required" : [ "color", "producto" ],
+        "type" : "object",
+        "properties" : {
+          "color" : {
+            "type" : "string"
+          },
+          "producto" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "OpcionesTaller" : {
+        "required" : [ "colores", "productoActual", "skus" ],
+        "type" : "object",
+        "properties" : {
+          "productoActual" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "colores" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OpcionColor"
+            }
+          },
+          "skus" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SkuMaestro"
+            }
+          }
+        }
+      },
+      "SkuMaestro" : {
+        "required" : [ "color", "grado", "sku" ],
+        "type" : "object",
+        "properties" : {
+          "color" : {
+            "type" : "string"
+          },
+          "grado" : {
+            "type" : "string"
+          },
+          "sku" : {
+            "type" : "string"
+          }
+        }
+      },
+      "FilaPorPasar" : {
+        "required" : [ "capacidad", "desde", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ponerGrado", "ponerProducto", "porQue", "productoNsys", "sku" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "productoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ponerProducto" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ponerGrado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "porQue" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PorQueTaller"
+            }
+          },
+          "desde" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PorQueTaller" : {
+        "required" : [ "dato", "idRep", "motivo", "origen", "usuario" ],
+        "type" : "object",
+        "properties" : {
+          "dato" : {
+            "type" : "string"
+          },
+          "origen" : {
+            "type" : "string"
+          },
+          "usuario" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idRep" : {
             "type" : "string",
             "nullable" : true
           }
@@ -7849,7 +8148,7 @@
         }
       },
       "StockTelefonosMovilBuscado" : {
-        "required" : [ "capacidad", "color", "estado", "fechaVenta", "imeiSn", "modelo", "modeloMaestro", "ubicacion" ],
+        "required" : [ "capacidad", "color", "colorNsys", "estado", "fechaVenta", "imeiSn", "modelo", "modeloMaestro", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7881,6 +8180,10 @@
           "fechaVenta" : {
             "type" : "string",
             "format" : "date",
+            "nullable" : true
+          },
+          "colorNsys" : {
+            "type" : "string",
             "nullable" : true
           }
         }
@@ -8851,6 +9154,16 @@
         "properties" : {
           "value" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "StockTelefonosPeticionVolver" : {
+        "required" : [ "motivo" ],
+        "type" : "object",
+        "properties" : {
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

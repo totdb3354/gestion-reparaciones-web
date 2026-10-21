@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/{imeiSn}/taller": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["corregir"];
+        post?: never;
+        delete: operations["volver"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reparaciones/{idRep}": {
         parameters: {
             query?: never;
@@ -1764,6 +1780,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/{imeiSn}/colores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["colores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/por-pasar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["porPasar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/importaciones": {
         parameters: {
             query?: never;
@@ -2578,6 +2626,11 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        StockTelefonosPeticionTaller: {
+            color: string | null;
+            grado: string | null;
+            motivo: string;
+        };
         ReparacionEditarRequest: {
             /** Format: int32 */
             idComNuevo: number;
@@ -2737,6 +2790,8 @@ export interface components {
             /** Format: date */
             fechaVenta: string | null;
             trabajos: components["schemas"]["TrabajoAbierto"][];
+            colorNsys: string | null;
+            gradoNsys: string | null;
         };
         TrabajoAbierto: {
             categoria: string;
@@ -3405,6 +3460,9 @@ export interface components {
             /** Format: int32 */
             dias: number | null;
             trabajos: components["schemas"]["TrabajoAbierto"][];
+            colorNsys: string | null;
+            gradoNsys: string | null;
+            skuNsys: string | null;
         };
         StockTelefonosFichaMovil: {
             imeiSn: string;
@@ -3430,6 +3488,12 @@ export interface components {
             revisadoDevolucion: boolean;
             /** Format: date */
             pendienteRevisionDesde: string | null;
+            colorNsys: string | null;
+            gradoNsys: string | null;
+            skuNsys: string | null;
+            porPasar: boolean;
+            ponerProducto: string | null;
+            ponerGrado: string | null;
         };
         EventoRastro: {
             /** Format: date-time */
@@ -3446,6 +3510,44 @@ export interface components {
             categoria: string | null;
             revision: string | null;
             loteAnterior: string | null;
+            dato: string | null;
+            origen: string | null;
+            motivo: string | null;
+        };
+        OpcionColor: {
+            color: string;
+            producto: string | null;
+        };
+        OpcionesTaller: {
+            productoActual: string | null;
+            colores: components["schemas"]["OpcionColor"][];
+            skus: components["schemas"]["SkuMaestro"][];
+        };
+        SkuMaestro: {
+            color: string;
+            grado: string;
+            sku: string;
+        };
+        FilaPorPasar: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            productoNsys: string | null;
+            gradoNsys: string | null;
+            ponerProducto: string | null;
+            ponerGrado: string | null;
+            sku: string | null;
+            porQue: components["schemas"]["PorQueTaller"][];
+            /** Format: date-time */
+            desde: string;
+        };
+        PorQueTaller: {
+            dato: string;
+            origen: string;
+            usuario: string | null;
+            motivo: string | null;
+            idRep: string | null;
         };
         StockTelefonosFilaImportacion: {
             fichero: string;
@@ -3492,6 +3594,7 @@ export interface components {
             ubicacion: string | null;
             /** Format: date */
             fechaVenta: string | null;
+            colorNsys: string | null;
         };
         SolicitudResumen: {
             /** Format: int32 */
@@ -3861,6 +3964,9 @@ export interface components {
         ValorBooleano: {
             value: boolean;
         };
+        StockTelefonosPeticionVolver: {
+            motivo: string | null;
+        };
         ReparacionMotivoRequest: {
             motivo: string | null;
         };
@@ -3930,6 +4036,54 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TelefonoRevisionLogisticaRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    corregir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imeiSn: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockTelefonosPeticionTaller"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    volver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imeiSn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StockTelefonosPeticionVolver"];
             };
         };
         responses: {
@@ -7181,6 +7335,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EventoRastro"][];
+                };
+            };
+        };
+    };
+    colores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imeiSn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OpcionesTaller"];
+                };
+            };
+        };
+    };
+    porPasar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaPorPasar"][];
                 };
             };
         };

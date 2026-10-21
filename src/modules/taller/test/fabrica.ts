@@ -1,6 +1,6 @@
 import type {
   AsignacionActiva, Componente, ComponentesAgrupados, DesgloseCarga, DetalleEdicion, FilaCarga, Reparacion, ReparacionResumen,
-  SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico, EventoRastro, FichaMovil,
+  SolicitudAsignacion, SolicitudResumen, SolicitudStock, Tecnico, EventoRastro, FichaMovil, OpcionesTaller,
 } from '@/shared/api/client'
 
 /** Fila completa con valores por defecto; cada test sobrescribe lo que le importa. */
@@ -148,13 +148,29 @@ export function fichaMovil(p: Partial<FichaMovil> = {}): FichaMovil {
   return {
     imeiSn: '351900000000041', lote: 'BT-9001', modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro',
     grado: 'A', bateriaNueva: true, gradoAnterior: 'C', sku: 'i16128NegroA100', ubicacion: 'Listos', estado: 'DE_PEDIDO',
-    dias: 12, entradas: 1, fechaVenta: null, revisadoEl: null, revisadoDevolucion: false, pendienteRevisionDesde: null, ...p,
+    dias: 12, entradas: 1, fechaVenta: null, revisadoEl: null, revisadoDevolucion: false, pendienteRevisionDesde: null,
+    colorNsys: null, gradoNsys: null, skuNsys: null, porPasar: false, ponerProducto: null, ponerGrado: null, ...p,
   }
 }
 
 export function eventoRastro(p: Partial<EventoRastro> = {}): EventoRastro {
   return {
     fecha: '2026-09-12T13:01:00', soloDia: false, fuente: 'NSYS', tipo: 'UBICACION', lote: 'BT-9001', de: 'Taller · Glass',
-    a: 'Listos', aNsys: 'CAJA LISTOS', idRep: null, tecnico: null, categoria: null, revision: null, loteAnterior: null, ...p,
+    a: 'Listos', aNsys: 'CAJA LISTOS', idRep: null, tecnico: null, categoria: null, revision: null, loteAnterior: null,
+    dato: null, origen: null, motivo: null, ...p,
+  }
+}
+
+/** 0.9.21: las opciones del diálogo «Corregir…» para la ficha de `fichaMovil` (iPhone 16 128GB Negro A100). */
+export function opcionesTaller(p: Partial<OpcionesTaller> = {}): OpcionesTaller {
+  return {
+    productoActual: 'Apple iPhone 16 128GB Black',
+    colores: [{ color: 'Negro', producto: 'Apple iPhone 16 128GB Black' }, { color: 'Rosa', producto: 'Apple iPhone 16 128GB Pink' }],
+    skus: [
+      { color: 'Negro', grado: 'A100', sku: 'i16128NegroA100' },
+      { color: 'Rosa', grado: 'A100', sku: 'i16128RosaA100' },
+      { color: 'Negro', grado: 'B', sku: 'i16128NegroB' },
+    ],
+    ...p,
   }
 }

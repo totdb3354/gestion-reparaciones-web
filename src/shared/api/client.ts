@@ -84,6 +84,18 @@ export type ListaImportaciones = components['schemas']['StockTelefonosListaImpor
 export type ImportacionNsys = components['schemas']['StockTelefonosFilaImportacion']
 export type ProgresoHistorico = components['schemas']['StockTelefonosProgresoHistorico']
 
+/** 0.9.21 (spec «SKU del taller», pieza 1): lo del taller por encima de NSYS. En el stock, la ficha, «Pegar varios IMEIs» y
+ *  el buscador, color, grado y SKU son los que valen; `colorNsys`, `gradoNsys` (el grado entero de NSYS, con el 100) y
+ *  `skuNsys` traen lo de NSYS cuando el taller lo cambia («—» si NSYS no lo sabe) y null si no. La lista «Por pasar a
+ *  NSYS», las opciones del diálogo «Corregir…» y su petición (`color` o `grado` null: no cambia). En el rastro, los eventos
+ *  de fuente TALLER llevan `dato` (COLOR o GRADO), `origen` (MANO o REPARACION) y `motivo`; `tecnico` es quién lo hizo. */
+export type FilaPorPasar = components['schemas']['FilaPorPasar']
+export type PorQueTaller = components['schemas']['PorQueTaller']
+export type OpcionesTaller = components['schemas']['OpcionesTaller']
+export type OpcionColor = components['schemas']['OpcionColor']
+export type SkuMaestro = components['schemas']['SkuMaestro']
+export type PeticionTaller = components['schemas']['StockTelefonosPeticionTaller']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''

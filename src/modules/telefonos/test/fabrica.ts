@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, TrabajoAbierto,
+  EstadoNsys, FilaPorPasar, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -8,7 +8,7 @@ export function movil(p: Partial<MovilStock> = {}): MovilStock {
   return {
     imeiSn: '350000000000001', lote: 'BT-9001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul',
     grado: 'A', bateriaNueva: false, esEsim: false, sku: 'i13128AzulA', ubicacion: 'Listos', estado: 'STOCK', dias: 6,
-    trabajos: [], ...p,
+    trabajos: [], colorNsys: null, gradoNsys: null, skuNsys: null, ...p,
   }
 }
 
@@ -32,14 +32,14 @@ export function estadoNsys(p: Partial<EstadoNsys> = {}): EstadoNsys {
 export function movilBuscado(p: Partial<MovilBuscado> = {}): MovilBuscado {
   return {
     imeiSn: '350000000000001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul', estado: 'STOCK',
-    ubicacion: 'Listos', fechaVenta: null, ...p,
+    ubicacion: 'Listos', fechaVenta: null, colorNsys: null, ...p,
   }
 }
 
 export function movilComprobado(p: Partial<MovilComprobado> = {}): MovilComprobado {
   return {
     imei: '350000000000001', encontrado: true, modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul',
-    grado: 'A', bateriaNueva: false, ubicacion: 'Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], ...p,
+    grado: 'A', bateriaNueva: false, ubicacion: 'Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], colorNsys: null, gradoNsys: null, ...p,
   }
 }
 
@@ -60,4 +60,18 @@ export function importacion(p: Partial<ImportacionNsys> = {}): ImportacionNsys {
 
 export function listaImportaciones(p: Partial<ListaImportaciones> = {}): ListaImportaciones {
   return { importaciones: [importacion()], historico: { total: 0, hechos: 0, ultimo: null, hasta: null }, ...p }
+}
+
+/** 0.9.21: por qué un dato está por pasar a NSYS; por defecto, el grado a mano de «Técnico 1». */
+export function porQue(p: Partial<PorQueTaller> = {}): PorQueTaller {
+  return { dato: 'GRADO', origen: 'MANO', usuario: 'Técnico 1', motivo: 'batería nueva', idRep: null, ...p }
+}
+
+/** Una fila de «Por pasar a NSYS»: un iPhone 13 128GB Azul que pasa de B a A100 desde el 20/10 a las 10:31 (Madrid). */
+export function filaPorPasar(p: Partial<FilaPorPasar> = {}): FilaPorPasar {
+  return {
+    imeiSn: '350000000000001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', productoNsys: 'Apple iPhone 13 128GB Blue',
+    gradoNsys: 'B', ponerProducto: 'Apple iPhone 13 128GB Blue', ponerGrado: 'A100', sku: 'i13128AzulA100', porQue: [porQue()],
+    desde: '2026-10-20T10:31:00', ...p,
+  }
 }
