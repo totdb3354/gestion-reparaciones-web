@@ -965,10 +965,13 @@ describe('FormularioReparacion — modo edición', () => {
 
 describe('FormularioReparacion — banda del SKU del taller (spec 0.9.21 pieza 2 §2.4)', () => {
   /** Responde con `respuesta` y apunta los cuerpos que llegan. */
+  let respondidas = 0
   function previa(respuesta: Parameters<typeof previaTaller>[0]): unknown[] {
     const cuerpos: unknown[] = []
+    respondidas = 0
     server.use(http.post('*/api/reparaciones/sku-taller/previsualizar', async ({ request }) => {
       cuerpos.push(await request.json())
+      respondidas++
       return HttpResponse.json(previaTaller(respuesta))
     }))
     return cuerpos
@@ -995,7 +998,9 @@ describe('FormularioReparacion — banda del SKU del taller (spec 0.9.21 pieza 2
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
     await sumar('bat', 'Batería')
-    await waitFor(() => expect(cuerpos).toHaveLength(1), { timeout: 3000 })
+    await waitFor(() => expect(respondidas).toBe(1), { timeout: 3000 })
+    // Un tic más: que el formulario procese la respuesta antes de comprobar que no hay banda.
+    await act(async () => { await new Promise((r) => setTimeout(r, 100)) })
     expect(screen.queryByTestId('banda-sku-taller')).not.toBeInTheDocument()
   })
 
