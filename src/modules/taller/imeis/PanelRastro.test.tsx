@@ -45,8 +45,8 @@ describe('PanelRastro: revisado (spec 0.9.18 §5.3)', () => {
 describe('PanelRastro: lo del taller (spec 0.9.21 §2.4)', () => {
   it('el cambio del taller sale con su fuente y la leyenda lo explica', () => {
     render(<PanelRastro imei="351900000000041" eventos={[eventoRastro({ fuente: 'TALLER', tipo: 'TALLER_CAMBIO', lote: null, aNsys: null,
-      dato: 'GRADO', de: 'B', a: 'A100', tecnico: 'Imad', origen: 'MANO', motivo: 'batería' })]} onCerrar={() => {}} onIrATrabajo={() => {}} />)
-    expect(screen.getByText('Taller: grado B → A100 (a mano · Imad · «batería»)')).toBeInTheDocument()
+      dato: 'GRADO', de: 'B', a: 'A100', tecnico: 'Supertécnico 1', origen: 'MANO', motivo: 'batería' })]} onCerrar={() => {}} onIrATrabajo={() => {}} />)
+    expect(screen.getByText('Taller: grado B → A100 (a mano · Supertécnico 1 · «batería»)')).toBeInTheDocument()
     expect(screen.getByText('TALLER')).toHaveClass('bg-taller-bg')
     expect(screen.getByText('Lo del taller')).toBeInTheDocument()
   })

@@ -4,7 +4,7 @@ import { modeloDeFila, paraExcel, textoDesde, textoEnNsys, textoPorQue } from '.
 
 describe('lista «Por pasar a NSYS» (spec 0.9.21 §2.4)', () => {
   it('por qué: a mano con quién y motivo; sin motivo, sin la última parte; la reparación de la pieza 2', () => {
-    expect(textoPorQue(porQue({ dato: 'COLOR', usuario: 'Imad', motivo: 'chasis rojo' }))).toBe('Color: a mano · Imad · «chasis rojo»')
+    expect(textoPorQue(porQue({ dato: 'COLOR', usuario: 'Supertécnico 1', motivo: 'chasis rojo' }))).toBe('Color: a mano · Supertécnico 1 · «chasis rojo»')
     expect(textoPorQue(porQue({ motivo: null }))).toBe('Grado: a mano · Técnico 1')
     expect(textoPorQue(porQue({ origen: 'REPARACION', idRep: 'R20261020_4', usuario: 'Técnico 2', motivo: null })))
       .toBe('Grado: reparación R20261020_4 · Técnico 2')
