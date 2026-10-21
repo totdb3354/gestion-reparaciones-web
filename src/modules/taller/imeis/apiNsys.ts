@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { api, type EventoRastro, type FichaMovil, type OpcionesTaller, type PeticionTaller } from '@/shared/api/client'
-import { CLAVE_POR_PASAR_NSYS, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
+import { CLAVE_FICHA_MOVIL, CLAVE_POR_PASAR_NSYS, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
 
 /** Lecturas del espejo de NSYS para el detalle y la lista de IMEIs (0.9.17). Solo SUPERTECNICO y ADMIN las piden
  *  (`activo`). La búsqueda de móviles es `useBuscarMoviles` de `shared/api/nsys.ts`. Desde la 0.9.21, también la corrección
  *  a mano de lo del taller (spec «SKU del taller» §2.3). */
 
-const claveFicha = (imei: string) => ['imeis', 'ficha', imei] as const
-const claveRastro = (imei: string) => ['imeis', 'rastro', imei] as const
+const claveFicha = (imei: string) => [...CLAVE_FICHA_MOVIL, imei] as const
+const claveRastro = (imei: string) => [...CLAVE_RASTRO_MOVIL, imei] as const
 const claveOpciones = (imei: string) => ['imeis', 'opciones-taller', imei] as const
 
 /** La ficha de NSYS de un IMEI. Un 404 (NSYS no lo conoce) es normal: sin diálogo, sin reintentos y sin ficha. */

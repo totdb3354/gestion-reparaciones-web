@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
 import { ConexionError, NoEncontradoError, PermisoError, StaleDataError } from '@/shared/api/errors'
+import { CLAVE_FICHA_MOVIL, CLAVE_POR_PASAR_NSYS, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
@@ -373,12 +374,13 @@ describe('borrador y verificación de filas guardadas', () => {
 })
 
 describe('useRecargarAlCerrar', () => {
-  it('invalida asignaciones, contadores, historiales y notificaciones, y nada más', () => {
+  it('invalida asignaciones, contadores, historiales, notificaciones y lo del móvil en NSYS (ficha, rastro, stock, por pasar), y nada más', () => {
     const { wrapper, qc } = envoltorio(SESION_TEC)
     const claves = [
       [...claveAsignaciones('REPARACION'), 'propio'], [...claveAsignaciones('GLASS'), 'propio'], [...claveAsignaciones('PULIDO'), 'propio'],
       [...CLAVE_CONTADORES, 'propio'], claveHistorial('REPARACION'), claveHistorial('GLASS'), claveHistorial('PULIDO'),
       [...CLAVE_NOTIF, 'contador'], [...CLAVE_NOTIF, 'solicitudes'],
+      [...CLAVE_FICHA_MOVIL, '355400000000111'], [...CLAVE_RASTRO_MOVIL, '355400000000111'], [...CLAVE_STOCK_TELEFONOS, 'x'], [...CLAVE_POR_PASAR_NSYS],
     ]
     for (const clave of claves) qc.setQueryData(clave, [])
     qc.setQueryData(['clientes', 'activos'], [])
