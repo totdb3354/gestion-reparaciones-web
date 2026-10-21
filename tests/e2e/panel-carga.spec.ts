@@ -163,7 +163,7 @@ test('lo que asigna otro PC llega antes de 35 s y lo que borra uno mismo, al mom
   await page.mouse.move(40, 880, { steps: 12 })
   await page.mouse.up()
   // Con el ratón encima el panel no repinta (spec «Con el ratón encima no cambia»): se aparta a una zona neutra, fuera del
-  // panel ya movido (que ocupa la esquina de abajo a la izquierda, unos 340 px de ancho).
+  // panel ya movido (que ocupa la esquina de abajo a la izquierda, unos 440 px de ancho).
   await page.mouse.move(700, 450)
   const fila = panel(page).getByRole('listitem').filter({ has: page.getByText(nombreTec!, { exact: true }) })
   await expect(fila).toHaveCount(1)

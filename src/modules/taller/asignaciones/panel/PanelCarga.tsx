@@ -108,7 +108,7 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
       onMouseDown={(e) => { if (hayVentanaAbierta()) e.preventDefault() }}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
-      className={cn(CAPA, 'fixed flex w-[340px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg')}
+      className={cn(CAPA, 'fixed flex w-[440px] flex-col rounded-[10px] border border-pill-borde bg-superficie shadow-lg')}
     >
       <div
         {...asa}
@@ -128,16 +128,16 @@ function Ventana({ recordado, datos, error, onPointerEnter, onPointerLeave }: Pr
         // (suave, con inercia, táctil), con o sin ventana. Mismo patrón que `noCancelarDesplazamiento` en shared/ui/popover.tsx.
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
-        className="max-h-[min(400px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5"
+        className="max-h-[min(460px,calc(100vh-140px))] min-h-[60px] overflow-y-auto px-2 py-1.5"
       >
         {filas === null ? (
           error ? (
-            <p role="alert" className="py-4 text-center text-[12.5px] text-texto-error">{MSG_ERROR}</p>
+            <p role="alert" className="py-4 text-center text-[13px] text-texto-error">{MSG_ERROR}</p>
           ) : (
-            <p className="py-4 text-center text-[12.5px] text-azul-gris">Cargando…</p>
+            <p className="py-4 text-center text-[13px] text-azul-gris">Cargando…</p>
           )
         ) : filas.length === 0 ? (
-          <p className="py-4 text-center text-[12.5px] text-azul-gris">{MSG_SIN_TECNICOS}</p>
+          <p className="py-4 text-center text-[13px] text-azul-gris">{MSG_SIN_TECNICOS}</p>
         ) : (
           // group/carga: al pasar el ratón por la lista, las demás filas se atenúan (como en la ventana de antes). La
           // separación es padding de cada <li>, no `gap` del <ul>, para que no haya hueco que atenúe sin resaltar nada.
