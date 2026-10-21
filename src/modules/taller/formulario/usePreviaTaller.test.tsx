@@ -7,6 +7,7 @@ import type { PeticionPreviaTaller } from '@/shared/api/client'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
+import { onError } from '@/shared/ui/alertas'
 import { server } from '@/test/server'
 import { SESION_TEC } from '@/test/render'
 import { previaTaller } from '../test/fabrica'
@@ -67,6 +68,30 @@ describe('usePreviaTaller (spec 0.9.21 pieza 2 §2.4)', () => {
     await waitFor(() => expect(cuerpos).toHaveLength(1))
     await esperar(50)
     expect(result.current).toBeNull()
+  })
+
+  it('un 500 del servidor no es una previa: sin banda y sin aviso de error', async () => {
+    const avisos: string[] = []
+    const quitar = onError((m) => avisos.push(m))
+    const cuerpos = servir(() => HttpResponse.json({ message: 'boom' }, { status: 500 }))
+    const { result } = renderHook(() => usePreviaTaller(BATERIA, 0), { wrapper: envoltorio() })
+    await waitFor(() => expect(cuerpos).toHaveLength(1))
+    await esperar(50)
+    quitar()
+    expect(result.current).toBeNull()
+    expect(avisos).toEqual([])
+  })
+
+  it('reabrir el formulario con las mismas filas vuelve a pedir (la previa depende del estado del servidor)', async () => {
+    const cuerpos = servir(() => HttpResponse.json(previaTaller()))
+    const wrapper = envoltorio()
+    const primera = renderHook(() => usePreviaTaller(BATERIA, 0), { wrapper })
+    await waitFor(() => expect(primera.result.current).not.toBeNull())
+    primera.unmount()
+    await esperar(20) // el formulario estuvo cerrado un rato: gcTime 0 libera la consulta
+    const segunda = renderHook(() => usePreviaTaller(BATERIA, 0), { wrapper })
+    await waitFor(() => expect(cuerpos).toHaveLength(2))
+    segunda.unmount()
   })
 
   it('espera al retraso: dos cambios seguidos hacen una sola petición, con lo último', async () => {

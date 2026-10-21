@@ -29,13 +29,17 @@ export function usePreviaTaller(peticion: PeticionPreviaTaller | null, retrasoMs
     enabled: activa,
     queryFn: async () => {
       const cuerpo = JSON.parse(diferida ?? 'null') as PeticionPreviaTaller
-      const datos = (await api.POST('/api/reparaciones/sku-taller/previsualizar', { body: cuerpo })).data ?? null
-      if (datos !== null && !datos.enNsys) setFueraDeNsys(cuerpo.imei)
+      const { data: datos, error } = await api.POST('/api/reparaciones/sku-taller/previsualizar', { body: cuerpo })
+      // Un 4xx/5xx es un fallo, no una previa vacia: no se guarda como exito (la banda no sale; spec §3).
+      if (error !== undefined || datos === undefined) throw new Error('La previa del SKU del taller ha fallado')
+      if (!datos.enNsys) setFueraDeNsys(cuerpo.imei)
       return datos
     },
     // Mientras llega la previa de las filas nuevas, la banda sigue con la anterior: sin parpadeos.
     placeholderData: keepPreviousData,
+    // Reabrir el formulario vuelve a pedirlo todo (patron del formulario): la previa depende del estado del servidor.
     staleTime: Infinity,
+    gcTime: 0,
     retry: false,
     refetchOnWindowFocus: false,
     meta: { silenciarError: true, sinCapa: true },
