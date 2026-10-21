@@ -151,3 +151,60 @@ describe('Errores del servidor al guardar o volver (revisión de la Task 7)', ()
     expect(screen.getByText(`Corregir ${A}`)).toBeInTheDocument()
   })
 })
+
+describe('Revision final de la rama (0.9.21)', () => {
+  it('un movil sin color empieza en «—» y la vista previa no se contradice', async () => {
+    const user = userEvent.setup()
+    abrirDialogo({ color: null, colorNsys: null, grado: 'B', bateriaNueva: false })
+    const d = await dialogo()
+    const color = within(d).getByRole('combobox', { name: 'Color' })
+    await waitFor(() => expect(color).toBeEnabled())
+    expect(opcionesDe(color)).toEqual(['—', 'Negro', 'Rosa'])
+    expect(color).toHaveValue('')
+    expect(within(d).getByRole('region', { name: 'Vista previa' })).toHaveTextContent('Sin cambios todavía.')
+    await user.selectOptions(color, 'Rosa')
+    expect(within(d).getByRole('region', { name: 'Vista previa' })).toHaveTextContent('Color: — → Rosa')
+  })
+
+  it('un doble clic en Guardar manda una sola PUT', async () => {
+    let puts = 0
+    server.use(http.put('*/api/stock-telefonos/:imeiSn/taller', async () => {
+      puts++
+      await new Promise((r) => setTimeout(r, 50))
+      return new HttpResponse(null, { status: 204 })
+    }))
+    const user = userEvent.setup()
+    const onCerrar = vi.fn()
+    abrirDialogo({ grado: 'B', bateriaNueva: false }, onCerrar)
+    const d = await dialogo()
+    await user.selectOptions(within(d).getByRole('combobox', { name: 'Grado' }), 'A')
+    await user.type(within(d).getByRole('textbox', { name: 'Motivo' }), 'x')
+    const guardar = within(d).getByRole('button', { name: 'Guardar' })
+    await user.dblClick(guardar)
+    await waitFor(() => expect(onCerrar).toHaveBeenCalled())
+    expect(puts).toBe(1)
+  })
+
+  it('Escape con la PUT en vuelo no cierra; el motivo admite 500 caracteres como mucho', async () => {
+    let soltar: () => void = () => {}
+    const puerta = new Promise<void>((r) => { soltar = r })
+    server.use(http.put('*/api/stock-telefonos/:imeiSn/taller', async () => {
+      await puerta
+      return new HttpResponse(null, { status: 204 })
+    }))
+    const user = userEvent.setup()
+    const onCerrar = vi.fn()
+    abrirDialogo({ grado: 'B', bateriaNueva: false }, onCerrar)
+    const d = await dialogo()
+    expect(within(d).getByRole('textbox', { name: 'Motivo' })).toHaveAttribute('maxlength', '500')
+    await user.selectOptions(within(d).getByRole('combobox', { name: 'Grado' }), 'A')
+    await user.type(within(d).getByRole('textbox', { name: 'Motivo' }), 'x')
+    await user.click(within(d).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(within(d).getByRole('button', { name: 'Guardar' })).toBeDisabled())
+    await user.keyboard('{Escape}')
+    expect(onCerrar).not.toHaveBeenCalled()
+    soltar()
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+  })
+})
+
