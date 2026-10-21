@@ -8,6 +8,7 @@ import { credenciales } from './credenciales.ts'
 // Deja el móvil como estaba al empezar y al acabar («Volver a lo de NSYS» por la API).
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const IMEI = process.env.E2E_IMEI_TALLER ?? '350000000009921'
+const SIN_NADA = 'Este móvil no tiene nada del taller'
 const MOTIVO = 'E2E 0.9.21: prueba del SKU del taller'
 
 type Respuesta = { estado: number; cuerpo: unknown }
@@ -35,10 +36,13 @@ async function pedir(page: Page, metodo: string, ruta: string, cuerpo?: unknown)
   }, { metodo, ruta, cuerpo })
 }
 
-/** Vuelve a lo de NSYS si quedó algo del taller (una pasada anterior cortada): 204, o 400 si no había nada. */
+/** Vuelve a lo de NSYS si quedó algo del taller (una pasada anterior cortada): 204, o el 400 «Este móvil no tiene nada del
+ *  taller» si no había nada (cualquier otro 400 es un fallo de verdad). El servidor manda el texto en el JSON {message}. */
 async function limpiar(page: Page, motivo: string) {
   const r = await pedir(page, 'DELETE', `/api/stock-telefonos/${IMEI}/taller`, { motivo })
-  expect([204, 400], `limpieza del móvil de prueba: ${JSON.stringify(r.cuerpo)}`).toContain(r.estado)
+  const detalle = `limpieza del móvil de prueba: ${r.estado} ${JSON.stringify(r.cuerpo)}`
+  expect([204, 400], detalle).toContain(r.estado)
+  if (r.estado === 400) expect(JSON.stringify(r.cuerpo), `${detalle} (se esperaba «${SIN_NADA}»)`).toContain(SIN_NADA)
 }
 
 test.describe('0.9.21: SKU del taller', () => {
@@ -98,6 +102,10 @@ test.describe('0.9.21: SKU del taller', () => {
     await pagina.keyboard.press('Escape')
     await pagina.goto('/telefonos/stock')
     await pagina.getByRole('button', { name: /^Por pasar a NSYS \(\d+\)$/ }).click()
-    await expect(pagina.getByRole('table', { name: 'Móviles por pasar a NSYS' }).getByRole('row', { name: new RegExp(IMEI) })).toHaveCount(0)
+    const tabla = pagina.getByRole('table', { name: 'Móviles por pasar a NSYS' })
+    await expect(tabla).toBeVisible()
+    // Sin esperar a que acabe la carga, «0 filas» se cumpliría con la lista aún vacía.
+    await expect(tabla.getByText('Cargando…')).toHaveCount(0)
+    await expect(tabla.getByRole('row', { name: new RegExp(IMEI) })).toHaveCount(0)
   })
 })
