@@ -994,7 +994,7 @@ describe('FormularioReparacion — banda del SKU del taller (spec 0.9.21 pieza 2
 
   it('si nada cambia no hay banda', async () => {
     abrir()
-    const cuerpos = previa({})
+    previa({})
     await screen.findByRole('dialog', { name: TITULO })
     await elegirModelo('iPhone 13')
     await sumar('bat', 'Batería')
