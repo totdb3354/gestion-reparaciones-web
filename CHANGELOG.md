@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.21] - 2026-10-XX
+
+- **Correcciones de NSYS** (supertécnico y administrador): cuando NSYS corrige un móvil dándolo de baja y dándolo de alta en otro lote (por ejemplo, tras cambiarle el chasis de color en el taller), el ERP lo trata como el mismo móvil.
+  - En el rastro, una sola línea «Corrección en NSYS (lote … → …)» con el móvil antes y después, en vez de «Estado en NSYS: Removed» y «Vuelve a entrar».
+  - En la ficha del IMEI y en la tabla de Stock de teléfonos, los días cuentan desde que entró el primer lote; la ficha cuenta solo las entradas de verdad, conserva la revisión y la espera de antes de la corrección y, si es de pedido, su última caja.
+- Servidor y web. Sin migración.
+
 ## [0.9.20] - 2026-10-21 — Carga de técnicos: panel flotante en directo
 
 - **Carga de técnicos** (supertécnico y administrador): la ventana que bloqueaba la pantalla pasa a ser un **panel flotante** que se ve en cualquier pantalla mientras se trabaja.
