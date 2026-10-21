@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import { nombreModeloNsys } from '@/shared/lib/telefonoNsys'
+import { MarcaTaller } from '@/shared/ui/MarcaTaller'
 import { textoBuscado } from './modelo'
 import { imeisEn } from './varios'
 
@@ -46,7 +47,9 @@ export function BuscadorImei({ onElegir, onPegarVarios }: { onElegir: (imeiSn: s
             <li key={m.imeiSn}>
               <button type="button" onClick={() => elegir(m.imeiSn)}
                 className="w-full cursor-pointer rounded px-2.5 py-1.5 text-left text-[12px] text-azul-medio hover:bg-seleccion-suave">
-                {`${m.imeiSn} · ${[nombreModeloNsys(m.modelo, m.modeloMaestro), m.capacidad, m.color].filter(Boolean).join(' ')} · ${textoBuscado(m)}`}
+                {`${m.imeiSn} · ${[nombreModeloNsys(m.modelo, m.modeloMaestro), m.capacidad].filter(Boolean).join(' ')}`}
+                {m.color && <>{' '}<MarcaTaller enLinea nsys={m.colorNsys}>{m.color}</MarcaTaller></>}
+                {` · ${textoBuscado(m)}`}
               </button>
             </li>
           ))}

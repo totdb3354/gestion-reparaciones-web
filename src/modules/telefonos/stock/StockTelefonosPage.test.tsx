@@ -500,4 +500,35 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(caja).toHaveValue('350000000000001')
     expect(screen.queryByRole('dialog', { name: 'Comprobar una lista de IMEIs' })).not.toBeInTheDocument()
   })
+
+  it('lo del taller: color, grado y SKU con la marca y lo de NSYS debajo (spec 0.9.21 §2.4)', async () => {
+    server.use(http.get('*/api/stock-telefonos', () => HttpResponse.json([
+      movil({ imeiSn: '350000000000011', color: 'Rojo', colorNsys: 'Azul', grado: 'A', bateriaNueva: true, gradoNsys: 'B',
+        sku: 'i13128RojoA100', skuNsys: 'i13128AzulB', dias: 1 }),
+      movil({ imeiSn: '350000000000012', grado: 'C', gradoNsys: 'B', sku: null, skuNsys: 'i13128AzulB', dias: 2 }),
+      movil({ imeiSn: '350000000000013', dias: 3 }),
+    ])))
+    abrir()
+    await primeraFila()
+    const [rojo, sinSku, normal] = filas()
+    expect(celda(rojo, 'Color')).toHaveTextContent('Rojo taller')
+    expect(within(celda(rojo, 'Color')).getByText('NSYS: Azul')).toBeInTheDocument()
+    expect(within(celda(rojo, 'Grado')).getByText('NSYS: B')).toBeInTheDocument()
+    expect(within(celda(rojo, 'SKU')).getByText('NSYS: i13128AzulB')).toBeInTheDocument()
+    expect(celda(sinSku, 'SKU')).toHaveTextContent('sin SKU en el maestro')
+    expect(within(celda(sinSku, 'Color')).queryByText('taller')).not.toBeInTheDocument()
+    expect(within(normal).queryByText('taller')).not.toBeInTheDocument()
+    expect(celda(normal, 'SKU')).toHaveTextContent('i13128AzulA')
+  })
+
+  it('el buscador de IMEI dice el color que vale con la marca (spec 0.9.21 §2.4)', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+      movilBuscado({ imeiSn: '353918700112233', color: 'Rojo', colorNsys: 'Azul' }),
+    ])))
+    abrir()
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' }), '3539')
+    expect(await screen.findByRole('button', { name: /^353918700112233 · iPhone 13 128GB Rojo taller NSYS: Azul · Listos$/ }))
+      .toBeInTheDocument()
+  })
 })

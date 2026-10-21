@@ -55,3 +55,14 @@ const aDiaUtc = (dia: string) => Date.UTC(Number(dia.slice(0, 4)), Number(dia.sl
 export function diasDesdeNsys(dia: string, ahora: Date = new Date()): number {
   return Math.max(0, Math.round((aDiaUtc(DIA_MADRID.format(ahora)) - aDiaUtc(dia)) / 86_400_000))
 }
+
+/** 0.9.21 (spec «SKU del taller» §2.1): un SKU que el maestro no da para el color y el grado que valen. */
+export const SIN_SKU_MAESTRO = 'sin SKU en el maestro'
+/** 0.9.21 (§2.4): el producto que poner en NSYS cuando ningún móvil del espejo tiene ese color. */
+export const SIN_PRODUCTO_NSYS = '(ningún móvil de ese color en NSYS: búscalo a mano)'
+
+/** «<producto> · grado <grado>»: lo que hay que poner en NSYS (la ficha, el diálogo «Corregir…» y la lista «Por pasar a
+ *  NSYS»). Sin producto, el aviso de buscarlo a mano. */
+export function textoPoner(producto: string | null | undefined, grado: string | null | undefined): string {
+  return `${producto || SIN_PRODUCTO_NSYS} · grado ${grado || '—'}`
+}

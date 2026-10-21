@@ -81,4 +81,16 @@ describe('Comprobar una lista de IMEIs (spec 0.9.18 §4.9)', () => {
     expect(pedidas).toBe(2)
     expect(within(d).queryByText(/No se pudo comprobar/)).not.toBeInTheDocument()
   })
+
+  it('lo del taller: el color y el grado que valen, con la marca (spec 0.9.21 §2.4)', async () => {
+    server.use(http.post('*/api/stock-telefonos/comprobar', () => HttpResponse.json([
+      movilComprobado({ color: 'Rojo', colorNsys: 'Azul', grado: 'A', gradoNsys: 'B' }),
+    ])))
+    abrirDialogo('350000000000001')
+    const tabla = await within(await dialogo()).findByRole('table', { name: 'Resultado' })
+    const fila = within(tabla).getAllByRole('row')[1]
+    expect(within(fila).getByText('NSYS: Azul')).toBeInTheDocument()
+    expect(within(fila).getByText('NSYS: B')).toBeInTheDocument()
+    expect(within(fila).getAllByText('taller')).toHaveLength(2)
+  })
 })
