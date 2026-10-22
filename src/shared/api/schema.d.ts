@@ -3770,6 +3770,8 @@ export interface components {
             glassTecnicoNombre: string | null;
             normalAbierta: boolean;
             normalTecnicoNombre: string | null;
+            capacidad: string | null;
+            color: string | null;
         };
         PuntoEstadistica: {
             nombreTecnico: string;

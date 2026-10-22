@@ -8498,7 +8498,7 @@
         }
       },
       "ReparacionResumen" : {
-        "required" : [ "cliente", "clienteTelefono", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
+        "required" : [ "capacidad", "cliente", "clienteTelefono", "color", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -8660,6 +8660,14 @@
             "type" : "boolean"
           },
           "normalTecnicoNombre" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
             "type" : "string",
             "nullable" : true
           }
