@@ -4,7 +4,7 @@ import { HttpResponse, http, type RequestHandler } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderConRouter, SESION_SUPER, SESION_TEC } from '@/test/render'
 import { server } from '@/test/server'
-import { agrupados, asignacionActiva, componente, detalleEdicion, previaTaller, reparacion, solicitudAsignacion } from '../test/fabrica'
+import { agrupados, asignacionActiva, componente, detalleEdicion, reparacion, solicitudAsignacion } from '../test/fabrica'
 import { FormularioReparacion } from './FormularioReparacion'
 import { avisaAlSalir } from '@/test/avisoAlSalir'
 import { conRegistro, type EscenarioFormulario, type LlamadaRegistrada } from './test/handlers'
@@ -960,58 +960,5 @@ describe('FormularioReparacion — modo edición', () => {
     await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
     expect(screen.queryByRole('dialog', { name: /^Editar reparación/ })).not.toBeInTheDocument()
     expect(screen.queryByTestId('fila-bat')).not.toBeInTheDocument()
-  })
-})
-
-describe('FormularioReparacion — banda del SKU del taller (spec 0.9.21 pieza 2 §2.4)', () => {
-  /** Responde con `respuesta` y apunta los cuerpos que llegan. */
-  let respondidas = 0
-  function previa(respuesta: Parameters<typeof previaTaller>[0]): unknown[] {
-    const cuerpos: unknown[] = []
-    respondidas = 0
-    server.use(http.post('*/api/reparaciones/sku-taller/previsualizar', async ({ request }) => {
-      cuerpos.push(await request.json())
-      respondidas++
-      return HttpResponse.json(previaTaller(respuesta))
-    }))
-    return cuerpos
-  }
-
-  it('con una pieza que cambia el móvil, la banda sale encima de «Terminar asignación» con lo que dice el servidor', async () => {
-    const { llamadas } = abrir()
-    const cuerpos = previa({ despues: { color: 'Azul', grado: 'B100' } })
-    await screen.findByRole('dialog', { name: TITULO })
-    await elegirModelo('iPhone 13')
-    await sumar('bat', 'Batería')
-    const zona = screen.getByTestId('zona-guardar')
-    const banda = await within(zona).findByTestId('banda-sku-taller', {}, { timeout: 3000 })
-    expect(banda).toHaveTextContent('Al guardar, este móvil pasará a: B100 (ahora: B)')
-    expect(banda).toHaveAttribute('role', 'status')
-    expect(cuerpos[cuerpos.length - 1]).toEqual({ imei: '355400000000111', filas: [{ idRep: null, idCom: 101, reutilizada: false }] })
-    expect(botonZona().textContent).toBe('Terminar asignación')
-    expect(escrituras(llamadas)).toEqual([])
-  })
-
-  it('si nada cambia no hay banda', async () => {
-    abrir()
-    previa({})
-    await screen.findByRole('dialog', { name: TITULO })
-    await elegirModelo('iPhone 13')
-    await sumar('bat', 'Batería')
-    await waitFor(() => expect(respondidas).toBe(1), { timeout: 3000 })
-    // Un tic más: que el formulario procese la respuesta antes de comprobar que no hay banda.
-    await act(async () => { await new Promise((r) => setTimeout(r, 100)) })
-    expect(screen.queryByTestId('banda-sku-taller')).not.toBeInTheDocument()
-  })
-
-  it('una pieza que no cambia el móvil (pantalla) no pregunta', async () => {
-    abrir()
-    const cuerpos = previa({ despues: { color: 'Rojo', grado: 'A' } })
-    await screen.findByRole('dialog', { name: TITULO })
-    await elegirModelo('iPhone 13')
-    await sumar('lcd', 'Pantalla')
-    await new Promise((r) => setTimeout(r, 800))
-    expect(cuerpos).toEqual([])
-    expect(screen.queryByTestId('banda-sku-taller')).not.toBeInTheDocument()
   })
 })

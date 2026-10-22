@@ -234,17 +234,9 @@ En flujo nuevo y Glass (llamadas con `idAsignacion`) el técnico de cada escritu
 - Los agotados se registran antes que `completa` y uno a uno, sin deshacer si algo falla después.
 - La sección OTRAS ACCIONES no mira si el componente `otro` del modelo está activo.
 
-## 0.9.21 — Banda del SKU del taller encima de la zona de guardar (sin equivalente en el JavaFX)
+## 0.9.21 — Sin banda del SKU del taller (como el JavaFX)
 
-Añadido, decidido en la spec `2026-10-21-v0921-sku-del-taller-automatico-design.md` (raíz). En el flujo nuevo y en la edición
-de una reparación (no en glass), cuando alguna fila que se va a guardar es un chasis, una tapa trasera o una batería, la zona de
-guardar enseña encima del botón lo que el servidor calcula que pasará al móvil:
-- «Al guardar, este móvil pasará a: <color> · <grado> (ahora: <color> · <grado>)», solo con los datos que cambian;
-- «… el color del chasis no se puede deducir: lo corregirá un supertécnico» y «… el grado (<grado>) no se puede calcular: lo
-  corregirá un supertécnico».
-
-La pide 500 ms después del último cambio (`POST /api/reparaciones/sku-taller/previsualizar`, la misma cuenta que al guardar),
-no la vuelve a pedir si NSYS no conoce el IMEI y, si falla, no sale. No bloquea ni añade clics: el cambio lo hace el servidor al
-guardar, en la misma transacción. Las filas ya guardadas con «✓ Guardar fila» no cuentan (ya se aplicaron).
-
-Pruebas: `skuTaller.test.ts`, `usePreviaTaller.test.tsx`, `FormularioReparacion.test.tsx` y `sku-taller-reparacion.spec.ts`.
+La spec `2026-10-21-v0921-sku-del-taller-automatico-design.md` (raíz, §2.4) ponía encima de la zona de guardar una banda con
+lo que el guardado cambiaría en el móvil («Al guardar, este móvil pasará a: …») y sus avisos. Se quitó antes de producción
+(22/10, decisión del usuario): al técnico no le sirve y el supertécnico lo ve después en «Por pasar a NSYS», la ficha y el
+rastro, antes de tocar NSYS a mano. El formulario no avisa, como el JavaFX; el cambio lo sigue haciendo el servidor al guardar.
