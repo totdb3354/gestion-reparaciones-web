@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
 // sku-taller-reparacion.spec.ts (0.9.21, spec «SKU del taller», pieza 2): una reparación con un chasis de otro color
-// (reutilizado: no gasta stock) cambia sola el color y el grado del móvil de prueba, con su banda encima de «Terminar
-// asignación»; el stock, la ficha, el rastro y «Por pasar a NSYS» lo enseñan; borrar la reparación lo deshace y lo saca de la
+// (reutilizado: no gasta stock) cambia sola el color y el grado del móvil de prueba; el stock, la ficha, el rastro y
+// «Por pasar a NSYS» lo enseñan; borrar la reparación lo deshace y lo saca de la
 // lista. Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero) y con el móvil SINTÉTICO del guion de preprod (el de
 // sku-taller.spec.ts: por defecto 350000000009921, grado B; otro con E2E_IMEI_TALLER): nunca un móvil real. La asignación de
 // prueba es del propio supertécnico (E2E_USER) y, al acabar, se borra todo lo del taller de ese IMEI.
@@ -60,7 +60,8 @@ async function limpiar(page: Page) {
   if (v.estado === 400) expect.soft(JSON.stringify(v.cuerpo), `${detalle} (se esperaba «${SIN_NADA}»)`).toContain(SIN_NADA)
 }
 
-/** Un chasis del iPhone 13 (ni Pro ni mini) que, reutilizado, cambia el color del móvil de prueba a otro que se deduce. */
+/** Un chasis del iPhone 13 (ni Pro ni mini) que, reutilizado, cambia el color del móvil de prueba a otro que se deduce. Lo
+ *  calcula la previa del servidor (la misma cuenta que al guardar; el formulario ya no la enseña desde el 22/10). */
 async function elegirChasis(page: Page): Promise<Chasis> {
   const r = await pedir(page, 'GET', '/api/componentes/agrupados')
   expect(r.estado, 'GET /api/componentes/agrupados').toBe(200)
@@ -118,7 +119,7 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
     }
   })
 
-  test('una reparación con un chasis de otro color cambia el color y el grado, con su banda, y sale en «Por pasar a NSYS»', async () => {
+  test('una reparación con un chasis de otro color cambia el color y el grado y sale en «Por pasar a NSYS»', async () => {
     const { tipo, antes, despues } = chasis
     await pagina.goto(`/reparaciones/pendientes/reparar/${idAsig}`)
     const formulario = pagina.getByRole('dialog', { name: /^Nueva reparación — IMEI / })
@@ -132,8 +133,6 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
     await fila.getByRole('button', { name: 'Reutilizada Chasis' }).first().click()
     await fila.getByRole('combobox', { name: 'SKU de Chasis' }).click()
     await pagina.getByRole('listbox', { name: 'SKU de Chasis' }).getByTitle(tipo, { exact: true }).click()
-    await expect(formulario.getByTestId('banda-sku-taller'))
-      .toHaveText(`Al guardar, este móvil pasará a: ${despues.color} · ${despues.grado} (ahora: ${antes.color} · ${antes.grado})`, { timeout: 15_000 })
     const boton = formulario.getByTestId('zona-guardar').getByRole('button')
     await boton.click()
     await expect(boton).toHaveText('✓  Confirmar terminar')
