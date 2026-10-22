@@ -14,6 +14,7 @@ import { BadgeTipo } from '@/shared/ui/BadgeTipo'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
+import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { FiltroImei } from '@/shared/ui/FiltroImei'
@@ -75,9 +76,9 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'tipo', header: 'Tipo', size: 90, maxSize: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
       { id: 'imei', header: 'IMEI', size: 130, maxSize: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
-      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
+      { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
-      { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
+      { id: 'comentario', header: 'Comentario', size: 90, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
       { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
       { id: 'estado', header: 'Estado', size: 100, maxSize: 100, cell: ({ row }) => <BadgesEstadoPendiente rep={row.original} hoy={hoy} /> },

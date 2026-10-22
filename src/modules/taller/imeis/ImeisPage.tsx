@@ -101,11 +101,11 @@ export function ImeisPage() {
         </div>
       ),
     },
-    { id: 'modelo', header: 'Modelo', size: 150, accessorFn: (g) => descripcionTrabajo(g) },
+    { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (g) => descripcionTrabajo(g) },
     { id: 'fechas', header: 'Fechas', size: 130, maxSize: 130, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaMasAntigua} fin={row.original.fechaMasReciente} patron={FMT} /> },
     { id: 'trabajos', header: 'Trabajos', size: 160, accessorFn: resumenTipos },
     { id: 'estado', header: 'Estado', size: 130, maxSize: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },
-    { id: 'observacion', header: 'Observación', size: 150, cell: ({ row }) => <TextoExpandible titulo="Observación" texto={row.original.observacion} /> },
+    { id: 'observacion', header: 'Observación', size: 100, cell: ({ row }) => <TextoExpandible titulo="Observación" texto={row.original.observacion} /> },
     { id: 'cliente', header: 'Cliente', size: 150, cell: ({ row }) => <TextoExpandible titulo="Cliente" texto={row.original.cliente} /> },
   ], [abrir])
 

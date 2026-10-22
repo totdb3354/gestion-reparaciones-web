@@ -230,12 +230,12 @@ describe('PulidosPendientesPage (ficha docs/paridad/pendientes.md, pestaña Puli
 
 describe('PulidosPendientesPage: tabla fluida (adaptación a web)', () => {
   it('sin columna de relleno; la casilla, Id, IMEI, Fecha y la papelera fijas, y las de texto se reparten el sobrante', async () => {
-    // 1460 px: 440 para las fijas y 1020 para Modelo, Comentario, Cliente y Asignado por, el doble de sus mínimos (510)
-    simularAnchoDeTabla(1460)
+    // 1480 px: 440 para las fijas y 1040 para Modelo, Comentario, Cliente y Asignado por, el doble de sus mínimos (520: 200·90·110·120)
+    simularAnchoDeTabla(1480)
     const { container } = abrir(SESION_SUPER)
     await screen.findByText('AP20260916_1')
     expect(container.querySelector('[data-relleno]')).toBeNull()
-    expect(anchosDeColumnas(container)).toEqual([40, 90, 130, 240, 130, 320, 220, 240, 50])
+    expect(anchosDeColumnas(container)).toEqual([40, 90, 130, 400, 130, 180, 220, 240, 50])
   })
 })
 

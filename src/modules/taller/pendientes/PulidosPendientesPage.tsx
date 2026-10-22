@@ -11,6 +11,7 @@ import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { DataTable } from '@/shared/ui/DataTable'
+import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { FiltroImei } from '@/shared/ui/FiltroImei'
@@ -89,9 +90,9 @@ export function PulidosPendientesPage() {
       { id: 'check', header: '', size: 40, maxSize: 40, cell: ({ row }) => <Checkbox aria-label={`Seleccionar ${row.original.idRep}`} checked={seleccionados.has(row.original.idRep)} onCheckedChange={(v) => marcar(row.original.idRep, v === true)} /> },
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
+      { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
-      { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
+      { id: 'comentario', header: 'Comentario', size: 90, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
       { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
     ]

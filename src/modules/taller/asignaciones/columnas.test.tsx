@@ -33,15 +33,16 @@ function pintar(filas: ReparacionResumen[], o: OpcionesColumnas) {
 
 /** [id, cabecera, size]: los prefWidth de PendientesSuperTecnicoView.fxml, en el orden de la spec §7, salvo tres pesos
  *  del ajuste 'estirar': el Id sube a 120 para que el identificador más largo (glass/pulido) no se corte, y Comentario y
- *  Cliente, las columnas de texto libre, pesan más para llevarse el grueso del espacio sobrante. */
+ *  Cliente, las columnas de texto libre, pesan más para llevarse el grueso del espacio sobrante.
+ *  0.9.21: Modelo 200 y Comentario 120 (se abre con un clic) para que quepa la descripción completa. */
 const DIEZ_PRIMERAS = [
   ['id', 'Id Asignación', 120],
   ['tipo', 'Tipo', 90],
   ['tecnico', 'Técnico', 110],
   ['imei', 'IMEI', 130],
-  ['modelo', 'Modelo', 120],
+  ['modelo', 'Modelo', 200],
   ['fecha', 'Fecha asignación', 130],
-  ['comentario', 'Comentario', 200],
+  ['comentario', 'Comentario', 120],
   ['cliente', 'Cliente', 140],
   ['asignadoPor', 'Asignado por', 120],
   ['estado', 'Estado', 100],

@@ -8,6 +8,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{imeis-
 
 - **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm`; el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
 - **Diferencia deliberada (0.9.21):** el «Modelo» del maestro (el del grupo), la columna «Modelo» del detalle, sus «Copiar celda» y la barra «IMEI · modelo» del detalle llevan la descripción completa del móvil, «iPhone 13 128GB Azul»: la capacidad y el color de hoy de NSYS (el que vale; spec raíz `docs/superpowers/specs/2026-10-22-v0921-descripcion-completa-design.md`), para todos los roles. Sin NSYS, el modelo solo. El CSV `agrupado_resumen` gana «Capacidad» y «Color» detrás de «Modelo»; `agrupado_<imei>` no cambia.
+- Anchos: Modelo más ancho y Comentario/Observación más estrechos y expandibles, para que quepa la descripción completa (decisión del usuario, 22/10); difiere de los anchos del FXML. Modelo 150 → 200 y Observación 150 → 100 en el maestro.
 
 ## Común a maestro y detalle
 
