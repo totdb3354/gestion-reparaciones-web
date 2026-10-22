@@ -8,6 +8,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 
 - **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm`; el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
 - **Diferencia deliberada (0.9.21):** la columna «Modelo» de las tres pestañas, su «Copiar celda» y la confirmación de «Completar seleccionados» («IMEI · modelo») llevan la descripción completa del móvil, «iPhone 13 128GB Azul»: la capacidad y el color de NSYS (el que vale; spec raíz `docs/superpowers/specs/2026-10-22-v0921-descripcion-completa-design.md`). Sin NSYS, el modelo solo. El CSV `pulidos_pendientes` gana «Capacidad» y «Color» detrás de «Modelo»; `mis_pendientes` no cambia.
+- Anchos: Modelo más ancho y Comentario/Observación más estrechos y expandibles, para que quepa la descripción completa (decisión del usuario, 22/10); difiere de los anchos del FXML. Modelo 120 → 200 y Comentario 160 → 90 en Pendientes y en Pulidos pendientes (peso y mínimo); el Comentario pasa a abrirse con un clic.
 
 ## Común a las tres pestañas
 

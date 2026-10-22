@@ -9,7 +9,7 @@ const anchos = (conTipo: boolean) =>
 const COMUNES = [
   ['id', 110, undefined],
   ['imei', 130, undefined],
-  ['modelo', 100, undefined],
+  ['modelo', 180, undefined],
   ['cliente', 110, undefined],
   ['reparador', 100, undefined],
   ['asignadoPor', 100, undefined],

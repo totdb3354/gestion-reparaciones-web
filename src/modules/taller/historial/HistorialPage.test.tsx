@@ -63,23 +63,23 @@ describe('HistorialPage (ficha docs/paridad/historial.md)', () => {
     expect(screen.getByRole('link', { name: 'Pulidos' })).toHaveAttribute('href', '/reparaciones/historial/pulidos')
     expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Id Reparación', 'IMEI teléfono', 'Modelo', 'Cliente', 'Reparador', 'Asignado por', 'Fechas', 'Componente', 'Observaciones', 'Estado', 'Incidencia', 'Id Rep. Anterior'])
     expect(screen.getByRole('table')).toHaveClass('w-full')
-    // Pesos de aplicarAnchosDetalle (`Math.max(w, w * u)`; docs/paridad/historial.md): 110·130·100·110·100·100·110·150·
+    // Pesos de aplicarAnchosDetalle (`Math.max(w, w * u)`; docs/paridad/historial.md): 110·130·180·110·100·100·110·150·
     // 200·120·200·150 (Estado 120: su minWidth 110 del FXML nunca llega a pintarse). En ajuste "estirar" DataTable los
-    // reparte en % sobre la suma (1580), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
+    // reparte en % sobre la suma (1660; Modelo 180 desde la 0.9.21), calco de DataTable.test.tsx "en ajuste estirar reparte porcentajes...".
     const anchos = Array.from(container.querySelectorAll('col')).map((c) => c.style.width)
     expect(anchos).toEqual([
-      expect.stringMatching(/^6\.9620/), // Id Reparación 110
-      expect.stringMatching(/^8\.2278/), // IMEI teléfono 130
-      expect.stringMatching(/^6\.3291/), // Modelo 100
-      expect.stringMatching(/^6\.9620/), // Cliente 110
-      expect.stringMatching(/^6\.3291/), // Reparador 100
-      expect.stringMatching(/^6\.3291/), // Asignado por 100
-      expect.stringMatching(/^6\.9620/), // Fechas 110
-      expect.stringMatching(/^9\.4936/), // Componente 150
-      expect.stringMatching(/^12\.6582/), // Observaciones 200
-      expect.stringMatching(/^7\.5949/), // Estado 120
-      expect.stringMatching(/^12\.6582/), // Incidencia 200
-      expect.stringMatching(/^9\.4936/), // Id Rep. Anterior 150
+      expect.stringMatching(/^6\.6265/), // Id Reparación 110
+      expect.stringMatching(/^7\.8313/), // IMEI teléfono 130
+      expect.stringMatching(/^10\.8433/), // Modelo 180
+      expect.stringMatching(/^6\.6265/), // Cliente 110
+      expect.stringMatching(/^6\.0240/), // Reparador 100
+      expect.stringMatching(/^6\.0240/), // Asignado por 100
+      expect.stringMatching(/^6\.6265/), // Fechas 110
+      expect.stringMatching(/^9\.0361/), // Componente 150
+      expect.stringMatching(/^12\.0481/), // Observaciones 200
+      expect.stringMatching(/^7\.2289/), // Estado 120
+      expect.stringMatching(/^12\.0481/), // Incidencia 200
+      expect.stringMatching(/^9\.0361/), // Id Rep. Anterior 150
     ])
     // En la fila seleccionada el JavaFX repinta en blanco "Reutilizado" (y las fechas, CeldaFechas.test.tsx); los textos
     // con color propio sin oyente de selección lo conservan: "Sin incidencia", el texto de la incidencia, las píldoras y

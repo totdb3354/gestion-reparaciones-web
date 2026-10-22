@@ -72,8 +72,8 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
   it('columnas con el prefWidth del maestro como mínimo, sin columna de relleno (ajuste fluido); filas con cursor de mano y el mismo fondo al pasar', async () => {
     const { container } = abrir()
     await screen.findByText(A)
-    // la tabla llena el contenedor y no baja de la suma de los mínimos (resetarModo: IMEI 180 · Modelo 150 · Fechas 130 ·
-    // Trabajos 160 · Estado 130; Observación y Cliente sin prefWidth en AgrupadoView.fxml, acotado a su minWidth 150)
+    // la tabla llena el contenedor y no baja de la suma de los mínimos (resetarModo: IMEI 180 · Modelo 200 · Fechas 130 ·
+    // Trabajos 160 · Estado 130; Observación y Cliente sin prefWidth en AgrupadoView.fxml, Observación 100 desde la 0.9.21, Cliente 150)
     expect(screen.getByRole('table')).toHaveStyle({ minWidth: '1050px' })
     expect(screen.getByRole('table')).toHaveClass('w-full')
     expect(container.querySelector('[data-relleno]')).toBeNull()
@@ -83,11 +83,11 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     expect(fila).not.toHaveClass('hover:bg-muted/50')
   })
   it('con el contenedor medido, IMEI, Fechas y Estado quedan fijas y Modelo, Trabajos, Observación y Cliente se reparten el sobrante', async () => {
-    // 1660 px: 440 para las fijas y 1220 para las de texto, el doble de sus mínimos (610)
+    // 1660 px: 440 para las fijas y 1220 para las de texto, el doble de sus mínimos (610: Modelo 200 · Trabajos 160 · Observación 100 · Cliente 150)
     simularAnchoDeTabla(1660)
     const { container } = abrir()
     await screen.findByText(A)
-    expect(anchosDeColumnas(container)).toEqual([180, 300, 130, 320, 130, 300, 300])
+    expect(anchosDeColumnas(container)).toEqual([180, 400, 130, 320, 130, 200, 300])
   })
   it('filtros: IMEI, Técnico, Cliente con "(Sin cliente)", Incidencias con dos casillas, Limpiar', async () => {
     abrir()

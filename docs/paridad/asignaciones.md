@@ -10,6 +10,7 @@ Los ejemplos de identificador (`A20260922_1`, `AG20260922_1`, `AP20260922_1`) y 
 
 - **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm`; el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
 - **Diferencia deliberada (0.9.21):** la columna «Modelo» y su «Copiar celda» llevan la descripción completa del móvil, «iPhone 13 128GB Azul»: el modelo del taller con la capacidad y el color de NSYS (el que vale, con lo del taller encima; spec raíz `docs/superpowers/specs/2026-10-22-v0921-descripcion-completa-design.md`). Sin NSYS, el modelo solo. El JavaFX solo pone el modelo. El CSV gana «Capacidad» y «Color» detrás de «Modelo». Pruebas: `columnas.test.tsx`, `pendientes/textoCelda.test.ts` y `csv.test.ts`.
+- Anchos: Modelo más ancho y Comentario/Observación más estrechos y expandibles, para que quepa la descripción completa (decisión del usuario, 22/10); difiere de los anchos del FXML. Modelo 120 → 200 y Comentario 200 → 120 (peso de la tabla fluida).
 - **Diferencia deliberada:** con el modal "Asignar trabajos" abierto y alguna entrada en sus colas, recargar la página, cerrar la pestaña o salir de la web hace que el navegador pregunte antes con su aviso propio; sin entradas no pregunta. El JavaFX no tiene ese caso (es una ventana del sistema) (decisión del usuario 2026-09-27, web 0.8.5; verificado por test: `AsignarTrabajosDialog.test.tsx` "aviso al salir (F5, cerrar la pestaña): sin nada en las colas no pregunta; con un IMEI escaneado, sí").
 
 Las tres que la spec ya anunciaba:

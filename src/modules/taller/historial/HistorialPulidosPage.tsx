@@ -11,6 +11,7 @@ import { BotonSecundario } from '@/shared/ui/Botones'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { ContextMenuItem, ContextMenuSeparator } from '@/shared/ui/context-menu'
 import { DataTable } from '@/shared/ui/DataTable'
+import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { EtiquetaActualizado } from '@/shared/ui/EtiquetaActualizado'
 import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { FiltroImei } from '@/shared/ui/FiltroImei'
@@ -48,11 +49,11 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
 const COLUMNAS: ColumnDef<ReparacionResumen>[] = [
   { id: 'id', accessorKey: 'idRep', header: 'Id Pulido', size: 110, maxSize: 110 },
   { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-  { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
+  { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
   { id: 'tecnico', header: 'Técnico', size: 110, accessorFn: (r) => r.nombreTecnico ?? '' },
   { id: 'fechaIni', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT) },
   { id: 'fechaFin', header: 'Fecha fin', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaFin, FMT) },
-  { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
+  { id: 'comentario', header: 'Comentario', size: 90, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
   { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
   { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },
 ]

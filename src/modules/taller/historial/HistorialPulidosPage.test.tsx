@@ -99,12 +99,12 @@ describe('HistorialPulidosPage (ficha docs/paridad/historial.md, toggle Pulidos)
 
 describe('HistorialPulidosPage: tabla fluida (adaptación a web)', () => {
   it('sin columna de relleno; Id, IMEI y las dos fechas fijas, y las de texto se reparten el sobrante', async () => {
-    // 1740 px: 500 para las fijas y 1240 para Modelo, Técnico, Comentario, Cliente y Asignado por, el doble de sus mínimos (620)
-    simularAnchoDeTabla(1740)
+    // 1760 px: 500 para las fijas y 1260 para Modelo, Técnico, Comentario, Cliente y Asignado por, el doble de sus mínimos (630: 200·110·90·110·120)
+    simularAnchoDeTabla(1760)
     const { container } = abrir()
     await screen.findByText('P20260915_10')
     expect(container.querySelector('[data-relleno]')).toBeNull()
-    expect(anchosDeColumnas(container)).toEqual([110, 130, 240, 220, 130, 130, 320, 220, 240])
+    expect(anchosDeColumnas(container)).toEqual([110, 130, 400, 220, 130, 130, 180, 220, 240])
   })
 })
 

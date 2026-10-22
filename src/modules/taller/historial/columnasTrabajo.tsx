@@ -36,7 +36,7 @@ export function columnasTrabajo({ conTipo = false, patronFechas, tituloId, onIrA
   const base: ColumnDef<ReparacionResumen>[] = [
     { id: 'id', accessorKey: 'idRep', header: tituloId, size: 110 },
     { id: 'imei', accessorKey: 'imei', header: 'IMEI teléfono', size: 130 },
-    { id: 'modelo', header: 'Modelo', size: 100, accessorFn: (r) => descripcionTrabajo(r) },
+    { id: 'modelo', header: 'Modelo', size: 180, accessorFn: (r) => descripcionTrabajo(r) },
     { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '—' },
     { id: 'reparador', header: 'Reparador', size: 100, cell: ({ row }) => <CeldaReparador rep={row.original} /> },
     { id: 'asignadoPor', header: 'Asignado por', size: 100, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },

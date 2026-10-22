@@ -71,11 +71,11 @@ export function crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion, 
     // `?? 1` es el getOrDefault(imei, 1) del JavaFX: sin entrada en el mapa (IMEI nulo, o fila recién llegada) se
     // cuenta un solo técnico y no hay tercera línea.
     { id: 'imei', header: 'IMEI', size: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} asignados={asignadosPorImei.get(row.original.imei) ?? 1} /> },
-    { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
+    { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
     // Texto plano, sin color propio: el cFecha del JavaFX solo tiene cellValueFactory, así que hereda el color de la
     // fila (y con ella el crema de la seleccionada) y no necesita CREMA_EN_FILA_SELECCIONADA.
     { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_FECHA_ASIGNACION) },
-    { id: 'comentario', header: 'Comentario', size: 200, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
+    { id: 'comentario', header: 'Comentario', size: 120, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
     { id: 'cliente', header: 'Cliente', size: 140, accessorFn: (r) => r.cliente ?? '' },
     // '—' sin asignador, calco del cAsignadoPor del JavaFX y de lo que ya pintan el Historial y Pendientes del técnico.
     { id: 'asignadoPor', header: 'Asignado por', size: 120, accessorFn: (r) => r.nombreTecnicoAsigna ?? '—' },

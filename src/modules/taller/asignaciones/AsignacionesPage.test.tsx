@@ -340,16 +340,16 @@ describe('AsignacionesPage · la tabla ocupa todo el ancho (paridad asig-lista)'
     expect(anchos.every((a) => a.endsWith('%'))).toBe(true)
   })
 
-  it('medida, llena el contenedor: el Id no baja de 120 px, la papelera se queda en 45 y Comentario es la más ancha', async () => {
+  it('medida, llena el contenedor: el Id no baja de 120 px, la papelera se queda en 45 y Modelo es la más ancha', async () => {
     abrir()
     await screen.findByText('A20260916_1')
     // Contenedor de la captura (1920 px de pantalla menos lateral y márgenes). Suma de pesos 1305 → u ≈ 1,257.
     medirContenedor(1640)
     const px = Array.from(document.querySelectorAll('col')).map((c) => parseFloat(c.style.width))
-    const [id, , , , , , comentario, cliente, , , papelera] = px
+    const [id, , , , modelo, , , cliente, , , papelera] = px
     expect(id).toBeGreaterThanOrEqual(120)
     expect(papelera).toBe(45)
-    expect(comentario).toBe(Math.max(...px))
+    expect(modelo).toBe(Math.max(...px)) // 0.9.21: Modelo 200 (descripción completa) > Cliente 140 > Comentario 120
     expect(cliente).toBeGreaterThan(px[2]) // más que Técnico
     // Todo el ancho menos lo que la papelera no crece (45·(u−1) ≈ 11,6 px en blanco, como el hueco del JavaFX).
     expect(px.reduce((a, b) => a + b, 0)).toBeGreaterThan(1625)

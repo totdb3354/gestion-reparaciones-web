@@ -320,12 +320,12 @@ describe('PendientesPage (ficha docs/paridad/pendientes.md)', () => {
 
 describe('PendientesPage: tabla fluida (adaptación a web)', () => {
   it('sin columna de relleno; Id, Tipo, IMEI, Fecha, Estado, la acción y la papelera fijas, y las de texto se reparten el sobrante', async () => {
-    // 1755 px: 735 para las fijas y 1020 para Modelo, Comentario, Cliente y Asignado por, el doble de sus mínimos (510)
-    simularAnchoDeTabla(1755)
+    // 1775 px: 735 para las fijas y 1040 para Modelo, Comentario, Cliente y Asignado por, el doble de sus mínimos (520: 200·90·110·120)
+    simularAnchoDeTabla(1775)
     const { container } = abrir(SESION_SUPER)
     await screen.findByText('A20260915_29')
     expect(container.querySelector('[data-relleno]')).toBeNull()
-    expect(anchosDeColumnas(container)).toEqual([90, 90, 130, 240, 130, 320, 220, 240, 100, 150, 45])
+    expect(anchosDeColumnas(container)).toEqual([90, 90, 130, 400, 130, 180, 220, 240, 100, 150, 45])
   })
 })
 
