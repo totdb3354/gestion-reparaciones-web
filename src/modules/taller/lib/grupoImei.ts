@@ -5,6 +5,9 @@ import { tipoDe } from '@/shared/lib/tipoTrabajo'
 export type GrupoImei = {
   imei: string
   modelo: string
+  /** 0.9.21: la capacidad y el color de NSYS del IMEI (null fuera de NSYS). */
+  capacidad: string | null
+  color: string | null
   observacion: string | null
   cliente: string | null
   fechaMasAntigua: string | null
@@ -19,6 +22,16 @@ export type GrupoImei = {
 
 const primero = (valores: (string | null | undefined)[]) => valores.find((v) => v && v !== '') ?? null
 
+/** 0.9.21: el móvil de los trabajos de un IMEI: el primer modelo, la primera capacidad y el primer color no vacíos (las tres
+ *  listas traen lo mismo del IMEI; si una no pudo leer NSYS, vale lo de otra). */
+export function movilDe(trabajos: ReparacionResumen[]): { modelo: string; capacidad: string | null; color: string | null } {
+  return {
+    modelo: primero(trabajos.map((t) => t.modelo)) ?? '',
+    capacidad: primero(trabajos.map((t) => t.capacidad)),
+    color: primero(trabajos.map((t) => t.color)),
+  }
+}
+
 function construir(imei: string, trabajos: ReparacionResumen[]): GrupoImei {
   let countRep = 0, countGlass = 0, countPul = 0
   for (const t of trabajos) {
@@ -31,7 +44,7 @@ function construir(imei: string, trabajos: ReparacionResumen[]): GrupoImei {
   const fines = trabajos.map((t) => t.fechaFin).filter((f): f is string => !!f)
   return {
     imei,
-    modelo: primero(trabajos.map((t) => t.modelo)) ?? '',
+    ...movilDe(trabajos),
     observacion: primero(trabajos.map((t) => t.observacionTelefono)),
     // La vista IMEIs es por teléfono: su cliente es el actual (el que cambia «Editar cliente»), no el de cada trabajo.
     cliente: primero(trabajos.map((t) => t.clienteTelefono)),

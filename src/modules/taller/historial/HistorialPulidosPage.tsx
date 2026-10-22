@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { descargarCsv, textoForzado } from '@/shared/lib/csv'
+import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
 import { useStore } from '@/shared/lib/store'
@@ -23,8 +23,9 @@ import { TogglePill } from '@/shared/ui/TogglePill'
 import { useBorrarPulido, useEditarModeloTelefono, useHistorial, useTecnicos } from '../api'
 import { filtroImeiHistorial, filtrosHistorial } from '../estado'
 import { etiquetaContador, pasaFechas, pasaImeis, pasaTecnico } from '../lib/filtros'
-import { MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo, MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
 import { TOGGLES_HISTORIAL } from './constantes'
+import { cabecerasHistorialPulidos, filaHistorialPulido } from './csvTrabajos'
 
 const FMT = 'dd/MM/yyyy HH:mm' as const
 const OPCIONES_MODELO = MODELOS_ORDENADOS.map((m) => ({ clave: m, etiqueta: traducirModelo(m) }))
@@ -33,7 +34,7 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
   switch (columna) {
     case 'id': return rep.idRep
     case 'imei': return rep.imei
-    case 'modelo': return traducirModelo(rep.modelo)
+    case 'modelo': return descripcionTrabajo(rep)
     case 'tecnico': return rep.nombreTecnico ?? ''
     case 'fechaIni': return formatear(rep.fechaAsig, FMT)
     case 'fechaFin': return formatear(rep.fechaFin, FMT)
@@ -47,7 +48,7 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
 const COLUMNAS: ColumnDef<ReparacionResumen>[] = [
   { id: 'id', accessorKey: 'idRep', header: 'Id Pulido', size: 110, maxSize: 110 },
   { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-  { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
+  { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
   { id: 'tecnico', header: 'Técnico', size: 110, accessorFn: (r) => r.nombreTecnico ?? '' },
   { id: 'fechaIni', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT) },
   { id: 'fechaFin', header: 'Fecha fin', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaFin, FMT) },
@@ -75,13 +76,7 @@ export function HistorialPulidosPage() {
     return data.filter((r) => pasaImeis(r.imei, imeis) && pasaTecnico(r.idTec, filtros.tecnicos) && pasaFechas(r, filtros.desde, filtros.hasta))
   }, [data, filtroImei, filtros])
 
-  useRegistrarExportable(() => {
-    const cabeceras = ['ID', 'IMEI', 'Modelo', ...(global ? ['Técnico'] : []), 'Fecha inicio', 'Fecha fin', 'Comentario']
-    descargarCsv('historial_pulidos', cabeceras, visibles.map((r) => [
-      r.idRep, textoForzado(r.imei), traducirModelo(r.modelo), ...(global ? [r.nombreTecnico ?? ''] : []),
-      formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'), formatear(r.fechaFin, 'dd/MM/yyyy HH:mm'), r.comentarioAsignacion ?? '',
-    ]))
-  })
+  useRegistrarExportable(() => descargarCsv('historial_pulidos', cabecerasHistorialPulidos(global), visibles.map((r) => filaHistorialPulido(r, global))))
 
   return (
     <div className="p-10">

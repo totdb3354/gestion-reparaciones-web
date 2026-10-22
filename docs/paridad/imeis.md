@@ -7,6 +7,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{imeis-
 ## Diferencias deliberadas respecto al JavaFX
 
 - **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm`; el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+- **Diferencia deliberada (0.9.21):** el «Modelo» del maestro (el del grupo), la columna «Modelo» del detalle, sus «Copiar celda» y la barra «IMEI · modelo» del detalle llevan la descripción completa del móvil, «iPhone 13 128GB Azul»: la capacidad y el color de hoy de NSYS (el que vale; spec raíz `docs/superpowers/specs/2026-10-22-v0921-descripcion-completa-design.md`), para todos los roles. Sin NSYS, el modelo solo. El CSV `agrupado_resumen` gana «Capacidad» y «Color» detrás de «Modelo»; `agrupado_<imei>` no cambia.
 
 ## Común a maestro y detalle
 
@@ -34,7 +35,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{imeis-
 - [x] Menú contextual SUPERTECNICO: "📋  Copiar celda", separador, "Editar observación", separador, "Editar cliente". TECNICO y ADMIN: solo "Copiar celda".
 - [x] "Editar observación": diálogo "Observación del teléfono" con "Observación — IMEI <imei>", área de texto (placeholder "Observación del teléfono...", 4 líneas, precargada) y botón "Guardar" (verde `fila-reparado-ico`) más "Cerrar" → `PATCH /api/telefonos/{imei}/observacion {observacion, updatedAt}` (observación recortada; `updatedAt` = `telefonoUpdatedAt` del grupo). 409 → "El teléfono fue modificado por otro usuario. Se recargan los datos." y recarga; otro error → "No se pudo guardar: <mensaje>". Recarga.
 - [x] "Editar cliente": diálogo "Seleccionar cliente" (✕ arriba a la derecha) con campo "Buscar cliente..." que filtra la lista, lista con "— Sin cliente —" primero y después los clientes activos (`GET /api/clientes/activos`) con el actual resaltado, texto "Nada seleccionado" o "Seleccionado: <nombre>", botón "Seleccionar" (deshabilitado sin selección) y "Cancelar" → `PATCH /api/telefonos/{imei}/cliente {idCli, updatedAt}` (`idCli` nulo para "— Sin cliente —"). 409 → mismo aviso y recarga. Recarga.
-- [x] CSV `agrupado_resumen` con los grupos visibles: "IMEI" (`="…"`), "Modelo", "Primera", "Última" (`dd/MM/yyyy`), "Reparaciones", "Glass", "Pulidos", "Inc. abiertas", "Observación", "Cliente". **Sin "Revisión logística"** (diferencia aceptada).
+- [x] CSV `agrupado_resumen` con los grupos visibles: "IMEI" (`="…"`), "Modelo", "Capacidad", "Color" (0.9.21), "Primera", "Última" (`dd/MM/yyyy`), "Reparaciones", "Glass", "Pulidos", "Inc. abiertas", "Observación", "Cliente". **Sin "Revisión logística"** (diferencia aceptada).
 
 ## Detalle (`/reparaciones/imeis/:imei`)
 

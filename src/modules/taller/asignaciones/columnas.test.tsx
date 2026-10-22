@@ -453,3 +453,14 @@ describe('crearColumnas: la guarda del deshacer no manda una escritura condenada
     expect(estado.fila.idTec).toBe(9)
   })
 })
+
+describe('crearColumnas: Modelo con la descripción completa (0.9.21)', () => {
+  it('el modelo del taller con la capacidad y el color de NSYS; sin NSYS, el modelo solo', () => {
+    pintar([
+      resumen({ idRep: 'A20261022_1', imei: '350000000000001', modelo: '13', capacidad: '128GB', color: 'Azul' }),
+      resumen({ idRep: 'A20261022_2', imei: '350000000000002', modelo: '14', capacidad: null, color: null }),
+    ], opciones({ soloLectura: true }))
+    expect(screen.getByText('iPhone 13 128GB Azul')).toBeInTheDocument()
+    expect(screen.getByText('iPhone 14')).toBeInTheDocument()
+  })
+})

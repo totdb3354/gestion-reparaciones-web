@@ -284,6 +284,9 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
   })
   it('CSV agrupado_resumen con los grupos visibles', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
+    // 0.9.21: B está en NSYS (128GB Azul); A no.
+    server.use(http.get('*/api/reparaciones/historial', () =>
+      HttpResponse.json(reps.map((r) => (r.imei === B ? { ...r, capacidad: '128GB', color: 'Azul' } : r)))))
     // "Descargar CSV" vive en el menú de usuario de AppLayout (TopBar), así que aquí hace falta el layout real,
     // no solo la página: renderConProviders monta ImeisPage como ruta hija de <AppLayout/> (opción `layout`).
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis', layout: <AppLayout /> })
@@ -292,10 +295,10 @@ describe('ImeisPage — maestro (ficha docs/paridad/imeis.md)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Descargar CSV' }))
     const [base, cabeceras, filasCsv] = descargar.mock.calls[0]
     expect(base).toBe('agrupado_resumen')
-    expect(cabeceras).toEqual(['IMEI', 'Modelo', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente'])
-    // Fila B: la única con Observación y Cliente no vacíos (la de A los tiene vacíos, ver abajo).
-    expect(filasCsv[0]).toEqual([`="${B}"`, 'iPhone 14', '16/09/2026', '16/09/2026', '1', '0', '0', '0', 'tapa rayada', 'WEB'])
-    expect(filasCsv[1]).toEqual([`="${A}"`, 'iPhone 16', '10/09/2026', '13/09/2026', '1', '1', '1', '1', '', ''])
+    expect(cabeceras).toEqual(['IMEI', 'Modelo', 'Capacidad', 'Color', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente'])
+    // Fila B: la única con Observación y Cliente no vacíos (la de A los tiene vacíos, ver abajo) y la única en NSYS.
+    expect(filasCsv[0]).toEqual([`="${B}"`, 'iPhone 14', '128GB', 'Azul', '16/09/2026', '16/09/2026', '1', '0', '0', '0', 'tapa rayada', 'WEB'])
+    expect(filasCsv[1]).toEqual([`="${A}"`, 'iPhone 16', '', '', '10/09/2026', '13/09/2026', '1', '1', '1', '1', '', ''])
     descargar.mockRestore()
   })
 })
@@ -363,5 +366,22 @@ describe('ImeisPage: el aviso de móviles sin trabajos espera al historial (0.9.
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
     await new Promise((r) => setTimeout(r, 300))
     expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()
+  })
+})
+
+describe('ImeisPage: Modelo con la descripción completa (0.9.21)', () => {
+  it('el modelo del grupo lleva la capacidad y el color de NSYS, también al copiar la celda', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+    onTestFinished(() => { if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor); else Reflect.deleteProperty(navigator, 'clipboard') })
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    server.use(http.get('*/api/reparaciones/historial', () =>
+      HttpResponse.json(reps.map((r) => (r.imei === B ? { ...r, capacidad: '128GB', color: 'Azul' } : r)))))
+    abrir()
+    const celda = await screen.findByText('iPhone 14 128GB Azul')
+    expect(screen.getByText('iPhone 16')).toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: celda })
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).toHaveBeenCalledWith('iPhone 14 128GB Azul')
   })
 })

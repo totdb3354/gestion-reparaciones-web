@@ -16,6 +16,8 @@ export function resumen(parcial: Partial<ReparacionResumen> = {}): ReparacionRes
     tieneAsignaciones: false, nombreTecnicoAsigna: 'Técnico F', telefonoUpdatedAt: '2026-09-16T07:02:00', cliente, clienteTelefono: cliente,
     entregadoAt: null, entregadoPorNombre: null, entregadoPor: null, glassAbierta: false, glassEntregadoAt: null,
     glassEntregadoPorNombre: null, glassEntregadoPor: null, glassTecnicoNombre: null, normalAbierta: false, normalTecnicoNombre: null,
+    // 0.9.21: sin NSYS por defecto (la lista dice el modelo solo, como antes).
+    capacidad: null, color: null,
     ...parcial,
   }
 }

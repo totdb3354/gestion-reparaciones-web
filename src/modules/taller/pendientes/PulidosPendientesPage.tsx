@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { descargarCsv, textoForzado } from '@/shared/lib/csv'
+import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
 import { useStore } from '@/shared/lib/store'
@@ -21,8 +21,9 @@ import { BotonPapelera } from '../componentes/BotonPapelera'
 import { TogglesPendientes } from '../componentes/TogglesPendientes'
 import { filtroImeiPendientes } from '../estado'
 import { etiquetaContador, pasaImeis } from '../lib/filtros'
-import { traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo } from '../lib/modelos'
 import { FMT_PENDIENTES, textoCeldaPendiente } from './textoCelda'
+import { CABECERAS_PULIDOS_PENDIENTES, filaPulidoPendiente, NOMBRE_CSV_PULIDOS_PENDIENTES } from './csvPulidos'
 
 // Solo 'cliente' y 'asignadoPor' son propios de Pulidos (docs/paridad/pendientes.md: "y en Pulidos también Cliente
 // y Asignado por"); textoCeldaPendiente no los copia en Reparaciones/Glass, así que aquí no se puede delegar. El
@@ -35,10 +36,10 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
   }
 }
 
-/** Cuántos y cuáles va a completar: una línea por IMEI (con el modelo si lo tiene), las cinco primeras y cuántas más. */
+/** Cuántos y cuáles va a completar: una línea por IMEI (con el modelo, la capacidad y el color si los tiene), las cinco primeras y cuántas más. */
 const MAX_LINEAS_CONFIRMAR = 5
 function textoConfirmarCompletar(reps: ReparacionResumen[]): string {
-  const lineas = reps.slice(0, MAX_LINEAS_CONFIRMAR).map((r) => { const modelo = traducirModelo(r.modelo); return modelo ? `${r.imei} · ${modelo}` : r.imei })
+  const lineas = reps.slice(0, MAX_LINEAS_CONFIRMAR).map((r) => { const modelo = descripcionTrabajo(r); return modelo ? `${r.imei} · ${modelo}` : r.imei })
   if (reps.length > MAX_LINEAS_CONFIRMAR) lineas.push(`… y ${reps.length - MAX_LINEAS_CONFIRMAR} más`)
   return [`Has seleccionado ${etiquetaContador(reps.length, 'pulido', 'pulidos')}:`, ...lineas].join('\n')
 }
@@ -88,7 +89,7 @@ export function PulidosPendientesPage() {
       { id: 'check', header: '', size: 40, maxSize: 40, cell: ({ row }) => <Checkbox aria-label={`Seleccionar ${row.original.idRep}`} checked={seleccionados.has(row.original.idRep)} onCheckedChange={(v) => marcar(row.original.idRep, v === true)} /> },
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
+      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
@@ -98,10 +99,7 @@ export function PulidosPendientesPage() {
     return base
   }, [esSuper, seleccionados])
 
-  useRegistrarExportable(() => {
-    descargarCsv('pulidos_pendientes', ['ID', 'IMEI', 'Modelo', 'Fecha asig.', 'Comentario'],
-      visibles.map((r) => [r.idRep, textoForzado(r.imei), traducirModelo(r.modelo), formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'), r.comentarioAsignacion ?? '']))
-  })
+  useRegistrarExportable(() => descargarCsv(NOMBRE_CSV_PULIDOS_PENDIENTES, CABECERAS_PULIDOS_PENDIENTES, visibles.map(filaPulidoPendiente)))
 
   return (
     <div className="p-10">

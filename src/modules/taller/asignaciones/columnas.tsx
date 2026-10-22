@@ -7,7 +7,7 @@ import { TextoExpandible } from '@/shared/ui/TextoExpandible'
 import { BadgesEstadoPendiente } from '../componentes/BadgesEstadoPendiente'
 import { BotonPapelera } from '../componentes/BotonPapelera'
 import { CeldaImeiPendiente } from '../componentes/CeldaImeiPendiente'
-import { traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo } from '../lib/modelos'
 import { CeldaTecnicoConectada } from './CeldaTecnicoConectada'
 import type { AccionReversible } from './useAccionConDeshacer'
 
@@ -71,7 +71,7 @@ export function crearColumnas({ soloLectura, tecnicos, ejecutar, onInteraccion, 
     // `?? 1` es el getOrDefault(imei, 1) del JavaFX: sin entrada en el mapa (IMEI nulo, o fila recién llegada) se
     // cuenta un solo técnico y no hay tercera línea.
     { id: 'imei', header: 'IMEI', size: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} asignados={asignadosPorImei.get(row.original.imei) ?? 1} /> },
-    { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
+    { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
     // Texto plano, sin color propio: el cFecha del JavaFX solo tiene cellValueFactory, así que hereda el color de la
     // fila (y con ella el crema de la seleccionada) y no necesita CREMA_EN_FILA_SELECCIONADA.
     { id: 'fecha', header: 'Fecha asignación', size: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_FECHA_ASIGNACION) },

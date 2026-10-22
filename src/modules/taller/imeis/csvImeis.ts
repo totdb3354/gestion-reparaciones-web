@@ -5,11 +5,13 @@ import { tipoDe } from '@/shared/lib/tipoTrabajo'
 import type { GrupoImei } from '../lib/grupoImei'
 import { traducirModelo } from '../lib/modelos'
 
-/** CSV del maestro (agrupado_resumen), sin "Revisión logística" (diferencia aceptada). */
-export const CABECERAS_RESUMEN = ['IMEI', 'Modelo', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente']
+/** CSV del maestro (agrupado_resumen), sin "Revisión logística" (diferencia aceptada). Desde la 0.9.21, con «Capacidad» y
+ *  «Color» de NSYS detrás de «Modelo», que sigue siendo el modelo solo. */
+export const CABECERAS_RESUMEN = ['IMEI', 'Modelo', 'Capacidad', 'Color', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente']
 export function filaResumen(g: GrupoImei): string[] {
   return [
-    textoForzado(g.imei), traducirModelo(g.modelo), formatear(g.fechaMasAntigua, 'dd/MM/yyyy'), formatear(g.fechaMasReciente, 'dd/MM/yyyy'),
+    textoForzado(g.imei), traducirModelo(g.modelo), g.capacidad ?? '', g.color ?? '',
+    formatear(g.fechaMasAntigua, 'dd/MM/yyyy'), formatear(g.fechaMasReciente, 'dd/MM/yyyy'),
     String(g.countRep), String(g.countGlass), String(g.countPul), String(g.incAbiertas), g.observacion ?? '', g.cliente ?? '',
   ]
 }

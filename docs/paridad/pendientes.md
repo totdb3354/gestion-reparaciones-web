@@ -7,6 +7,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 ## Diferencias deliberadas respecto al JavaFX
 
 - **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm`; el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+- **Diferencia deliberada (0.9.21):** la columna «Modelo» de las tres pestañas, su «Copiar celda» y la confirmación de «Completar seleccionados» («IMEI · modelo») llevan la descripción completa del móvil, «iPhone 13 128GB Azul»: la capacidad y el color de NSYS (el que vale; spec raíz `docs/superpowers/specs/2026-10-22-v0921-descripcion-completa-design.md`). Sin NSYS, el modelo solo. El CSV `pulidos_pendientes` gana «Capacidad» y «Color» detrás de «Modelo»; `mis_pendientes` no cambia.
 
 ## Común a las tres pestañas
 
@@ -30,7 +31,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 - [x] Columnas y anchos (px): Id Asignación 90 · Tipo 90 · IMEI 130 · Modelo 120 · Fecha asignación 130 · Comentario 160 · Cliente 110 · Asignado por 120 · Estado 100 · botón 150 · papelera 45 (solo SUPERTECNICO); son los mínimos: Modelo, Comentario, Cliente y Asignado por se reparten el sobrante y las demás son fijas (diferencia aceptada, web 0.8.2). Vacía, la tabla conserva el alto de la llena (web 0.8.1).
 - [x] Tipo: píldora "Reparación" (#E3F2FD / #1565C0) o "Glass" (#E0F2F1 / #00796B), radio 10, 11 px negrita, padding 2 10; debajo "Chasis" (10 px, #8A94A6) si `esChasis` y es reparación.
 - [x] IMEI (12 px azul medio) con mini-píldora debajo (10 px negrita, radio 8, padding 1 8): "Glass: <técnico>" con la paleta Glass en filas de reparación con `glassAbierta` y sin `glassEntregadoAt` (tooltip "Glass abierta de <técnico> — entrega sin registrar"; "glass" si no hay nombre); "Rep: <técnico>" con la paleta Reparación en filas de glass con `normalAbierta` (tooltip "Reparación abierta de <técnico>"; "técnico" si no hay nombre; se mantiene tras "Llegó").
-- [x] Modelo traducido (`traducirModelo`: "12promax" → "iPhone 12 Pro Max"; vacío si no hay).
+- [x] Modelo traducido (`traducirModelo`: "12promax" → "iPhone 12 Pro Max"; vacío si no hay) y, desde la 0.9.21, con la capacidad y el color de NSYS detrás (diferencia deliberada, arriba).
 - [x] Fecha asignación `dd/MM/yyyy HH:mm` en hora de Madrid.
 - [x] Comentario = `comentarioAsignacion` (vacío si nulo). Cliente (vacío si nulo). Asignado por = `nombreTecnicoAsigna` o "—".
 - [x] Estado: badges apilados (radio 10, 11 px negrita, padding 2 10), de arriba abajo: "Urgente" (#FDDEDE / #C62828) si `urgente`; "Por cerrar" (#E0F2F1 / #00796B) si `porCerrar`; entrega en índigo (#E8EAF6 / #3949AB): "→ <técnico de glass>" en filas de reparación con `glassEntregadoAt` (tooltip "Entregado a <glass> por <quien>, dd/MM HH:mm"), "Llegó HH:mm" si es hoy o "Llegó dd/MM" si no en filas de glass con `entregadoAt` (tooltip "Bajado por <quien>, dd/MM HH:mm"); después uno solo: "Incidencia" (`fila-incidencia-bg` / `fila-incidencia-brd`) si `esIncidencia`; si no y `esSolicitud > 0`: "Recibido" (#E8F5E9 / #2E7D32) si `estadoSolicitud = GESTIONADA` y `stockSolicitud > 0`, "En camino" (#E3F2FD / #1565C0) si `enCamino`, si no "Solicitud" (`fila-solicitud-bg` / `fila-solicitud-brd`), con debajo "N piezas" (10 px #586376) si `esSolicitud > 1` o los tipos (`tiposSolicitud`) si es una, y tooltip con los tipos; si no, "Normal" (#E8EAF0 / #586376) salvo que sea urgente (entonces sin "Normal").
@@ -54,7 +55,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{pendie
 - [x] Papelera (SUPERTECNICO): `ConfirmDialog` "Borrar asignación <id>" / "El pulido dejará de estar asignado y desaparecerá de tus pendientes." / "Borrar asignación" → `DELETE /api/pulidos/asignaciones/{id}`.
 - [x] Menú contextual: solo "Copiar celda" (la edición de pulidos vive en Asignaciones e Historial).
 - [x] Datos: `GET /api/pulidos/asignaciones` (mismo criterio de `?tecnico=` que arriba).
-- [x] CSV `pulidos_pendientes`: "ID", "IMEI" (`="…"`), "Modelo", "Fecha asig." (`dd/MM/yyyy HH:mm`), "Comentario".
+- [x] CSV `pulidos_pendientes`: "ID", "IMEI" (`="…"`), "Modelo", "Capacidad", "Color" (0.9.21), "Fecha asig." (`dd/MM/yyyy HH:mm`), "Comentario".
 
 ## Diferencias aceptadas
 

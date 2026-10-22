@@ -1,6 +1,6 @@
 import type { ReparacionResumen } from '@/shared/api/client'
 import { FMT_FECHA_ASIGNACION, formatear } from '@/shared/lib/fechas'
-import { traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo } from '../lib/modelos'
 
 export const FMT_PENDIENTES = FMT_FECHA_ASIGNACION
 
@@ -9,7 +9,7 @@ export function textoCeldaPendiente(rep: ReparacionResumen, columna: string): st
   switch (columna) {
     case 'id': return rep.idRep
     case 'imei': return rep.imei
-    case 'modelo': return traducirModelo(rep.modelo)
+    case 'modelo': return descripcionTrabajo(rep)
     case 'fecha': return formatear(rep.fechaAsig, FMT_PENDIENTES)
     case 'comentario': return rep.comentarioAsignacion ?? ''
     default: return null
