@@ -407,7 +407,7 @@ describe('AsignacionesPage · CSV (spec SP6 §6.5)', () => {
     server.use(http.get('*/api/reparaciones/pendientes/contadores', () => HttpResponse.json({ reparaciones: 0, glass: 0, pulidos: 0 })))
   })
 
-  it('"Descargar CSV" exporta reparaciones_pendientes con las 14 columnas y solo las filas visibles', async () => {
+  it('"Descargar CSV" exporta reparaciones_pendientes con las 16 columnas y solo las filas visibles', async () => {
     const descargar = vi.spyOn(csv, 'descargarCsv').mockResolvedValue(undefined)
     const usuario = userEvent.setup()
     renderConProviders(<AsignacionesPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/asignaciones', layout: <AppLayout /> })
@@ -420,12 +420,12 @@ describe('AsignacionesPage · CSV (spec SP6 §6.5)', () => {
     const [base, cabeceras, filas] = descargar.mock.calls[0]
     expect(base).toBe('reparaciones_pendientes')
     expect(cabeceras).toEqual([
-      'ID', 'Tipo', 'Técnico', 'IMEI', 'Modelo', 'Fecha asignación', 'Comentario', 'Cliente', 'Asignado por', 'Urgente',
-      'Chasis', 'Por cerrar', 'Entregado', 'En espera de pieza',
+      'ID', 'Tipo', 'Técnico', 'IMEI', 'Modelo', 'Capacidad', 'Color', 'Fecha asignación', 'Comentario', 'Cliente', 'Asignado por',
+      'Urgente', 'Chasis', 'Por cerrar', 'Entregado', 'En espera de pieza',
     ])
     // La fila de pulido del beforeEach de arriba: resumen() con idRep AP…, IMEI …003 y cliente "CLIENTE A".
     expect(filas).toEqual([
-      ['AP20260916_3', 'Pulido', 'Técnico A', '="000000000000003"', 'iPhone 14', '16/09/2026 09:02', '', 'CLIENTE A', 'Técnico F', 'No', 'No', 'No', '', 'No'],
+      ['AP20260916_3', 'Pulido', 'Técnico A', '="000000000000003"', 'iPhone 14', '', '', '16/09/2026 09:02', '', 'CLIENTE A', 'Técnico F', 'No', 'No', 'No', '', 'No'],
     ])
     descargar.mockRestore()
   })

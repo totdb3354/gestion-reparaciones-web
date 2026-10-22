@@ -6,35 +6,37 @@ import { CABECERAS_ASIGNACIONES, filaAsignacionCsv, NOMBRE_CSV_ASIGNACIONES } fr
 const TIPO = 1
 const TECNICO = 2
 const MODELO = 4
-const FECHA = 5
-const COMENTARIO = 6
-const CLIENTE = 7
-const ASIGNADO_POR = 8
-const URGENTE = 9
-const CHASIS = 10
-const POR_CERRAR = 11
-const ENTREGADO = 12
-const EN_ESPERA = 13
+const CAPACIDAD = 5
+const COLOR = 6
+const FECHA = 7
+const COMENTARIO = 8
+const CLIENTE = 9
+const ASIGNADO_POR = 10
+const URGENTE = 11
+const CHASIS = 12
+const POR_CERRAR = 13
+const ENTREGADO = 14
+const EN_ESPERA = 15
 
-describe('CSV de Asignaciones (calco de filaAsignacion del hotfix 0.16.3)', () => {
-  it('nombre del fichero y las 14 cabeceras exactas en orden', () => {
+describe('CSV de Asignaciones (calco de filaAsignacion del hotfix 0.16.3, con capacidad y color de NSYS desde la 0.9.21)', () => {
+  it('nombre del fichero y las 16 cabeceras exactas en orden', () => {
     expect(NOMBRE_CSV_ASIGNACIONES).toBe('reparaciones_pendientes')
     expect(CABECERAS_ASIGNACIONES).toEqual([
-      'ID', 'Tipo', 'Técnico', 'IMEI', 'Modelo', 'Fecha asignación', 'Comentario', 'Cliente', 'Asignado por', 'Urgente',
-      'Chasis', 'Por cerrar', 'Entregado', 'En espera de pieza',
+      'ID', 'Tipo', 'Técnico', 'IMEI', 'Modelo', 'Capacidad', 'Color', 'Fecha asignación', 'Comentario', 'Cliente', 'Asignado por',
+      'Urgente', 'Chasis', 'Por cerrar', 'Entregado', 'En espera de pieza',
     ])
   })
 
-  it('fila completa de una reparación: todos los campos, fecha en hora de Madrid y "Sí" en las marcas', () => {
+  it('fila completa de una reparación: todos los campos, «Modelo» solo el modelo, fecha en hora de Madrid y "Sí" en las marcas', () => {
     const r = resumen({
-      idRep: 'A20260916_1', imei: '000000000000000', nombreTecnico: 'tecnico-a', modelo: '14', fechaAsig: '2026-09-16T07:02:00',
-      comentarioAsignacion: 'Pantalla rota', cliente: 'Cliente A', nombreTecnicoAsigna: 'tecnico-b', urgente: true, esChasis: true,
-      porCerrar: true, glassAbierta: true, glassEntregadoAt: '2026-09-16T08:42:00', glassTecnicoNombre: 'tecnico-c',
-      esSolicitud: 1, estadoSolicitud: 'PENDIENTE', stockSolicitud: 0,
+      idRep: 'A20260916_1', imei: '000000000000000', nombreTecnico: 'tecnico-a', modelo: '14', capacidad: '128GB', color: 'Azul',
+      fechaAsig: '2026-09-16T07:02:00', comentarioAsignacion: 'Pantalla rota', cliente: 'Cliente A', nombreTecnicoAsigna: 'tecnico-b',
+      urgente: true, esChasis: true, porCerrar: true, glassAbierta: true, glassEntregadoAt: '2026-09-16T08:42:00',
+      glassTecnicoNombre: 'tecnico-c', esSolicitud: 1, estadoSolicitud: 'PENDIENTE', stockSolicitud: 0,
     })
     expect(filaAsignacionCsv(r)).toEqual([
-      'A20260916_1', 'Reparación', 'tecnico-a', '="000000000000000"', 'iPhone 14', '16/09/2026 09:02', 'Pantalla rota', 'Cliente A',
-      'tecnico-b', 'Sí', 'Sí', 'Sí', '16/09/2026 10:42', 'Sí',
+      'A20260916_1', 'Reparación', 'tecnico-a', '="000000000000000"', 'iPhone 14', '128GB', 'Azul', '16/09/2026 09:02',
+      'Pantalla rota', 'Cliente A', 'tecnico-b', 'Sí', 'Sí', 'Sí', '16/09/2026 10:42', 'Sí',
     ])
   })
 
@@ -48,13 +50,16 @@ describe('CSV de Asignaciones (calco de filaAsignacion del hotfix 0.16.3)', () =
     expect(filaAsignacionCsv(resumen({ idRep: 'AP20260916_3' }))[TIPO]).toBe('Pulido')
   })
 
-  it('nulos: técnico, modelo, comentario y cliente vacíos; "Asignado por" nulo es "—"', () => {
+  it('nulos: técnico, modelo, capacidad, color, comentario y cliente vacíos; "Asignado por" nulo es "—"', () => {
     // El contrato declara nombreTecnico no nulo; el JavaFX lo protege igual (`!= null ? … : ""`) y aquí también.
     const fila = filaAsignacionCsv(resumen({
-      nombreTecnico: null as unknown as string, modelo: null, comentarioAsignacion: null, cliente: null, nombreTecnicoAsigna: null,
+      nombreTecnico: null as unknown as string, modelo: null, capacidad: null, color: null, comentarioAsignacion: null, cliente: null,
+      nombreTecnicoAsigna: null,
     }))
     expect(fila[TECNICO]).toBe('')
     expect(fila[MODELO]).toBe('')
+    expect(fila[CAPACIDAD]).toBe('')
+    expect(fila[COLOR]).toBe('')
     expect(fila[COMENTARIO]).toBe('')
     expect(fila[CLIENTE]).toBe('')
     expect(fila[ASIGNADO_POR]).toBe('—')

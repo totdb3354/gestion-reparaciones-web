@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { descargarCsv, textoForzado } from '@/shared/lib/csv'
+import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
 import { useStore } from '@/shared/lib/store'
@@ -21,8 +21,9 @@ import { BotonPapelera } from '../componentes/BotonPapelera'
 import { TogglesPendientes } from '../componentes/TogglesPendientes'
 import { filtroImeiPendientes } from '../estado'
 import { etiquetaContador, pasaImeis } from '../lib/filtros'
-import { descripcionTrabajo, traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo } from '../lib/modelos'
 import { FMT_PENDIENTES, textoCeldaPendiente } from './textoCelda'
+import { CABECERAS_PULIDOS_PENDIENTES, filaPulidoPendiente, NOMBRE_CSV_PULIDOS_PENDIENTES } from './csvPulidos'
 
 // Solo 'cliente' y 'asignadoPor' son propios de Pulidos (docs/paridad/pendientes.md: "y en Pulidos también Cliente
 // y Asignado por"); textoCeldaPendiente no los copia en Reparaciones/Glass, así que aquí no se puede delegar. El
@@ -98,10 +99,7 @@ export function PulidosPendientesPage() {
     return base
   }, [esSuper, seleccionados])
 
-  useRegistrarExportable(() => {
-    descargarCsv('pulidos_pendientes', ['ID', 'IMEI', 'Modelo', 'Fecha asig.', 'Comentario'],
-      visibles.map((r) => [r.idRep, textoForzado(r.imei), traducirModelo(r.modelo), formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'), r.comentarioAsignacion ?? '']))
-  })
+  useRegistrarExportable(() => descargarCsv(NOMBRE_CSV_PULIDOS_PENDIENTES, CABECERAS_PULIDOS_PENDIENTES, visibles.map(filaPulidoPendiente)))
 
   return (
     <div className="p-10">

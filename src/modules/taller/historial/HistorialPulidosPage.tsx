@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReparacionResumen } from '@/shared/api/client'
-import { descargarCsv, textoForzado } from '@/shared/lib/csv'
+import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
 import { useStore } from '@/shared/lib/store'
@@ -25,6 +25,7 @@ import { filtroImeiHistorial, filtrosHistorial } from '../estado'
 import { etiquetaContador, pasaFechas, pasaImeis, pasaTecnico } from '../lib/filtros'
 import { descripcionTrabajo, MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
 import { TOGGLES_HISTORIAL } from './constantes'
+import { cabecerasHistorialPulidos, filaHistorialPulido } from './csvTrabajos'
 
 const FMT = 'dd/MM/yyyy HH:mm' as const
 const OPCIONES_MODELO = MODELOS_ORDENADOS.map((m) => ({ clave: m, etiqueta: traducirModelo(m) }))
@@ -75,13 +76,7 @@ export function HistorialPulidosPage() {
     return data.filter((r) => pasaImeis(r.imei, imeis) && pasaTecnico(r.idTec, filtros.tecnicos) && pasaFechas(r, filtros.desde, filtros.hasta))
   }, [data, filtroImei, filtros])
 
-  useRegistrarExportable(() => {
-    const cabeceras = ['ID', 'IMEI', 'Modelo', ...(global ? ['Técnico'] : []), 'Fecha inicio', 'Fecha fin', 'Comentario']
-    descargarCsv('historial_pulidos', cabeceras, visibles.map((r) => [
-      r.idRep, textoForzado(r.imei), traducirModelo(r.modelo), ...(global ? [r.nombreTecnico ?? ''] : []),
-      formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'), formatear(r.fechaFin, 'dd/MM/yyyy HH:mm'), r.comentarioAsignacion ?? '',
-    ]))
-  })
+  useRegistrarExportable(() => descargarCsv('historial_pulidos', cabecerasHistorialPulidos(global), visibles.map((r) => filaHistorialPulido(r, global))))
 
   return (
     <div className="p-10">
