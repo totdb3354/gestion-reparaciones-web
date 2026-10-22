@@ -27,7 +27,7 @@ import { TogglesPendientes } from '../componentes/TogglesPendientes'
 import { filtroImeiPendientes, tipoPendientes } from '../estado'
 import { avisoDeshacer, avisoEntrega, avisoLlegada, ocultarAnadirGlass } from '../lib/entregaGlass'
 import { etiquetaContador, ordenarPendientes, pasaImeis, pasaTipo, type TipoPendiente } from '../lib/filtros'
-import { traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo } from '../lib/modelos'
 import { MenuPendiente } from './MenuPendiente'
 import { FMT_PENDIENTES } from './textoCelda'
 
@@ -75,7 +75,7 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'tipo', header: 'Tipo', size: 90, maxSize: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
       { id: 'imei', header: 'IMEI', size: 130, maxSize: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
-      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
+      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },

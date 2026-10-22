@@ -26,7 +26,7 @@ import { DialogoObservacion } from '../componentes/DialogoObservacion'
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
 import { etiquetaContador } from '../lib/filtros'
 import { resumenTipos, type GrupoImei } from '../lib/grupoImei'
-import { traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo } from '../lib/modelos'
 import { agruparVisibles, opcionesCliente } from './agrupacion'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
 import { FMT } from './constantes'
@@ -38,7 +38,7 @@ const SIN_CLIENTE_CLAVE = ''
 function textoCeldaGrupo(g: GrupoImei, columna: string): string | null {
   switch (columna) {
     case 'imei': return g.imei
-    case 'modelo': return traducirModelo(g.modelo)
+    case 'modelo': return descripcionTrabajo(g)
     case 'fechas': return `${formatear(g.fechaMasAntigua, FMT) || '—'} → ${formatear(g.fechaMasReciente, FMT) || '—'}`
     case 'trabajos': return resumenTipos(g)
     case 'observacion': return g.observacion ?? ''
@@ -101,7 +101,7 @@ export function ImeisPage() {
         </div>
       ),
     },
-    { id: 'modelo', header: 'Modelo', size: 150, accessorFn: (g) => traducirModelo(g.modelo) },
+    { id: 'modelo', header: 'Modelo', size: 150, accessorFn: (g) => descripcionTrabajo(g) },
     { id: 'fechas', header: 'Fechas', size: 130, maxSize: 130, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaMasAntigua} fin={row.original.fechaMasReciente} patron={FMT} /> },
     { id: 'trabajos', header: 'Trabajos', size: 160, accessorFn: resumenTipos },
     { id: 'estado', header: 'Estado', size: 130, maxSize: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },

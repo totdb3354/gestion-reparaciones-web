@@ -238,3 +238,16 @@ describe('PulidosPendientesPage: tabla fluida (adaptación a web)', () => {
     expect(anchosDeColumnas(container)).toEqual([40, 90, 130, 240, 130, 320, 220, 240, 50])
   })
 })
+
+describe('PulidosPendientesPage: Modelo con la descripción completa (0.9.21)', () => {
+  it('en la columna y en la confirmación «IMEI · modelo»', async () => {
+    server.use(http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([{ ...filas[0], capacidad: '128GB', color: 'Azul' }, filas[1]])))
+    abrir()
+    expect(await screen.findByText('iPhone 13 128GB Azul')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar todo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completar seleccionados' }))
+    const dlg = screen.getByRole('dialog', { name: 'Completar 2 pulidos' })
+    expect(within(dlg).getByText(/Has seleccionado/).textContent)
+      .toBe('Has seleccionado 2 pulidos:\n351200000000021 · iPhone 13 128GB Azul\n358300000000121')
+  })
+})

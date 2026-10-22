@@ -23,7 +23,7 @@ import { TogglePill } from '@/shared/ui/TogglePill'
 import { useBorrarPulido, useEditarModeloTelefono, useHistorial, useTecnicos } from '../api'
 import { filtroImeiHistorial, filtrosHistorial } from '../estado'
 import { etiquetaContador, pasaFechas, pasaImeis, pasaTecnico } from '../lib/filtros'
-import { MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo, MODELOS_ORDENADOS, traducirModelo } from '../lib/modelos'
 import { TOGGLES_HISTORIAL } from './constantes'
 
 const FMT = 'dd/MM/yyyy HH:mm' as const
@@ -33,7 +33,7 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
   switch (columna) {
     case 'id': return rep.idRep
     case 'imei': return rep.imei
-    case 'modelo': return traducirModelo(rep.modelo)
+    case 'modelo': return descripcionTrabajo(rep)
     case 'tecnico': return rep.nombreTecnico ?? ''
     case 'fechaIni': return formatear(rep.fechaAsig, FMT)
     case 'fechaFin': return formatear(rep.fechaFin, FMT)
@@ -47,7 +47,7 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
 const COLUMNAS: ColumnDef<ReparacionResumen>[] = [
   { id: 'id', accessorKey: 'idRep', header: 'Id Pulido', size: 110, maxSize: 110 },
   { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-  { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
+  { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
   { id: 'tecnico', header: 'Técnico', size: 110, accessorFn: (r) => r.nombreTecnico ?? '' },
   { id: 'fechaIni', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT) },
   { id: 'fechaFin', header: 'Fecha fin', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaFin, FMT) },

@@ -13,7 +13,8 @@ import { TITULOS_BORRAR, useAccionesTrabajo } from '../componentes/useAccionesTr
 import { filtrosImeis, ultimoImeiVisto } from '../estado'
 import { columnasTrabajo, textoCeldaTrabajo } from '../historial/columnasTrabajo'
 import { estadoIncidencia } from '../lib/filtros'
-import { traducirModelo } from '../lib/modelos'
+import { movilDe } from '../lib/grupoImei'
+import { descripcionTrabajo } from '../lib/modelos'
 import { esAjeno, filasDetalle, textoTrabajos } from './agrupacion'
 import { BarraFiltrosImeis } from './BarraFiltrosImeis'
 import { FMT } from './constantes'
@@ -47,7 +48,8 @@ export function ImeiDetallePage() {
   // El maestro lo reselecciona al volver (también con el botón atrás del navegador).
   useEffect(() => { ultimoImeiVisto.set(imei) }, [imei])
   const detalle = useMemo(() => filasDetalle(trabajos, imei, filtros), [trabajos, imei, filtros])
-  const modelo = traducirModelo(trabajos.find((t) => t.imei === imei && t.modelo)?.modelo)
+  // 0.9.21: «iPhone 16 128GB Negro», con la capacidad y el color de NSYS de los trabajos del IMEI.
+  const modelo = descripcionTrabajo(movilDe(trabajos.filter((t) => t.imei === imei)))
   const [seleccionada, setSeleccionada] = useState<string | null>(null)
   // Cada clic en un enlace "Id Rep. Anterior" pide a la tabla desplazarse hasta esa fila y enfocarse, aunque ya estuviera
   // seleccionada (AgrupadoController hace select(i); scrollTo(i); requestFocus() en cada clic).

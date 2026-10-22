@@ -365,3 +365,20 @@ describe('ImeisPage: el aviso de móviles sin trabajos espera al historial (0.9.
     expect(screen.queryByText(/También hay/)).not.toBeInTheDocument()
   })
 })
+
+describe('ImeisPage: Modelo con la descripción completa (0.9.21)', () => {
+  it('el modelo del grupo lleva la capacidad y el color de NSYS, también al copiar la celda', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+    onTestFinished(() => { if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor); else Reflect.deleteProperty(navigator, 'clipboard') })
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    server.use(http.get('*/api/reparaciones/historial', () =>
+      HttpResponse.json(reps.map((r) => (r.imei === B ? { ...r, capacidad: '128GB', color: 'Azul' } : r)))))
+    abrir()
+    const celda = await screen.findByText('iPhone 14 128GB Azul')
+    expect(screen.getByText('iPhone 16')).toBeInTheDocument()
+    await userEvent.pointer({ keys: '[MouseRight]', target: celda })
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).toHaveBeenCalledWith('iPhone 14 128GB Azul')
+  })
+})

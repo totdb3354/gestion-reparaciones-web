@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { server } from '@/test/server'
 import { anchosDeColumnas, simularAnchoDeTabla } from '@/test/columnas'
 import { renderConProviders, SESION_SUPER, SESION_TEC } from '@/test/render'
@@ -105,5 +105,21 @@ describe('HistorialPulidosPage: tabla fluida (adaptación a web)', () => {
     await screen.findByText('P20260915_10')
     expect(container.querySelector('[data-relleno]')).toBeNull()
     expect(anchosDeColumnas(container)).toEqual([110, 130, 240, 220, 130, 130, 320, 220, 240])
+  })
+})
+
+describe('HistorialPulidosPage: Modelo con la descripción completa (0.9.21)', () => {
+  it('en la columna y en «Copiar celda»', async () => {
+    // navigator.clipboard no existe en jsdom: se define y se restaura al acabar (patrón de MenuCopiarCelda.test.tsx).
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+    onTestFinished(() => { if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor); else Reflect.deleteProperty(navigator, 'clipboard') })
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    server.use(http.get('*/api/pulidos/historial', () => HttpResponse.json([{ ...filas[0], capacidad: '128GB', color: 'Azul' }])))
+    abrir(SESION_TEC)
+    const celda = await screen.findByText('iPhone 13 128GB Azul')
+    await userEvent.pointer({ keys: '[MouseRight]', target: celda })
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Copiar celda/ }))
+    expect(escribir).toHaveBeenCalledWith('iPhone 13 128GB Azul')
   })
 })

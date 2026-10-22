@@ -328,3 +328,13 @@ describe('PendientesPage: tabla fluida (adaptación a web)', () => {
     expect(anchosDeColumnas(container)).toEqual([90, 90, 130, 240, 130, 320, 220, 240, 100, 150, 45])
   })
 })
+
+describe('PendientesPage: Modelo con la descripción completa (0.9.21)', () => {
+  it('la columna Modelo lleva la capacidad y el color de NSYS', async () => {
+    server.use(http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([
+      resumen({ idRep: 'A20261022_1', imei: '350000000000001', modelo: '13', capacidad: '128GB', color: 'Azul', nombreTecnico: 'Técnico 2' }),
+    ])))
+    abrir()
+    expect(await screen.findByText('iPhone 13 128GB Azul')).toBeInTheDocument()
+  })
+})

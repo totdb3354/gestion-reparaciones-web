@@ -42,3 +42,16 @@ describe('columna Cliente', () => {
     expect(textoCeldaTrabajo(resumen({ cliente: null }), 'cliente', 'dd/MM/yyyy')).toBe('')
   })
 })
+
+describe('Modelo con la descripción completa (0.9.21)', () => {
+  const modelo = columnasTrabajo({ patronFechas: 'dd/MM/yyyy', tituloId: 'Id', onIrA: () => {} }).find((c) => c.id === 'modelo') as unknown as
+    { accessorFn: (r: ReturnType<typeof resumen>, i: number) => unknown }
+
+  it('la celda y «Copiar celda» llevan la capacidad y el color de NSYS; sin NSYS, el modelo solo; sin modelo, vacío', () => {
+    const conNsys = resumen({ modelo: '13', capacidad: '128GB', color: 'Azul' })
+    expect(modelo.accessorFn(conNsys, 0)).toBe('iPhone 13 128GB Azul')
+    expect(textoCeldaTrabajo(conNsys, 'modelo', 'dd/MM/yyyy')).toBe('iPhone 13 128GB Azul')
+    expect(modelo.accessorFn(resumen({ modelo: '14' }), 0)).toBe('iPhone 14')
+    expect(textoCeldaTrabajo(resumen({ modelo: null, capacidad: '128GB' }), 'modelo', 'dd/MM/yyyy')).toBe('')
+  })
+})

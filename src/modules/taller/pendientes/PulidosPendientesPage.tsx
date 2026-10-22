@@ -21,7 +21,7 @@ import { BotonPapelera } from '../componentes/BotonPapelera'
 import { TogglesPendientes } from '../componentes/TogglesPendientes'
 import { filtroImeiPendientes } from '../estado'
 import { etiquetaContador, pasaImeis } from '../lib/filtros'
-import { traducirModelo } from '../lib/modelos'
+import { descripcionTrabajo, traducirModelo } from '../lib/modelos'
 import { FMT_PENDIENTES, textoCeldaPendiente } from './textoCelda'
 
 // Solo 'cliente' y 'asignadoPor' son propios de Pulidos (docs/paridad/pendientes.md: "y en Pulidos también Cliente
@@ -35,10 +35,10 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
   }
 }
 
-/** Cuántos y cuáles va a completar: una línea por IMEI (con el modelo si lo tiene), las cinco primeras y cuántas más. */
+/** Cuántos y cuáles va a completar: una línea por IMEI (con el modelo, la capacidad y el color si los tiene), las cinco primeras y cuántas más. */
 const MAX_LINEAS_CONFIRMAR = 5
 function textoConfirmarCompletar(reps: ReparacionResumen[]): string {
-  const lineas = reps.slice(0, MAX_LINEAS_CONFIRMAR).map((r) => { const modelo = traducirModelo(r.modelo); return modelo ? `${r.imei} · ${modelo}` : r.imei })
+  const lineas = reps.slice(0, MAX_LINEAS_CONFIRMAR).map((r) => { const modelo = descripcionTrabajo(r); return modelo ? `${r.imei} · ${modelo}` : r.imei })
   if (reps.length > MAX_LINEAS_CONFIRMAR) lineas.push(`… y ${reps.length - MAX_LINEAS_CONFIRMAR} más`)
   return [`Has seleccionado ${etiquetaContador(reps.length, 'pulido', 'pulidos')}:`, ...lineas].join('\n')
 }
@@ -88,7 +88,7 @@ export function PulidosPendientesPage() {
       { id: 'check', header: '', size: 40, maxSize: 40, cell: ({ row }) => <Checkbox aria-label={`Seleccionar ${row.original.idRep}`} checked={seleccionados.has(row.original.idRep)} onCheckedChange={(v) => marcar(row.original.idRep, v === true)} /> },
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => traducirModelo(r.modelo) },
+      { id: 'modelo', header: 'Modelo', size: 120, accessorFn: (r) => descripcionTrabajo(r) },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 160, accessorFn: (r) => r.comentarioAsignacion ?? '' },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },

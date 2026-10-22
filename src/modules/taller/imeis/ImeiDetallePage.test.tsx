@@ -341,3 +341,12 @@ describe('ImeiDetallePage: «Corregir…» desde la ficha (0.9.21)', () => {
     expect(await screen.findByRole('dialog', { name: `Corregir ${A}` })).toBeInTheDocument()
   })
 })
+
+describe('ImeiDetallePage: la barra con la descripción completa (0.9.21)', () => {
+  it('«• iPhone 16 128GB Negro» con la capacidad y el color de NSYS', async () => {
+    server.use(http.get('*/api/reparaciones/historial', () =>
+      HttpResponse.json(reps.map((r) => (r.imei === A ? { ...r, capacidad: '128GB', color: 'Negro' } : r)))))
+    abrir()
+    expect(await screen.findByText('• iPhone 16 128GB Negro')).toBeInTheDocument()
+  })
+})

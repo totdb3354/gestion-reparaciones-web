@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resumen } from '../test/fabrica'
-import { agruparPorImei, ordenarPorActividad, resumenTipos } from './grupoImei'
+import { agruparPorImei, movilDe, ordenarPorActividad, resumenTipos } from './grupoImei'
 
 const rr = (idRep: string, extra = {}) => resumen({ idRep, imei: '111111111111111', modelo: null, cliente: null, ...extra })
 
@@ -48,5 +48,19 @@ describe('grupoImei (calco de GrupoImei)', () => {
     ])
     expect(grupos.map((g) => g.imei)).toEqual(['111111111111111', '222222222222222', '333333333333333'])
     expect(ordenarPorActividad(grupos).map((g) => g.imei)).toEqual(['222222222222222', '111111111111111', '333333333333333'])
+  })
+})
+
+describe('el móvil del grupo (0.9.21)', () => {
+  it('modelo, capacidad y color: el primero no vacío de cada uno, aunque vengan de trabajos distintos', () => {
+    const trabajos = [
+      rr('R1', { modelo: '13', capacidad: null, color: null }),
+      rr('G1', { modelo: '13', capacidad: '128GB', color: 'Azul' }),
+      rr('P1', { modelo: null, capacidad: '128GB', color: 'Rojo' }),
+    ]
+    expect(movilDe(trabajos)).toEqual({ modelo: '13', capacidad: '128GB', color: 'Azul' })
+    const [g] = agruparPorImei(trabajos)
+    expect([g.modelo, g.capacidad, g.color]).toEqual(['13', '128GB', 'Azul'])
+    expect(movilDe([rr('R1')])).toEqual({ modelo: '', capacidad: null, color: null })
   })
 })
