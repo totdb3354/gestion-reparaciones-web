@@ -1,5 +1,5 @@
 import type { FichaMovil as Ficha } from '@/shared/api/client'
-import { clasesUbicacion, diaNsys, nombreModeloNsys, SIN_SKU_MAESTRO, textoEstadoMovil, textoPoner } from '@/shared/lib/telefonoNsys'
+import { clasesUbicacion, descripcionMovil, diaNsys, nombreModeloNsys, SIN_SKU_MAESTRO, textoEstadoMovil, textoPoner } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { MarcaTaller } from '@/shared/ui/MarcaTaller'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
@@ -21,7 +21,7 @@ export function FichaMovil({ ficha, eventos, onVerRastro, onCorregir }: Props) {
     <section aria-label="Ficha de NSYS" className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg bg-superficie px-4 py-3 text-[12.5px] text-azul-medio">
       <span className="font-mono text-[17px] font-extrabold text-azul-noche">{ficha.imeiSn}</span>
       <span>
-        {[nombreModeloNsys(ficha.modelo, ficha.modeloMaestro), ficha.capacidad].filter(Boolean).join(' ')}
+        {descripcionMovil(nombreModeloNsys(ficha.modelo, ficha.modeloMaestro), ficha.capacidad)}
         {ficha.color && <>{' '}<MarcaTaller enLinea nsys={ficha.colorNsys}>{ficha.color}</MarcaTaller></>}
       </span>
       {/* Con el grado del taller no se dice «(antes …)»: ese grado anterior es el de NSYS (Ajuste 11 del plan). */}

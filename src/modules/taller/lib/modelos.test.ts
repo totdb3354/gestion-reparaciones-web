@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { agrupados, componente } from '../test/fabrica'
-import { MODELOS_ORDENADOS, extraerModelo, modelosDisponibles, traducirModelo } from './modelos'
+import { MODELOS_ORDENADOS, descripcionTrabajo, extraerModelo, modelosDisponibles, traducirModelo } from './modelos'
 
 describe('modelos (calco de MODELOS_ORDENADOS y traducirModelo)', () => {
   it('traduce numéricos con variante, especiales y aire', () => {
@@ -76,5 +76,17 @@ describe('modelosDisponibles (opciones del combo de modelo)', () => {
   it('el resultado son siempre códigos de MODELOS_ORDENADOS', () => {
     const grupos = Object.keys(a).map((prefijo) => ({ prefijo, skus: a[prefijo] }))
     for (const m of modelosDisponibles(grupos)) expect(MODELOS_ORDENADOS).toContain(m)
+  })
+})
+
+describe('descripcionTrabajo (0.9.21): lo que enseñan las listas del taller donde pone «Modelo»', () => {
+  it('el modelo del taller traducido con la capacidad y el color de NSYS; fuera de NSYS, el modelo solo; sin modelo, vacío', () => {
+    expect(descripcionTrabajo({ modelo: '13', capacidad: '128GB', color: 'Azul' })).toBe('iPhone 13 128GB Azul')
+    expect(descripcionTrabajo({ modelo: '12promax', capacidad: '256GB', color: null })).toBe('iPhone 12 Pro Max 256GB')
+    expect(descripcionTrabajo({ modelo: '14', capacidad: null, color: null })).toBe('iPhone 14')
+    expect(descripcionTrabajo({ modelo: null, capacidad: '128GB', color: 'Azul' })).toBe('')
+    // Un servidor sin los campos nuevos: lo de hoy.
+    expect(descripcionTrabajo({ modelo: '15pro' })).toBe('iPhone 15 Pro')
+    expect(descripcionTrabajo({})).toBe('')
   })
 })

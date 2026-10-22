@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner } from './telefonoNsys'
+import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -51,5 +51,28 @@ describe('lo que hay que poner en NSYS (0.9.21)', () => {
     expect(textoPoner('Apple iPhone 13 128GB Blue', 'A100')).toBe('Apple iPhone 13 128GB Blue · grado A100')
     expect(textoPoner(null, 'B')).toBe('(ningún móvil de ese color en NSYS: búscalo a mano) · grado B')
     expect(textoPoner('Apple iPhone 13 128GB Blue', null)).toBe('Apple iPhone 13 128GB Blue · grado —')
+  })
+})
+
+describe('descripcionMovil (0.9.21, spec «Descripción completa donde pone «Modelo»» §2.1)', () => {
+  it('nombre, capacidad y color con un espacio, sin los que falten', () => {
+    expect(descripcionMovil('iPhone 13', '128GB', 'Azul')).toBe('iPhone 13 128GB Azul')
+    expect(descripcionMovil('iPhone 13', '128GB', null)).toBe('iPhone 13 128GB')
+    expect(descripcionMovil('iPhone 13', null, 'Azul')).toBe('iPhone 13 Azul')
+    expect(descripcionMovil('iPhone 13', '128GB')).toBe('iPhone 13 128GB')
+    expect(descripcionMovil('iPhone 13', '', '')).toBe('iPhone 13')
+    expect(descripcionMovil('iPhone 13')).toBe('iPhone 13')
+  })
+
+  it('sin nombre, nada: una lista del taller sin modelo dice lo de hoy aunque NSYS sepa la capacidad', () => {
+    expect(descripcionMovil('', '128GB', 'Azul')).toBe('')
+    expect(descripcionMovil(null, '128GB', 'Azul')).toBe('')
+    expect(descripcionMovil(undefined)).toBe('')
+  })
+
+  it('las copias de «modelo capacidad» de NSYS enseñan lo mismo que antes', () => {
+    expect(descripcionMovil(nombreModeloNsys('13pro', '13 PRO'), '256GB')).toBe('iPhone 13 Pro 256GB')
+    expect(descripcionMovil(nombreModeloNsys(null, 'SE2022'), null)).toBe('iPhone SE2022')
+    expect(descripcionMovil(nombreModeloNsys(null, null), null)).toBe('Sin modelo en el maestro')
   })
 })

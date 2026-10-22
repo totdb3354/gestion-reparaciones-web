@@ -10,6 +10,15 @@ export function nombreModeloNsys(modelo: string | null, modeloMaestro: string | 
   return 'Sin modelo en el maestro'
 }
 
+/** 0.9.21 (spec «Descripción completa donde pone «Modelo»» §2.1): «iPhone 13 128GB Azul», el nombre del modelo con la capacidad
+ *  y el color detrás, separados por un espacio y sin los que falten. Sin nombre, nada: una lista del taller sin modelo dice lo de
+ *  hoy (vacío) aunque NSYS sepa la capacidad. La usan las listas del taller y las copias de «modelo capacidad» de NSYS (ficha
+ *  del IMEI, buscador, «Por pasar a NSYS» y «Pegar varios IMEIs», que pintan el color aparte). */
+export function descripcionMovil(nombre: string | null | undefined, capacidad?: string | null, color?: string | null): string {
+  if (!nombre) return ''
+  return [nombre, capacidad, color].filter(Boolean).join(' ')
+}
+
 /** Colores de las ubicaciones del ERP (los nombres de Nsys_ubicacion); las que no están aquí, en gris. */
 const CLASES_UBICACION: Record<string, string> = {
   'En revisión': 'bg-fila-solicitud-bg text-fila-solicitud-brd',

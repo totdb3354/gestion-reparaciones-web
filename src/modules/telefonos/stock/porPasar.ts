@@ -1,5 +1,5 @@
 import type { FilaPorPasar, PorQueTaller } from '@/shared/api/client'
-import { diaNsys, nombreModeloNsys, SIN_SKU_MAESTRO, textoPoner } from '@/shared/lib/telefonoNsys'
+import { descripcionMovil, diaNsys, nombreModeloNsys, SIN_SKU_MAESTRO, textoPoner } from '@/shared/lib/telefonoNsys'
 
 /** Reglas de la lista «Por pasar a NSYS» (0.9.21, spec «SKU del taller» §2.4). */
 
@@ -15,7 +15,7 @@ export function textoPorQue(p: PorQueTaller): string {
 }
 
 /** «iPhone 13 128GB». */
-export const modeloDeFila = (f: FilaPorPasar): string => [nombreModeloNsys(f.modelo, f.modeloMaestro), f.capacidad].filter(Boolean).join(' ')
+export const modeloDeFila = (f: FilaPorPasar): string => descripcionMovil(nombreModeloNsys(f.modelo, f.modeloMaestro), f.capacidad)
 
 /** Lo que dice NSYS hoy: «<producto> · grado <grado>». */
 export const textoEnNsys = (f: FilaPorPasar): string => `${f.productoNsys || '—'} · grado ${f.gradoNsys || '—'}`
