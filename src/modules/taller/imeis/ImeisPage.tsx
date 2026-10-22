@@ -101,7 +101,7 @@ export function ImeisPage() {
         </div>
       ),
     },
-    { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (g) => descripcionTrabajo(g) },
+    { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (g) => descripcionTrabajo(g), cell: ({ getValue }) => <TextoExpandible titulo="Modelo" texto={getValue<string>()} /> },
     { id: 'fechas', header: 'Fechas', size: 130, maxSize: 130, cell: ({ row }) => <CeldaFechas inicio={row.original.fechaMasAntigua} fin={row.original.fechaMasReciente} patron={FMT} /> },
     { id: 'trabajos', header: 'Trabajos', size: 160, accessorFn: resumenTipos },
     { id: 'estado', header: 'Estado', size: 130, maxSize: 130, cell: ({ row }) => <CeldaEstadoTrabajo esIncidencia={row.original.incAbiertas > 0} esResuelto={false} /> },

@@ -115,6 +115,14 @@ describe('crearColumnas: contenido de las celdas', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
+  it('el modelo abre el popup con la descripción completa al pulsarlo (0.9.21: por si no cabe el color)', async () => {
+    pintar([resumen({ modelo: '16plus', capacidad: '128GB', color: 'Blanco' })], opciones({ soloLectura: true }))
+    await userEvent.click(screen.getByRole('button', { name: 'iPhone 16 Plus 128GB Blanco' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByText('Modelo')).toBeInTheDocument()
+    expect(within(dialogo).getByText('iPhone 16 Plus 128GB Blanco')).toBeInTheDocument()
+  })
+
   it('el comentario abre el popup de lectura al pulsarlo', async () => {
     pintar([resumen({ comentarioAsignacion: 'Revisar el conector' })], opciones({ soloLectura: true }))
     await userEvent.click(screen.getByRole('button', { name: 'Revisar el conector' }))

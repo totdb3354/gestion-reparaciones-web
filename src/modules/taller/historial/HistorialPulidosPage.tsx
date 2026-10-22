@@ -49,7 +49,7 @@ function textoCelda(rep: ReparacionResumen, columna: string): string | null {
 const COLUMNAS: ColumnDef<ReparacionResumen>[] = [
   { id: 'id', accessorKey: 'idRep', header: 'Id Pulido', size: 110, maxSize: 110 },
   { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-  { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
+  { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r), cell: ({ getValue }) => <TextoExpandible titulo="Modelo" texto={getValue<string>()} /> },
   { id: 'tecnico', header: 'Técnico', size: 110, accessorFn: (r) => r.nombreTecnico ?? '' },
   { id: 'fechaIni', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT) },
   { id: 'fechaFin', header: 'Fecha fin', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaFin, FMT) },

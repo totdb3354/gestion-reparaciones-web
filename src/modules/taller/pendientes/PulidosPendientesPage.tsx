@@ -90,7 +90,7 @@ export function PulidosPendientesPage() {
       { id: 'check', header: '', size: 40, maxSize: 40, cell: ({ row }) => <Checkbox aria-label={`Seleccionar ${row.original.idRep}`} checked={seleccionados.has(row.original.idRep)} onCheckedChange={(v) => marcar(row.original.idRep, v === true)} /> },
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'imei', accessorKey: 'imei', header: 'IMEI', size: 130, maxSize: 130 },
-      { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
+      { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r), cell: ({ getValue }) => <TextoExpandible titulo="Modelo" texto={getValue<string>()} /> },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 90, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },

@@ -76,7 +76,7 @@ export function PendientesPage({ tipo }: { tipo: 'REPARACION' | 'GLASS' }) {
       { id: 'id', accessorKey: 'idRep', header: 'Id Asignación', size: 90, maxSize: 90 },
       { id: 'tipo', header: 'Tipo', size: 90, maxSize: 90, cell: ({ row }) => <BadgeTipo idRep={row.original.idRep} esChasis={row.original.esChasis} /> },
       { id: 'imei', header: 'IMEI', size: 130, maxSize: 130, cell: ({ row }) => <CeldaImeiPendiente rep={row.original} /> },
-      { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r) },
+      { id: 'modelo', header: 'Modelo', size: 200, accessorFn: (r) => descripcionTrabajo(r), cell: ({ getValue }) => <TextoExpandible titulo="Modelo" texto={getValue<string>()} /> },
       { id: 'fecha', header: 'Fecha asignación', size: 130, maxSize: 130, accessorFn: (r) => formatear(r.fechaAsig, FMT_PENDIENTES) },
       { id: 'comentario', header: 'Comentario', size: 90, cell: ({ row }) => <TextoExpandible titulo="Comentario" texto={row.original.comentarioAsignacion} /> },
       { id: 'cliente', header: 'Cliente', size: 110, accessorFn: (r) => r.cliente ?? '' },
