@@ -7,6 +7,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 ## Diferencias deliberadas respecto al JavaFX
 
 - **Diferencia deliberada:** fechas en `dd/MM/yyyy HH:mm` (`dd/MM/yyyy` en el Historial de técnico); el JavaFX usa `yyyy/MM/dd HH:mm` (decisión del usuario 2026-09-27, web 0.8.3).
+- **Diferencia deliberada (0.9.21):** la columna «Modelo» (Reparaciones, Glass y Pulidos) y su «Copiar celda» llevan la descripción completa del móvil, «iPhone 13 128GB Azul», con la capacidad y el color **de hoy** de NSYS (el que vale), no los de cuando se hizo el trabajo (spec raíz `docs/superpowers/specs/2026-10-22-v0921-descripcion-completa-design.md`). Sin NSYS, el modelo solo. El CSV `historial_pulidos` gana «Capacidad» y «Color» detrás de «Modelo»; los `historial_*`/`mis_*` de trabajos no cambian.
 
 ## Común a los tres toggles
 
@@ -55,7 +56,7 @@ Capturas de referencia (documentación privada, fuera del repo): `taller/{histor
 - [x] "Borrar": `ConfirmDialog` con motivo "Borrar pulido <id>" / "Se borrará <id> del historial de pulido. Escribe el motivo." / "Borrar" → `DELETE /api/pulidos/historial/{id}` con `{motivo}`. Recarga.
 - [x] Placeholder "No hay pulidos completados".
 - [x] Datos: `GET /api/pulidos/historial`; orden del servidor (fecha de asignación descendente).
-- [x] CSV `historial_pulidos` con las filas visibles: "ID", "IMEI" (`="…"`), "Modelo", ["Técnico" solo SUPERTECNICO y ADMIN], "Fecha inicio", "Fecha fin", "Comentario" (fechas `dd/MM/yyyy HH:mm`).
+- [x] CSV `historial_pulidos` con las filas visibles: "ID", "IMEI" (`="…"`), "Modelo", "Capacidad", "Color" (0.9.21), ["Técnico" solo SUPERTECNICO y ADMIN], "Fecha inicio", "Fecha fin", "Comentario" (fechas `dd/MM/yyyy HH:mm`).
 
 ## Diferencias aceptadas
 
