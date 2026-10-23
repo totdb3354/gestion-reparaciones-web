@@ -4,9 +4,10 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.21.1] - 2026-10-23 — La tapa trasera no cambia el grado
+## [0.9.21.1] - 2026-10-23 — La tapa trasera no cambia el grado y el chasis sobre «n/a» pone la A
 
 - **Reparaciones con tapa trasera:** la tapa trasera sola cambia el color del móvil, pero **ya no le pone grado A** ni avisa de un grado que no se puede calcular: el grado lo cambian el chasis (letra A) y la batería («100»). En la 0.9.21, una tapa sola pasaba el móvil a A.
+- **Chasis sobre un móvil sin grado** («n/a» o vacío en NSYS): el chasis lo deja en **A** y, con batería nueva en el mismo guardado, en **A100** (en la 0.9.21 no cambiaba y avisaba). Dentro de un guardado, el chasis se aplica antes que la batería sea cual sea el orden de las filas, así que «n/a» + batería nueva + chasis queda en A100 sin aviso. La batería sola sobre «n/a» sigue sin cambiarlo y con el aviso; los grados ID, F, A+, G y P tampoco cambian con ninguna pieza y siguen avisando.
 - Solo servidor: la web sigue en la 0.9.21. Sin migración.
 
 ## [0.9.21] - 2026-10-22 — Corrección en NSYS, SKU del taller y descripción completa
