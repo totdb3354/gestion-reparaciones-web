@@ -37,7 +37,7 @@ export function ordenColores(opciones: OpcionesTaller | null | undefined, colorV
 }
 
 /** La vista previa y lo que se manda. `colorAntes`/`gradoAntes`: lo que vale ahora; `sku`: el del maestro para el color y el
- *  grado que quedarían (null: «sin SKU en el maestro»); `producto`: lo que habría que poner en NSYS (null: búscalo a mano);
+ *  grado que quedarían (null: «sin SKU en el maestro»); `producto`: lo que habría que poner en NSYS (null: búscalo a mano); `compruebalo`: el producto sale del maestro tal cual (0.9.22);
  *  `coincideConNsys`: lo que queda es lo de NSYS (se quita lo del taller); `cuerpo`: solo los datos que cambian. */
 export type Previa = {
   cambiaColor: boolean
@@ -48,6 +48,7 @@ export type Previa = {
   gradoFinal: string
   sku: string | null
   producto: string | null
+  compruebalo: boolean
   coincideConNsys: boolean
   cuerpo: { color: string | null; grado: string | null }
   valido: boolean
@@ -64,11 +65,11 @@ export function previa(f: FichaMovil, e: Eleccion, opciones: OpcionesTaller | nu
   const colorFinal = cambiaColor ? e.color : colorAntes
   const gradoFinal = cambiaGrado && nuevo !== null ? nuevo : gradoAntes
   const sku = opciones?.skus.find((s) => s.color === colorFinal && s.grado === gradoFinal)?.sku ?? null
-  const producto = colorFinal === colorNsys
-    ? (opciones?.productoActual ?? null)
-    : (opciones?.colores.find((c) => c.color === colorFinal)?.producto ?? null)
+  const opcion = opciones?.colores.find((c) => c.color === colorFinal)
+  const producto = colorFinal === colorNsys ? (opciones?.productoActual ?? null) : (opcion?.producto ?? null)
+  const compruebalo = colorFinal !== colorNsys && (opcion?.compruebalo ?? false)
   return {
-    cambiaColor, cambiaGrado, colorAntes, colorFinal, gradoAntes, gradoFinal, sku, producto,
+    cambiaColor, cambiaGrado, colorAntes, colorFinal, gradoAntes, gradoFinal, sku, producto, compruebalo,
     coincideConNsys: colorFinal === colorNsys && gradoFinal === gradoNsys,
     cuerpo: { color: cambiaColor ? e.color : null, grado: cambiaGrado ? nuevo : null },
     valido: (cambiaColor || cambiaGrado) && e.motivo.trim() !== '',

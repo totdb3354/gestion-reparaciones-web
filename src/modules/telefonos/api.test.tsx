@@ -2,15 +2,18 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
 import { server } from '@/test/server'
 import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
-import { useComprobarImeis, useEstadoNsys, useImportacionesNsys, usePorPasarNsys, useStockTelefonos } from './api'
-import { estadoNsys, filaPorPasar, listaImportaciones, movil, movilComprobado } from './test/fabrica'
+import {
+  useComprobarImeis, useDescargarPlantilla, useDeshacerHecho, useEstadoNsys, useImportacionesNsys, useMarcarHecho,
+  usePorPasarTarjetas, useRevisarAviso, useStockTelefonos,
+} from './api'
+import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
 
 function envoltorio() {
   guardarSesion(SESION_SUPER)
@@ -80,9 +83,53 @@ describe('api del stock de teléfonos', () => {
     expect(cuerpos).toEqual([{ imeis: ['350000000000001'] }])
   })
 
-  it('pide la lista «Por pasar a NSYS» (0.9.21)', async () => {
-    server.use(http.get('*/api/stock-telefonos/por-pasar', () => HttpResponse.json([filaPorPasar()])))
-    const lista = renderHook(() => usePorPasarNsys(), { wrapper: envoltorio() })
-    await waitFor(() => expect(lista.result.current.data).toHaveLength(1))
+  it('las tarjetas y lo que mandan «Hecho», «deshacer» y «Revisado» (spec 0.9.22 §3)', async () => {
+    const pedidos: unknown[] = []
+    server.use(
+      http.get('*/api/stock-telefonos/por-pasar/tarjetas', () => HttpResponse.json(tarjetas({ grado: [filaGrado()] }))),
+      http.put('*/api/stock-telefonos/por-pasar/hecho', async ({ request }) => {
+        pedidos.push(['PUT', await request.json()])
+        return new HttpResponse(null, { status: 204 })
+      }),
+      http.delete('*/api/stock-telefonos/por-pasar/hecho', async ({ request }) => {
+        pedidos.push(['DELETE', await request.json()])
+        return new HttpResponse(null, { status: 204 })
+      }),
+      http.post('*/api/stock-telefonos/por-pasar/avisos/:idAviso/revisado', ({ params }) => {
+        pedidos.push(['POST', params.idAviso])
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const lista = renderHook(() => usePorPasarTarjetas(), { wrapper: envoltorio() })
+    await waitFor(() => expect(lista.result.current.data?.grado).toHaveLength(1))
+    const wrapper = envoltorio()
+    const marcar = renderHook(() => useMarcarHecho(), { wrapper })
+    await marcar.result.current.mutateAsync({ tarjeta: 'GRADO', imeis: ['350000000000022'] })
+    const deshacer = renderHook(() => useDeshacerHecho(), { wrapper })
+    await deshacer.result.current.mutateAsync({ tarjeta: 'GRADO', imeiSn: '350000000000022' })
+    const revisar = renderHook(() => useRevisarAviso(), { wrapper })
+    await revisar.result.current.mutateAsync(1)
+    expect(pedidos).toEqual([
+      ['PUT', { tarjeta: 'GRADO', imeis: ['350000000000022'] }],
+      ['DELETE', { tarjeta: 'GRADO', imeiSn: '350000000000022' }],
+      ['POST', '1'],
+    ])
+  })
+
+  it('la plantilla se guarda con el nombre del servidor y dice cuántos móviles lleva (spec 0.9.22 §4)', async () => {
+    const crear = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    server.use(http.get('*/api/stock-telefonos/por-pasar/plantilla-color', () => new HttpResponse(new Blob(['PK']), {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="NSYS_color_2026-10-25.xlsx"',
+        'X-Filas': '2',
+      },
+    })))
+    const descarga = renderHook(() => useDescargarPlantilla(), { wrapper: envoltorio() })
+    await expect(descarga.result.current.mutateAsync('color')).resolves.toEqual({ nombre: 'NSYS_color_2026-10-25.xlsx', filas: 2 })
+    expect(crear).toHaveBeenCalledTimes(1)
+    vi.restoreAllMocks()
   })
 })

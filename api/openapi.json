@@ -136,6 +136,46 @@
         }
       }
     },
+    "/api/stock-telefonos/por-pasar/hecho" : {
+      "put" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "marcar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PorPasarPeticionHecho"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "desmarcar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PorPasarPeticionDeshacer"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/reparaciones/{idRep}" : {
       "put" : {
         "tags" : [ "reparacion-controller" ],
@@ -947,6 +987,26 @@
         "responses" : {
           "201" : {
             "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado" : {
+      "post" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "revisado",
+        "parameters" : [ {
+          "name" : "idAviso",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         }
       }
@@ -3956,6 +4016,62 @@
         }
       }
     },
+    "/api/stock-telefonos/por-pasar/tarjetas" : {
+      "get" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "tarjetas",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TarjetasPorPasar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/por-pasar/plantilla-color" : {
+      "get" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "plantillaColor",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-telefonos/por-pasar/plantilla-altas" : {
+      "get" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "plantillaAltas",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stock-telefonos/importaciones" : {
       "get" : {
         "tags" : [ "stock-telefonos-controller" ],
@@ -5466,6 +5582,21 @@
           },
           "motivo" : {
             "type" : "string"
+          }
+        }
+      },
+      "PorPasarPeticionHecho" : {
+        "required" : [ "imeis", "tarjeta" ],
+        "type" : "object",
+        "properties" : {
+          "tarjeta" : {
+            "type" : "string"
+          },
+          "imeis" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         }
       },
@@ -7857,7 +7988,7 @@
         }
       },
       "StockTelefonosFichaMovil" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "gradoNsys", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "ponerGrado", "ponerProducto", "porPasar", "revisadoDevolucion", "revisadoEl", "sku", "skuNsys", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "gradoNsys", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "ponerCompruebalo", "ponerGrado", "ponerProducto", "porPasar", "revisadoDevolucion", "revisadoEl", "sku", "skuNsys", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7952,6 +8083,9 @@
           "ponerGrado" : {
             "type" : "string",
             "nullable" : true
+          },
+          "ponerCompruebalo" : {
+            "type" : "boolean"
           }
         }
       },
@@ -8023,7 +8157,7 @@
         }
       },
       "OpcionColor" : {
-        "required" : [ "color", "producto" ],
+        "required" : [ "color", "compruebalo", "producto" ],
         "type" : "object",
         "properties" : {
           "color" : {
@@ -8032,6 +8166,9 @@
           "producto" : {
             "type" : "string",
             "nullable" : true
+          },
+          "compruebalo" : {
+            "type" : "boolean"
           }
         }
       },
@@ -8073,7 +8210,7 @@
         }
       },
       "FilaPorPasar" : {
-        "required" : [ "capacidad", "desde", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ponerGrado", "ponerProducto", "porQue", "productoNsys", "sku" ],
+        "required" : [ "capacidad", "desde", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ponerCompruebalo", "ponerGrado", "ponerProducto", "porQue", "productoNsys", "sku" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8120,6 +8257,9 @@
           "desde" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "ponerCompruebalo" : {
+            "type" : "boolean"
           }
         }
       },
@@ -8144,6 +8284,277 @@
           "idRep" : {
             "type" : "string",
             "nullable" : true
+          }
+        }
+      },
+      "FilaAltaNsys" : {
+        "required" : [ "abierto", "categoria", "cliente", "desde", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "tecnico", "trabajos", "ultimoTrabajo" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ultimoTrabajo" : {
+            "type" : "string"
+          },
+          "categoria" : {
+            "type" : "string"
+          },
+          "abierto" : {
+            "type" : "boolean"
+          },
+          "tecnico" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "cliente" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "trabajos" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "desde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "hechoPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "hechoEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "hechoVolvio" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          }
+        }
+      },
+      "FilaColorNsys" : {
+        "required" : [ "capacidad", "colorA", "colorDe", "compruebalo", "desde", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "colorDe" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "colorA" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "productoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ponerProducto" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "compruebalo" : {
+            "type" : "boolean"
+          },
+          "tambienGrado" : {
+            "type" : "boolean"
+          },
+          "porQue" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PorQueTaller"
+            }
+          },
+          "desde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "hechoPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "hechoEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "hechoVolvio" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          }
+        }
+      },
+      "FilaGradoNsys" : {
+        "required" : [ "capacidad", "conColor", "desde", "gradoA", "gradoDe", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "porQue", "productoNsys" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoDe" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "gradoA" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "productoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "conColor" : {
+            "type" : "boolean"
+          },
+          "porQue" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PorQueTaller"
+            }
+          },
+          "desde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "hechoPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "hechoEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "hechoVolvio" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          }
+        }
+      },
+      "FilaRevisarNsys" : {
+        "required" : [ "a", "capacidad", "causa", "dato", "de", "fecha", "idAviso", "idRep", "imeiSn", "modelo", "modeloMaestro", "motivo", "tipo", "usuario" ],
+        "type" : "object",
+        "properties" : {
+          "idAviso" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "tipo" : {
+            "type" : "string"
+          },
+          "causa" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "dato" : {
+            "type" : "string"
+          },
+          "de" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "a" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "idRep" : {
+            "type" : "string"
+          },
+          "usuario" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TarjetasPorPasar" : {
+        "required" : [ "altas", "color", "grado", "revisar" ],
+        "type" : "object",
+        "properties" : {
+          "color" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaColorNsys"
+            }
+          },
+          "grado" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaGradoNsys"
+            }
+          },
+          "altas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaAltaNsys"
+            }
+          },
+          "revisar" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaRevisarNsys"
+            }
           }
         }
       },
@@ -9267,6 +9678,18 @@
           "motivo" : {
             "type" : "string",
             "nullable" : true
+          }
+        }
+      },
+      "PorPasarPeticionDeshacer" : {
+        "required" : [ "imeiSn", "tarjeta" ],
+        "type" : "object",
+        "properties" : {
+          "tarjeta" : {
+            "type" : "string"
+          },
+          "imeiSn" : {
+            "type" : "string"
           }
         }
       },

@@ -1,4 +1,5 @@
 import { marcaFichero } from './fechas'
+import { descargarBlob } from './descargas'
 
 /** Calco de CsvExporter: separador `;`, BOM para Excel, escapado de `;`, comillas y saltos, `="…"` para los IMEIs. */
 export function escaparCsv(valor: string | null | undefined): string {
@@ -28,7 +29,7 @@ export async function descargarCsv(nombreBase: string, cabeceras: string[], fila
   const nombre = `${nombreBase}_${marcaFichero(ahora)}.csv`
   const blob = new Blob([generarCsv(cabeceras, filas)], { type: 'text/csv;charset=utf-8' })
   if (typeof window.showSaveFilePicker !== 'function') {
-    descargarEnlace(blob, nombre)
+    descargarBlob(blob, nombre)
     return
   }
   let fichero: FileSystemFileHandle
@@ -36,7 +37,7 @@ export async function descargarCsv(nombreBase: string, cabeceras: string[], fila
     fichero = await window.showSaveFilePicker({ suggestedName: nombre, types: [{ accept: { 'text/csv': ['.csv'] } }] })
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') return
-    descargarEnlace(blob, nombre)
+    descargarBlob(blob, nombre)
     return
   }
   let escritura: FileSystemWritableFileStream | null = null
@@ -47,18 +48,6 @@ export async function descargarCsv(nombreBase: string, cabeceras: string[], fila
   } catch {
     // Si la escritura falla a medias, se aborta: el fichero elegido no se queda con una parte del CSV.
     await escritura?.abort().catch(() => {})
-    descargarEnlace(blob, nombre)
+    descargarBlob(blob, nombre)
   }
-}
-
-/** Descarga clásica del navegador: un enlace con `download` que se pulsa; el fichero va a la carpeta de descargas. */
-function descargarEnlace(blob: Blob, nombre: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = nombre
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
 }

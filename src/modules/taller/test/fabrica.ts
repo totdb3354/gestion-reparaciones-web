@@ -151,7 +151,7 @@ export function fichaMovil(p: Partial<FichaMovil> = {}): FichaMovil {
     imeiSn: '351900000000041', lote: 'BT-9001', modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro',
     grado: 'A', bateriaNueva: true, gradoAnterior: 'C', sku: 'i16128NegroA100', ubicacion: 'Listos', estado: 'DE_PEDIDO',
     dias: 12, entradas: 1, fechaVenta: null, revisadoEl: null, revisadoDevolucion: false, pendienteRevisionDesde: null,
-    colorNsys: null, gradoNsys: null, skuNsys: null, porPasar: false, ponerProducto: null, ponerGrado: null, ...p,
+    colorNsys: null, gradoNsys: null, skuNsys: null, porPasar: false, ponerProducto: null, ponerGrado: null, ponerCompruebalo: false, ...p,
   }
 }
 
@@ -167,7 +167,7 @@ export function eventoRastro(p: Partial<EventoRastro> = {}): EventoRastro {
 export function opcionesTaller(p: Partial<OpcionesTaller> = {}): OpcionesTaller {
   return {
     productoActual: 'Apple iPhone 16 128GB Black',
-    colores: [{ color: 'Negro', producto: 'Apple iPhone 16 128GB Black' }, { color: 'Rosa', producto: 'Apple iPhone 16 128GB Pink' }],
+    colores: [{ color: 'Negro', producto: 'Apple iPhone 16 128GB Black', compruebalo: false }, { color: 'Rosa', producto: 'Apple iPhone 16 128GB Pink', compruebalo: false }],
     skus: [
       { color: 'Negro', grado: 'A100', sku: 'i16128NegroA100' },
       { color: 'Rosa', grado: 'A100', sku: 'i16128RosaA100' },

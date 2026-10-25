@@ -1,5 +1,5 @@
 import type { EventoRastro, FichaMovil } from '@/shared/api/client'
-import { diaNsys, diasDesdeNsys, textoGrado } from '@/shared/lib/telefonoNsys'
+import { diaNsys, diasDesdeNsys, ETIQUETA_AVISO, textoAvisoTaller, textoGrado, type AvisoTallerTexto } from '@/shared/lib/telefonoNsys'
 
 /** Textos y colores del rastro (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.3). El servidor manda el evento
  *  estructurado y aquí se compone lo que se lee. Las horas son de Madrid, sin zona: se cortan del texto sin convertir. */
@@ -22,12 +22,18 @@ function comoTaller(e: EventoRastro): string {
   return `(${partes.filter(Boolean).join(' · ')})`
 }
 
-/** Los avisos de la pieza 2 sin la pieza: «(reparación R… · Técnico 2)». */
-const deReparacion = (e: EventoRastro) => `(reparación ${e.idRep ?? '—'} · ${e.tecnico ?? '—'})`
-/** «del chasis chai13xxx» o «de la tapa tapai13xxx», por el prefijo del SKU. */
-const delaPieza = (sku: string | null) => ((sku ?? '').toLowerCase().startsWith('tapa') ? `de la tapa ${sku}` : `del chasis ${sku ?? '—'}`)
 /** «borró» o «editó», por la causa del tipo (…_BORRADA o …_EDITADA). */
 const causa = (e: EventoRastro) => (e.tipo.endsWith('_BORRADA') ? 'borró' : 'editó')
+
+/** Un evento de aviso del rastro («TALLER_SIN_COLOR», «TALLER_SIN_DESHACER_BORRADA»…) con lo que piden sus textos. */
+function avisoDelEvento(e: EventoRastro): AvisoTallerTexto {
+  const resto = e.tipo.replace(/^TALLER_/, '')
+  const conCausa = /_(BORRADA|EDITADA)$/.exec(resto)
+  return {
+    tipo: conCausa ? resto.slice(0, conCausa.index) : resto, causa: conCausa ? conCausa[1] : null, dato: e.dato, de: e.de,
+    idRep: e.idRep, usuario: e.tecnico, motivo: e.motivo,
+  }
+}
 
 export function fechaRastro(iso: string, soloDia: boolean): string {
   const dia = diaNsys(iso)
@@ -84,16 +90,21 @@ export function verEvento(e: EventoRastro): EventoVisible {
       return { fecha, titulo: `Pasado a NSYS: ${dato(e)} ${e.a ?? e.de ?? '—'}`, detalle: null, color: 'bg-fila-recibido-brd' }
     case 'TALLER_MANDA_NSYS':
       return { fecha, titulo: `Manda NSYS: ${dato(e)} ${e.a ?? '—'} (el del taller, ${e.de ?? '—'}, deja de valer)`, detalle: null, color: 'bg-ambar' }
-    case 'TALLER_SIN_COLOR':
-      return { fecha, titulo: `Taller: el color ${delaPieza(e.de)} no se puede deducir: lo corregirá un supertécnico ${deReparacion(e)}`, detalle: null, color: 'bg-ambar' }
-    case 'TALLER_SIN_GRADO':
-      return { fecha, titulo: `Taller: el grado (${e.de ?? '—'}) no se puede calcular: lo corregirá un supertécnico ${comoTaller(e)}`, detalle: null, color: 'bg-ambar' }
     case 'TALLER_DESHECHO_BORRADA':
     case 'TALLER_DESHECHO_EDITADA':
       return { fecha, titulo: `Se deshace: ${dato(e)} ${e.de ?? '—'} → ${e.a ?? '—'} (se ${causa(e)} la reparación ${e.idRep ?? '—'} · ${e.tecnico ?? '—'})`, detalle: null, color: 'bg-taller' }
+    case 'TALLER_SIN_COLOR':
+    case 'TALLER_SIN_GRADO':
     case 'TALLER_SIN_DESHACER_BORRADA':
     case 'TALLER_SIN_DESHACER_EDITADA':
-      return { fecha, titulo: `Se ${causa(e)} la reparación ${e.idRep ?? '—'} que cambió el ${dato(e)}; corrígelo a mano si hace falta (${e.tecnico ?? '—'})`, detalle: null, color: 'bg-ambar' }
+      return { fecha, titulo: textoAvisoTaller(avisoDelEvento(e)), detalle: null, color: 'bg-ambar' }
+    case 'TALLER_REVISADO_SIN_COLOR':
+    case 'TALLER_REVISADO_SIN_GRADO':
+    case 'TALLER_REVISADO_SIN_DESHACER': {
+      // 0.9.22 (spec «plantillas NSYS» §3.5): alguien dio el aviso por bueno desde «Revisar a mano».
+      const que = (ETIQUETA_AVISO[e.tipo.slice('TALLER_REVISADO_'.length)] ?? 'aviso').toLowerCase()
+      return { fecha, titulo: `Revisado por ${e.tecnico ?? '—'}: ${que} (reparación ${e.idRep ?? '—'})`, detalle: null, color: 'bg-verde-ok' }
+    }
     default:
       return { fecha, titulo: e.tipo, detalle: null, color: 'bg-gris-borde' }
   }

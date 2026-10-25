@@ -39,7 +39,7 @@ describe('reglas del diálogo «Corregir…» (spec 0.9.21 §2.3)', () => {
     expect(previa(f, { ...eleccionInicial(f), color: 'Rosa' }, opcionesTaller())).toMatchObject({ cambiaColor: true,
       colorFinal: 'Rosa', sku: 'i16128RosaA100', producto: 'Apple iPhone 16 128GB Pink', valido: false })
     const verde = previa(f, { ...eleccionInicial(f), color: 'Verde', motivo: 'chasis verde' },
-      opcionesTaller({ colores: [{ color: 'Verde', producto: null }] }))
+      opcionesTaller({ colores: [{ color: 'Verde', producto: null, compruebalo: false }] }))
     expect(verde).toMatchObject({ sku: null, producto: null, valido: true, cuerpo: { color: 'Verde', grado: null } })
   })
 
@@ -51,5 +51,14 @@ describe('reglas del diálogo «Corregir…» (spec 0.9.21 §2.3)', () => {
   it('un grado que no es de NSYS no cambia solo por las casillas', () => {
     const f = fichaMovil({ grado: 'ID', bateriaNueva: false })
     expect(previa(f, { color: 'Negro', grado: { letra: '', ms: true, bateria: true }, motivo: 'x' }, opcionesTaller()).cambiaGrado).toBe(false)
+  })
+
+  it('la vista previa dice «compruébalo» si el producto del color sale del maestro tal cual (0.9.22)', () => {
+    const opciones = opcionesTaller({ colores: [
+      { color: 'Negro', producto: 'Apple iPhone 16 128GB Black', compruebalo: false },
+      { color: 'Rosa', producto: 'Apple iPhone 16 128GB Pink', compruebalo: true },
+    ] })
+    expect(previa(fichaMovil(), { ...eleccionInicial(fichaMovil()), color: 'Rosa', motivo: 'chasis rosa' }, opciones).compruebalo).toBe(true)
+    expect(previa(fichaMovil(), { ...eleccionInicial(fichaMovil()), motivo: 'x' }, opciones).compruebalo).toBe(false)
   })
 })

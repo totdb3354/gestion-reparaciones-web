@@ -5,7 +5,7 @@ import { Route, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { estadoNsys, filaPorPasar, movil, movilBuscado, movilComprobado, porQue, trabajo } from '../test/fabrica'
+import { estadoNsys, filaColor, filaGrado, movil, movilBuscado, movilComprobado, tarjetas, trabajo } from '../test/fabrica'
 import { StockTelefonosPage } from './StockTelefonosPage'
 
 // iPhone 13: 128GB con 001 (Listos) y 003 (En revisión), 256GB con 006 y 512GB solo de pedido (007); además 002 de pedido
@@ -533,62 +533,30 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
   })
 })
 
-describe('Stock de teléfonos: «Por pasar a NSYS» (spec 0.9.21 §2.4)', () => {
-  it('la pestaña dice cuántos hay y enseña lo que hay que poner en NSYS', async () => {
+describe('Stock de teléfonos: «Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
+  it('la pestaña cuenta lo pendiente de las cuatro tarjetas y abre el detalle desde una fila', async () => {
     const user = userEvent.setup()
-    server.use(http.get('*/api/stock-telefonos/por-pasar', () => HttpResponse.json([
-      filaPorPasar(),
-      filaPorPasar({ imeiSn: '350000000000002', ponerProducto: null, sku: null,
-        porQue: [porQue({ dato: 'COLOR', motivo: 'chasis rojo' }), porQue()] }),
-    ])))
+    server.use(http.get('*/api/stock-telefonos/por-pasar/tarjetas', () => HttpResponse.json(tarjetas({
+      color: [filaColor(), filaColor({ imeiSn: '350000000000012', hechoPor: 'Supertécnico 1', hechoEn: '2026-10-25T12:31:00' })],
+      grado: [filaGrado()],
+    }))))
     abrir()
     await user.click(await screen.findByRole('button', { name: 'Por pasar a NSYS (2)' }))
     expect(screen.getByRole('button', { name: 'Por pasar a NSYS (2)' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText(/^Lo que hay que cambiar a mano en NSYS \(producto y grado de cada móvil\)\./)).toBeInTheDocument()
-    const tabla = screen.getByRole('table', { name: 'Móviles por pasar a NSYS' })
-    expect(within(tabla).getAllByRole('columnheader').map((c) => c.textContent))
-      .toEqual(['IMEI', 'Modelo', 'En NSYS hoy', 'Poner en NSYS', 'SKU nuevo', 'Por qué', 'Desde'])
-    const [uno, dos] = within(tabla).getAllByRole('row').slice(1)
-    expect(uno).toHaveTextContent('iPhone 13 128GB')
-    expect(uno).toHaveTextContent('grado B')
-    expect(uno).toHaveTextContent('grado A100')
-    expect(uno).toHaveTextContent('i13128AzulA100')
-    expect(uno).toHaveTextContent('Grado: a mano · Técnico 1 · «batería nueva»')
-    expect(uno).toHaveTextContent('20/10/2026 10:31')
-    expect(dos).toHaveTextContent('(ningún móvil de ese color en NSYS: búscalo a mano)')
-    expect(dos).toHaveTextContent('sin SKU en el maestro')
-    expect(dos).toHaveTextContent('Color: a mano · Técnico 1 · «chasis rojo»')
-    await user.click(within(uno).getByRole('button', { name: 'Abrir 350000000000001' }))
+    expect(screen.getByRole('article', { name: 'Cambio de color' })).toHaveTextContent('2 móviles · 1 hecho')
+    await user.click(screen.getByRole('button', { name: 'Abrir 350000000000011' }))
     expect(await screen.findByText('Detalle del IMEI desde /telefonos/stock')).toBeInTheDocument()
   })
 
-  it('sin nada por pasar lo dice, con la pestaña a cero y sin nada que exportar', async () => {
+  it('si la lista no carga lo dice y no afirma que no haya nada', async () => {
     const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/por-pasar/tarjetas', () => new HttpResponse(null, { status: 500 })))
     abrir()
-    await user.click(await screen.findByRole('button', { name: 'Por pasar a NSYS (0)' }))
-    expect(screen.getByText('Nada por pasar: NSYS está al día con el taller.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()
-  })
-
-  it('si la lista no carga lo dice y no afirma que no haya nada por pasar', async () => {
-    const user = userEvent.setup()
-    server.use(http.get('*/api/stock-telefonos/por-pasar', () => new HttpResponse(null, { status: 500 })))
-    abrir()
-    // El 500 saca el diálogo de error de siempre; se cierra para llegar a la pestaña.
     const error = await screen.findByRole('dialog', { name: 'Error' })
     await user.click(within(error).getByRole('button', { name: /Aceptar|Cerrar|OK/i }))
     await user.click(await screen.findByRole('button', { name: /^Por pasar a NSYS/ }))
     expect(await screen.findByText('No se pudo cargar la lista.')).toBeInTheDocument()
-    expect(screen.queryByText('Nada por pasar: NSYS está al día con el taller.')).not.toBeInTheDocument()
-  })
-
-  it('«Exportar a Excel» copia la lista para pegarla en Excel', async () => {
-    const user = userEvent.setup()
-    server.use(http.get('*/api/stock-telefonos/por-pasar', () => HttpResponse.json([filaPorPasar()])))
-    abrir()
-    await user.click(await screen.findByRole('button', { name: 'Por pasar a NSYS (1)' }))
-    await user.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
-    await waitFor(async () => expect(await navigator.clipboard.readText()).toMatch(/^IMEI\tModelo\tEn NSYS hoy\tPoner en NSYS/))
+    expect(screen.queryByText('Ningún cambio de color pendiente.')).not.toBeInTheDocument()
   })
 
   it('«Móviles» vuelve a la vista de siempre', async () => {

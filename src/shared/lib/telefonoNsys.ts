@@ -70,8 +70,50 @@ export const SIN_SKU_MAESTRO = 'sin SKU en el maestro'
 /** 0.9.21 (§2.4): el producto que poner en NSYS cuando ningún móvil del espejo tiene ese color. */
 export const SIN_PRODUCTO_NSYS = '(ningún móvil de ese color en NSYS: búscalo a mano)'
 
-/** «<producto> · grado <grado>»: lo que hay que poner en NSYS (la ficha, el diálogo «Corregir…» y la lista «Por pasar a
- *  NSYS»). Sin producto, el aviso de buscarlo a mano. */
-export function textoPoner(producto: string | null | undefined, grado: string | null | undefined): string {
-  return `${producto || SIN_PRODUCTO_NSYS} · grado ${grado || '—'}`
+/** 0.9.22 (spec §2.1, paso 4): el producto sale del nombre del maestro tal cual porque NSYS nunca ha escrito ese color. */
+export const COMPRUEBALO = 'compruébalo: NSYS nunca ha escrito ese color'
+
+/** «<producto> · grado <grado>»: lo que hay que poner en NSYS (la ficha, el diálogo «Corregir…» y «Por pasar a NSYS»). Sin
+ *  producto, el aviso de buscarlo a mano; desde la 0.9.22, con « (compruébalo: …)» detrás si sale del maestro tal cual. */
+export function textoPoner(producto: string | null | undefined, grado: string | null | undefined, compruebalo = false): string {
+  const queProducto = producto ? `${producto}${compruebalo ? ` (${COMPRUEBALO})` : ''}` : SIN_PRODUCTO_NSYS
+  return `${queProducto} · grado ${grado || '—'}`
+}
+
+/** 0.9.22 (spec §3.5): un aviso del taller (pieza 2 de la 0.9.21) como lo cuentan el rastro del IMEI y «Revisar a mano».
+ *  `tipo` SIN_COLOR, SIN_GRADO o SIN_DESHACER; `causa` BORRADA o EDITADA en SIN_DESHACER; `usuario`: quién guardó la reparación;
+ *  `motivo`: la pieza. */
+export type AvisoTallerTexto = {
+  tipo: string; causa: string | null; dato: string | null; de: string | null; idRep: string | null; usuario: string | null; motivo: string | null
+}
+
+const DATO_AVISO: Record<string, string> = { COLOR: 'color', GRADO: 'grado' }
+/** «del chasis chai13xxx» o «de la tapa tapai13xxx», por el prefijo del SKU. */
+const delaPieza = (sku: string | null) => ((sku ?? '').toLowerCase().startsWith('tapa') ? `de la tapa ${sku}` : `del chasis ${sku ?? '—'}`)
+
+/** El texto del aviso, el mismo del rastro desde la 0.9.21. */
+export function textoAvisoTaller(a: AvisoTallerTexto): string {
+  const quien = a.usuario ?? '—'
+  switch (a.tipo) {
+    case 'SIN_COLOR':
+      return `Taller: el color ${delaPieza(a.de)} no se puede deducir: lo corregirá un supertécnico (reparación ${a.idRep ?? '—'} · ${quien})`
+    case 'SIN_GRADO':
+      return `Taller: el grado (${a.de ?? '—'}) no se puede calcular: lo corregirá un supertécnico (${[`reparación ${a.idRep ?? '—'}`, quien, a.motivo].filter(Boolean).join(' · ')})`
+    case 'SIN_DESHACER':
+      return `Se ${a.causa === 'BORRADA' ? 'borró' : 'editó'} la reparación ${a.idRep ?? '—'} que cambió el ${DATO_AVISO[a.dato ?? ''] ?? 'dato'}; corrígelo a mano si hace falta (${quien})`
+    default:
+      return a.tipo
+  }
+}
+
+/** La etiqueta de cada aviso de «Revisar a mano». */
+export const ETIQUETA_AVISO: Record<string, string> = {
+  SIN_COLOR: 'Color sin deducir', SIN_GRADO: 'Grado sin calcular', SIN_DESHACER: 'No se pudo deshacer',
+}
+
+/** «Qué hacer» con cada aviso de «Revisar a mano» (spec §3.5; el de SIN_DESHACER dice su dato, Ajuste 7 del plan). */
+export function queHacerAviso(tipo: string, dato: string | null): string {
+  if (tipo === 'SIN_COLOR') return 'Mira de qué color quedó y corrígelo en su ficha'
+  if (tipo === 'SIN_GRADO') return 'Decide el grado que le toca y corrígelo en su ficha'
+  return `Mira si el móvil tiene de verdad ese ${dato === 'GRADO' ? 'grado' : 'color'}; si no, corrígelo en su ficha`
 }

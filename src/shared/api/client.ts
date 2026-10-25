@@ -86,15 +86,24 @@ export type ProgresoHistorico = components['schemas']['StockTelefonosProgresoHis
 
 /** 0.9.21 (spec «SKU del taller», pieza 1): lo del taller por encima de NSYS. En el stock, la ficha, «Pegar varios IMEIs» y
  *  el buscador, color, grado y SKU son los que valen; `colorNsys`, `gradoNsys` (el grado entero de NSYS, con el 100) y
- *  `skuNsys` traen lo de NSYS cuando el taller lo cambia («—» si NSYS no lo sabe) y null si no. La lista «Por pasar a
- *  NSYS», las opciones del diálogo «Corregir…» y su petición (`color` o `grado` null: no cambia). En el rastro, los eventos
+ *  `skuNsys` traen lo de NSYS cuando el taller lo cambia («—» si NSYS no lo sabe) y null si no. Las opciones del diálogo «Corregir…» y su petición (`color` o `grado` null: no cambia). En el rastro, los eventos
  *  de fuente TALLER llevan `dato` (COLOR o GRADO), `origen` (MANO o REPARACION) y `motivo`; `tecnico` es quién lo hizo. */
-export type FilaPorPasar = components['schemas']['FilaPorPasar']
 export type PorQueTaller = components['schemas']['PorQueTaller']
 export type OpcionesTaller = components['schemas']['OpcionesTaller']
 export type OpcionColor = components['schemas']['OpcionColor']
 export type SkuMaestro = components['schemas']['SkuMaestro']
 export type PeticionTaller = components['schemas']['StockTelefonosPeticionTaller']
+
+/** 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas de «Por pasar a NSYS». Las filas de Color, Grado y No está en NSYS
+ *  llevan su marca «Hecho» (`hechoPor`, `hechoEn`; `hechoVolvio` si la importación vio NSYS igual y la fila cuenta otra vez); las
+ *  peticiones de «Hecho» y de «deshacer» llevan la `tarjeta` (COLOR, GRADO o ALTA). Horas de Madrid, sin zona. */
+export type TarjetasPorPasar = components['schemas']['TarjetasPorPasar']
+export type FilaColorNsys = components['schemas']['FilaColorNsys']
+export type FilaGradoNsys = components['schemas']['FilaGradoNsys']
+export type FilaAltaNsys = components['schemas']['FilaAltaNsys']
+export type FilaRevisarNsys = components['schemas']['FilaRevisarNsys']
+export type PeticionHecho = components['schemas']['PorPasarPeticionHecho']
+export type PeticionDeshacerHecho = components['schemas']['PorPasarPeticionDeshacer']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */

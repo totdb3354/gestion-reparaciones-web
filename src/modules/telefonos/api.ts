@@ -1,7 +1,11 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
-import { api, type EstadoNsys, type FilaPorPasar, type ListaImportaciones, type MovilComprobado, type MovilStock } from '@/shared/api/client'
-import { CLAVE_POR_PASAR_NSYS, CLAVE_STOCK_TELEFONOS } from '@/shared/api/nsys'
+import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import {
+  api, type EstadoNsys, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  type PeticionHecho, type TarjetasPorPasar,
+} from '@/shared/api/client'
+import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
+import { descargarBlob, nombreDeDescarga } from '@/shared/lib/descargas'
 
 export const CLAVE_ESTADO_NSYS = ['telefonos', 'estado'] as const
 export const CLAVE_IMPORTACIONES_NSYS = ['telefonos', 'importaciones'] as const
@@ -64,14 +68,70 @@ export function useComprobarImeis(imeis: string[]): UseQueryResult<MovilComproba
   })
 }
 
-/** GET /api/stock-telefonos/por-pasar (spec 0.9.21 §2.4): lo que hay que cambiar a mano en NSYS, para la pestaña y su número.
- *  Sondea como el stock: la lista se vacía sola con cada importación. */
-export function usePorPasarNsys(): UseQueryResult<FilaPorPasar[]> {
+/** GET /api/stock-telefonos/por-pasar/tarjetas (spec 0.9.22 §3): las cuatro tarjetas, para la pestaña y su número. Sondea como
+ *  el stock: las filas se van solas con cada importación. */
+export function usePorPasarTarjetas(): UseQueryResult<TarjetasPorPasar | null> {
   const intervalo = useIntervaloRefresco(true)
   return useQuery({
-    queryKey: CLAVE_POR_PASAR_NSYS,
-    queryFn: async () => (await api.GET('/api/stock-telefonos/por-pasar')).data ?? [],
+    queryKey: CLAVE_TARJETAS_NSYS,
+    queryFn: async () => (await api.GET('/api/stock-telefonos/por-pasar/tarjetas')).data ?? null,
     refetchInterval: intervalo,
     meta: { sinCapa: true },
+  })
+}
+
+/** Tras «Hecho», «deshacer» o «Revisado», bien o mal: las tarjetas y, con «Revisado», el rastro de los IMEIs (lo cuenta). */
+function useRecargarTarjetas(conRastro: boolean): () => void {
+  const qc = useQueryClient()
+  return () => {
+    void qc.invalidateQueries({ queryKey: CLAVE_TARJETAS_NSYS })
+    if (conRastro) void qc.invalidateQueries({ queryKey: CLAVE_RASTRO_MOVIL })
+  }
+}
+
+/** PUT /api/stock-telefonos/por-pasar/hecho (spec 0.9.22 §3.6): «Hecho» de una fila o «Marcar todo» de una tarjeta. */
+export function useMarcarHecho() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionHecho) => api.PUT('/api/stock-telefonos/por-pasar/hecho', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
+/** DELETE /api/stock-telefonos/por-pasar/hecho: «deshacer» de una marca. */
+export function useDeshacerHecho() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionDeshacerHecho) => api.DELETE('/api/stock-telefonos/por-pasar/hecho', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
+/** POST /api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado (spec 0.9.22 §3.5): el aviso estaba bien y sale de la lista. */
+export function useRevisarAviso() {
+  const recargar = useRecargarTarjetas(true)
+  return useMutation({
+    mutationFn: (idAviso: number) =>
+      api.POST('/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado', { params: { path: { idAviso } } }),
+    onSettled: recargar,
+  })
+}
+
+export type Plantilla = 'color' | 'altas'
+export type Descarga = { nombre: string; filas: number }
+
+/** GET …/por-pasar/plantilla-color o …/plantilla-altas (spec 0.9.22 §4): el Excel lo hace el servidor; aquí se guarda con el
+ *  nombre que manda (Content-Disposition) y se devuelve cuántos móviles lleva (cabecera X-Filas). Un error sale en el diálogo de
+ *  siempre. */
+export function useDescargarPlantilla() {
+  return useMutation({
+    mutationFn: async (cual: Plantilla): Promise<Descarga> => {
+      const { data, response } = cual === 'color'
+        ? await api.GET('/api/stock-telefonos/por-pasar/plantilla-color', { parseAs: 'blob' })
+        : await api.GET('/api/stock-telefonos/por-pasar/plantilla-altas', { parseAs: 'blob' })
+      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? `NSYS_${cual}.xlsx`
+      if (data) descargarBlob(data, nombre)
+      return { nombre, filas: Number(response.headers.get('X-Filas') ?? '0') }
+    },
   })
 }
