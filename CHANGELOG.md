@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.22] - (pendiente) — Pieza 1 de «Lo que no cuadra con NSYS»: el ERP lee mejor el maestro y NSYS
+
+- **«Poner en NSYS» y la deducción del color del chasis** saben cómo se llama cada color en NSYS aunque ningún móvil de ese modelo y capacidad lo tenga: el nombre en inglés sale del «Product Name» del maestro (el Excel no se toca) y se escribe con la grafía que ya usa NSYS en otra capacidad u otro modelo. Salen menos «búscalo a mano» y menos «el color del chasis no se puede deducir».
+- **Coste de NSYS:** al importar los ficheros de NSYS se guarda el «Total cost» de cada móvil, para la plantilla de la pieza 2. No sale en ninguna pantalla.
+- Solo servidor, con la migración `migracion-nombres-y-coste-nsys.sql` (dos columnas nuevas). La web sigue en la 0.9.21.
+
 ## [0.9.21.1] - 2026-10-23 — La tapa trasera no cambia el grado y el chasis sobre «n/a» pone la A
 
 - **Reparaciones con tapa trasera:** la tapa trasera sola cambia el color del móvil, pero **ya no le pone grado A** ni avisa de un grado que no se puede calcular: el grado lo cambian el chasis (letra A) y la batería («100»). En la 0.9.21, una tapa sola pasaba el móvil a A.
