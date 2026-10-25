@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaColorNsys, FilaGradoNsys, FilaPorPasar, FilaRevisarNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  EstadoNsys, FilaAltaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -65,15 +65,6 @@ export function listaImportaciones(p: Partial<ListaImportaciones> = {}): ListaIm
 /** 0.9.21: por qué un dato está por pasar a NSYS; por defecto, el grado a mano de «Técnico 1». */
 export function porQue(p: Partial<PorQueTaller> = {}): PorQueTaller {
   return { dato: 'GRADO', origen: 'MANO', usuario: 'Técnico 1', motivo: 'batería nueva', idRep: null, ...p }
-}
-
-/** Una fila de «Por pasar a NSYS»: un iPhone 13 128GB Azul que pasa de B a A100 desde el 20/10 a las 10:31 (Madrid). */
-export function filaPorPasar(p: Partial<FilaPorPasar> = {}): FilaPorPasar {
-  return {
-    imeiSn: '350000000000001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', productoNsys: 'Apple iPhone 13 128GB Blue',
-    gradoNsys: 'B', ponerProducto: 'Apple iPhone 13 128GB Blue', ponerGrado: 'A100', sku: 'i13128AzulA100', porQue: [porQue()],
-    ponerCompruebalo: false, desde: '2026-10-20T10:31:00', ...p,
-  }
 }
 
 /** 0.9.22: una fila de «Cambio de color»: un iPhone 13 128GB Blue que pasa a (PRODUCT)RED por un chasis de la reparación

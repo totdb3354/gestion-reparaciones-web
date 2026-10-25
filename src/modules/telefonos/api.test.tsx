@@ -10,10 +10,10 @@ import { server } from '@/test/server'
 import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import {
-  useComprobarImeis, useDescargarPlantilla, useDeshacerHecho, useEstadoNsys, useImportacionesNsys, useMarcarHecho, usePorPasarNsys,
+  useComprobarImeis, useDescargarPlantilla, useDeshacerHecho, useEstadoNsys, useImportacionesNsys, useMarcarHecho,
   usePorPasarTarjetas, useRevisarAviso, useStockTelefonos,
 } from './api'
-import { estadoNsys, filaGrado, filaPorPasar, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
+import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
 
 function envoltorio() {
   guardarSesion(SESION_SUPER)
@@ -81,12 +81,6 @@ describe('api del stock de teléfonos', () => {
     const lleno = renderHook(() => useComprobarImeis(['350000000000001']), { wrapper: envoltorio() })
     await waitFor(() => expect(lleno.result.current.data).toHaveLength(1))
     expect(cuerpos).toEqual([{ imeis: ['350000000000001'] }])
-  })
-
-  it('pide la lista «Por pasar a NSYS» (0.9.21)', async () => {
-    server.use(http.get('*/api/stock-telefonos/por-pasar', () => HttpResponse.json([filaPorPasar()])))
-    const lista = renderHook(() => usePorPasarNsys(), { wrapper: envoltorio() })
-    await waitFor(() => expect(lista.result.current.data).toHaveLength(1))
   })
 
   it('las tarjetas y lo que mandan «Hecho», «deshacer» y «Revisado» (spec 0.9.22 §3)', async () => {

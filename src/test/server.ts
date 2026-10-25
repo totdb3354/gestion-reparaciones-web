@@ -38,9 +38,6 @@ export const server = setupServer(
     HttpResponse.json({ ultimaExportacion: '2026-10-16T13:31:00', nivel: 'OK', ultimoFallo: null, motivoFallo: null })),
   http.get('*/api/stock-telefonos/importaciones', () =>
     HttpResponse.json({ importaciones: [], historico: { total: 0, hechos: 0, ultimo: null, hasta: null } })),
-  // 0.9.21: el stock de teléfonos pide la lista «Por pasar a NSYS» para el número de su pestaña: por defecto, vacía. Va antes
-  // que «:imeiSn», que también la cubriría (y daría 404).
-  http.get('*/api/stock-telefonos/por-pasar', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/por-pasar/tarjetas', () => HttpResponse.json({ color: [], grado: [], altas: [], revisar: [] })),
   http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn/rastro', () => HttpResponse.json([])),

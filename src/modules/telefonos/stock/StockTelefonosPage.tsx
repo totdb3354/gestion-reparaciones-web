@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/utils'
 import { BotonSecundario } from '@/shared/ui/Botones'
 import { DataTable } from '@/shared/ui/DataTable'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
-import { usePorPasarNsys, useStockTelefonos } from '../api'
+import { usePorPasarTarjetas, useStockTelefonos } from '../api'
 import { filtrarModelos, sugerenciasSku, type Destino } from './buscador'
 import { BuscadorImei } from './BuscadorImei'
 import { BuscadorModelo } from './BuscadorModelo'
@@ -21,6 +21,7 @@ import {
 } from './modelo'
 import { PastillaSku } from './PastillaSku'
 import { PestanasCapacidad } from './PestanasCapacidad'
+import { totalPendientes } from './porPasar'
 import { PorPasarNsys } from './PorPasarNsys'
 import { BandaNsys, PildoraNsys } from './PildoraNsys'
 
@@ -38,9 +39,9 @@ export function StockTelefonosPage() {
   const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
   const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista }, setEstado] = useStore(estadoStockTelefonos)
-  // 0.9.21 (spec «SKU del taller» §2.4): la lista «Por pasar a NSYS», para su pestaña y su número.
-  const porPasar = usePorPasarNsys()
-  const nPorPasar = porPasar.data?.length ?? 0
+  // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
+  const porPasar = usePorPasarTarjetas()
+  const nPorPasar = totalPendientes(porPasar.data)
   // El diálogo de «Pegar varios IMEIs»: null cerrado; si no, lo que se pegó (vacío con el botón).
   const [varios, setVarios] = useState<string | null>(null)
   const lista = useMemo(() => modelosLista(moviles, verNoCuenta), [moviles, verNoCuenta])
@@ -98,7 +99,7 @@ export function StockTelefonosPage() {
           Ver también lo que no cuenta como stock
         </button>
       </div>
-      {vista === 'por-pasar' ? <PorPasarNsys filas={porPasar.data ?? []} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} /> : (
+      {vista === 'por-pasar' ? <PorPasarNsys tarjetas={porPasar.data ?? null} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} /> : (
       <div className="grid min-h-0 flex-1 grid-cols-[270px_1fr] gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos modelos={visibles} elegido={modelo?.clave ?? null} capacidad={capacidad}
           onAbrir={(m, c) => abrirModelo({ modelo: m, capacidad: c, sku: null })}

@@ -1,65 +1,99 @@
-import type { FilaPorPasar } from '@/shared/api/client'
-import { SIN_PRODUCTO_NSYS, SIN_SKU_MAESTRO } from '@/shared/lib/telefonoNsys'
+import { useState } from 'react'
+import type { TarjetasPorPasar } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
-import { BotonSecundario } from '@/shared/ui/Botones'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
-import { modeloDeFila, paraExcel, textoDesde, textoPorQue } from './porPasar'
+import { useDescargarPlantilla, useDeshacerHecho, useMarcarHecho, useRevisarAviso } from '../api'
+import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
+import {
+  avisoCopiado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
+  type Tarjeta, type TarjetaConHecho,
+} from './porPasar'
+import { TarjetasNsys } from './TarjetasNsys'
 
-type Props = { filas: FilaPorPasar[]; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void }
+type Props = { tarjetas: TarjetasPorPasar | null; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void }
 
-const COLUMNAS = ['IMEI', 'Modelo', 'En NSYS hoy', 'Poner en NSYS', 'SKU nuevo', 'Por qué', 'Desde']
-const CELDA = 'px-2 py-1.5 align-top'
-const GRIS = 'block text-[11px] text-azul-gris'
+const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [] }
+const BOTON = 'h-[26px] cursor-pointer rounded-lg px-2.5 text-[12px] font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40'
+const PRIMARIO = cn(BOTON, 'bg-azul-noche text-superficie hover:bg-azul-noche-hover')
+const SECUNDARIO = cn(BOTON, 'border border-borde-input bg-superficie text-azul-medio hover:bg-seleccion-suave')
+const PASTILLA = 'rounded px-1.5 text-[10.5px] font-bold bg-fila-solicitud-bg text-fila-solicitud-brd'
+const SIN_NADA = 'No hay móviles que corregir'
 
-/** La pestaña «Por pasar a NSYS» del stock de teléfonos (0.9.21, spec «SKU del taller» §2.4; variante «A · se vacía sola»
- *  del prototipo): lo que hay que cambiar a mano en NSYS, de cualquier modelo, los más antiguos primero. Sin botones por fila:
- *  cada una se va sola cuando la importación ve NSYS igual. El IMEI abre su detalle. */
-export function PorPasarNsys({ filas, cargando, error, onAbrirImei }: Props) {
+/** La pestaña «Por pasar a NSYS» del stock de teléfonos desde la 0.9.22 (spec «plantillas NSYS» §3, diseño C del prototipo): arriba
+ *  las cuatro tarjetas con su número y su botón; debajo, la ayuda y la lista de la elegida (la de color al entrar). Las plantillas
+ *  las hace el servidor; «Copiar lista» copia para Excel. */
+export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) {
+  const [elegida, setElegida] = useState<Tarjeta>('color')
+  const t = tarjetas ?? VACIAS
+  const marcar = useMarcarHecho()
+  const deshacer = useDeshacerHecho()
+  const revisar = useRevisarAviso()
+  const descargar = useDescargarPlantilla()
+  const ocupado = marcar.isPending || deshacer.isPending
+  const sinProducto = pendientes(t.color).filter((f) => f.ponerProducto === null).length
+  const vacio = cargando ? 'Cargando…' : error ? 'No se pudo cargar la lista.' : VACIA[elegida]
+
+  const conHecho = (cual: TarjetaConHecho) => ({
+    vacio, ocupado, onAbrirImei,
+    onMarcar: (imeis: string[]) => { if (imeis.length > 0) marcar.mutate({ tarjeta: TARJETA_HECHO[cual], imeis }) },
+    onDeshacer: (imeiSn: string) => deshacer.mutate({ tarjeta: TARJETA_HECHO[cual], imeiSn }),
+  })
+
+  const compruebalo = paraPlantillaColor(t.color).filter((f) => f.compruebalo).length
+  const bajar = (cual: 'color' | 'altas') => descargar.mutate(cual, {
+    onSuccess: ({ nombre, filas }) => avisar({
+      texto: cual === 'color' ? avisoPlantillaColor(nombre, filas, sinProducto, compruebalo) : avisoPlantillaAltas(nombre, filas),
+      tipo: 'ok',
+    }),
+  })
+
+  function boton(cual: Tarjeta) {
+    if (cual === 'color' || cual === 'altas') {
+      const n = cual === 'color' ? paraPlantillaColor(t.color).length : pendientes(t.altas).length
+      return (
+        <button type="button" disabled={n === 0 || descargar.isPending} title={n === 0 ? SIN_NADA : `${n} ${n === 1 ? 'móvil' : 'móviles'}`}
+          onClick={(e) => { e.stopPropagation(); bajar(cual) }} className={PRIMARIO}>
+          {`⬇ Descargar plantilla${n > 0 ? ` (${n})` : ''}`}
+        </button>
+      )
+    }
+    if (cual === 'grado') {
+      const n = pendientes(t.grado).length
+      return (
+        <button type="button" disabled={n === 0} title={n === 0 ? SIN_NADA : 'IMEI, producto y grado, para pegar'}
+          onClick={(e) => {
+            e.stopPropagation()
+            void copiarAlPortapapeles(listaGrado(t.grado))
+            avisar({ texto: avisoCopiado(n), tipo: 'ok' })
+          }} className={SECUNDARIO}>
+          {`Copiar lista${n > 0 ? ` (${n})` : ''}`}
+        </button>
+      )
+    }
+    const n = t.revisar.length
+    return (
+      <button type="button" disabled={n === 0} title={n === 0 ? SIN_NADA : undefined}
+        onClick={(e) => { e.stopPropagation(); setElegida('revisar') }} className={SECUNDARIO}>Ver</button>
+    )
+  }
+
   return (
-    <section aria-label="Por pasar a NSYS" className="flex min-h-0 flex-1 flex-col gap-2 rounded-md bg-superficie p-3">
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <p className="text-[11.5px] text-azul-gris">
-          Lo que hay que cambiar a mano en NSYS (producto y grado de cada móvil). Cada fila desaparece sola cuando la importación (cada 30 min) ve NSYS igual.
-        </p>
-        <BotonSecundario className="ml-auto" disabled={filas.length === 0} onClick={() => {
-          void copiarAlPortapapeles(paraExcel(filas))
-          avisar({ texto: 'Copiado: pégalo en Excel', tipo: 'ok' })
-        }}>Exportar a Excel</BotonSecundario>
+    <section aria-label="Por pasar a NSYS" className="flex min-h-0 flex-1 flex-col gap-2.5 rounded-md bg-superficie p-3">
+      <TarjetasNsys tarjetas={t} elegida={elegida} onElegir={setElegida} boton={boton} />
+      <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+        <p className="max-w-[880px] text-[11.5px] leading-snug text-azul-gris">{AYUDA[elegida]}</p>
+        {elegida === 'color' && sinProducto > 0 && <span className={PASTILLA}>{`${sinProducto} sin producto en NSYS: no van en la plantilla`}</span>}
+        {elegida === 'grado' && <span className={PASTILLA}>en NSYS se cambian uno a uno: «Copiar lista» para tenerlos delante y «Hecho» al acabar cada uno</span>}
+        {elegida === 'revisar' && <span className={PASTILLA}>se va con «Revisado» (queda quién y cuándo) o al corregirlo</span>}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
-        <table aria-label="Móviles por pasar a NSYS" className="w-full border-collapse text-[12.5px] text-azul-medio">
-          <thead className="sticky top-0 bg-crema">
-            <tr>{COLUMNAS.map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left font-bold whitespace-nowrap">{c}</th>)}</tr>
-          </thead>
-          <tbody>
-            {filas.length === 0 && (
-              <tr>
-                <td colSpan={COLUMNAS.length} className="px-2 py-3 text-[12px] text-azul-gris">
-                  {cargando ? 'Cargando…' : error ? 'No se pudo cargar la lista.' : 'Nada por pasar: NSYS está al día con el taller.'}
-                </td>
-              </tr>
-            )}
-            {filas.map((f) => (
-              <tr key={f.imeiSn} className="border-t border-fila-sep">
-                <td className={cn(CELDA, 'font-mono text-[11.5px]')}>
-                  <button type="button" aria-label={`Abrir ${f.imeiSn}`} onClick={() => onAbrirImei(f.imeiSn)}
-                    className="cursor-pointer text-azul-noche hover:underline">{f.imeiSn}</button>
-                </td>
-                <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
-                <td className={CELDA}>{f.productoNsys ?? '—'}<span className={GRIS}>{`grado ${f.gradoNsys || '—'}`}</span></td>
-                <td className={CELDA}>
-                  {f.ponerProducto ? <b className="text-azul-noche">{f.ponerProducto}</b> : <span className="font-semibold text-fila-solicitud-brd">{SIN_PRODUCTO_NSYS}</span>}
-                  <span className={GRIS}>grado <b className="text-azul-noche">{f.ponerGrado || '—'}</b></span>
-                </td>
-                <td className={cn(CELDA, 'font-mono text-[11.5px]')}>{f.sku ?? <i className="font-sans text-fila-solicitud-brd">{SIN_SKU_MAESTRO}</i>}</td>
-                <td className={cn(CELDA, 'min-w-[220px]')}>{f.porQue.map((p, i) => <span key={i} className="block">{textoPorQue(p)}</span>)}</td>
-                <td className={cn(CELDA, 'whitespace-nowrap')}>{textoDesde(f.desde)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {elegida === 'color' && <ListaColor filas={t.color} {...conHecho('color')} />}
+      {elegida === 'grado' && <ListaGrado filas={t.grado} {...conHecho('grado')} />}
+      {elegida === 'altas' && <ListaAltas filas={t.altas} {...conHecho('altas')} />}
+      {elegida === 'revisar' && (
+        <ListaRevisar filas={t.revisar} vacio={vacio} ocupado={revisar.isPending} onAbrirImei={onAbrirImei}
+          onRevisado={(idAviso) => revisar.mutate(idAviso, { onSuccess: () => avisar({ texto: 'Revisado: sale de la lista (queda en el rastro)', tipo: 'ok' }) })} />
+      )}
     </section>
   )
 }

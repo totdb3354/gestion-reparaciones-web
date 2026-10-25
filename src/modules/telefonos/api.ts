@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type EstadoNsys, type FilaPorPasar, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  api, type EstadoNsys, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionHecho, type TarjetasPorPasar,
 } from '@/shared/api/client'
-import { CLAVE_POR_PASAR_NSYS, CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS } from '@/shared/api/nsys'
+import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { descargarBlob, nombreDeDescarga } from '@/shared/lib/descargas'
 
@@ -64,18 +64,6 @@ export function useComprobarImeis(imeis: string[]): UseQueryResult<MovilComproba
     staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,
-    meta: { sinCapa: true },
-  })
-}
-
-/** GET /api/stock-telefonos/por-pasar (spec 0.9.21 §2.4): lo que hay que cambiar a mano en NSYS, para la pestaña y su número.
- *  Sondea como el stock: la lista se vacía sola con cada importación. */
-export function usePorPasarNsys(): UseQueryResult<FilaPorPasar[]> {
-  const intervalo = useIntervaloRefresco(true)
-  return useQuery({
-    queryKey: CLAVE_POR_PASAR_NSYS,
-    queryFn: async () => (await api.GET('/api/stock-telefonos/por-pasar')).data ?? [],
-    refetchInterval: intervalo,
     meta: { sinCapa: true },
   })
 }
