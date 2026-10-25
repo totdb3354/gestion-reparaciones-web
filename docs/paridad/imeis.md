@@ -105,3 +105,16 @@ reparaciones:
 Pruebas: `FichaMovil.test.tsx`, `CorregirTallerDialog.test.tsx`, `corregir.test.ts`, `rastro.test.ts`, `PanelRastro.test.tsx`,
 `ImeiDetallePage.test.tsx` y `sku-taller.spec.ts`. El TECNICO ve lo mismo que antes. El `PATCH /api/telefonos/{imei}/atributos`
 del JavaFX cambiaba `Telefono`, que ya no se enseña: no es este dato.
+
+## 0.9.22 — «Por pasar a NSYS» con cuatro tarjetas (sin equivalente en el JavaFX)
+
+Añadido, decidido en la spec `2026-10-25-v0922-plantillas-nsys-design.md` (raíz). Para SUPERTECNICO y ADMIN:
+
+- **Cuatro tarjetas** en Stock de teléfonos → «Por pasar a NSYS (N)»: Cambio de color, Cambio de grado, No está en NSYS y Revisar a
+  mano, con su número («3 móviles · 1 hecho») y su botón; N = lo pendiente;
+- **Plantillas** («⬇ Descargar plantilla» de Color y de No está en NSYS): el servidor rellena la plantilla vacía de NSYS desde la
+  fila 7: `NSYS_color_AAAA-MM-DD.xlsx` (lote COLOR) y `NSYS_altas_AAAA-MM-DD.xlsx` (lote AJUSTE);
+- **«Hecho»** por fila y «✓ Marcar todo»: en gris con quién y cuándo; «deshacer»; la importación la borra o la hace volver;
+- **«Revisado»** en Revisar a mano: quién y cuándo en el aviso, registro de actividad `REVISAR_AVISO_TALLER` y «Revisado por …» en
+  el rastro;
+- **«compruébalo»** en la ficha del IMEI, en «Corregir…» y en la lista.

@@ -4,11 +4,15 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.22] - (pendiente) — Pieza 1 de «Lo que no cuadra con NSYS»: el ERP lee mejor el maestro y NSYS
+## [0.9.22] - (pendiente) — Lo que no cuadra con NSYS: cuatro tarjetas, «Hecho» y plantillas para subir a NSYS
 
-- **«Poner en NSYS» y la deducción del color del chasis** saben cómo se llama cada color en NSYS aunque ningún móvil de ese modelo y capacidad lo tenga: el nombre en inglés sale del «Product Name» del maestro (el Excel no se toca) y se escribe con la grafía que ya usa NSYS en otra capacidad u otro modelo. Salen menos «búscalo a mano» y menos «el color del chasis no se puede deducir».
-- **Coste de NSYS:** al importar los ficheros de NSYS se guarda el «Total cost» de cada móvil, para la plantilla de la pieza 2. No sale en ninguna pantalla.
-- Solo servidor, con la migración `migracion-nombres-y-coste-nsys.sql` (dos columnas nuevas). La web sigue en la 0.9.21.
+- **«Por pasar a NSYS» con cuatro tarjetas** (supertécnicos y administrador): **Cambio de color** (con la plantilla de NSYS para borrar y volver a subir el móvil, con el grado que tiene hoy en NSYS y su mismo precio de compra), **Cambio de grado** («Copiar lista»: en NSYS se cambia uno a uno, después del color), **No está en NSYS** (móviles que han pasado por el taller y NSYS no conoce, con su plantilla de altas: lo que falta va en rojo) y **Revisar a mano** (lo que el ERP no supo calcular al guardar una reparación: «✓ Revisado» si ya estaba bien, o «Corregir…»). Cada tarjeta dice cuántos hay y cuántos hechos; la pestaña cuenta lo pendiente.
+- **«Hecho»** por fila y **«✓ Marcar todo»**: la fila se queda en gris con quién y cuándo, y las plantillas y «Copiar lista» ya no la llevan. Se va sola cuando la importación ve NSYS al día; si NSYS sigue igual, vuelve a salir con «Marcado «Hecho» a las …, pero NSYS sigue igual».
+- **«compruébalo»**: si NSYS nunca ha escrito un color, el producto sale del nombre del maestro tal cual, avisado en la ficha, en «Corregir…» y en la lista (en amarillo en la plantilla).
+- **Rastro:** «Revisado por …» cuando alguien da un aviso por bueno.
+- **«Poner en NSYS» y la deducción del color del chasis** saben cómo se llama cada color en NSYS aunque ningún móvil de ese modelo y capacidad lo tenga (pieza 1): el nombre en inglés sale del «Product Name» del maestro (el Excel no se toca) y se escribe con la grafía que ya usa NSYS en otra capacidad u otro modelo.
+- **Coste de NSYS** (pieza 1): al importar se guarda el «Total cost» de cada móvil; solo lo usa la plantilla de color.
+- Servidor con dos migraciones aditivas: `migracion-nombres-y-coste-nsys.sql` (pieza 1) y `migracion-plantillas-nsys.sql` (tabla `Taller_hecho` y «Revisado» en `Taller_aviso`).
 
 ## [0.9.21.1] - 2026-10-23 — La tapa trasera no cambia el grado y el chasis sobre «n/a» pone la A
 
