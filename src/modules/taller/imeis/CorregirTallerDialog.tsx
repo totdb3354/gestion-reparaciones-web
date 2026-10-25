@@ -78,7 +78,7 @@ function Contenido({ ficha, abierto, onCerrar, onEnviando }: { ficha: FichaMovil
         {!p.cambiaColor && !p.cambiaGrado ? <p>Sin cambios todavía.</p> : (
           <>
             <p>SKU: {p.sku ? <b className="font-mono">{p.sku}</b> : <span className="font-semibold text-fila-solicitud-brd">{`${SIN_SKU_MAESTRO}: se guarda igual`}</span>}</p>
-            <p>{`En NSYS habrá que poner: ${textoPoner(p.producto, p.gradoFinal)}`}</p>
+            <p>{`En NSYS habrá que poner: ${textoPoner(p.producto, p.gradoFinal, p.compruebalo)}`}</p>
             {p.coincideConNsys && <p className="font-semibold text-fila-recibido-brd">Coincide con NSYS: se quita lo del taller.</p>}
           </>
         )}

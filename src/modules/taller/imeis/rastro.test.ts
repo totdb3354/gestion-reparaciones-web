@@ -87,4 +87,16 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
     expect(verEvento(rep({ tipo: 'TALLER_SIN_DESHACER_EDITADA', dato: 'GRADO', de: 'A' })).titulo)
       .toBe('Se editó la reparación R20261021_3 que cambió el grado; corrígelo a mano si hace falta (Técnico 2)')
   })
+
+  it('un aviso revisado: «Revisado por …» con lo que era (0.9.22 §3.5)', () => {
+    const rep = (p: Parameters<typeof eventoRastro>[0]) => eventoRastro({
+      fuente: 'TALLER', lote: null, aNsys: null, tecnico: 'Técnico 2', origen: 'REPARACION', idRep: 'R20261021_3', ...p,
+    })
+    expect(verEvento(rep({ tipo: 'TALLER_REVISADO_SIN_COLOR', dato: 'COLOR', tecnico: 'Supertécnico 1', origen: 'MANO' })))
+      .toMatchObject({ titulo: 'Revisado por Supertécnico 1: color sin deducir (reparación R20261021_3)', color: 'bg-verde-ok' })
+    expect(verEvento(rep({ tipo: 'TALLER_REVISADO_SIN_GRADO', dato: 'GRADO', tecnico: 'Supertécnico 1' })).titulo)
+      .toBe('Revisado por Supertécnico 1: grado sin calcular (reparación R20261021_3)')
+    expect(verEvento(rep({ tipo: 'TALLER_REVISADO_SIN_DESHACER', dato: 'COLOR', tecnico: 'Supertécnico 1' })).titulo)
+      .toBe('Revisado por Supertécnico 1: no se pudo deshacer (reparación R20261021_3)')
+  })
 })

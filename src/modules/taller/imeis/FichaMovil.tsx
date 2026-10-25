@@ -34,7 +34,7 @@ export function FichaMovil({ ficha, eventos, onVerRastro, onCorregir }: Props) {
           {ficha.sku ? <b className="font-mono text-azul-noche">{ficha.sku}</b> : <i className="text-fila-solicitud-brd">{SIN_SKU_MAESTRO}</i>}
         </MarcaTaller></span>
       )}
-      {ficha.porPasar && <span className="font-semibold text-taller-text">{`Por pasar a NSYS: ${textoPoner(ficha.ponerProducto, ficha.ponerGrado)}`}</span>}
+      {ficha.porPasar && <span className="font-semibold text-taller-text">{`Por pasar a NSYS: ${textoPoner(ficha.ponerProducto, ficha.ponerGrado, ficha.ponerCompruebalo)}`}</span>}
       {ficha.ubicacion && <span className={cn(CLASES_PILDORA, clasesUbicacion(ficha.ubicacion))}>{ficha.ubicacion}</span>}
       {revision && <span className="font-semibold text-azul-medio">{revision}</span>}
       {ficha.estado === 'VENDIDO'

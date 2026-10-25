@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner } from './telefonoNsys'
+import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -74,5 +74,29 @@ describe('descripcionMovil (0.9.21, spec «Descripción completa donde pone «Mo
     expect(descripcionMovil(nombreModeloNsys('13pro', '13 PRO'), '256GB')).toBe('iPhone 13 Pro 256GB')
     expect(descripcionMovil(nombreModeloNsys(null, 'SE2022'), null)).toBe('iPhone SE2022')
     expect(descripcionMovil(nombreModeloNsys(null, null), null)).toBe('Sin modelo en el maestro')
+  })
+
+  it('lo que hay que poner en NSYS con «compruébalo» si sale del maestro tal cual (0.9.22, paso 4)', () => {
+    expect(textoPoner('Apple iPhone 13 128GB Pink', 'B', true))
+      .toBe('Apple iPhone 13 128GB Pink (compruébalo: NSYS nunca ha escrito ese color) · grado B')
+    expect(textoPoner('Apple iPhone 13 128GB Pink', 'B', false)).toBe('Apple iPhone 13 128GB Pink · grado B')
+    expect(textoPoner(null, 'B', true)).toBe('(ningún móvil de ese color en NSYS: búscalo a mano) · grado B')
+    expect(COMPRUEBALO).toBe('compruébalo: NSYS nunca ha escrito ese color')
+  })
+
+  it('los avisos del taller como los cuenta el rastro, su etiqueta y qué hacer (0.9.22 §3.5)', () => {
+    const base = { causa: null, idRep: 'R20261021_3', usuario: 'Técnico 2', motivo: null }
+    expect(textoAvisoTaller({ ...base, tipo: 'SIN_COLOR', dato: 'COLOR', de: 'chai13xxx' }))
+      .toBe('Taller: el color del chasis chai13xxx no se puede deducir: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2)')
+    expect(textoAvisoTaller({ ...base, tipo: 'SIN_COLOR', dato: 'COLOR', de: 'tapai13xxx' })).toContain('el color de la tapa tapai13xxx')
+    expect(textoAvisoTaller({ ...base, tipo: 'SIN_GRADO', dato: 'GRADO', de: 'ID', motivo: 'batería bati13 nueva' }))
+      .toBe('Taller: el grado (ID) no se puede calcular: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
+    expect(textoAvisoTaller({ ...base, tipo: 'SIN_DESHACER', causa: 'BORRADA', dato: 'COLOR', de: 'Rojo' }))
+      .toBe('Se borró la reparación R20261021_3 que cambió el color; corrígelo a mano si hace falta (Técnico 2)')
+    expect(ETIQUETA_AVISO).toEqual({ SIN_COLOR: 'Color sin deducir', SIN_GRADO: 'Grado sin calcular', SIN_DESHACER: 'No se pudo deshacer' })
+    expect(queHacerAviso('SIN_COLOR', 'COLOR')).toBe('Mira de qué color quedó y corrígelo en su ficha')
+    expect(queHacerAviso('SIN_GRADO', 'GRADO')).toBe('Decide el grado que le toca y corrígelo en su ficha')
+    expect(queHacerAviso('SIN_DESHACER', 'COLOR')).toBe('Mira si el móvil tiene de verdad ese color; si no, corrígelo en su ficha')
+    expect(queHacerAviso('SIN_DESHACER', 'GRADO')).toBe('Mira si el móvil tiene de verdad ese grado; si no, corrígelo en su ficha')
   })
 })

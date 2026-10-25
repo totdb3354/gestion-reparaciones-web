@@ -52,4 +52,13 @@ describe('reglas del diálogo «Corregir…» (spec 0.9.21 §2.3)', () => {
     const f = fichaMovil({ grado: 'ID', bateriaNueva: false })
     expect(previa(f, { color: 'Negro', grado: { letra: '', ms: true, bateria: true }, motivo: 'x' }, opcionesTaller()).cambiaGrado).toBe(false)
   })
+
+  it('la vista previa dice «compruébalo» si el producto del color sale del maestro tal cual (0.9.22)', () => {
+    const opciones = opcionesTaller({ colores: [
+      { color: 'Negro', producto: 'Apple iPhone 16 128GB Black', compruebalo: false },
+      { color: 'Rosa', producto: 'Apple iPhone 16 128GB Pink', compruebalo: true },
+    ] })
+    expect(previa(fichaMovil(), { ...eleccionInicial(fichaMovil()), color: 'Rosa', motivo: 'chasis rosa' }, opciones).compruebalo).toBe(true)
+    expect(previa(fichaMovil(), { ...eleccionInicial(fichaMovil()), motivo: 'x' }, opciones).compruebalo).toBe(false)
+  })
 })
