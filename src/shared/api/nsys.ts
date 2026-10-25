@@ -5,6 +5,9 @@ import { api, type MovilBuscado } from './client'
  *  aquí porque un módulo no importa de otro. */
 export const CLAVE_STOCK_TELEFONOS = ['telefonos', 'stock'] as const
 export const CLAVE_POR_PASAR_NSYS = ['telefonos', 'por-pasar'] as const
+/** 0.9.22: las cuatro tarjetas de «Por pasar a NSYS». Cuelga de CLAVE_POR_PASAR_NSYS, así que corregir en la ficha del IMEI (que
+ *  recarga ese prefijo) recarga también las tarjetas. */
+export const CLAVE_TARJETAS_NSYS = [...CLAVE_POR_PASAR_NSYS, 'tarjetas'] as const
 /** Prefijos de la ficha y del rastro de NSYS del detalle del IMEI (`[...prefijo, imei]`): también los recarga el formulario de
  *  la reparación y el borrado de una R…, que cambian el color y el grado del móvil. */
 export const CLAVE_FICHA_MOVIL = ['imeis', 'ficha'] as const

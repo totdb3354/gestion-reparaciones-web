@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/por-pasar/hecho": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["marcar"];
+        post?: never;
+        delete: operations["desmarcar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reparaciones/{idRep}": {
         parameters: {
             query?: never;
@@ -334,6 +350,22 @@ export interface paths {
         get: operations["getAll_1"];
         put?: never;
         post: operations["insertar_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revisado"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1828,6 +1860,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/por-pasar/tarjetas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tarjetas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/por-pasar/plantilla-color": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["plantillaColor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-telefonos/por-pasar/plantilla-altas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["plantillaAltas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/importaciones": {
         parameters: {
             query?: never;
@@ -2646,6 +2726,10 @@ export interface components {
             color: string | null;
             grado: string | null;
             motivo: string;
+        };
+        PorPasarPeticionHecho: {
+            tarjeta: string;
+            imeis: string[];
         };
         ReparacionEditarRequest: {
             /** Format: int32 */
@@ -3531,6 +3615,7 @@ export interface components {
             porPasar: boolean;
             ponerProducto: string | null;
             ponerGrado: string | null;
+            ponerCompruebalo: boolean;
         };
         EventoRastro: {
             /** Format: date-time */
@@ -3554,6 +3639,7 @@ export interface components {
         OpcionColor: {
             color: string;
             producto: string | null;
+            compruebalo: boolean;
         };
         OpcionesTaller: {
             productoActual: string | null;
@@ -3578,6 +3664,7 @@ export interface components {
             porQue: components["schemas"]["PorQueTaller"][];
             /** Format: date-time */
             desde: string;
+            ponerCompruebalo: boolean;
         };
         PorQueTaller: {
             dato: string;
@@ -3585,6 +3672,87 @@ export interface components {
             usuario: string | null;
             motivo: string | null;
             idRep: string | null;
+        };
+        FilaAltaNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            ultimoTrabajo: string;
+            categoria: string;
+            abierto: boolean;
+            tecnico: string | null;
+            cliente: string | null;
+            /** Format: int32 */
+            trabajos: number;
+            /** Format: date-time */
+            desde: string;
+            hechoPor: string | null;
+            /** Format: date-time */
+            hechoEn: string | null;
+            /** Format: date-time */
+            hechoVolvio: string | null;
+        };
+        FilaColorNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            colorDe: string | null;
+            colorA: string | null;
+            productoNsys: string | null;
+            gradoNsys: string | null;
+            ponerProducto: string | null;
+            compruebalo: boolean;
+            tambienGrado: boolean;
+            porQue: components["schemas"]["PorQueTaller"][];
+            /** Format: date-time */
+            desde: string;
+            hechoPor: string | null;
+            /** Format: date-time */
+            hechoEn: string | null;
+            /** Format: date-time */
+            hechoVolvio: string | null;
+        };
+        FilaGradoNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            gradoDe: string | null;
+            gradoA: string | null;
+            productoNsys: string | null;
+            conColor: boolean;
+            porQue: components["schemas"]["PorQueTaller"][];
+            /** Format: date-time */
+            desde: string;
+            hechoPor: string | null;
+            /** Format: date-time */
+            hechoEn: string | null;
+            /** Format: date-time */
+            hechoVolvio: string | null;
+        };
+        FilaRevisarNsys: {
+            /** Format: int32 */
+            idAviso: number;
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            tipo: string;
+            causa: string | null;
+            dato: string;
+            de: string | null;
+            a: string | null;
+            motivo: string | null;
+            idRep: string;
+            usuario: string | null;
+            /** Format: date-time */
+            fecha: string;
+        };
+        TarjetasPorPasar: {
+            color: components["schemas"]["FilaColorNsys"][];
+            grado: components["schemas"]["FilaGradoNsys"][];
+            altas: components["schemas"]["FilaAltaNsys"][];
+            revisar: components["schemas"]["FilaRevisarNsys"][];
         };
         StockTelefonosFilaImportacion: {
             fichero: string;
@@ -4006,6 +4174,10 @@ export interface components {
         StockTelefonosPeticionVolver: {
             motivo: string | null;
         };
+        PorPasarPeticionDeshacer: {
+            tarjeta: string;
+            imeiSn: string;
+        };
         ReparacionMotivoRequest: {
             motivo: string | null;
         };
@@ -4123,6 +4295,50 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["StockTelefonosPeticionVolver"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    marcar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PorPasarPeticionHecho"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    desmarcar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PorPasarPeticionDeshacer"];
             };
         };
         responses: {
@@ -4885,6 +5101,26 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revisado: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idAviso: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7440,6 +7676,66 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FilaPorPasar"][];
+                };
+            };
+        };
+    };
+    tarjetas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TarjetasPorPasar"];
+                };
+            };
+        };
+    };
+    plantillaColor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    plantillaAltas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

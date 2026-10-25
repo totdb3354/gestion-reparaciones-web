@@ -69,7 +69,7 @@ describe('Corregir color, grado o batería (spec 0.9.21 §2.3)', () => {
 
   it('un color sin SKU ni móviles en NSYS se guarda igual y lo avisa', async () => {
     server.use(http.get('*/api/stock-telefonos/:imeiSn/colores', () => HttpResponse.json(opcionesTaller({
-      colores: [{ color: 'Negro', producto: 'Apple iPhone 16 128GB Black' }, { color: 'Verde', producto: null }],
+      colores: [{ color: 'Negro', producto: 'Apple iPhone 16 128GB Black', compruebalo: false }, { color: 'Verde', producto: null, compruebalo: false }],
     }))))
     const user = userEvent.setup()
     abrirDialogo()

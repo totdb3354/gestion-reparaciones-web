@@ -96,6 +96,17 @@ export type OpcionColor = components['schemas']['OpcionColor']
 export type SkuMaestro = components['schemas']['SkuMaestro']
 export type PeticionTaller = components['schemas']['StockTelefonosPeticionTaller']
 
+/** 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas de «Por pasar a NSYS». Las filas de Color, Grado y No está en NSYS
+ *  llevan su marca «Hecho» (`hechoPor`, `hechoEn`; `hechoVolvio` si la importación vio NSYS igual y la fila cuenta otra vez); las
+ *  peticiones de «Hecho» y de «deshacer» llevan la `tarjeta` (COLOR, GRADO o ALTA). Horas de Madrid, sin zona. */
+export type TarjetasPorPasar = components['schemas']['TarjetasPorPasar']
+export type FilaColorNsys = components['schemas']['FilaColorNsys']
+export type FilaGradoNsys = components['schemas']['FilaGradoNsys']
+export type FilaAltaNsys = components['schemas']['FilaAltaNsys']
+export type FilaRevisarNsys = components['schemas']['FilaRevisarNsys']
+export type PeticionHecho = components['schemas']['PorPasarPeticionHecho']
+export type PeticionDeshacerHecho = components['schemas']['PorPasarPeticionDeshacer']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''

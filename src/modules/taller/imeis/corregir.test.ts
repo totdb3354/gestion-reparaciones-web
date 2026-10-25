@@ -39,7 +39,7 @@ describe('reglas del diálogo «Corregir…» (spec 0.9.21 §2.3)', () => {
     expect(previa(f, { ...eleccionInicial(f), color: 'Rosa' }, opcionesTaller())).toMatchObject({ cambiaColor: true,
       colorFinal: 'Rosa', sku: 'i16128RosaA100', producto: 'Apple iPhone 16 128GB Pink', valido: false })
     const verde = previa(f, { ...eleccionInicial(f), color: 'Verde', motivo: 'chasis verde' },
-      opcionesTaller({ colores: [{ color: 'Verde', producto: null }] }))
+      opcionesTaller({ colores: [{ color: 'Verde', producto: null, compruebalo: false }] }))
     expect(verde).toMatchObject({ sku: null, producto: null, valido: true, cuerpo: { color: 'Verde', grado: null } })
   })
 
