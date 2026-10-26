@@ -3,8 +3,8 @@ import { credenciales } from './credenciales.ts'
 
 // sku-taller-reparacion.spec.ts (0.9.21, spec «SKU del taller», pieza 2): una reparación con un chasis de otro color
 // (reutilizado: no gasta stock) cambia sola el color y el grado del móvil de prueba; el stock, la ficha, el rastro y
-// «Por pasar a NSYS» lo enseñan; borrar la reparación lo deshace y lo saca de la
-// lista. Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero) y con el móvil SINTÉTICO del guion de preprod (el de
+// «Por pasar a NSYS» lo enseñan (0.9.22: en las tarjetas «Cambio de color» y «Cambio de grado»); borrar la reparación lo
+// deshace y lo saca de las dos. Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero) y con el móvil SINTÉTICO del guion de preprod (el de
 // sku-taller.spec.ts: por defecto 350000000009921, grado B; otro con E2E_IMEI_TALLER): nunca un móvil real. La asignación de
 // prueba es del propio supertécnico (E2E_USER) y, al acabar, se borra todo lo del taller de ese IMEI.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
@@ -150,10 +150,12 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
       name: new RegExp(`^${IMEI} · .*${escapar(despues.color ?? '')} taller NSYS: ${escapar(antes.color ?? '')} · `),
     })).toBeVisible({ timeout: 30_000 })
     await pagina.keyboard.press('Escape')
-    await pagina.getByRole('button', { name: /^Por pasar a NSYS \(\d+\)$/ }).click()
-    const enLista = pagina.getByRole('table', { name: 'Móviles por pasar a NSYS' }).getByRole('row', { name: new RegExp(IMEI) })
-    await expect(enLista).toContainText(`Color: reparación ${idRep}`)
-    await expect(enLista).toContainText(`Grado: reparación ${idRep}`)
+    await pagina.getByRole('button', { name: /^Por pasar a NSYS/ }).click()
+    const enColor = pagina.getByRole('table', { name: 'Cambio de color' }).getByRole('row', { name: new RegExp(IMEI) })
+    await expect(enColor).toContainText(`Color: reparación ${idRep}`)
+    await pagina.getByRole('button', { name: 'Cambio de grado' }).click()
+    const enGrado = pagina.getByRole('table', { name: 'Cambio de grado' }).getByRole('row', { name: new RegExp(IMEI) })
+    await expect(enGrado).toContainText(`Grado: reparación ${idRep}`)
 
     // La ficha y el rastro.
     await pagina.goto(`/reparaciones/imeis/${IMEI}`)
@@ -182,11 +184,14 @@ test.describe('0.9.21: SKU del taller desde una reparación', () => {
     await expect(rastro).toContainText(`Se deshace: grado ${despues.grado} → ${antes.grado} (se borró la reparación ${idRep}`)
     await pagina.keyboard.press('Escape')
     await pagina.goto('/telefonos/stock')
-    await pagina.getByRole('button', { name: /^Por pasar a NSYS \(\d+\)$/ }).click()
-    const tabla = pagina.getByRole('table', { name: 'Móviles por pasar a NSYS' })
-    await expect(tabla).toBeVisible()
-    // Sin esperar a que acabe la carga, «0 filas» se cumpliría con la lista aún vacía.
-    await expect(tabla.getByText('Cargando…')).toHaveCount(0)
-    await expect(tabla.getByRole('row', { name: new RegExp(IMEI) })).toHaveCount(0)
+    await pagina.getByRole('button', { name: /^Por pasar a NSYS/ }).click()
+    for (const tarjeta of ['Cambio de color', 'Cambio de grado']) {
+      await pagina.getByRole('button', { name: tarjeta }).click()
+      const tabla = pagina.getByRole('table', { name: tarjeta })
+      await expect(tabla).toBeVisible()
+      // Sin esperar a que acabe la carga, «0 filas» se cumpliría con la lista aún vacía.
+      await expect(tabla.getByText('Cargando…')).toHaveCount(0)
+      await expect(tabla.getByRole('row', { name: new RegExp(IMEI) })).toHaveCount(0)
+    }
   })
 })
