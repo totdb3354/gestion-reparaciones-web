@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 import { leerXlsx, type Xlsx } from './xlsx.ts'
@@ -75,12 +74,18 @@ function comprobarCabecera(xlsx: Xlsx) {
 const portapapeles = async (page: Page): Promise<string[]> =>
   (await page.evaluate(() => (navigator as Navigator & { clipboard: { readText(): Promise<string> } }).clipboard.readText())).split(/\r?\n/)
 
-/** Baja la plantilla de una tarjeta con su botón y devuelve el nombre del fichero y su contenido leído. */
+/** Baja la plantilla de una tarjeta con su botón y devuelve el nombre que manda el servidor y su contenido leído. Se lee la respuesta
+ *  y el aviso «Descargado», que la web saca justo después de dar el fichero al navegador, y no el evento «download»: Chromium sin
+ *  cabeza pierde alguna descarga automática (1 de cada ~11 en una prueba aislada, también sin revocar la URL; en preprod el
+ *  26/10 llegó la respuesta 200 y no la descarga), y eso no es de la app. */
 async function bajarPlantilla(page: Page, tarjeta: string) {
-  const descarga = page.waitForEvent('download')
+  const respuesta = page.waitForResponse((r) => /\/api\/stock-telefonos\/por-pasar\/plantilla-(color|altas)$/.test(new URL(r.url()).pathname))
   await page.getByRole('article', { name: tarjeta }).getByRole('button', { name: /^⬇ Descargar plantilla/ }).click()
-  const fichero = await descarga
-  return { nombre: fichero.suggestedFilename(), xlsx: leerXlsx(await readFile(await fichero.path())) }
+  const r = await respuesta
+  expect(r.status(), `la plantilla de «${tarjeta}»`).toBe(200)
+  const nombre = /filename="([^"]+)"/.exec(r.headers()['content-disposition'] ?? '')?.[1] ?? ''
+  await expect(page.getByTestId('aviso-breve'), 'la web da el fichero al navegador').toContainText(`Descargado «${nombre}»`)
+  return { nombre, xlsx: leerXlsx(await r.body()) }
 }
 
 /** Sin marcas «Hecho» y sin nada del taller: 204 al quitar las marcas (aunque no hubiera) y 204, o el 400 «Este móvil no tiene
