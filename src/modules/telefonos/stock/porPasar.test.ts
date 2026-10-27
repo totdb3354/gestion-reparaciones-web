@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { FilaColorNsys, TarjetasPorPasar } from '@/shared/api/client'
 import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
 import {
   AYUDA, avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
@@ -134,6 +135,14 @@ describe('0.9.22 pieza 4: «Sin grado en NSYS» y los que han vuelto', () => {
   it('«Revisar a mano» cuenta los avisos y las filas «Sin grado»', () => {
     expect(cuentas(tarjetas({ revisar: [filaRevisar()], sinGrado: [filaSinGrado(), filaSinGrado({ imeiSn: '350000000000202' })] }), 'revisar'))
       .toEqual({ total: 3, hechos: 0, pendientes: 3 })
+  })
+
+  it('un servidor anterior a la pieza 4 (sin sinGrado ni vueltoDesde) no rompe la cuenta ni vacia la plantilla', () => {
+    const vieja = { ...tarjetas({ revisar: [filaRevisar()] }), sinGrado: undefined } as unknown as TarjetasPorPasar
+    expect(cuentas(vieja, 'revisar')).toEqual({ total: 1, hechos: 0, pendientes: 1 })
+    const sinCampo = { ...filaColor(), vueltoDesde: undefined } as unknown as FilaColorNsys
+    expect(paraPlantillaColor([sinCampo])).toHaveLength(1)
+    expect(vueltosFueraDePlantilla([sinCampo])).toBe(0)
   })
 
   it('los textos de la fila «Sin grado»', () => {

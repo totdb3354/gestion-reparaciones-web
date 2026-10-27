@@ -64,7 +64,8 @@ export const pendientes = <T extends ConHecho>(filas: readonly T[]): T[] => fila
  *  avisos y las filas «Sin grado en NSYS»). */
 export function cuentas(t: TarjetasPorPasar, cual: Tarjeta): { total: number; hechos: number; pendientes: number } {
   if (cual === 'revisar') {
-    const n = t.revisar.length + t.sinGrado.length
+    // `?? []`: un servidor anterior a la pieza 4 (vuelta atrás) no manda `sinGrado`.
+    const n = t.revisar.length + (t.sinGrado ?? []).length
     return { total: n, hechos: 0, pendientes: n }
   }
   const filas: readonly ConHecho[] = cual === 'color' ? t.color : cual === 'grado' ? t.grado : t.altas
@@ -84,13 +85,14 @@ export const textoHechos = (n: number): string => (n > 0 ? ` · ${n} ${n === 1 ?
 export const textoNumero = (total: number, hechos: number): string => `${total} ${palabraMoviles(total)}${textoHechos(hechos)}`
 
 /** Lo que lleva la plantilla de color (spec §4): lo pendiente con producto, sin los que han vuelto (pieza 4 §6: antes, la
- *  devolución en NSYS). */
+ *  devolución en NSYS). `!f.vueltoDesde`, no `=== null`: un servidor anterior a la pieza 4 (vuelta atrás) no manda el campo
+ *  (undefined) y esas filas deben seguir yendo en la plantilla. */
 export const paraPlantillaColor = (filas: readonly FilaColorNsys[]): FilaColorNsys[] =>
-  pendientes(filas).filter((f) => f.ponerProducto !== null && f.vueltoDesde === null)
+  pendientes(filas).filter((f) => f.ponerProducto !== null && !f.vueltoDesde)
 
 /** Los que irían en la plantilla de color pero han vuelto (pieza 4 §6). */
 export const vueltosFueraDePlantilla = (filas: readonly FilaColorNsys[]): number =>
-  pendientes(filas).filter((f) => f.ponerProducto !== null && f.vueltoDesde !== null).length
+  pendientes(filas).filter((f) => f.ponerProducto !== null && Boolean(f.vueltoDesde)).length
 
 /** «12:31»: la hora de una fecha de Madrid sin zona. */
 export const horaDe = (iso: string): string => iso.slice(11, 16)
