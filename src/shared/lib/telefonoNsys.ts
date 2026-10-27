@@ -48,6 +48,19 @@ export function diaNsys(iso: string): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
 }
 
+/** «del 26/10 (R20261026_205)»: cuándo (hora de Madrid, sin zona) y en qué reparación se puso la batería recordada (0.9.22
+ *  pieza 4). */
+const deLaBateria = (en: string, idRep: string): string => `del ${en.slice(8, 10)}/${en.slice(5, 7)} (${idRep})`
+
+/** «Batería nueva del 26/10 (R…)» / «Batería reutilizada del 26/10 (R…)» de la fila «Sin grado en NSYS». */
+export const textoBateriaRecordada = (nueva: boolean, en: string, idRep: string): string =>
+  `Batería ${nueva ? 'nueva' : 'reutilizada'} ${deLaBateria(en, idRep)}`
+
+/** El recordatorio de «Corregir…» (0.9.22 pieza 4 §7): lo escrito manda, así que con la batería nueva que escriba él el 100. */
+export const textoBateriaEnCorregir = (nueva: boolean, en: string, idRep: string): string =>
+  nueva ? `Lleva batería nueva ${deLaBateria(en, idRep)}: si quieres el 100, escríbelo`
+    : `Lleva batería reutilizada ${deLaBateria(en, idRep)}: sin el 100`
+
 /** Grado de NSYS para leer: el «100» del final es la batería nueva (como `Normalizacion` del servidor), así que «A100» se
  *  lee «A · batería nueva». Sin grado, una raya. */
 export function textoGrado(raw: string | null | undefined): string {
@@ -98,7 +111,7 @@ export function textoAvisoTaller(a: AvisoTallerTexto): string {
     case 'SIN_COLOR':
       return `Taller: el color ${delaPieza(a.de)} no se puede deducir: lo corregirá un supertécnico (reparación ${a.idRep ?? '—'} · ${quien})`
     case 'SIN_GRADO':
-      return `Taller: el grado (${a.de ?? '—'}) no se puede calcular: lo corregirá un supertécnico (${[`reparación ${a.idRep ?? '—'}`, quien, a.motivo].filter(Boolean).join(' · ')})`
+      return `Taller: el grado (${a.de ?? '—'}) aún no se puede calcular: se resuelve solo cuando el móvil tenga grado (${[`reparación ${a.idRep ?? '—'}`, quien, a.motivo].filter(Boolean).join(' · ')})`
     case 'SIN_DESHACER':
       return `Se ${a.causa === 'BORRADA' ? 'borró' : 'editó'} la reparación ${a.idRep ?? '—'} que cambió el ${DATO_AVISO[a.dato ?? ''] ?? 'dato'}; corrígelo a mano si hace falta (${quien})`
     default:

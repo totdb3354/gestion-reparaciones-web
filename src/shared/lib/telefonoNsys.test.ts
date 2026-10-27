@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller } from './telefonoNsys'
+import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -90,7 +90,7 @@ describe('descripcionMovil (0.9.21, spec «Descripción completa donde pone «Mo
       .toBe('Taller: el color del chasis chai13xxx no se puede deducir: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2)')
     expect(textoAvisoTaller({ ...base, tipo: 'SIN_COLOR', dato: 'COLOR', de: 'tapai13xxx' })).toContain('el color de la tapa tapai13xxx')
     expect(textoAvisoTaller({ ...base, tipo: 'SIN_GRADO', dato: 'GRADO', de: 'ID', motivo: 'batería bati13 nueva' }))
-      .toBe('Taller: el grado (ID) no se puede calcular: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
+      .toBe('Taller: el grado (ID) aún no se puede calcular: se resuelve solo cuando el móvil tenga grado (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
     expect(textoAvisoTaller({ ...base, tipo: 'SIN_DESHACER', causa: 'BORRADA', dato: 'COLOR', de: 'Rojo' }))
       .toBe('Se borró la reparación R20261021_3 que cambió el color; corrígelo a mano si hace falta (Técnico 2)')
     expect(ETIQUETA_AVISO).toEqual({ SIN_COLOR: 'Color sin deducir', SIN_GRADO: 'Grado sin calcular', SIN_DESHACER: 'No se pudo deshacer' })
@@ -98,5 +98,16 @@ describe('descripcionMovil (0.9.21, spec «Descripción completa donde pone «Mo
     expect(queHacerAviso('SIN_GRADO', 'GRADO')).toBe('Decide el grado que le toca y corrígelo en su ficha')
     expect(queHacerAviso('SIN_DESHACER', 'COLOR')).toBe('Mira si el móvil tiene de verdad ese color; si no, corrígelo en su ficha')
     expect(queHacerAviso('SIN_DESHACER', 'GRADO')).toBe('Mira si el móvil tiene de verdad ese grado; si no, corrígelo en su ficha')
+  })
+})
+
+describe('batería recordada (0.9.22 pieza 4)', () => {
+  it('en la fila «Sin grado en NSYS» y en «Corregir…»', () => {
+    expect(textoBateriaRecordada(true, '2026-10-26T17:28:49', 'R20261026_205')).toBe('Batería nueva del 26/10 (R20261026_205)')
+    expect(textoBateriaRecordada(false, '2026-10-26T17:28:49', 'R20261026_205')).toBe('Batería reutilizada del 26/10 (R20261026_205)')
+    expect(textoBateriaEnCorregir(true, '2026-10-26T17:28:49', 'R20261026_205'))
+      .toBe('Lleva batería nueva del 26/10 (R20261026_205): si quieres el 100, escríbelo')
+    expect(textoBateriaEnCorregir(false, '2026-10-26T17:28:49', 'R20261026_205'))
+      .toBe('Lleva batería reutilizada del 26/10 (R20261026_205): sin el 100')
   })
 })

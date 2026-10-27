@@ -3665,6 +3665,10 @@ export interface components {
             productoActual: string | null;
             colores: components["schemas"]["OpcionColor"][];
             skus: components["schemas"]["SkuMaestro"][];
+            bateriaIdRep: string | null;
+            bateriaNueva: boolean | null;
+            /** Format: date-time */
+            bateriaEn: string | null;
         };
         SkuMaestro: {
             color: string;
@@ -3735,6 +3739,12 @@ export interface components {
             hechoEn: string | null;
             /** Format: date-time */
             hechoVolvio: string | null;
+            /** Format: date */
+            vendidoEn: string | null;
+            /** Format: date */
+            bajaEn: string | null;
+            /** Format: date-time */
+            vueltoDesde: string | null;
         };
         FilaDescartadaNsys: {
             imeiSn: string;
@@ -3763,6 +3773,12 @@ export interface components {
             hechoEn: string | null;
             /** Format: date-time */
             hechoVolvio: string | null;
+            /** Format: date */
+            vendidoEn: string | null;
+            /** Format: date */
+            bajaEn: string | null;
+            /** Format: date-time */
+            vueltoDesde: string | null;
         };
         FilaRevisarNsys: {
             /** Format: int32 */
@@ -3781,6 +3797,33 @@ export interface components {
             usuario: string | null;
             /** Format: date-time */
             fecha: string;
+            /** Format: date */
+            vendidoEn: string | null;
+            /** Format: date */
+            bajaEn: string | null;
+            /** Format: date-time */
+            vueltoDesde: string | null;
+        };
+        FilaSinGradoNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            gradoNsys: string | null;
+            ultimoTrabajo: string;
+            /** Format: date-time */
+            ultimoTrabajoEn: string;
+            categoria: string;
+            bateriaIdRep: string | null;
+            bateriaNueva: boolean | null;
+            /** Format: date-time */
+            bateriaEn: string | null;
+            /** Format: date */
+            vendidoEn: string | null;
+            /** Format: date */
+            bajaEn: string | null;
+            /** Format: date-time */
+            vueltoDesde: string | null;
         };
         TarjetasPorPasar: {
             color: components["schemas"]["FilaColorNsys"][];
@@ -3788,6 +3831,7 @@ export interface components {
             altas: components["schemas"]["FilaAltaNsys"][];
             revisar: components["schemas"]["FilaRevisarNsys"][];
             descartadas: components["schemas"]["FilaDescartadaNsys"][];
+            sinGrado: components["schemas"]["FilaSinGradoNsys"][];
         };
         StockTelefonosFilaImportacion: {
             fichero: string;

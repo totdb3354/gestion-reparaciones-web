@@ -67,6 +67,22 @@ describe('Corregir color, grado o batería (spec 0.9.21 §2.3)', () => {
     expect(cuerpos).toEqual([{ color: null, grado: 'A100', motivo: 'batería nueva' }])
   })
 
+  it('con una batería recordada, la recuerda debajo de las casillas', async () => {
+    server.use(http.get('*/api/stock-telefonos/:imeiSn/colores', () => HttpResponse.json(opcionesTaller({
+      bateriaIdRep: 'R20261026_205', bateriaNueva: true, bateriaEn: '2026-10-26T17:28:49',
+    }))))
+    abrirDialogo({ grado: 'n/a', bateriaNueva: false })
+    const d = await dialogo()
+    expect(await within(d).findByText('Lleva batería nueva del 26/10 (R20261026_205): si quieres el 100, escríbelo')).toBeInTheDocument()
+  })
+
+  it('sin batería recordada no dice nada de la batería', async () => {
+    abrirDialogo()
+    const d = await dialogo()
+    await waitFor(() => expect(within(d).getByRole('combobox', { name: 'Color' })).toBeEnabled())
+    expect(within(d).queryByText(/^Lleva batería/)).not.toBeInTheDocument()
+  })
+
   it('un color sin SKU ni móviles en NSYS se guarda igual y lo avisa', async () => {
     server.use(http.get('*/api/stock-telefonos/:imeiSn/colores', () => HttpResponse.json(opcionesTaller({
       colores: [{ color: 'Negro', producto: 'Apple iPhone 16 128GB Black', compruebalo: false }, { color: 'Verde', producto: null, compruebalo: false }],

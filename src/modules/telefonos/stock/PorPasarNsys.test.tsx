@@ -6,7 +6,7 @@ import type { TarjetasPorPasar } from '@/shared/api/client'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, tarjetas } from '../test/fabrica'
+import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, filaSinGrado, tarjetas } from '../test/fabrica'
 import { PorPasarNsys } from './PorPasarNsys'
 
 const HECHO = { hechoPor: 'Supertécnico 1', hechoEn: '2026-10-25T12:31:00', hechoVolvio: null }
@@ -301,5 +301,69 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
     expect(screen.getByRole('table', { name: 'No está en NSYS' })).toHaveTextContent('350000000000088')
     expect(screen.queryByRole('button', { name: /^Ver descartados/ })).not.toBeInTheDocument()
+  })
+
+  it('Revisar a mano: primero «Sin grado en NSYS» (sin «Revisado») y después los avisos; sin la pastilla', async () => {
+    const user = userEvent.setup()
+    const abrir = pintar(tarjetas({
+      sinGrado: [filaSinGrado(), filaSinGrado({ imeiSn: '350000000000202', gradoNsys: '', bateriaIdRep: null, bateriaNueva: null,
+        bateriaEn: null, categoria: 'GLASS', ultimoTrabajo: 'G20261026_40' })],
+      revisar: [filaRevisar()],
+    }))
+    expect(screen.getByRole('article', { name: 'Revisar a mano' })).toHaveTextContent('3 móviles')
+    await user.click(screen.getByRole('button', { name: 'Revisar a mano' }))
+    expect(screen.queryByText('se va con «Revisado» (queda quién y cuándo) o al corregirlo')).not.toBeInTheDocument()
+    expect(screen.getByText(/^Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22\/10/)).toBeInTheDocument()
+    const [uno, dos, tres] = filas(screen.getByRole('table', { name: 'Revisar a mano' }))
+    expect(uno).toHaveTextContent('Sin grado en NSYS')
+    expect(uno).toHaveTextContent('NSYS: n/a')
+    expect(uno).toHaveTextContent('Batería nueva del 26/10 (R20261026_205)')
+    expect(uno).toHaveTextContent('Último trabajo: 26/10/2026 · Reparación (R20261026_205)')
+    expect(uno).toHaveTextContent('Ponle grado en NSYS: la fila se va sola al importarlo (o «Corregir…» si ya lo sabes)')
+    expect(within(uno).queryByRole('button', { name: /^Revisado/ })).not.toBeInTheDocument()
+    await user.click(within(uno).getByRole('button', { name: 'Corregir 350000000000201' }))
+    expect(abrir).toHaveBeenCalledWith('350000000000201')
+    expect(dos).toHaveTextContent('NSYS: —')
+    expect(dos).toHaveTextContent('Último trabajo: 26/10/2026 · Glass (G20261026_40)')
+    expect(dos).not.toHaveTextContent('Batería')
+    expect(tres).toHaveTextContent('Color sin deducir')
+    expect(within(tres).getByRole('button', { name: /^Revisado/ })).toBeInTheDocument()
+  })
+
+  it('sin avisos ni filas «Sin grado», Revisar a mano dice que no hay nada', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas())
+    await user.click(screen.getByRole('button', { name: 'Revisar a mano' }))
+    expect(screen.getByRole('table', { name: 'Revisar a mano' })).toHaveTextContent('Nada que revisar')
+  })
+
+  it('los que han vuelto llevan la línea ámbar en Color, Grado y Revisar', async () => {
+    const user = userEvent.setup()
+    const vuelto = { vendidoEn: '2026-09-14', bajaEn: null, vueltoDesde: '2026-10-22T14:06:00' }
+    pintar(tarjetas({
+      color: [filaColor(vuelto)],
+      grado: [filaGrado({ vendidoEn: null, bajaEn: '2026-10-20', vueltoDesde: '2026-10-22T14:06:00' })],
+      revisar: [filaRevisar(vuelto)],
+    }))
+    const texto = 'Vendido en NSYS el 14/09/2026 · el taller lo tiene desde el 22/10/2026: haz antes la devolución en NSYS'
+    expect(screen.getByRole('table', { name: 'Cambio de color' })).toHaveTextContent(texto)
+    await user.click(screen.getByRole('button', { name: 'Cambio de grado' }))
+    expect(screen.getByRole('table', { name: 'Cambio de grado' }))
+      .toHaveTextContent('De baja en NSYS desde el 20/10/2026 · el taller lo tiene desde el 22/10/2026: míralo antes en NSYS')
+    await user.click(screen.getByRole('button', { name: 'Revisar a mano' }))
+    expect(screen.getByRole('table', { name: 'Revisar a mano' })).toHaveTextContent(texto)
+  })
+
+  it('la plantilla de color no cuenta los que han vuelto y el aviso lo dice', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    server.use(http.get('*/api/stock-telefonos/por-pasar/plantilla-color', () => new HttpResponse(new Blob(['PK']), {
+      headers: { 'Content-Disposition': 'attachment; filename="NSYS_color_2026-10-27.xlsx"', 'X-Filas': '1' },
+    })))
+    pintar(tarjetas({ color: [filaColor(), filaColor({ imeiSn: '350000000000012', vendidoEn: '2026-09-14', vueltoDesde: '2026-10-22T14:06:00' })] }))
+    await user.click(screen.getByRole('button', { name: '⬇ Descargar plantilla (1)' }))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('1 ha vuelto y no va: haz antes la devolución en NSYS')
   })
 })

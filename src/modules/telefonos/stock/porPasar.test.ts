@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, porQue, tarjetas } from '../test/fabrica'
+import type { FilaColorNsys, TarjetasPorPasar } from '@/shared/api/client'
+import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
 import {
   AYUDA, avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
   EXPLICA_DESCARTAR, horaDe, listaGrado, marcada, MAX_MOTIVO, modeloDeFila, modeloDelTaller, NOMBRE, paraPlantillaColor, pendientes,
-  textoDesde, textoDescartado, textoDescartadoAntes, textoNumero, textoPorQue, textoUltimoTrabajo, textoVerDescartados, textoVolvio,
-  TITULO_DESCARTAR, totalPendientes, VACIA,
+  textoBateriaDeFila, textoDesde, textoDescartado, textoDescartadoAntes, textoGradoNsys, textoNumero, textoPorQue, textoUltimoTrabajo,
+  textoUltimoTrabajoSinGrado, textoVerDescartados, textoVolvio, textoVuelta, TITULO_DESCARTAR, totalPendientes, VACIA, vueltosFueraDePlantilla,
 } from './porPasar'
 
 describe('lista «Por pasar a NSYS» (spec 0.9.21 §2.4)', () => {
@@ -127,5 +128,49 @@ describe('«descartar» en «No está en NSYS» (spec 0.9.22 pieza 3 §5)', () =
 
   it('la ayuda de «No está en NSYS» habla de «descartar»', () => {
     expect(AYUDA.altas.endsWith('Si una fila no debería estar aquí (no es un móvil, es de un cliente…), «descartar» la quita con un motivo; solo vuelve si el taller le hace un trabajo nuevo.')).toBe(true)
+  })
+})
+
+describe('0.9.22 pieza 4: «Sin grado en NSYS» y los que han vuelto', () => {
+  it('«Revisar a mano» cuenta los avisos y las filas «Sin grado»', () => {
+    expect(cuentas(tarjetas({ revisar: [filaRevisar()], sinGrado: [filaSinGrado(), filaSinGrado({ imeiSn: '350000000000202' })] }), 'revisar'))
+      .toEqual({ total: 3, hechos: 0, pendientes: 3 })
+  })
+
+  it('un servidor anterior a la pieza 4 (sin sinGrado ni vueltoDesde) no rompe la cuenta ni vacia la plantilla', () => {
+    const vieja = { ...tarjetas({ revisar: [filaRevisar()] }), sinGrado: undefined } as unknown as TarjetasPorPasar
+    expect(cuentas(vieja, 'revisar')).toEqual({ total: 1, hechos: 0, pendientes: 1 })
+    const sinCampo = { ...filaColor(), vueltoDesde: undefined } as unknown as FilaColorNsys
+    expect(paraPlantillaColor([sinCampo])).toHaveLength(1)
+    expect(vueltosFueraDePlantilla([sinCampo])).toBe(0)
+  })
+
+  it('los textos de la fila «Sin grado»', () => {
+    expect(textoGradoNsys(filaSinGrado())).toBe('NSYS: n/a')
+    expect(textoGradoNsys(filaSinGrado({ gradoNsys: '' }))).toBe('NSYS: —')
+    expect(textoGradoNsys(filaSinGrado({ gradoNsys: null }))).toBe('NSYS: —')
+    expect(textoGradoNsys(filaSinGrado({ gradoNsys: 'AG' }))).toBe('NSYS: AG')
+    expect(textoUltimoTrabajoSinGrado(filaSinGrado())).toBe('Último trabajo: 26/10/2026 · Reparación (R20261026_205)')
+    expect(textoUltimoTrabajoSinGrado(filaSinGrado({ ultimoTrabajo: 'G20261026_40', categoria: 'GLASS' })))
+      .toBe('Último trabajo: 26/10/2026 · Glass (G20261026_40)')
+    expect(textoBateriaDeFila(filaSinGrado())).toBe('Batería nueva del 26/10 (R20261026_205)')
+    expect(textoBateriaDeFila(filaSinGrado({ bateriaIdRep: null, bateriaNueva: null, bateriaEn: null }))).toBeNull()
+  })
+
+  it('la línea de los que han vuelto', () => {
+    expect(textoVuelta({ vendidoEn: null, bajaEn: null, vueltoDesde: null })).toBeNull()
+    expect(textoVuelta({ vendidoEn: '2026-09-14', bajaEn: null, vueltoDesde: '2026-10-22T14:06:00' }))
+      .toBe('Vendido en NSYS el 14/09/2026 · el taller lo tiene desde el 22/10/2026: haz antes la devolución en NSYS')
+    expect(textoVuelta({ vendidoEn: null, bajaEn: '2026-10-20', vueltoDesde: '2026-10-22T14:06:00' }))
+      .toBe('De baja en NSYS desde el 20/10/2026 · el taller lo tiene desde el 22/10/2026: míralo antes en NSYS')
+  })
+
+  it('la plantilla de color no lleva los que han vuelto y el aviso lo dice', () => {
+    const vuelto = filaColor({ imeiSn: '350000000000012', vendidoEn: '2026-09-14', vueltoDesde: '2026-10-22T14:06:00' })
+    expect(paraPlantillaColor([filaColor(), vuelto]).map((f) => f.imeiSn)).toEqual(['350000000000011'])
+    expect(vueltosFueraDePlantilla([filaColor(), vuelto])).toBe(1)
+    expect(avisoPlantillaColor('NSYS_color.xlsx', 1, 0, 0, 1))
+      .toBe('Descargado «NSYS_color.xlsx» · 1 móvil (los marcados «Hecho» no van). 1 ha vuelto y no va: haz antes la devolución en NSYS')
+    expect(avisoPlantillaColor('NSYS_color.xlsx', 1, 0, 0, 2)).toContain('2 han vuelto y no van: haz antes la devolución en NSYS')
   })
 })

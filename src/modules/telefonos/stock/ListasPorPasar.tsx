@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaRevisarNsys } from '@/shared/api/client'
+import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys } from '@/shared/api/client'
 import { COMPRUEBALO, diaNsys, ETIQUETA_AVISO, queHacerAviso, SIN_PRODUCTO_NSYS, textoAvisoTaller } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { CeldaHecho } from './CeldaHecho'
 import {
-  marcada, modeloDeFila, modeloDelTaller, pendientes, textoDescartado, textoDescartadoAntes, textoDesde, textoPorQue, textoUltimoTrabajo,
-  textoVerDescartados, type ConHecho,
+  ETIQUETA_SIN_GRADO, marcada, modeloDeFila, modeloDelTaller, pendientes, QUE_HACER_SIN_GRADO, textoBateriaDeFila, textoDescartado, textoDescartadoAntes,
+  textoDesde, textoGradoNsys, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoVuelta, type ConHecho,
 } from './porPasar'
 
 /** Las cuatro listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
@@ -31,6 +31,14 @@ function Imei({ imeiSn, onAbrir }: { imeiSn: string; onAbrir: (imeiSn: string) =
     <button type="button" aria-label={`Abrir ${imeiSn}`} onClick={() => onAbrir(imeiSn)}
       className="cursor-pointer font-mono text-[11.5px] text-azul-noche hover:underline">{imeiSn}</button>
   )
+}
+
+const AMBAR = 'mt-0.5 block max-w-[260px] text-[11px] whitespace-normal text-ambar-grafico'
+
+/** La línea ámbar de un vendido o de baja que ha vuelto (0.9.22 pieza 4 §7); nada en un móvil en la empresa. */
+function Vuelta({ f }: { f: { vendidoEn: string | null; bajaEn: string | null; vueltoDesde: string | null } }) {
+  const texto = textoVuelta(f)
+  return texto ? <span className={AMBAR}>{texto}</span> : null
 }
 
 /** Una lista con «Hecho»: la cabecera con «✓ Marcar todo (n)» (lo pendiente) y las filas marcadas en gris. */
@@ -82,7 +90,7 @@ export function ListaColor({ onAbrirImei, ...props }: ConHechoProps<FilaColorNsy
       columnas={['IMEI', 'Modelo', 'Color', 'En NSYS hoy', 'Poner en NSYS', 'Por qué', 'Desde']}
       celdas={(f) => (
         <>
-          <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /></td>
+          <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /><Vuelta f={f} /></td>
           <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
           <td className={cn(CELDA, 'whitespace-nowrap')}>
             <span className={CAMBIA_COLOR}>{`${f.colorDe ?? '—'} → ${f.colorA ?? '—'}`}</span>
@@ -109,7 +117,7 @@ export function ListaGrado({ onAbrirImei, ...props }: ConHechoProps<FilaGradoNsy
       columnas={['IMEI', 'Modelo', 'Grado', 'Producto en NSYS hoy', 'Por qué', 'Desde']}
       celdas={(f) => (
         <>
-          <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /></td>
+          <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /><Vuelta f={f} /></td>
           <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
           <td className={cn(CELDA, 'whitespace-nowrap')}>
             <span className={CAMBIA_GRADO}>{`${f.gradoDe ?? '—'} → ${f.gradoA ?? '—'}`}</span>
@@ -174,7 +182,7 @@ export function ListaAltas({ onAbrirImei, descartadas, onDescartar, onRecuperar,
           <>
             <td className={CELDA}>
               <Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} />
-              {textoDescartadoAntes(f) && <span className="mt-0.5 block max-w-[260px] text-[11px] whitespace-normal text-ambar-grafico">{textoDescartadoAntes(f)}</span>}
+              {textoDescartadoAntes(f) && <span className={AMBAR}>{textoDescartadoAntes(f)}</span>}
             </td>
             <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDelTaller(f)}<span className={GRIS}>el del taller</span></td>
             <td className={cn(CELDA, 'whitespace-nowrap')}>{textoUltimoTrabajo(f)}</td>
@@ -189,10 +197,14 @@ export function ListaAltas({ onAbrirImei, descartadas, onDescartar, onRecuperar,
   )
 }
 
-type RevisarProps = { filas: FilaRevisarNsys[]; vacio: string; ocupado: boolean; onAbrirImei: (imeiSn: string) => void; onRevisado: (idAviso: number) => void }
+type RevisarProps = {
+  filas: FilaRevisarNsys[]; sinGrado: FilaSinGradoNsys[]; vacio: string; ocupado: boolean
+  onAbrirImei: (imeiSn: string) => void; onRevisado: (idAviso: number) => void
+}
 
-/** «Revisar a mano» (§3.5): sin «Hecho»; «✓ Revisado» si ya estaba bien y «Corregir…», que abre el móvil. */
-export function ListaRevisar({ filas, vacio, ocupado, onAbrirImei, onRevisado }: RevisarProps) {
+/** «Revisar a mano» (§3.5): primero las filas «Sin grado en NSYS» (pieza 4: sin «Revisado»; se van solas al tener grado) y
+ *  después los avisos, con «✓ Revisado» si ya estaba bien. «Corregir…» abre el móvil. */
+export function ListaRevisar({ filas, sinGrado, vacio, ocupado, onAbrirImei, onRevisado }: RevisarProps) {
   const columnas = ['IMEI', 'Modelo', 'Qué pasa', 'Qué hacer', 'Reparación', '']
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
@@ -201,12 +213,31 @@ export function ListaRevisar({ filas, vacio, ocupado, onAbrirImei, onRevisado }:
           <tr>{columnas.map((c, i) => <th key={i} scope="col" className="px-2 py-1.5 text-left font-bold whitespace-nowrap">{c}</th>)}</tr>
         </thead>
         <tbody>
-          {filas.length === 0 && (
+          {filas.length === 0 && sinGrado.length === 0 && (
             <tr><td colSpan={columnas.length} className="px-2 py-3 text-[12px] text-azul-gris">{vacio}</td></tr>
           )}
+          {sinGrado.map((f) => {
+            const bateria = textoBateriaDeFila(f)
+            return (
+              <tr key={`sin-grado-${f.imeiSn}`} className="border-t border-fila-sep">
+                <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /><Vuelta f={f} /></td>
+                <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
+                <td className={cn(CELDA, 'min-w-[300px]')}>
+                  <span className={cn('mb-0.5 inline-block rounded px-1.5 text-[10.5px] font-bold', ETIQUETA.SIN_GRADO)}>{ETIQUETA_SIN_GRADO}</span>
+                  <span className="block">{textoGradoNsys(f)}</span>
+                  {bateria && <span className={GRIS}>{bateria}</span>}
+                </td>
+                <td className={cn(CELDA, 'min-w-[220px] text-[12px]')}>{QUE_HACER_SIN_GRADO}</td>
+                <td className={cn(CELDA, 'whitespace-nowrap')}>{textoUltimoTrabajoSinGrado(f)}</td>
+                <td className={cn(CELDA, 'whitespace-nowrap')}>
+                  <button type="button" aria-label={`Corregir ${f.imeiSn}`} onClick={() => onAbrirImei(f.imeiSn)} className={PEQUENO}>Corregir…</button>
+                </td>
+              </tr>
+            )
+          })}
           {filas.map((f) => (
             <tr key={f.idAviso} className="border-t border-fila-sep">
-              <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /></td>
+              <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /><Vuelta f={f} /></td>
               <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
               <td className={cn(CELDA, 'min-w-[300px]')}>
                 <span className={cn('mb-0.5 inline-block rounded px-1.5 text-[10.5px] font-bold', ETIQUETA[f.tipo])}>{ETIQUETA_AVISO[f.tipo] ?? f.tipo}</span>

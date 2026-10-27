@@ -173,6 +173,7 @@ export function opcionesTaller(p: Partial<OpcionesTaller> = {}): OpcionesTaller 
       { color: 'Rosa', grado: 'A100', sku: 'i16128RosaA100' },
       { color: 'Negro', grado: 'B', sku: 'i16128NegroB' },
     ],
+    bateriaIdRep: null, bateriaNueva: null, bateriaEn: null,
     ...p,
   }
 }
