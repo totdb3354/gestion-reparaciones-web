@@ -105,6 +105,9 @@ export function verEvento(e: EventoRastro): EventoVisible {
       const que = (ETIQUETA_AVISO[e.tipo.slice('TALLER_REVISADO_'.length)] ?? 'aviso').toLowerCase()
       return { fecha, titulo: `Revisado por ${e.tecnico ?? '—'}: ${que} (reparación ${e.idRep ?? '—'})`, detalle: null, color: 'bg-verde-ok' }
     }
+    case 'TALLER_BATERIA_USADA':
+      // 0.9.22 pieza 4 (§5.3): el ERP aplicó la batería recordada (o la dio por usada) cuando el móvil tuvo letra.
+      return { fecha, titulo: `Batería resuelta por el ERP · grado ${e.a ?? '—'} (reparación ${e.idRep ?? '—'})`, detalle: null, color: 'bg-verde-ok' }
     default:
       return { fecha, titulo: e.tipo, detalle: null, color: 'bg-gris-borde' }
   }

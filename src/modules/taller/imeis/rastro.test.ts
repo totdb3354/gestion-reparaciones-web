@@ -98,5 +98,7 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
       .toBe('Revisado por Supertécnico 1: grado sin calcular (reparación R20261021_3)')
     expect(verEvento(rep({ tipo: 'TALLER_REVISADO_SIN_DESHACER', dato: 'COLOR', tecnico: 'Supertécnico 1' })).titulo)
       .toBe('Revisado por Supertécnico 1: no se pudo deshacer (reparación R20261021_3)')
+    expect(verEvento(rep({ tipo: 'TALLER_BATERIA_USADA', dato: 'GRADO', de: 'n/a', a: 'A100', tecnico: null })))
+      .toMatchObject({ titulo: 'Batería resuelta por el ERP · grado A100 (reparación R20261021_3)', color: 'bg-verde-ok' })
   })
 })

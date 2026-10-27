@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FichaMovil } from '@/shared/api/client'
-import { SIN_SKU_MAESTRO, textoPoner } from '@/shared/lib/telefonoNsys'
+import { SIN_SKU_MAESTRO, textoBateriaEnCorregir, textoPoner } from '@/shared/lib/telefonoNsys'
 import { useCerrojoEnvio } from '@/shared/lib/useCerrojoEnvio'
 import { avisar } from '@/shared/ui/avisos'
 import { BotonPrimario, BotonSecundario } from '@/shared/ui/Botones'
@@ -68,6 +68,12 @@ function Contenido({ ficha, abierto, onCerrar, onEnviando }: { ficha: FichaMovil
         <label className="flex items-center gap-2"><input type="checkbox" checked={e.grado.bateria} onChange={(ev) => grado({ bateria: ev.target.checked })} />Batería nueva (100)</label>
         <span />
         <label className="flex items-center gap-2"><input type="checkbox" checked={e.grado.ms} onChange={(ev) => grado({ ms: ev.target.checked })} />Mensaje de pieza (Ms)</label>
+        {opciones.data?.bateriaIdRep && opciones.data.bateriaEn && (<>
+          <span />
+          <p className="text-[11.5px] text-azul-gris">
+            {textoBateriaEnCorregir(opciones.data.bateriaNueva === true, opciones.data.bateriaEn, opciones.data.bateriaIdRep)}
+          </p>
+        </>)}
         <label htmlFor="taller-motivo" className="self-start pt-1.5 font-semibold">Motivo</label>
         <textarea id="taller-motivo" maxLength={500} value={e.motivo} placeholder="Obligatorio: por qué se corrige" onChange={(ev) => setE((x) => ({ ...x, motivo: ev.target.value }))}
           className="h-16 resize-y rounded border border-borde-input bg-superficie px-2 py-1.5 text-[13px] text-azul-medio" />
