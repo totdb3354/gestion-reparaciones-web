@@ -201,9 +201,13 @@ test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
     await pagina.getByRole('button', { name: /^Por pasar a NSYS/ }).click()
     const boton = pagina.getByRole('article', { name: 'No está en NSYS' }).getByRole('button', { name: /^⬇ Descargar plantilla/ })
     await expect(boton).toBeVisible()
-    test.skip(await boton.isDisabled(), 'no hay móviles en «No está en NSYS» (botón deshabilitado)')
-    const n = Number(/\((\d+)\)/.exec(await boton.innerText())?.[1])
-    expect(n).toBeGreaterThan(0)
+    // Lo pendiente, de la API: justo al abrir, el botón sale deshabilitado y sin número mientras llegan las tarjetas (en preprod
+    // el 27/10 la prueba se saltaba así con 12 pendientes).
+    const pendientes = pendientesDe((await tarjetasApi(pagina)).altas).length
+    test.skip(pendientes === 0, 'no hay móviles pendientes en «No está en NSYS»')
+    await expect(boton).toBeEnabled()
+    await expect(boton).toHaveText(`⬇ Descargar plantilla (${pendientes})`)
+    const n = pendientes
     const { nombre, xlsx } = await bajarPlantilla(pagina, 'No está en NSYS')
     expect(nombre).toMatch(/^NSYS_altas_\d{4}-\d{2}-\d{2}\.xlsx$/)
     comprobarCabecera(xlsx)
