@@ -136,6 +136,23 @@ describe('useAccionConDeshacer', () => {
     expect(screen.queryByText(TEXTO)).not.toBeInTheDocument()
   })
 
+  it('lleva la barra de 8 s y una × que cierra sin deshacer; un clic en el texto no lo cierra', async () => {
+    const a = accion()
+    render(<Banco accion={a} />)
+    fireEvent.click(screen.getByText('Actuar'))
+    await screen.findByText(TEXTO)
+    const barra = document.querySelector('.aviso-barra') as HTMLElement | null
+    expect(barra).not.toBeNull()
+    expect(barra?.style.animationDuration).toBe(`${MS_DESHACER}ms`)
+    fireEvent.click(screen.getByText(TEXTO))
+    expect(screen.getByText(TEXTO)).toBeInTheDocument()
+    const x = screen.getByRole('button', { name: 'Cerrar aviso' })
+    expect(x).toHaveAttribute('title', 'Cerrar')
+    fireEvent.click(x)
+    expect(screen.queryByText(TEXTO)).not.toBeInTheDocument()
+    expect(a.deshacer).not.toHaveBeenCalled()
+  })
+
   it('limpia el temporizador al desmontar', async () => {
     vi.useFakeTimers()
     const { unmount } = render(<Banco accion={accion()} />)

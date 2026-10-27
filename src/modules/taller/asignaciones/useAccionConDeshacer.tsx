@@ -11,7 +11,7 @@ export type AccionReversible = {
   deshacer: () => Promise<unknown>
 }
 
-type Pendiente = { texto: string; deshacer: () => Promise<unknown> }
+type Pendiente = { texto: string; deshacer: () => Promise<unknown>; clave: number }
 
 /**
  * Escritura inmediata con un aviso que permite deshacerla (spec 3a, D2). El JavaFX escribe al instante y sin
@@ -70,7 +70,7 @@ export function useAccionConDeshacer(): { ejecutar: (accion: AccionReversible) =
         // Si mientras tanto se lanzó otra acción, esta ya no es la última: se descarta en vez de pisar su aviso.
         if (numero !== secuencia.current) return
         cerrar()
-        setPendiente({ texto, deshacer })
+        setPendiente({ texto, deshacer, clave: numero })
         temporizador.current = setTimeout(() => {
           temporizador.current = null
           setPendiente(null)
@@ -92,13 +92,15 @@ export function useAccionConDeshacer(): { ejecutar: (accion: AccionReversible) =
   // role="status" (aria-live polite): el lector de pantalla lo anuncia sin robar el foco, que sigue en la tabla.
   // El div vive siempre en el DOM: una live region que se inserta ya con contenido no suele anunciarse, el
   // anuncio lo dispara mutar el contenido de una región que ya estaba presente. Vacío y sin clases visibles
-  // cuando no hay nada pendiente; solo el texto y el botón dependen de `pendiente`.
+  // cuando no hay nada pendiente; solo el texto y el botón dependen de `pendiente`. La barra amarilla se consume en los
+  // 8 s con la misma duración que el temporizador (y con «reducir movimiento» se queda quieta, pero el aviso se cierra
+  // igual); la × cierra sin deshacer (pieza 3 de la 0.9.22).
   const aviso = (
     <div
       role="status"
       className={
         pendiente
-          ? 'fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-lg border border-fila-sep bg-azul-noche px-4 py-2.5 text-[12px] font-bold text-crema shadow-md'
+          ? 'fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 overflow-hidden rounded-lg border border-fila-sep bg-azul-noche px-4 pt-2.5 pb-[13px] text-[12px] font-bold text-crema shadow-md'
           : undefined
       }
     >
@@ -112,6 +114,18 @@ export function useAccionConDeshacer(): { ejecutar: (accion: AccionReversible) =
           >
             Deshacer
           </button>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            title="Cerrar"
+            onClick={cerrar}
+            className="-mr-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-[16px] leading-none text-crema/70 hover:bg-azul-noche-hover hover:text-crema"
+          >
+            ×
+          </button>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-superficie/10">
+            <i key={pendiente.clave} className="aviso-barra block h-full bg-amarillo" style={{ animationDuration: `${MS_DESHACER}ms` }} />
+          </div>
         </>
       )}
     </div>
