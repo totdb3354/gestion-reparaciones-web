@@ -1,9 +1,12 @@
-import type { ReactNode } from 'react'
-import type { FilaAltaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys } from '@/shared/api/client'
+import { useState, type ReactNode } from 'react'
+import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaRevisarNsys } from '@/shared/api/client'
 import { COMPRUEBALO, diaNsys, ETIQUETA_AVISO, queHacerAviso, SIN_PRODUCTO_NSYS, textoAvisoTaller } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { CeldaHecho } from './CeldaHecho'
-import { marcada, modeloDeFila, modeloDelTaller, pendientes, textoDesde, textoPorQue, textoUltimoTrabajo, type ConHecho } from './porPasar'
+import {
+  marcada, modeloDeFila, modeloDelTaller, pendientes, textoDescartado, textoDescartadoAntes, textoDesde, textoPorQue, textoUltimoTrabajo,
+  textoVerDescartados, type ConHecho,
+} from './porPasar'
 
 /** Las cuatro listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
 
@@ -31,8 +34,8 @@ function Imei({ imeiSn, onAbrir }: { imeiSn: string; onAbrir: (imeiSn: string) =
 }
 
 /** Una lista con «Hecho»: la cabecera con «✓ Marcar todo (n)» (lo pendiente) y las filas marcadas en gris. */
-function TablaConHecho<T extends ConHecho & { imeiSn: string }>({ nombre, columnas, celdas, filas, vacio, ocupado, onMarcar, onDeshacer }:
-  Omit<ConHechoProps<T>, 'onAbrirImei'> & { nombre: string; columnas: string[]; celdas: (f: T) => ReactNode }) {
+function TablaConHecho<T extends ConHecho & { imeiSn: string }>({ nombre, columnas, celdas, filas, vacio, ocupado, onMarcar, onDeshacer, onDescartar }:
+  Omit<ConHechoProps<T>, 'onAbrirImei'> & { nombre: string; columnas: string[]; celdas: (f: T) => ReactNode; onDescartar?: (imeiSn: string) => void }) {
   const n = pendientes(filas).length
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
@@ -54,7 +57,8 @@ function TablaConHecho<T extends ConHecho & { imeiSn: string }>({ nombre, column
             <tr key={f.imeiSn} className={cn('border-t border-fila-sep', marcada(f) && 'bg-badge-neutro-bg text-texto-suave')}>
               {celdas(f)}
               <td className={cn(CELDA, 'whitespace-nowrap')}>
-                <CeldaHecho fila={f} imeiSn={f.imeiSn} ocupado={ocupado} onMarcar={() => onMarcar([f.imeiSn])} onDeshacer={() => onDeshacer(f.imeiSn)} />
+                <CeldaHecho fila={f} imeiSn={f.imeiSn} ocupado={ocupado} onMarcar={() => onMarcar([f.imeiSn])} onDeshacer={() => onDeshacer(f.imeiSn)}
+                  onDescartar={onDescartar ? () => onDescartar(f.imeiSn) : undefined} />
               </td>
             </tr>
           ))}
@@ -119,22 +123,69 @@ export function ListaGrado({ onAbrirImei, ...props }: ConHechoProps<FilaGradoNsy
   )
 }
 
-/** «No está en NSYS» (§3.4). */
-export function ListaAltas({ onAbrirImei, ...props }: ConHechoProps<FilaAltaNsys>) {
+/** «Ver descartados (n)» de «No está en NSYS» (pieza 3 §5.3): plegado al entrar; desplegado, en gris, con «deshacer». Solo se
+ *  pinta con descartados (sin ellos se desmonta y vuelve plegado). */
+function Descartados({ filas, ocupado, onRecuperar }: { filas: FilaDescartadaNsys[]; ocupado: boolean; onRecuperar: (imeiSn: string) => void }) {
+  const [abierto, setAbierto] = useState(false)
+  const columnas = ['IMEI', 'Modelo', 'Último trabajo', 'Descartado', 'Motivo', '']
   return (
-    <TablaConHecho {...props} nombre="No está en NSYS"
-      columnas={['IMEI', 'Modelo', 'Último trabajo', 'Técnico', 'Cliente', 'Trabajos', 'Desde']}
-      celdas={(f) => (
-        <>
-          <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /></td>
-          <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDelTaller(f)}<span className={GRIS}>el del taller</span></td>
-          <td className={cn(CELDA, 'whitespace-nowrap')}>{textoUltimoTrabajo(f)}</td>
-          <td className={cn(CELDA, 'whitespace-nowrap')}>{f.tecnico ?? '—'}</td>
-          <td className={cn(CELDA, 'whitespace-nowrap')}>{f.cliente ?? '—'}</td>
-          <td className={cn(CELDA, 'text-right whitespace-nowrap')}>{f.trabajos}</td>
-          <td className={cn(CELDA, 'whitespace-nowrap')}>{diaNsys(f.desde)}</td>
-        </>
-      )} />
+    <div className="shrink-0">
+      <button type="button" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}
+        className="cursor-pointer text-[12px] text-azul-gris hover:underline">{textoVerDescartados(filas.length, abierto)}</button>
+      {abierto && (
+        <div className="mt-1.5 max-h-[220px] overflow-auto rounded-lg border border-fila-sep">
+          <table aria-label="Descartados" className="w-full border-collapse bg-badge-neutro-bg text-[12.5px] text-texto-suave">
+            <thead>
+              <tr>{columnas.map((c, i) => <th key={i} scope="col" className="px-2 py-1.5 text-left font-bold whitespace-nowrap">{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr key={f.imeiSn} className="border-t border-fila-sep">
+                  <td className={cn(CELDA, 'font-mono text-[11.5px] whitespace-nowrap')}>{f.imeiSn}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDelTaller(f)}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>{textoUltimoTrabajo(f)}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>{textoDescartado(f)}</td>
+                  <td className={cn(CELDA, 'italic')}>{`«${f.motivo}»`}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>
+                    <button type="button" disabled={ocupado} aria-label={`Deshacer descarte de ${f.imeiSn}`} onClick={() => onRecuperar(f.imeiSn)}
+                      className="cursor-pointer text-[11px] text-azul-noche hover:underline disabled:opacity-40">deshacer</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+type AltasProps = ConHechoProps<FilaAltaNsys> & {
+  descartadas: FilaDescartadaNsys[]; onDescartar: (imeiSn: string) => void; onRecuperar: (imeiSn: string) => void
+}
+
+/** «No está en NSYS» (§3.4), con «descartar» en cada fila sin marca y «Ver descartados» al pie (pieza 3). */
+export function ListaAltas({ onAbrirImei, descartadas, onDescartar, onRecuperar, ...props }: AltasProps) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <TablaConHecho {...props} nombre="No está en NSYS" onDescartar={onDescartar}
+        columnas={['IMEI', 'Modelo', 'Último trabajo', 'Técnico', 'Cliente', 'Trabajos', 'Desde']}
+        celdas={(f) => (
+          <>
+            <td className={CELDA}>
+              <Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} />
+              {textoDescartadoAntes(f) && <span className="mt-0.5 block max-w-[260px] text-[11px] whitespace-normal text-ambar-grafico">{textoDescartadoAntes(f)}</span>}
+            </td>
+            <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDelTaller(f)}<span className={GRIS}>el del taller</span></td>
+            <td className={cn(CELDA, 'whitespace-nowrap')}>{textoUltimoTrabajo(f)}</td>
+            <td className={cn(CELDA, 'whitespace-nowrap')}>{f.tecnico ?? '—'}</td>
+            <td className={cn(CELDA, 'whitespace-nowrap')}>{f.cliente ?? '—'}</td>
+            <td className={cn(CELDA, 'text-right whitespace-nowrap')}>{f.trabajos}</td>
+            <td className={cn(CELDA, 'whitespace-nowrap')}>{diaNsys(f.desde)}</td>
+          </>
+        )} />
+      {descartadas.length > 0 && <Descartados filas={descartadas} ocupado={props.ocupado} onRecuperar={onRecuperar} />}
+    </div>
   )
 }
 
