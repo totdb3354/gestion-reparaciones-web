@@ -93,8 +93,9 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
       </div>
       {elegida === 'color' && <ListaColor filas={t.color} {...conHecho('color')} />}
       {elegida === 'grado' && <ListaGrado filas={t.grado} {...conHecho('grado')} />}
+      {/* `?? []` en `descartadas`: un servidor anterior a la pieza 3 (vuelta atrás) no lo manda. */}
       {elegida === 'altas' && (
-        <ListaAltas filas={t.altas} {...conHecho('altas')} descartadas={t.descartadas} onDescartar={setADescartar}
+        <ListaAltas filas={t.altas} {...conHecho('altas')} descartadas={t.descartadas ?? []} onDescartar={setADescartar}
           onRecuperar={(imeiSn) => recuperar.mutate({ imeiSn }, { onSuccess: () => avisar({ texto: avisoVuelve(imeiSn), tipo: 'ok' }) })} />
       )}
       {elegida === 'revisar' && (

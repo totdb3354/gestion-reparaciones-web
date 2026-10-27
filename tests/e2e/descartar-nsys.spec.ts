@@ -65,6 +65,15 @@ async function limpiar(page: Page) {
   expect.soft(d.estado, 'limpieza del descarte').toBe(204)
 }
 
+/** Los IMEI de la columna A de la plantilla de altas (a partir de la fila 7), bajada con el token de la sesión. */
+async function imeisDePlantilla(page: Page): Promise<string[]> {
+  const token = await page.evaluate(() => (JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }).token)
+  const plantilla = await page.request.get('/api/stock-telefonos/por-pasar/plantilla-altas', { headers: { Authorization: `Bearer ${token}` } })
+  expect(plantilla.status()).toBe(200)
+  const x = leerXlsx(await plantilla.body())
+  return x.filasConDatos(7, 'A').map((n) => String(x.celda(`A${n}`).valor))
+}
+
 async function abrirNoEsta(page: Page) {
   await page.goto('/telefonos/stock')
   await page.getByRole('button', { name: /^Por pasar a NSYS/ }).click()
@@ -101,6 +110,7 @@ test.describe('0.9.22 pieza 3: «descartar» en «No está en NSYS»', () => {
     await abrirNoEsta(pagina)
     const tabla = pagina.getByRole('table', { name: 'No está en NSYS' })
     await expect(tabla.getByRole('row').filter({ hasText: IMEI })).toHaveCount(1)
+    expect(await imeisDePlantilla(pagina), 'antes de descartar, la plantilla de altas lo lleva').toContain(IMEI)
     await pagina.getByRole('button', { name: `Descartar ${IMEI}` }).click()
     const ventana = pagina.getByRole('dialog', { name: 'Descartar de «No está en NSYS»' })
     await expect(ventana.getByRole('button', { name: 'Descartar' })).toBeDisabled()
@@ -111,11 +121,7 @@ test.describe('0.9.22 pieza 3: «descartar» en «No está en NSYS»', () => {
     const t = await tarjetasApi(pagina)
     expect(t.altas.map((f) => f.imeiSn)).not.toContain(IMEI)
     expect(t.descartadas.find((f) => f.imeiSn === IMEI)?.motivo).toBe(MOTIVO)
-    const token = await pagina.evaluate(() => (JSON.parse(localStorage.getItem('fsgr.sesion') ?? '{}') as { token?: string }).token)
-    const plantilla = await pagina.request.get('/api/stock-telefonos/por-pasar/plantilla-altas', { headers: { Authorization: `Bearer ${token}` } })
-    expect(plantilla.status()).toBe(200)
-    const x = leerXlsx(await plantilla.body())
-    expect(x.filasConDatos(7, 'A').map((n) => x.celda(`A${n}`).valor), 'la plantilla de altas no lo lleva').not.toContain(IMEI)
+    expect(await imeisDePlantilla(pagina), 'la plantilla de altas no lo lleva').not.toContain(IMEI)
   })
 
   test('«Ver descartados» lo enseña con su motivo y «deshacer» lo devuelve', async () => {

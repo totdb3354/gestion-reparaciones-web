@@ -292,4 +292,14 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     expect(screen.queryByRole('button', { name: /^Ver descartados/ })).not.toBeInTheDocument()
     expect(screen.getByText('Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo descartara el 26/10/2026 12:31 («no es un móvil»)')).toBeInTheDocument()
   })
+
+  it('con un servidor anterior a la pieza 3 (sin `descartadas`) la lista sale y no hay «Ver descartados»', async () => {
+    const user = userEvent.setup()
+    const viejas: Partial<TarjetasPorPasar> = tarjetas({ altas: [filaAlta()] })
+    delete viejas.descartadas
+    pintar(viejas as TarjetasPorPasar)
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    expect(screen.getByRole('table', { name: 'No está en NSYS' })).toHaveTextContent('350000000000088')
+    expect(screen.queryByRole('button', { name: /^Ver descartados/ })).not.toBeInTheDocument()
+  })
 })
