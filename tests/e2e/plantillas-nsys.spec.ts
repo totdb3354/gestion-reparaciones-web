@@ -19,7 +19,8 @@ type Opcion = { color: string; producto: string | null }
 type FilaConHecho = { imeiSn: string; hechoEn: string | null; hechoVolvio: string | null }
 type FilaColor = FilaConHecho & { ponerProducto: string | null; compruebalo: boolean }
 type FilaRevisar = { imeiSn: string; idRep: string }
-type Tarjetas = { color: FilaColor[]; grado: FilaConHecho[]; altas: FilaConHecho[]; revisar: FilaRevisar[] }
+// sinGrado: las filas «Sin grado en NSYS» de la 0.9.22 pieza 4 (cuentan en «Revisar a mano»; opcional por si el servidor es anterior).
+type Tarjetas = { color: FilaColor[]; grado: FilaConHecho[]; altas: FilaConHecho[]; revisar: FilaRevisar[]; sinGrado?: { imeiSn: string }[] }
 
 // Las filas 4 a 6 (A-N) de la plantilla vacía de NSYS, que las dos plantillas llevan tal cual (los datos van desde la fila 7), y el
 // aviso de la fila 1. La fila 5 lleva los títulos de las columnas y la 6 el detalle de «Goods».
@@ -235,13 +236,15 @@ test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
     await expect(pagina.getByRole('article', { name: 'Revisar a mano' })).toBeVisible()
     const t = await tarjetasApi(pagina)
     const cuenta = (total: number, hechos: number) => `${total} ${total === 1 ? 'móvil' : 'móviles'}${hechos > 0 ? ` · ${hechos} ${hechos === 1 ? 'hecho' : 'hechos'}` : ''}`
-    let pendientes = t.revisar.length
+    // «Revisar a mano» cuenta los avisos y, desde la pieza 4, las filas «Sin grado en NSYS».
+    const revisar = t.revisar.length + (t.sinGrado?.length ?? 0)
+    let pendientes = revisar
     for (const [tarjeta, filas] of [['Cambio de color', t.color], ['Cambio de grado', t.grado], ['No está en NSYS', t.altas]] as const) {
       const pend = pendientesDe(filas).length
       pendientes += pend
       await expect(pagina.getByRole('article', { name: tarjeta }), tarjeta).toContainText(cuenta(filas.length, filas.length - pend))
     }
-    await expect(pagina.getByRole('article', { name: 'Revisar a mano' })).toContainText(cuenta(t.revisar.length, 0))
+    await expect(pagina.getByRole('article', { name: 'Revisar a mano' })).toContainText(cuenta(revisar, 0))
     await expect(pestana, 'el número de la pestaña').toHaveAccessibleName(`Por pasar a NSYS (${pendientes})`)
   })
 
