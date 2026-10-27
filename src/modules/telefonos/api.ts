@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   api, type EstadoNsys, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
-  type PeticionHecho, type TarjetasPorPasar,
+  type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionHecho, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
@@ -113,6 +113,24 @@ export function useRevisarAviso() {
   return useMutation({
     mutationFn: (idAviso: number) =>
       api.POST('/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado', { params: { path: { idAviso } } }),
+    onSettled: recargar,
+  })
+}
+
+/** PUT /api/stock-telefonos/por-pasar/descarte (spec 0.9.22 pieza 3 §4.3): «descartar» de «No está en NSYS», con motivo. */
+export function useDescartarAlta() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionDescarte) => api.PUT('/api/stock-telefonos/por-pasar/descarte', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
+/** DELETE /api/stock-telefonos/por-pasar/descarte: «deshacer» desde «Ver descartados». */
+export function useDeshacerDescarte() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionDeshacerDescarte) => api.DELETE('/api/stock-telefonos/por-pasar/descarte', { body: cuerpo }),
     onSettled: recargar,
   })
 }

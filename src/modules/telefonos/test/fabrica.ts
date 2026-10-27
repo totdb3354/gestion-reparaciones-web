@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -94,7 +94,15 @@ export function filaAlta(p: Partial<FilaAltaNsys> = {}): FilaAltaNsys {
   return {
     imeiSn: '350000000000088', modelo: '14', ultimoTrabajo: 'R20261006_57', categoria: 'REPARACION', abierto: false,
     tecnico: 'Técnico 2', cliente: 'AMAZON', trabajos: 2, desde: '2026-10-06T09:00:00', hechoPor: null, hechoEn: null,
-    hechoVolvio: null, ...p,
+    hechoVolvio: null, descartadoAntesPor: null, descartadoAntesEn: null, descartadoAntesMotivo: null, ...p,
+  }
+}
+
+/** Un IMEI descartado de «No está en NSYS»: una cámara sin IMEI, descartada por «Supertécnico 1» con su motivo. */
+export function filaDescartada(p: Partial<FilaDescartadaNsys> = {}): FilaDescartadaNsys {
+  return {
+    imeiSn: 'SIN-IMEI-CAM', modelo: null, ultimoTrabajo: 'R20260803_14', categoria: 'REPARACION', descartadoPor: 'Supertécnico 1',
+    descartadoEn: '2026-10-26T12:31:00', motivo: 'no es un móvil, es una cámara', ...p,
   }
 }
 
@@ -109,5 +117,5 @@ export function filaRevisar(p: Partial<FilaRevisarNsys> = {}): FilaRevisarNsys {
 
 /** Las cuatro tarjetas, vacías salvo lo que se pase. */
 export function tarjetas(p: Partial<TarjetasPorPasar> = {}): TarjetasPorPasar {
-  return { color: [], grado: [], altas: [], revisar: [], ...p }
+  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], ...p }
 }

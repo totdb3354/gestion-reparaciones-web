@@ -68,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/por-pasar/descarte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["descartar"];
+        post?: never;
+        delete: operations["deshacerDescarte"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reparaciones/{idRep}": {
         parameters: {
             query?: never;
@@ -2731,6 +2747,10 @@ export interface components {
             tarjeta: string;
             imeis: string[];
         };
+        PorPasarPeticionDescarte: {
+            imeiSn: string;
+            motivo: string;
+        };
         ReparacionEditarRequest: {
             /** Format: int32 */
             idComNuevo: number;
@@ -3690,6 +3710,10 @@ export interface components {
             hechoEn: string | null;
             /** Format: date-time */
             hechoVolvio: string | null;
+            descartadoAntesPor: string | null;
+            /** Format: date-time */
+            descartadoAntesEn: string | null;
+            descartadoAntesMotivo: string | null;
         };
         FilaColorNsys: {
             imeiSn: string;
@@ -3711,6 +3735,16 @@ export interface components {
             hechoEn: string | null;
             /** Format: date-time */
             hechoVolvio: string | null;
+        };
+        FilaDescartadaNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            ultimoTrabajo: string;
+            categoria: string;
+            descartadoPor: string | null;
+            /** Format: date-time */
+            descartadoEn: string;
+            motivo: string;
         };
         FilaGradoNsys: {
             imeiSn: string;
@@ -3753,6 +3787,7 @@ export interface components {
             grado: components["schemas"]["FilaGradoNsys"][];
             altas: components["schemas"]["FilaAltaNsys"][];
             revisar: components["schemas"]["FilaRevisarNsys"][];
+            descartadas: components["schemas"]["FilaDescartadaNsys"][];
         };
         StockTelefonosFilaImportacion: {
             fichero: string;
@@ -4178,6 +4213,9 @@ export interface components {
             tarjeta: string;
             imeiSn: string;
         };
+        PorPasarPeticionDeshacerDescarte: {
+            imeiSn: string;
+        };
         ReparacionMotivoRequest: {
             motivo: string | null;
         };
@@ -4339,6 +4377,50 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PorPasarPeticionDeshacer"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    descartar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PorPasarPeticionDescarte"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deshacerDescarte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PorPasarPeticionDeshacerDescarte"];
             };
         };
         responses: {
