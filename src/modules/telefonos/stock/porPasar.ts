@@ -1,4 +1,4 @@
-import type { FilaAltaNsys, FilaColorNsys, FilaGradoNsys, PorQueTaller, TarjetasPorPasar } from '@/shared/api/client'
+import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, PorQueTaller, TarjetasPorPasar } from '@/shared/api/client'
 import { descripcionMovil, diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
 
 /** Reglas de la lista «Por pasar a NSYS» (0.9.21, spec «SKU del taller» §2.4). */
@@ -47,7 +47,7 @@ export const EXPLICACION: Record<Tarjeta, string> = {
 export const AYUDA: Record<Tarjeta, string> = {
   color: 'Móviles a los que el taller ha cambiado el color. En NSYS: bórralos y súbelos otra vez con la plantilla, que lleva el grado que tienen hoy en NSYS (el grado nuevo, si lo hay, va por «Cambio de grado», después). Cada fila se va sola cuando la importación (cada 30 min) ve el color nuevo en NSYS.',
   grado: 'Todos los móviles a los que el taller ha cambiado el grado (chasis → A, batería nueva → 100…), también los que cambian de color: en esos, haz primero el color (si no, la plantilla de color le devolvería el grado de antes). En NSYS el grado se corrige aparte, sin borrar el móvil. Cada fila se va sola cuando la importación ve el grado nuevo.',
-  altas: 'Móviles que han pasado por el taller y NSYS no conoce. La plantilla lleva lo que sabe el ERP; lo demás (capacidad, color, grado, precio, proveedor) va vacío para rellenarlo en el Excel. Cada fila se va sola cuando la importación los ve en NSYS.',
+  altas: 'Móviles que han pasado por el taller y NSYS no conoce. La plantilla lleva lo que sabe el ERP; lo demás (capacidad, color, grado, precio, proveedor) va vacío para rellenarlo en el Excel. Cada fila se va sola cuando la importación los ve en NSYS. Si una fila no debería estar aquí (no es un móvil, es de un cliente…), «descartar» la quita con un motivo; solo vuelve si el taller le hace un trabajo nuevo.',
   revisar: 'Al guardar una reparación, el ERP no pudo calcular el color o el grado nuevo, o no pudo deshacer un cambio. Una persona mira el móvil y lo corrige en su ficha («Corregir…»); si NSYS tiene que cambiar, el móvil aparece después en Color o en Grado.',
 }
 
@@ -115,9 +115,33 @@ export const avisoCopiado = (n: number): string =>
 
 const CATEGORIA: Record<string, string> = { REPARACION: 'Reparación', GLASS: 'Glass', PULIDO: 'Pulido' }
 
-/** «R20261006_57 · Reparación», con « · asignado» si es una asignación sin terminar. */
-export const textoUltimoTrabajo = (f: FilaAltaNsys): string =>
+/** «R20261006_57 · Reparación», con « · asignado» si es una asignación sin terminar (las descartadas no lo dicen). */
+export const textoUltimoTrabajo = (f: { ultimoTrabajo: string; categoria: string; abierto?: boolean }): string =>
   `${f.ultimoTrabajo} · ${CATEGORIA[f.categoria] ?? f.categoria}${f.abierto ? ' · asignado' : ''}`
 
 /** El modelo del taller de «No está en NSYS» («iPhone 14»): el código del ERP traducido. */
-export const modeloDelTaller = (f: FilaAltaNsys): string => (f.modelo ? nombreModeloNsys(f.modelo, null) : '—')
+export const modeloDelTaller = (f: { modelo: string | null }): string => (f.modelo ? nombreModeloNsys(f.modelo, null) : '—')
+
+// ---------------------------------------------------------------- 0.9.22 pieza 3: «descartar» en «No está en NSYS»
+
+export const TITULO_DESCARTAR = 'Descartar de «No está en NSYS»'
+/** Lo que va tras el IMEI (en negrita) en la ventana. */
+export const EXPLICA_DESCARTAR =
+  'deja de salir aquí y no va en la plantilla de altas. Las importaciones de NSYS no lo devuelven; solo sale otra vez si el taller le hace un trabajo nuevo.'
+export const EJEMPLOS_MOTIVO = 'Ejemplos: «no es un móvil, es una cámara», «móvil de un cliente, no es stock».'
+/** El largo de Taller_descarte.MOTIVO (el servidor da 400 por encima). */
+export const MAX_MOTIVO = 500
+
+export const avisoDescartado = (imei: string): string => `Descartado «${imei}»`
+export const avisoVuelve = (imei: string): string => `«${imei}» vuelve a la lista`
+export const textoVerDescartados = (n: number, abierto: boolean): string => (abierto ? 'Ocultar descartados' : `Ver descartados (${n})`)
+
+/** «Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo descartara el 26/10/2026 12:31 («no es un móvil»)»; sin un
+ *  descarte superado, null. */
+export function textoDescartadoAntes(f: FilaAltaNsys): string | null {
+  if (!f.descartadoAntesEn) return null
+  return `Salió otra vez: trabajo nuevo después de que ${f.descartadoAntesPor ?? '—'} lo descartara el ${textoDesde(f.descartadoAntesEn)} («${f.descartadoAntesMotivo ?? ''}»)`
+}
+
+/** «Supertécnico 1 · 26/10/2026 12:31» de «Ver descartados». */
+export const textoDescartado = (f: FilaDescartadaNsys): string => `${f.descartadoPor ?? '—'} · ${textoDesde(f.descartadoEn)}`

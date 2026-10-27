@@ -176,6 +176,46 @@
         }
       }
     },
+    "/api/stock-telefonos/por-pasar/descarte" : {
+      "put" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "descartar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PorPasarPeticionDescarte"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "deshacerDescarte",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PorPasarPeticionDeshacerDescarte"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/reparaciones/{idRep}" : {
       "put" : {
         "tags" : [ "reparacion-controller" ],
@@ -5600,6 +5640,18 @@
           }
         }
       },
+      "PorPasarPeticionDescarte" : {
+        "required" : [ "imeiSn", "motivo" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string"
+          }
+        }
+      },
       "ReparacionEditarRequest" : {
         "required" : [ "esReutilizadoNuevo", "idComNuevo", "nNuevas", "observacionNueva", "updatedAt" ],
         "type" : "object",
@@ -8288,7 +8340,7 @@
         }
       },
       "FilaAltaNsys" : {
-        "required" : [ "abierto", "categoria", "cliente", "desde", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "tecnico", "trabajos", "ultimoTrabajo" ],
+        "required" : [ "abierto", "categoria", "cliente", "descartadoAntesEn", "descartadoAntesMotivo", "descartadoAntesPor", "desde", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "tecnico", "trabajos", "ultimoTrabajo" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8335,6 +8387,19 @@
           "hechoVolvio" : {
             "type" : "string",
             "format" : "date-time",
+            "nullable" : true
+          },
+          "descartadoAntesPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "descartadoAntesEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "descartadoAntesMotivo" : {
+            "type" : "string",
             "nullable" : true
           }
         }
@@ -8407,6 +8472,36 @@
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
+          }
+        }
+      },
+      "FilaDescartadaNsys" : {
+        "required" : [ "categoria", "descartadoEn", "descartadoPor", "imeiSn", "modelo", "motivo", "ultimoTrabajo" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ultimoTrabajo" : {
+            "type" : "string"
+          },
+          "categoria" : {
+            "type" : "string"
+          },
+          "descartadoPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "descartadoEn" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "motivo" : {
+            "type" : "string"
           }
         }
       },
@@ -8529,7 +8624,7 @@
         }
       },
       "TarjetasPorPasar" : {
-        "required" : [ "altas", "color", "grado", "revisar" ],
+        "required" : [ "altas", "color", "descartadas", "grado", "revisar" ],
         "type" : "object",
         "properties" : {
           "color" : {
@@ -8554,6 +8649,12 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/FilaRevisarNsys"
+            }
+          },
+          "descartadas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaDescartadaNsys"
             }
           }
         }
@@ -9688,6 +9789,15 @@
           "tarjeta" : {
             "type" : "string"
           },
+          "imeiSn" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PorPasarPeticionDeshacerDescarte" : {
+        "required" : [ "imeiSn" ],
+        "type" : "object",
+        "properties" : {
           "imeiSn" : {
             "type" : "string"
           }

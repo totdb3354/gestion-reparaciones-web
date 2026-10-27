@@ -10,7 +10,7 @@ import { server } from '@/test/server'
 import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import {
-  useComprobarImeis, useDescargarPlantilla, useDeshacerHecho, useEstadoNsys, useImportacionesNsys, useMarcarHecho,
+  useComprobarImeis, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useEstadoNsys, useImportacionesNsys, useMarcarHecho,
   usePorPasarTarjetas, useRevisarAviso, useStockTelefonos,
 } from './api'
 import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
@@ -131,5 +131,28 @@ describe('api del stock de teléfonos', () => {
     await expect(descarga.result.current.mutateAsync('color')).resolves.toEqual({ nombre: 'NSYS_color_2026-10-25.xlsx', filas: 2 })
     expect(crear).toHaveBeenCalledTimes(1)
     vi.restoreAllMocks()
+  })
+
+  it('«descartar» y su «deshacer» mandan el IMEI y el motivo (spec 0.9.22 pieza 3)', async () => {
+    const pedidos: unknown[] = []
+    server.use(
+      http.put('*/api/stock-telefonos/por-pasar/descarte', async ({ request }) => {
+        pedidos.push(['PUT', await request.json()])
+        return new HttpResponse(null, { status: 204 })
+      }),
+      http.delete('*/api/stock-telefonos/por-pasar/descarte', async ({ request }) => {
+        pedidos.push(['DELETE', await request.json()])
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const wrapper = envoltorio()
+    const descartar = renderHook(() => useDescartarAlta(), { wrapper })
+    await descartar.result.current.mutateAsync({ imeiSn: 'SIN-IMEI-CAM', motivo: 'no es un móvil' })
+    const deshacer = renderHook(() => useDeshacerDescarte(), { wrapper })
+    await deshacer.result.current.mutateAsync({ imeiSn: 'SIN-IMEI-CAM' })
+    expect(pedidos).toEqual([
+      ['PUT', { imeiSn: 'SIN-IMEI-CAM', motivo: 'no es un móvil' }],
+      ['DELETE', { imeiSn: 'SIN-IMEI-CAM' }],
+    ])
   })
 })

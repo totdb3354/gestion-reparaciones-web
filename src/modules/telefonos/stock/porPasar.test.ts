@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { filaAlta, filaColor, filaGrado, filaRevisar, porQue, tarjetas } from '../test/fabrica'
+import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, porQue, tarjetas } from '../test/fabrica'
 import {
-  AYUDA, avisoCopiado, avisoPlantillaAltas, avisoPlantillaColor, cuentas, EXPLICACION, horaDe, listaGrado, marcada, modeloDeFila,
-  modeloDelTaller, NOMBRE, paraPlantillaColor, pendientes, textoDesde, textoNumero, textoPorQue,
-  textoUltimoTrabajo, textoVolvio, totalPendientes, VACIA,
+  AYUDA, avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
+  EXPLICA_DESCARTAR, horaDe, listaGrado, marcada, MAX_MOTIVO, modeloDeFila, modeloDelTaller, NOMBRE, paraPlantillaColor, pendientes,
+  textoDesde, textoDescartado, textoDescartadoAntes, textoNumero, textoPorQue, textoUltimoTrabajo, textoVerDescartados, textoVolvio,
+  TITULO_DESCARTAR, totalPendientes, VACIA,
 } from './porPasar'
 
 describe('lista «Por pasar a NSYS» (spec 0.9.21 §2.4)', () => {
@@ -95,5 +96,36 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     expect(EXPLICACION.grado).toBe('Cambia el grado: se corrige aparte en NSYS, uno a uno. Si el móvil también cambia de color, primero el color.')
     expect(VACIA.altas).toBe('Todos los móviles del taller están en NSYS.')
     expect(AYUDA.color).toMatch(/^Móviles a los que el taller ha cambiado el color\. En NSYS: bórralos y súbelos otra vez/)
+  })
+})
+
+describe('«descartar» en «No está en NSYS» (spec 0.9.22 pieza 3 §5)', () => {
+  it('los textos de la ventana y de los avisos', () => {
+    expect(TITULO_DESCARTAR).toBe('Descartar de «No está en NSYS»')
+    expect(EXPLICA_DESCARTAR).toBe('deja de salir aquí y no va en la plantilla de altas. Las importaciones de NSYS no lo devuelven; solo sale otra vez si el taller le hace un trabajo nuevo.')
+    expect(EJEMPLOS_MOTIVO).toBe('Ejemplos: «no es un móvil, es una cámara», «móvil de un cliente, no es stock».')
+    expect(MAX_MOTIVO).toBe(500)
+    expect(avisoDescartado('SIN-IMEI-CAM')).toBe('Descartado «SIN-IMEI-CAM»')
+    expect(avisoVuelve('SIN-IMEI-CAM')).toBe('«SIN-IMEI-CAM» vuelve a la lista')
+    expect(textoVerDescartados(2, false)).toBe('Ver descartados (2)')
+    expect(textoVerDescartados(2, true)).toBe('Ocultar descartados')
+  })
+
+  it('la fila que vuelve dice quién la descartó, cuándo y por qué; sin descarte, nada', () => {
+    expect(textoDescartadoAntes(filaAlta({ descartadoAntesPor: 'Supertécnico 1', descartadoAntesEn: '2026-10-26T12:31:00', descartadoAntesMotivo: 'no es un móvil' })))
+      .toBe('Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo descartara el 26/10/2026 12:31 («no es un móvil»)')
+    expect(textoDescartadoAntes(filaAlta())).toBeNull()
+  })
+
+  it('«Ver descartados»: quién y cuándo, el último trabajo y el modelo del taller', () => {
+    expect(textoDescartado(filaDescartada())).toBe('Supertécnico 1 · 26/10/2026 12:31')
+    expect(textoDescartado(filaDescartada({ descartadoPor: null }))).toBe('— · 26/10/2026 12:31')
+    expect(textoUltimoTrabajo(filaDescartada())).toBe('R20260803_14 · Reparación')
+    expect(modeloDelTaller(filaDescartada())).toBe('—')
+    expect(modeloDelTaller(filaDescartada({ modelo: '14' }))).toBe('iPhone 14')
+  })
+
+  it('la ayuda de «No está en NSYS» habla de «descartar»', () => {
+    expect(AYUDA.altas.endsWith('Si una fila no debería estar aquí (no es un móvil, es de un cliente…), «descartar» la quita con un motivo; solo vuelve si el taller le hace un trabajo nuevo.')).toBe(true)
   })
 })

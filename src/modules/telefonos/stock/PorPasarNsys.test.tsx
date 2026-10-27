@@ -6,7 +6,7 @@ import type { TarjetasPorPasar } from '@/shared/api/client'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { filaAlta, filaColor, filaGrado, filaRevisar, tarjetas } from '../test/fabrica'
+import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, tarjetas } from '../test/fabrica'
 import { PorPasarNsys } from './PorPasarNsys'
 
 const HECHO = { hechoPor: 'Supertécnico 1', hechoEn: '2026-10-25T12:31:00', hechoVolvio: null }
@@ -180,5 +180,126 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     expect(screen.getByText('Ningún cambio de color pendiente.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
     expect(screen.getByText('Todos los móviles del taller están en NSYS.')).toBeInTheDocument()
+  })
+
+  it('«descartar» solo en «No está en NSYS» y en las filas sin marca', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas({ color: [filaColor()], altas: [filaAlta(), filaAlta({ imeiSn: '350000000000099', ...HECHO })] }))
+    expect(screen.queryAllByRole('button', { name: /^Descartar / })).toHaveLength(0)
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    const enlace = screen.getByRole('button', { name: 'Descartar 350000000000088' })
+    expect(enlace).toHaveTextContent('descartar')
+    expect(enlace).toHaveAttribute('title', 'No va a NSYS: quitarlo de la lista (con motivo)')
+    expect(screen.queryByRole('button', { name: 'Descartar 350000000000099' })).not.toBeInTheDocument()
+  })
+
+  it('la ventana pide el motivo, lo manda limpio, se cierra y avisa', async () => {
+    const user = userEvent.setup()
+    const pedidos: unknown[] = []
+    server.use(http.put('*/api/stock-telefonos/por-pasar/descarte', async ({ request }) => {
+      pedidos.push(await request.json())
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ altas: [filaAlta({ imeiSn: 'SIN-IMEI-CAM', modelo: null })] }))
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    await user.click(screen.getByRole('button', { name: 'Descartar SIN-IMEI-CAM' }))
+    const ventana = screen.getByRole('dialog', { name: 'Descartar de «No está en NSYS»' })
+    expect(ventana).toHaveTextContent('SIN-IMEI-CAM deja de salir aquí y no va en la plantilla de altas. Las importaciones de NSYS no lo devuelven; solo sale otra vez si el taller le hace un trabajo nuevo.')
+    expect(ventana).toHaveTextContent('Ejemplos: «no es un móvil, es una cámara», «móvil de un cliente, no es stock».')
+    const motivo = within(ventana).getByLabelText('Motivo (obligatorio)')
+    expect(motivo).toHaveAttribute('placeholder', 'Por qué no va a NSYS')
+    const boton = within(ventana).getByRole('button', { name: 'Descartar' })
+    expect(boton).toBeDisabled()
+    await user.type(motivo, '   ')
+    expect(boton).toBeDisabled()
+    await user.type(motivo, 'no es un móvil, es una cámara ')
+    expect(boton).toBeEnabled()
+    await user.click(boton)
+    await waitFor(() => expect(pedidos).toEqual([{ imeiSn: 'SIN-IMEI-CAM', motivo: 'no es un móvil, es una cámara' }]))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Descartar de «No está en NSYS»' })).not.toBeInTheDocument())
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descartado «SIN-IMEI-CAM»')
+  })
+
+  it('«Cancelar» y Esc cierran sin mandar nada', async () => {
+    const user = userEvent.setup()
+    const pedidos: unknown[] = []
+    server.use(http.put('*/api/stock-telefonos/por-pasar/descarte', async ({ request }) => {
+      pedidos.push(await request.json())
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ altas: [filaAlta()] }))
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    await user.click(screen.getByRole('button', { name: 'Descartar 350000000000088' }))
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog', { name: 'Descartar de «No está en NSYS»' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Descartar 350000000000088' }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: 'Descartar de «No está en NSYS»' })).not.toBeInTheDocument()
+    expect(pedidos).toEqual([])
+  })
+
+  it('si el servidor falla, la ventana sigue abierta con lo escrito; un doble clic manda una sola vez', async () => {
+    const user = userEvent.setup()
+    let veces = 0
+    server.use(http.put('*/api/stock-telefonos/por-pasar/descarte', async () => {
+      veces++
+      await new Promise((r) => setTimeout(r, 50))
+      return HttpResponse.json({ message: 'Falta el motivo' }, { status: 400 })
+    }))
+    pintar(tarjetas({ altas: [filaAlta()] }))
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    await user.click(screen.getByRole('button', { name: 'Descartar 350000000000088' }))
+    const ventana = screen.getByRole('dialog', { name: 'Descartar de «No está en NSYS»' })
+    await user.type(within(ventana).getByLabelText('Motivo (obligatorio)'), 'móvil de un cliente')
+    await user.dblClick(within(ventana).getByRole('button', { name: 'Descartar' }))
+    await waitFor(() => expect(veces).toBe(1))
+    // El diálogo «Error» de la app (AlertaProvider) es modal y esconde el resto a las consultas por rol: se mira por texto.
+    expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
+    expect(screen.getByText('Descartar de «No está en NSYS»')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('móvil de un cliente')).toBeInTheDocument()
+    expect(veces).toBe(1)
+  })
+
+  it('«Ver descartados» los enseña en gris con su motivo y «deshacer» los devuelve', async () => {
+    const user = userEvent.setup()
+    const pedidos: unknown[] = []
+    server.use(http.delete('*/api/stock-telefonos/por-pasar/descarte', async ({ request }) => {
+      pedidos.push(await request.json())
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ altas: [filaAlta()], descartadas: [filaDescartada()] }))
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    expect(screen.queryByRole('table', { name: 'Descartados' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ver descartados (1)' }))
+    const tabla = screen.getByRole('table', { name: 'Descartados' })
+    expect(cabeceras(tabla)).toEqual(['IMEI', 'Modelo', 'Último trabajo', 'Descartado', 'Motivo', ''])
+    const [fila] = filas(tabla)
+    expect(fila).toHaveTextContent('SIN-IMEI-CAM')
+    expect(fila).toHaveTextContent('R20260803_14 · Reparación')
+    expect(fila).toHaveTextContent('Supertécnico 1 · 26/10/2026 12:31')
+    expect(fila).toHaveTextContent('«no es un móvil, es una cámara»')
+    await user.click(screen.getByRole('button', { name: 'Deshacer descarte de SIN-IMEI-CAM' }))
+    await waitFor(() => expect(pedidos).toEqual([{ imeiSn: 'SIN-IMEI-CAM' }]))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('«SIN-IMEI-CAM» vuelve a la lista')
+    await user.click(screen.getByRole('button', { name: 'Ocultar descartados' }))
+    expect(screen.queryByRole('table', { name: 'Descartados' })).not.toBeInTheDocument()
+  })
+
+  it('sin descartados no sale «Ver descartados»; la fila que vuelve dice quién la descartó', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas({ altas: [filaAlta({ descartadoAntesPor: 'Supertécnico 1', descartadoAntesEn: '2026-10-26T12:31:00', descartadoAntesMotivo: 'no es un móvil' })] }))
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    expect(screen.queryByRole('button', { name: /^Ver descartados/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo descartara el 26/10/2026 12:31 («no es un móvil»)')).toBeInTheDocument()
+  })
+
+  it('con un servidor anterior a la pieza 3 (sin `descartadas`) la lista sale y no hay «Ver descartados»', async () => {
+    const user = userEvent.setup()
+    const viejas: Partial<TarjetasPorPasar> = tarjetas({ altas: [filaAlta()] })
+    delete viejas.descartadas
+    pintar(viejas as TarjetasPorPasar)
+    await user.click(screen.getByRole('button', { name: 'No está en NSYS' }))
+    expect(screen.getByRole('table', { name: 'No está en NSYS' })).toHaveTextContent('350000000000088')
+    expect(screen.queryByRole('button', { name: /^Ver descartados/ })).not.toBeInTheDocument()
   })
 })

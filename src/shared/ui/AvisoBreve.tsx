@@ -12,7 +12,7 @@ const ICONO: Record<TipoAviso, { simbolo: string; clase: string }> = {
 
 /**
  * Aviso breve abajo al centro (spec 2026-10-13 §2.7). No es un modal: no oscurece, no roba el foco y no hay que pulsar nada.
- * Una barra amarilla encoge en 4 s y al acabar se cierra; un clic lo cierra antes; uno nuevo sustituye al anterior y, al
+ * Una barra amarilla encoge en 4 s y al acabar se cierra; un clic (o la × de la derecha) lo cierra antes; uno nuevo sustituye al anterior y, al
  * cambiar la clave, la barra vuelve a empezar. Los errores siguen yendo por AlertaProvider.
  */
 export function AvisoBreveHost() {
@@ -39,6 +39,18 @@ export function AvisoBreveHost() {
         {icono.simbolo}
       </span>
       <span>{actual.texto}</span>
+      <button
+        type="button"
+        aria-label="Cerrar aviso"
+        title="Cerrar"
+        onClick={(e) => {
+          e.stopPropagation()
+          setActual(null)
+        }}
+        className="ml-auto flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[16px] leading-none text-crema/70 hover:bg-superficie/10 hover:text-crema"
+      >
+        ×
+      </button>
       <div className="absolute inset-x-0 bottom-0 h-1 bg-superficie/10">
         <i className="aviso-barra block h-full bg-amarillo" />
       </div>

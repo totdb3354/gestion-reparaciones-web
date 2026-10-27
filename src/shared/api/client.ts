@@ -104,6 +104,11 @@ export type FilaAltaNsys = components['schemas']['FilaAltaNsys']
 export type FilaRevisarNsys = components['schemas']['FilaRevisarNsys']
 export type PeticionHecho = components['schemas']['PorPasarPeticionHecho']
 export type PeticionDeshacerHecho = components['schemas']['PorPasarPeticionDeshacer']
+/** 0.9.22 pieza 3: los descartados de «No está en NSYS» («Ver descartados») y las peticiones de «descartar» (con motivo) y de su
+ *  «deshacer». Una fila de «No está en NSYS» que vuelve tras un trabajo nuevo lleva `descartadoAntesPor/En/Motivo`. */
+export type FilaDescartadaNsys = components['schemas']['FilaDescartadaNsys']
+export type PeticionDescarte = components['schemas']['PorPasarPeticionDescarte']
+export type PeticionDeshacerDescarte = components['schemas']['PorPasarPeticionDeshacerDescarte']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */

@@ -60,4 +60,14 @@ describe('AvisoBreve (spec 2026-10-13 §2.7)', () => {
     await userEvent.click(screen.getByTestId('aviso-breve'))
     expect(screen.queryByTestId('aviso-breve')).not.toBeInTheDocument()
   })
+
+  it('lleva la barra que se consume y una × que lo cierra antes', async () => {
+    render(<AvisoBreveHost />)
+    act(() => avisar({ texto: 'Descartado «SIN-IMEI-CAM»', tipo: 'ok' }))
+    expect(screen.getByTestId('aviso-breve').querySelector('.aviso-barra')).not.toBeNull()
+    const x = screen.getByRole('button', { name: 'Cerrar aviso' })
+    expect(x).toHaveAttribute('title', 'Cerrar')
+    await userEvent.click(x)
+    expect(screen.queryByTestId('aviso-breve')).not.toBeInTheDocument()
+  })
 })

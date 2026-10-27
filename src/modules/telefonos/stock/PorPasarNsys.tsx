@@ -3,17 +3,18 @@ import type { TarjetasPorPasar } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
-import { useDescargarPlantilla, useDeshacerHecho, useMarcarHecho, useRevisarAviso } from '../api'
+import { useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useMarcarHecho, useRevisarAviso } from '../api'
+import { DescartarAltaDialog } from './DescartarAltaDialog'
 import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
 import {
-  avisoCopiado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
+  avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
   type Tarjeta, type TarjetaConHecho,
 } from './porPasar'
 import { TarjetasNsys } from './TarjetasNsys'
 
 type Props = { tarjetas: TarjetasPorPasar | null; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void }
 
-const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [] }
+const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [], descartadas: [] }
 const BOTON = 'h-[26px] cursor-pointer rounded-lg px-2.5 text-[12px] font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40'
 const PRIMARIO = cn(BOTON, 'bg-azul-noche text-superficie hover:bg-azul-noche-hover')
 const SECUNDARIO = cn(BOTON, 'border border-borde-input bg-superficie text-azul-medio hover:bg-seleccion-suave')
@@ -30,7 +31,10 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
   const deshacer = useDeshacerHecho()
   const revisar = useRevisarAviso()
   const descargar = useDescargarPlantilla()
-  const ocupado = marcar.isPending || deshacer.isPending
+  const descartar = useDescartarAlta()
+  const recuperar = useDeshacerDescarte()
+  const [aDescartar, setADescartar] = useState<string | null>(null)
+  const ocupado = marcar.isPending || deshacer.isPending || descartar.isPending || recuperar.isPending
   const sinProducto = pendientes(t.color).filter((f) => f.ponerProducto === null).length
   const vacio = cargando ? 'Cargando…' : error ? 'No se pudo cargar la lista.' : VACIA[elegida]
 
@@ -89,11 +93,23 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
       </div>
       {elegida === 'color' && <ListaColor filas={t.color} {...conHecho('color')} />}
       {elegida === 'grado' && <ListaGrado filas={t.grado} {...conHecho('grado')} />}
-      {elegida === 'altas' && <ListaAltas filas={t.altas} {...conHecho('altas')} />}
+      {/* `?? []` en `descartadas`: un servidor anterior a la pieza 3 (vuelta atrás) no lo manda. */}
+      {elegida === 'altas' && (
+        <ListaAltas filas={t.altas} {...conHecho('altas')} descartadas={t.descartadas ?? []} onDescartar={setADescartar}
+          onRecuperar={(imeiSn) => recuperar.mutate({ imeiSn }, { onSuccess: () => avisar({ texto: avisoVuelve(imeiSn), tipo: 'ok' }) })} />
+      )}
       {elegida === 'revisar' && (
         <ListaRevisar filas={t.revisar} vacio={vacio} ocupado={revisar.isPending} onAbrirImei={onAbrirImei}
           onRevisado={(idAviso) => revisar.mutate(idAviso, { onSuccess: () => avisar({ texto: 'Revisado: sale de la lista (queda en el rastro)', tipo: 'ok' }) })} />
       )}
+      <DescartarAltaDialog imeiSn={aDescartar} enviando={descartar.isPending} onCerrar={() => setADescartar(null)}
+        onDescartar={(motivo) => {
+          const imeiSn = aDescartar
+          if (imeiSn === null) return
+          descartar.mutate({ imeiSn, motivo }, {
+            onSuccess: () => { setADescartar(null); avisar({ texto: avisoDescartado(imeiSn), tipo: 'ok' }) },
+          })
+        }} />
     </section>
   )
 }
