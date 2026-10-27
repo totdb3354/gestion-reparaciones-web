@@ -7,8 +7,8 @@ import { useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshac
 import { DescartarAltaDialog } from './DescartarAltaDialog'
 import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
 import {
-  avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
-  type Tarjeta, type TarjetaConHecho,
+  avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
+  vueltosFueraDePlantilla, type Tarjeta, type TarjetaConHecho,
 } from './porPasar'
 import { TarjetasNsys } from './TarjetasNsys'
 
@@ -45,9 +45,10 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
   })
 
   const compruebalo = paraPlantillaColor(t.color).filter((f) => f.compruebalo).length
+  const vueltos = vueltosFueraDePlantilla(t.color)
   const bajar = (cual: 'color' | 'altas') => descargar.mutate(cual, {
     onSuccess: ({ nombre, filas }) => avisar({
-      texto: cual === 'color' ? avisoPlantillaColor(nombre, filas, sinProducto, compruebalo) : avisoPlantillaAltas(nombre, filas),
+      texto: cual === 'color' ? avisoPlantillaColor(nombre, filas, sinProducto, compruebalo, vueltos) : avisoPlantillaAltas(nombre, filas),
       tipo: 'ok',
     }),
   })
@@ -75,7 +76,7 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
         </button>
       )
     }
-    const n = t.revisar.length
+    const n = cuentas(t, 'revisar').total
     return (
       <button type="button" disabled={n === 0} title={n === 0 ? SIN_NADA : undefined}
         onClick={(e) => { e.stopPropagation(); setElegida('revisar') }} className={SECUNDARIO}>Ver</button>
@@ -89,7 +90,6 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
         <p className="max-w-[880px] text-[11.5px] leading-snug text-azul-gris">{AYUDA[elegida]}</p>
         {elegida === 'color' && sinProducto > 0 && <span className={PASTILLA}>{`${sinProducto} sin producto en NSYS: no van en la plantilla`}</span>}
         {elegida === 'grado' && <span className={PASTILLA}>en NSYS se cambian uno a uno: «Copiar lista» para tenerlos delante y «Hecho» al acabar cada uno</span>}
-        {elegida === 'revisar' && <span className={PASTILLA}>se va con «Revisado» (queda quién y cuándo) o al corregirlo</span>}
       </div>
       {elegida === 'color' && <ListaColor filas={t.color} {...conHecho('color')} />}
       {elegida === 'grado' && <ListaGrado filas={t.grado} {...conHecho('grado')} />}
@@ -98,8 +98,9 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
         <ListaAltas filas={t.altas} {...conHecho('altas')} descartadas={t.descartadas ?? []} onDescartar={setADescartar}
           onRecuperar={(imeiSn) => recuperar.mutate({ imeiSn }, { onSuccess: () => avisar({ texto: avisoVuelve(imeiSn), tipo: 'ok' }) })} />
       )}
+      {/* `?? []` en `sinGrado`: un servidor anterior a la pieza 4 (vuelta atrás) no lo manda. */}
       {elegida === 'revisar' && (
-        <ListaRevisar filas={t.revisar} vacio={vacio} ocupado={revisar.isPending} onAbrirImei={onAbrirImei}
+        <ListaRevisar filas={t.revisar} sinGrado={t.sinGrado ?? []} vacio={vacio} ocupado={revisar.isPending} onAbrirImei={onAbrirImei}
           onRevisado={(idAviso) => revisar.mutate(idAviso, { onSuccess: () => avisar({ texto: 'Revisado: sale de la lista (queda en el rastro)', tipo: 'ok' }) })} />
       )}
       <DescartarAltaDialog imeiSn={aDescartar} enviando={descartar.isPending} onCerrar={() => setADescartar(null)}
