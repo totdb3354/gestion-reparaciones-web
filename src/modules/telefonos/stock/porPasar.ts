@@ -1,5 +1,5 @@
-import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, PorQueTaller, TarjetasPorPasar } from '@/shared/api/client'
-import { descripcionMovil, diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
+import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaSinGradoNsys, PorQueTaller, TarjetasPorPasar } from '@/shared/api/client'
+import { descripcionMovil, diaNsys, nombreModeloNsys, textoBateriaRecordada } from '@/shared/lib/telefonoNsys'
 
 /** Reglas de la lista «Por pasar a NSYS» (0.9.21, spec «SKU del taller» §2.4). */
 
@@ -41,14 +41,14 @@ export const EXPLICACION: Record<Tarjeta, string> = {
   color: 'Cambia el producto: en NSYS, bórralo y súbelo otra vez con la plantilla (con el grado que tiene hoy en NSYS).',
   grado: 'Cambia el grado: se corrige aparte en NSYS, uno a uno. Si el móvil también cambia de color, primero el color.',
   altas: 'NSYS no lo conoce: dalo de alta con la plantilla (rellena lo que falta).',
-  revisar: 'El ERP no supo calcularlo: mira el móvil y corrígelo en su ficha.',
+  revisar: 'Sin grado en NSYS o lo que el ERP no supo calcular: corrígelo en su ficha.',
 }
 
 export const AYUDA: Record<Tarjeta, string> = {
   color: 'Móviles a los que el taller ha cambiado el color. En NSYS: bórralos y súbelos otra vez con la plantilla, que lleva el grado que tienen hoy en NSYS (el grado nuevo, si lo hay, va por «Cambio de grado», después). Cada fila se va sola cuando la importación (cada 30 min) ve el color nuevo en NSYS.',
   grado: 'Todos los móviles a los que el taller ha cambiado el grado (chasis → A, batería nueva → 100…), también los que cambian de color: en esos, haz primero el color (si no, la plantilla de color le devolvería el grado de antes). En NSYS el grado se corrige aparte, sin borrar el móvil. Cada fila se va sola cuando la importación ve el grado nuevo.',
   altas: 'Móviles que han pasado por el taller y NSYS no conoce. La plantilla lleva lo que sabe el ERP; lo demás (capacidad, color, grado, precio, proveedor) va vacío para rellenarlo en el Excel. Cada fila se va sola cuando la importación los ve en NSYS. Si una fila no debería estar aquí (no es un móvil, es de un cliente…), «descartar» la quita con un motivo; solo vuelve si el taller le hace un trabajo nuevo.',
-  revisar: 'Al guardar una reparación, el ERP no pudo calcular el color o el grado nuevo, o no pudo deshacer un cambio. Una persona mira el móvil y lo corrige en su ficha («Corregir…»); si NSYS tiene que cambiar, el móvil aparece después en Color o en Grado.',
+  revisar: 'Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22/10; se van solos cuando NSYS los gradúa o con «Corregir…». Los avisos de color y de deshacer se van con «Revisado» o al corregirlos.',
 }
 
 export const VACIA: Record<Tarjeta, string> = {
@@ -60,9 +60,13 @@ export const VACIA: Record<Tarjeta, string> = {
 export const marcada = (f: ConHecho): boolean => f.hechoEn !== null && f.hechoVolvio === null
 export const pendientes = <T extends ConHecho>(filas: readonly T[]): T[] => filas.filter((f) => !marcada(f))
 
-/** Cuántas filas tiene una tarjeta, cuántas marcadas y cuántas pendientes («Revisar a mano» no lleva «Hecho»). */
+/** Cuántas filas tiene una tarjeta, cuántas marcadas y cuántas pendientes («Revisar a mano» no lleva «Hecho» y cuenta los
+ *  avisos y las filas «Sin grado en NSYS»). */
 export function cuentas(t: TarjetasPorPasar, cual: Tarjeta): { total: number; hechos: number; pendientes: number } {
-  if (cual === 'revisar') return { total: t.revisar.length, hechos: 0, pendientes: t.revisar.length }
+  if (cual === 'revisar') {
+    const n = t.revisar.length + t.sinGrado.length
+    return { total: n, hechos: 0, pendientes: n }
+  }
   const filas: readonly ConHecho[] = cual === 'color' ? t.color : cual === 'grado' ? t.grado : t.altas
   const hechos = filas.filter(marcada).length
   return { total: filas.length, hechos, pendientes: filas.length - hechos }
@@ -79,9 +83,14 @@ export const textoHechos = (n: number): string => (n > 0 ? ` · ${n} ${n === 1 ?
 /** «3 móviles · 1 hecho». */
 export const textoNumero = (total: number, hechos: number): string => `${total} ${palabraMoviles(total)}${textoHechos(hechos)}`
 
-/** Lo que lleva la plantilla de color (spec §4): lo pendiente con producto. */
+/** Lo que lleva la plantilla de color (spec §4): lo pendiente con producto, sin los que han vuelto (pieza 4 §6: antes, la
+ *  devolución en NSYS). */
 export const paraPlantillaColor = (filas: readonly FilaColorNsys[]): FilaColorNsys[] =>
-  pendientes(filas).filter((f) => f.ponerProducto !== null)
+  pendientes(filas).filter((f) => f.ponerProducto !== null && f.vueltoDesde === null)
+
+/** Los que irían en la plantilla de color pero han vuelto (pieza 4 §6). */
+export const vueltosFueraDePlantilla = (filas: readonly FilaColorNsys[]): number =>
+  pendientes(filas).filter((f) => f.ponerProducto !== null && f.vueltoDesde !== null).length
 
 /** «12:31»: la hora de una fecha de Madrid sin zona. */
 export const horaDe = (iso: string): string => iso.slice(11, 16)
@@ -99,11 +108,12 @@ export function listaGrado(filas: readonly FilaGradoNsys[]): string {
 }
 
 /** El aviso de la plantilla de color (spec §4: «el número de móviles y lo que haya que revisar»): los que no van por no tener
- *  producto y los que llevan «compruébalo» (en amarillo en el Excel). */
-export function avisoPlantillaColor(nombre: string, n: number, sinProducto: number, compruebalo = 0): string {
+ *  producto, los que llevan «compruébalo» (en amarillo en el Excel) y, desde la pieza 4, los que han vuelto y no van. */
+export function avisoPlantillaColor(nombre: string, n: number, sinProducto: number, compruebalo = 0, vueltos = 0): string {
   const partes = [`Descargado «${nombre}» · ${n} ${palabraMoviles(n)} (los marcados «Hecho» no van)`]
   if (sinProducto > 0) partes.push(`${sinProducto} sin producto en NSYS no ${sinProducto === 1 ? 'va' : 'van'}: búscalo a mano`)
   if (compruebalo > 0) partes.push(`${compruebalo} con «compruébalo» (en amarillo): míralo antes de subirlo`)
+  if (vueltos > 0) partes.push(`${vueltos} ${vueltos === 1 ? 'ha vuelto y no va' : 'han vuelto y no van'}: haz antes la devolución en NSYS`)
   return partes.join('. ')
 }
 
@@ -145,3 +155,28 @@ export function textoDescartadoAntes(f: FilaAltaNsys): string | null {
 
 /** «Supertécnico 1 · 26/10/2026 12:31» de «Ver descartados». */
 export const textoDescartado = (f: FilaDescartadaNsys): string => `${f.descartadoPor ?? '—'} · ${textoDesde(f.descartadoEn)}`
+
+// ---------------------------------------------------------------- 0.9.22 pieza 4: «Sin grado en NSYS» y los que han vuelto
+
+export const ETIQUETA_SIN_GRADO = 'Sin grado en NSYS'
+export const QUE_HACER_SIN_GRADO = 'Ponle grado en NSYS: la fila se va sola al importarlo (o «Corregir…» si ya lo sabes)'
+
+/** «NSYS: n/a» (el grado de NSYS tal cual; «NSYS: —» si está vacío). */
+export const textoGradoNsys = (f: Pick<FilaSinGradoNsys, 'gradoNsys'>): string =>
+  `NSYS: ${f.gradoNsys && f.gradoNsys.trim() !== '' ? f.gradoNsys : '—'}`
+
+/** «Último trabajo: 26/10/2026 · Reparación (R20261026_205)». */
+export const textoUltimoTrabajoSinGrado = (f: Pick<FilaSinGradoNsys, 'ultimoTrabajo' | 'ultimoTrabajoEn' | 'categoria'>): string =>
+  `Último trabajo: ${diaNsys(f.ultimoTrabajoEn)} · ${CATEGORIA[f.categoria] ?? f.categoria} (${f.ultimoTrabajo})`
+
+/** La batería recordada de la fila («Batería nueva del 26/10 (R…)»); null sin ninguna. */
+export const textoBateriaDeFila = (f: Pick<FilaSinGradoNsys, 'bateriaIdRep' | 'bateriaNueva' | 'bateriaEn'>): string | null =>
+  f.bateriaIdRep && f.bateriaEn ? textoBateriaRecordada(f.bateriaNueva === true, f.bateriaEn, f.bateriaIdRep) : null
+
+/** La línea ámbar de un vendido o de baja que ha vuelto (pieza 4 §7); null en un móvil en la empresa. */
+export function textoVuelta(f: { vendidoEn: string | null; bajaEn: string | null; vueltoDesde: string | null }): string | null {
+  if (!f.vueltoDesde) return null
+  const desde = diaNsys(f.vueltoDesde)
+  if (f.vendidoEn) return `Vendido en NSYS el ${diaNsys(f.vendidoEn)} · el taller lo tiene desde el ${desde}: haz antes la devolución en NSYS`
+  return `De baja en NSYS desde el ${diaNsys(f.bajaEn ?? f.vueltoDesde)} · el taller lo tiene desde el ${desde}: míralo antes en NSYS`
+}

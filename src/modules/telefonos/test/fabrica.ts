@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -75,7 +75,7 @@ export function filaColor(p: Partial<FilaColorNsys> = {}): FilaColorNsys {
     productoNsys: 'Apple iPhone 13 128GB Blue', gradoNsys: 'B', ponerProducto: 'Apple iPhone 13 128GB (PRODUCT)RED',
     compruebalo: false, tambienGrado: false,
     porQue: [porQue({ dato: 'COLOR', origen: 'REPARACION', idRep: 'R20261024_12', usuario: 'Técnico 2', motivo: 'chasis chai13red nuevo' })],
-    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, ...p,
+    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, ...p,
   }
 }
 
@@ -85,7 +85,7 @@ export function filaGrado(p: Partial<FilaGradoNsys> = {}): FilaGradoNsys {
     imeiSn: '350000000000022', modelo: '14', modeloMaestro: '14', capacidad: '256GB', gradoDe: 'A', gradoA: 'A100',
     productoNsys: 'Apple iPhone 14 eSIM 256GB Midnight', conColor: false,
     porQue: [porQue({ origen: 'REPARACION', idRep: 'R20261024_31', usuario: 'Técnico 2', motivo: 'batería bati14 nueva' })],
-    desde: '2026-10-24T12:40:00', hechoPor: null, hechoEn: null, hechoVolvio: null, ...p,
+    desde: '2026-10-24T12:40:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, ...p,
   }
 }
 
@@ -111,11 +111,22 @@ export function filaRevisar(p: Partial<FilaRevisarNsys> = {}): FilaRevisarNsys {
   return {
     idAviso: 1, imeiSn: '350000000000101', modelo: '14', modeloMaestro: '14', capacidad: '512GB', tipo: 'SIN_COLOR', causa: null,
     dato: 'COLOR', de: 'chai14yellowesim', a: null, motivo: 'chasis chai14yellowesim nuevo', idRep: 'R20261022_2',
-    usuario: 'Técnico 3', fecha: '2026-10-22T11:14:00', ...p,
+    usuario: 'Técnico 3', fecha: '2026-10-22T11:14:00', vendidoEn: null, bajaEn: null, vueltoDesde: null, ...p,
+  }
+}
+
+/** 0.9.22 pieza 4: una fila «Sin grado en NSYS»: un iPhone 13 128GB en «n/a» con una reparación del 26/10 17:28 y la batería
+ *  nueva recordada de esa misma R…. */
+export function filaSinGrado(p: Partial<FilaSinGradoNsys> = {}): FilaSinGradoNsys {
+  return {
+    imeiSn: '350000000000201', modelo: '13', modeloMaestro: '13', capacidad: '128GB', gradoNsys: 'n/a',
+    ultimoTrabajo: 'R20261026_205', ultimoTrabajoEn: '2026-10-26T17:28:49', categoria: 'REPARACION',
+    bateriaIdRep: 'R20261026_205', bateriaNueva: true, bateriaEn: '2026-10-26T17:28:49', vendidoEn: null, bajaEn: null,
+    vueltoDesde: null, ...p,
   }
 }
 
 /** Las cuatro tarjetas, vacías salvo lo que se pase. */
 export function tarjetas(p: Partial<TarjetasPorPasar> = {}): TarjetasPorPasar {
-  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], ...p }
+  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ...p }
 }

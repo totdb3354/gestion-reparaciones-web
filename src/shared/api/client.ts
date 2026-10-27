@@ -110,6 +110,11 @@ export type FilaDescartadaNsys = components['schemas']['FilaDescartadaNsys']
 export type PeticionDescarte = components['schemas']['PorPasarPeticionDescarte']
 export type PeticionDeshacerDescarte = components['schemas']['PorPasarPeticionDeshacerDescarte']
 
+/** 0.9.22 pieza 4: «Sin grado en NSYS» en «Revisar a mano» (un móvil sin grado que ha pasado por el taller desde el 22/10, con su
+ *  último trabajo y su batería recordada). Color, Grado y Revisar llevan `vendidoEn`/`bajaEn`/`vueltoDesde` si es un vendido o de
+ *  baja que ha vuelto; `OpcionesTaller` trae la batería recordada (`bateriaIdRep`, `bateriaNueva`, `bateriaEn`). */
+export type FilaSinGradoNsys = components['schemas']['FilaSinGradoNsys']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''
