@@ -111,7 +111,7 @@ export function textoAvisoTaller(a: AvisoTallerTexto): string {
     case 'SIN_COLOR':
       return `Taller: el color ${delaPieza(a.de)} no se puede deducir: lo corregirá un supertécnico (reparación ${a.idRep ?? '—'} · ${quien})`
     case 'SIN_GRADO':
-      return `Taller: el grado (${a.de ?? '—'}) no se puede calcular: lo corregirá un supertécnico (${[`reparación ${a.idRep ?? '—'}`, quien, a.motivo].filter(Boolean).join(' · ')})`
+      return `Taller: el grado (${a.de ?? '—'}) aún no se puede calcular: se resuelve solo cuando el móvil tenga grado (${[`reparación ${a.idRep ?? '—'}`, quien, a.motivo].filter(Boolean).join(' · ')})`
     case 'SIN_DESHACER':
       return `Se ${a.causa === 'BORRADA' ? 'borró' : 'editó'} la reparación ${a.idRep ?? '—'} que cambió el ${DATO_AVISO[a.dato ?? ''] ?? 'dato'}; corrígelo a mano si hace falta (${quien})`
     default:

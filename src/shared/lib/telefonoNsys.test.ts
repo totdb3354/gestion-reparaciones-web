@@ -90,7 +90,7 @@ describe('descripcionMovil (0.9.21, spec «Descripción completa donde pone «Mo
       .toBe('Taller: el color del chasis chai13xxx no se puede deducir: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2)')
     expect(textoAvisoTaller({ ...base, tipo: 'SIN_COLOR', dato: 'COLOR', de: 'tapai13xxx' })).toContain('el color de la tapa tapai13xxx')
     expect(textoAvisoTaller({ ...base, tipo: 'SIN_GRADO', dato: 'GRADO', de: 'ID', motivo: 'batería bati13 nueva' }))
-      .toBe('Taller: el grado (ID) no se puede calcular: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
+      .toBe('Taller: el grado (ID) aún no se puede calcular: se resuelve solo cuando el móvil tenga grado (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
     expect(textoAvisoTaller({ ...base, tipo: 'SIN_DESHACER', causa: 'BORRADA', dato: 'COLOR', de: 'Rojo' }))
       .toBe('Se borró la reparación R20261021_3 que cambió el color; corrígelo a mano si hace falta (Técnico 2)')
     expect(ETIQUETA_AVISO).toEqual({ SIN_COLOR: 'Color sin deducir', SIN_GRADO: 'Grado sin calcular', SIN_DESHACER: 'No se pudo deshacer' })

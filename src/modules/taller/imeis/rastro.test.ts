@@ -77,7 +77,7 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
     expect(verEvento(rep({ tipo: 'TALLER_SIN_COLOR', dato: 'COLOR', de: 'tapai13xxx' })).titulo)
       .toContain('el color de la tapa tapai13xxx no se puede deducir')
     expect(verEvento(rep({ tipo: 'TALLER_SIN_GRADO', dato: 'GRADO', de: 'ID', motivo: 'batería bati13 nueva' })).titulo)
-      .toBe('Taller: el grado (ID) no se puede calcular: lo corregirá un supertécnico (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
+      .toBe('Taller: el grado (ID) aún no se puede calcular: se resuelve solo cuando el móvil tenga grado (reparación R20261021_3 · Técnico 2 · batería bati13 nueva)')
     expect(verEvento(rep({ tipo: 'TALLER_DESHECHO_BORRADA', dato: 'COLOR', de: 'Rojo', a: 'Azul' })))
       .toMatchObject({ titulo: 'Se deshace: color Rojo → Azul (se borró la reparación R20261021_3 · Técnico 2)', color: 'bg-taller' })
     expect(verEvento(rep({ tipo: 'TALLER_DESHECHO_EDITADA', dato: 'GRADO', de: 'A', a: 'B' })).titulo)
