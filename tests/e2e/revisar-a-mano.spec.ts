@@ -6,15 +6,31 @@ import { credenciales } from './credenciales.ts'
 // grado», deja «Sin grado» y el rastro dice «Batería resuelta por el ERP». Solo contra PREPRODUCCIÓN (se niega sin el letrero) y
 // con el móvil SINTÉTICO sin grado del guion de preprod (por defecto 350000000009924, copia de un iPhone 13 128GB con GRADE
 // «n/a»; otro con E2E_IMEI_SIN_GRADO): nunca uno real. Las asignaciones son del propio supertécnico (E2E_USER) y, al acabar, se
-// borra todo lo del taller de ese IMEI (los avisos y el registro de actividad los limpia el guion).
+// borra todo lo del taller de ese IMEI (los avisos y el registro de actividad los limpia el guion). Desde el 02/11 cubre también lo
+// que antes se miraba a mano: «Sin grado» antes que los avisos, la ayuda nueva sin la pastilla, el texto de la batería en
+// «Corregir…» (cancelando) y, solo leyendo los datos de preprod, la línea ámbar de los que han vuelto y el aviso de la plantilla.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const IMEI = process.env.E2E_IMEI_SIN_GRADO ?? '350000000009924'
 const SIN_NADA = 'Este móvil no tiene nada del taller'
 const MOTIVO = 'E2E 0.9.22 pieza 4: Revisar a mano'
 
 type Respuesta = { estado: number; cuerpo: unknown }
-type FilaSinGrado = { imeiSn: string; ultimoTrabajo: string; bateriaIdRep: string | null; bateriaNueva: boolean | null }
-type Tarjetas = { sinGrado: FilaSinGrado[]; grado: { imeiSn: string; gradoA: string | null }[] }
+/** La vuelta de un vendido o de baja (pieza 4 §6): los tres null en un móvil en la empresa. */
+type ConVuelta = { imeiSn: string; vendidoEn: string | null; bajaEn: string | null; vueltoDesde: string | null }
+type FilaSinGrado = ConVuelta & { ultimoTrabajo: string; bateriaIdRep: string | null; bateriaNueva: boolean | null }
+type FilaColor = ConVuelta & { ponerProducto: string | null; hechoEn: string | null; hechoVolvio: string | null }
+type Tarjetas = { sinGrado: FilaSinGrado[]; revisar: ConVuelta[]; grado: (ConVuelta & { gradoA: string | null })[]; color: FilaColor[] }
+
+/** «02/05/2023» de «2023-05-02» o «2023-05-02T13:01:00» (horas de Madrid, cortadas del texto como la web). */
+const dia = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+
+/** La línea ámbar que pinta la web bajo el IMEI de un móvil que ha vuelto (spec pieza 4 §7). */
+function textoVuelta(f: ConVuelta): string {
+  const desde = dia(f.vueltoDesde ?? '')
+  return f.vendidoEn
+    ? `Vendido en NSYS el ${dia(f.vendidoEn)} · el taller lo tiene desde el ${desde}: haz antes la devolución en NSYS`
+    : `De baja en NSYS desde el ${dia(f.bajaEn ?? f.vueltoDesde ?? '')} · el taller lo tiene desde el ${desde}: míralo antes en NSYS`
+}
 type Previa = { enNsys: boolean; despues: { color: string | null; grado: string | null }; colorSinDeducir: boolean }
 
 async function entrar(page: Page, usuario: string, clave: string) {
@@ -166,6 +182,13 @@ test.describe('0.9.22 pieza 4: Revisar a mano con «Sin grado en NSYS» y la bat
     await expect(fila).toContainText('Sin grado en NSYS')
     await expect(fila).toContainText('NSYS: n/a')
     await expect(fila.getByRole('button', { name: /^Revisado/ })).toHaveCount(0)
+    // Las filas «Sin grado» van antes que los avisos (si hay alguno); la ayuda es la nueva y no queda la pastilla de antes.
+    const textos = await pagina.getByRole('table', { name: 'Revisar a mano' }).getByRole('row').allTextContents()
+    const ultimaSinGrado = textos.reduce((max, t, i) => (t.includes('Sin grado en NSYS') ? i : max), -1)
+    const primerAviso = textos.findIndex((t) => /Color sin deducir|No se pudo deshacer/.test(t))
+    if (primerAviso >= 0) expect(ultimaSinGrado, 'las filas «Sin grado» van antes que los avisos').toBeLessThan(primerAviso)
+    await expect(pagina.getByText(/^Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22\/10/)).toBeVisible()
+    await expect(pagina.getByText('se va con «Revisado» (queda quién y cuándo) o al corregirlo')).toHaveCount(0)
   })
 
   test('una batería nueva se recuerda en la fila', async () => {
@@ -178,6 +201,15 @@ test.describe('0.9.22 pieza 4: Revisar a mano con «Sin grado en NSYS» y la bat
     const fila = (await abrirRevisarAMano(pagina)).getByRole('row', { name: new RegExp(IMEI) })
     await expect(fila).toContainText(`Batería nueva del`)
     await expect(fila).toContainText(`(${bateria})`)
+    // «Corregir…» recuerda la batería debajo del grado; se cancela sin guardar nada.
+    await pagina.goto(`/reparaciones/imeis/${IMEI}`)
+    const ficha = pagina.getByRole('region', { name: 'Ficha de NSYS' })
+    await expect(ficha).toBeVisible({ timeout: 30_000 })
+    await ficha.getByRole('button', { name: 'Corregir color, grado o batería…' }).click()
+    const dialogo = pagina.getByRole('dialog', { name: `Corregir ${IMEI}` })
+    await expect(dialogo).toContainText(new RegExp(`Lleva batería nueva del \\d{2}/\\d{2} \\(${bateria}\\): si quieres el 100, escríbelo`))
+    await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+    await expect(dialogo).toHaveCount(0)
   })
 
   test('un chasis después le pone A100: sale en «Cambio de grado», deja «Sin grado» y el rastro lo dice', async () => {
@@ -194,5 +226,39 @@ test.describe('0.9.22 pieza 4: Revisar a mano con «Sin grado en NSYS» y la bat
     await ficha.getByRole('button', { name: /^Ver rastro/ }).click()
     await expect(pagina.getByRole('dialog', { name: 'Rastro' })).toContainText(`Batería resuelta por el ERP · grado A100 (reparación ${bateria})`)
     await pagina.keyboard.press('Escape')
+  })
+
+  // Solo lee: usa los móviles que han vuelto de los datos de preprod (la copia de producción). Si no hay ninguno, se salta.
+  test('los que han vuelto llevan su línea ámbar en Revisar a mano, Cambio de grado y Cambio de color, y no van en la plantilla', async () => {
+    const t = await tarjetas(pagina)
+    const listas: { tarjeta: string; filas: ConVuelta[] }[] = [
+      { tarjeta: 'Revisar a mano', filas: [...t.sinGrado, ...t.revisar] },
+      { tarjeta: 'Cambio de grado', filas: t.grado },
+      { tarjeta: 'Cambio de color', filas: t.color },
+    ]
+    const conVuelta = listas.flatMap(({ tarjeta, filas }) => {
+      const vuelto = filas.find((f) => f.vueltoDesde)
+      return vuelto ? [{ tarjeta, vuelto }] : []
+    })
+    test.skip(conVuelta.length === 0, 'Ningún móvil vendido o de baja ha vuelto en los datos de preprod')
+    await pagina.goto('/telefonos/stock')
+    await pagina.getByRole('button', { name: /^Por pasar a NSYS/ }).click()
+    for (const { tarjeta, vuelto } of conVuelta) {
+      await pagina.getByRole('button', { name: tarjeta, exact: true }).click()
+      const tabla = pagina.getByRole('table', { name: tarjeta })
+      await expect(tabla).toBeVisible()
+      await expect(tabla.getByText('Cargando…')).toHaveCount(0)
+      await expect(tabla.getByRole('row', { name: new RegExp(vuelto.imeiSn) }).first(), `${tarjeta}: ${vuelto.imeiSn}`)
+        .toContainText(textoVuelta(vuelto))
+    }
+    // La plantilla de color no lleva los que han vuelto: si alguno iría y la plantilla tiene otros, el aviso lo dice.
+    const pendiente = (f: FilaColor) => f.ponerProducto !== null && !(f.hechoEn !== null && f.hechoVolvio === null)
+    const vueltos = t.color.filter((f) => pendiente(f) && f.vueltoDesde).length
+    const van = t.color.filter((f) => pendiente(f) && !f.vueltoDesde).length
+    if (vueltos > 0 && van > 0) {
+      await pagina.getByRole('article', { name: 'Cambio de color' }).getByRole('button', { name: /^⬇ Descargar plantilla/ }).click()
+      await expect(pagina.getByTestId('aviso-breve'))
+        .toContainText(`${vueltos} ${vueltos === 1 ? 'ha vuelto y no va' : 'han vuelto y no van'}: haz antes la devolución en NSYS`)
+    }
   })
 })

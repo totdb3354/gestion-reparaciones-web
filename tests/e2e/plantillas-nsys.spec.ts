@@ -210,6 +210,11 @@ test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
     await expect(boton).toHaveText(`⬇ Descargar plantilla (${pendientes})`)
     const n = pendientes
     const { nombre, xlsx } = await bajarPlantilla(pagina, 'No está en NSYS')
+    // 0.9.22 pieza 3: el aviso «Descargado» lleva la barra que se consume y una × que lo cierra antes de tiempo.
+    const aviso = pagina.getByTestId('aviso-breve')
+    await expect(aviso.locator('.aviso-barra'), 'la barra del aviso').toHaveCount(1)
+    await aviso.getByRole('button', { name: 'Cerrar aviso' }).click()
+    await expect(aviso, 'la × cierra el aviso').toHaveCount(0)
     expect(nombre).toMatch(/^NSYS_altas_\d{4}-\d{2}-\d{2}\.xlsx$/)
     comprobarCabecera(xlsx)
     const filas = xlsx.filasConDatos(7, 'A')
