@@ -75,18 +75,44 @@ function comprobarCabecera(xlsx: Xlsx) {
 const portapapeles = async (page: Page): Promise<string[]> =>
   (await page.evaluate(() => (navigator as Navigator & { clipboard: { readText(): Promise<string> } }).clipboard.readText())).split(/\r?\n/)
 
-/** Baja la plantilla de una tarjeta con su botón y devuelve el nombre que manda el servidor y su contenido leído. Se lee la respuesta
- *  y el aviso «Descargado», que la web saca justo después de dar el fichero al navegador, y no el evento «download»: Chromium sin
- *  cabeza pierde alguna descarga automática (1 de cada ~11 en una prueba aislada, también sin revocar la URL; en preprod el
- *  26/10 llegó la respuesta 200 y no la descarga), y eso no es de la app. */
+type Guardado = { nombre: string; bytes: number[] }
+
+/** 0.9.22.1: «Guardar como» falsa, que se instala en la página antes de entrar (Chromium sin cabeza no abre la de verdad): da un
+ *  fichero con el nombre propuesto y apunta en `guardadosE2E` lo que la web escribe en él. Va como script de la página: sin nada de
+ *  fuera. */
+function guardarComoFalso() {
+  const guardados: { nombre: string; bytes: number[] }[] = []
+  Reflect.set(globalThis, 'guardadosE2E', guardados)
+  Reflect.set(globalThis, 'showSaveFilePicker', async (opciones?: { suggestedName?: string }) => {
+    const nombre = opciones?.suggestedName ?? 'sin-nombre'
+    const partes: Blob[] = []
+    return {
+      name: nombre,
+      createWritable: async () => ({
+        write: async (b: Blob) => { partes.push(b) },
+        close: async () => { guardados.push({ nombre, bytes: Array.from(new Uint8Array(await new Blob(partes).arrayBuffer())) }) },
+        abort: async () => {},
+      }),
+    }
+  })
+}
+
+/** Baja la plantilla de una tarjeta con su botón y devuelve el nombre que manda el servidor y el contenido que la web guardó en el
+ *  fichero elegido en «Guardar como» (la falsa de guardarComoFalso), que tiene que ser el que mandó el servidor. Desde la 0.9.22.1 la
+ *  ventana se abre en el clic, antes de pedir el Excel: la descarga automática después de esperar al servidor se perdía (en preprod
+ *  el 26/10 llegó la respuesta 200 y no la descarga, y en producción el 03/11 no bajaba). */
 async function bajarPlantilla(page: Page, tarjeta: string) {
   const respuesta = page.waitForResponse((r) => /\/api\/stock-telefonos\/por-pasar\/plantilla-(color|altas)$/.test(new URL(r.url()).pathname))
   await page.getByRole('article', { name: tarjeta }).getByRole('button', { name: /^⬇ Descargar plantilla/ }).click()
   const r = await respuesta
   expect(r.status(), `la plantilla de «${tarjeta}»`).toBe(200)
   const nombre = /filename="([^"]+)"/.exec(r.headers()['content-disposition'] ?? '')?.[1] ?? ''
-  await expect(page.getByTestId('aviso-breve'), 'la web da el fichero al navegador').toContainText(`Descargado «${nombre}»`)
-  return { nombre, xlsx: leerXlsx(await r.body()) }
+  await expect(page.getByTestId('aviso-breve'), 'la web guarda el fichero y lo dice').toContainText(`Descargado «${nombre}»`)
+  const guardado = await page.evaluate(() => (Reflect.get(globalThis, 'guardadosE2E') as Guardado[]).at(-1))
+  expect(guardado?.nombre, '«Guardar como» propone el nombre del servidor').toBe(nombre)
+  const cuerpo = await r.body()
+  expect(guardado?.bytes.length, 'el fichero guardado es el que mandó el servidor').toBe(cuerpo.length)
+  return { nombre, xlsx: leerXlsx(Buffer.from(guardado!.bytes)) }
 }
 
 /** Sin marcas «Hecho» y sin nada del taller: 204 al quitar las marcas (aunque no hubiera) y 204, o el 400 «Este móvil no tiene
@@ -113,6 +139,7 @@ test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
   test.beforeAll(async ({ browser }, testInfo) => {
     const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
     pagina = await browser.newPage({ baseURL: testInfo.project.use.baseURL })
+    await pagina.addInitScript(guardarComoFalso)
     await entrar(pagina, usuario, clave)
     enPreprod = true
     expect((await pedir(pagina, 'GET', `/api/stock-telefonos/${IMEI}`)).estado,

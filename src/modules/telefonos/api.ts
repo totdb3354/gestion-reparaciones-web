@@ -5,7 +5,8 @@ import {
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
-import { descargarBlob, nombreDeDescarga } from '@/shared/lib/descargas'
+import { guardarEn, nombreDeDescarga, type TipoFichero } from '@/shared/lib/descargas'
+import { hoyMadrid } from '@/shared/lib/fechas'
 
 export const CLAVE_ESTADO_NSYS = ['telefonos', 'estado'] as const
 export const CLAVE_IMPORTACIONES_NSYS = ['telefonos', 'importaciones'] as const
@@ -138,18 +139,24 @@ export function useDeshacerDescarte() {
 export type Plantilla = 'color' | 'altas'
 export type Descarga = { nombre: string; filas: number }
 
-/** GET …/por-pasar/plantilla-color o …/plantilla-altas (spec 0.9.22 §4): el Excel lo hace el servidor; aquí se guarda con el
- *  nombre que manda (Content-Disposition) y se devuelve cuántos móviles lleva (cabecera X-Filas). Un error sale en el diálogo de
- *  siempre. */
+export const TIPO_XLSX: TipoFichero = { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extension: '.xlsx' }
+
+/** El nombre que pone el servidor a una plantilla (`NSYS_color_2026-11-03.xlsx`, fecha de Madrid): el que propone «Guardar como». */
+export const nombrePlantilla = (cual: Plantilla, ahora: Date = new Date()): string => `NSYS_${cual}_${hoyMadrid(ahora)}.xlsx`
+
+/** GET …/por-pasar/plantilla-color o …/plantilla-altas (spec 0.9.22 §4): el Excel lo hace el servidor; aquí se guarda en
+ *  `destino`, el fichero que se eligió en «Guardar como» antes de llamar (0.9.22.1, elegirDestino), o sin él con el nombre que
+ *  manda (Content-Disposition) en la carpeta de descargas. Devuelve con qué nombre se guardó y cuántos móviles lleva (cabecera
+ *  X-Filas). Un error sale en el diálogo de siempre. */
 export function useDescargarPlantilla() {
   return useMutation({
-    mutationFn: async (cual: Plantilla): Promise<Descarga> => {
+    mutationFn: async ({ cual, destino }: { cual: Plantilla; destino: FileSystemFileHandle | null }): Promise<Descarga> => {
       const { data, response } = cual === 'color'
         ? await api.GET('/api/stock-telefonos/por-pasar/plantilla-color', { parseAs: 'blob' })
         : await api.GET('/api/stock-telefonos/por-pasar/plantilla-altas', { parseAs: 'blob' })
-      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? `NSYS_${cual}.xlsx`
-      if (data) descargarBlob(data, nombre)
-      return { nombre, filas: Number(response.headers.get('X-Filas') ?? '0') }
+      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? nombrePlantilla(cual)
+      const guardado = data ? await guardarEn(destino, { blob: data, nombre }) : nombre
+      return { nombre: guardado, filas: Number(response.headers.get('X-Filas') ?? '0') }
     },
   })
 }

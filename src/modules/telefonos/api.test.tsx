@@ -128,7 +128,8 @@ describe('api del stock de teléfonos', () => {
       },
     })))
     const descarga = renderHook(() => useDescargarPlantilla(), { wrapper: envoltorio() })
-    await expect(descarga.result.current.mutateAsync('color')).resolves.toEqual({ nombre: 'NSYS_color_2026-10-25.xlsx', filas: 2 })
+    await expect(descarga.result.current.mutateAsync({ cual: 'color', destino: null }))
+      .resolves.toEqual({ nombre: 'NSYS_color_2026-10-25.xlsx', filas: 2 })
     expect(crear).toHaveBeenCalledTimes(1)
     vi.restoreAllMocks()
   })

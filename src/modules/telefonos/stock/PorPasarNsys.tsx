@@ -3,7 +3,11 @@ import type { TarjetasPorPasar } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
-import { useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useMarcarHecho, useRevisarAviso } from '../api'
+import { elegirDestino } from '@/shared/lib/descargas'
+import {
+  nombrePlantilla, TIPO_XLSX, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useMarcarHecho, useRevisarAviso,
+  type Plantilla,
+} from '../api'
 import { DescartarAltaDialog } from './DescartarAltaDialog'
 import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
 import {
@@ -46,19 +50,25 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
 
   const compruebalo = paraPlantillaColor(t.color).filter((f) => f.compruebalo).length
   const vueltos = vueltosFueraDePlantilla(t.color)
-  const bajar = (cual: 'color' | 'altas') => descargar.mutate(cual, {
-    onSuccess: ({ nombre, filas }) => avisar({
-      texto: cual === 'color' ? avisoPlantillaColor(nombre, filas, sinProducto, compruebalo, vueltos) : avisoPlantillaAltas(nombre, filas),
-      tipo: 'ok',
-    }),
-  })
+  // 0.9.22.1: «Guardar como» en el mismo clic y después el Excel del servidor (si se esperaba al servidor, el navegador perdía la
+  // descarga). Cancelar no pide nada.
+  const bajar = async (cual: Plantilla) => {
+    const destino = await elegirDestino(nombrePlantilla(cual), TIPO_XLSX)
+    if (destino === 'cancelado') return
+    descargar.mutate({ cual, destino }, {
+      onSuccess: ({ nombre, filas }) => avisar({
+        texto: cual === 'color' ? avisoPlantillaColor(nombre, filas, sinProducto, compruebalo, vueltos) : avisoPlantillaAltas(nombre, filas),
+        tipo: 'ok',
+      }),
+    })
+  }
 
   function boton(cual: Tarjeta) {
     if (cual === 'color' || cual === 'altas') {
       const n = cual === 'color' ? paraPlantillaColor(t.color).length : pendientes(t.altas).length
       return (
         <button type="button" disabled={n === 0 || descargar.isPending} title={n === 0 ? SIN_NADA : `${n} ${n === 1 ? 'móvil' : 'móviles'}`}
-          onClick={(e) => { e.stopPropagation(); bajar(cual) }} className={PRIMARIO}>
+          onClick={(e) => { e.stopPropagation(); void bajar(cual) }} className={PRIMARIO}>
           {`⬇ Descargar plantilla${n > 0 ? ` (${n})` : ''}`}
         </button>
       )

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { TarjetasPorPasar } from '@/shared/api/client'
+import { hoyMadrid } from '@/shared/lib/fechas'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
@@ -365,5 +366,52 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     pintar(tarjetas({ color: [filaColor(), filaColor({ imeiSn: '350000000000012', vendidoEn: '2026-09-14', vueltoDesde: '2026-10-22T14:06:00' })] }))
     await user.click(screen.getByRole('button', { name: '⬇ Descargar plantilla (1)' }))
     expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('1 ha vuelto y no va: haz antes la devolución en NSYS')
+  })
+})
+
+describe('«Descargar plantilla» con «Guardar como» (0.9.22.1)', () => {
+  afterEach(() => {
+    delete window.showSaveFilePicker
+    vi.restoreAllMocks()
+  })
+
+  it('abre la ventana antes de pedir el Excel, lo escribe en el fichero elegido y el aviso dice su nombre', async () => {
+    const user = userEvent.setup()
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const orden: string[] = []
+    const escrito: Blob[] = []
+    const ventana = vi.fn(async () => {
+      orden.push('ventana')
+      return { name: 'mio.xlsx', createWritable: async () => ({ write: async (b: Blob) => { escrito.push(b) }, close: async () => {} }) }
+    })
+    window.showSaveFilePicker = ventana as unknown as typeof window.showSaveFilePicker
+    server.use(http.get('*/api/stock-telefonos/por-pasar/plantilla-altas', () => {
+      orden.push('servidor')
+      return new HttpResponse('PK', {
+        headers: { 'Content-Disposition': 'attachment; filename="NSYS_altas_2026-11-03.xlsx"', 'X-Filas': '1' },
+      })
+    }))
+    pintar(tarjetas({ altas: [filaAlta()] }))
+    await user.click(within(screen.getByRole('article', { name: 'No está en NSYS' })).getByRole('button', { name: '⬇ Descargar plantilla (1)' }))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado «mio.xlsx» · 1 móvil')
+    expect(ventana).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: `NSYS_altas_${hoyMadrid()}.xlsx` }))
+    expect(orden).toEqual(['ventana', 'servidor'])
+    expect(await escrito[0].text()).toBe('PK')
+    expect(clic).not.toHaveBeenCalled()
+  })
+
+  it('si se cancela la ventana, no pide nada al servidor ni avisa', async () => {
+    const user = userEvent.setup()
+    let pedida = false
+    window.showSaveFilePicker = vi.fn(async () => { throw new DOMException('cancelado', 'AbortError') })
+    server.use(http.get('*/api/stock-telefonos/por-pasar/plantilla-color', () => {
+      pedida = true
+      return new HttpResponse(new Blob(['PK']), { headers: { 'X-Filas': '1' } })
+    }))
+    pintar(tarjetas({ color: [filaColor()] }))
+    await user.click(screen.getByRole('button', { name: '⬇ Descargar plantilla (1)' }))
+    await waitFor(() => expect(window.showSaveFilePicker).toHaveBeenCalledTimes(1))
+    expect(pedida).toBe(false)
+    expect(screen.queryByTestId('aviso-breve')).toBeNull()
   })
 })
