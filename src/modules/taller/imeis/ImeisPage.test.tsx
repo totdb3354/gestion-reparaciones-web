@@ -320,6 +320,18 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
     expect(await screen.findByText('Detalle del IMEI')).toBeInTheDocument()
   })
 
+  it('0.9.24: el aviso dice la eSIM del móvil', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+      { imeiSn: '353918700112233', modelo: '14', modeloMaestro: '14', capacidad: '256GB', color: 'Negro', estado: 'STOCK',
+        ubicacion: 'Listos', fechaVenta: null, colorNsys: null, esEsim: true },
+    ])))
+    renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
+    await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '353918700112233')
+    const aviso = await screen.findByText(/También hay 1 móvil sin trabajos del taller con ese IMEI/)
+    expect(aviso).toHaveTextContent('(iPhone 14 eSIM)')
+  })
+
   it('un IMEI con trabajos no sale en el aviso aunque los filtros de fecha lo escondan', async () => {
     const user = userEvent.setup()
     server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([

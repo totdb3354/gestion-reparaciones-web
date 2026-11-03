@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AHORA, movilComprobado, noEncontrado, trabajo } from '../test/fabrica'
-import { analizar, cruzar, esImei, imeisEn, paraExcel, resumen, textoEstado, trocear } from './varios'
+import { analizar, cruzar, esImei, imeisEn, modeloYCapacidad, paraExcel, resumen, textoEstado, trocear } from './varios'
 
 describe('pegar varios IMEIs (spec 0.9.18 §4.9)', () => {
   it('trocea lo pegado: líneas, comas, puntos y comas, tabuladores y una columna de Excel', () => {
@@ -68,5 +68,12 @@ describe('pegar varios IMEIs (spec 0.9.18 §4.9)', () => {
       '1\t350000000000001\tiPhone 13 128GB\tAzul\tA\tTaller · Reparación\tTécnico 1\tLibre',
       '2\tx\t\t\t\t\t\tNo es un IMEI',
     ].join('\n'))
+  })
+
+  it('0.9.24: el modelo lleva «eSIM» si NSYS lo dice, en la tabla y en la copia para Excel', () => {
+    const m = movilComprobado({ imei: '350000000000001', modelo: '14', modeloMaestro: '14', capacidad: '256GB', esEsim: true })
+    expect(modeloYCapacidad(m)).toBe('iPhone 14 eSIM 256GB')
+    const { lineas } = analizar('350000000000001')
+    expect(paraExcel(cruzar(lineas, [m]), AHORA).split('\n')[1].split('\t')[2]).toBe('iPhone 14 eSIM 256GB')
   })
 })

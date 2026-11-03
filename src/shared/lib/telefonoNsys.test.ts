@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada } from './telefonoNsys'
+import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada, conEsim, nombreMovilNsys, SIN_MODELO_MAESTRO } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -109,5 +109,24 @@ describe('batería recordada (0.9.22 pieza 4)', () => {
       .toBe('Lleva batería nueva del 26/10 (R20261026_205): si quieres el 100, escríbelo')
     expect(textoBateriaEnCorregir(false, '2026-10-26T17:28:49', 'R20261026_205'))
       .toBe('Lleva batería reutilizada del 26/10 (R20261026_205): sin el 100')
+  })
+})
+
+describe('la eSIM detrás del modelo (0.9.24, spec «La descripción del móvil dice si es eSIM» §2.1)', () => {
+  it('conEsim: «eSIM» detrás del nombre si lo es; sin nombre o «Sin modelo en el maestro», tal cual', () => {
+    expect(conEsim('iPhone 14', true)).toBe('iPhone 14 eSIM')
+    expect(conEsim('iPhone 14', false)).toBe('iPhone 14')
+    expect(conEsim('iPhone 14', undefined)).toBe('iPhone 14')
+    expect(conEsim('', true)).toBe('')
+    expect(conEsim(SIN_MODELO_MAESTRO, true)).toBe('Sin modelo en el maestro')
+  })
+
+  it('nombreMovilNsys: el nombre del espejo con su eSIM; con la capacidad detrás en descripcionMovil', () => {
+    expect(nombreMovilNsys({ modelo: '14', modeloMaestro: '14', esEsim: true })).toBe('iPhone 14 eSIM')
+    expect(nombreMovilNsys({ modelo: null, modeloMaestro: '17e', esEsim: true })).toBe('iPhone 17e eSIM')
+    expect(nombreMovilNsys({ modelo: null, modeloMaestro: null, esEsim: true })).toBe('Sin modelo en el maestro')
+    expect(nombreMovilNsys({ modelo: '13pro', modeloMaestro: '13 PRO', esEsim: false })).toBe('iPhone 13 Pro')
+    expect(nombreMovilNsys({ modelo: '13pro', modeloMaestro: '13 PRO' })).toBe('iPhone 13 Pro')
+    expect(descripcionMovil(nombreMovilNsys({ modelo: '14', modeloMaestro: '14', esEsim: true }), '256GB')).toBe('iPhone 14 eSIM 256GB')
   })
 })
