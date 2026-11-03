@@ -55,6 +55,7 @@ export type Efecto =
   | { id: number; tipo: 'clientePulido'; seq: number; imei: string }
   | { id: number; tipo: 'guardarModelo'; imei: string; modelo: string }
   | { id: number; tipo: 'prediccion'; seq: number; token: number; imei: string; conCliente: boolean; verdes: VerdeEnModal[] }
+  | { id: number; tipo: 'comprobarNsys'; imeis: string[] }
 
 type SinId<T> = T extends unknown ? Omit<T, 'id'> : never
 export type EfectoSinId = SinId<Efecto>
@@ -73,6 +74,9 @@ export type EstadoModal = {
   clienteManual: Record<string, RefCliente>
   clienteDefault: RefCliente | null
   modeloPorImei: Record<string, string>
+  /** 0.9.23: lo que contestó NSYS por IMEI mientras el modal está abierto: `true` lo tiene, `false` no, `null` preguntado sin
+   *  respuesta (en camino o falló). Un IMEI sin clave no se ha preguntado. */
+  enNsys: Record<string, boolean | null>
   mensajeScan: Mensaje | null
   mensajePulido: Mensaje | null
   avisoPrediccion: boolean
@@ -109,6 +113,7 @@ export type Accion =
   | { tipo: 'PULIDO_COMENTARIO'; texto: string }
   | { tipo: 'PULIDO_QUITAR'; seq: number }
   | { tipo: 'PULIDO_CLIENTE_BD'; seq: number; idCli: number | null }
+  | { tipo: 'NSYS_COMPROBADO'; resultado: Record<string, boolean> }
   | { tipo: 'EFECTOS_CONSUMIDOS'; ids: number[] }
 
 export function estadoInicial(tabla: FilaTabla[]): EstadoModal {
@@ -116,7 +121,7 @@ export function estadoInicial(tabla: FilaTabla[]): EstadoModal {
     pestana: 'REPARACION', rep: [], glass: [], pulido: [], actual: null,
     borrador: { tecnicos: [], comentario: '', esChasis: false },
     pulidoSel: null, tecPulidoArriba: null, defTecnicos: { REPARACION: [], GLASS: [] }, seq: 0,
-    clienteManual: {}, clienteDefault: null, modeloPorImei: {}, mensajeScan: null, mensajePulido: null,
+    clienteManual: {}, clienteDefault: null, modeloPorImei: {}, enNsys: {}, mensajeScan: null, mensajePulido: null,
     avisoPrediccion: false, tabla, efectos: [], sigEfecto: 1,
   }
 }

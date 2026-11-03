@@ -74,3 +74,6 @@ export function imeiEnColaActiva(s: EstadoModal, imei: string): boolean {
   if (s.pestana === 'PULIDO') return s.pulido.some((f) => f.imei === imei)
   return colaDe(s, s.pestana).some((e) => e.imei === imei)
 }
+
+/** 0.9.23: NSYS ha contestado que no tiene el IMEI. Sin respuesta (en camino o fallida), no. */
+export const noEstaEnNsys = (s: EstadoModal, imei: string): boolean => s.enNsys[imei] === false

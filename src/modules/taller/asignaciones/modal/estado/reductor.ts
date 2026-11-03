@@ -2,6 +2,7 @@ import { asignar, borrarModelo, cambiarChasis, cambiarComentario, cambiarPestana
   lookupResuelto, marcarTecnico, pegar, quitar } from './colas'
 import { elegirCliente } from './cliente'
 import { marcarLlevaGlass, prediccionFallida, prediccionResuelta } from './glass'
+import { nsysComprobado } from './nsys'
 import { pulidoCliente, pulidoClienteBd, pulidoComentario, pulidoEscanear, pulidoPegar, pulidoQuitar, pulidoSeleccionar,
   pulidoTecArriba, pulidoTecnico } from './pulido'
 import type { Accion, EstadoModal } from './tipos'
@@ -36,6 +37,7 @@ export function reducir(s: EstadoModal, a: Accion): EstadoModal {
     case 'PULIDO_COMENTARIO': return pulidoComentario(s, a.texto)
     case 'PULIDO_QUITAR': return pulidoQuitar(s, a.seq)
     case 'PULIDO_CLIENTE_BD': return pulidoClienteBd(s, a.seq, a.idCli)
+    case 'NSYS_COMPROBADO': return nsysComprobado(s, a.resultado)
     case 'EFECTOS_CONSUMIDOS': return { ...s, efectos: s.efectos.filter((e) => !a.ids.includes(e.id)) }
   }
 }
