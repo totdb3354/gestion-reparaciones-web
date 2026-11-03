@@ -1,3 +1,4 @@
+import { hoyMadrid } from './fechas'
 import { traducirModelo } from './modelos'
 
 /** Piezas del espejo de NSYS (0.9.17, spec «Pieza 1 del módulo de teléfonos») que usan dos módulos: el stock de teléfonos
@@ -46,6 +47,13 @@ export function textoEstadoMovil(estado: string): string {
  *  sin pasar por `formatear` de `fechas.ts`, que da por hecho UTC. */
 export function diaNsys(iso: string): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+}
+
+/** 0.9.23: cuándo es un Items de NSYS (hora de Madrid, sin zona) para el aviso del modal de asignación: «hoy 13:40» o
+ *  «del 02/11 22:10». */
+export function cuandoItems(iso: string, ahora: Date = new Date()): string {
+  const hora = iso.slice(11, 16)
+  return iso.slice(0, 10) === hoyMadrid(ahora) ? `hoy ${hora}` : `del ${iso.slice(8, 10)}/${iso.slice(5, 7)} ${hora}`
 }
 
 /** «del 26/10 (R20261026_205)»: cuándo (hora de Madrid, sin zona) y en qué reparación se puso la batería recordada (0.9.22
