@@ -6,15 +6,21 @@ import { cn } from '@/shared/lib/utils'
 import { formatearPct, pctTotal } from '../carga'
 import { CampoEscaneo } from './CampoEscaneo'
 import { MensajeEscaneo } from './MensajeEscaneo'
+import { LineaNoNsys, MarcaNoNsys } from './MarcaNoNsys'
+import { noEstaEnNsys } from './estado/derivados'
 import { opcionesCliente, refDeClave, valorCliente } from './opcionesCliente'
 import type { Accion, EstadoModal, FilaPulido } from './estado/tipos'
 
-type Props = { estado: EstadoModal; dispatch: Dispatch<Accion>; tecnicos: Tecnico[]; carga: FilaCarga[]; clientes: Cliente[] }
+type Props = {
+  estado: EstadoModal; dispatch: Dispatch<Accion>; tecnicos: Tecnico[]; carga: FilaCarga[]; clientes: Cliente[]
+  /** 0.9.23: hora del último Items de NSYS, para «no está en NSYS». */
+  ultimoItems?: string | null
+}
 
 const ETIQUETA = 'text-[12px] font-bold text-azul-gris'
 
 /** Panel de Pulido (construirPulidoPane): técnico de arriba, escaneo, lista y detalle que se aplica al momento. */
-export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes }: Props) {
+export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes, ultimoItems }: Props) {
   const opcionesTec = tecnicos.map((t) => {
     const f = carga.find((x) => x.idTec === t.idTec)
     return { valor: String(t.idTec), etiqueta: `${t.nombre} (P${formatearPct(f ? pctTotal(f) : 0)})` }
@@ -48,9 +54,14 @@ export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes }: Pro
               className={cn('flex cursor-pointer items-center gap-2 border-b border-pill-buscando-bg p-2', f.seq === estado.pulidoSel && 'bg-pulido-sel-bg')}>
               <div className="flex flex-1 flex-col gap-px">
                 <span className="font-mono text-[12px] font-bold text-azul-medio">{f.imei}</span>
-                {f.idTec == null
-                  ? <span className="text-[11px] font-bold text-cola-roja">(sin técnico) · {nombreCli(f)}</span>
-                  : <span className="text-[11px] text-azul-gris">{nombreTec(f.idTec)} · {nombreCli(f)}</span>}
+                <div className="flex items-center gap-1.5">
+                  {f.idTec == null
+                    ? <span className="text-[11px] font-bold text-cola-roja">(sin técnico) · {nombreCli(f)}</span>
+                    : <span className="text-[11px] text-azul-gris">{nombreTec(f.idTec)} · {nombreCli(f)}</span>}
+                  {noEstaEnNsys(estado, f.imei) && (
+                    <><span className="text-[11px] text-azul-gris">·</span><MarcaNoNsys ultimoItems={ultimoItems} /></>
+                  )}
+                </div>
               </div>
               <button type="button" aria-label={`Quitar ${f.imei}`} className="px-1 text-[12px] text-cola-quitar hover:text-cola-roja"
                 onClick={(ev) => { ev.stopPropagation(); dispatch({ tipo: 'PULIDO_QUITAR', seq: f.seq }) }}>✕</button>
@@ -61,6 +72,7 @@ export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes }: Pro
           <div key={sel?.seq ?? 'vacio'} className="contents">
             <span className="text-[11px] font-bold text-azul-gris">IMEI en curso</span>
             <span data-testid="imei-pulido" className="font-mono text-[18px] font-bold text-azul-medio">{sel?.imei ?? '—'}</span>
+            {sel && noEstaEnNsys(estado, sel.imei) && <LineaNoNsys ultimoItems={ultimoItems} />}
             <span className={ETIQUETA}>Técnico</span>
             <ComboNavy aria-label="Técnico del pulido" valor={sel?.idTec == null ? null : String(sel.idTec)} opciones={opcionesTec}
               onChange={(v) => dispatch({ tipo: 'PULIDO_TECNICO', idTec: Number(v) })} textoVacio="" ancho="full" disabled={!sel} />

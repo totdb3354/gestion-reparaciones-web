@@ -4,10 +4,14 @@ import { CampoEscaneo } from './CampoEscaneo'
 import { DetalleEntrada } from './DetalleEntrada'
 import { FilaCola } from './FilaCola'
 import { MensajeEscaneo } from './MensajeEscaneo'
-import { filasCola, imeiEnColaActiva } from './estado/derivados'
+import { filasCola, imeiEnColaActiva, noEstaEnNsys } from './estado/derivados'
 import type { Accion, Entrada, EstadoModal } from './estado/tipos'
 
-type Props = { estado: EstadoModal; dispatch: Dispatch<Accion>; tecnicos: Tecnico[]; carga: FilaCarga[]; clientes: Cliente[] }
+type Props = {
+  estado: EstadoModal; dispatch: Dispatch<Accion>; tecnicos: Tecnico[]; carga: FilaCarga[]; clientes: Cliente[]
+  /** 0.9.23: hora del último Items de NSYS, para «no está en NSYS». */
+  ultimoItems?: string | null
+}
 
 /** Reparación y Glass comparten esqueleto: escaneo, listas roja y verde de la cola activa, y detalle. */
 export function PanelRico(props: Props) {
@@ -18,6 +22,7 @@ export function PanelRico(props: Props) {
   const nombres = (e: Entrada) => tecnicos.filter((t) => e.tecnicos.includes(t.idTec)).map((t) => t.nombre).join(', ')
   const fila = (e: Entrada) => (
     <FilaCola key={e.seq} e={e} nombresTecnicos={nombres(e)} seleccionada={e.seq === estado.actual}
+      noEstaEnNsys={noEstaEnNsys(estado, e.imei)} ultimoItems={props.ultimoItems}
       onCargar={() => dispatch({ tipo: 'CARGAR', seq: e.seq })} onQuitar={() => dispatch({ tipo: 'QUITAR', seq: e.seq })} />
   )
   return (

@@ -5,17 +5,22 @@ import { CampoAutocompletar } from '@/shared/ui/CampoAutocompletar'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { MODELOS_ORDENADOS, traducirModelo } from '../../lib/modelos'
 import { ListaTecnicos } from './ListaTecnicos'
+import { LineaNoNsys } from './MarcaNoNsys'
 import { opcionesCliente, refDeClave, valorCliente } from './opcionesCliente'
-import { asignarHabilitado, entradaActual, glassAbiertaBd, promptModelo, tecnicosOcupados } from './estado/derivados'
+import { asignarHabilitado, entradaActual, glassAbiertaBd, noEstaEnNsys, promptModelo, tecnicosOcupados } from './estado/derivados'
 import type { Accion, EstadoModal } from './estado/tipos'
 
-type Props = { estado: EstadoModal; dispatch: Dispatch<Accion>; tecnicos: Tecnico[]; carga: FilaCarga[]; clientes: Cliente[] }
+type Props = {
+  estado: EstadoModal; dispatch: Dispatch<Accion>; tecnicos: Tecnico[]; carga: FilaCarga[]; clientes: Cliente[]
+  /** 0.9.23: hora del último Items de NSYS, para «No está en NSYS». */
+  ultimoItems?: string | null
+}
 
 const ETIQUETA = 'text-[12px] font-bold text-azul-gris'
 const OPCIONES_MODELO = MODELOS_ORDENADOS.map((c) => ({ clave: c, etiqueta: traducirModelo(c) }))
 
 /** Panel derecho de Reparación y Glass; deshabilitado sin entrada cargada. */
-export function DetalleEntrada({ estado, dispatch, tecnicos, carga, clientes }: Props) {
+export function DetalleEntrada({ estado, dispatch, tecnicos, carga, clientes, ultimoItems }: Props) {
   const e = entradaActual(estado)
   const esRep = (e?.tipo ?? estado.pestana) === 'REPARACION'
   const ocupados = e ? tecnicosOcupados(estado.tabla, e.imei, e.tipo) : new Set<number>()
@@ -29,6 +34,7 @@ export function DetalleEntrada({ estado, dispatch, tecnicos, carga, clientes }: 
       <div key={e?.seq ?? 'vacio'} className="contents">
         <span className="text-[11px] font-bold text-azul-gris">IMEI en curso</span>
         <span data-testid="imei-en-curso" className="font-mono text-[18px] font-bold text-azul-medio">{e?.imei ?? '—'}</span>
+        {e && noEstaEnNsys(estado, e.imei) && <LineaNoNsys ultimoItems={ultimoItems} />}
         <span className={ETIQUETA}>Modelo de iPhone</span>
         <CampoAutocompletar aria-label="Modelo de iPhone" placeholder={e ? promptModelo(e) : 'Escribe modelo...'}
           valor={e?.modelo ?? null} opciones={OPCIONES_MODELO}
