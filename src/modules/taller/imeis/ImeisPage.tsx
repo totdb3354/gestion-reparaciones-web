@@ -6,7 +6,7 @@ import { useBuscarMoviles } from '@/shared/api/nsys'
 import { descargarCsv } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { imeisValidos } from '@/shared/lib/filtroImei'
-import { diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
+import { diaNsys, nombreMovilNsys } from '@/shared/lib/telefonoNsys'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
 import { useSession } from '@/shared/session/SessionProvider'
@@ -128,7 +128,7 @@ export function ImeisPage() {
             <span key={m.imeiSn}>
               {i > 0 && ' · '}
               <button type="button" onClick={() => abrir(m.imeiSn)} className="cursor-pointer font-bold text-texto-accion underline">{m.imeiSn}</button>
-              {` (${nombreModeloNsys(m.modelo, m.modeloMaestro)}${m.fechaVenta ? `, vendido el ${diaNsys(m.fechaVenta)}` : ''})`}
+              {` (${nombreMovilNsys(m)}${m.fechaVenta ? `, vendido el ${diaNsys(m.fechaVenta)}` : ''})`}
             </span>
           ))}
         </div>

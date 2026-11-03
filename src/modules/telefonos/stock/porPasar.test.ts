@@ -88,8 +88,11 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     expect(textoUltimoTrabajo(filaAlta({ ultimoTrabajo: 'AP20261020_3', categoria: 'PULIDO', abierto: true }))).toBe('AP20261020_3 · Pulido · asignado')
     expect(modeloDelTaller(filaAlta())).toBe('iPhone 14')
     expect(modeloDelTaller(filaAlta({ modelo: null }))).toBe('—')
-    expect(modeloDeFila(filaGrado())).toBe('iPhone 14 256GB')
-    expect(modeloDeFila(filaRevisar())).toBe('iPhone 14 512GB')
+    // 0.9.24: las dos fábricas son de un móvil eSIM; una fila sin eSIM, como antes.
+    expect(modeloDeFila(filaGrado())).toBe('iPhone 14 eSIM 256GB')
+    expect(modeloDeFila(filaRevisar())).toBe('iPhone 14 eSIM 512GB')
+    expect(modeloDeFila(filaGrado({ esEsim: false }))).toBe('iPhone 14 256GB')
+    expect(modeloDeFila(filaColor({ esEsim: true }))).toBe('iPhone 13 eSIM 128GB')
   })
 
   it('los textos de cada tarjeta', () => {

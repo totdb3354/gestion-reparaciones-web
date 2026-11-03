@@ -9,4 +9,9 @@ describe('textoCeldaPendiente: «Copiar celda» de Asignaciones, Pendientes y Pu
     expect(textoCeldaPendiente(resumen({ modelo: '13' }), 'modelo')).toBe('iPhone 13')
     expect(textoCeldaPendiente(resumen({ modelo: null, capacidad: '128GB', color: 'Azul' }), 'modelo')).toBe('')
   })
+
+  it('0.9.24: con «eSIM» detrás del modelo si NSYS lo dice', () => {
+    expect(textoCeldaPendiente(resumen({ modelo: '14', capacidad: '256GB', color: 'Negro', esEsim: true }), 'modelo'))
+      .toBe('iPhone 14 eSIM 256GB Negro')
+  })
 })

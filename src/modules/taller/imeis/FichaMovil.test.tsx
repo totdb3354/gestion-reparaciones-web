@@ -59,3 +59,13 @@ describe('ficha de NSYS: lo del taller (spec 0.9.21 §2.4)', () => {
     expect(onCorregir).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('ficha de NSYS: la eSIM (0.9.24)', () => {
+  it('«iPhone 14 eSIM 256GB Negro» si NSYS dice que es eSIM; si no, sin ella', () => {
+    const { unmount } = ficha({ modelo: '14', modeloMaestro: '14', capacidad: '256GB', color: 'Negro', esEsim: true })
+    expect(screen.getByRole('region', { name: 'Ficha de NSYS' })).toHaveTextContent('iPhone 14 eSIM 256GB Negro')
+    unmount()
+    ficha({ modelo: '14', modeloMaestro: '14', capacidad: '256GB', color: 'Negro' })
+    expect(screen.getByRole('region', { name: 'Ficha de NSYS' })).toHaveTextContent('iPhone 14 256GB Negro')
+  })
+})

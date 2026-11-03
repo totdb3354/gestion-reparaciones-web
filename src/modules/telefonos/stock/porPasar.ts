@@ -1,5 +1,5 @@
 import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaSinGradoNsys, PorQueTaller, TarjetasPorPasar } from '@/shared/api/client'
-import { descripcionMovil, diaNsys, nombreModeloNsys, textoBateriaRecordada } from '@/shared/lib/telefonoNsys'
+import { descripcionMovil, diaNsys, nombreModeloNsys, nombreMovilNsys, textoBateriaRecordada } from '@/shared/lib/telefonoNsys'
 
 /** Reglas de la lista «Por pasar a NSYS» (0.9.21, spec «SKU del taller» §2.4). */
 
@@ -14,9 +14,10 @@ export function textoPorQue(p: PorQueTaller): string {
   return `${DATO[p.dato] ?? p.dato}: ${[como, p.usuario ?? '—', motivo].filter(Boolean).join(' · ')}`
 }
 
-/** «iPhone 13 128GB» de una fila con el modelo del espejo de NSYS. */
-export const modeloDeFila = (f: { modelo: string | null; modeloMaestro: string | null; capacidad: string | null }): string =>
-  descripcionMovil(nombreModeloNsys(f.modelo, f.modeloMaestro), f.capacidad)
+type FilaConModelo = { modelo: string | null; modeloMaestro: string | null; capacidad: string | null; esEsim?: boolean }
+
+/** «iPhone 13 128GB» de una fila con el modelo del espejo de NSYS; desde la 0.9.24, «iPhone 14 eSIM 256GB» si es eSIM. */
+export const modeloDeFila = (f: FilaConModelo): string => descripcionMovil(nombreMovilNsys(f), f.capacidad)
 
 /** «20/10/2026 10:31»: la hora es de Madrid, sin zona; se corta del texto. */
 export const textoDesde = (iso: string): string => `${diaNsys(iso)} ${iso.slice(11, 16)}`

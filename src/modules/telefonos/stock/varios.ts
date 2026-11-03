@@ -1,5 +1,5 @@
 import type { MovilComprobado } from '@/shared/api/client'
-import { descripcionMovil, diaNsys, nombreModeloNsys, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
+import { descripcionMovil, diaNsys, nombreMovilNsys, textoEstadoMovil } from '@/shared/lib/telefonoNsys'
 import { quienLoTiene } from './quien'
 
 /** «Pegar varios IMEIs» (0.9.18, spec «Columna compacta, SKU, Quién lo tiene y Revisado» §4.9): partir lo pegado, marcar
@@ -86,8 +86,8 @@ export function resumen(filas: Fila[]): Cifra[] {
   return cifras.filter((c): c is Cifra => c !== null)
 }
 
-/** «iPhone 13 128GB». */
-export const modeloYCapacidad = (m: MovilComprobado): string => descripcionMovil(nombreModeloNsys(m.modelo, m.modeloMaestro), m.capacidad)
+/** «iPhone 13 128GB»; desde la 0.9.24, «iPhone 14 eSIM 256GB» si es eSIM. */
+export const modeloYCapacidad = (m: MovilComprobado): string => descripcionMovil(nombreMovilNsys(m), m.capacidad)
 
 const CABECERA_EXCEL = ['#', 'IMEI', 'Modelo', 'Color', 'Grado', 'Ubicación', 'Quién lo tiene', 'Estado']
 const celda = (t: string) => t.replace(/[\t\r\n]+/g, ' ')

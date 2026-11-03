@@ -568,3 +568,15 @@ describe('Stock de teléfonos: «Por pasar a NSYS» con cuatro tarjetas (spec 0.
     expect(await screen.findByRole('region', { name: 'Tabla de móviles' })).toBeInTheDocument()
   })
 })
+
+describe('el buscador de IMEI con la eSIM (0.9.24)', () => {
+  it('«iPhone 14 eSIM 256GB» si NSYS dice que es eSIM', async () => {
+    const user = userEvent.setup()
+    server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
+      movilBuscado({ imeiSn: '350000000000071', modelo: '14', modeloMaestro: '14', capacidad: '256GB', color: 'Negro', esEsim: true }),
+    ])))
+    abrir()
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' }), '3500')
+    expect(await screen.findByRole('button', { name: /^350000000000071 · iPhone 14 eSIM 256GB Negro · Listos$/ })).toBeInTheDocument()
+  })
+})

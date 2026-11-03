@@ -54,4 +54,10 @@ describe('Modelo con la descripción completa (0.9.21)', () => {
     expect(modelo.accessorFn(resumen({ modelo: '14' }), 0)).toBe('iPhone 14')
     expect(textoCeldaTrabajo(resumen({ modelo: null, capacidad: '128GB' }), 'modelo', 'dd/MM/yyyy')).toBe('')
   })
+
+  it('0.9.24: con «eSIM» detrás del modelo si NSYS lo dice', () => {
+    const esim = resumen({ modelo: '14', capacidad: '256GB', color: 'Negro', esEsim: true })
+    expect(modelo.accessorFn(esim, 0)).toBe('iPhone 14 eSIM 256GB Negro')
+    expect(textoCeldaTrabajo(esim, 'modelo', 'dd/MM/yyyy')).toBe('iPhone 14 eSIM 256GB Negro')
+  })
 })

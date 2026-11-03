@@ -17,4 +17,8 @@ describe('CSV historial_pulidos (0.9.21: «Capacidad» y «Color» detrás de «
     expect(filaHistorialPulido({ ...pulido, capacidad: null, color: null }, false))
       .toEqual(['P20261022_1', '="350000000000001"', 'iPhone 13', '', '', '22/10/2026 10:00', '22/10/2026 10:30', 'rayado'])
   })
+
+  it('0.9.24: «Modelo» con «eSIM» detrás si NSYS lo dice', () => {
+    expect(filaHistorialPulido({ ...pulido, modelo: '14', esEsim: true }, false).slice(2, 5)).toEqual(['iPhone 14 eSIM', '128GB', 'Azul'])
+  })
 })

@@ -58,9 +58,16 @@ describe('el móvil del grupo (0.9.21)', () => {
       rr('G1', { modelo: '13', capacidad: '128GB', color: 'Azul' }),
       rr('P1', { modelo: null, capacidad: '128GB', color: 'Rojo' }),
     ]
-    expect(movilDe(trabajos)).toEqual({ modelo: '13', capacidad: '128GB', color: 'Azul' })
+    expect(movilDe(trabajos)).toEqual({ modelo: '13', capacidad: '128GB', color: 'Azul', esEsim: false })
     const [g] = agruparPorImei(trabajos)
     expect([g.modelo, g.capacidad, g.color]).toEqual(['13', '128GB', 'Azul'])
-    expect(movilDe([rr('R1')])).toEqual({ modelo: '', capacidad: null, color: null })
+    expect(movilDe([rr('R1')])).toEqual({ modelo: '', capacidad: null, color: null, esEsim: false })
+  })
+
+  it('0.9.24: es eSIM si lo es en alguno de sus trabajos (una lista que no pudo leer NSYS trae false)', () => {
+    const trabajos = [rr('R1', { modelo: '14' }), rr('G1', { modelo: '14', capacidad: '256GB', esEsim: true })]
+    expect(movilDe(trabajos).esEsim).toBe(true)
+    expect(agruparPorImei(trabajos)[0].esEsim).toBe(true)
+    expect(movilDe([rr('R1', { modelo: '14' })]).esEsim).toBe(false)
   })
 })

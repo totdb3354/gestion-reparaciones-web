@@ -32,14 +32,14 @@ export function estadoNsys(p: Partial<EstadoNsys> = {}): EstadoNsys {
 export function movilBuscado(p: Partial<MovilBuscado> = {}): MovilBuscado {
   return {
     imeiSn: '350000000000001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul', estado: 'STOCK',
-    ubicacion: 'Listos', fechaVenta: null, colorNsys: null, ...p,
+    ubicacion: 'Listos', fechaVenta: null, colorNsys: null, esEsim: false, ...p,
   }
 }
 
 export function movilComprobado(p: Partial<MovilComprobado> = {}): MovilComprobado {
   return {
     imei: '350000000000001', encontrado: true, modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul',
-    grado: 'A', bateriaNueva: false, ubicacion: 'Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], colorNsys: null, gradoNsys: null, ...p,
+    grado: 'A', bateriaNueva: false, ubicacion: 'Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], colorNsys: null, gradoNsys: null, esEsim: false, ...p,
   }
 }
 
@@ -75,7 +75,7 @@ export function filaColor(p: Partial<FilaColorNsys> = {}): FilaColorNsys {
     productoNsys: 'Apple iPhone 13 128GB Blue', gradoNsys: 'B', ponerProducto: 'Apple iPhone 13 128GB (PRODUCT)RED',
     compruebalo: false, tambienGrado: false,
     porQue: [porQue({ dato: 'COLOR', origen: 'REPARACION', idRep: 'R20261024_12', usuario: 'Técnico 2', motivo: 'chasis chai13red nuevo' })],
-    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, ...p,
+    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: false, ...p,
   }
 }
 
@@ -85,7 +85,7 @@ export function filaGrado(p: Partial<FilaGradoNsys> = {}): FilaGradoNsys {
     imeiSn: '350000000000022', modelo: '14', modeloMaestro: '14', capacidad: '256GB', gradoDe: 'A', gradoA: 'A100',
     productoNsys: 'Apple iPhone 14 eSIM 256GB Midnight', conColor: false,
     porQue: [porQue({ origen: 'REPARACION', idRep: 'R20261024_31', usuario: 'Técnico 2', motivo: 'batería bati14 nueva' })],
-    desde: '2026-10-24T12:40:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, ...p,
+    desde: '2026-10-24T12:40:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: true, ...p,
   }
 }
 
@@ -111,7 +111,7 @@ export function filaRevisar(p: Partial<FilaRevisarNsys> = {}): FilaRevisarNsys {
   return {
     idAviso: 1, imeiSn: '350000000000101', modelo: '14', modeloMaestro: '14', capacidad: '512GB', tipo: 'SIN_COLOR', causa: null,
     dato: 'COLOR', de: 'chai14yellowesim', a: null, motivo: 'chasis chai14yellowesim nuevo', idRep: 'R20261022_2',
-    usuario: 'Técnico 3', fecha: '2026-10-22T11:14:00', vendidoEn: null, bajaEn: null, vueltoDesde: null, ...p,
+    usuario: 'Técnico 3', fecha: '2026-10-22T11:14:00', vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: true, ...p,
   }
 }
 
@@ -122,7 +122,7 @@ export function filaSinGrado(p: Partial<FilaSinGradoNsys> = {}): FilaSinGradoNsy
     imeiSn: '350000000000201', modelo: '13', modeloMaestro: '13', capacidad: '128GB', gradoNsys: 'n/a',
     ultimoTrabajo: 'R20261026_205', ultimoTrabajoEn: '2026-10-26T17:28:49', categoria: 'REPARACION',
     bateriaIdRep: 'R20261026_205', bateriaNueva: true, bateriaEn: '2026-10-26T17:28:49', vendidoEn: null, bajaEn: null,
-    vueltoDesde: null, ...p,
+    vueltoDesde: null, esEsim: false, ...p,
   }
 }
 

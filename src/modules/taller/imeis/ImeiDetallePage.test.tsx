@@ -349,4 +349,11 @@ describe('ImeiDetallePage: la barra con la descripción completa (0.9.21)', () =
     abrir()
     expect(await screen.findByText('• iPhone 16 128GB Negro')).toBeInTheDocument()
   })
+
+  it('0.9.24: «• iPhone 16 eSIM 128GB Negro» si NSYS dice que es eSIM', async () => {
+    server.use(http.get('*/api/reparaciones/historial', () =>
+      HttpResponse.json(reps.map((r) => (r.imei === A ? { ...r, capacidad: '128GB', color: 'Negro', esEsim: true } : r)))))
+    abrir()
+    expect(await screen.findByText('• iPhone 16 eSIM 128GB Negro')).toBeInTheDocument()
+  })
 })

@@ -4,12 +4,28 @@ import { traducirModelo } from './modelos'
 /** Piezas del espejo de NSYS (0.9.17, spec «Pieza 1 del módulo de teléfonos») que usan dos módulos: el stock de teléfonos
  *  y el detalle del IMEI del taller. */
 
+/** Lo que se enseña como nombre de un móvil de NSYS cuyo producto no está en el maestro. */
+export const SIN_MODELO_MAESTRO = 'Sin modelo en el maestro'
+
 /** Nombre de un modelo de NSYS: el código del ERP traducido o, si no está en el catálogo, el texto del maestro. */
 export function nombreModeloNsys(modelo: string | null, modeloMaestro: string | null): string {
   if (modelo) return traducirModelo(modelo)
   if (modeloMaestro) return `iPhone ${modeloMaestro}`
-  return 'Sin modelo en el maestro'
+  return SIN_MODELO_MAESTRO
 }
+
+/** 0.9.24 (spec «La descripción del móvil dice si es eSIM» §2.1): el nombre del modelo con «eSIM» detrás si el móvil es solo
+ *  eSIM («iPhone 14 eSIM»), como lo escribe NSYS en el producto. Sin nombre o con «Sin modelo en el maestro», tal cual: no es un
+ *  modelo; si el nombre ya dice eSIM (el texto del maestro de un modelo fuera del catálogo), no se repite. Lo usan las listas del
+ *  taller y sus CSV (con el modelo del taller) y las copias de NSYS (`nombreMovilNsys`). */
+export function conEsim(nombre: string, esEsim: boolean | undefined): string {
+  return esEsim && nombre && nombre !== SIN_MODELO_MAESTRO && !/esim/i.test(nombre) ? `${nombre} eSIM` : nombre
+}
+
+/** 0.9.24: el nombre de un móvil del espejo de NSYS con su eSIM: la ficha del IMEI, el buscador, «Por pasar a NSYS», «Pegar
+ *  varios IMEIs» y el aviso de IMEIs. `esEsim` opcional: un servidor anterior a la 0.9.24 no lo manda. */
+export const nombreMovilNsys = (m: { modelo: string | null; modeloMaestro: string | null; esEsim?: boolean }): string =>
+  conEsim(nombreModeloNsys(m.modelo, m.modeloMaestro), m.esEsim)
 
 /** 0.9.21 (spec «Descripción completa donde pone «Modelo»» §2.1): «iPhone 13 128GB Azul», el nombre del modelo con la capacidad
  *  y el color detrás, separados por un espacio y sin los que falten. Sin nombre, nada: una lista del taller sin modelo dice lo de

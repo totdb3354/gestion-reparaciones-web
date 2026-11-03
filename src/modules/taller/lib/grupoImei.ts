@@ -8,6 +8,8 @@ export type GrupoImei = {
   /** 0.9.21: la capacidad y el color de NSYS del IMEI (null fuera de NSYS). */
   capacidad: string | null
   color: string | null
+  /** 0.9.24: si NSYS dice que es eSIM (false fuera de NSYS). */
+  esEsim: boolean
   observacion: string | null
   cliente: string | null
   fechaMasAntigua: string | null
@@ -23,12 +25,14 @@ export type GrupoImei = {
 const primero = (valores: (string | null | undefined)[]) => valores.find((v) => v && v !== '') ?? null
 
 /** 0.9.21: el móvil de los trabajos de un IMEI: el primer modelo, la primera capacidad y el primer color no vacíos (las tres
- *  listas traen lo mismo del IMEI; si una no pudo leer NSYS, vale lo de otra). */
-export function movilDe(trabajos: ReparacionResumen[]): { modelo: string; capacidad: string | null; color: string | null } {
+ *  listas traen lo mismo del IMEI; si una no pudo leer NSYS, vale lo de otra). 0.9.24: es eSIM si lo es en alguno (una lista
+ *  que no pudo leer NSYS trae false). */
+export function movilDe(trabajos: ReparacionResumen[]): Pick<GrupoImei, 'modelo' | 'capacidad' | 'color' | 'esEsim'> {
   return {
     modelo: primero(trabajos.map((t) => t.modelo)) ?? '',
     capacidad: primero(trabajos.map((t) => t.capacidad)),
     color: primero(trabajos.map((t) => t.color)),
+    esEsim: trabajos.some((t) => t.esEsim),
   }
 }
 

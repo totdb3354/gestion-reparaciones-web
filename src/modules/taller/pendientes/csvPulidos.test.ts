@@ -15,4 +15,9 @@ describe('CSV pulidos_pendientes (0.9.21: «Capacidad» y «Color» detrás de �
     expect(filaPulidoPendiente({ ...r, modelo: null, capacidad: null, color: null, comentarioAsignacion: null }))
       .toEqual(['AP20261022_1', '="350000000000001"', '', '', '', '22/10/2026 10:00', ''])
   })
+
+  it('0.9.24: «Modelo» con «eSIM» detrás si NSYS lo dice', () => {
+    const r = resumen({ idRep: 'AP20261103_1', imei: '350000000000001', modelo: '14', capacidad: '256GB', color: 'Negro', esEsim: true })
+    expect(filaPulidoPendiente(r).slice(2, 5)).toEqual(['iPhone 14 eSIM', '256GB', 'Negro'])
+  })
 })
