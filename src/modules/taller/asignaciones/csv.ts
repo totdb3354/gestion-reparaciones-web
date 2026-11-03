@@ -3,11 +3,12 @@ import { textoForzado } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { TIPO_TRABAJO, tipoDe } from '@/shared/lib/tipoTrabajo'
 import { textoCsvEntrega } from '../lib/entregaGlass'
-import { traducirModelo } from '../lib/modelos'
+import { nombreTrabajo } from '../lib/modelos'
 
 /** Calco de ReparacionControllerSuperTecnico.exportarCSV con la tabla de asignaciones visible (hotfix 0.16.3, :1170-1186):
  *  fichero `reparaciones_pendientes`, las filas visibles tras los filtros y estas 16 columnas: las 14 del JavaFX (spec SP6 §6.5,
- *  G7) y, desde la 0.9.21, «Capacidad» y «Color» de NSYS detrás de «Modelo» (spec «Descripción completa donde pone «Modelo»»). */
+ *  G7) y, desde la 0.9.21, «Capacidad» y «Color» de NSYS detrás de «Modelo» (spec «Descripción completa donde pone «Modelo»»).
+ *  Desde la 0.9.24, «Modelo» lleva «eSIM» detrás si NSYS lo dice («iPhone 14 eSIM»). */
 export const NOMBRE_CSV_ASIGNACIONES = 'reparaciones_pendientes'
 
 export const CABECERAS_ASIGNACIONES = [
@@ -29,7 +30,7 @@ export function filaAsignacionCsv(r: ReparacionResumen): string[] {
     TIPO_TRABAJO[tipoDe(r.idRep)].etiqueta,
     r.nombreTecnico ?? '',
     textoForzado(r.imei),
-    traducirModelo(r.modelo),
+    nombreTrabajo(r),
     r.capacidad ?? '',
     r.color ?? '',
     formatear(r.fechaAsig, 'dd/MM/yyyy HH:mm'),

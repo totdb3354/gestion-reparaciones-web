@@ -472,4 +472,10 @@ describe('crearColumnas: Modelo con la descripción completa (0.9.21)', () => {
     expect(screen.getByText('iPhone 13 128GB Azul')).toBeInTheDocument()
     expect(screen.getByText('iPhone 14')).toBeInTheDocument()
   })
+
+  it('0.9.24: con «eSIM» detrás del modelo si NSYS lo dice', () => {
+    pintar([resumen({ idRep: 'A20261103_1', imei: '350000000000001', modelo: '14', capacidad: '256GB', color: 'Negro', esEsim: true })],
+      opciones({ soloLectura: true }))
+    expect(screen.getByText('iPhone 14 eSIM 256GB Negro')).toBeInTheDocument()
+  })
 })

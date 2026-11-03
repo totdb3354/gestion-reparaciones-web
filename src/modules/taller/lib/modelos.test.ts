@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { agrupados, componente } from '../test/fabrica'
-import { MODELOS_ORDENADOS, descripcionTrabajo, extraerModelo, modelosDisponibles, traducirModelo } from './modelos'
+import { MODELOS_ORDENADOS, descripcionTrabajo, extraerModelo, modelosDisponibles, nombreTrabajo, traducirModelo } from './modelos'
 
 describe('modelos (calco de MODELOS_ORDENADOS y traducirModelo)', () => {
   it('traduce numéricos con variante, especiales y aire', () => {
@@ -88,5 +88,20 @@ describe('descripcionTrabajo (0.9.21): lo que enseñan las listas del taller don
     // Un servidor sin los campos nuevos: lo de hoy.
     expect(descripcionTrabajo({ modelo: '15pro' })).toBe('iPhone 15 Pro')
     expect(descripcionTrabajo({})).toBe('')
+  })
+})
+
+describe('la eSIM en las listas del taller (0.9.24)', () => {
+  it('nombreTrabajo: el modelo del taller con «eSIM» detrás si NSYS lo dice; sin modelo, vacío', () => {
+    expect(nombreTrabajo({ modelo: '14', esEsim: true })).toBe('iPhone 14 eSIM')
+    expect(nombreTrabajo({ modelo: '14', esEsim: false })).toBe('iPhone 14')
+    expect(nombreTrabajo({ modelo: '14' })).toBe('iPhone 14')
+    expect(nombreTrabajo({ modelo: null, esEsim: true })).toBe('')
+  })
+
+  it('descripcionTrabajo: «iPhone 14 eSIM 256GB Negro»; sin eSIM, lo de la 0.9.21', () => {
+    expect(descripcionTrabajo({ modelo: '14', capacidad: '256GB', color: 'Negro', esEsim: true })).toBe('iPhone 14 eSIM 256GB Negro')
+    expect(descripcionTrabajo({ modelo: '14', capacidad: '256GB', color: 'Negro', esEsim: false })).toBe('iPhone 14 256GB Negro')
+    expect(descripcionTrabajo({ modelo: null, capacidad: '256GB', esEsim: true })).toBe('')
   })
 })

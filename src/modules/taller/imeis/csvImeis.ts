@@ -3,14 +3,14 @@ import { textoForzado } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
 import { tipoDe } from '@/shared/lib/tipoTrabajo'
 import type { GrupoImei } from '../lib/grupoImei'
-import { traducirModelo } from '../lib/modelos'
+import { nombreTrabajo } from '../lib/modelos'
 
 /** CSV del maestro (agrupado_resumen), sin "Revisión logística" (diferencia aceptada). Desde la 0.9.21, con «Capacidad» y
- *  «Color» de NSYS detrás de «Modelo», que sigue siendo el modelo solo. */
+ *  «Color» de NSYS detrás de «Modelo», que sigue siendo el modelo solo (desde la 0.9.24, con «eSIM» detrás si lo es). */
 export const CABECERAS_RESUMEN = ['IMEI', 'Modelo', 'Capacidad', 'Color', 'Primera', 'Última', 'Reparaciones', 'Glass', 'Pulidos', 'Inc. abiertas', 'Observación', 'Cliente']
 export function filaResumen(g: GrupoImei): string[] {
   return [
-    textoForzado(g.imei), traducirModelo(g.modelo), g.capacidad ?? '', g.color ?? '',
+    textoForzado(g.imei), nombreTrabajo(g), g.capacidad ?? '', g.color ?? '',
     formatear(g.fechaMasAntigua, 'dd/MM/yyyy'), formatear(g.fechaMasReciente, 'dd/MM/yyyy'),
     String(g.countRep), String(g.countGlass), String(g.countPul), String(g.incAbiertas), g.observacion ?? '', g.cliente ?? '',
   ]

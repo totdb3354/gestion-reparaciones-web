@@ -66,6 +66,13 @@ describe('CSV de Asignaciones (calco de filaAsignacion del hotfix 0.16.3, con ca
     expect(filaAsignacionCsv(resumen({ modelo: '' }))[MODELO]).toBe('')
   })
 
+  it('0.9.24: «Modelo» con «eSIM» detrás si NSYS lo dice; sin modelo, vacío', () => {
+    const fila = filaAsignacionCsv(resumen({ modelo: '14', capacidad: '256GB', esEsim: true }))
+    expect(fila[MODELO]).toBe('iPhone 14 eSIM')
+    expect(fila[CAPACIDAD]).toBe('256GB')
+    expect(filaAsignacionCsv(resumen({ modelo: null, esEsim: true }))[MODELO]).toBe('')
+  })
+
   it('marcas a false son "No"', () => {
     const fila = filaAsignacionCsv(resumen({ urgente: false, esChasis: false, porCerrar: false }))
     expect([fila[URGENTE], fila[CHASIS], fila[POR_CERRAR]]).toEqual(['No', 'No', 'No'])

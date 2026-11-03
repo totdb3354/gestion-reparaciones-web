@@ -1,7 +1,7 @@
 import type { ReparacionResumen } from '@/shared/api/client'
 import { textoForzado } from '@/shared/lib/csv'
 import { formatear } from '@/shared/lib/fechas'
-import { traducirModelo } from '../lib/modelos'
+import { nombreTrabajo } from '../lib/modelos'
 
 const FMT = 'dd/MM/yyyy HH:mm'
 
@@ -19,14 +19,14 @@ export function filaHistorial(r: ReparacionResumen, conTecnico: boolean): string
 }
 
 /** CSV `historial_pulidos` con las filas visibles: «Técnico» solo para supertécnico y admin. Desde la 0.9.21, con «Capacidad» y
- *  «Color» de NSYS detrás de «Modelo», que sigue siendo el modelo solo. */
+ *  «Color» de NSYS detrás de «Modelo», que sigue siendo el modelo solo (desde la 0.9.24, con «eSIM» detrás si lo es). */
 export function cabecerasHistorialPulidos(conTecnico: boolean): string[] {
   return ['ID', 'IMEI', 'Modelo', 'Capacidad', 'Color', ...(conTecnico ? ['Técnico'] : []), 'Fecha inicio', 'Fecha fin', 'Comentario']
 }
 
 export function filaHistorialPulido(r: ReparacionResumen, conTecnico: boolean): string[] {
   return [
-    r.idRep, textoForzado(r.imei), traducirModelo(r.modelo), r.capacidad ?? '', r.color ?? '', ...(conTecnico ? [r.nombreTecnico ?? ''] : []),
+    r.idRep, textoForzado(r.imei), nombreTrabajo(r), r.capacidad ?? '', r.color ?? '', ...(conTecnico ? [r.nombreTecnico ?? ''] : []),
     formatear(r.fechaAsig, FMT), formatear(r.fechaFin, FMT), r.comentarioAsignacion ?? '',
   ]
 }
