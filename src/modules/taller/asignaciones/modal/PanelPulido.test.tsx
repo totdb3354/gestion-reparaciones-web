@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useReducer } from 'react'
@@ -54,5 +54,13 @@ describe('PanelPulido', () => {
     await userEvent.type(campo(), IMEI)
     await userEvent.type(campo(), IMEI)
     expect(screen.getByText('Ese IMEI ya está en la lista de pulido.')).toBeInTheDocument()
+  })
+
+  it('0.9.23: «no está en NSYS» detrás del técnico en la fila y bajo el IMEI en el detalle', () => {
+    const s = { ...estadoInicial([]), pestana: 'PULIDO' as const, seq: 1, pulidoSel: 1, enNsys: { [IMEI]: false },
+      pulido: [{ seq: 1, imei: IMEI, idTec: 3, comentario: '', idCli: null, sinCliente: false }] }
+    render(<PanelPulido estado={s} dispatch={vi.fn()} tecnicos={tecnicos} carga={[]} clientes={clientes} ultimoItems="2026-10-16T13:31:00" />)
+    expect(screen.getByText('no está en NSYS')).toHaveClass('text-texto-error')
+    expect(screen.getByText(/^No está en NSYS · último Items: .*13:31$/)).toBeInTheDocument()
   })
 })

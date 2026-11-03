@@ -1,6 +1,7 @@
 import { parsearPegadoImeis } from '@/shared/lib/pegadoImei'
 import { conEfecto } from './base'
 import { aplicarClienteBd, aplicarClienteDefault, propagarCliente, sembrarCliente } from './cliente'
+import { preguntarNsys } from './nsys'
 import type { EstadoModal, FilaPulido, RefCliente } from './tipos'
 
 /** Panel de Pulido (construirPulidoPane del JavaFX): sin modelo, sin chasis, sin "Lleva glass" y sin bloqueo del
@@ -15,21 +16,21 @@ function agregar(s: EstadoModal, imei: string): EstadoModal {
 
 export function pulidoEscanear(s: EstadoModal, imei: string): EstadoModal {
   if (s.pulido.some((f) => f.imei === imei)) return { ...s, mensajePulido: { texto: 'Ese IMEI ya está en la lista de pulido.', tono: 'error' } }
-  return agregar({ ...s, mensajePulido: null }, imei)
+  return preguntarNsys(agregar({ ...s, mensajePulido: null }, imei), [imei])
 }
 
 export function pulidoPegar(s: EstadoModal, texto: string): EstadoModal {
   const p = parsearPegadoImeis(texto)
   if (p.tipo === 'CORRUPTO') return { ...s, mensajePulido: { texto: 'Algún IMEI del pegado está corrupto.', tono: 'error' } }
   let r = s
-  let add = 0
+  const nuevos: string[] = []
   let dup = 0
   for (const imei of p.imeis) {
     if (r.pulido.some((f) => f.imei === imei)) { dup++; continue }
     r = agregar(r, imei)
-    add++
+    nuevos.push(imei)
   }
-  return { ...r, mensajePulido: { texto: `${add} IMEIs añadidos` + (dup > 0 ? ` · ${dup} ya estaban.` : '.'), tono: 'ok' } }
+  return preguntarNsys({ ...r, mensajePulido: { texto: `${nuevos.length} IMEIs añadidos` + (dup > 0 ? ` · ${dup} ya estaban.` : '.'), tono: 'ok' } }, nuevos)
 }
 
 const actualizarFila = (s: EstadoModal, seq: number | null, fn: (f: FilaPulido) => FilaPulido): EstadoModal =>

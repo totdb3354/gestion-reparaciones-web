@@ -22,4 +22,16 @@ describe('DetalleEntrada', () => {
     render(<DetalleEntrada estado={estado()} dispatch={dispatch} tecnicos={[]} carga={[]} clientes={[]} />)
     expect(screen.getByTestId('imei-en-curso')).toHaveTextContent('—')
   })
+
+  it('0.9.23: «No está en NSYS» con la hora del último Items bajo el IMEI; sin respuesta o si NSYS lo tiene, nada', () => {
+    const con = (enNsys: boolean | null) => estado({ rep: [entrada({ seq: 1, imei: IMEI, modelo: '14' })], actual: 1, enNsys: { [IMEI]: enNsys } })
+    const { rerender } = render(<DetalleEntrada estado={con(false)} dispatch={vi.fn()} tecnicos={[]} carga={[]} clientes={[]} ultimoItems="2026-10-16T13:31:00" />)
+    expect(screen.getByText(/^No está en NSYS · último Items: .*13:31$/)).toHaveClass('text-texto-error')
+    rerender(<DetalleEntrada estado={con(false)} dispatch={vi.fn()} tecnicos={[]} carga={[]} clientes={[]} />)
+    expect(screen.getByText('No está en NSYS')).toBeInTheDocument()
+    rerender(<DetalleEntrada estado={con(true)} dispatch={vi.fn()} tecnicos={[]} carga={[]} clientes={[]} />)
+    expect(screen.queryByText(/No está en NSYS/)).not.toBeInTheDocument()
+    rerender(<DetalleEntrada estado={con(null)} dispatch={vi.fn()} tecnicos={[]} carga={[]} clientes={[]} />)
+    expect(screen.queryByText(/No está en NSYS/)).not.toBeInTheDocument()
+  })
 })

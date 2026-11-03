@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { asignar, borrarModelo, cambiarPestana, cargar, decidirModelo, escanear, lookupResuelto, marcarTecnico,
   pegar, propagarModelo, quitar } from './colas'
 import { entrada, estado, filaTabla, IMEI_1, IMEI_2, IMEI_3 } from './fabrica'
+import type { EstadoModal } from './tipos'
 
 describe('escanear y pegar', () => {
-  it('añade a la cola activa, la carga y pide el lookup de modelo y cliente', () => {
+  it('añade a la cola activa, la carga y pide el lookup de modelo y cliente y si NSYS lo conoce', () => {
     const r = escanear(estado(), IMEI_1)
     expect(r.rep[0]).toMatchObject({ seq: 1, imei: IMEI_1, tipo: 'REPARACION', modeloBuscado: true, buscando: true })
     expect(r.actual).toBe(1)
-    expect(r.efectos).toEqual([{ id: 1, tipo: 'lookup', seq: 1, imei: IMEI_1, buscarModelo: true }])
+    expect(r.efectos).toEqual([
+      { id: 1, tipo: 'lookup', seq: 1, imei: IMEI_1, buscarModelo: true },
+      { id: 2, tipo: 'comprobarNsys', imeis: [IMEI_1] },
+    ])
   })
   it('repetido en la cola activa: mensaje y no añade', () => {
     const r = escanear(escanear(estado(), IMEI_1), IMEI_1)
@@ -218,5 +222,37 @@ describe('quitar y cambiar de pestaña', () => {
     const r = cambiarPestana(s, 'GLASS')
     expect(r.actual).toBeNull()
     expect(r.rep).toHaveLength(1)
+  })
+})
+
+describe('0.9.23: pregunta a NSYS al picar y al pegar', () => {
+  const pedidas = (s: EstadoModal) => s.efectos.flatMap((e) => (e.tipo === 'comprobarNsys' ? [e.imeis] : []))
+
+  it('un repetido no vuelve a preguntar', () => {
+    expect(pedidas(escanear(escanear(estado(), IMEI_1), IMEI_1))).toEqual([[IMEI_1]])
+  })
+
+  it('el mismo IMEI en Glass, o quitado y vuelto a picar, no vuelve a preguntar', () => {
+    const s = escanear(estado(), IMEI_1)
+    expect(pedidas(escanear(cambiarPestana(s, 'GLASS'), IMEI_1))).toEqual([[IMEI_1]])
+    expect(pedidas(escanear(quitar(s, 1), IMEI_1))).toEqual([[IMEI_1]])
+  })
+
+  it('pegar pregunta una vez por todos los añadidos, sin los que ya estaban', () => {
+    const s = escanear(estado(), IMEI_1)
+    expect(pedidas(pegar({ ...s, actual: null }, IMEI_1 + IMEI_2 + IMEI_3))).toEqual([[IMEI_1], [IMEI_2, IMEI_3]])
+  })
+
+  it('un pegado corrupto no pregunta', () => {
+    expect(pedidas(pegar(estado(), '1'.repeat(16)))).toEqual([])
+  })
+
+  it('la glass creada con «Lleva glass» no vuelve a preguntar', () => {
+    const s = escanear(estado(), IMEI_1)
+    const lista = { ...s, rep: s.rep.map((e) => ({ ...e, modelo: '12', llevaGlass: true })),
+      borrador: { tecnicos: [3], comentario: '', esChasis: false } }
+    const r = asignar(lista)
+    expect(r.glass.map((g) => g.imei)).toEqual([IMEI_1])
+    expect(pedidas(r)).toEqual([[IMEI_1]])
   })
 })

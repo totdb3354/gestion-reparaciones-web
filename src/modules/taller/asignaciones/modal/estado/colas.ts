@@ -4,6 +4,7 @@ import { actualizar, buscar, colaDe, conEfecto, nuevaEntrada, setCola } from './
 import { aplicarClienteBd, aplicarClienteDefault, propagarCliente, sembrarCliente } from './cliente'
 import { glassAbiertaBd, tecnicosOcupados } from './derivados'
 import { crearGlassDe, glassDe, predecir, quitarGlassDe, vincularGlass } from './glass'
+import { preguntarNsys } from './nsys'
 import type { Cola, Entrada, EstadoModal, Pestana, RefCliente } from './tipos'
 
 export const cambiarPestana = (s: EstadoModal, pestana: Pestana): EstadoModal => ({ ...s, pestana, actual: null })
@@ -24,7 +25,7 @@ export function escanear(s: EstadoModal, imei: string): EstadoModal {
   if (colaDe(s, cola).some((e) => e.imei === imei))
     return { ...s, mensajeScan: { texto: `Ese IMEI ya está en la cola (${TIPO_TRABAJO[cola].etiqueta}).`, tono: 'error' } }
   const r = alta({ ...s, mensajeScan: null }, imei, cola)
-  return cargar(r.s, r.e.seq)
+  return preguntarNsys(cargar(r.s, r.e.seq), [imei])
 }
 
 /** Pegado de varios IMEIs: añade sin cargar el detalle (calco, D6). */
@@ -35,15 +36,15 @@ export function pegar(s: EstadoModal, texto: string): EstadoModal {
   if (p.tipo === 'CORRUPTO')
     return { ...s, mensajeScan: { texto: 'Algún IMEI del pegado está corrupto. Revisa que todos los IMEIs son válidos.', tono: 'error' } }
   let r = s
-  let anadidos = 0
+  const nuevos: string[] = []
   let duplicados = 0
   for (const imei of p.imeis) {
     if (colaDe(r, cola).some((e) => e.imei === imei)) { duplicados++; continue }
     r = alta(r, imei, cola).s
-    anadidos++
+    nuevos.push(imei)
   }
-  const texto2 = `${anadidos} IMEIs añadidos` + (duplicados > 0 ? ` · ${duplicados} ya estaban en la lista.` : '.')
-  return { ...r, mensajeScan: { texto: texto2, tono: 'ok' } }
+  const texto2 = `${nuevos.length} IMEIs añadidos` + (duplicados > 0 ? ` · ${duplicados} ya estaban en la lista.` : '.')
+  return preguntarNsys({ ...r, mensajeScan: { texto: texto2, tono: 'ok' } }, nuevos)
 }
 
 /** Una vez por entrada: modelo (si le falta) y cliente del IMEI en BD. */
