@@ -1,5 +1,5 @@
 import { useEffect, useRef, type Dispatch } from 'react'
-import { guardarModelo, pedirClienteBd, pedirLookup, pedirPrediccion } from './api'
+import { comprobarEnNsys, guardarModelo, pedirClienteBd, pedirLookup, pedirPrediccion } from './api'
 import type { Accion, Efecto } from './estado/tipos'
 
 /** Consume la cola de salida del reductor: lanza cada efecto una sola vez (también bajo StrictMode) y despacha su
@@ -38,6 +38,13 @@ export function useEfectosModal(efectos: Efecto[], dispatch: Dispatch<Accion>, i
           return
         case 'guardarModelo':
           await guardarModelo(e.imei, e.modelo)
+          return
+        case 'comprobarNsys':
+          try {
+            despachar({ tipo: 'NSYS_COMPROBADO', resultado: await comprobarEnNsys(e.imeis) })
+          } catch {
+            // Sin respuesta no se enseña nada (spec 2026-11-03 §2.3): los IMEIs se quedan preguntados y sin marca.
+          }
           return
         case 'prediccion':
           try {

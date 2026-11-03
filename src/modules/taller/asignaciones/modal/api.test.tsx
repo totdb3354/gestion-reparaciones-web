@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { server } from '@/test/server'
-import { guardarModelo, pedirClienteBd, pedirLookup, pedirPrediccion, useGuardarLote } from './api'
+import { comprobarEnNsys, guardarModelo, pedirClienteBd, pedirLookup, pedirPrediccion, useGuardarLote } from './api'
 
 const IMEI = '111111111111111'
 
@@ -61,6 +61,26 @@ describe('ejecutores de efectos', () => {
     expect(await pedirPrediccion({ imei: IMEI, conCliente: true, verdes: [] })).toBe(4)
     server.use(http.post('*/api/glass/prediccion', () => new HttpResponse(null, { status: 500 })))
     await expect(pedirPrediccion({ imei: IMEI, conCliente: true, verdes: [] })).rejects.toBeTruthy()
+  })
+
+  it('0.9.23: comprobarEnNsys traduce «encontrado» por IMEI y pregunta en tandas de 500', async () => {
+    const tandas: string[][] = []
+    server.use(http.post('*/api/stock-telefonos/comprobar', async ({ request }) => {
+      const { imeis } = (await request.json()) as { imeis: string[] }
+      tandas.push(imeis)
+      return HttpResponse.json(imeis.map((imei) => ({ imei, encontrado: imei !== IMEI })))
+    }))
+    const otros = Array.from({ length: 501 }, (_, i) => String(200000000000000 + i))
+    const r = await comprobarEnNsys([IMEI, ...otros])
+    expect(tandas.map((t) => t.length)).toEqual([500, 2])
+    expect(r[IMEI]).toBe(false)
+    expect(r[otros[0]]).toBe(true)
+    expect(Object.keys(r)).toHaveLength(502)
+  })
+
+  it('0.9.23: comprobarEnNsys deja pasar el error (el efecto lo calla)', async () => {
+    server.use(http.post('*/api/stock-telefonos/comprobar', () => new HttpResponse(null, { status: 500 })))
+    await expect(comprobarEnNsys([IMEI])).rejects.toBeTruthy()
   })
 })
 

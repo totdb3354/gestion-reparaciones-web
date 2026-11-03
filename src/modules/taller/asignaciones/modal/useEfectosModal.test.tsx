@@ -49,4 +49,23 @@ describe('useEfectosModal', () => {
       expect(dispatch).toHaveBeenCalledWith({ tipo: 'PULIDO_CLIENTE_BD', seq: 3, idCli: 5 })
     })
   })
+  it('0.9.23: comprobarNsys despacha lo que dice NSYS', async () => {
+    server.use(http.post('*/api/stock-telefonos/comprobar', () => HttpResponse.json([{ imei: IMEI, encontrado: false }])))
+    const dispatch = vi.fn()
+    renderHook(() => useEfectosModal([{ id: 1, tipo: 'comprobarNsys', imeis: [IMEI] }], dispatch, new Set()))
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith({ tipo: 'NSYS_COMPROBADO', resultado: { [IMEI]: false } }))
+  })
+
+  it('0.9.23: si la pregunta a NSYS falla no se despacha nada más que los consumidos', async () => {
+    let pedida = false
+    server.use(http.post('*/api/stock-telefonos/comprobar', () => {
+      pedida = true
+      return new HttpResponse(null, { status: 500 })
+    }))
+    const dispatch = vi.fn()
+    renderHook(() => useEfectosModal([{ id: 1, tipo: 'comprobarNsys', imeis: [IMEI] }], dispatch, new Set()))
+    await waitFor(() => expect(pedida).toBe(true))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(dispatch.mock.calls.map(([a]) => a.tipo)).toEqual(['EFECTOS_CONSUMIDOS'])
+  })
 })
