@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.24] - (pendiente) — La descripción del móvil dice si es eSIM
+## [0.9.24] - 2026-11-03 — La descripción del móvil dice si es eSIM
 
 - **«iPhone 14 eSIM 256GB Azul»**: si NSYS dice que el móvil es eSIM (lo escribe en el producto), la descripción lleva «eSIM» detrás del modelo. En las listas del taller (Asignaciones, Pendientes, Pulidos pendientes con su confirmación, el Historial de trabajos y de pulidos, IMEIs, la barra del detalle del IMEI y el aviso de los móviles sin trabajos) y en las de NSYS (la ficha del IMEI, el buscador de IMEI, las tarjetas de «Por pasar a NSYS» y «Pegar varios IMEIs» con su copia para Excel), también al copiar la celda. Un móvil con SIM física, o que no está en NSYS, sigue como antes. La tabla del stock ya tenía su marca «eSIM» y no cambia.
 - Los CSV `reparaciones_pendientes`, `pulidos_pendientes`, `historial_pulidos` y `agrupado_resumen` dicen «iPhone 14 eSIM» en «Modelo»; las columnas no cambian.
