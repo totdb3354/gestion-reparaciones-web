@@ -4,7 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.22] - (pendiente) — Lo que no cuadra con NSYS: cuatro tarjetas, «Hecho» y plantillas para subir a NSYS
+## [0.9.22.1] - (pendiente) — Las plantillas de NSYS se descargan
+
+- **«⬇ Descargar plantilla»** (Cambio de color y No está en NSYS) abre la ventana **«Guardar como»** al pulsarlo, como «Descargar CSV», con el nombre ya puesto (`NSYS_color_2026-11-03.xlsx`), y después pide el Excel y lo guarda donde se elija. En la 0.9.22 la descarga salía después de esperar al servidor y el navegador la perdía sin avisar: no bajaba nada. Si se cancela la ventana, no se pide nada. En un navegador sin esa ventana (Firefox) se descarga como antes, a la carpeta de descargas.
+- Solo web: el servidor sigue en la 0.9.22. Sin migración.
+
+## [0.9.22] - 2026-11-03 — Lo que no cuadra con NSYS: cuatro tarjetas, «Hecho» y plantillas para subir a NSYS
 
 - **«Por pasar a NSYS» con cuatro tarjetas** (supertécnicos y administrador): **Cambio de color** (con la plantilla de NSYS para borrar y volver a subir el móvil, con el grado que tiene hoy en NSYS y su mismo precio de compra), **Cambio de grado** («Copiar lista»: en NSYS se cambia uno a uno, después del color), **No está en NSYS** (móviles que han pasado por el taller y NSYS no conoce, con su plantilla de altas: lo que falta va en rojo) y **Revisar a mano** (lo que el ERP no supo calcular al guardar una reparación: «✓ Revisado» si ya estaba bien, o «Corregir…»). Cada tarjeta dice cuántos hay y cuántos hechos; la pestaña cuenta lo pendiente.
 - **«Hecho»** por fila y **«✓ Marcar todo»**: la fila se queda en gris con quién y cuándo, y las plantillas y «Copiar lista» ya no la llevan. Se va sola cuando la importación ve NSYS al día; si NSYS sigue igual, vuelve a salir con «Marcado «Hecho» a las …, pero NSYS sigue igual».
