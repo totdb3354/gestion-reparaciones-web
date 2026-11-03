@@ -2,6 +2,7 @@ import { useEffect, useMemo, useReducer, useState } from 'react'
 import type { Blocker } from 'react-router'
 import type { ReparacionResumen } from '@/shared/api/client'
 import { useClientes } from '@/shared/api/clientes'
+import { useEstadoNsys } from '@/shared/api/nsys'
 import { esErrorGestionadoGlobalmente, mensajeDeError } from '@/shared/api/errors'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -40,6 +41,8 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
   const { data: tecnicos = [] } = useTecnicos(true)
   const { data: carga } = useCargaTecnicos(true)
   const { data: clientes = [], isPending: cargandoClientes } = useClientes()
+  // 0.9.23: la hora del último Items para «no está en NSYS» (la misma consulta que el indicador de la barra superior).
+  const { data: estadoNsys } = useEstadoNsys()
   const idsClientes = useMemo(() => new Set(clientes.map((c) => c.idCli)), [clientes])
   // D6: el lookup y el cliente de pulido filtran el cliente de BD contra `idsClientes` al lanzarse; lanzados antes de
   // que llegue la lista lo perderían en silencio. La cola del reductor espera hasta entonces (si la consulta falla,
@@ -83,7 +86,7 @@ export function AsignarTrabajosDialog({ tabla, onCerrar, onInteraccion }: Props)
     }
   }
 
-  const panel = { estado, dispatch, tecnicos, carga: carga?.pedidos ?? [], clientes }
+  const panel = { estado, dispatch, tecnicos, carga: carga?.pedidos ?? [], clientes, ultimoItems: estadoNsys?.ultimaExportacion ?? null }
 
   return (
     <>

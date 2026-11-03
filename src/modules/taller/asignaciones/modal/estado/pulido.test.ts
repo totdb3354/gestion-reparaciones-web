@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { pulidoCliente, pulidoClienteBd, pulidoComentario, pulidoEscanear, pulidoPegar, pulidoQuitar, pulidoSeleccionar,
   pulidoTecArriba, pulidoTecnico } from './pulido'
 import { entrada, estado, filaTabla, IMEI_1, IMEI_2 } from './fabrica'
+import type { EstadoModal } from './tipos'
 
 const conPulido = () => pulidoEscanear(pulidoTecArriba(estado({ pestana: 'PULIDO' }), 5), IMEI_1)
 
@@ -10,7 +11,7 @@ describe('pulido', () => {
     const r = conPulido()
     expect(r.pulido[0]).toEqual({ seq: 1, imei: IMEI_1, idTec: 5, comentario: '', idCli: null, sinCliente: false })
     expect(r.pulidoSel).toBe(1)
-    expect(r.efectos).toEqual([{ id: 1, tipo: 'clientePulido', seq: 1, imei: IMEI_1 }])
+    expect(r.efectos).toEqual([{ id: 1, tipo: 'clientePulido', seq: 1, imei: IMEI_1 }, { id: 2, tipo: 'comprobarNsys', imeis: [IMEI_1] }])
   })
   it('el técnico de arriba puede faltar y cambiarlo no toca las filas ya añadidas', () => {
     const r = pulidoTecArriba(conPulido(), 6)
@@ -54,5 +55,11 @@ describe('pulido', () => {
   it('quitar la seleccionada vacía el detalle', () => {
     const r = pulidoQuitar(conPulido(), 1)
     expect([r.pulido, r.pulidoSel]).toEqual([[], null])
+  })
+  it('0.9.23: pregunta a NSYS al picar y al pegar, una vez por IMEI (tampoco si ya se preguntó en otra cola)', () => {
+    const pedidas = (s: EstadoModal) => s.efectos.flatMap((e) => (e.tipo === 'comprobarNsys' ? [e.imeis] : []))
+    expect(pedidas(pulidoEscanear(conPulido(), IMEI_1))).toEqual([[IMEI_1]])
+    expect(pedidas(pulidoPegar(conPulido(), IMEI_1 + IMEI_2))).toEqual([[IMEI_1], [IMEI_2]])
+    expect(pedidas(pulidoEscanear(estado({ pestana: 'PULIDO', enNsys: { [IMEI_1]: false } }), IMEI_1))).toEqual([])
   })
 })

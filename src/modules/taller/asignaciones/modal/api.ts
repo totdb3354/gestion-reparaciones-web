@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type PeticionLote, type PeticionPrediccion, type RespuestaLote } from '@/shared/api/client'
+import { MAX_IMEIS } from '@/shared/api/nsys'
 import { CLAVE_CONTADORES } from '../../api'
 import { CLAVE_ASIGNACIONES_TODAS } from '../api'
 
@@ -41,6 +42,17 @@ export async function guardarModelo(imei: string, modelo: string): Promise<void>
   } catch {
     // el lote vuelve a mandar el modelo
   }
+}
+
+/** 0.9.23 (spec 2026-11-03 §3): si NSYS conoce cada IMEI, en cualquier lote y estado («Comprobar una lista de IMEIs»), en
+ *  tandas de {@link MAX_IMEIS}. Los errores se propagan: el efecto los calla. */
+export async function comprobarEnNsys(imeis: string[]): Promise<Record<string, boolean>> {
+  const resultado: Record<string, boolean> = {}
+  for (let i = 0; i < imeis.length; i += MAX_IMEIS) {
+    const { data } = await api.POST('/api/stock-telefonos/comprobar', { body: { imeis: imeis.slice(i, i + MAX_IMEIS) } })
+    for (const m of data ?? []) resultado[m.imei] = m.encontrado
+  }
+  return resultado
 }
 
 /** Técnico de la glass automática, o null si no hay candidato. Los errores se propagan (glass roja + aviso). */

@@ -11,6 +11,7 @@ import { setupServer } from 'msw/node'
  * Y desde la 0.9.21, la lista "Por pasar a NSYS" (vacía).
  * Y desde la 0.9.22, las tarjetas de «Por pasar a NSYS» (vacías).
  * Y desde la 0.9.21, la previa del SKU del taller (fuera de NSYS).
+ * Y desde la 0.9.23, «Comprobar una lista de IMEIs»: todos en NSYS (el modal de asignación pregunta por cada IMEI que se pica).
  */
 export const server = setupServer(
   http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
@@ -42,4 +43,10 @@ export const server = setupServer(
   http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn/rastro', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn', () => HttpResponse.json({ message: 'NSYS no conoce el IMEI' }, { status: 404 })),
+  // 0.9.23: el modal de asignación pregunta a NSYS por cada IMEI que se pica o se pega. Por defecto NSYS los conoce todos (no
+  // sale «no está en NSYS»), así los tests del modal que no van de esto no cambian.
+  http.post('*/api/stock-telefonos/comprobar', async ({ request }) => {
+    const { imeis } = (await request.json()) as { imeis: string[] }
+    return HttpResponse.json(imeis.map((imei) => ({ imei, encontrado: true })))
+  }),
 )

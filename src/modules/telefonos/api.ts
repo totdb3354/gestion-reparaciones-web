@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type EstadoNsys, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  api, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionHecho, type TarjetasPorPasar,
 } from '@/shared/api/client'
-import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS } from '@/shared/api/nsys'
+import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { guardarEn, nombreDeDescarga, type TipoFichero } from '@/shared/lib/descargas'
 import { hoyMadrid } from '@/shared/lib/fechas'
 
-export const CLAVE_ESTADO_NSYS = ['telefonos', 'estado'] as const
 export const CLAVE_IMPORTACIONES_NSYS = ['telefonos', 'importaciones'] as const
-/** Como mucho los IMEIs que se comprueban de una vez (spec 0.9.18 §4.9; el servidor da 400 por encima). */
-export const MAX_IMEIS = 500
+/** 0.9.23: el estado de NSYS y el tope de IMEIs viven en `shared` (también los usa el modal de asignación del taller); se
+ *  reexportan para el resto del módulo. */
+export { CLAVE_ESTADO_NSYS, MAX_IMEIS, useEstadoNsys } from '@/shared/api/nsys'
 
 /** GET /api/stock-telefonos: los móviles que están en la empresa, con sus trabajos abiertos (0.9.18) y lo que vale del taller
  *  (0.9.21). Los filtros se aplican en la pantalla (spec §8). Sondea como las demás vistas: la importación trae datos nuevos
@@ -22,20 +22,6 @@ export function useStockTelefonos(): UseQueryResult<MovilStock[]> {
     queryKey: CLAVE_STOCK_TELEFONOS,
     queryFn: async () => (await api.GET('/api/stock-telefonos')).data ?? [],
     refetchInterval: intervalo,
-  })
-}
-
-/** GET /api/stock-telefonos/estado: hora de la última exportación de NSYS y nivel del aviso. Sin capa de carga ni diálogo
- *  de error: lo enseñan la píldora de la cabecera («no se pudo comprobar») y, desde la 0.9.18, el indicador de la barra
- *  superior en todas las vistas. `activo`: el indicador solo pregunta para SUPERTECNICO y ADMIN (al TECNICO le daría 403). */
-export function useEstadoNsys(activo = true): UseQueryResult<EstadoNsys | null> {
-  const intervalo = useIntervaloRefresco(activo)
-  return useQuery({
-    queryKey: CLAVE_ESTADO_NSYS,
-    enabled: activo,
-    queryFn: async () => (await api.GET('/api/stock-telefonos/estado')).data ?? null,
-    refetchInterval: intervalo,
-    meta: { sinCapa: true, silenciarError: true },
   })
 }
 

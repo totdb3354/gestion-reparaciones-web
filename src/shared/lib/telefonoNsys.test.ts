@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada, conEsim, nombreMovilNsys, SIN_MODELO_MAESTRO } from './telefonoNsys'
+import { cuandoItems, clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada, conEsim, nombreMovilNsys, SIN_MODELO_MAESTRO } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -23,6 +23,13 @@ describe('piezas compartidas del espejo de NSYS', () => {
   it('día de NSYS en dd/mm/aaaa, con o sin hora detrás', () => {
     expect(diaNsys('2023-05-02')).toBe('02/05/2023')
     expect(diaNsys('2026-09-12T13:01:00')).toBe('12/09/2026')
+  })
+  it('0.9.23: cuándo es un Items: «hoy 13:40» o «del 02/11 22:10», con el día de Madrid', () => {
+    const ahora = new Date('2026-11-03T12:00:00Z') // las 13:00 en Madrid
+    expect(cuandoItems('2026-11-03T13:40:00', ahora)).toBe('hoy 13:40')
+    expect(cuandoItems('2026-11-02T22:10:00', ahora)).toBe('del 02/11 22:10')
+    // Las 23:30 UTC del 2 son ya el 3 en Madrid: un Items de las 00:10 del 3 es de hoy.
+    expect(cuandoItems('2026-11-03T00:10:00', new Date('2026-11-02T23:30:00Z'))).toBe('hoy 00:10')
   })
 })
 

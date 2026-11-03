@@ -1,16 +1,22 @@
 import { traducirModelo } from '../../lib/modelos'
 import { TIPO_TRABAJO } from '@/shared/lib/tipoTrabajo'
 import { cn } from '@/shared/lib/utils'
+import { MarcaNoNsys } from './MarcaNoNsys'
 import type { Entrada } from './estado/tipos'
 
-type Props = { e: Entrada; nombresTecnicos: string; seleccionada: boolean; onCargar: () => void; onQuitar: () => void }
+type Props = {
+  e: Entrada; nombresTecnicos: string; seleccionada: boolean; onCargar: () => void; onQuitar: () => void
+  /** 0.9.23: NSYS ha contestado que no tiene el IMEI; `ultimoItems`, la hora del último Items para la ayuda. */
+  noEstaEnNsys?: boolean; ultimoItems?: string | null
+}
 
 const PILDORA = 'shrink-0 rounded-md px-2 py-0.5 text-[10.5px] font-bold'
 
 /** Fila de las listas roja y verde (crearFilaPila del JavaFX). Fondo de fila seleccionada: #EAF1FF, que ya existe
  *  como --color-seleccion-suave (Task 14, Step 1) — se reutiliza en vez de un token "cola-sel-bg" duplicado. */
-export function FilaCola({ e, nombresTecnicos, seleccionada, onCargar, onQuitar }: Props) {
+export function FilaCola({ e, nombresTecnicos, seleccionada, onCargar, onQuitar, noEstaEnNsys = false, ultimoItems }: Props) {
   const esGlass = e.tipo === 'GLASS'
+  const conTecnicos = e.asignada && e.tecnicos.length > 0
   return (
     <div
       onClick={onCargar}
@@ -29,10 +35,13 @@ export function FilaCola({ e, nombresTecnicos, seleccionada, onCargar, onQuitar 
               : <span className={cn(PILDORA, 'bg-pill-aviso-bg text-pill-aviso-text')}>⚠ falta modelo</span>}
           {e.calculando && <span className={cn(PILDORA, 'bg-pill-buscando-bg text-azul-gris')}>Calculando…</span>}
         </div>
-        {e.asignada && e.tecnicos.length > 0 && (
+        {(conTecnicos || noEstaEnNsys) && (
           <div className="flex items-center gap-1.5">
-            {e.auto && <span className={cn('rounded-md px-1.5 text-[9.5px] font-bold', TIPO_TRABAJO.GLASS.clases)}>auto</span>}
-            <span className="text-[10.5px] text-azul-gris">{nombresTecnicos}</span>
+            {conTecnicos && e.auto && <span className={cn('rounded-md px-1.5 text-[9.5px] font-bold', TIPO_TRABAJO.GLASS.clases)}>auto</span>}
+            {conTecnicos && <span className="text-[10.5px] text-azul-gris">{nombresTecnicos}</span>}
+            {conTecnicos && noEstaEnNsys && <span className="text-[10.5px] text-azul-gris">·</span>}
+            {/* 0.9.23: en la segunda línea porque la cola mide 300 px y junto a «⚠ falta modelo» no cabe en la primera. */}
+            {noEstaEnNsys && <MarcaNoNsys ultimoItems={ultimoItems} />}
           </div>
         )}
       </div>

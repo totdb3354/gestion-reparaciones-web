@@ -219,4 +219,22 @@ describe('AsignarTrabajosDialog', () => {
     await waitFor(() => expect(onCerrar).toHaveBeenCalled())
     expect(lotes[0].cuerpo).toMatchObject({ telefonos: [{ imei: IMEI, modelo: '14', idCli: 7, clienteExplicito: false }] })
   })
+
+  it('0.9.23: un IMEI que NSYS no conoce lleva «no está en NSYS» en la fila y en el detalle, y se pregunta una sola vez', async () => {
+    const preguntas: string[][] = []
+    server.use(http.post('*/api/stock-telefonos/comprobar', async ({ request }) => {
+      const { imeis } = (await request.json()) as { imeis: string[] }
+      preguntas.push(imeis)
+      return HttpResponse.json(imeis.map((imei) => ({ imei, encontrado: false })))
+    }))
+    abrir()
+    await userEvent.type(screen.getByPlaceholderText('Escanea o escribe el IMEI (15 dígitos)...'), IMEI)
+    expect(await screen.findByText('no está en NSYS')).toBeInTheDocument()
+    // La hora sale del estado de NSYS por defecto de MSW (2026-10-16 13:31).
+    expect(await screen.findByText(/^No está en NSYS · último Items: .*13:31$/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Glass/ }))
+    await userEvent.type(screen.getByPlaceholderText('Escanea o escribe el IMEI (15 dígitos)...'), IMEI)
+    expect(await screen.findByText('no está en NSYS')).toBeInTheDocument()
+    expect(preguntas).toEqual([[IMEI]])
+  })
 })

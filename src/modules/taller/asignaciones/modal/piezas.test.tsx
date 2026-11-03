@@ -88,6 +88,20 @@ describe('FilaCola', () => {
     await userEvent.click(screen.getByText(IMEI))
     expect(onCargar).toHaveBeenCalled()
   })
+
+  it('0.9.23: «no está en NSYS» en rojo en la segunda línea; sola en la roja y detrás de los técnicos en la verde', () => {
+    const { rerender } = render(<FilaCola e={entrada({ seq: 1, imei: IMEI })} nombresTecnicos="" seleccionada={false}
+      onCargar={vi.fn()} onQuitar={vi.fn()} noEstaEnNsys ultimoItems="2026-10-16T13:31:00" />)
+    expect(screen.getByText('⚠ falta modelo')).toBeInTheDocument()
+    const marca = screen.getByText('no está en NSYS')
+    expect(marca).toHaveClass('text-texto-error')
+    expect(marca.getAttribute('title')).toMatch(/^NSYS no tiene este IMEI en ningún lote del último Items \(.*13:31\)\. Al guardar saldrá en «No está en NSYS»\.$/)
+    rerender(<FilaCola e={entrada({ seq: 1, imei: IMEI, asignada: true, tecnicos: [3], modelo: '14' })} nombresTecnicos="Técnico A"
+      seleccionada={false} onCargar={vi.fn()} onQuitar={vi.fn()} noEstaEnNsys />)
+    expect(screen.getByText('no está en NSYS').parentElement).toHaveTextContent('Técnico A·no está en NSYS')
+    rerender(<FilaCola e={entrada({ seq: 1, imei: IMEI, modelo: '14' })} nombresTecnicos="" seleccionada={false} onCargar={vi.fn()} onQuitar={vi.fn()} />)
+    expect(screen.queryByText('no está en NSYS')).not.toBeInTheDocument()
+  })
 })
 
 describe('ListaTecnicos', () => {
