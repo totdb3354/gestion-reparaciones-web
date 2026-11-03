@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.24] - (pendiente) — La descripción del móvil dice si es eSIM
+
+- **«iPhone 14 eSIM 256GB Azul»**: si NSYS dice que el móvil es eSIM (lo escribe en el producto), la descripción lleva «eSIM» detrás del modelo. En las listas del taller (Asignaciones, Pendientes, Pulidos pendientes con su confirmación, el Historial de trabajos y de pulidos, IMEIs, la barra del detalle del IMEI y el aviso de los móviles sin trabajos) y en las de NSYS (la ficha del IMEI, el buscador de IMEI, las tarjetas de «Por pasar a NSYS» y «Pegar varios IMEIs» con su copia para Excel), también al copiar la celda. Un móvil con SIM física, o que no está en NSYS, sigue como antes. La tabla del stock ya tenía su marca «eSIM» y no cambia.
+- Los CSV `reparaciones_pendientes`, `pulidos_pendientes`, `historial_pulidos` y `agrupado_resumen` dicen «iPhone 14 eSIM» en «Modelo»; las columnas no cambian.
+- Requiere el servidor de la 0.9.24 (con uno anterior, la descripción sale como antes, sin la eSIM). Servidor y web, sin migración.
+
 ## [0.9.23] - 2026-11-03 — El modal de asignación avisa si el IMEI no está en NSYS
 
 - **«Asignar trabajos»** (supertécnicos y administrador): al picar o pegar un IMEI en Reparación, Glass o Pulido, si NSYS no lo tiene en ningún lote, la fila dice **«no está en NSYS»** en rojo y el detalle, bajo el IMEI, **«No está en NSYS · último Items: hoy 13:40»**. Así se puede dar de alta en NSYS en el momento, con el móvil en la mano. Solo informa: no bloquea ni cambia lo que se guarda, y al guardar el móvil sale en la tarjeta «No está en NSYS» como hasta ahora. Un vendido o de baja no avisa (NSYS lo conoce). Si la consulta falla, no se enseña nada.
