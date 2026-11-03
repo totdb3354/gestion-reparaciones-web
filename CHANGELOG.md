@@ -4,6 +4,11 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.23] - (pendiente) — El modal de asignación avisa si el IMEI no está en NSYS
+
+- **«Asignar trabajos»** (supertécnicos y administrador): al picar o pegar un IMEI en Reparación, Glass o Pulido, si NSYS no lo tiene en ningún lote, la fila dice **«no está en NSYS»** en rojo y el detalle, bajo el IMEI, **«No está en NSYS · último Items: hoy 13:40»**. Así se puede dar de alta en NSYS en el momento, con el móvil en la mano. Solo informa: no bloquea ni cambia lo que se guarda, y al guardar el móvil sale en la tarjeta «No está en NSYS» como hasta ahora. Un vendido o de baja no avisa (NSYS lo conoce). Si la consulta falla, no se enseña nada.
+- Solo web: el servidor sigue en la 0.9.22. Sin migración.
+
 ## [0.9.22.1] - (pendiente) — Las plantillas de NSYS se descargan
 
 - **«⬇ Descargar plantilla»** (Cambio de color y No está en NSYS) abre la ventana **«Guardar como»** al pulsarlo, como «Descargar CSV», con el nombre ya puesto (`NSYS_color_2026-11-03.xlsx`), y después pide el Excel y lo guarda donde se elija. En la 0.9.22 la descarga salía después de esperar al servidor y el navegador la perdía sin avisar: no bajaba nada. Si se cancela la ventana, no se pide nada. En un navegador sin esa ventana (Firefox) se descarga como antes, a la carpeta de descargas.
