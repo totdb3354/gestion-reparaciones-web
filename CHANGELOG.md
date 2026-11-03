@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.23] - (pendiente) — El modal de asignación avisa si el IMEI no está en NSYS
+## [0.9.23] - 2026-11-03 — El modal de asignación avisa si el IMEI no está en NSYS
 
 - **«Asignar trabajos»** (supertécnicos y administrador): al picar o pegar un IMEI en Reparación, Glass o Pulido, si NSYS no lo tiene en ningún lote, la fila dice **«no está en NSYS»** en rojo y el detalle, bajo el IMEI, **«No está en NSYS · último Items: hoy 13:40»**. Así se puede dar de alta en NSYS en el momento, con el móvil en la mano. Solo informa: no bloquea ni cambia lo que se guarda, y al guardar el móvil sale en la tarjeta «No está en NSYS» como hasta ahora. Un vendido o de baja no avisa (NSYS lo conoce). Si la consulta falla, no se enseña nada.
 - Solo web: el servidor sigue en la 0.9.22. Sin migración.
