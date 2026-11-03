@@ -246,4 +246,13 @@ describe('0.9.23: pregunta a NSYS al picar y al pegar', () => {
   it('un pegado corrupto no pregunta', () => {
     expect(pedidas(pegar(estado(), '1'.repeat(16)))).toEqual([])
   })
+
+  it('la glass creada con «Lleva glass» no vuelve a preguntar', () => {
+    const s = escanear(estado(), IMEI_1)
+    const lista = { ...s, rep: s.rep.map((e) => ({ ...e, modelo: '12', llevaGlass: true })),
+      borrador: { tecnicos: [3], comentario: '', esChasis: false } }
+    const r = asignar(lista)
+    expect(r.glass.map((g) => g.imei)).toEqual([IMEI_1])
+    expect(pedidas(r)).toEqual([[IMEI_1]])
+  })
 })

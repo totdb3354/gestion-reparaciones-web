@@ -52,7 +52,7 @@ export function PanelPulido({ estado, dispatch, tecnicos, carga, clientes, ultim
           {estado.pulido.map((f) => (
             <div key={f.seq} onClick={() => dispatch({ tipo: 'PULIDO_SELECCIONAR', seq: f.seq })}
               className={cn('flex cursor-pointer items-center gap-2 border-b border-pill-buscando-bg p-2', f.seq === estado.pulidoSel && 'bg-pulido-sel-bg')}>
-              <div className="flex flex-1 flex-col gap-px">
+              <div className="flex min-w-0 flex-1 flex-col gap-px">
                 <span className="font-mono text-[12px] font-bold text-azul-medio">{f.imei}</span>
                 <div className="flex items-center gap-1.5">
                   {f.idTec == null
