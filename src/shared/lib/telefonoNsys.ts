@@ -16,9 +16,10 @@ export function nombreModeloNsys(modelo: string | null, modeloMaestro: string | 
 
 /** 0.9.24 (spec «La descripción del móvil dice si es eSIM» §2.1): el nombre del modelo con «eSIM» detrás si el móvil es solo
  *  eSIM («iPhone 14 eSIM»), como lo escribe NSYS en el producto. Sin nombre o con «Sin modelo en el maestro», tal cual: no es un
- *  modelo. Lo usan las listas del taller y sus CSV (con el modelo del taller) y las copias de NSYS (`nombreMovilNsys`). */
+ *  modelo; si el nombre ya dice eSIM (el texto del maestro de un modelo fuera del catálogo), no se repite. Lo usan las listas del
+ *  taller y sus CSV (con el modelo del taller) y las copias de NSYS (`nombreMovilNsys`). */
 export function conEsim(nombre: string, esEsim: boolean | undefined): string {
-  return esEsim && nombre && nombre !== SIN_MODELO_MAESTRO ? `${nombre} eSIM` : nombre
+  return esEsim && nombre && nombre !== SIN_MODELO_MAESTRO && !/esim/i.test(nombre) ? `${nombre} eSIM` : nombre
 }
 
 /** 0.9.24: el nombre de un móvil del espejo de NSYS con su eSIM: la ficha del IMEI, el buscador, «Por pasar a NSYS», «Pegar

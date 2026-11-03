@@ -136,4 +136,10 @@ describe('la eSIM detrás del modelo (0.9.24, spec «La descripción del móvil 
     expect(nombreMovilNsys({ modelo: '13pro', modeloMaestro: '13 PRO' })).toBe('iPhone 13 Pro')
     expect(descripcionMovil(nombreMovilNsys({ modelo: '14', modeloMaestro: '14', esEsim: true }), '256GB')).toBe('iPhone 14 eSIM 256GB')
   })
+
+  it('si el nombre ya dice eSIM (texto del maestro), no se repite', () => {
+    expect(conEsim('iPhone 17 e eSIM', true)).toBe('iPhone 17 e eSIM')
+    expect(nombreMovilNsys({ modelo: null, modeloMaestro: '17 e eSIM', esEsim: true })).toBe('iPhone 17 e eSIM')
+    expect(descripcionMovil(nombreMovilNsys({ modelo: null, modeloMaestro: '17 e eSIM', esEsim: true }), '256GB')).toBe('iPhone 17 e eSIM 256GB')
+  })
 })
