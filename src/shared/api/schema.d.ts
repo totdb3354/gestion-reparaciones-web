@@ -94,7 +94,7 @@ export interface paths {
         get?: never;
         put: operations["editarReparacion"];
         post?: never;
-        delete: operations["eliminar_2"];
+        delete: operations["eliminar_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -171,7 +171,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_4"];
+        get: operations["getAll_2"];
         put: operations["guardar"];
         post?: never;
         delete?: never;
@@ -222,7 +222,7 @@ export interface paths {
         get?: never;
         put: operations["actualizar"];
         post?: never;
-        delete: operations["eliminar_4"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -235,7 +235,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_10"];
+        get: operations["getAll_7"];
         put: operations["guardar_1"];
         post?: never;
         delete?: never;
@@ -299,7 +299,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll"];
+        get?: never;
         put?: never;
         post: operations["insertar"];
         delete?: never;
@@ -356,22 +356,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/tecnicos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAll_1"];
-        put?: never;
-        post: operations["insertar_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado": {
         parameters: {
             query?: never;
@@ -413,23 +397,7 @@ export interface paths {
         };
         get: operations["getSolicitudes_1"];
         put?: never;
-        post: operations["insertar_2"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reparaciones": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAll_2"];
-        put?: never;
-        post: operations["insertar_3"];
+        post: operations["insertar_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -532,22 +500,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reparacion-componentes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["insertar_4"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/pulidos/asignaciones": {
         parameters: {
             query?: never;
@@ -587,9 +539,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_3"];
+        get: operations["getAll_1"];
         put?: never;
-        post: operations["insertar_5"];
+        post: operations["insertar_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -683,9 +635,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_7"];
+        get: operations["getAll_5"];
         put?: never;
-        post: operations["insertar_6"];
+        post: operations["insertar_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -715,9 +667,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_8"];
+        get: operations["getAll_6"];
         put?: never;
-        post: operations["insertar_7"];
+        post: operations["insertar_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -740,22 +692,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/componentes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAll_9"];
-        put?: never;
-        post: operations["insertar_8"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/clientes": {
         parameters: {
             query?: never;
@@ -763,9 +699,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_11"];
+        get: operations["getAll_8"];
         put?: never;
-        post: operations["insertar_9"];
+        post: operations["insertar_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1124,22 +1060,6 @@ export interface paths {
         patch: operations["actualizarEstado_1"];
         trace?: never;
     };
-    "/api/reparaciones/{idRep}/completar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["completar"];
-        trace?: never;
-    };
     "/api/reparaciones/cliente": {
         parameters: {
             query?: never;
@@ -1250,22 +1170,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["actualizarChasis"];
-        trace?: never;
-    };
-    "/api/reparacion-componentes/{idRep}/incidencia": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["borrarIncidencia"];
-        options?: never;
-        head?: never;
-        patch: operations["marcarIncidencia"];
         trace?: never;
     };
     "/api/pulidos/asignaciones/{idAP}": {
@@ -1556,22 +1460,6 @@ export interface paths {
         patch: operations["moverOtro"];
         trace?: never;
     };
-    "/api/componentes/{idCom}/stock": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["actualizarStock"];
-        trace?: never;
-    };
     "/api/componentes/{idCom}/stock-minimo": {
         parameters: {
             query?: never;
@@ -1748,22 +1636,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/telefonos/{imei}/exists": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["exists"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/telefonos/inventario": {
         parameters: {
             query?: never;
@@ -1772,6 +1644,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getInventario"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tecnicos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAll"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2116,22 +2004,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reparaciones/imei/{imei}/tecnicos-asignados": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTecnicosConAsignacionActiva"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reparaciones/imei/{imei}/incidencia-activa": {
         parameters: {
             query?: never;
@@ -2143,22 +2015,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["borrarIncidenciaPorImei"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reparaciones/imei/{imei}/count": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["countByImei"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2228,38 +2084,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reparaciones/historial/imei/{imei}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getHistorialPorImei"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reparaciones/estadisticas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getEstadisticasPorTecnico"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reparaciones/estadisticas/puntos": {
         parameters: {
             query?: never;
@@ -2308,22 +2132,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reparaciones/asignaciones/imei/{imei}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAsignacionesPorImei"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reparaciones/asignaciones/completadas-hoy": {
         parameters: {
             query?: never;
@@ -2332,22 +2140,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getAsignacionesCompletadasHoy"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reparacion-componentes/{idRep}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getByReparacion"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2411,7 +2203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_5"];
+        get: operations["getAll_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2427,7 +2219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getAll_6"];
+        get: operations["getAll_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2468,22 +2260,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/compras/en-camino": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getEnCamino"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/compras/cantidad-en-camino/{idCom}": {
         parameters: {
             query?: never;
@@ -2500,22 +2276,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/componentes/stock-bajo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getStockBajo"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/componentes/gestionados": {
         parameters: {
             query?: never;
@@ -2524,38 +2284,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getAllGestionados"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/componentes/evolucion-stock": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getEvolucionStock"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/componentes/chasis": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getChasisPorColor"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2644,22 +2372,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/tecnicos/{idTec}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["eliminar_1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/solicitudes-stock/{idSol}": {
         parameters: {
             query?: never;
@@ -2692,7 +2404,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reparacion-componentes/{idRep}/{idCom}": {
+    "/api/reparacion-componentes/{idRep}/incidencia": {
         parameters: {
             query?: never;
             header?: never;
@@ -2702,7 +2414,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["eliminar_3"];
+        delete: operations["borrarIncidencia"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2890,9 +2602,6 @@ export interface components {
             imei: string;
             resultado: string;
         };
-        TecnicoNombreRequest: {
-            nombre: string;
-        };
         StockTelefonosPeticionComprobar: {
             imeis: string[];
         };
@@ -2912,6 +2621,7 @@ export interface components {
             trabajos: components["schemas"]["TrabajoAbierto"][];
             colorNsys: string | null;
             gradoNsys: string | null;
+            esEsim: boolean;
         };
         TrabajoAbierto: {
             categoria: string;
@@ -2925,15 +2635,6 @@ export interface components {
             /** Format: int32 */
             idCom: number;
             descripcion: string | null;
-        };
-        ReparacionInsertarRequest: {
-            imei: string;
-            /** Format: int32 */
-            idTec: number;
-            /** Format: date-time */
-            fechaAsig: string;
-            /** Format: date-time */
-            fechaFin: string;
         };
         ReparacionIncidenciaRequest: {
             comentario: string;
@@ -3005,20 +2706,6 @@ export interface components {
             comentario: string | null;
             urgente: boolean;
             esChasis: boolean;
-        };
-        ReparacionComponenteInsertarRequest: {
-            idRep: string;
-            /** Format: int32 */
-            idCom: number;
-            esReutilizado: boolean;
-            esIncidencia: boolean;
-            esResuelto: boolean;
-            incidencia: string;
-            observaciones: string;
-            esSolicitud: boolean;
-            descripcionSolicitud: string;
-            /** Format: int32 */
-            cantidad: number;
         };
         PulidoAsignacionPulidoRequest: {
             imei: string;
@@ -3195,13 +2882,6 @@ export interface components {
         };
         LoteComprasOtrosPeticion: {
             lineas: components["schemas"]["LoteComprasOtrosLinea"][];
-        };
-        ComponenteInsertarRequest: {
-            tipo: string;
-            /** Format: int32 */
-            stock: number;
-            /** Format: int32 */
-            stockMinimo: number;
         };
         ClienteNombreRequest: {
             nombre: string;
@@ -3424,10 +3104,6 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        ComponenteDeltaRequest: {
-            /** Format: int32 */
-            delta: number;
-        };
         ComponenteStockMinimoRequest: {
             /** Format: int32 */
             stockMinimo: number;
@@ -3462,15 +3138,6 @@ export interface components {
             idTec: number;
             nombreTecnico: string;
             activo: boolean;
-        };
-        Telefono: {
-            imei: string;
-            modelo: string;
-            observacion: string;
-            /** Format: int32 */
-            idCli: number;
-            /** Format: date-time */
-            updatedAt: string;
         };
         Revision: {
             /** Format: int32 */
@@ -3636,6 +3303,7 @@ export interface components {
             ponerProducto: string | null;
             ponerGrado: string | null;
             ponerCompruebalo: boolean;
+            esEsim: boolean;
         };
         EventoRastro: {
             /** Format: date-time */
@@ -3745,6 +3413,7 @@ export interface components {
             bajaEn: string | null;
             /** Format: date-time */
             vueltoDesde: string | null;
+            esEsim: boolean;
         };
         FilaDescartadaNsys: {
             imeiSn: string;
@@ -3779,6 +3448,7 @@ export interface components {
             bajaEn: string | null;
             /** Format: date-time */
             vueltoDesde: string | null;
+            esEsim: boolean;
         };
         FilaRevisarNsys: {
             /** Format: int32 */
@@ -3803,6 +3473,7 @@ export interface components {
             bajaEn: string | null;
             /** Format: date-time */
             vueltoDesde: string | null;
+            esEsim: boolean;
         };
         FilaSinGradoNsys: {
             imeiSn: string;
@@ -3824,6 +3495,7 @@ export interface components {
             bajaEn: string | null;
             /** Format: date-time */
             vueltoDesde: string | null;
+            esEsim: boolean;
         };
         TarjetasPorPasar: {
             color: components["schemas"]["FilaColorNsys"][];
@@ -3879,6 +3551,7 @@ export interface components {
             /** Format: date */
             fechaVenta: string | null;
             colorNsys: string | null;
+            esEsim: boolean;
         };
         SolicitudResumen: {
             /** Format: int32 */
@@ -3912,18 +3585,6 @@ export interface components {
             /** Format: date-time */
             fecha: string;
         };
-        Reparacion: {
-            idRep: string;
-            /** Format: date-time */
-            fechaAsig: string;
-            /** Format: date-time */
-            fechaFin: string | null;
-            imei: string;
-            /** Format: int32 */
-            idTec: number;
-            /** Format: date-time */
-            updatedAt: string;
-        };
         ReparacionDAODetalleEdicion: {
             imei: string;
             /** Format: int32 */
@@ -3947,6 +3608,18 @@ export interface components {
             glass: number;
             /** Format: int32 */
             pulidos: number;
+        };
+        Reparacion: {
+            idRep: string;
+            /** Format: date-time */
+            fechaAsig: string;
+            /** Format: date-time */
+            fechaFin: string | null;
+            imei: string;
+            /** Format: int32 */
+            idTec: number;
+            /** Format: date-time */
+            updatedAt: string;
         };
         TrabajoCerrado: {
             idRep: string;
@@ -4019,12 +3692,7 @@ export interface components {
             normalTecnicoNombre: string | null;
             capacidad: string | null;
             color: string | null;
-        };
-        PuntoEstadistica: {
-            nombreTecnico: string;
-            periodo: string;
-            /** Format: int32 */
-            cantidad: number;
+            esEsim: boolean;
         };
         PuntoEstadisticaPuntos: {
             nombreTecnico: string;
@@ -4079,21 +3747,6 @@ export interface components {
             hecho: components["schemas"]["CargaTecnicosRespuestaDesgloseDto"];
             pendiente: components["schemas"]["CargaTecnicosRespuestaDesgloseDto"];
             sinJornada: boolean;
-        };
-        ReparacionComponente: {
-            /** Format: int32 */
-            idRc: number;
-            idRep: string;
-            /** Format: int32 */
-            idCom: number;
-            esReutilizado: boolean;
-            esIncidencia: boolean;
-            esResuelto: boolean;
-            incidencia: string;
-            observaciones: string;
-            esSolicitud: boolean;
-            descripcionSolicitud: string;
-            estadoSolicitud: string;
         };
         Proveedor: {
             /** Format: int32 */
@@ -4230,14 +3883,6 @@ export interface components {
             /** Format: int32 */
             pendiente: number | null;
             proveedores: number[] | null;
-        };
-        PuntoStock: {
-            periodo: string;
-            tipoComponente: string;
-            /** Format: int32 */
-            stockEstimado: number;
-            /** Format: int32 */
-            stockMinimo: number;
         };
         Cliente: {
             /** Format: int32 */
@@ -4503,7 +4148,7 @@ export interface operations {
             };
         };
     };
-    eliminar_2: {
+    eliminar_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4725,7 +4370,7 @@ export interface operations {
             };
         };
     };
-    getAll_4: {
+    getAll_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4881,27 +4526,7 @@ export interface operations {
             };
         };
     };
-    eliminar_4: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idCom: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getAll_10: {
+    getAll_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5078,26 +4703,6 @@ export interface operations {
             };
         };
     };
-    getAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Telefono"][];
-                };
-            };
-        };
-    };
     insertar: {
         parameters: {
             query?: never;
@@ -5192,48 +4797,6 @@ export interface operations {
             };
         };
     };
-    getAll_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Tecnico"][];
-                };
-            };
-        };
-    };
-    insertar_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TecnicoNombreRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     revisado: {
         parameters: {
             query?: never;
@@ -5300,7 +4863,7 @@ export interface operations {
             };
         };
     };
-    insertar_2: {
+    insertar_1: {
         parameters: {
             query?: never;
             header?: {
@@ -5321,52 +4884,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    getAll_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Reparacion"][];
-                };
-            };
-        };
-    };
-    insertar_3: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReparacionInsertarRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
             };
         };
     };
@@ -5546,28 +5063,6 @@ export interface operations {
             };
         };
     };
-    insertar_4: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReparacionComponenteInsertarRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     getAsignaciones_1: {
         parameters: {
             query?: {
@@ -5638,7 +5133,7 @@ export interface operations {
             };
         };
     };
-    getAll_3: {
+    getAll_1: {
         parameters: {
             query?: {
                 tipo?: string;
@@ -5660,7 +5155,7 @@ export interface operations {
             };
         };
     };
-    insertar_5: {
+    insertar_2: {
         parameters: {
             query?: never;
             header?: {
@@ -5828,7 +5323,7 @@ export interface operations {
             };
         };
     };
-    getAll_7: {
+    getAll_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -5848,7 +5343,7 @@ export interface operations {
             };
         };
     };
-    insertar_6: {
+    insertar_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5896,7 +5391,7 @@ export interface operations {
             };
         };
     };
-    getAll_8: {
+    getAll_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5916,7 +5411,7 @@ export interface operations {
             };
         };
     };
-    insertar_7: {
+    insertar_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -5964,49 +5459,7 @@ export interface operations {
             };
         };
     };
-    getAll_9: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Componente"][];
-                };
-            };
-        };
-    };
-    insertar_8: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ComponenteInsertarRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getAll_11: {
+    getAll_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -6026,7 +5479,7 @@ export interface operations {
             };
         };
     };
-    insertar_9: {
+    insertar_5: {
         parameters: {
             query?: never;
             header?: {
@@ -6614,26 +6067,6 @@ export interface operations {
             };
         };
     };
-    completar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idRep: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     corregirCliente: {
         parameters: {
             query?: never;
@@ -6837,52 +6270,6 @@ export interface operations {
         responses: {
             /** @description No Content */
             204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    borrarIncidencia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idRep: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    marcarIncidencia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idRep: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7342,30 +6729,6 @@ export interface operations {
             };
         };
     };
-    actualizarStock: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idCom: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ComponenteDeltaRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     setStockMinimo: {
         parameters: {
             query?: never;
@@ -7636,30 +6999,6 @@ export interface operations {
             };
         };
     };
-    exists: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imei: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: boolean;
-                    };
-                };
-            };
-        };
-    };
     getInventario: {
         parameters: {
             query?: never;
@@ -7676,6 +7015,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TelefonoInventario"][];
+                };
+            };
+        };
+    };
+    getAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Tecnico"][];
                 };
             };
         };
@@ -8131,28 +7490,6 @@ export interface operations {
             };
         };
     };
-    getTecnicosConAsignacionActiva: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imei: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": number[];
-                };
-            };
-        };
-    };
     getIncidenciaActivaPorImei: {
         parameters: {
             query?: {
@@ -8196,30 +7533,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    countByImei: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imei: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
             };
         };
     };
@@ -8315,52 +7628,6 @@ export interface operations {
             };
         };
     };
-    getHistorialPorImei: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imei: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ReparacionResumen"][];
-                };
-            };
-        };
-    };
-    getEstadisticasPorTecnico: {
-        parameters: {
-            query: {
-                granularidad: string;
-                desde: string;
-                hasta: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PuntoEstadistica"][];
-                };
-            };
-        };
-    };
     getEstadisticasPuntos: {
         parameters: {
             query: {
@@ -8427,28 +7694,6 @@ export interface operations {
             };
         };
     };
-    getAsignacionesPorImei: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imei: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ReparacionResumen"][];
-                };
-            };
-        };
-    };
     getAsignacionesCompletadasHoy: {
         parameters: {
             query?: never;
@@ -8465,28 +7710,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReparacionResumen"][];
-                };
-            };
-        };
-    };
-    getByReparacion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idRep: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ReparacionComponente"][];
                 };
             };
         };
@@ -8559,7 +7782,7 @@ export interface operations {
             };
         };
     };
-    getAll_5: {
+    getAll_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8579,7 +7802,7 @@ export interface operations {
             };
         };
     };
-    getAll_6: {
+    getAll_4: {
         parameters: {
             query?: {
                 accion?: string;
@@ -8647,26 +7870,6 @@ export interface operations {
             };
         };
     };
-    getEnCamino: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["CompraComponente"][];
-                };
-            };
-        };
-    };
     getCantidadEnCamino: {
         parameters: {
             query?: never;
@@ -8689,75 +7892,9 @@ export interface operations {
             };
         };
     };
-    getStockBajo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Componente"][];
-                };
-            };
-        };
-    };
     getAllGestionados: {
         parameters: {
             query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Componente"][];
-                };
-            };
-        };
-    };
-    getEvolucionStock: {
-        parameters: {
-            query: {
-                granularidad: string;
-                desde: string;
-                hasta: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PuntoStock"][];
-                };
-            };
-        };
-    };
-    getChasisPorColor: {
-        parameters: {
-            query: {
-                color: string;
-            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8896,26 +8033,6 @@ export interface operations {
             };
         };
     };
-    eliminar_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idTec: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     borrar_1: {
         parameters: {
             query?: never;
@@ -8960,13 +8077,12 @@ export interface operations {
             };
         };
     };
-    eliminar_3: {
+    borrarIncidencia: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 idRep: string;
-                idCom: number;
             };
             cookie?: never;
         };

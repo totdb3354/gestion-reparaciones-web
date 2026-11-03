@@ -253,7 +253,7 @@
       },
       "delete" : {
         "tags" : [ "reparacion-controller" ],
-        "operationId" : "eliminar_2",
+        "operationId" : "eliminar_1",
         "parameters" : [ {
           "name" : "idRep",
           "in" : "path",
@@ -494,7 +494,7 @@
     "/api/modelos/equivalencias" : {
       "get" : {
         "tags" : [ "equivalencia-modelo-controller" ],
-        "operationId" : "getAll_4",
+        "operationId" : "getAll_2",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -658,30 +658,12 @@
             "description" : "OK"
           }
         }
-      },
-      "delete" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "eliminar_4",
-        "parameters" : [ {
-          "name" : "idCom",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        }
       }
     },
     "/api/colores/equivalencias" : {
       "get" : {
         "tags" : [ "color-equivalencia-controller" ],
-        "operationId" : "getAll_10",
+        "operationId" : "getAll_7",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -861,25 +843,6 @@
       }
     },
     "/api/telefonos" : {
-      "get" : {
-        "tags" : [ "telefono-controller" ],
-        "operationId" : "getAll",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/Telefono"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "post" : {
         "tags" : [ "telefono-controller" ],
         "operationId" : "insertar",
@@ -991,46 +954,6 @@
         }
       }
     },
-    "/api/tecnicos" : {
-      "get" : {
-        "tags" : [ "tecnico-controller" ],
-        "operationId" : "getAll_1",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/Tecnico"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post" : {
-        "tags" : [ "tecnico-controller" ],
-        "operationId" : "insertar_1",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/TecnicoNombreRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "description" : "Created"
-          }
-        }
-      }
-    },
     "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado" : {
       "post" : {
         "tags" : [ "por-pasar-controller" ],
@@ -1112,7 +1035,7 @@
       },
       "post" : {
         "tags" : [ "solicitud-stock-controller" ],
-        "operationId" : "insertar_2",
+        "operationId" : "insertar_1",
         "parameters" : [ {
           "name" : "Idempotency-Key",
           "in" : "header",
@@ -1134,56 +1057,6 @@
         "responses" : {
           "201" : {
             "description" : "Created"
-          }
-        }
-      }
-    },
-    "/api/reparaciones" : {
-      "get" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "getAll_2",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/Reparacion"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "insertar_3",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ReparacionInsertarRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -1419,27 +1292,6 @@
         }
       }
     },
-    "/api/reparacion-componentes" : {
-      "post" : {
-        "tags" : [ "reparacion-componente-controller" ],
-        "operationId" : "insertar_4",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ReparacionComponenteInsertarRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "description" : "Created"
-          }
-        }
-      }
-    },
     "/api/pulidos/asignaciones" : {
       "get" : {
         "tags" : [ "pulido-controller" ],
@@ -1523,7 +1375,7 @@
     "/api/proveedores" : {
       "get" : {
         "tags" : [ "proveedor-controller" ],
-        "operationId" : "getAll_3",
+        "operationId" : "getAll_1",
         "parameters" : [ {
           "name" : "tipo",
           "in" : "query",
@@ -1550,7 +1402,7 @@
       },
       "post" : {
         "tags" : [ "proveedor-controller" ],
-        "operationId" : "insertar_5",
+        "operationId" : "insertar_2",
         "parameters" : [ {
           "name" : "Idempotency-Key",
           "in" : "header",
@@ -1753,7 +1605,7 @@
     "/api/compras" : {
       "get" : {
         "tags" : [ "compra-controller" ],
-        "operationId" : "getAll_7",
+        "operationId" : "getAll_5",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -1772,7 +1624,7 @@
       },
       "post" : {
         "tags" : [ "compra-controller" ],
-        "operationId" : "insertar_6",
+        "operationId" : "insertar_3",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1829,7 +1681,7 @@
     "/api/compras-otros" : {
       "get" : {
         "tags" : [ "compra-otro-controller" ],
-        "operationId" : "getAll_8",
+        "operationId" : "getAll_6",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -1848,7 +1700,7 @@
       },
       "post" : {
         "tags" : [ "compra-otro-controller" ],
-        "operationId" : "insertar_7",
+        "operationId" : "insertar_4",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1902,50 +1754,10 @@
         }
       }
     },
-    "/api/componentes" : {
-      "get" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "getAll_9",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/Componente"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "insertar_8",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ComponenteInsertarRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "description" : "Created"
-          }
-        }
-      }
-    },
     "/api/clientes" : {
       "get" : {
         "tags" : [ "cliente-controller" ],
-        "operationId" : "getAll_11",
+        "operationId" : "getAll_8",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -1964,7 +1776,7 @@
       },
       "post" : {
         "tags" : [ "cliente-controller" ],
-        "operationId" : "insertar_9",
+        "operationId" : "insertar_5",
         "parameters" : [ {
           "name" : "Idempotency-Key",
           "in" : "header",
@@ -2643,25 +2455,6 @@
         }
       }
     },
-    "/api/reparaciones/{idRep}/completar" : {
-      "patch" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "completar",
-        "parameters" : [ {
-          "name" : "idRep",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        }
-      }
-    },
     "/api/reparaciones/cliente" : {
       "patch" : {
         "tags" : [ "reparacion-controller" ],
@@ -2905,55 +2698,6 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
-          }
-        }
-      }
-    },
-    "/api/reparacion-componentes/{idRep}/incidencia" : {
-      "delete" : {
-        "tags" : [ "reparacion-componente-controller" ],
-        "operationId" : "borrarIncidencia",
-        "parameters" : [ {
-          "name" : "idRep",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        }
-      },
-      "patch" : {
-        "tags" : [ "reparacion-componente-controller" ],
-        "operationId" : "marcarIncidencia",
-        "parameters" : [ {
-          "name" : "idRep",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "type" : "object",
-                "additionalProperties" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
           }
         }
       }
@@ -3514,36 +3258,6 @@
         }
       }
     },
-    "/api/componentes/{idCom}/stock" : {
-      "patch" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "actualizarStock",
-        "parameters" : [ {
-          "name" : "idCom",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ComponenteDeltaRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          }
-        }
-      }
-    },
     "/api/componentes/{idCom}/stock-minimo" : {
       "patch" : {
         "tags" : [ "componente-controller" ],
@@ -3862,35 +3576,6 @@
         }
       }
     },
-    "/api/telefonos/{imei}/exists" : {
-      "get" : {
-        "tags" : [ "telefono-controller" ],
-        "operationId" : "exists",
-        "parameters" : [ {
-          "name" : "imei",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "boolean"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/telefonos/inventario" : {
       "get" : {
         "tags" : [ "telefono-controller" ],
@@ -3904,6 +3589,27 @@
                   "type" : "array",
                   "items" : {
                     "$ref" : "#/components/schemas/TelefonoInventario"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tecnicos" : {
+      "get" : {
+        "tags" : [ "tecnico-controller" ],
+        "operationId" : "getAll",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Tecnico"
                   }
                 }
               }
@@ -4443,36 +4149,6 @@
         }
       }
     },
-    "/api/reparaciones/imei/{imei}/tecnicos-asignados" : {
-      "get" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "getTecnicosConAsignacionActiva",
-        "parameters" : [ {
-          "name" : "imei",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "integer",
-                    "format" : "int32"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/reparaciones/imei/{imei}/incidencia-activa" : {
       "get" : {
         "tags" : [ "reparacion-controller" ],
@@ -4528,35 +4204,6 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
-          }
-        }
-      }
-    },
-    "/api/reparaciones/imei/{imei}/count" : {
-      "get" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "countByImei",
-        "parameters" : [ {
-          "name" : "imei",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "object",
-                  "additionalProperties" : {
-                    "type" : "object"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -4700,80 +4347,6 @@
         }
       }
     },
-    "/api/reparaciones/historial/imei/{imei}" : {
-      "get" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "getHistorialPorImei",
-        "parameters" : [ {
-          "name" : "imei",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/ReparacionResumen"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/reparaciones/estadisticas" : {
-      "get" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "getEstadisticasPorTecnico",
-        "parameters" : [ {
-          "name" : "granularidad",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "desde",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "date"
-          }
-        }, {
-          "name" : "hasta",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "date"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/PuntoEstadistica"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/reparaciones/estadisticas/puntos" : {
       "get" : {
         "tags" : [ "reparacion-controller" ],
@@ -4866,35 +4439,6 @@
         }
       }
     },
-    "/api/reparaciones/asignaciones/imei/{imei}" : {
-      "get" : {
-        "tags" : [ "reparacion-controller" ],
-        "operationId" : "getAsignacionesPorImei",
-        "parameters" : [ {
-          "name" : "imei",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/ReparacionResumen"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/reparaciones/asignaciones/completadas-hoy" : {
       "get" : {
         "tags" : [ "reparacion-controller" ],
@@ -4908,35 +4452,6 @@
                   "type" : "array",
                   "items" : {
                     "$ref" : "#/components/schemas/ReparacionResumen"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/reparacion-componentes/{idRep}" : {
-      "get" : {
-        "tags" : [ "reparacion-componente-controller" ],
-        "operationId" : "getByReparacion",
-        "parameters" : [ {
-          "name" : "idRep",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/ReparacionComponente"
                   }
                 }
               }
@@ -5037,7 +4552,7 @@
     "/api/lotes" : {
       "get" : {
         "tags" : [ "lote-controller" ],
-        "operationId" : "getAll_5",
+        "operationId" : "getAll_3",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -5058,7 +4573,7 @@
     "/api/logs" : {
       "get" : {
         "tags" : [ "log-controller" ],
-        "operationId" : "getAll_6",
+        "operationId" : "getAll_4",
         "parameters" : [ {
           "name" : "accion",
           "in" : "query",
@@ -5166,27 +4681,6 @@
         }
       }
     },
-    "/api/compras/en-camino" : {
-      "get" : {
-        "tags" : [ "compra-controller" ],
-        "operationId" : "getEnCamino",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/CompraComponente"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/compras/cantidad-en-camino/{idCom}" : {
       "get" : {
         "tags" : [ "compra-controller" ],
@@ -5214,105 +4708,10 @@
         }
       }
     },
-    "/api/componentes/stock-bajo" : {
-      "get" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "getStockBajo",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/Componente"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/componentes/gestionados" : {
       "get" : {
         "tags" : [ "componente-controller" ],
         "operationId" : "getAllGestionados",
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/Componente"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/componentes/evolucion-stock" : {
-      "get" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "getEvolucionStock",
-        "parameters" : [ {
-          "name" : "granularidad",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "desde",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "date"
-          }
-        }, {
-          "name" : "hasta",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "date"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/PuntoStock"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/componentes/chasis" : {
-      "get" : {
-        "tags" : [ "componente-controller" ],
-        "operationId" : "getChasisPorColor",
-        "parameters" : [ {
-          "name" : "color",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -5456,26 +4855,6 @@
         }
       }
     },
-    "/api/tecnicos/{idTec}" : {
-      "delete" : {
-        "tags" : [ "tecnico-controller" ],
-        "operationId" : "eliminar_1",
-        "parameters" : [ {
-          "name" : "idTec",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        }
-      }
-    },
     "/api/solicitudes-stock/{idSol}" : {
       "delete" : {
         "tags" : [ "solicitud-stock-controller" ],
@@ -5524,24 +4903,16 @@
         }
       }
     },
-    "/api/reparacion-componentes/{idRep}/{idCom}" : {
+    "/api/reparacion-componentes/{idRep}/incidencia" : {
       "delete" : {
         "tags" : [ "reparacion-componente-controller" ],
-        "operationId" : "eliminar_3",
+        "operationId" : "borrarIncidencia",
         "parameters" : [ {
           "name" : "idRep",
           "in" : "path",
           "required" : true,
           "schema" : {
             "type" : "string"
-          }
-        }, {
-          "name" : "idCom",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
           }
         } ],
         "responses" : {
@@ -6018,15 +5389,6 @@
           }
         }
       },
-      "TecnicoNombreRequest" : {
-        "required" : [ "nombre" ],
-        "type" : "object",
-        "properties" : {
-          "nombre" : {
-            "type" : "string"
-          }
-        }
-      },
       "StockTelefonosPeticionComprobar" : {
         "required" : [ "imeis" ],
         "type" : "object",
@@ -6040,7 +5402,7 @@
         }
       },
       "StockTelefonosMovilComprobado" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "encontrado", "estado", "fechaVenta", "grado", "gradoNsys", "imei", "modelo", "modeloMaestro", "trabajos", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "encontrado", "esEsim", "estado", "fechaVenta", "grado", "gradoNsys", "imei", "modelo", "modeloMaestro", "trabajos", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -6098,6 +5460,9 @@
           "gradoNsys" : {
             "type" : "string",
             "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
@@ -6133,27 +5498,6 @@
           "descripcion" : {
             "type" : "string",
             "nullable" : true
-          }
-        }
-      },
-      "ReparacionInsertarRequest" : {
-        "required" : [ "fechaAsig", "fechaFin", "idTec", "imei" ],
-        "type" : "object",
-        "properties" : {
-          "imei" : {
-            "type" : "string"
-          },
-          "idTec" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "fechaAsig" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "fechaFin" : {
-            "type" : "string",
-            "format" : "date-time"
           }
         }
       },
@@ -6371,44 +5715,6 @@
           },
           "esChasis" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "ReparacionComponenteInsertarRequest" : {
-        "required" : [ "cantidad", "descripcionSolicitud", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "idCom", "idRep", "incidencia", "observaciones" ],
-        "type" : "object",
-        "properties" : {
-          "idRep" : {
-            "type" : "string"
-          },
-          "idCom" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "esReutilizado" : {
-            "type" : "boolean"
-          },
-          "esIncidencia" : {
-            "type" : "boolean"
-          },
-          "esResuelto" : {
-            "type" : "boolean"
-          },
-          "incidencia" : {
-            "type" : "string"
-          },
-          "observaciones" : {
-            "type" : "string"
-          },
-          "esSolicitud" : {
-            "type" : "boolean"
-          },
-          "descripcionSolicitud" : {
-            "type" : "string"
-          },
-          "cantidad" : {
-            "type" : "integer",
-            "format" : "int32"
           }
         }
       },
@@ -6924,23 +6230,6 @@
             "items" : {
               "$ref" : "#/components/schemas/LoteComprasOtrosLinea"
             }
-          }
-        }
-      },
-      "ComponenteInsertarRequest" : {
-        "required" : [ "stock", "stockMinimo", "tipo" ],
-        "type" : "object",
-        "properties" : {
-          "tipo" : {
-            "type" : "string"
-          },
-          "stock" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "stockMinimo" : {
-            "type" : "integer",
-            "format" : "int32"
           }
         }
       },
@@ -7555,16 +6844,6 @@
           }
         }
       },
-      "ComponenteDeltaRequest" : {
-        "required" : [ "delta" ],
-        "type" : "object",
-        "properties" : {
-          "delta" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }
-      },
       "ComponenteStockMinimoRequest" : {
         "required" : [ "stockMinimo" ],
         "type" : "object",
@@ -7656,29 +6935,6 @@
           },
           "activo" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "Telefono" : {
-        "required" : [ "idCli", "imei", "modelo", "observacion", "updatedAt" ],
-        "type" : "object",
-        "properties" : {
-          "imei" : {
-            "type" : "string"
-          },
-          "modelo" : {
-            "type" : "string"
-          },
-          "observacion" : {
-            "type" : "string"
-          },
-          "idCli" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "updatedAt" : {
-            "type" : "string",
-            "format" : "date-time"
           }
         }
       },
@@ -8040,7 +7296,7 @@
         }
       },
       "StockTelefonosFichaMovil" : {
-        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "dias", "entradas", "estado", "fechaVenta", "grado", "gradoAnterior", "gradoNsys", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "ponerCompruebalo", "ponerGrado", "ponerProducto", "porPasar", "revisadoDevolucion", "revisadoEl", "sku", "skuNsys", "ubicacion" ],
+        "required" : [ "bateriaNueva", "capacidad", "color", "colorNsys", "dias", "entradas", "esEsim", "estado", "fechaVenta", "grado", "gradoAnterior", "gradoNsys", "imeiSn", "lote", "modelo", "modeloMaestro", "pendienteRevisionDesde", "ponerCompruebalo", "ponerGrado", "ponerProducto", "porPasar", "revisadoDevolucion", "revisadoEl", "sku", "skuNsys", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8137,6 +7393,9 @@
             "nullable" : true
           },
           "ponerCompruebalo" : {
+            "type" : "boolean"
+          },
+          "esEsim" : {
             "type" : "boolean"
           }
         }
@@ -8418,7 +7677,7 @@
         }
       },
       "FilaColorNsys" : {
-        "required" : [ "bajaEn", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "esEsim", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8500,6 +7759,9 @@
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
@@ -8534,7 +7796,7 @@
         }
       },
       "FilaGradoNsys" : {
-        "required" : [ "bajaEn", "capacidad", "conColor", "desde", "gradoA", "gradoDe", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "porQue", "productoNsys", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "capacidad", "conColor", "desde", "esEsim", "gradoA", "gradoDe", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "porQue", "productoNsys", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8605,11 +7867,14 @@
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
       "FilaRevisarNsys" : {
-        "required" : [ "a", "bajaEn", "capacidad", "causa", "dato", "de", "fecha", "idAviso", "idRep", "imeiSn", "modelo", "modeloMaestro", "motivo", "tipo", "usuario", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "a", "bajaEn", "capacidad", "causa", "dato", "de", "esEsim", "fecha", "idAviso", "idRep", "imeiSn", "modelo", "modeloMaestro", "motivo", "tipo", "usuario", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "idAviso" : {
@@ -8678,11 +7943,14 @@
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
       "FilaSinGradoNsys" : {
-        "required" : [ "bajaEn", "bateriaEn", "bateriaIdRep", "bateriaNueva", "capacidad", "categoria", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ultimoTrabajo", "ultimoTrabajoEn", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "bateriaEn", "bateriaIdRep", "bateriaNueva", "capacidad", "categoria", "esEsim", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ultimoTrabajo", "ultimoTrabajoEn", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8741,6 +8009,9 @@
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
@@ -8882,7 +8153,7 @@
         }
       },
       "StockTelefonosMovilBuscado" : {
-        "required" : [ "capacidad", "color", "colorNsys", "estado", "fechaVenta", "imeiSn", "modelo", "modeloMaestro", "ubicacion" ],
+        "required" : [ "capacidad", "color", "colorNsys", "esEsim", "estado", "fechaVenta", "imeiSn", "modelo", "modeloMaestro", "ubicacion" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8919,6 +8190,9 @@
           "colorNsys" : {
             "type" : "string",
             "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
@@ -9005,35 +8279,6 @@
           }
         }
       },
-      "Reparacion" : {
-        "required" : [ "fechaAsig", "fechaFin", "idRep", "idTec", "imei", "updatedAt" ],
-        "type" : "object",
-        "properties" : {
-          "idRep" : {
-            "type" : "string"
-          },
-          "fechaAsig" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "fechaFin" : {
-            "type" : "string",
-            "format" : "date-time",
-            "nullable" : true
-          },
-          "imei" : {
-            "type" : "string"
-          },
-          "idTec" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "updatedAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
       "ReparacionDAODetalleEdicion" : {
         "required" : [ "cantidad", "esReutilizado", "idCom", "idTec", "imei", "observacion", "updatedAt" ],
         "type" : "object",
@@ -9094,6 +8339,35 @@
           }
         }
       },
+      "Reparacion" : {
+        "required" : [ "fechaAsig", "fechaFin", "idRep", "idTec", "imei", "updatedAt" ],
+        "type" : "object",
+        "properties" : {
+          "idRep" : {
+            "type" : "string"
+          },
+          "fechaAsig" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fechaFin" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "imei" : {
+            "type" : "string"
+          },
+          "idTec" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "TrabajoCerrado" : {
         "required" : [ "cliente", "descripcion", "fechaFin", "idCli", "idRep" ],
         "type" : "object",
@@ -9137,7 +8411,7 @@
         }
       },
       "ReparacionResumen" : {
-        "required" : [ "capacidad", "cliente", "clienteTelefono", "color", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
+        "required" : [ "capacidad", "cliente", "clienteTelefono", "color", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esEsim", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -9309,22 +8583,9 @@
           "color" : {
             "type" : "string",
             "nullable" : true
-          }
-        }
-      },
-      "PuntoEstadistica" : {
-        "required" : [ "cantidad", "nombreTecnico", "periodo" ],
-        "type" : "object",
-        "properties" : {
-          "nombreTecnico" : {
-            "type" : "string"
           },
-          "periodo" : {
-            "type" : "string"
-          },
-          "cantidad" : {
-            "type" : "integer",
-            "format" : "int32"
+          "esEsim" : {
+            "type" : "boolean"
           }
         }
       },
@@ -9455,47 +8716,6 @@
           },
           "sinJornada" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "ReparacionComponente" : {
-        "required" : [ "descripcionSolicitud", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "idCom", "idRc", "idRep", "incidencia", "observaciones" ],
-        "type" : "object",
-        "properties" : {
-          "idRc" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "idRep" : {
-            "type" : "string"
-          },
-          "idCom" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "esReutilizado" : {
-            "type" : "boolean"
-          },
-          "esIncidencia" : {
-            "type" : "boolean"
-          },
-          "esResuelto" : {
-            "type" : "boolean"
-          },
-          "incidencia" : {
-            "type" : "string"
-          },
-          "observaciones" : {
-            "type" : "string"
-          },
-          "esSolicitud" : {
-            "type" : "boolean"
-          },
-          "descripcionSolicitud" : {
-            "type" : "string"
-          },
-          "estadoSolicitud" : {
-            "type" : "string"
           }
         }
       },
@@ -9847,26 +9067,6 @@
               "type" : "integer",
               "format" : "int32"
             }
-          }
-        }
-      },
-      "PuntoStock" : {
-        "required" : [ "periodo", "stockEstimado", "stockMinimo", "tipoComponente" ],
-        "type" : "object",
-        "properties" : {
-          "periodo" : {
-            "type" : "string"
-          },
-          "tipoComponente" : {
-            "type" : "string"
-          },
-          "stockEstimado" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "stockMinimo" : {
-            "type" : "integer",
-            "format" : "int32"
           }
         }
       },

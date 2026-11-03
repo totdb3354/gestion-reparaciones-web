@@ -16,8 +16,8 @@ export function resumen(parcial: Partial<ReparacionResumen> = {}): ReparacionRes
     tieneAsignaciones: false, nombreTecnicoAsigna: 'Técnico F', telefonoUpdatedAt: '2026-09-16T07:02:00', cliente, clienteTelefono: cliente,
     entregadoAt: null, entregadoPorNombre: null, entregadoPor: null, glassAbierta: false, glassEntregadoAt: null,
     glassEntregadoPorNombre: null, glassEntregadoPor: null, glassTecnicoNombre: null, normalAbierta: false, normalTecnicoNombre: null,
-    // 0.9.21: sin NSYS por defecto (la lista dice el modelo solo, como antes).
-    capacidad: null, color: null,
+    // 0.9.21: sin NSYS por defecto (la lista dice el modelo solo, como antes). 0.9.24: sin eSIM.
+    capacidad: null, color: null, esEsim: false,
     ...parcial,
   }
 }
@@ -151,7 +151,7 @@ export function fichaMovil(p: Partial<FichaMovil> = {}): FichaMovil {
     imeiSn: '351900000000041', lote: 'BT-9001', modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro',
     grado: 'A', bateriaNueva: true, gradoAnterior: 'C', sku: 'i16128NegroA100', ubicacion: 'Listos', estado: 'DE_PEDIDO',
     dias: 12, entradas: 1, fechaVenta: null, revisadoEl: null, revisadoDevolucion: false, pendienteRevisionDesde: null,
-    colorNsys: null, gradoNsys: null, skuNsys: null, porPasar: false, ponerProducto: null, ponerGrado: null, ponerCompruebalo: false, ...p,
+    colorNsys: null, gradoNsys: null, skuNsys: null, porPasar: false, ponerProducto: null, ponerGrado: null, ponerCompruebalo: false, esEsim: false, ...p,
   }
 }
 
