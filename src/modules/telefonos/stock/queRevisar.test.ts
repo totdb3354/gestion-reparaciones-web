@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { MovilStock } from '@/shared/api/client'
-import { trabajo, visto } from '../test/fabrica'
+import { movilVendido, trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
 import {
-  cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, filtrar, imeiBuscado, listaRevisar, listaSubir, MAX_A, palabrasClave,
-  pasoSubir, sinCoincidencias, textoCifra, textoRevisar, textoSubir, tieneGrado, tituloA, totalQueRevisar,
+  avisoDescargado, cabeceraPedidos, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar,
+  imeiBuscado, listaRevisar, listaSubir, MAX_A, MIN_PENDIENTES, movilesExcel, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias,
+  soloTres, textoCifra, tieneGrado, tituloA, tituloPedidos, totalQueRevisar,
 } from './queRevisar'
 
 let n = 0
@@ -57,47 +58,49 @@ describe('«Qué revisar»: qué grado tiene cada móvil (spec 0.9.25 §2.3)', (
     for (const g of ['B', 'b']) expect(esB(g), g).toBe(true)
     for (const g of ['B+', 'B-', 'MsB', 'A', null]) expect(esB(g), String(g)).toBe(false)
     expect(MAX_A).toBe(1)
+    expect(MIN_PENDIENTES).toBe(3)
   })
 })
 
-describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §2.4, §2.6 y §2.7)', () => {
-  it('por motivo y, dentro, modelo del más nuevo, el físico antes que el eSIM, capacidad como número; fuera lo que no es stock y con 2 A', () => {
-    const lista = listaRevisar(STOCK)
-    expect(lista.map((g) => [g.motivo, descripcion(g)])).toEqual([
+describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §10.1, §2.6 y §2.7)', () => {
+  it('todos los modelos-color con algo sin grado, también con 2 A («Con A»); sin pedidos, los de más pendientes primero, después por motivo y por modelo; fuera lo que no es stock', () => {
+    expect(listaRevisar(STOCK).map((g) => [g.motivo, descripcion(g)])).toEqual([
+      ['UN_A', 'iPhone 13 128 GB Azul'],
       ['NADA', 'iPhone 15 Pro 256 GB Titanio natural'],
       ['NADA', 'iPhone 13 Pro 256 GB Grafito'],
-      ['NADA', 'iPhone 13 Pro 1 TB Plata'],
-      ['NADA', 'iPhone 12 Pro 128 GB Grafito'],
       ['NINGUN_A', 'iPhone 16 128 GB Negro'],
       ['NINGUN_A', 'iPhone 14 eSIM 128 GB Medianoche'],
-      ['NINGUN_A', 'iPhone 12 64 GB Blanco'],
-      ['UN_A', 'iPhone 13 128 GB Azul'],
       ['UN_A', 'iPhone 11 64 GB Negro'],
+      ['CON_A', 'iPhone 13 Mini 128 GB Rosa'],
+      ['NADA', 'iPhone 13 Pro 1 TB Plata'],
+      ['NINGUN_A', 'iPhone 12 64 GB Blanco'],
+      ['NADA', 'iPhone 12 Pro 128 GB Grafito'],
     ])
   })
 
   it('las cuentas: pendientes sin los del técnico, A en stock y con grado (vacío y «NR» sin grado; F, ID y MsB con grado)', () => {
-    const [p15, g13p, , g12p, n16, e14, b12, a13] = listaRevisar(STOCK)
-    expect(p15).toMatchObject({ pendientes: 3, conTecnico: 1, a: 0, conGrado: 0 })
+    const [a13, p15, g13p, n16, e14, , r13m, , b12, g12p] = listaRevisar(STOCK)
+    expect(p15).toMatchObject({ pendientes: 3, conTecnico: 1, a: 0, conGrado: 0, vendidos: 0, dePedido: 0, pedidos: 0 })
     expect(g13p).toMatchObject({ pendientes: 3, conTecnico: 0, conGrado: 0 })
     expect(g12p).toMatchObject({ pendientes: 0, conTecnico: 1 })
     expect(n16).toMatchObject({ pendientes: 2, conGrado: 1, a: 0 })
     expect(e14).toMatchObject({ pendientes: 2, conGrado: 2, a: 0 })
     expect(b12).toMatchObject({ pendientes: 1, conGrado: 1 })
     expect(a13).toMatchObject({ pendientes: 5, a: 1, gradosA: ['A+'], conGrado: 1 })
+    expect(r13m).toMatchObject({ motivo: 'CON_A', pendientes: 2, a: 2, gradosA: ['A', 'A'], conGrado: 2 })
     expect(tituloA(a13)).toBe('1 A+')
     expect(tituloA(e14)).toBe('Ningún A')
   })
 
   it('los móviles de un grupo: solo los sin grado, los de más días primero', () => {
-    const [p15, , , , n16] = listaRevisar(STOCK)
+    const [, p15, , n16] = listaRevisar(STOCK)
     expect(p15.moviles.map((x) => x.dias)).toEqual([41, 23, 12, 5])
     expect(n16.moviles.map((x) => x.grado)).toEqual(['', 'n/a'])
   })
 
   it('las cifras de la tarjeta: modelos-color con algo pendiente y sus móviles (el que solo tiene el técnico no cuenta)', () => {
-    expect(cifraRevisar(listaRevisar(STOCK))).toEqual({ grupos: 8, moviles: 19 })
-    expect(textoCifra({ grupos: 8, moviles: 19 })).toBe('modelos-color · 19 móviles')
+    expect(cifraRevisar(listaRevisar(STOCK))).toEqual({ grupos: 9, moviles: 21 })
+    expect(textoCifra({ grupos: 9, moviles: 21 })).toBe('modelos-color · 21 móviles')
     expect(textoCifra({ grupos: 1, moviles: 1 })).toBe('modelo-color · 1 móvil')
   })
 
@@ -105,22 +108,49 @@ describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §2.4, §2.6 y §2.7)
     expect(descripcion(listaRevisar([m({ capacidad: null, color: null, grado: 'n/a' })])[0])).toBe('iPhone 13')
   })
 
-  it('«Copiar lista»: lo pendiente, en el orden de la tabla', () => {
-    expect(textoRevisar(listaRevisar(STOCK))).toBe([
-      '🔍 REVISAR PRIORITARIO\niPhone 15 Pro 256 GB Titanio natural\nSin grado: 3 · Nada con grado',
-      '🔍 REVISAR PRIORITARIO\niPhone 13 Pro 256 GB Grafito\nSin grado: 3 · Nada con grado',
-      '🔍 REVISAR PRIORITARIO\niPhone 13 Pro 1 TB Plata\nSin grado: 1 · Nada con grado',
-      '🔍 REVISAR PRIORITARIO\niPhone 16 128 GB Negro\nSin grado: 2 · Ningún A',
-      '🔍 REVISAR PRIORITARIO\niPhone 14 eSIM 128 GB Medianoche\nSin grado: 2 · Ningún A',
-      '🔍 REVISAR PRIORITARIO\niPhone 12 64 GB Blanco\nSin grado: 1 · Ningún A',
-      '🔍 REVISAR PRIORITARIO\niPhone 13 128 GB Azul\nSin grado: 5 · Solo 1 A',
-      '🔍 REVISAR PRIORITARIO\niPhone 11 64 GB Negro\nSin grado: 2 · Solo 1 A',
-    ].join('\n\n'))
-  })
-
   it('del mismo modelo, el físico antes que el eSIM aunque tenga más capacidad', () => {
     expect(listaRevisar([m({ ...E14, grado: 'n/a' }), m({ ...F14, capacidad: '256GB', grado: 'n/a' })]).map(descripcion))
       .toEqual(['iPhone 14 256 GB Medianoche', 'iPhone 14 eSIM 128 GB Medianoche'])
+  })
+
+  it('«Solo con 3 o más sin revisar»: encendido, los de 3 pendientes o más, en el mismo orden; apagado, todos', () => {
+    const lista = listaRevisar(STOCK)
+    expect(soloTres(lista, true).map(descripcion))
+      .toEqual(['iPhone 13 128 GB Azul', 'iPhone 15 Pro 256 GB Titanio natural', 'iPhone 13 Pro 256 GB Grafito'])
+    expect(soloTres(lista, false)).toEqual(lista)
+  })
+})
+
+describe('«Qué revisar»: «Pedidos 15 d» (spec 0.9.25 §10.2)', () => {
+  // E14: 3 vendidos. B12: 1 vendido y 1 de pedido (que también sale vendido: cuenta una vez). A13: 3 sin grado y nada pedido.
+  const PEDIDOS: Movil[] = [
+    m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }),
+    m({ ...B12, grado: 'n/a' }), m({ ...B12, grado: 'A', estado: 'DE_PEDIDO', imeiSn: '350000000099001' }),
+    m({ ...E14, grado: 'n/a' }),
+  ]
+  const VENDIDOS = [
+    movilVendido({ ...B12, imeiSn: '350000000099002' }), movilVendido({ ...B12, imeiSn: '350000000099001' }),
+    movilVendido({ ...E14, imeiSn: '350000000099003' }), movilVendido({ ...E14, imeiSn: '350000000099004' }),
+    movilVendido({ ...E14, imeiSn: '350000000099005' }), movilVendido({ ...F14, imeiSn: '350000000099006' }),
+  ]
+
+  it('los vendidos de su modelo-color (el eSIM aparte) más los de pedido van primero; después, los pendientes', () => {
+    const lista = listaRevisar(PEDIDOS, VENDIDOS)
+    expect(lista.map((g) => [descripcion(g), g.vendidos, g.dePedido, g.pedidos])).toEqual([
+      ['iPhone 14 eSIM 128 GB Medianoche', 3, 0, 3],
+      ['iPhone 12 64 GB Blanco', 1, 1, 2],
+      ['iPhone 13 128 GB Azul', 0, 0, 0],
+    ])
+    expect(tituloPedidos(lista[0], false)).toBe('3 vendidos + 0 de pedido')
+    expect(tituloPedidos(lista[1], false)).toBe('1 vendido + 1 de pedido')
+  })
+
+  it('sin las ventas cuentan solo los de pedido, y la cabecera y el título lo dicen', () => {
+    const lista = listaRevisar(PEDIDOS)
+    expect(lista.map(descripcion)).toEqual(['iPhone 12 64 GB Blanco', 'iPhone 13 128 GB Azul', 'iPhone 14 eSIM 128 GB Medianoche'])
+    expect(tituloPedidos(lista[0], true)).toBe('1 de pedido (sin ventas)')
+    expect(cabeceraPedidos(false)).toBe('Pedidos 15 d')
+    expect(cabeceraPedidos(true)).toBe('Pedidos 15 d (sin ventas)')
   })
 })
 
@@ -131,15 +161,56 @@ describe('«Qué revisar»: Subir B a A (spec 0.9.25 §2.5)', () => {
     expect(lista.map(({ b, bTecnico, b100, b100Tecnico }) => [b, bTecnico, b100, b100Tecnico])).toEqual([[0, 0, 1, 0], [1, 1, 0, 0], [1, 0, 1, 0]])
     expect(lista[2].moviles.map(pasoSubir)).toEqual(['B → A', 'B100 → A100'])
     expect(cifraSubir(lista)).toEqual({ grupos: 3, moviles: 4 })
-    expect(totalQueRevisar(listaRevisar(STOCK), lista)).toBe(11)
+    expect(totalQueRevisar(listaRevisar(STOCK), lista)).toBe(12)
+  })
+})
+
+describe('«Qué revisar»: el Excel (spec 0.9.25 §10.3)', () => {
+  it('«Revisar sin grado»: una fila por móvil, en el orden de la tabla, sin los del técnico y con «Revisado» vacía', () => {
+    const lista = listaRevisar([
+      m({ ...P15, grado: 'n/a', dias: 12, imeiSn: '350000000000201' }),
+      m({ ...P15, grado: 'n/a', dias: 41, imeiSn: '350000000000202', ubicacion: 'En revisión' }),
+      m({ ...P15, grado: 'n/a', dias: 23, imeiSn: '350000000000203', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
+      m({ ...P15, grado: 'n/a', dias: null, imeiSn: '350000000000204' }),
+      m({ ...P15, grado: 'n/a', estado: 'DE_PEDIDO', imeiSn: '350000000000205' }),
+    ], [movilVendido({ ...P15, imeiSn: '350000000000206' })])
+    expect(excelRevisar(lista, false)).toEqual({
+      hoja: 'Revisar sin grado',
+      columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', 'Pedidos 15 d', 'Revisado'],
+      filas: [
+        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000202', 'En revisión', '41', '2', ''],
+        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000201', 'Listos', '12', '2', ''],
+        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000204', 'Listos', '—', '2', ''],
+      ],
+    })
+    expect(movilesExcel(lista)).toBe(3)
+    expect(excelRevisar(lista, true).columnas[6]).toBe('Pedidos 15 d (sin ventas)')
   })
 
-  it('«Copiar lista»: sin la parte que valga 0 y sin el del técnico', () => {
-    expect(textoSubir(listaSubir(STOCK))).toBe([
-      '⬆️ SUBIR DE GRADO\niPhone 14 eSIM 128 GB Medianoche\nB100 → A100: 1',
-      '⬆️ SUBIR DE GRADO\niPhone 13 512 GB Azul\nB → A: 1',
-      '⬆️ SUBIR DE GRADO\niPhone 11 64 GB Negro\nB → A: 1 · B100 → A100: 1',
-    ].join('\n\n'))
+  it('«Subir B a A»: una fila por móvil con su paso y «Hecho» vacía', () => {
+    const lista = listaSubir([
+      m({ ...N11, grado: 'B', dias: 25, imeiSn: '350000000000301' }),
+      m({ ...N11, grado: 'B', bateriaNueva: true, dias: 11, imeiSn: '350000000000302', ubicacion: 'Taller · Pulir',
+        trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
+      m({ ...N11, grado: 'B', bateriaNueva: true, dias: 30, imeiSn: '350000000000303' }),
+      m({ ...N11, grado: 'A' }),
+    ])
+    expect(excelSubir(lista)).toEqual({
+      hoja: 'Subir B a A',
+      columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Paso', 'Ubicación', 'Días en stock', 'Hecho'],
+      filas: [
+        ['iPhone 11', '64 GB', 'Negro', '350000000000303', 'B100 → A100', 'Listos', '30', ''],
+        ['iPhone 11', '64 GB', 'Negro', '350000000000301', 'B → A', 'Listos', '25', ''],
+      ],
+    })
+    expect(movilesExcel(lista)).toBe(2)
+  })
+
+  it('el nombre del fichero lleva el día de Madrid, y el aviso cuántos móviles', () => {
+    expect(nombreExcel('revisar', new Date('2026-11-04T23:30:00Z'))).toBe('Que_revisar_sin_grado_2026-11-05.xlsx')
+    expect(nombreExcel('subir', new Date('2026-11-04T10:00:00Z'))).toBe('Que_revisar_subir_B_a_A_2026-11-04.xlsx')
+    expect(avisoDescargado(1)).toBe('Descargado: 1 móvil')
+    expect(avisoDescargado(12)).toBe('Descargado: 12 móviles')
   })
 })
 

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
@@ -38,16 +38,17 @@ const filas = (tabla: HTMLElement) => within(tabla).getAllByRole('row').slice(1)
 const tarjeta = (nombre: string) => screen.getByRole('article', { name: nombre })
 
 describe('«Qué revisar» (spec 0.9.25 §3)', () => {
-  it('dos tarjetas con su cifra, su subtítulo y su botón; se entra en «Revisar sin grado», con su ayuda y el pie', () => {
+  it('dos tarjetas con su cifra y su subtítulo, sin botón; se entra en «Revisar sin grado», con su ayuda y el pie', () => {
     pintar()
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('2 modelos-color · 2 móviles')
-    expect(tarjeta('Revisar sin grado')).toHaveTextContent('n/a de modelos con 0 o 1 A')
-    expect(within(tarjeta('Revisar sin grado')).getByRole('button', { name: 'Copiar lista (2)' })).toBeEnabled()
+    expect(tarjeta('Revisar sin grado')).toHaveTextContent('n/a en stock, lo más pedido primero')
     expect(tarjeta('Subir B a A')).toHaveTextContent('1 modelo-color · 2 móviles')
     expect(tarjeta('Subir B a A')).toHaveTextContent('B y B100 de modelos con 0 o 1 A')
+    for (const t of ['Revisar sin grado', 'Subir B a A']) expect(within(tarjeta(t)).getAllByRole('button')).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /^Copiar lista/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Revisar sin grado' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText(/^Los modelos-color con móviles sin grado \(n\/a\) y como mucho un A/)).toBeInTheDocument()
-    expect(screen.getByText(/^Solo cuenta lo que es stock\./)).toBeInTheDocument()
+    expect(screen.getByText(/^Los modelos-color con móviles sin grado \(n\/a\)\. Primero lo que más se pide/)).toBeInTheDocument()
+    expect(screen.getByText(/^Solo cuenta lo que es stock\. Un móvil con un trabajo abierto sale en gris y no cuenta ni va en el Excel\./)).toBeInTheDocument()
   })
 
   it('«Revisar sin grado»: una fila por modelo-color, con su motivo; el que solo tiene el técnico, en gris', () => {
@@ -58,10 +59,10 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
     expect(uno).toHaveTextContent('Nada con grado')
     expect(uno).toHaveTextContent('iPhone 15 Pro256 GBTitanio natural')
     expect(uno).toHaveTextContent('1+1 con técnico')
-    expect(dos).toHaveTextContent('iPhone 12 Pro')
-    expect(dos).toHaveClass('text-texto-suave')
-    expect(tres).toHaveTextContent('Solo 1 A')
-    expect(within(tres).getByTitle('1 A+')).toHaveTextContent('1A+')
+    expect(dos).toHaveTextContent('Solo 1 A')
+    expect(within(dos).getByTitle('1 A+')).toHaveTextContent('1A+')
+    expect(tres).toHaveTextContent('iPhone 12 Pro')
+    expect(tres).toHaveClass('text-texto-suave')
   })
 
   it('una fila se despliega con sus móviles (más días primero; el del técnico en gris) y el IMEI abre el detalle', async () => {
@@ -85,18 +86,7 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
     expect(screen.getByRole('table', { name: 'Móviles de iPhone 13 128 GB Azul' })).toBeInTheDocument()
   })
 
-  it('«Copiar lista» copia lo pendiente con el texto de MENSAJES y lo avisa', async () => {
-    const user = userEvent.setup()
-    pintar()
-    await user.click(within(tarjeta('Revisar sin grado')).getByRole('button', { name: 'Copiar lista (2)' }))
-    await waitFor(async () => expect(await navigator.clipboard.readText()).toBe(
-      '🔍 REVISAR PRIORITARIO\niPhone 15 Pro 256 GB Titanio natural\nSin grado: 1 · Nada con grado\n\n'
-      + '🔍 REVISAR PRIORITARIO\niPhone 13 128 GB Azul\nSin grado: 1 · Solo 1 A'))
-    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Copiada la lista: 2 modelos-color')
-    expect(screen.getByRole('button', { name: 'Revisar sin grado' })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('«Subir B a A»: su tabla, el paso de cada móvil y su «Copiar lista»', async () => {
+  it('«Subir B a A»: su tabla, el paso de cada móvil', async () => {
     const user = userEvent.setup()
     pintar()
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
@@ -107,19 +97,12 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
     const [b, b100] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Negro' }))
     expect(b).toHaveTextContent('B → A')
     expect(b100).toHaveTextContent('B100 → A100')
-    await user.click(within(tarjeta('Subir B a A')).getByRole('button', { name: 'Copiar lista (1)' }))
-    await waitFor(async () => expect(await navigator.clipboard.readText())
-      .toBe('⬆️ SUBIR DE GRADO\niPhone 11 64 GB Negro\nB → A: 1 · B100 → A100: 1'))
-    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Copiada la lista: 1 modelo-color')
   })
 
-  it('sin nada que revisar, el texto de vacío y los botones apagados', async () => {
+  it('sin nada que revisar, el texto de vacío', async () => {
     const user = userEvent.setup()
     pintar([visto({ grado: 'A' })])
-    expect(screen.getByText('Nada que revisar: todos los modelos-color con móviles sin grado tienen 2 A o más.')).toBeInTheDocument()
-    const copiar = within(tarjeta('Revisar sin grado')).getByRole('button', { name: 'Copiar lista' })
-    expect(copiar).toBeDisabled()
-    expect(copiar).toHaveAttribute('title', 'No hay nada pendiente')
+    expect(screen.getByText('Nada que revisar: ningún móvil sin grado en stock.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
     expect(screen.getByText('Ningún B que subir.')).toBeInTheDocument()
   })
@@ -127,7 +110,6 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
   it('con solo un modelo-color que tiene el técnico, la fila sale en gris y la tarjeta en 0', () => {
     pintar([STOCK[2]])
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('0 modelos-color · 0 móviles')
-    expect(within(tarjeta('Revisar sin grado')).getByRole('button', { name: 'Copiar lista' })).toBeDisabled()
     expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[0]).toHaveClass('text-texto-suave')
   })
 

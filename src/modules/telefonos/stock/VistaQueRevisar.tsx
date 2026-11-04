@@ -2,16 +2,14 @@ import { Fragment, type ReactNode } from 'react'
 import { useStore } from '@/shared/lib/store'
 import { clasesUbicacion } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
-import { avisar } from '@/shared/ui/avisos'
-import { copiarAlPortapapeles } from '@/shared/ui/copiar'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { CeldaQuien } from './CeldaQuien'
 import { textoCapacidad, type Movil } from './modelo'
 import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
-  AYUDA_QR, avisoCopiadoLista, cifraRevisar, cifraSubir, conTecnico, descripcion, filtrar, imeiBuscado, palabrasClave, sinCoincidencias, NOMBRE_QR, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
-  SUBTITULO_QR, TARJETAS_QR, TEXTO_MOTIVO, textoCifra, textoRevisar, textoSubir, tituloA, VACIA_QR,
+  AYUDA_QR, cifraRevisar, cifraSubir, conTecnico, descripcion, filtrar, imeiBuscado, palabrasClave, sinCoincidencias, NOMBRE_QR, pasoSubir, pendienteSubir, PIE_QR,
+  SUBTITULO_QR, TARJETAS_QR, TEXTO_MOTIVO, textoCifra, tituloA, VACIA_QR,
   type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir, type Motivo, type TarjetaQR,
 } from './queRevisar'
 
@@ -19,16 +17,16 @@ type Props = { revisar: GrupoRevisar[]; subir: GrupoSubir[]; cargando: boolean; 
 
 /** El borde de arriba de cada tarjeta (prototipo «Qué revisar»): ámbar el de sin grado y violeta el de B. */
 const BORDE: Record<TarjetaQR, string> = { revisar: 'border-t-fila-solicitud-brd', subir: 'border-t-tipo-pulido-text' }
-/** La pastilla del motivo: rojo, naranja y ámbar. */
+/** La pastilla del motivo: rojo, naranja, ámbar y gris (spec §10.1). */
 const MOTIVO: Record<Motivo, string> = {
   NADA: 'bg-urgente-bg text-fila-urgente-brd', NINGUN_A: 'bg-aviso-conflicto-bg text-aviso-conflicto-text', UN_A: 'bg-fila-solicitud-bg text-fila-solicitud-brd',
+  CON_A: 'bg-crema text-azul-gris',
 }
 const PASTILLA = 'inline-block rounded px-1.5 text-[10.5px] font-bold whitespace-nowrap'
 const CELDA = 'px-2 py-1.5 align-top'
 const NUM = cn(CELDA, 'text-right whitespace-nowrap tabular-nums')
 const GRIS = 'ml-1 text-[11px] text-azul-gris'
 const SUAVE = 'text-texto-suave'
-const BOTON = 'h-[26px] cursor-pointer rounded-lg border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold whitespace-nowrap text-azul-medio hover:bg-seleccion-suave disabled:cursor-not-allowed disabled:opacity-40'
 const CAMBIA_GRADO = 'inline-block rounded border border-tipo-reparacion-bg bg-tipo-reparacion-bg px-1.5 font-bold text-tipo-reparacion-text'
 
 /** «Qué revisar» (0.9.25, spec «Qué revisar» §3): dos tarjetas como «Por pasar a NSYS», la ayuda y la tabla de la elegida, con una
@@ -44,11 +42,7 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
     return { ...e, queRevisar: { ...e.queRevisar, abiertos: previos.includes(clave) ? previos.filter((c) => c !== clave) : [...previos, clave] } }
   })
   const cifras: Record<TarjetaQR, Cifra> = { revisar: cifraRevisar(revisar), subir: cifraSubir(subir) }
-  const copiar = (t: TarjetaQR) => {
-    void copiarAlPortapapeles(t === 'revisar' ? textoRevisar(revisar) : textoSubir(subir))
-    avisar({ texto: avisoCopiadoLista(cifras[t].grupos), tipo: 'ok' })
-  }
-  // 0.9.25 (spec §3.6): la caja de arriba filtra las tablas por palabras clave; las tarjetas y «Copiar lista» siguen con todo.
+  // 0.9.25 (spec §3.6): la caja de arriba filtra las tablas por palabras clave; las tarjetas siguen con todo.
   const palabras = palabrasClave(queRevisar.buscar)
   const visiblesRevisar = filtrar(revisar, palabras)
   const visiblesSubir = filtrar(subir, palabras)
@@ -69,12 +63,6 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
               {cifras[t].grupos}{' '}<small className="text-[12px] font-semibold text-azul-gris">{textoCifra(cifras[t])}</small>
             </p>
             <p className="text-[11.5px] leading-snug text-azul-gris">{SUBTITULO_QR[t]}</p>
-            <div>
-              <button type="button" disabled={cifras[t].grupos === 0} title={cifras[t].grupos === 0 ? SIN_PENDIENTE : undefined}
-                onClick={(e) => { e.stopPropagation(); copiar(t) }} className={BOTON}>
-                {`Copiar lista${cifras[t].grupos > 0 ? ` (${cifras[t].grupos})` : ''}`}
-              </button>
-            </div>
           </article>
         ))}
       </div>

@@ -1,13 +1,19 @@
+import { hoyMadrid } from '@/shared/lib/fechas'
 import { nombreMovilNsys } from '@/shared/lib/telefonoNsys'
-import { capacidadDe, compararCapacidades, compararModelos, cuentaComoStock, SIN_DATO, textoCapacidad, type Movil } from './modelo'
+import { compararCapacidades, compararModelos, cuentaComoStock, SIN_DATO, textoCapacidad, type Movil } from './modelo'
 import { palabraMoviles } from './porPasar'
 
-/** «Qué revisar» (0.9.25, spec «Qué revisar» §2): de los móviles en stock, los modelos-color con móviles sin grado y pocos A
- *  («Revisar sin grado») y los que tienen B que pueden subir a A con un chasis («Subir B a A»). Sustituye a la hoja
- *  PriorizarRevision del Apps Script. Es puro: la pantalla le pasa los móviles ya preparados (con «Quién lo tiene»). */
+/** «Qué revisar» (0.9.25, spec «Qué revisar» §2 y §10): de los móviles en stock, los modelos-color con móviles sin grado, lo más
+ *  pedido primero («Revisar sin grado»), y los que tienen B que pueden subir a A con un chasis («Subir B a A»). Sustituye a la
+ *  hoja PriorizarRevision del Apps Script. Es puro: la pantalla le pasa los móviles ya preparados (con «Quién lo tiene») y los
+ *  vendidos de los últimos {@link DIAS_PEDIDOS} días. */
 
-/** Como mucho tantos A en el modelo-color para salir en las listas (spec §2.4). */
+/** Como mucho tantos A en el modelo-color para salir en «Subir B a A» (spec §2.5; desde §10.1, ya no en «Revisar sin grado»). */
 export const MAX_A = 1
+/** «Pedidos 15 d» (spec §10.2): los vendidos de hoy y los 14 días anteriores, más los de pedido. */
+export const DIAS_PEDIDOS = 15
+/** «Solo con 3 o más sin revisar» (spec §10.1): los pendientes, sin los del técnico. */
+export const MIN_PENDIENTES = 3
 
 // Con grado (spec §2.3): A+, A, A-, B+, B, B-, C con o sin Ms delante; Ms solo; ID, F, FD y RMA. Sin mirar mayúsculas.
 const CON_GRADO = /^(?:ms(?:a\+|a-|a|b\+|b-|b|c)?|a\+|a-|a|b\+|b-|b|c|id|f|fd|rma)$/i
@@ -24,9 +30,17 @@ export const esB = (grado: string | null | undefined): boolean => GRADO_B.test(l
 /** Un móvil con algún trabajo abierto: sale en gris y no cuenta como pendiente (spec §2.6). */
 export const conTecnico = (m: Movil): boolean => (m.trabajos ?? []).length > 0
 
-export type Motivo = 'NADA' | 'NINGUN_A' | 'UN_A'
-export const TEXTO_MOTIVO: Record<Motivo, string> = { NADA: 'Nada con grado', NINGUN_A: 'Ningún A', UN_A: 'Solo 1 A' }
-const ORDEN_MOTIVO: Record<Motivo, number> = { NADA: 0, NINGUN_A: 1, UN_A: 2 }
+export type Motivo = 'NADA' | 'NINGUN_A' | 'UN_A' | 'CON_A'
+export const TEXTO_MOTIVO: Record<Motivo, string> = { NADA: 'Nada con grado', NINGUN_A: 'Ningún A', UN_A: 'Solo 1 A', CON_A: 'Con A' }
+const ORDEN_MOTIVO: Record<Motivo, number> = { NADA: 0, NINGUN_A: 1, UN_A: 2, CON_A: 3 }
+
+/** Lo que hace falta de un móvil para saber su modelo-color: lo tienen los del stock y los vendidos de GET …/vendidos. */
+type ConModeloColor = { modelo: string | null; modeloMaestro: string | null; esEsim: boolean; capacidad: string | null; color: string | null }
+/** Un vendido de los últimos días (spec §10.2): `MovilVendido` de la API cumple este tipo. */
+export type Vendido = ConModeloColor & { imeiSn: string }
+
+/** La clave del modelo-color (spec §2.2): el modelo con « eSIM» si lo es, la capacidad y el color («—» si no se saben). */
+const claveDe = (m: ConModeloColor): string => `${nombreMovilNsys(m)}|${m.capacidad || SIN_DATO}|${m.color || SIN_DATO}`
 
 /** Lo común de un modelo-color de una lista: su clave, el nombre del modelo (con « eSIM»), la capacidad tal cual («128GB» o
  *  «—»), el color, cuántos A tiene en stock y cuáles, los móviles de esa lista, ordenados, y los SKU distintos de todos sus
@@ -35,7 +49,10 @@ export type GrupoBase = {
   clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; a: number; gradosA: string[]; skus: string[]
   moviles: Movil[]
 }
-export type GrupoRevisar = GrupoBase & { motivo: Motivo; pendientes: number; conTecnico: number; conGrado: number }
+/** `vendidos` y `dePedido`, los de «Pedidos 15 d»; `pedidos`, su suma, que manda en el orden (spec §10.2). */
+export type GrupoRevisar = GrupoBase & {
+  motivo: Motivo; pendientes: number; conTecnico: number; conGrado: number; vendidos: number; dePedido: number; pedidos: number
+}
 export type GrupoSubir = GrupoBase & { b: number; bTecnico: number; b100: number; b100Tecnico: number }
 
 type Grupo = { clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; todos: Movil[] }
@@ -45,13 +62,10 @@ function grupos(moviles: readonly Movil[]): Grupo[] {
   const mapa = new Map<string, Grupo>()
   for (const m of moviles) {
     if (!cuentaComoStock(m)) continue
-    const modelo = nombreMovilNsys(m)
-    const capacidad = capacidadDe(m)
-    const color = m.color || SIN_DATO
-    const clave = `${modelo}|${capacidad}|${color}`
+    const clave = claveDe(m)
     const g = mapa.get(clave)
     if (g) g.todos.push(m)
-    else mapa.set(clave, { clave, modelo, capacidad, color, esEsim: m.esEsim, todos: [m] })
+    else mapa.set(clave, { clave, modelo: nombreMovilNsys(m), capacidad: m.capacidad || SIN_DATO, color: m.color || SIN_DATO, esEsim: m.esEsim, todos: [m] })
   }
   return [...mapa.values()]
 }
@@ -79,18 +93,34 @@ function comun(g: Grupo, deLaLista: Movil[]): GrupoBase {
   }
 }
 
-/** «Revisar sin grado» (spec §2.4): los modelos-color con algún móvil sin grado y como mucho {@link MAX_A} A, por motivo y en el
- *  orden de §2.7. En las cuentas de A y de «con grado» entran todos los móviles del grupo, los tenga un técnico o no. */
-export function listaRevisar(moviles: readonly Movil[]): GrupoRevisar[] {
+const sumar = (mapa: Map<string, number>, clave: string) => mapa.set(clave, (mapa.get(clave) ?? 0) + 1)
+
+/** «Revisar sin grado» (spec §10.1): todos los modelos-color con algún móvil sin grado, lo más pedido primero («Pedidos 15 d»:
+ *  los `vendidos` y los de pedido de su modelo-color) y, a igualdad, lo que más queda sin revisar; después, por motivo y en el
+ *  orden de §2.7. En las cuentas de A y de «con grado» entran todos los móviles del grupo, los tenga un técnico o no. Un vendido
+ *  que hoy está de pedido cuenta una vez, como de pedido. */
+export function listaRevisar(moviles: readonly Movil[], vendidos: readonly Vendido[] = []): GrupoRevisar[] {
+  const dePedido = new Map<string, number>()
+  const imeisDePedido = new Set<string>()
+  for (const m of moviles) {
+    if (m.estado !== 'DE_PEDIDO') continue
+    sumar(dePedido, claveDe(m))
+    imeisDePedido.add(m.imeiSn)
+  }
+  const vendidosPorClave = new Map<string, number>()
+  for (const v of vendidos) if (!imeisDePedido.has(v.imeiSn)) sumar(vendidosPorClave, claveDe(v))
   return grupos(moviles).flatMap((g): GrupoRevisar[] => {
     const sinGrado = g.todos.filter((m) => !tieneGrado(m.grado))
+    if (sinGrado.length === 0) return []
     const base = comun(g, sinGrado)
-    if (sinGrado.length === 0 || base.a > MAX_A) return []
     const conGrado = g.todos.length - sinGrado.length
     const tecnico = sinGrado.filter(conTecnico).length
-    const motivo: Motivo = conGrado === 0 ? 'NADA' : base.a === 0 ? 'NINGUN_A' : 'UN_A'
-    return [{ ...base, motivo, pendientes: sinGrado.length - tecnico, conTecnico: tecnico, conGrado }]
-  }).sort((x, y) => ORDEN_MOTIVO[x.motivo] - ORDEN_MOTIVO[y.motivo] || compararGrupos(x, y))
+    const motivo: Motivo = conGrado === 0 ? 'NADA' : base.a === 0 ? 'NINGUN_A' : base.a === 1 ? 'UN_A' : 'CON_A'
+    const v = vendidosPorClave.get(g.clave) ?? 0
+    const p = dePedido.get(g.clave) ?? 0
+    return [{ ...base, motivo, pendientes: sinGrado.length - tecnico, conTecnico: tecnico, conGrado, vendidos: v, dePedido: p, pedidos: v + p }]
+  }).sort((x, y) => y.pedidos - x.pedidos || y.pendientes - x.pendientes || ORDEN_MOTIVO[x.motivo] - ORDEN_MOTIVO[y.motivo]
+    || compararGrupos(x, y))
 }
 
 /** «Subir B a A» (spec §2.5): los modelos-color con algún B y como mucho {@link MAX_A} A, en el orden de §2.7. */
@@ -106,6 +136,11 @@ export function listaSubir(moviles: readonly Movil[]): GrupoSubir[] {
 
 export const pendienteRevisar = (g: GrupoRevisar): boolean => g.pendientes > 0
 export const pendienteSubir = (g: GrupoSubir): boolean => g.b + g.b100 > 0
+
+/** «Solo con 3 o más sin revisar» (spec §10.1): encendido, solo los modelos-color con {@link MIN_PENDIENTES} pendientes o más;
+ *  apagado, todos. En el mismo orden. */
+export const soloTres = (lista: readonly GrupoRevisar[], encendido: boolean): GrupoRevisar[] =>
+  encendido ? lista.filter((g) => g.pendientes >= MIN_PENDIENTES) : [...lista]
 
 /** La cifra de una tarjeta (spec §3.2): modelos-color con algo pendiente y cuántos móviles pendientes suman. */
 export type Cifra = { grupos: number; moviles: number }
@@ -136,41 +171,76 @@ export const tituloA = (g: GrupoBase): string => (g.a === 0 ? 'Ningún A' : `${g
 /** El paso de un B en «Subir B a A»: con batería nueva, B100 → A100. */
 export const pasoSubir = (m: Movil): string => (m.bateriaNueva ? 'B100 → A100' : 'B → A')
 
-/** «Copiar lista» de «Revisar sin grado» (spec §3.4): lo pendiente, en el orden de la tabla. */
-export function textoRevisar(lista: readonly GrupoRevisar[]): string {
-  return lista.filter(pendienteRevisar)
-    .map((g) => `🔍 REVISAR PRIORITARIO\n${descripcion(g)}\nSin grado: ${g.pendientes} · ${TEXTO_MOTIVO[g.motivo]}`)
-    .join('\n\n')
-}
-
-/** «Copiar lista» de «Subir B a A»: lo pendiente, sin la parte que valga 0. */
-export function textoSubir(lista: readonly GrupoSubir[]): string {
-  return lista.filter(pendienteSubir).map((g) => {
-    const pasos = [g.b > 0 ? `B → A: ${g.b}` : null, g.b100 > 0 ? `B100 → A100: ${g.b100}` : null].filter(Boolean).join(' · ')
-    return `⬆️ SUBIR DE GRADO\n${descripcion(g)}\n${pasos}`
-  }).join('\n\n')
-}
+/** La cabecera de «Pedidos 15 d»; si no se pudieron leer las ventas, lo dice (spec §10.2). */
+export const cabeceraPedidos = (sinVentas: boolean): string => (sinVentas ? 'Pedidos 15 d (sin ventas)' : 'Pedidos 15 d')
+export const TITULO_SIN_VENTAS = 'No se pudieron leer las ventas: solo cuentan los de pedido'
+/** Al pasar el ratón por «Pedidos 15 d»: «9 vendidos + 3 de pedido»; sin ventas, solo los de pedido. */
+export const tituloPedidos = (g: GrupoRevisar, sinVentas: boolean): string =>
+  sinVentas ? `${g.dePedido} de pedido (sin ventas)` : `${g.vendidos} ${g.vendidos === 1 ? 'vendido' : 'vendidos'} + ${g.dePedido} de pedido`
 
 export type TarjetaQR = 'revisar' | 'subir'
 export const TARJETAS_QR: readonly TarjetaQR[] = ['revisar', 'subir']
 export const NOMBRE_QR: Record<TarjetaQR, string> = { revisar: 'Revisar sin grado', subir: 'Subir B a A' }
 export const SUBTITULO_QR: Record<TarjetaQR, string> = {
-  revisar: 'n/a de modelos con 0 o 1 A', subir: 'B y B100 de modelos con 0 o 1 A',
+  revisar: 'n/a en stock, lo más pedido primero', subir: 'B y B100 de modelos con 0 o 1 A',
 }
 export const AYUDA_QR: Record<TarjetaQR, string> = {
-  revisar: 'Los modelos-color con móviles sin grado (n/a) y como mucho un A en stock. Primero los que no tienen nada con grado, después los que no tienen ningún A y al final los que solo tienen uno. Un móvil sale de la lista cuando NSYS o el taller le ponen grado.',
+  revisar: 'Los modelos-color con móviles sin grado (n/a). Primero lo que más se pide (vendidos en los últimos 15 días y de pedido ahora) y, a igualdad, lo que más queda sin revisar. Un móvil sale de la lista cuando NSYS o el taller le ponen grado.',
   subir: 'Los modelos-color con móviles B y como mucho un A en stock: candidatos a chasis (B → A; con batería nueva, B100 → A100). Un móvil sale de la lista cuando su grado pasa a A.',
 }
 export const VACIA_QR: Record<TarjetaQR, string> = {
-  revisar: 'Nada que revisar: todos los modelos-color con móviles sin grado tienen 2 A o más.', subir: 'Ningún B que subir.',
+  revisar: 'Nada que revisar: ningún móvil sin grado en stock.', subir: 'Ningún B que subir.',
 }
-export const PIE_QR = 'Solo cuenta lo que es stock. Un móvil con un trabajo abierto sale en gris y no cuenta ni se copia. «A» es A+, A o A-, con o sin batería nueva.'
+export const PIE_QR = 'Solo cuenta lo que es stock. Un móvil con un trabajo abierto sale en gris y no cuenta ni va en el Excel. «A» es A+, A o A-, con o sin batería nueva.'
 export const SIN_PENDIENTE = 'No hay nada pendiente'
+export const TEXTO_SOLO_TRES = 'Solo con 3 o más sin revisar'
+export const NINGUNO_TRES = 'Ningún modelo-color con 3 o más sin revisar: apaga «Solo con 3 o más sin revisar» para verlos todos.'
 
 export const palabraGrupos = (n: number): string => (n === 1 ? 'modelo-color' : 'modelos-color')
 /** Lo que va junto a la cifra grande de la tarjeta: «modelos-color · 19 móviles». */
 export const textoCifra = (c: Cifra): string => `${palabraGrupos(c.grupos)} · ${c.moviles} ${palabraMoviles(c.moviles)}`
-export const avisoCopiadoLista = (n: number): string => `Copiada la lista: ${n} ${palabraGrupos(n)}`
+
+// ---------------------------------------------------------------- «⬇ Descargar Excel» (spec §10.3)
+
+/** Lo que se manda a POST /api/stock-telefonos/que-revisar/excel: `PeticionExcel` de la API cumple este tipo. */
+export type HojaExcel = { hoja: string; columnas: string[]; filas: string[][] }
+
+/** Los móviles que van en el Excel: los de la lista, sin los del técnico, en el orden de la tabla. */
+const delExcel = (g: GrupoBase): Movil[] => g.moviles.filter((m) => !conTecnico(m))
+
+/** Cuántos móviles irán en el Excel (el N del botón). */
+export const movilesExcel = (lista: readonly GrupoBase[]): number => lista.reduce((n, g) => n + delExcel(g).length, 0)
+
+const dias = (m: Movil): string => (m.dias === null ? SIN_DATO : String(m.dias))
+
+/** «Revisar sin grado» en el Excel: una fila por móvil, con «Revisado» vacía para marcar a boli. */
+export function excelRevisar(lista: readonly GrupoRevisar[], sinVentas: boolean): HojaExcel {
+  return {
+    hoja: NOMBRE_QR.revisar,
+    columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', cabeceraPedidos(sinVentas), 'Revisado'],
+    filas: lista.flatMap((g) => delExcel(g).map((m) => [
+      g.modelo, textoCapacidad(g.capacidad), g.color, m.imeiSn, m.ubicacion ?? SIN_DATO, dias(m), String(g.pedidos), '',
+    ])),
+  }
+}
+
+/** «Subir B a A» en el Excel: una fila por móvil, con su paso y «Hecho» vacía. */
+export function excelSubir(lista: readonly GrupoSubir[]): HojaExcel {
+  return {
+    hoja: NOMBRE_QR.subir,
+    columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Paso', 'Ubicación', 'Días en stock', 'Hecho'],
+    filas: lista.flatMap((g) => delExcel(g).map((m) => [
+      g.modelo, textoCapacidad(g.capacidad), g.color, m.imeiSn, pasoSubir(m), m.ubicacion ?? SIN_DATO, dias(m), '',
+    ])),
+  }
+}
+
+/** El nombre que propone «Guardar como»: `Que_revisar_sin_grado_2026-11-04.xlsx` (fecha de Madrid). */
+export const nombreExcel = (t: TarjetaQR, ahora: Date = new Date()): string =>
+  `Que_revisar_${t === 'revisar' ? 'sin_grado' : 'subir_B_a_A'}_${hoyMadrid(ahora)}.xlsx`
+
+/** El aviso al guardar: «Descargado: 12 móviles». */
+export const avisoDescargado = (n: number): string => `Descargado: ${n} ${palabraMoviles(n)}`
 
 // ---------------------------------------------------------------- buscar por palabras clave (spec §3.6)
 
