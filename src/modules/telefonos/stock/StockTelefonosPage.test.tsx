@@ -569,6 +569,30 @@ describe('Stock de teléfonos: «Por pasar a NSYS» con cuatro tarjetas (spec 0.
   })
 })
 
+describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
+  it('la pestaña cuenta lo pendiente de las dos tarjetas, despliega un modelo-color y abre el detalle', async () => {
+    const user = userEvent.setup()
+    abrir()
+    expect(screen.getByRole('button', { name: 'Qué revisar' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Qué revisar (2)' }))
+    expect(screen.getByRole('button', { name: 'Qué revisar (2)' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('region', { name: 'Tabla de móviles' })).not.toBeInTheDocument()
+    expect(screen.getByRole('article', { name: 'Revisar sin grado' })).toHaveTextContent('1 modelo-color · 1 móvil')
+    expect(screen.getByRole('article', { name: 'Subir B a A' })).toHaveTextContent('1 modelo-color · 1 móvil')
+    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Rosa' }))
+    await user.click(screen.getByRole('button', { name: 'Abrir 350000000000003' }))
+    expect(await screen.findByText('Detalle del IMEI desde /telefonos/stock')).toBeInTheDocument()
+  })
+
+  it('«Móviles» vuelve a la vista de siempre', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: 'Qué revisar (2)' }))
+    await user.click(screen.getByRole('button', { name: 'Móviles' }))
+    expect(await screen.findByRole('region', { name: 'Tabla de móviles' })).toBeInTheDocument()
+  })
+})
+
 describe('el buscador de IMEI con la eSIM (0.9.24)', () => {
   it('«iPhone 14 eSIM 256GB» si NSYS dice que es eSIM', async () => {
     const user = userEvent.setup()

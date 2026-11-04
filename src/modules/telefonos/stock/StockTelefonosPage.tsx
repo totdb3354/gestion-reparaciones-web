@@ -23,6 +23,8 @@ import { PastillaSku } from './PastillaSku'
 import { PestanasCapacidad } from './PestanasCapacidad'
 import { totalPendientes } from './porPasar'
 import { PorPasarNsys } from './PorPasarNsys'
+import { listaRevisar, listaSubir, totalQueRevisar } from './queRevisar'
+import { VistaQueRevisar } from './VistaQueRevisar'
 import { BandaNsys, PildoraNsys } from './PildoraNsys'
 
 const PIE = '"Quién lo tiene" sale de las asignaciones abiertas del ERP, al momento; la caja, de la última exportación de NSYS. Pasa el ratón por encima para ver desde cuándo. El IMEI abre el detalle del móvil.'
@@ -42,6 +44,10 @@ export function StockTelefonosPage() {
   // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
   const porPasar = usePorPasarTarjetas()
   const nPorPasar = totalPendientes(porPasar.data)
+  // 0.9.25 (spec «Qué revisar» §3.1): las dos listas, para su pestaña y su número.
+  const revisar = useMemo(() => listaRevisar(moviles), [moviles])
+  const subir = useMemo(() => listaSubir(moviles), [moviles])
+  const nQueRevisar = totalQueRevisar(revisar, subir)
   // El diálogo de «Pegar varios IMEIs»: null cerrado; si no, lo que se pegó (vacío con el botón).
   const [varios, setVarios] = useState<string | null>(null)
   const lista = useMemo(() => modelosLista(moviles, verNoCuenta), [moviles, verNoCuenta])
@@ -77,12 +83,13 @@ export function StockTelefonosPage() {
         {!sinCargar && <PildoraContador texto={`${enStock} ${enStock === 1 ? 'móvil' : 'móviles'} en stock`} />}
         <PildoraNsys />
         <div role="group" aria-label="Vista" className="ml-auto flex overflow-hidden rounded-lg border border-borde-input">
-          {([['moviles', 'Móviles'], ['por-pasar', 'Por pasar a NSYS']] as const).map(([v, texto]) => (
+          {([['moviles', 'Móviles'], ['por-pasar', 'Por pasar a NSYS'], ['que-revisar', 'Qué revisar']] as const).map(([v, texto]) => (
             <button key={v} type="button" aria-pressed={vista === v} onClick={() => setEstado((e) => ({ ...e, vista: v }))}
               className={cn('cursor-pointer border-r border-borde-input px-3.5 py-1 text-[12px] font-semibold last:border-r-0',
                 vista === v ? 'bg-azul-noche text-superficie' : 'bg-superficie text-azul-medio hover:bg-seleccion-suave')}>
               {texto}
               {v === 'por-pasar' && <>{' '}<span className={vista === v ? 'text-superficie' : 'text-taller-text'}>{`(${nPorPasar})`}</span></>}
+              {v === 'que-revisar' && stock.data && <>{' '}<span className={vista === v ? 'text-superficie' : 'text-taller-text'}>{`(${nQueRevisar})`}</span></>}
             </button>
           ))}
         </div>
@@ -99,7 +106,8 @@ export function StockTelefonosPage() {
           Ver también lo que no cuenta como stock
         </button>
       </div>
-      {vista === 'por-pasar' ? <PorPasarNsys tarjetas={porPasar.data ?? null} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} /> : (
+      {vista === 'por-pasar' ? <PorPasarNsys tarjetas={porPasar.data ?? null} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} />
+        : vista === 'que-revisar' ? <VistaQueRevisar revisar={revisar} subir={subir} cargando={stock.isPending} error={sinCargar} onAbrirImei={abrir} /> : (
       <div className="grid min-h-0 flex-1 grid-cols-[270px_1fr] gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos modelos={visibles} elegido={modelo?.clave ?? null} capacidad={capacidad}
           onAbrir={(m, c) => abrirModelo({ modelo: m, capacidad: c, sku: null })}
