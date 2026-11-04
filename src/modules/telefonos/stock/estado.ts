@@ -15,13 +15,13 @@ export type EstadoStock = {
   filtrosDe: { clave: string | null; filtros: Filtros; sku: FiltroSku | null }
   /** 0.9.21: la pestaña de la pantalla, la de los móviles o «Por pasar a NSYS»; desde la 0.9.25, también «Qué revisar». */
   vista: 'moviles' | 'por-pasar' | 'que-revisar'
-  /** 0.9.25: la tarjeta elegida de «Qué revisar», los modelos-color desplegados (clave «revisar|…» o «subir|…») y lo escrito en la caja de arriba (spec §3.6). */
-  queRevisar: { tarjeta: TarjetaQR; abiertos: readonly string[]; buscar: string }
+  /** 0.9.25: la tarjeta elegida de «Qué revisar», los modelos-color desplegados (clave «revisar|…» o «subir|…») lo escrito en la caja de arriba (spec §3.6) y el interruptor «Solo con 3 o más sin revisar» (spec §10.1, encendido al entrar). */
+  queRevisar: { tarjeta: TarjetaQR; abiertos: readonly string[]; buscar: string; soloTres: boolean }
 }
 
 export const estadoStockTelefonos = crearStore<EstadoStock>({
   verNoCuenta: false, textoModelo: '', elegido: null, capacidad: null, filtrosDe: { clave: null, filtros: FILTROS_VACIOS, sku: null },
-  vista: 'moviles', queRevisar: { tarjeta: 'revisar', abiertos: [], buscar: '' },
+  vista: 'moviles', queRevisar: { tarjeta: 'revisar', abiertos: [], buscar: '', soloTres: true },
 })
 
 /** La clave de los filtros: el modelo y su pestaña («Todas» = cadena vacía). */

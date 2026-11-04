@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/utils'
 import { BotonSecundario } from '@/shared/ui/Botones'
 import { DataTable } from '@/shared/ui/DataTable'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
-import { usePorPasarTarjetas, useStockTelefonos } from '../api'
+import { usePorPasarTarjetas, useStockTelefonos, useVendidos } from '../api'
 import { filtrarModelos, sugerenciasSku, type Destino } from './buscador'
 import { BuscadorImei } from './BuscadorImei'
 import { BuscadorModelo } from './BuscadorModelo'
@@ -23,7 +23,7 @@ import { PastillaSku } from './PastillaSku'
 import { PestanasCapacidad } from './PestanasCapacidad'
 import { totalPendientes } from './porPasar'
 import { PorPasarNsys } from './PorPasarNsys'
-import { listaRevisar, listaSubir, totalQueRevisar } from './queRevisar'
+import { DIAS_PEDIDOS, listaRevisar, listaSubir, totalQueRevisar } from './queRevisar'
 import { VistaQueRevisar } from './VistaQueRevisar'
 import { BandaNsys, PildoraNsys } from './PildoraNsys'
 
@@ -44,8 +44,11 @@ export function StockTelefonosPage() {
   // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
   const porPasar = usePorPasarTarjetas()
   const nPorPasar = totalPendientes(porPasar.data)
-  // 0.9.25 (spec «Qué revisar» §3.1): las dos listas, para su pestaña y su número.
-  const revisar = useMemo(() => listaRevisar(moviles), [moviles])
+  // 0.9.25 (spec «Qué revisar» §3.1 y §10.2): las dos listas, para su pestaña y su número. Los vendidos solo se piden con la
+  // pestaña abierta: el número no depende de ellos, solo el orden.
+  const vendidos = useVendidos(DIAS_PEDIDOS, vista === 'que-revisar')
+  const revisar = useMemo(() => listaRevisar(moviles, vendidos.data ?? []), [moviles, vendidos.data])
+  const sinVentas = vendidos.isError && !vendidos.data
   const subir = useMemo(() => listaSubir(moviles), [moviles])
   const nQueRevisar = totalQueRevisar(revisar, subir)
   // El diálogo de «Pegar varios IMEIs»: null cerrado; si no, lo que se pegó (vacío con el botón).
@@ -108,7 +111,7 @@ export function StockTelefonosPage() {
         </button>
       </div>
       {vista === 'por-pasar' ? <PorPasarNsys tarjetas={porPasar.data ?? null} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} />
-        : vista === 'que-revisar' ? <VistaQueRevisar revisar={revisar} subir={subir} cargando={stock.isPending} error={sinCargar} onAbrirImei={abrir} /> : (
+        : vista === 'que-revisar' ? <VistaQueRevisar revisar={revisar} subir={subir} sinVentas={sinVentas} cargando={stock.isPending} error={sinCargar} onAbrirImei={abrir} /> : (
       <div className="grid min-h-0 flex-1 grid-cols-[270px_1fr] gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos modelos={visibles} elegido={modelo?.clave ?? null} capacidad={capacidad}
           onAbrir={(m, c) => abrirModelo({ modelo: m, capacidad: c, sku: null })}
