@@ -1,7 +1,8 @@
 import { cn } from '@/shared/lib/utils'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
-import { useFuentesPedidos } from '../api'
+import { useEstadoNsys, useFuentesPedidos } from '../api'
+import { horaItems } from '../stock/nsys'
 
 const ORDEN = ['OK', 'RETRASO', 'SIN_DATOS']
 const TEXTO: Record<string, string> = { OK: 'al día', RETRASO: 'con retraso', SIN_DATOS: 'sin datos' }
@@ -15,20 +16,34 @@ const PAPEL: Record<string, string> = {
   SHIPPYPRO: 'pedidos de Amazon y webs, sin IMEI', PEDIDOS_2026: 'los IMEIs tecleados para esos pedidos',
   SIMULADOR: 'pedido e IMEI juntos',
 }
+const PUNTO: Record<string, string> = { OK: 'bg-verde-ok', RETRASO: 'bg-ambar', SIN_DATOS: 'bg-fila-urgente-brd' }
 const hora = (iso: string | null | undefined) => (iso ? `${diaNsys(iso)} ${iso.slice(11, 16)}` : '—')
 
 /** Píldora de las fuentes de «Pedidos» (spec pieza 2 §9.2): el peor nivel de las tres y, al pulsarla, el papel de cada una, su
  *  última lectura buena, si la última falló y los SKU que el maestro no conoce. */
 export function PildoraFuentes() {
-  const { data } = useFuentesPedidos()
-  if (!data) return <span className="ml-auto" />
-  const nivel = data.reduce((peor, f) => (ORDEN.indexOf(f.nivel) > ORDEN.indexOf(peor) ? f.nivel : peor), 'OK')
-  const texto = `Fuentes: ${TEXTO[nivel] ?? nivel}`
+  const { data, isPending, isError } = useFuentesPedidos()
+  // NSYS ya está en caché por la barra de arriba (la misma consulta que PildoraNsys).
+  const nsys = useEstadoNsys().data
+  if (!data) {
+    // Cargando o sin poder preguntar: neutra, sin un nivel que no sabemos (como PildoraNsys).
+    const aviso = isError ? 'Fuentes: no se pudo comprobar' : isPending ? 'Fuentes: comprobando…' : 'Fuentes: sin datos'
+    return (
+      <span role="status" className={cn('ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES.OK)}>
+        <span aria-hidden className="h-2 w-2 rounded-full bg-gris-borde" />{aviso}
+      </span>
+    )
+  }
+  const niveles = nsys?.ultimaExportacion ? [...data.map((f) => f.nivel), nsys.nivel] : data.map((f) => f.nivel)
+  const nivel = niveles.reduce((peor, n) => (ORDEN.indexOf(n) > ORDEN.indexOf(peor) ? n : peor), 'OK')
+  const visible = `ShippyPro · PEDIDOS 2026 · Simulador · NSYS: ${TEXTO[nivel] ?? nivel}`
+  const items = nsys?.ultimaExportacion ? horaItems(nsys.ultimaExportacion) : null
   return (
     <Popover>
-      <PopoverTrigger aria-label={texto} className="ml-auto cursor-pointer rounded-full">
+      <PopoverTrigger aria-label={`Fuentes: ${visible}`} className="ml-auto cursor-pointer rounded-full">
         <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES[nivel] ?? CLASES.OK)}>
-          ShippyPro · PEDIDOS 2026 · Simulador: {TEXTO[nivel] ?? nivel}
+          <span aria-hidden className={cn('h-2 w-2 rounded-full', PUNTO[nivel] ?? PUNTO.OK)} />
+          {visible}
         </span>
       </PopoverTrigger>
       <PopoverContent align="end" aria-label="Fuentes de Pedidos" className="w-[420px] rounded-lg border border-fila-sep bg-superficie p-3 text-[12px] shadow-md">
@@ -43,6 +58,13 @@ export function PildoraFuentes() {
               </div>
             </li>
           ))}
+          <li>
+            <div className="flex gap-2"><b className="w-28 shrink-0">NSYS</b><span>dónde está cada móvil</span></div>
+            <div className="pl-[120px] text-texto-sub">
+              {items ? `Items ${items.length === 5 ? 'de las' : 'del'} ${items}` : 'Items: sin datos todavía'}
+              {nsys && nsys.nivel !== 'OK' && <> · {TEXTO[nsys.nivel] ?? nsys.nivel}</>}
+            </div>
+          </li>
         </ul>
         <p className="mt-2 text-texto-sub">Lo que NSYS da por vendido (Released) ya no sale. Las ventas del Simulador con reparación también están en PEDIDOS 2026: cada IMEI cuenta una sola vez.</p>
       </PopoverContent>
