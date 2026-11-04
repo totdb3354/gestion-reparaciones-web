@@ -112,7 +112,9 @@ export function capacidadGb(capacidad: string | null | undefined): number | null
   return Number(r[1].replace(',', '.')) * (r[2].toUpperCase() === 'TB' ? 1024 : 1)
 }
 
-function compararCapacidades(a: string, b: string): number {
+/** Capacidades de menor a mayor como número («256GB» antes que «1TB»); lo que no se entiende, al final. También lo usa «Qué
+ *  revisar» (0.9.25). */
+export function compararCapacidades(a: string, b: string): number {
   const ga = capacidadGb(a)
   const gb = capacidadGb(b)
   if (ga !== gb) return ga === null ? 1 : gb === null ? -1 : ga - gb
@@ -132,6 +134,16 @@ function rango(m: MovilStock): number {
   return m.modeloMaestro ? 1 : 2
 }
 
+/** El orden de los modelos de la columna lateral: los del catálogo del más nuevo al más antiguo (orden de la tienda), después
+ *  los que solo tienen modelo del maestro y al final los sin modelo; 0 si es el mismo modelo. También lo usa «Qué revisar»
+ *  (0.9.25). */
+export function compararModelos(a: MovilStock, b: MovilStock): number {
+  const porRango = rango(a) - rango(b)
+  if (porRango) return porRango
+  if (rango(a) === 0) return MODELOS_ORDENADOS.indexOf(b.modelo ?? '') - MODELOS_ORDENADOS.indexOf(a.modelo ?? '')
+  return modeloDe(b).localeCompare(modeloDe(a), 'es', { numeric: true })
+}
+
 /** La columna lateral: una fila por modelo con algo que enseñar (con el interruptor apagado, con stock), en el orden de la
  *  tienda: catálogo del más nuevo al más antiguo, después los que solo tienen modelo del maestro y al final los sin
  *  modelo. El total y las capacidades cuentan solo el stock, también con el interruptor encendido. */
@@ -144,17 +156,9 @@ export function modelosLista(moviles: Movil[], verNoCuenta: boolean): ModeloList
     if (lista) lista.push(m)
     else mapa.set(clave, [m])
   }
-  const indice = (m: MovilStock) => MODELOS_ORDENADOS.indexOf(m.modelo ?? '')
   return [...mapa.entries()]
     .map(([clave, lista]) => ({ clave, total: lista.filter(cuentaComoStock).length, capacidades: capacidades(lista), reparto: reparto(lista), moviles: lista }))
-    .sort((a, b) => {
-      const ma = a.moviles[0]
-      const mb = b.moviles[0]
-      const porRango = rango(ma) - rango(mb)
-      if (porRango) return porRango
-      if (rango(ma) === 0) return indice(mb) - indice(ma)
-      return b.clave.localeCompare(a.clave, 'es', { numeric: true })
-    })
+    .sort((a, b) => compararModelos(a.moviles[0], b.moviles[0]))
 }
 
 /** Las pestañas de la cabecera del modelo: «Todas» y una por capacidad que el espejo tiene del modelo, con su número de
