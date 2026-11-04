@@ -32,6 +32,13 @@ export function CeldaImeiPendiente({ rep, asignados }: Props) {
       {/* La sub-etiqueta del JavaFX: 10 px, cursiva, #9AA0AA, y en blanco sobre la fila seleccionada (aplicarEstilos).
           Mismo look que el "Reutilizado" del historial, que es su referencia visual en la spec. */}
       {varios && <span className={cn('text-[10px] italic text-texto-fecha-inicio', CREMA_EN_FILA_SELECCIONADA)}>{n} asignados</span>}
+      {/* 0.9.26 (spec pieza 2 §9.3): el pedido abierto del IMEI y el SKU en el que tiene que acabar. */}
+      {rep.pedidoNumero && (
+        <span className={cn('text-[10px] text-texto-sub', CREMA_EN_FILA_SELECCIONADA)}>
+          Pedido {rep.pedidoNumero}{rep.pedidoSku ? ` · acabar en ${rep.pedidoSku}` : ''}
+        </span>
+      )}
+      {rep.pedidoRepetido && <span className="text-[10px] font-semibold text-rojo-accion">IMEI en dos pedidos</span>}
     </div>
   )
 }
