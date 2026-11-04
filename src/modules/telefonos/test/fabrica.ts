@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  Atributos, EstadoNsys, FuentePedidosVista, MovilUnidad, PedidoVista, UnidadVista, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -129,4 +129,43 @@ export function filaSinGrado(p: Partial<FilaSinGradoNsys> = {}): FilaSinGradoNsy
 /** Las cuatro tarjetas, vacías salvo lo que se pase. */
 export function tarjetas(p: Partial<TarjetasPorPasar> = {}): TarjetasPorPasar {
   return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ...p }
+}
+
+/** Datos inventados de «Pedidos» (repos públicos). */
+export function atributos(p: Partial<Atributos> = {}): Atributos {
+  return { modelo: '13', capacidad: '128GB', color: 'Azul', grado: 'A', esEsim: false, ...p }
+}
+
+export function movilUnidad(p: Partial<MovilUnidad> = {}): MovilUnidad {
+  return {
+    enNsys: true, modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul', grado: 'A', bateriaNueva: false,
+    esEsim: false, sku: 'i13128AzulA', ubicacion: 'Listos', estadoNsys: 'STOCK', trabajos: [], ...p,
+  }
+}
+
+/** Lo que manda el servidor sin IMEI o sin el móvil en NSYS (MovilUnidad.NINGUNO). */
+export const SIN_MOVIL: MovilUnidad = {
+  enNsys: false, modelo: null, modeloMaestro: null, capacidad: null, color: null, grado: null, bateriaNueva: false, esEsim: false,
+  sku: null, ubicacion: null, estadoNsys: null, trabajos: [],
+}
+
+export function unidad(p: Partial<UnidadVista> = {}): UnidadVista {
+  return {
+    idUnidad: 1, posicion: 1, sku: 'i13128AzulA', pide: atributos(), imei: null, imeiFuente: null, imeiTecleadoEn: null,
+    sinPedidoConcreto: false, otroOrderId: null, repetido: false, estado: 'SIN_MOVIL', motivo: null, movil: SIN_MOVIL, ...p,
+  }
+}
+
+export function pedido(p: Partial<PedidoVista> = {}): PedidoVista {
+  return {
+    idPedido: 1, canal: 'AMAZON', numero: '402-0000000-0000001', cliente: 'Cliente A', pais: 'DE', fecha: '2026-10-30T10:00:00',
+    fuente: 'SHIPPYPRO', viejo: false, unidades: [unidad()], ...p,
+  }
+}
+
+export function fuentePedidos(p: Partial<FuentePedidosVista> = {}): FuentePedidosVista {
+  return {
+    fuente: 'SHIPPYPRO', ultimaBuena: '2026-11-04T09:42:00', ultimaLectura: '2026-11-04T09:42:00', resultado: 'OK', filas: 12,
+    skuDesconocidos: null, motivo: null, nivel: 'OK', ...p,
+  }
 }

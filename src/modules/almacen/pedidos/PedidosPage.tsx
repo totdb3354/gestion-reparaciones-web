@@ -332,7 +332,7 @@ export function PedidosPage() {
   return (
     <div className="p-5">
       <div className="mb-3 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-azul-medio">Pedidos</h1>
+        <h1 className="text-2xl font-bold text-azul-medio">Compras</h1>
       </div>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {/* Calco del MenuButton "Estado" con CustomMenuItem (no cierra al marcar) y del MultiSelectComboBox de proveedores

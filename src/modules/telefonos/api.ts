@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
-  type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionHecho, type TarjetasPorPasar,
+  api, type FuentePedidosVista, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  type PedidoVista, type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionHecho, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
@@ -144,5 +144,30 @@ export function useDescargarPlantilla() {
       const guardado = data ? await guardarEn(destino, { blob: data, nombre }) : nombre
       return { nombre: guardado, filas: Number(response.headers.get('X-Filas') ?? '0') }
     },
+  })
+}
+
+export const CLAVE_PEDIDOS = ['telefonos', 'pedidos'] as const
+export const CLAVE_FUENTES_PEDIDOS = ['telefonos', 'pedidos', 'fuentes'] as const
+
+/** GET /api/pedidos (spec pieza 2 §8): los pedidos abiertos con el estado de cada unidad. Sondea como las demás vistas.
+ *  `viejos`: también los del Simulador fuera de la ventana. */
+export function usePedidos(viejos: boolean): UseQueryResult<PedidoVista[]> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: [...CLAVE_PEDIDOS, { viejos }],
+    queryFn: async () => (await api.GET('/api/pedidos', { params: { query: { viejos } } })).data ?? [],
+    refetchInterval: intervalo,
+  })
+}
+
+/** GET /api/pedidos/fuentes: las tres fuentes para la píldora. */
+export function useFuentesPedidos(): UseQueryResult<FuentePedidosVista[]> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: CLAVE_FUENTES_PEDIDOS,
+    queryFn: async () => (await api.GET('/api/pedidos/fuentes')).data ?? [],
+    refetchInterval: intervalo,
+    meta: { sinCapa: true },
   })
 }

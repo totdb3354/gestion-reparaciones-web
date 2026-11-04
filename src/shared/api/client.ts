@@ -18,6 +18,13 @@ export type TrabajoCerrado = components['schemas']['TrabajoCerrado']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
+/** Pedidos de clientes (0.9.26, spec pieza 2 §8): cada pedido con sus unidades y el estado de cada una. */
+export type PedidoVista = components['schemas']['PedidoVista']
+export type UnidadVista = components['schemas']['UnidadVista']
+export type MovilUnidad = components['schemas']['MovilUnidad']
+export type Atributos = components['schemas']['Atributos']
+export type FuentePedidosVista = components['schemas']['FuentePedidosVista']
+
 /** Almacén (sub-proyecto 4a): proveedores de componentes (`tipo` COMPONENTES/TELEFONOS viene del servidor de main). */
 export type Proveedor = components['schemas']['Proveedor']
 export type TipoPiezasProveedor = components['schemas']['ProveedorPiezasTipo']

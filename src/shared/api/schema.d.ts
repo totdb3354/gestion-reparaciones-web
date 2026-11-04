@@ -2196,6 +2196,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pedidos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/fuentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fuentes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes": {
         parameters: {
             query?: never;
@@ -3693,6 +3725,10 @@ export interface components {
             capacidad: string | null;
             color: string | null;
             esEsim: boolean;
+            pedidoNumero: string | null;
+            pedidoCanal: string | null;
+            pedidoSku: string | null;
+            pedidoRepetido: boolean;
         };
         PuntoEstadisticaPuntos: {
             nombreTecnico: string;
@@ -3762,6 +3798,71 @@ export interface components {
             vende: boolean;
             modelos: string[];
             excluidos: string[];
+        };
+        Atributos: {
+            modelo: string | null;
+            capacidad: string | null;
+            color: string | null;
+            grado: string | null;
+            esEsim: boolean;
+        };
+        MovilUnidad: {
+            enNsys: boolean;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            color: string | null;
+            grado: string | null;
+            bateriaNueva: boolean;
+            esEsim: boolean;
+            sku: string | null;
+            ubicacion: string | null;
+            estadoNsys: string | null;
+            trabajos: components["schemas"]["TrabajoAbierto"][];
+        };
+        PedidoVista: {
+            /** Format: int32 */
+            idPedido: number;
+            canal: string;
+            numero: string;
+            cliente: string | null;
+            pais: string | null;
+            /** Format: date-time */
+            fecha: string;
+            fuente: string;
+            viejo: boolean;
+            unidades: components["schemas"]["UnidadVista"][];
+        };
+        UnidadVista: {
+            /** Format: int32 */
+            idUnidad: number;
+            /** Format: int32 */
+            posicion: number;
+            sku: string;
+            pide: components["schemas"]["Atributos"];
+            imei: string | null;
+            imeiFuente: string | null;
+            /** Format: date-time */
+            imeiTecleadoEn: string | null;
+            sinPedidoConcreto: boolean;
+            otroOrderId: string | null;
+            repetido: boolean;
+            estado: string;
+            motivo: string | null;
+            movil: components["schemas"]["MovilUnidad"];
+        };
+        FuentePedidosVista: {
+            fuente: string;
+            /** Format: date-time */
+            ultimaBuena: string | null;
+            /** Format: date-time */
+            ultimaLectura: string | null;
+            resultado: string | null;
+            /** Format: int32 */
+            filas: number;
+            skuDesconocidos: string | null;
+            motivo: string | null;
+            nivel: string;
         };
         Lote: {
             /** Format: int32 */
@@ -7778,6 +7879,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Proveedor"][];
+                };
+            };
+        };
+    };
+    pedidos: {
+        parameters: {
+            query?: {
+                viejos?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PedidoVista"][];
+                };
+            };
+        };
+    };
+    fuentes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FuentePedidosVista"][];
                 };
             };
         };

@@ -4549,6 +4549,57 @@
         }
       }
     },
+    "/api/pedidos" : {
+      "get" : {
+        "tags" : [ "pedidos-controller" ],
+        "operationId" : "pedidos",
+        "parameters" : [ {
+          "name" : "viejos",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PedidoVista"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pedidos/fuentes" : {
+      "get" : {
+        "tags" : [ "pedidos-controller" ],
+        "operationId" : "fuentes",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FuentePedidosVista"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lotes" : {
       "get" : {
         "tags" : [ "lote-controller" ],
@@ -8411,7 +8462,7 @@
         }
       },
       "ReparacionResumen" : {
-        "required" : [ "capacidad", "cliente", "clienteTelefono", "color", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esEsim", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
+        "required" : [ "capacidad", "cliente", "clienteTelefono", "color", "comentarioAsignacion", "descripcionSolicitud", "enCamino", "entregadoAt", "entregadoPor", "entregadoPorNombre", "esChasis", "esEsim", "esIncidencia", "esResuelto", "esReutilizado", "esSolicitud", "estadoSolicitud", "fechaAsig", "fechaFin", "glassAbierta", "glassEntregadoAt", "glassEntregadoPor", "glassEntregadoPorNombre", "glassTecnicoNombre", "idRep", "idRepAnterior", "idTec", "imei", "incidencia", "modelo", "nombreTecnico", "nombreTecnicoAsigna", "normalAbierta", "normalTecnicoNombre", "observacionTelefono", "observaciones", "pedidoCanal", "pedidoNumero", "pedidoRepetido", "pedidoSku", "porCerrar", "stockSolicitud", "telefonoUpdatedAt", "tieneAsignaciones", "tipoComponente", "tipoSolicitud", "tiposSolicitud", "updatedAt", "urgente" ],
         "type" : "object",
         "properties" : {
           "idRep" : {
@@ -8585,6 +8636,21 @@
             "nullable" : true
           },
           "esEsim" : {
+            "type" : "boolean"
+          },
+          "pedidoNumero" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pedidoCanal" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pedidoSku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pedidoRepetido" : {
             "type" : "boolean"
           }
         }
@@ -8765,6 +8831,215 @@
             "items" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "Atributos" : {
+        "required" : [ "capacidad", "color", "esEsim", "grado", "modelo" ],
+        "type" : "object",
+        "properties" : {
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MovilUnidad" : {
+        "required" : [ "bateriaNueva", "capacidad", "color", "enNsys", "esEsim", "estadoNsys", "grado", "modelo", "modeloMaestro", "sku", "trabajos", "ubicacion" ],
+        "type" : "object",
+        "properties" : {
+          "enNsys" : {
+            "type" : "boolean"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "bateriaNueva" : {
+            "type" : "boolean"
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ubicacion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "estadoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "trabajos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrabajoAbierto"
+            }
+          }
+        }
+      },
+      "PedidoVista" : {
+        "required" : [ "canal", "cliente", "fecha", "fuente", "idPedido", "numero", "pais", "unidades", "viejo" ],
+        "type" : "object",
+        "properties" : {
+          "idPedido" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "canal" : {
+            "type" : "string"
+          },
+          "numero" : {
+            "type" : "string"
+          },
+          "cliente" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pais" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuente" : {
+            "type" : "string"
+          },
+          "viejo" : {
+            "type" : "boolean"
+          },
+          "unidades" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UnidadVista"
+            }
+          }
+        }
+      },
+      "UnidadVista" : {
+        "required" : [ "estado", "idUnidad", "imei", "imeiFuente", "imeiTecleadoEn", "motivo", "movil", "otroOrderId", "pide", "posicion", "repetido", "sinPedidoConcreto", "sku" ],
+        "type" : "object",
+        "properties" : {
+          "idUnidad" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "posicion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sku" : {
+            "type" : "string"
+          },
+          "pide" : {
+            "$ref" : "#/components/schemas/Atributos"
+          },
+          "imei" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "imeiFuente" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "imeiTecleadoEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "sinPedidoConcreto" : {
+            "type" : "boolean"
+          },
+          "otroOrderId" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "repetido" : {
+            "type" : "boolean"
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "movil" : {
+            "$ref" : "#/components/schemas/MovilUnidad"
+          }
+        }
+      },
+      "FuentePedidosVista" : {
+        "required" : [ "filas", "fuente", "motivo", "nivel", "resultado", "skuDesconocidos", "ultimaBuena", "ultimaLectura" ],
+        "type" : "object",
+        "properties" : {
+          "fuente" : {
+            "type" : "string"
+          },
+          "ultimaBuena" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "ultimaLectura" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "resultado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "filas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skuDesconocidos" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "nivel" : {
+            "type" : "string"
           }
         }
       },
