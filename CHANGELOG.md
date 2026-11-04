@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.26] - (pendiente) — «Pedidos»: qué móvil tiene cada pedido de cliente y si cuadra
+
+- **«Pedidos»** (Teléfonos; supertécnicos y administrador): los pedidos pendientes de Amazon, Amazon Stockroom, las webs (Distribuidores, Particulares, BackiPhone) y del Simulador, de más antiguo a más nuevo, con una fila por unidad. De cada una: si ya tiene móvil (IMEI) y si ese móvil cuadra con lo que pide el pedido. Estados: **Sin móvil**, **No cuadra** (con la tabla de diferencias: modelo, capacidad, eSIM, color y grado; no está en NSYS; grado que no se vende; o necesita taller), **Con aviso** (Ms o «B por A»), **En el taller** (con quién lo tiene y en qué tiene que acabar) y **Cuadra**. Filtros por canal y estado, buscador (pedido, cliente, SKU, IMEI) y «Ver rastro» del móvil. La píldora de fuentes (ShippyPro, PEDIDOS 2026, Simulador y NSYS) dice cuándo se leyó cada una y si falló. Solo lee: los IMEI se siguen tecleando en PEDIDOS 2026 o en el Simulador, como hoy.
+- **Amazon:** en PEDIDOS 2026, «AMZ» es Amazon y «FNSK»/«FSNK» es Amazon Stockroom; cada cuenta solo se empareja con sus filas. Una fila con el número de «Pedido Amazon» (se rellena al enviar) es de ese pedido si sigue pendiente y, si no, de ninguno. Las filas sin número se reparten por SKU («sin pedido concreto»): el móvil más avanzado va al pedido más antiguo.
+- **Asignaciones y Pendientes** dicen bajo el IMEI «Pedido 402-0000000-0000001 · acabar en SKU» (y «IMEI en dos pedidos» si se repite), solo en los trabajos abiertos.
+- **«Pedidos» de Stock pasa a llamarse «Compras»** (menú y título); la dirección no cambia. Las E2E de Stock usan el nombre nuevo.
+- Requiere el servidor de la 0.9.26 y su migración aditiva `migracion-pedidos.sql` (tres tablas y tres columnas); con un servidor anterior, «Pedidos» da 404 y Asignaciones no pinta la línea. Servidor y web. Sin la sugerencia de móvil (0.9.27).
+
 ## [0.9.24] - 2026-11-03 — La descripción del móvil dice si es eSIM
 
 - **«iPhone 14 eSIM 256GB Azul»**: si NSYS dice que el móvil es eSIM (lo escribe en el producto), la descripción lleva «eSIM» detrás del modelo. En las listas del taller (Asignaciones, Pendientes, Pulidos pendientes con su confirmación, el Historial de trabajos y de pulidos, IMEIs, la barra del detalle del IMEI y el aviso de los móviles sin trabajos) y en las de NSYS (la ficha del IMEI, el buscador de IMEI, las tarjetas de «Por pasar a NSYS» y «Pegar varios IMEIs» con su copia para Excel), también al copiar la celda. Un móvil con SIM física, o que no está en NSYS, sigue como antes. La tabla del stock ya tenía su marca «eSIM» y no cambia.
