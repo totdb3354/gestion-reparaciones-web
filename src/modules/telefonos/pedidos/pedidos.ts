@@ -129,13 +129,17 @@ export function hace(fecha: string, hoy: string): string {
   return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : `hace ${n} días`
 }
 
-/** Por qué una unidad de Amazon lleva «sin pedido concreto» (decisión del 04/11). */
-export function textoSinPedidoConcreto(u: UnidadVista, pedidos: PedidoVista[]): string {
-  const delSku = pedidos.filter((p) => p.canal === 'AMAZON' || p.canal === 'AMAZON_STOCKROOM')
+/** Las filas de PEDIDOS 2026 de cada Amazon (spec pieza 2, ajuste 19): cada canal se reparte solo con las suyas. */
+const FILAS_AMAZON: Record<string, string> = { AMAZON: '«AMZ»', AMAZON_STOCKROOM: '«FNSK» o «FSNK»' }
+
+/** Por qué una unidad de Amazon lleva «sin pedido concreto» (decisión del 04/11). Cuenta solo las unidades de su canal
+ *  (`canal`, el del pedido de la unidad), porque Amazon y Stockroom se reparten cada uno con sus filas (ajuste 19). */
+export function textoSinPedidoConcreto(u: UnidadVista, canal: string, pedidos: PedidoVista[]): string {
+  const delSku = pedidos.filter((p) => p.canal === canal)
     .flatMap((p) => p.unidades).filter((x) => x.sku.toLowerCase() === u.sku.toLowerCase())
   const n = delSku.filter((x) => x.sinPedidoConcreto && x.imei).length
-  return `En PEDIDOS 2026 hay ${n} IMEI${n === 1 ? '' : 's'} tecleado${n === 1 ? '' : 's'} para ${u.sku} en filas «Amazon», `
-    + `sin número de pedido. El ERP se ${n === 1 ? 'lo da al pedido más antiguo' : `los da a los ${n} pedidos más antiguos`} `
+  return `En PEDIDOS 2026 hay ${n} IMEI${n === 1 ? '' : 's'} tecleado${n === 1 ? '' : 's'} para ${u.sku} en filas `
+    + `${FILAS_AMAZON[canal] ?? '«AMZ»'} sin «Pedido Amazon». El ERP se ${n === 1 ? 'lo da al pedido más antiguo' : `los da a los ${n} pedidos más antiguos`} `
     + `de ese SKU (hay ${delSku.length} pendiente${delSku.length === 1 ? '' : 's'}): el móvil más avanzado va al pedido más `
     + 'antiguo, como hoy al preparar el envío.'
 }

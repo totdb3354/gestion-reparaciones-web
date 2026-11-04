@@ -71,8 +71,18 @@ describe('reglas de «Pedidos» (spec pieza 2 §9.2)', () => {
       pedido({ idPedido: 2, numero: '402-0000000-0000002', unidades: [unidad({ idUnidad: 2, imei: '350000000000002', sinPedidoConcreto: true })] }),
       pedido({ idPedido: 3, numero: '402-0000000-0000003', unidades: [unidad({ idUnidad: 3 })] }),
     ]
-    expect(textoSinPedidoConcreto(amazon[0].unidades[0], amazon)).toBe(
-      'En PEDIDOS 2026 hay 2 IMEIs tecleados para i13128AzulA en filas «Amazon», sin número de pedido. El ERP se los da a los 2 '
+    expect(textoSinPedidoConcreto(amazon[0].unidades[0], 'AMAZON', amazon)).toBe(
+      'En PEDIDOS 2026 hay 2 IMEIs tecleados para i13128AzulA en filas «AMZ» sin «Pedido Amazon». El ERP se los da a los 2 '
       + 'pedidos más antiguos de ese SKU (hay 3 pendientes): el móvil más avanzado va al pedido más antiguo, como hoy al preparar el envío.')
+  })
+
+  it('«sin pedido concreto» en Stockroom: solo cuenta los de su canal y nombra sus filas (spec pieza 2, ajuste 19)', () => {
+    const pedidos = [
+      pedido({ idPedido: 1, canal: 'AMAZON_STOCKROOM', unidades: [unidad({ idUnidad: 1, imei: '350000000000001', sinPedidoConcreto: true })] }),
+      pedido({ idPedido: 2, numero: '402-0000000-0000002', unidades: [unidad({ idUnidad: 2, imei: '350000000000002', sinPedidoConcreto: true })] }),
+    ]
+    expect(textoSinPedidoConcreto(pedidos[0].unidades[0], 'AMAZON_STOCKROOM', pedidos)).toBe(
+      'En PEDIDOS 2026 hay 1 IMEI tecleado para i13128AzulA en filas «FNSK» o «FSNK» sin «Pedido Amazon». El ERP se lo da al '
+      + 'pedido más antiguo de ese SKU (hay 1 pendiente): el móvil más avanzado va al pedido más antiguo, como hoy al preparar el envío.')
   })
 })

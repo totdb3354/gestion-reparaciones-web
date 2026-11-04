@@ -65,7 +65,7 @@ export function DetalleUnidad({ pedido, unidad, todos, hoy, onRastro }: Props) {
           {unidad.sinPedidoConcreto && (
             <div className="mt-2 rounded-[10px] border border-fila-sep p-3">
               <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-texto-sub">Por qué «sin pedido concreto»</h3>
-              <p>{textoSinPedidoConcreto(unidad, todos)}</p>
+              <p>{textoSinPedidoConcreto(unidad, pedido.canal, todos)}</p>
             </div>
           )}
           {!unidad.imei && <p className="mt-2 text-[11.5px] text-texto-sub">La sugerencia de un móvil llega en la 0.9.27. Hasta entonces, búscalo como hoy y tecléalo en {dondeTeclear(pedido.canal)}.</p>}

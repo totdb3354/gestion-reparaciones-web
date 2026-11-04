@@ -36,7 +36,7 @@ export function PedidosPage() {
   })
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div className="flex h-[calc(100vh-var(--spacing-navbar))] flex-col gap-2 p-10 max-[1500px]:p-5">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold text-azul-medio">Pedidos</h1>
         <span className="rounded-full bg-fila-sep px-2.5 py-0.5 text-[12px] font-semibold">
