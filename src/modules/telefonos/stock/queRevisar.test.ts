@@ -187,6 +187,28 @@ describe('«Qué revisar»: buscar por palabras clave (spec 0.9.25 §3.6)', () =
     expect(coincide(a13, ['2345'])).toBe(false)
   })
 
+  it('un número es una pieza entera: «12» no encuentra «128 GB», «512 GB» ni el SKU de otro modelo', () => {
+    const lista = listaRevisar([
+      m({ ...B12, grado: 'n/a', sku: null }), m({ ...A13, grado: 'n/a', sku: 'i13128AzulA' }),
+      m({ ...E14, capacidad: '512GB', grado: 'n/a', sku: 'i14esim512MedianocheA' }),
+    ])
+    const busca = (texto: string) => filtrar(lista, palabrasClave(texto)).map(descripcion)
+    expect(busca('iphone 12')).toEqual(['iPhone 12 64 GB Blanco'])
+    expect(busca('12')).toEqual(['iPhone 12 64 GB Blanco'])
+    expect(busca('iphone12')).toEqual(['iPhone 12 64 GB Blanco'])
+    expect(busca('512')).toEqual(['iPhone 14 eSIM 512 GB Medianoche'])
+  })
+
+  it('una palabra con letras busca por el principio de cada pieza, y el SKU por su principio', () => {
+    const lista = listaRevisar([m({ ...P15, grado: 'n/a', sku: null }), m({ ...A13, grado: 'n/a', sku: 'i13128AzulA' })])
+    const busca = (texto: string) => filtrar(lista, palabrasClave(texto)).map(descripcion)
+    expect(busca('tit')).toEqual(['iPhone 15 Pro 256 GB Titanio natural'])
+    expect(busca('tanio')).toEqual([])
+    expect(busca('titanionat')).toEqual(['iPhone 15 Pro 256 GB Titanio natural'])
+    expect(busca('i13128')).toEqual(['iPhone 13 128 GB Azul'])
+    expect(busca('128azul')).toEqual([])
+  })
+
   it('el texto sin coincidencias', () => {
     expect(sinCoincidencias('  13 negro ')).toBe('Ningún modelo-color con «13 negro».')
   })

@@ -188,12 +188,23 @@ const enImei = (palabra: string, imeiSn: string): boolean => palabra.length >= M
 /** ¿Busca alguna palabra este móvil por su IMEI? Su modelo-color se abre solo y la fila sale resaltada. */
 export const imeiBuscado = (m: Movil, palabras: readonly string[]): boolean => palabras.some((p) => enImei(p, m.imeiSn))
 
-/** ¿Coincide el modelo-color? Cada palabra tiene que estar en su descripción, en el SKU de alguno de sus móviles o (con
- *  {@link MIN_IMEI} caracteres o más) en el IMEI de uno de los móviles de la lista. */
+/** Las piezas de la descripción con las que se busca: cada palabra del modelo, la capacidad y el color, y cada uno de los tres
+ *  entero y sin espacios («iphone12pro», «128gb», «titanionegro»). */
+function piezas(g: GrupoBase): string[] {
+  const partes = [g.modelo, g.capacidad === SIN_DATO ? '' : textoCapacidad(g.capacidad), g.color === SIN_DATO ? '' : g.color]
+  return partes.flatMap((p) => [...p.split(/\s+/).map(plano), plano(p)]).filter(Boolean)
+}
+
+/** Una palabra encaja con una pieza: si es un número, la pieza tiene que ser ese número («12» no encuentra «128» ni «512»); si
+ *  no, la pieza tiene que empezar por ella («tit» encuentra «titanio»). */
+const encaja = (palabra: string, pieza: string): boolean => (/^\d+$/.test(palabra) ? pieza === palabra : pieza.startsWith(palabra))
+
+/** ¿Coincide el modelo-color? Cada palabra tiene que encajar con una pieza de su descripción, ser el principio del SKU de alguno
+ *  de sus móviles o (con {@link MIN_IMEI} caracteres o más) estar en el IMEI de uno de los móviles de la lista. */
 export function coincide(g: GrupoBase, palabras: readonly string[]): boolean {
-  const desc = plano(descripcion(g))
+  const ps = piezas(g)
   const skus = g.skus.map(plano)
-  return palabras.every((p) => desc.includes(p) || skus.some((s) => s.includes(p)) || g.moviles.some((m) => enImei(p, m.imeiSn)))
+  return palabras.every((p) => ps.some((x) => encaja(p, x)) || skus.some((s) => s.startsWith(p)) || g.moviles.some((m) => enImei(p, m.imeiSn)))
 }
 
 /** Los modelos-color que coinciden, en el mismo orden; sin palabras, todos. */
