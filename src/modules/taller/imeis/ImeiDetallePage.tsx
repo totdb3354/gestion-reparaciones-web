@@ -25,14 +25,19 @@ import { FichaMovil } from './FichaMovil'
 import { PanelRastro } from './PanelRastro'
 import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 
+/** Pantallas de teléfonos desde las que se llega con «Ver rastro» y a las que «← Volver» devuelve. */
+const ORIGENES_VUELTA = ['/telefonos/stock', '/telefonos/pedidos']
+
 /** Detalle de un IMEI: calco de AgrupadoController en modo DETALLE (título "Agrupado por IMEI" sin contador, filtros, barra
  *  "← Volver · IMEI · modelo · N trabajos" justo encima de la tabla y tabla de trabajos con Tipo). */
 export function ImeiDetallePage() {
   const { imei = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  // Desde el stock de teléfonos se vuelve a él (con su modelo y filtros); desde cualquier otro sitio, a la lista de IMEIs.
-  const volverA = (location.state as { desde?: string } | null)?.desde === '/telefonos/stock' ? '/telefonos/stock' : '/reparaciones/imeis'
+  // Desde el stock de teléfonos o desde Pedidos se vuelve a ellos (con su modelo, filtros y selección); desde cualquier otro
+  // sitio, a la lista de IMEIs.
+  const desde = (location.state as { desde?: string } | null)?.desde
+  const volverA = desde && ORIGENES_VUELTA.includes(desde) ? desde : '/reparaciones/imeis'
   const { sesion } = useSession()
   const puedeEditar = esSuperTecnico(sesion)
   const trabajos = useTrabajos()

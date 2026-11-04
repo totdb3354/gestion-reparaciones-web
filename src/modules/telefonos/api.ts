@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   api, type FuentePedidosVista, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PedidoVista, type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionHecho, type TarjetasPorPasar,
@@ -158,6 +158,8 @@ export function usePedidos(viejos: boolean): UseQueryResult<PedidoVista[]> {
     queryKey: [...CLAVE_PEDIDOS, { viejos }],
     queryFn: async () => (await api.GET('/api/pedidos', { params: { query: { viejos } } })).data ?? [],
     refetchInterval: intervalo,
+    // El interruptor «viejos» cambia la clave: sin esto la lista se queda en blanco hasta que llega la nueva.
+    placeholderData: keepPreviousData,
   })
 }
 

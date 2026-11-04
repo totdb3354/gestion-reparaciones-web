@@ -285,6 +285,16 @@ describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
     expect(await screen.findByRole('region', { name: 'Ficha de NSYS' })).toHaveTextContent(/Grado\s*—/)
   })
 
+  it('«← Volver» va a Pedidos si se llegó desde «Ver rastro» de Pedidos', async () => {
+    const user = userEvent.setup()
+    renderConProviders(<ImeiDetallePage />, {
+      sesion: SESION_SUPER, ruta: `/reparaciones/imeis/${A}`, patron: '/reparaciones/imeis/:imei', estado: { desde: '/telefonos/pedidos' },
+      rutas: <><Route path="/telefonos/pedidos" element={<p>Pantalla de pedidos</p>} /><Route path="/reparaciones/imeis" element={<p>Lista de IMEIs</p>} /></>,
+    })
+    await user.click(await screen.findByRole('button', { name: '← Volver' }))
+    expect(await screen.findByText('Pantalla de pedidos')).toBeInTheDocument()
+  })
+
   it('«← Volver» va al stock de teléfonos si se llegó desde él, y a la lista de IMEIs si no', async () => {
     const user = userEvent.setup()
     const { unmount } = renderConProviders(<ImeiDetallePage />, {
