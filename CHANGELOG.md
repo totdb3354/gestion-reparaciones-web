@@ -4,6 +4,15 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.25] - (pendiente) — «Qué revisar» en Stock de teléfonos
+
+- **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el stock de NSYS al momento y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):
+  - **Revisar sin grado**: los modelos-color con móviles sin grado (`n/a`) y como mucho un A en stock. Primero los que no tienen nada con grado, después los que no tienen ningún A y al final los que solo tienen uno; dentro, del modelo más nuevo al más antiguo y la capacidad de menor a mayor.
+  - **Subir B a A**: los modelos-color con B y como mucho un A: candidatos a chasis (B → A; con batería nueva, B100 → A100).
+- Cada fila se despliega con sus IMEI, la ubicación, los días en stock y quién lo tiene. Un móvil con un trabajo abierto sale en gris y no cuenta. **«Copiar lista»** copia lo pendiente con el texto de la hoja MENSAJES, para pegarlo en WhatsApp.
+- «A» es A+, A o A-. Un móvil sale de la lista cuando NSYS o el taller le ponen grado.
+- Solo web: el servidor sigue en la 0.9.24. Sin migración.
+
 ## [0.9.24] - 2026-11-03 — La descripción del móvil dice si es eSIM
 
 - **«iPhone 14 eSIM 256GB Azul»**: si NSYS dice que el móvil es eSIM (lo escribe en el producto), la descripción lleva «eSIM» detrás del modelo. En las listas del taller (Asignaciones, Pendientes, Pulidos pendientes con su confirmación, el Historial de trabajos y de pulidos, IMEIs, la barra del detalle del IMEI y el aviso de los móviles sin trabajos) y en las de NSYS (la ficha del IMEI, el buscador de IMEI, las tarjetas de «Por pasar a NSYS» y «Pegar varios IMEIs» con su copia para Excel), también al copiar la celda. Un móvil con SIM física, o que no está en NSYS, sigue como antes. La tabla del stock ya tenía su marca «eSIM» y no cambia.
