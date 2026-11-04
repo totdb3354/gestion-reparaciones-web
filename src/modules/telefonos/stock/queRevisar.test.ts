@@ -119,6 +119,15 @@ describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §10.1, §2.6 y §2.7
       .toEqual(['iPhone 13 128 GB Azul', 'iPhone 15 Pro 256 GB Titanio natural', 'iPhone 13 Pro 256 GB Grafito'])
     expect(soloTres(lista, false)).toEqual(lista)
   })
+
+  it('«Solo con 3 o más»: los del técnico no cuentan (2 pendientes y 1 con técnico, fuera; con 3 pendientes, dentro)', () => {
+    const conTec = () => m({ ...A13, grado: 'n/a', ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] })
+    const dos = listaRevisar([m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), conTec()])
+    expect(dos[0].pendientes).toBe(2)
+    expect(soloTres(dos, true)).toEqual([])
+    const tres = listaRevisar([m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), conTec()])
+    expect(soloTres(tres, true).map((g) => g.pendientes)).toEqual([3])
+  })
 })
 
 describe('«Qué revisar»: «Pedidos 15 d» (spec 0.9.25 §10.2)', () => {
@@ -143,6 +152,20 @@ describe('«Qué revisar»: «Pedidos 15 d» (spec 0.9.25 §10.2)', () => {
     ])
     expect(tituloPedidos(lista[0], false)).toBe('3 vendidos + 0 de pedido')
     expect(tituloPedidos(lista[1], false)).toBe('1 vendido + 1 de pedido')
+  })
+
+  it('un IMEI vendido y uno de pedido se comparan sin mayúsculas ni espacios, como en el servidor: cuenta una vez, como de pedido', () => {
+    const lista = listaRevisar(
+      [m({ ...B12, grado: 'n/a' }), m({ ...B12, grado: 'A', estado: 'DE_PEDIDO', imeiSn: ' ABC123' })],
+      [movilVendido({ ...B12, imeiSn: 'abc123' })],
+    )
+    expect([lista[0].vendidos, lista[0].dePedido, lista[0].pedidos]).toEqual([0, 1, 1])
+  })
+
+  it('un vendido que hoy está en stock sigue contando como vendido (fue una venta)', () => {
+    const enStock = m({ ...B12, grado: 'n/a', estado: 'STOCK', imeiSn: '350000000099777' })
+    const lista = listaRevisar([enStock], [movilVendido({ ...B12, imeiSn: '350000000099777' })])
+    expect([lista[0].vendidos, lista[0].dePedido, lista[0].pedidos]).toEqual([1, 0, 1])
   })
 
   it('sin las ventas cuentan solo los de pedido, y la cabecera y el título lo dicen', () => {
@@ -278,6 +301,17 @@ describe('«Qué revisar»: buscar por palabras clave (spec 0.9.25 §3.6)', () =
     expect(busca('titanionat')).toEqual(['iPhone 15 Pro 256 GB Titanio natural'])
     expect(busca('i13128')).toEqual(['iPhone 13 128 GB Azul'])
     expect(busca('128azul')).toEqual([])
+  })
+
+  it('por el código del modelo pegado («15pro», «12mini»), sin que «12» encuentre «128»', () => {
+    const lista = listaRevisar([
+      m({ ...P15, grado: 'n/a', sku: null }), m({ ...A13, grado: 'n/a', sku: null }),
+      m({ modelo: '12mini', modeloMaestro: '12 MINI', capacidad: '64GB', color: 'Rosa', grado: 'n/a', sku: null }),
+    ])
+    const busca = (texto: string) => filtrar(lista, palabrasClave(texto)).map(descripcion)
+    expect(busca('15pro')).toEqual(['iPhone 15 Pro 256 GB Titanio natural'])
+    expect(busca('12mini')).toEqual(['iPhone 12 Mini 64 GB Rosa'])
+    expect(busca('12')).toEqual(['iPhone 12 Mini 64 GB Rosa'])
   })
 
   it('el texto sin coincidencias', () => {

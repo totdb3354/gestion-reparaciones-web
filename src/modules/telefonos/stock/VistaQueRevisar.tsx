@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type ReactNode, useRef } from 'react'
 import { elegirDestino } from '@/shared/lib/descargas'
 import { useStore } from '@/shared/lib/store'
 import { clasesUbicacion } from '@/shared/lib/telefonoNsys'
@@ -65,12 +65,20 @@ export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, on
   const nExcel = movilesExcel(visibles)
   const descargar = useDescargarExcel()
   // Como las plantillas de NSYS (0.9.22.1): «Guardar como» en el mismo clic y después el Excel del servidor. Cancelar no pide nada.
+  // Mientras «Guardar como» está abierto, otro clic no abre otro (la mutación apaga el botón, pero solo desde que se lanza).
+  const abierto = useRef(false)
   const bajar = async () => {
-    const nombre = nombreExcel(elegida)
-    const destino = await elegirDestino(nombre, TIPO_XLSX)
-    if (destino === 'cancelado') return
-    const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar, sinVentas) : excelSubir(visiblesSubir)
-    descargar.mutate({ hoja, nombre, destino }, { onSuccess: () => avisar({ texto: avisoDescargado(hoja.filas.length), tipo: 'ok' }) })
+    if (abierto.current) return
+    abierto.current = true
+    try {
+      const nombre = nombreExcel(elegida)
+      const destino = await elegirDestino(nombre, TIPO_XLSX)
+      if (destino === 'cancelado') return
+      const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar, sinVentas) : excelSubir(visiblesSubir)
+      descargar.mutate({ hoja, nombre, destino }, { onSuccess: () => avisar({ texto: avisoDescargado(hoja.filas.length), tipo: 'ok' }) })
+    } finally {
+      abierto.current = false
+    }
   }
   return (
     <section aria-label="Qué revisar" className="flex min-h-0 flex-1 flex-col gap-2.5 rounded-md bg-superficie p-3">

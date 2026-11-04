@@ -93,6 +93,9 @@ function comun(g: Grupo, deLaLista: Movil[]): GrupoBase {
   }
 }
 
+/** Un IMEI para cruzar, como `NsysDAO.claveCruce` del servidor: sin espacios de más y en mayúsculas. */
+const claveImei = (imeiSn: string): string => imeiSn.trim().toUpperCase()
+
 const sumar = (mapa: Map<string, number>, clave: string) => mapa.set(clave, (mapa.get(clave) ?? 0) + 1)
 
 /** «Revisar sin grado» (spec §10.1): todos los modelos-color con algún móvil sin grado, lo más pedido primero («Pedidos 15 d»:
@@ -105,10 +108,10 @@ export function listaRevisar(moviles: readonly Movil[], vendidos: readonly Vendi
   for (const m of moviles) {
     if (m.estado !== 'DE_PEDIDO') continue
     sumar(dePedido, claveDe(m))
-    imeisDePedido.add(m.imeiSn)
+    imeisDePedido.add(claveImei(m.imeiSn))
   }
   const vendidosPorClave = new Map<string, number>()
-  for (const v of vendidos) if (!imeisDePedido.has(v.imeiSn)) sumar(vendidosPorClave, claveDe(v))
+  for (const v of vendidos) if (!imeisDePedido.has(claveImei(v.imeiSn))) sumar(vendidosPorClave, claveDe(v))
   return grupos(moviles).flatMap((g): GrupoRevisar[] => {
     const sinGrado = g.todos.filter((m) => !tieneGrado(m.grado))
     if (sinGrado.length === 0) return []
@@ -262,7 +265,8 @@ export const imeiBuscado = (m: Movil, palabras: readonly string[]): boolean => p
  *  entero y sin espacios («iphone12pro», «128gb», «titanionegro»). */
 function piezas(g: GrupoBase): string[] {
   const partes = [g.modelo, g.capacidad === SIN_DATO ? '' : textoCapacidad(g.capacidad), g.color === SIN_DATO ? '' : g.color]
-  return partes.flatMap((p) => [...p.split(/\s+/).map(plano), plano(p)]).filter(Boolean)
+  const codigos = [g.moviles[0]?.modelo ?? '', g.moviles[0]?.modeloMaestro ?? ''].map(plano)
+  return [...partes.flatMap((p) => [...p.split(/\s+/).map(plano), plano(p)]), ...codigos].filter(Boolean)
 }
 
 /** Una palabra encaja con una pieza: si es un número, la pieza tiene que ser ese número («12» no encuentra «128» ni «512»); si

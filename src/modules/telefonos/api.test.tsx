@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { crearQueryClient } from '@/shared/api/queryClient'
 import { SessionProvider } from '@/shared/session/SessionProvider'
 import { guardarSesion } from '@/shared/session/storage'
@@ -24,6 +24,8 @@ function envoltorio() {
 }
 
 describe('api del stock de teléfonos', () => {
+  afterEach(() => { vi.restoreAllMocks() })
+
   it('pide el stock y el estado de NSYS', async () => {
     server.use(
       http.get('*/api/stock-telefonos', () => HttpResponse.json([movil()])),
@@ -186,6 +188,5 @@ describe('api del stock de teléfonos', () => {
     expect(cuerpos).toEqual([hoja])
     expect(crear).toHaveBeenCalledTimes(1)
     expect((clic.mock.instances[0] as HTMLAnchorElement).download).toBe('Que_revisar_sin_grado_2026-11-04.xlsx')
-    vi.restoreAllMocks()
   })
 })

@@ -186,6 +186,24 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(await escrito[0].text()).toBe('PK')
   })
 
+  it('un doble clic en «⬇ Descargar Excel» abre un solo «Guardar como» y manda una sola petición', async () => {
+    const user = userEvent.setup()
+    const ventana = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 50))
+      return { name: 'mio.xlsx', createWritable: async () => ({ write: async () => {}, close: async () => {} }) }
+    })
+    window.showSaveFilePicker = ventana as unknown as typeof window.showSaveFilePicker
+    let peticiones = 0
+    server.use(http.post('*/api/stock-telefonos/que-revisar/excel', () => { peticiones++; return new HttpResponse('PK') }))
+    pintar()
+    const boton = screen.getByRole('button', { name: '⬇ Descargar Excel (2)' })
+    await user.click(boton)
+    await user.click(boton)
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado: 2 móviles')
+    expect(ventana).toHaveBeenCalledTimes(1)
+    expect(peticiones).toBe(1)
+  })
+
   it('«Subir B a A»: su tabla, el paso de cada móvil y su Excel, sin el interruptor', async () => {
     const user = userEvent.setup()
     pintar()
