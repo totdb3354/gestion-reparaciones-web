@@ -6,7 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 ## [0.9.25] - (pendiente) — «Qué revisar» en Stock de teléfonos
 
-- **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el stock de NSYS al momento y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):
+- **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el último Items de NSYS y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):
   - **Revisar sin grado**: los modelos-color con móviles sin grado (`n/a`) y como mucho un A en stock. Primero los que no tienen nada con grado, después los que no tienen ningún A y al final los que solo tienen uno; dentro, del modelo más nuevo al más antiguo y la capacidad de menor a mayor.
   - **Subir B a A**: los modelos-color con B y como mucho un A: candidatos a chasis (B → A; con batería nueva, B100 → A100).
 - Cada fila se despliega con sus IMEI, la ubicación, los días en stock y quién lo tiene. Un móvil con un trabajo abierto sale en gris y no cuenta. **«Copiar lista»** copia lo pendiente con el texto de la hoja MENSAJES, para pegarlo en WhatsApp.

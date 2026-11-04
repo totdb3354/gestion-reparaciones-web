@@ -117,6 +117,11 @@ describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §2.4, §2.6 y §2.7)
       '🔍 REVISAR PRIORITARIO\niPhone 11 64 GB Negro\nSin grado: 2 · Solo 1 A',
     ].join('\n\n'))
   })
+
+  it('del mismo modelo, el físico antes que el eSIM aunque tenga más capacidad', () => {
+    expect(listaRevisar([m({ ...E14, grado: 'n/a' }), m({ ...F14, capacidad: '256GB', grado: 'n/a' })]).map(descripcion))
+      .toEqual(['iPhone 14 256 GB Medianoche', 'iPhone 14 eSIM 128 GB Medianoche'])
+  })
 })
 
 describe('«Qué revisar»: Subir B a A (spec 0.9.25 §2.5)', () => {

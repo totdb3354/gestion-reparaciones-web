@@ -1,4 +1,5 @@
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
+import { useStore } from '@/shared/lib/store'
 import { clasesUbicacion } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
@@ -6,6 +7,7 @@ import { copiarAlPortapapeles } from '@/shared/ui/copiar'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { CeldaQuien } from './CeldaQuien'
 import { textoCapacidad, type Movil } from './modelo'
+import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
   AYUDA_QR, avisoCopiadoLista, cifraRevisar, cifraSubir, conTecnico, descripcion, NOMBRE_QR, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
@@ -32,14 +34,14 @@ const CAMBIA_GRADO = 'inline-block rounded border border-tipo-reparacion-bg bg-t
 /** «Qué revisar» (0.9.25, spec «Qué revisar» §3): dos tarjetas como «Por pasar a NSYS», la ayuda y la tabla de la elegida, con una
  *  fila por modelo-color que se despliega con sus móviles. Solo se mira: las listas salen del stock que ya tiene la página. */
 export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }: Props) {
-  const [elegida, setElegida] = useState<TarjetaQR>('revisar')
-  // Lo desplegado, por tarjeta y modelo-color: sigue desplegado cuando el sondeo trae el stock nuevo.
-  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set())
-  const alternar = (clave: string) => setAbiertos((s) => {
-    const nuevo = new Set(s)
-    if (nuevo.has(clave)) nuevo.delete(clave)
-    else nuevo.add(clave)
-    return nuevo
+  const [{ queRevisar }, setEstado] = useStore(estadoStockTelefonos)
+  const elegida = queRevisar.tarjeta
+  // Lo desplegado, por tarjeta y modelo-color: sigue desplegado cuando el sondeo trae el stock nuevo y al volver del detalle del IMEI.
+  const abiertos: ReadonlySet<string> = new Set(queRevisar.abiertos)
+  const setElegida = (tarjeta: TarjetaQR) => setEstado((e) => ({ ...e, queRevisar: { ...e.queRevisar, tarjeta } }))
+  const alternar = (clave: string) => setEstado((e) => {
+    const previos = e.queRevisar.abiertos
+    return { ...e, queRevisar: { ...e.queRevisar, abiertos: previos.includes(clave) ? previos.filter((c) => c !== clave) : [...previos, clave] } }
   })
   const cifras: Record<TarjetaQR, Cifra> = { revisar: cifraRevisar(revisar), subir: cifraSubir(subir) }
   const copiar = (t: TarjetaQR) => {

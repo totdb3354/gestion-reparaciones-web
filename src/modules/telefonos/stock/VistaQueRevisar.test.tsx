@@ -26,11 +26,11 @@ const STOCK: Movil[] = [
 
 function pintar(moviles: Movil[] = STOCK, { cargando = false, error = false } = {}) {
   const onAbrirImei = vi.fn()
-  renderConProviders(
+  const { unmount } = renderConProviders(
     <><VistaQueRevisar revisar={listaRevisar(moviles)} subir={listaSubir(moviles)} cargando={cargando} error={error} onAbrirImei={onAbrirImei} /><AvisoBreveHost /></>,
     { sesion: SESION_SUPER },
   )
-  return onAbrirImei
+  return Object.assign(onAbrirImei, { unmount })
 }
 const cabeceras = (tabla: HTMLElement) => within(tabla).getAllByRole('columnheader').map((c) => c.textContent)
 const filas = (tabla: HTMLElement) => within(tabla).getAllByRole('row').slice(1)
@@ -130,7 +130,7 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
     expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[0]).toHaveClass('text-texto-suave')
   })
 
-  it('cargando y sin poder cargar', () => {
+  it('cargando', () => {
     pintar([], { cargando: true })
     expect(screen.getByText('Cargando…')).toBeInTheDocument()
   })
@@ -139,5 +139,27 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
     pintar([], { error: true })
     expect(screen.getByText('No se pudo cargar el stock de teléfonos.')).toBeInTheDocument()
     expect(screen.queryByText(/^Nada que revisar/)).not.toBeInTheDocument()
+  })
+
+  it('al volver del detalle del IMEI, la tarjeta elegida y lo desplegado siguen donde estaban', async () => {
+    const user = userEvent.setup()
+    const primero = pintar()
+    await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
+    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 11 64 GB Negro' }))
+    primero.unmount()
+    pintar()
+    expect(screen.getByRole('button', { name: 'Subir B a A' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Negro' })).toBeInTheDocument()
+  })
+
+  it('con el sondeo, lo desplegado sigue desplegado y un modelo-color que se queda sin nada desaparece', async () => {
+    const user = userEvent.setup()
+    const primero = pintar()
+    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 15 Pro 256 GB Titanio natural' }))
+    expect(screen.getByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Azul' })).toBeInTheDocument()
+    primero.unmount()
+    pintar(STOCK.filter((m) => m.imeiSn !== '350000000000104'))
+    expect(screen.queryByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Azul' })).not.toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Móviles de iPhone 15 Pro 256 GB Titanio natural' })).toBeInTheDocument()
   })
 })

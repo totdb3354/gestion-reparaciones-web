@@ -591,6 +591,14 @@ describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
     await user.click(screen.getByRole('button', { name: 'Móviles' }))
     expect(await screen.findByRole('region', { name: 'Tabla de móviles' })).toBeInTheDocument()
   })
+
+  it('el interruptor de lo que no cuenta como stock no cambia la pestaña', async () => {
+    const user = userEvent.setup()
+    abrir()
+    expect(await screen.findByRole('button', { name: 'Qué revisar (2)' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
+    expect(screen.getByRole('button', { name: 'Qué revisar (2)' })).toBeInTheDocument()
+  })
 })
 
 describe('el buscador de IMEI con la eSIM (0.9.24)', () => {

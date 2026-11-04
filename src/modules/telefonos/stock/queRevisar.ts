@@ -95,7 +95,7 @@ export function listaSubir(moviles: readonly Movil[]): GrupoSubir[] {
     const bs = g.todos.filter((m) => esB(m.grado))
     const base = comun(g, bs)
     if (bs.length === 0 || base.a > MAX_A) return []
-    const cuantos = (bateria: boolean, tecnico: boolean) => bs.filter((m) => m.bateriaNueva === bateria && conTecnico(m) === tecnico).length
+    const cuantos = (bateria: boolean, tecnico: boolean) => bs.filter((m) => Boolean(m.bateriaNueva) === bateria && conTecnico(m) === tecnico).length
     return [{ ...base, b: cuantos(false, false), bTecnico: cuantos(false, true), b100: cuantos(true, false), b100Tecnico: cuantos(true, true) }]
   }).sort(compararGrupos)
 }
