@@ -38,7 +38,14 @@ test('el supertécnico ve Pedidos con sus fuentes, filtra y abre una unidad', as
   await entrar(page, usuario, clave)
   const columna = page.getByRole('navigation', { name: 'Sub-navegación' })
   await expect(columna.getByRole('link', { name: 'Compras', exact: true })).toBeVisible()
+  // La lista llega por /api/pedidos (no por /api/pedidos/fuentes): se espera esa respuesta antes de contar, para no saltar la
+  // prueba en silencio con la lista aún sin cargar.
+  const respuesta = page.waitForResponse((r) => {
+    const url = new URL(r.url())
+    return /^\/api\/pedidos$/.test(url.pathname) && r.request().method() === 'GET'
+  })
   await columna.getByRole('link', { name: 'Pedidos', exact: true }).click()
+  expect((await respuesta).status()).toBe(200)
   await expect(page.getByRole('heading', { name: 'Pedidos', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Fuentes:/ })).toBeVisible()
   const pedidos = page.getByRole('region', { name: 'Lista de pedidos' }).getByRole('article')
