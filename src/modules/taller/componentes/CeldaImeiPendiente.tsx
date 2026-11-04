@@ -38,7 +38,8 @@ export function CeldaImeiPendiente({ rep, asignados }: Props) {
           Pedido {rep.pedidoNumero}{rep.pedidoSku ? ` · acabar en ${rep.pedidoSku}` : ''}
         </span>
       )}
-      {rep.pedidoRepetido && <span className="text-[10px] font-semibold text-rojo-accion">IMEI en dos pedidos</span>}
+      {/* Sobre el fondo oscuro de la fila seleccionada el rojo no se lee: pasa a crema como el resto de la celda. */}
+      {rep.pedidoRepetido && <span className={cn('text-[10px] font-semibold text-rojo-accion', CREMA_EN_FILA_SELECCIONADA)}>IMEI en dos pedidos</span>}
     </div>
   )
 }

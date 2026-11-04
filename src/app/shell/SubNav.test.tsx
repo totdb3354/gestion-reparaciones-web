@@ -43,10 +43,11 @@ describe('columna lateral por grupos', () => {
     expect(columna().getByRole('link', { name: 'Rendimiento' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('el técnico no tiene Pedidos ni Proveedores: Stock solo con «Stock actual» (0.9.16)', () => {
+  it('el técnico no tiene Compras ni Proveedores, y tampoco «Pedidos»: Stock solo con «Stock actual» (0.9.16)', () => {
     renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock' })
     expect(columna().getByRole('link', { name: 'Stock actual' })).toHaveAttribute('aria-current', 'page')
     expect(columna().queryByRole('link', { name: 'Compras' })).not.toBeInTheDocument()
+    expect(columna().queryByRole('link', { name: 'Pedidos' })).not.toBeInTheDocument()
     expect(columna().queryByRole('link', { name: 'Proveedores' })).not.toBeInTheDocument()
   })
 

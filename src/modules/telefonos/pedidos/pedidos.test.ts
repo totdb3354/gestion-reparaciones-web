@@ -46,6 +46,13 @@ describe('reglas de «Pedidos» (spec pieza 2 §9.2)', () => {
       .toEqual([['Modelo', 'iPhone 13', 'iPhone 13 mini', 'nunca'], ['Color', 'Azul', 'Rojo', 'sí (chasis)']])
   })
 
+  it('con «grado que no se vende» el taller no puede cambiar el grado', () => {
+    const grado = (motivo?: string) => diferencias(atributos(), movilUnidad({ grado: 'C' }), motivo).find((x) => x.dato === 'Grado')
+    expect(grado()?.taller).toBe('sí')
+    expect(grado('COLOR_O_GRADO')?.taller).toBe('sí')
+    expect(grado('GRADO_NO_VENDIBLE')).toMatchObject({ distinto: true, taller: 'no' })
+  })
+
   it('el texto del estado y qué hacer', () => {
     expect(textoEstado(unidad())).toBe('Sin móvil')
     expect(queHacer(unidad(), 'AMAZON')).toBe('Tecléalo en PEDIDOS 2026, como hoy. El ERP lo lee en unos minutos.')
@@ -54,6 +61,10 @@ describe('reglas de «Pedidos» (spec pieza 2 §9.2)', () => {
     expect(textoEstado(enTaller)).toBe('En el taller con Técnico 1 · tiene que acabar en i13128AzulA')
     expect(textoEstado(unidad({ estado: 'NO_CUADRA', motivo: 'MODELO' }))).toBe('No cuadra: el modelo, la capacidad o el eSIM no son los del pedido')
     expect(queHacer(unidad({ estado: 'NO_CUADRA', motivo: 'MODELO' }), 'SIMULADOR')).toBe('Hay que cambiar el IMEI en el Simulador: el taller no cambia eso.')
+    expect(queHacer(unidad({ estado: 'NO_CUADRA', motivo: 'GRADO_NO_VENDIBLE' }), 'AMAZON'))
+      .toBe('Hay que cambiar el IMEI en PEDIDOS 2026: ese grado no se vende.')
+    expect(queHacer(unidad({ estado: 'NO_EN_NSYS' }), 'SIMULADOR'))
+      .toBe('Revisa el IMEI en el Simulador: NSYS no lo tiene (mal tecleado o sin dar de alta).')
     expect(textoEstado(unidad({ estado: 'CON_AVISO', motivo: 'B_POR_A' }))).toBe('Cuadra, con aviso: B por A (en Amazon un B puede ir por A; míralo antes)')
   })
 

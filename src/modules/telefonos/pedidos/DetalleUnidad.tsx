@@ -1,10 +1,13 @@
 import type { PedidoVista, UnidadVista } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
-import { diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
+import { conEsim, diaNsys, nombreMovilNsys } from '@/shared/lib/telefonoNsys'
 import { CLASE_GRUPO } from './claseGrupo'
 import { diferencias, dondeTeclear, grupoDe, hace, queHacer, textoCanal, textoEstado, textoSinPedidoConcreto } from './pedidos'
 
 type Props = { pedido: PedidoVista | null; unidad: UnidadVista | null; todos: PedidoVista[]; hoy: string; onRastro: (imei: string) => void }
+
+/** Solo las partes que hay, separadas por « · »: sin «iPhone 13 ·  · Azul» cuando falta la capacidad. */
+const partes = (xs: (string | null | undefined)[]): string => xs.filter(Boolean).join(' · ')
 
 const FUENTE: Record<string, string> = { PEDIDOS_2026: 'PEDIDOS 2026', SIMULADOR: 'el Simulador' }
 
@@ -22,7 +25,7 @@ export function DetalleUnidad({ pedido, unidad, todos, hoy, onRastro }: Props) {
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             Pide <span className="rounded bg-fila-sep px-1.5 font-mono font-bold">{unidad.sku}</span>
-            {unidad.pide.modelo && <span className="text-texto-sub">iPhone {unidad.pide.modelo} · {unidad.pide.capacidad} · {unidad.pide.color} · {unidad.pide.grado}</span>}
+            {unidad.pide.modelo && <span className="text-texto-sub">{partes([conEsim(`iPhone ${unidad.pide.modelo}`, unidad.pide.esEsim), unidad.pide.capacidad, unidad.pide.color, unidad.pide.grado])}</span>}
           </div>
           <div className="mt-2 rounded-[10px] border border-fila-sep p-3">
             <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-texto-sub">Móvil</h3>
@@ -36,7 +39,7 @@ export function DetalleUnidad({ pedido, unidad, todos, hoy, onRastro }: Props) {
                 </div>
                 {unidad.movil.enNsys && (
                   <div className="mt-1.5 font-semibold">
-                    {nombreModeloNsys(unidad.movil.modelo, unidad.movil.modeloMaestro)} · {unidad.movil.capacidad} · {unidad.movil.color} · {unidad.movil.grado}
+                    {partes([nombreMovilNsys(unidad.movil), unidad.movil.capacidad, unidad.movil.color, unidad.movil.grado])}
                     {unidad.movil.ubicacion && <span className="font-normal text-texto-sub"> · {unidad.movil.ubicacion}</span>}
                   </div>
                 )}
@@ -48,7 +51,7 @@ export function DetalleUnidad({ pedido, unidad, todos, hoy, onRastro }: Props) {
               <table aria-label="Diferencias" className="mt-2 w-full text-[12px]">
                 <thead><tr className="text-texto-sub"><th /><th className="text-left">Pide</th><th className="text-left">Es</th><th className="text-left">¿Lo cambia el taller?</th></tr></thead>
                 <tbody>
-                  {diferencias(unidad.pide, unidad.movil).map((d) => (
+                  {diferencias(unidad.pide, unidad.movil, unidad.motivo).map((d) => (
                     <tr key={d.dato} data-distinto={d.distinto} className={cn(d.distinto && 'font-bold text-fila-urgente-brd')}>
                       <td>{d.dato}</td><td>{d.pide}</td><td>{d.es}{d.distinto ? ' ✘' : ''}</td><td>{d.taller}</td>
                     </tr>
@@ -68,7 +71,7 @@ export function DetalleUnidad({ pedido, unidad, todos, hoy, onRastro }: Props) {
               <p>{textoSinPedidoConcreto(unidad, pedido.canal, todos)}</p>
             </div>
           )}
-          {!unidad.imei && <p className="mt-2 text-[11.5px] text-texto-sub">La sugerencia de un móvil llega en la 0.9.27. Hasta entonces, búscalo como hoy y tecléalo en {dondeTeclear(pedido.canal)}.</p>}
+          {!unidad.imei && <p className="mt-2 text-[11.5px] text-texto-sub">La sugerencia de un móvil llega en la próxima versión. Hasta entonces, búscalo como hoy y tecléalo en {dondeTeclear(pedido.canal)}.</p>}
         </>
       )}
     </section>

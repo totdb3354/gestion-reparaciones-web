@@ -70,13 +70,14 @@ export type Diferencia = { dato: string; pide: string; es: string; distinto: boo
 
 const igual = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 
-export function diferencias(pide: Atributos, m: MovilUnidad): Diferencia[] {
+/** `motivo`: el de la unidad; con «grado que no se vende» el taller no puede arreglarlo (hay que cambiar el IMEI). */
+export function diferencias(pide: Atributos, m: MovilUnidad, motivo?: string | null): Diferencia[] {
   const filas: [string, string, string, string][] = [
     ['Modelo', `iPhone ${pide.modelo ?? '—'}`, `iPhone ${m.modeloMaestro ?? m.modelo ?? '—'}`, 'nunca'],
     ['Capacidad', pide.capacidad ?? '—', m.capacidad ?? '—', 'nunca'],
     ['eSIM', pide.esEsim ? 'sí' : 'no', m.esEsim ? 'sí' : 'no', 'nunca'],
     ['Color', pide.color ?? '—', m.color ?? '—', 'sí (chasis)'],
-    ['Grado', pide.grado ?? '—', m.grado ?? '—', 'sí'],
+    ['Grado', pide.grado ?? '—', m.grado ?? '—', motivo === 'GRADO_NO_VENDIBLE' ? 'no' : 'sí'],
   ]
   return filas.map(([dato, a, b, taller]) => ({ dato, pide: a, es: b, distinto: !igual(a, b), taller }))
 }
@@ -104,7 +105,9 @@ export function textoEstado(u: UnidadVista): string {
 
 export function queHacer(u: UnidadVista, canal: string): string | null {
   if (u.estado === 'SIN_MOVIL') return `Tecléalo en ${dondeTeclear(canal)}, como hoy. El ERP lo lee en unos minutos.`
-  if (u.estado === 'NO_EN_NSYS' || (u.estado === 'NO_CUADRA' && u.motivo === 'MODELO'))
+  if (u.estado === 'NO_EN_NSYS') return `Revisa el IMEI en ${dondeTeclear(canal)}: NSYS no lo tiene (mal tecleado o sin dar de alta).`
+  if (u.estado === 'NO_CUADRA' && u.motivo === 'GRADO_NO_VENDIBLE') return `Hay que cambiar el IMEI en ${dondeTeclear(canal)}: ese grado no se vende.`
+  if (u.estado === 'NO_CUADRA' && u.motivo === 'MODELO')
     return `Hay que cambiar el IMEI en ${dondeTeclear(canal)}: el taller no cambia eso.`
   if (u.estado === 'NECESITA_TALLER') return 'Hay que asignarle el trabajo en Asignaciones.'
   if (u.estado === 'EN_TALLER') return 'Es lo normal: se vende mientras se repara. No es un error.'

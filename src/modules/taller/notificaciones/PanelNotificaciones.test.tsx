@@ -187,10 +187,10 @@ describe('panel (ficha notificaciones.md, "Panel")', () => {
     expect(screen.getByRole('tabpanel', { name: 'Solicitudes' })).toHaveClass('h-[370px]', 'overflow-y-auto', 'overflow-x-hidden')
     expect(screen.queryByText(/sin solicitudes/i)).not.toBeInTheDocument()
   })
-  it('"→ Ir a pedidos" cierra el panel y navega a /stock/pedidos desde las dos pestañas', async () => {
+  it('"→ Ir a compras" cierra el panel y navega a /stock/pedidos desde las dos pestañas', async () => {
     for (const pestana of ['Solicitudes', 'Alertas'] as const) {
       const { router, unmount } = await abrirPanelConRouter({}, pestana)
-      const enlace = screen.getByRole('button', { name: '→ Ir a pedidos' })
+      const enlace = screen.getByRole('button', { name: '→ Ir a compras' })
       expect(enlace).toBeEnabled()
       expect(enlace).toHaveClass('text-[12px]', 'font-bold', 'text-azul-noche', 'cursor-pointer')
       await userEvent.click(enlace)
