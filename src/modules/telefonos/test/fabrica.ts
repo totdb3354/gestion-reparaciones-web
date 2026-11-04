@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, MovilVendido, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -40,6 +40,14 @@ export function movilComprobado(p: Partial<MovilComprobado> = {}): MovilComproba
   return {
     imei: '350000000000001', encontrado: true, modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul',
     grado: 'A', bateriaNueva: false, ubicacion: 'Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], colorNsys: null, gradoNsys: null, esEsim: false, ...p,
+  }
+}
+
+/** 0.9.25: un vendido de GET /api/stock-telefonos/vendidos; por defecto, un iPhone 13 128GB Azul vendido el 15/10. */
+export function movilVendido(p: Partial<MovilVendido> = {}): MovilVendido {
+  return {
+    imeiSn: '350000000000901', modelo: '13', modeloMaestro: '13', esEsim: false, capacidad: '128GB', color: 'Azul',
+    fechaVenta: '2026-10-15', ...p,
   }
 }
 

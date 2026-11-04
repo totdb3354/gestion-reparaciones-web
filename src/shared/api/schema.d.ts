@@ -356,6 +356,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/que-revisar/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["excel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado": {
         parameters: {
             query?: never;
@@ -1748,6 +1764,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/vendidos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vendidos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/por-pasar": {
         parameters: {
             query?: never;
@@ -2602,6 +2634,11 @@ export interface components {
             imei: string;
             resultado: string;
         };
+        StockTelefonosPeticionExcel: {
+            hoja: string;
+            columnas: string[];
+            filas: string[][];
+        };
         StockTelefonosPeticionComprobar: {
             imeis: string[];
         };
@@ -3342,6 +3379,16 @@ export interface components {
             color: string;
             grado: string;
             sku: string;
+        };
+        StockTelefonosMovilVendido: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            esEsim: boolean;
+            capacidad: string | null;
+            color: string | null;
+            /** Format: date */
+            fechaVenta: string;
         };
         FilaPorPasar: {
             imeiSn: string;
@@ -4793,6 +4840,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TelefonoResultadoARevisarResponse"][];
+                };
+            };
+        };
+    };
+    excel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockTelefonosPeticionExcel"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };
@@ -7141,6 +7212,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OpcionesTaller"];
+                };
+            };
+        };
+    };
+    vendidos: {
+        parameters: {
+            query?: {
+                dias?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockTelefonosMovilVendido"][];
                 };
             };
         };
