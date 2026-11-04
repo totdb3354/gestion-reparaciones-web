@@ -29,9 +29,11 @@ export const TEXTO_MOTIVO: Record<Motivo, string> = { NADA: 'Nada con grado', NI
 const ORDEN_MOTIVO: Record<Motivo, number> = { NADA: 0, NINGUN_A: 1, UN_A: 2 }
 
 /** Lo común de un modelo-color de una lista: su clave, el nombre del modelo (con « eSIM»), la capacidad tal cual («128GB» o
- *  «—»), el color, cuántos A tiene en stock y cuáles, y los móviles de esa lista, ordenados. */
+ *  «—»), el color, cuántos A tiene en stock y cuáles, los móviles de esa lista, ordenados, y los SKU distintos de todos sus
+ *  móviles (para buscar; un `n/a` casi nunca tiene). */
 export type GrupoBase = {
-  clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; a: number; gradosA: string[]; moviles: Movil[]
+  clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; a: number; gradosA: string[]; skus: string[]
+  moviles: Movil[]
 }
 export type GrupoRevisar = GrupoBase & { motivo: Motivo; pendientes: number; conTecnico: number; conGrado: number }
 export type GrupoSubir = GrupoBase & { b: number; bTecnico: number; b100: number; b100Tecnico: number }
@@ -71,7 +73,9 @@ function comun(g: Grupo, deLaLista: Movil[]): GrupoBase {
   const conA = g.todos.filter((m) => esA(m.grado))
   return {
     clave: g.clave, modelo: g.modelo, capacidad: g.capacidad, color: g.color, esEsim: g.esEsim, a: conA.length,
-    gradosA: conA.map((m) => limpio(m.grado)), moviles: ordenarMoviles(deLaLista),
+    gradosA: conA.map((m) => limpio(m.grado)),
+    skus: [...new Set(g.todos.flatMap((m) => (m.sku ? [m.sku] : [])))],
+    moviles: ordenarMoviles(deLaLista),
   }
 }
 
@@ -167,3 +171,33 @@ export const palabraGrupos = (n: number): string => (n === 1 ? 'modelo-color' : 
 /** Lo que va junto a la cifra grande de la tarjeta: «modelos-color · 19 móviles». */
 export const textoCifra = (c: Cifra): string => `${palabraGrupos(c.grupos)} · ${c.moviles} ${palabraMoviles(c.moviles)}`
 export const avisoCopiadoLista = (n: number): string => `Copiada la lista: ${n} ${palabraGrupos(n)}`
+
+// ---------------------------------------------------------------- buscar por palabras clave (spec §3.6)
+
+/** Con tantos caracteres o más, una palabra también busca en el IMEI: así «13» o «128» no encuentran IMEIs. */
+export const MIN_IMEI = 6
+
+/** Para comparar: sin acentos, sin mayúsculas y sin espacios. */
+const plano = (texto: string): string => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '')
+
+/** Las palabras clave de lo escrito en la caja, ya planas; ninguna si está vacía. */
+export const palabrasClave = (texto: string): string[] => texto.split(/\s+/).map(plano).filter(Boolean)
+
+const enImei = (palabra: string, imeiSn: string): boolean => palabra.length >= MIN_IMEI && plano(imeiSn).includes(palabra)
+
+/** ¿Busca alguna palabra este móvil por su IMEI? Su modelo-color se abre solo y la fila sale resaltada. */
+export const imeiBuscado = (m: Movil, palabras: readonly string[]): boolean => palabras.some((p) => enImei(p, m.imeiSn))
+
+/** ¿Coincide el modelo-color? Cada palabra tiene que estar en su descripción, en el SKU de alguno de sus móviles o (con
+ *  {@link MIN_IMEI} caracteres o más) en el IMEI de uno de los móviles de la lista. */
+export function coincide(g: GrupoBase, palabras: readonly string[]): boolean {
+  const desc = plano(descripcion(g))
+  const skus = g.skus.map(plano)
+  return palabras.every((p) => desc.includes(p) || skus.some((s) => s.includes(p)) || g.moviles.some((m) => enImei(p, m.imeiSn)))
+}
+
+/** Los modelos-color que coinciden, en el mismo orden; sin palabras, todos. */
+export const filtrar = <G extends GrupoBase>(lista: readonly G[], palabras: readonly string[]): G[] =>
+  palabras.length === 0 ? [...lista] : lista.filter((g) => coincide(g, palabras))
+
+export const sinCoincidencias = (texto: string): string => `Ningún modelo-color con «${texto.trim()}».`

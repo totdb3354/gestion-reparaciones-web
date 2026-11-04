@@ -3,8 +3,8 @@ import type { MovilStock } from '@/shared/api/client'
 import { trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
 import {
-  cifraRevisar, cifraSubir, descripcion, esA, esB, listaRevisar, listaSubir, MAX_A, pasoSubir, textoCifra, textoRevisar, textoSubir,
-  tieneGrado, tituloA, totalQueRevisar,
+  cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, filtrar, imeiBuscado, listaRevisar, listaSubir, MAX_A, palabrasClave,
+  pasoSubir, sinCoincidencias, textoCifra, textoRevisar, textoSubir, tieneGrado, tituloA, totalQueRevisar,
 } from './queRevisar'
 
 let n = 0
@@ -140,5 +140,54 @@ describe('«Qué revisar»: Subir B a A (spec 0.9.25 §2.5)', () => {
       '⬆️ SUBIR DE GRADO\niPhone 13 512 GB Azul\nB → A: 1',
       '⬆️ SUBIR DE GRADO\niPhone 11 64 GB Negro\nB → A: 1 · B100 → A100: 1',
     ].join('\n\n'))
+  })
+})
+
+describe('«Qué revisar»: buscar por palabras clave (spec 0.9.25 §3.6)', () => {
+  // SKU e IMEI puestos a mano: la fábrica les da a todos el SKU «i13128AzulA».
+  const BUSCA: Movil[] = [
+    m({ ...A13, grado: 'n/a', sku: null, imeiSn: '350000000012345' }), m({ ...A13, grado: 'A+', sku: 'i13128AzulA+' }),
+    m({ ...N11, grado: 'n/a', sku: null }), m({ ...N11, grado: 'B', sku: 'i1164NegroB' }),
+    m({ ...P13P, grado: 'n/a', sku: null }), m({ ...E14, grado: 'n/a', sku: null }),
+    m({ ...P15, color: 'Púrpura', grado: 'n/a', sku: null }),
+  ]
+  const busca = (texto: string) => filtrar(listaRevisar(BUSCA), palabrasClave(texto)).map(descripcion)
+
+  it('las palabras clave: sin mayúsculas, sin acentos y sin espacios de más', () => {
+    expect(palabrasClave('  13 Pro   256 ')).toEqual(['13', 'pro', '256'])
+    expect(palabrasClave('Púrpura')).toEqual(['purpura'])
+    expect(palabrasClave('   ')).toEqual([])
+  })
+
+  it('sin palabras, todos en su orden; cada palabra tiene que estar en la descripción (también «1tb», «128gb», «esim» o sin acento)', () => {
+    expect(busca('')).toEqual([
+      'iPhone 15 Pro 256 GB Púrpura', 'iPhone 14 eSIM 128 GB Medianoche', 'iPhone 13 Pro 1 TB Plata', 'iPhone 11 64 GB Negro',
+      'iPhone 13 128 GB Azul',
+    ])
+    expect(busca('13 pro')).toEqual(['iPhone 13 Pro 1 TB Plata'])
+    expect(busca('1tb')).toEqual(['iPhone 13 Pro 1 TB Plata'])
+    expect(busca('14 esim')).toEqual(['iPhone 14 eSIM 128 GB Medianoche'])
+    expect(busca('purpura')).toEqual(['iPhone 15 Pro 256 GB Púrpura'])
+    expect(busca('128 gb')).toEqual(['iPhone 14 eSIM 128 GB Medianoche', 'iPhone 13 128 GB Azul'])
+    expect(busca('128gb')).toEqual(['iPhone 14 eSIM 128 GB Medianoche', 'iPhone 13 128 GB Azul'])
+    expect(busca('13 negro')).toEqual([])
+  })
+
+  it('por el SKU de cualquiera de sus móviles, también los que no están en la lista', () => {
+    expect(busca('i13128azul')).toEqual(['iPhone 13 128 GB Azul'])
+    expect(busca('I1164Negro')).toEqual(['iPhone 11 64 GB Negro'])
+    expect(filtrar(listaSubir(BUSCA), palabrasClave('negro')).map(descripcion)).toEqual(['iPhone 11 64 GB Negro'])
+  })
+
+  it('por el IMEI de un móvil de la lista, solo con 6 caracteres o más', () => {
+    expect(busca('012345')).toEqual(['iPhone 13 128 GB Azul'])
+    expect(busca('2345')).toEqual([])
+    const [a13] = filtrar(listaRevisar(BUSCA), ['012345'])
+    expect(a13.moviles.filter((x) => imeiBuscado(x, ['012345'])).map((x) => x.imeiSn)).toEqual(['350000000012345'])
+    expect(coincide(a13, ['2345'])).toBe(false)
+  })
+
+  it('el texto sin coincidencias', () => {
+    expect(sinCoincidencias('  13 negro ')).toBe('Ningún modelo-color con «13 negro».')
   })
 })
