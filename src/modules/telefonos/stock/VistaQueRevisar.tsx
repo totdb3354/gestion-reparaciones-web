@@ -10,7 +10,7 @@ import { textoCapacidad, type Movil } from './modelo'
 import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
-  AYUDA_QR, avisoCopiadoLista, cifraRevisar, cifraSubir, conTecnico, descripcion, NOMBRE_QR, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
+  AYUDA_QR, avisoCopiadoLista, cifraRevisar, cifraSubir, conTecnico, descripcion, filtrar, imeiBuscado, palabrasClave, sinCoincidencias, NOMBRE_QR, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
   SUBTITULO_QR, TARJETAS_QR, TEXTO_MOTIVO, textoCifra, textoRevisar, textoSubir, tituloA, VACIA_QR,
   type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir, type Motivo, type TarjetaQR,
 } from './queRevisar'
@@ -48,8 +48,14 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
     void copiarAlPortapapeles(t === 'revisar' ? textoRevisar(revisar) : textoSubir(subir))
     avisar({ texto: avisoCopiadoLista(cifras[t].grupos), tipo: 'ok' })
   }
-  const lista = elegida === 'revisar' ? revisar : subir
-  const mensaje = cargando ? 'Cargando…' : error ? 'No se pudo cargar el stock de teléfonos.' : lista.length === 0 ? VACIA_QR[elegida] : null
+  // 0.9.25 (spec §3.6): la caja de arriba filtra las tablas por palabras clave; las tarjetas y «Copiar lista» siguen con todo.
+  const palabras = palabrasClave(queRevisar.buscar)
+  const visiblesRevisar = filtrar(revisar, palabras)
+  const visiblesSubir = filtrar(subir, palabras)
+  const todas = elegida === 'revisar' ? revisar : subir
+  const visibles = elegida === 'revisar' ? visiblesRevisar : visiblesSubir
+  const mensaje = cargando ? 'Cargando…' : error ? 'No se pudo cargar el stock de teléfonos.' : todas.length === 0 ? VACIA_QR[elegida]
+    : visibles.length === 0 ? sinCoincidencias(queRevisar.buscar) : null
   return (
     <section aria-label="Qué revisar" className="flex min-h-0 flex-1 flex-col gap-2.5 rounded-md bg-superficie p-3">
       <div className="grid shrink-0 grid-cols-[repeat(2,minmax(0,340px))] gap-2.5">
@@ -75,15 +81,15 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
       <p className="max-w-[880px] shrink-0 text-[11.5px] leading-snug text-azul-gris">{AYUDA_QR[elegida]}</p>
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
         {mensaje !== null ? <p className="p-4 text-[12px] text-azul-gris">{mensaje}</p>
-          : elegida === 'revisar' ? <TablaRevisar grupos={revisar} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} />
-            : <TablaSubir grupos={subir} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} />}
+          : elegida === 'revisar' ? <TablaRevisar grupos={visiblesRevisar} palabras={palabras} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} />
+            : <TablaSubir grupos={visiblesSubir} palabras={palabras} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} />}
       </div>
       <p className="shrink-0 text-[11.5px] text-azul-gris">{PIE_QR}</p>
     </section>
   )
 }
 
-type TablaProps<G> = { grupos: G[]; abiertos: ReadonlySet<string>; onAlternar: (clave: string) => void; onAbrirImei: (imeiSn: string) => void }
+type TablaProps<G> = { grupos: G[]; palabras: readonly string[]; abiertos: ReadonlySet<string>; onAlternar: (clave: string) => void; onAbrirImei: (imeiSn: string) => void }
 
 function Cabecera({ columnas, desdeDerecha }: { columnas: string[]; desdeDerecha: number }) {
   return (
@@ -116,7 +122,7 @@ function CeldaA({ g }: { g: GrupoBase }) {
   return <td className={NUM} title={tituloA(g)}>{g.a}{g.a > 0 && <span className={GRIS}>{g.gradosA.join(', ')}</span>}</td>
 }
 
-function TablaRevisar({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoRevisar>) {
+function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoRevisar>) {
   const columnas = ['Motivo', 'Modelo', 'Cap.', 'Color', 'Sin grado', 'A en stock', 'Con grado']
   return (
     <table aria-label="Revisar sin grado" className="w-full border-collapse text-[12.5px] text-azul-medio">
@@ -124,7 +130,7 @@ function TablaRevisar({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<
       <tbody>
         {grupos.map((g) => {
           const clave = `revisar|${g.clave}`
-          const abierto = abiertos.has(clave)
+          const abierto = abiertos.has(clave) || g.moviles.some((m) => imeiBuscado(m, palabras))
           return (
             <Fragment key={g.clave}>
               <tr onClick={() => onAlternar(clave)} className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', g.pendientes === 0 && SUAVE)}>
@@ -139,7 +145,7 @@ function TablaRevisar({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<
                 <CeldaA g={g} />
                 <td className={NUM}>{g.conGrado}</td>
               </tr>
-              {abierto && <Moviles g={g} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <PildoraGrado grado={m.grado} />} />}
+              {abierto && <Moviles g={g} palabras={palabras} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <PildoraGrado grado={m.grado} />} />}
             </Fragment>
           )
         })}
@@ -148,7 +154,7 @@ function TablaRevisar({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<
   )
 }
 
-function TablaSubir({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoSubir>) {
+function TablaSubir({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoSubir>) {
   const columnas = ['Modelo', 'Cap.', 'Color', 'A en stock', 'B', 'B100']
   return (
     <table aria-label="Subir B a A" className="w-full border-collapse text-[12.5px] text-azul-medio">
@@ -156,7 +162,7 @@ function TablaSubir({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<Gr
       <tbody>
         {grupos.map((g) => {
           const clave = `subir|${g.clave}`
-          const abierto = abiertos.has(clave)
+          const abierto = abiertos.has(clave) || g.moviles.some((m) => imeiBuscado(m, palabras))
           return (
             <Fragment key={g.clave}>
               <tr onClick={() => onAlternar(clave)} className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', !pendienteSubir(g) && SUAVE)}>
@@ -167,7 +173,7 @@ function TablaSubir({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<Gr
                 <td className={NUM}><Cuenta n={g.b} tecnico={g.bTecnico} /></td>
                 <td className={NUM}><Cuenta n={g.b100} tecnico={g.b100Tecnico} /></td>
               </tr>
-              {abierto && <Moviles g={g} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <span className={CAMBIA_GRADO}>{pasoSubir(m)}</span>} />}
+              {abierto && <Moviles g={g} palabras={palabras} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <span className={CAMBIA_GRADO}>{pasoSubir(m)}</span>} />}
             </Fragment>
           )
         })}
@@ -177,7 +183,7 @@ function TablaSubir({ grupos, abiertos, onAlternar, onAbrirImei }: TablaProps<Gr
 }
 
 /** Los móviles de un modelo-color desplegado (spec §3.3): IMEI, grado, ubicación, días y quién lo tiene; el del técnico, en gris. */
-function Moviles({ g, columnas, grado, onAbrirImei }: { g: GrupoBase; columnas: number; grado: (m: Movil) => ReactNode; onAbrirImei: (imeiSn: string) => void }) {
+function Moviles({ g, palabras, columnas, grado, onAbrirImei }: { g: GrupoBase; palabras: readonly string[]; columnas: number; grado: (m: Movil) => ReactNode; onAbrirImei: (imeiSn: string) => void }) {
   return (
     <tr className="bg-crema/40">
       <td colSpan={columnas} className="px-6 pt-1 pb-2">
@@ -191,7 +197,7 @@ function Moviles({ g, columnas, grado, onAbrirImei }: { g: GrupoBase; columnas: 
           </thead>
           <tbody>
             {g.moviles.map((m) => (
-              <tr key={`${m.imeiSn}|${m.lote}`} className={cn('border-t border-fila-sep', conTecnico(m) && SUAVE)}>
+              <tr key={`${m.imeiSn}|${m.lote}`} className={cn('border-t border-fila-sep', conTecnico(m) && SUAVE, imeiBuscado(m, palabras) && 'bg-amarillo/40')}>
                 <td className="px-2 py-1">
                   <button type="button" aria-label={`Abrir ${m.imeiSn}`} onClick={() => onAbrirImei(m.imeiSn)}
                     className="cursor-pointer font-mono text-[11.5px] text-azul-noche hover:underline">{m.imeiSn}</button>

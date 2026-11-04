@@ -40,7 +40,7 @@ export function StockTelefonosPage() {
   // «Quién lo tiene» se calcula a la hora de la carga (dataUpdatedAt): el sondeo de 60 s lo vuelve a calcular.
   const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
-  const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista }, setEstado] = useStore(estadoStockTelefonos)
+  const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista, queRevisar }, setEstado] = useStore(estadoStockTelefonos)
   // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
   const porPasar = usePorPasarTarjetas()
   const nPorPasar = totalPendientes(porPasar.data)
@@ -96,7 +96,8 @@ export function StockTelefonosPage() {
       </div>
       <BandaNsys />
       <div className="mb-3 flex shrink-0 flex-wrap items-center gap-4">
-        <BuscadorImei onElegir={abrir} onPegarVarios={setVarios} />
+        <BuscadorImei onElegir={abrir} onPegarVarios={setVarios}
+          palabras={vista === 'que-revisar' ? { texto: queRevisar.buscar, onTexto: (t) => setEstado((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: t } })) } : undefined} />
         <BotonSecundario onClick={() => setVarios('')}>Pegar varios IMEIs</BotonSecundario>
         <button type="button" role="switch" aria-checked={verNoCuenta} onClick={() => setEstado((e) => ({ ...e, verNoCuenta: !e.verNoCuenta }))}
           className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-azul-medio">

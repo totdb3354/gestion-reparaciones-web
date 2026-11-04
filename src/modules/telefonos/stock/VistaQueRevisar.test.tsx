@@ -5,6 +5,7 @@ import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
+import { estadoStockTelefonos } from './estado'
 import { listaRevisar, listaSubir } from './queRevisar'
 import { VistaQueRevisar } from './VistaQueRevisar'
 
@@ -161,5 +162,29 @@ describe('«Qué revisar» (spec 0.9.25 §3)', () => {
     pintar(STOCK.filter((m) => m.imeiSn !== '350000000000104'))
     expect(screen.queryByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Azul' })).not.toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Móviles de iPhone 15 Pro 256 GB Titanio natural' })).toBeInTheDocument()
+  })
+
+  it('la caja de arriba filtra las filas por palabras clave; las tarjetas siguen con todo', () => {
+    estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: '15 pro' } }))
+    pintar()
+    const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
+    expect(filas(tabla)).toHaveLength(1)
+    expect(tabla).toHaveTextContent('iPhone 15 Pro')
+    expect(tarjeta('Revisar sin grado')).toHaveTextContent('2 modelos-color · 2 móviles')
+  })
+
+  it('sin nada que coincida lo dice', () => {
+    estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: ' xyz ' } }))
+    pintar()
+    expect(screen.getByText('Ningún modelo-color con «xyz».')).toBeInTheDocument()
+  })
+
+  it('un trozo de IMEI de 6 cifras abre su modelo-color con el móvil resaltado', () => {
+    estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: '000101' } }))
+    pintar()
+    expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[0]).toHaveTextContent('iPhone 15 Pro')
+    const [primero, segundo] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 15 Pro 256 GB Titanio natural' }))
+    expect(primero).toHaveClass('bg-amarillo/40')
+    expect(segundo).not.toHaveClass('bg-amarillo/40')
   })
 })

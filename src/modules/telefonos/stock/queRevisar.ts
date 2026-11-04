@@ -178,7 +178,7 @@ export const avisoCopiadoLista = (n: number): string => `Copiada la lista: ${n} 
 export const MIN_IMEI = 6
 
 /** Para comparar: sin acentos, sin mayúsculas y sin espacios. */
-const plano = (texto: string): string => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '')
+const plano = (texto: string): string => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '')
 
 /** Las palabras clave de lo escrito en la caja, ya planas; ninguna si está vacía. */
 export const palabrasClave = (texto: string): string[] => texto.split(/\s+/).map(plano).filter(Boolean)

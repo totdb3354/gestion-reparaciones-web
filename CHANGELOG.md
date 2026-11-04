@@ -10,6 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
   - **Revisar sin grado**: los modelos-color con móviles sin grado (`n/a`) y como mucho un A en stock. Primero los que no tienen nada con grado, después los que no tienen ningún A y al final los que solo tienen uno; dentro, del modelo más nuevo al más antiguo y la capacidad de menor a mayor.
   - **Subir B a A**: los modelos-color con B y como mucho un A: candidatos a chasis (B → A; con batería nueva, B100 → A100).
 - Cada fila se despliega con sus IMEI, la ubicación, los días en stock y quién lo tiene. Un móvil con un trabajo abierto sale en gris y no cuenta. **«Copiar lista»** copia lo pendiente con el texto de la hoja MENSAJES, para pegarlo en WhatsApp.
+- En esa pestaña, la caja de arriba **busca por palabras clave**: «13 pro 256», «14 esim», un color, un SKU («i13128Azul») o un trozo de 6 cifras o más del IMEI (abre su modelo-color con el móvil resaltado). Deja solo las filas que coinciden; las tarjetas y «Copiar lista» siguen con todo. En «Móviles» y «Por pasar a NSYS» la caja sigue buscando IMEI.
 - «A» es A+, A o A-. Un móvil sale de la lista cuando NSYS o el taller le ponen grado.
 - Solo web: el servidor sigue en la 0.9.24. Sin migración.
 

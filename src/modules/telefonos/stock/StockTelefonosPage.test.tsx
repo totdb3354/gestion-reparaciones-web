@@ -599,6 +599,27 @@ describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
     await user.click(await screen.findByRole('switch', { name: 'Ver también lo que no cuenta como stock' }))
     expect(screen.getByRole('button', { name: 'Qué revisar (2)' })).toBeInTheDocument()
   })
+
+  it('en «Qué revisar» la caja de arriba busca por palabras clave; en «Móviles» sigue siendo de IMEI', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: 'Qué revisar (2)' }))
+    const caja = screen.getByRole('searchbox', { name: 'Buscar IMEI, modelo o SKU en Qué revisar' })
+    expect(caja).toHaveAttribute('placeholder', 'Buscar IMEI, modelo o SKU…')
+    await user.type(caja, 'rosa 128')
+    expect(caja).toHaveValue('rosa 128')
+    expect(screen.getByRole('table', { name: 'Revisar sin grado' })).toHaveTextContent('iPhone 13')
+    await user.clear(caja)
+    await user.type(caja, 'azul')
+    expect(screen.getByText('Ningún modelo-color con «azul».')).toBeInTheDocument()
+    expect(screen.getByRole('article', { name: 'Revisar sin grado' })).toHaveTextContent('1 modelo-color · 1 móvil')
+    expect(screen.getByRole('button', { name: 'Qué revisar (2)' })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Móviles encontrados' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Móviles' }))
+    const imei = screen.getByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' })
+    await user.type(imei, '13 5')
+    expect(imei).toHaveValue('135')
+  })
 })
 
 describe('el buscador de IMEI con la eSIM (0.9.24)', () => {
