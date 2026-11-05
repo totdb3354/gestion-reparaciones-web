@@ -3,17 +3,16 @@ import { nombreMovilNsys } from '@/shared/lib/telefonoNsys'
 import { compararCapacidades, compararModelos, cuentaComoStock, SIN_DATO, textoCapacidad, type Movil } from './modelo'
 import { palabraMoviles } from './porPasar'
 
-/** «Qué revisar» (0.9.25, spec «Qué revisar» §2 y §10): de los móviles en stock, los modelos-color con móviles sin grado, lo más
- *  pedido primero («Revisar sin grado»), y los que tienen B que pueden subir a A con un chasis («Subir B a A»). Sustituye a la
- *  hoja PriorizarRevision del Apps Script. Es puro: la pantalla le pasa los móviles ya preparados (con «Quién lo tiene») y los
- *  vendidos de los últimos {@link DIAS_PEDIDOS} días. */
+/** «Qué revisar» (0.9.25, spec «Qué revisar» §2 y §10): de los móviles en stock, los modelos-color en los que nada tiene grado,
+ *  lo que más queda sin revisar primero («Revisar sin grado», la tabla «Solo n/a» de la hoja, §10.10), y los que tienen B que
+ *  pueden subir a A con un chasis («Subir B a A»). Sustituye a la hoja PriorizarRevision del Apps Script. Es puro: la pantalla le
+ *  pasa los móviles ya preparados (con «Quién lo tiene»). */
 
-/** Como mucho tantos A en el modelo-color para salir en «Subir B a A» (spec §2.5; desde §10.1, ya no en «Revisar sin grado»). */
+/** Como mucho tantos A en el modelo-color para salir en «Subir B a A» (spec §2.5). En «Revisar sin grado» no se aplica. */
 export const MAX_A = 1
-/** «Pedidos 15 d» (spec §10.2): los vendidos de hoy y los 14 días anteriores, más los de pedido. */
-export const DIAS_PEDIDOS = 15
 
-// Con grado (spec §2.3): A+, A, A-, B+, B, B-, C con o sin Ms delante; Ms solo; ID, F, FD y RMA. Sin mirar mayúsculas.
+// Con grado (spec §2.3): A+, A, A-, B+, B, B-, C con o sin Ms delante; Ms solo; ID, F, FD y RMA. Sin mirar mayúsculas. F, FD y
+// RMA cuentan como revisados, pero no como grado vendible (§10.8: `gradoVendible`).
 const CON_GRADO = /^(?:ms(?:a\+|a-|a|b\+|b-|b|c)?|a\+|a-|a|b\+|b-|b|c|id|f|fd|rma)$/i
 const GRADO_A = /^(?:a\+|a-|a)$/i
 const GRADO_B = /^b$/i
@@ -21,8 +20,8 @@ const limpio = (grado: string | null | undefined): string => (grado ?? '').trim(
 
 /** ¿Tiene grado? Lo demás (`n/a`, vacío o un código que no es un grado) está sin revisar. */
 export const tieneGrado = (grado: string | null | undefined): boolean => CON_GRADO.test(limpio(grado))
-/** ¿Un grado con el que se puede vender? Como `tieneGrado` pero sin F, FD ni RMA: esos cuentan como revisados, pero no como
- *  grado para el motivo de «Revisar sin grado» ni para su columna «Con grado» (spec 0.9.25 §10.8). */
+/** ¿Un grado con el que se puede vender? Como `tieneGrado` pero sin F, FD ni RMA: esos cuentan como revisados, pero no sacan
+ *  su modelo-color de «Revisar sin grado» (spec 0.9.25 §10.8 y §10.10). */
 export const gradoVendible = (grado: string | null | undefined): boolean => tieneGrado(grado) && !/^(?:f|fd|rma)$/i.test(limpio(grado))
 /** A+, A o A-, sin Ms (la batería va aparte). */
 export const esA = (grado: string | null | undefined): boolean => GRADO_A.test(limpio(grado))
@@ -31,17 +30,8 @@ export const esB = (grado: string | null | undefined): boolean => GRADO_B.test(l
 /** Un móvil con algún trabajo abierto: sale en gris y no cuenta como pendiente (spec §2.6). */
 export const conTecnico = (m: Movil): boolean => (m.trabajos ?? []).length > 0
 
-export type Motivo = 'NADA' | 'NINGUN_A' | 'UN_A' | 'CON_A'
-export const TEXTO_MOTIVO: Record<Motivo, string> = { NADA: 'Nada con grado', NINGUN_A: 'Ningún A', UN_A: 'Solo 1 A', CON_A: 'Con A' }
-const ORDEN_MOTIVO: Record<Motivo, number> = { NADA: 0, NINGUN_A: 1, UN_A: 2, CON_A: 3 }
-
-/** Lo que hace falta de un móvil para saber su modelo-color: lo tienen los del stock y los vendidos de GET …/vendidos. */
-type ConModeloColor = { modelo: string | null; modeloMaestro: string | null; esEsim: boolean; capacidad: string | null; color: string | null }
-/** Un vendido de los últimos días (spec §10.2): `MovilVendido` de la API cumple este tipo. */
-export type Vendido = ConModeloColor & { imeiSn: string }
-
 /** La clave del modelo-color (spec §2.2): el modelo con « eSIM» si lo es, la capacidad y el color («—» si no se saben). */
-const claveDe = (m: ConModeloColor): string => `${nombreMovilNsys(m)}|${m.capacidad || SIN_DATO}|${m.color || SIN_DATO}`
+const claveDe = (m: Movil): string => `${nombreMovilNsys(m)}|${m.capacidad || SIN_DATO}|${m.color || SIN_DATO}`
 
 /** Lo común de un modelo-color de una lista: su clave, el nombre del modelo (con « eSIM»), la capacidad tal cual («128GB» o
  *  «—»), el color, cuántos A tiene en stock y cuáles, los móviles de esa lista, ordenados, y los SKU distintos de todos sus
@@ -50,10 +40,9 @@ export type GrupoBase = {
   clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; a: number; gradosA: string[]; skus: string[]
   moviles: Movil[]
 }
-/** `vendidos` y `dePedido`, los de «Pedidos 15 d»; `pedidos`, su suma, que manda en el orden (spec §10.2). */
-export type GrupoRevisar = GrupoBase & {
-  motivo: Motivo; pendientes: number; conTecnico: number; conGrado: number; vendidos: number; dePedido: number; pedidos: number
-}
+/** `pendientes`, los sin grado y sin técnico (el «Saldo stock» de la hoja), que mandan en el orden; `conTecnico`, los sin grado
+ *  que tiene un técnico (spec §10.10). */
+export type GrupoRevisar = GrupoBase & { pendientes: number; conTecnico: number }
 export type GrupoSubir = GrupoBase & { b: number; bTecnico: number; b100: number; b100Tecnico: number }
 
 type Grupo = { clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; todos: Movil[] }
@@ -94,37 +83,16 @@ function comun(g: Grupo, deLaLista: Movil[]): GrupoBase {
   }
 }
 
-/** Un IMEI para cruzar, como `NsysDAO.claveCruce` del servidor: sin espacios de más y en mayúsculas. */
-const claveImei = (imeiSn: string): string => imeiSn.trim().toUpperCase()
-
-const sumar = (mapa: Map<string, number>, clave: string) => mapa.set(clave, (mapa.get(clave) ?? 0) + 1)
-
-/** «Revisar sin grado» (spec §10.1): todos los modelos-color con algún móvil sin grado, lo más pedido primero («Pedidos 15 d»:
- *  los `vendidos` y los de pedido de su modelo-color) y, a igualdad, lo que más queda sin revisar; después, por motivo y en el
- *  orden de §2.7. En las cuentas de A y de «con grado» entran todos los móviles del grupo, los tenga un técnico o no. Un vendido
- *  que hoy está de pedido cuenta una vez, como de pedido. */
-export function listaRevisar(moviles: readonly Movil[], vendidos: readonly Vendido[] = []): GrupoRevisar[] {
-  const dePedido = new Map<string, number>()
-  const imeisDePedido = new Set<string>()
-  for (const m of moviles) {
-    if (m.estado !== 'DE_PEDIDO') continue
-    sumar(dePedido, claveDe(m))
-    imeisDePedido.add(claveImei(m.imeiSn))
-  }
-  const vendidosPorClave = new Map<string, number>()
-  for (const v of vendidos) if (!imeisDePedido.has(claveImei(v.imeiSn))) sumar(vendidosPorClave, claveDe(v))
+/** «Revisar sin grado» (spec §10.10), la tabla «Solo n/a» de la hoja: los modelos-color con algún móvil sin grado y ninguno con
+ *  un grado vendible (F, FD y RMA no cuentan, §10.8). Primero lo que más queda sin revisar (pendientes: sin grado y sin técnico)
+ *  y, a igualdad, el orden de §2.7. */
+export function listaRevisar(moviles: readonly Movil[]): GrupoRevisar[] {
   return grupos(moviles).flatMap((g): GrupoRevisar[] => {
     const sinGrado = g.todos.filter((m) => !tieneGrado(m.grado))
-    if (sinGrado.length === 0) return []
-    const base = comun(g, sinGrado)
-    const conGrado = g.todos.filter((x) => gradoVendible(x.grado)).length
+    if (sinGrado.length === 0 || g.todos.some((m) => gradoVendible(m.grado))) return []
     const tecnico = sinGrado.filter(conTecnico).length
-    const motivo: Motivo = conGrado === 0 ? 'NADA' : base.a === 0 ? 'NINGUN_A' : base.a === 1 ? 'UN_A' : 'CON_A'
-    const v = vendidosPorClave.get(g.clave) ?? 0
-    const p = dePedido.get(g.clave) ?? 0
-    return [{ ...base, motivo, pendientes: sinGrado.length - tecnico, conTecnico: tecnico, conGrado, vendidos: v, dePedido: p, pedidos: v + p }]
-  }).sort((x, y) => y.pedidos - x.pedidos || y.pendientes - x.pendientes || ORDEN_MOTIVO[x.motivo] - ORDEN_MOTIVO[y.motivo]
-    || compararGrupos(x, y))
+    return [{ ...comun(g, sinGrado), pendientes: sinGrado.length - tecnico, conTecnico: tecnico }]
+  }).sort((x, y) => y.pendientes - x.pendientes || compararGrupos(x, y))
 }
 
 /** «Subir B a A» (spec §2.5): los modelos-color con algún B y como mucho {@link MAX_A} A, en el orden de §2.7. */
@@ -170,25 +138,18 @@ export const tituloA = (g: GrupoBase): string => (g.a === 0 ? 'Ningún A' : `${g
 /** El paso de un B en «Subir B a A»: con batería nueva, B100 → A100. */
 export const pasoSubir = (m: Movil): string => (m.bateriaNueva ? 'B100 → A100' : 'B → A')
 
-/** La cabecera de «Pedidos 15 d»; si no se pudieron leer las ventas, lo dice (spec §10.2). */
-export const cabeceraPedidos = (sinVentas: boolean): string => (sinVentas ? 'Pedidos 15 d (sin ventas)' : 'Pedidos 15 d')
-export const TITULO_SIN_VENTAS = 'No se pudieron leer las ventas: solo cuentan los de pedido'
-/** Al pasar el ratón por «Pedidos 15 d»: «9 vendidos + 3 de pedido»; sin ventas, solo los de pedido. */
-export const tituloPedidos = (g: GrupoRevisar, sinVentas: boolean): string =>
-  sinVentas ? `${g.dePedido} de pedido (sin ventas)` : `${g.vendidos} ${g.vendidos === 1 ? 'vendido' : 'vendidos'} + ${g.dePedido} de pedido`
-
 export type TarjetaQR = 'revisar' | 'subir'
 export const TARJETAS_QR: readonly TarjetaQR[] = ['revisar', 'subir']
 export const NOMBRE_QR: Record<TarjetaQR, string> = { revisar: 'Revisar sin grado', subir: 'Subir B a A' }
 export const SUBTITULO_QR: Record<TarjetaQR, string> = {
-  revisar: 'n/a en stock, lo más pedido primero', subir: 'B y B100 de modelos con 0 o 1 A',
+  revisar: 'Solo n/a, lo que más queda primero', subir: 'B y B100 de modelos con 0 o 1 A',
 }
 export const AYUDA_QR: Record<TarjetaQR, string> = {
-  revisar: 'Los modelos-color con móviles sin grado (n/a). Primero lo que más se pide (vendidos en los últimos 15 días y de pedido ahora) y, a igualdad, lo que más queda sin revisar. Un móvil sale de la lista cuando NSYS o el taller le ponen grado.',
+  revisar: 'Los modelos-color en los que nada tiene grado, solo n/a (la tabla «Solo n/a» de la hoja). Primero lo que más queda sin revisar. Un modelo-color sale de la lista en cuanto NSYS o el taller le ponen grado a uno de sus móviles; F, FD y RMA no cuentan.',
   subir: 'Los modelos-color con móviles B y como mucho un A en stock: candidatos a chasis (B → A; con batería nueva, B100 → A100). Un móvil sale de la lista cuando su grado pasa a A.',
 }
 export const VACIA_QR: Record<TarjetaQR, string> = {
-  revisar: 'Nada que revisar: ningún móvil sin grado en stock.', subir: 'Ningún B que subir.',
+  revisar: 'Nada que revisar: ningún modelo-color con todo sin grado en stock.', subir: 'Ningún B que subir.',
 }
 export const PIE_QR = 'Solo cuenta lo que es stock. Un móvil con un trabajo abierto sale en gris y no cuenta ni va en el Excel. «A» es A+, A o A-, con o sin batería nueva.'
 export const SIN_PENDIENTE = 'No hay nada pendiente'
@@ -211,12 +172,12 @@ export const movilesExcel = (lista: readonly GrupoBase[]): number => lista.reduc
 const dias = (m: Movil): string => (m.dias === null ? SIN_DATO : String(m.dias))
 
 /** «Revisar sin grado» en el Excel: una fila por móvil, con «Revisado» vacía para marcar a boli. */
-export function excelRevisar(lista: readonly GrupoRevisar[], sinVentas: boolean): HojaExcel {
+export function excelRevisar(lista: readonly GrupoRevisar[]): HojaExcel {
   return {
     hoja: NOMBRE_QR.revisar,
-    columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', cabeceraPedidos(sinVentas), 'Revisado'],
+    columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', 'Revisado'],
     filas: lista.flatMap((g) => delExcel(g).map((m) => [
-      g.modelo, textoCapacidad(g.capacidad), g.color, m.imeiSn, m.ubicacion ?? SIN_DATO, dias(m), String(g.pedidos), '',
+      g.modelo, textoCapacidad(g.capacidad), g.color, m.imeiSn, m.ubicacion ?? SIN_DATO, dias(m), '',
     ])),
   }
 }

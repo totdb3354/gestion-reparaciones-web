@@ -3770,37 +3770,6 @@
         }
       }
     },
-    "/api/stock-telefonos/vendidos" : {
-      "get" : {
-        "tags" : [ "stock-telefonos-controller" ],
-        "operationId" : "vendidos",
-        "parameters" : [ {
-          "name" : "dias",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 15
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/StockTelefonosMovilVendido"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/stock-telefonos/por-pasar" : {
       "get" : {
         "tags" : [ "stock-telefonos-controller" ],
@@ -7614,38 +7583,6 @@
           },
           "sku" : {
             "type" : "string"
-          }
-        }
-      },
-      "StockTelefonosMovilVendido" : {
-        "required" : [ "capacidad", "color", "esEsim", "fechaVenta", "imeiSn", "modelo", "modeloMaestro" ],
-        "type" : "object",
-        "properties" : {
-          "imeiSn" : {
-            "type" : "string"
-          },
-          "modelo" : {
-            "type" : "string",
-            "nullable" : true
-          },
-          "modeloMaestro" : {
-            "type" : "string",
-            "nullable" : true
-          },
-          "esEsim" : {
-            "type" : "boolean"
-          },
-          "capacidad" : {
-            "type" : "string",
-            "nullable" : true
-          },
-          "color" : {
-            "type" : "string",
-            "nullable" : true
-          },
-          "fechaVenta" : {
-            "type" : "string",
-            "format" : "date"
           }
         }
       },

@@ -115,9 +115,7 @@ export type PeticionDeshacerDescarte = components['schemas']['PorPasarPeticionDe
  *  baja que ha vuelto; `OpcionesTaller` trae la batería recordada (`bateriaIdRep`, `bateriaNueva`, `bateriaEn`). */
 export type FilaSinGradoNsys = components['schemas']['FilaSinGradoNsys']
 
-/** 0.9.25 (spec «Qué revisar» §10.2 y §10.3): un vendido de los últimos días para «Pedidos 15 d» (`color`, el que vale;
- *  `fechaVenta`, día de Madrid) y la hoja que el servidor convierte en el Excel para imprimir (todo textos). */
-export type MovilVendido = components['schemas']['StockTelefonosMovilVendido']
+/** 0.9.25 (spec «Qué revisar» §10.3): la hoja que el servidor convierte en el Excel para imprimir (todo textos). */
 export type PeticionExcel = components['schemas']['StockTelefonosPeticionExcel']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),

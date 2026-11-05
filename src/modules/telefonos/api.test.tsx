@@ -11,9 +11,9 @@ import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import {
   useComprobarImeis, useDescargarExcel, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useEstadoNsys, useImportacionesNsys,
-  useMarcarHecho, usePorPasarTarjetas, useRevisarAviso, useStockTelefonos, useVendidos,
+  useMarcarHecho, usePorPasarTarjetas, useRevisarAviso, useStockTelefonos,
 } from './api'
-import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, movilVendido, tarjetas } from './test/fabrica'
+import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
 
 function envoltorio() {
   guardarSesion(SESION_SUPER)
@@ -157,19 +157,6 @@ describe('api del stock de teléfonos', () => {
       ['PUT', { imeiSn: 'SIN-IMEI-CAM', motivo: 'no es un móvil' }],
       ['DELETE', { imeiSn: 'SIN-IMEI-CAM' }],
     ])
-  })
-
-  it('los vendidos de «Qué revisar» piden los días y no preguntan con la pestaña cerrada (spec 0.9.25 §10.2)', async () => {
-    const pedidas: string[] = []
-    server.use(http.get('*/api/stock-telefonos/vendidos', ({ request }) => {
-      pedidas.push(new URL(request.url).searchParams.get('dias') ?? '')
-      return HttpResponse.json([movilVendido()])
-    }))
-    const cerrada = renderHook(() => useVendidos(15, false), { wrapper: envoltorio() })
-    expect(cerrada.result.current.fetchStatus).toBe('idle')
-    const abierta = renderHook(() => useVendidos(15, true), { wrapper: envoltorio() })
-    await waitFor(() => expect(abierta.result.current.data).toHaveLength(1))
-    expect(pedidas).toEqual(['15'])
   })
 
   it('el Excel de «Qué revisar» manda la hoja y guarda el xlsx que vuelve (spec 0.9.25 §10.3)', async () => {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type ListaImportaciones, type MovilComprobado, type MovilStock, type MovilVendido, type PeticionDeshacerHecho,
+  api, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
@@ -22,20 +22,6 @@ export function useStockTelefonos(): UseQueryResult<MovilStock[]> {
     queryKey: CLAVE_STOCK_TELEFONOS,
     queryFn: async () => (await api.GET('/api/stock-telefonos')).data ?? [],
     refetchInterval: intervalo,
-  })
-}
-
-/** GET /api/stock-telefonos/vendidos (spec 0.9.25 «Qué revisar» §10.2): los vendidos de los últimos `dias` días, para «Pedidos
- *  15 d». Solo pregunta con `activo` (la pestaña abierta) y sondea como el stock. Sin capa de carga ni diálogo de error: si
- *  falla, la tabla cuenta solo los de pedido y lo dice en la columna. */
-export function useVendidos(dias: number, activo: boolean): UseQueryResult<MovilVendido[]> {
-  const intervalo = useIntervaloRefresco(activo)
-  return useQuery({
-    queryKey: ['telefonos', 'vendidos', dias],
-    enabled: activo,
-    queryFn: async () => (await api.GET('/api/stock-telefonos/vendidos', { params: { query: { dias } } })).data ?? [],
-    refetchInterval: intervalo,
-    meta: { sinCapa: true, silenciarError: true },
   })
 }
 

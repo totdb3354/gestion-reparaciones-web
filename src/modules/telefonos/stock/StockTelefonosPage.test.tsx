@@ -5,7 +5,7 @@ import { Route, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { estadoNsys, filaColor, filaGrado, movil, movilBuscado, movilComprobado, movilVendido, tarjetas, trabajo } from '../test/fabrica'
+import { estadoNsys, filaColor, filaGrado, movil, movilBuscado, movilComprobado, tarjetas, trabajo } from '../test/fabrica'
 import { StockTelefonosPage } from './StockTelefonosPage'
 
 // iPhone 13: 128GB con 001 (Listos) y 003 (En revisión), 256GB con 006 y 512GB solo de pedido (007); además 002 de pedido
@@ -620,34 +620,6 @@ describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
     const imei = screen.getByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' })
     await user.type(imei, '13 5')
     expect(imei).toHaveValue('135')
-  })
-})
-
-describe('Stock de teléfonos: «Pedidos 15 d» en «Qué revisar» (spec 0.9.25 §10.2)', () => {
-  it('los vendidos solo se piden con la pestaña abierta y cuentan en su modelo-color', async () => {
-    const user = userEvent.setup()
-    const pedidas: string[] = []
-    server.use(http.get('*/api/stock-telefonos/vendidos', ({ request }) => {
-      pedidas.push(new URL(request.url).searchParams.get('dias') ?? '')
-      return HttpResponse.json([movilVendido({ imeiSn: '350000000000990', color: 'Rosa' })])
-    }))
-    abrir()
-    expect(await screen.findByText('4 móviles en stock')).toBeInTheDocument()
-    expect(pedidas).toEqual([])
-    await user.click(await screen.findByRole('button', { name: 'Qué revisar (2)' }))
-    expect(await screen.findByTitle('1 vendido + 0 de pedido')).toHaveTextContent('1')
-    expect(pedidas).toEqual(['15'])
-    expect(screen.getByRole('columnheader', { name: 'Pedidos 15 d' })).toBeInTheDocument()
-  })
-
-  it('si los vendidos fallan (un servidor anterior a la 0.9.25), la columna dice «sin ventas» y no sale ningún diálogo', async () => {
-    const user = userEvent.setup()
-    server.use(http.get('*/api/stock-telefonos/vendidos', () => HttpResponse.json({ message: 'NSYS no conoce el IMEI vendidos' }, { status: 404 })))
-    abrir()
-    await user.click(await screen.findByRole('button', { name: 'Qué revisar (2)' }))
-    expect(await screen.findByRole('columnheader', { name: 'Pedidos 15 d (sin ventas)' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Qué revisar (2)' })).toBeInTheDocument()
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   })
 })
 

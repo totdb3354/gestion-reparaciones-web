@@ -11,25 +11,18 @@ import { textoCapacidad, type Movil } from './modelo'
 import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
-  avisoDescargado, AYUDA_QR, cabeceraPedidos, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar,
-  imeiBuscado, movilesExcel, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
-  sinCoincidencias, SUBTITULO_QR, TARJETAS_QR, TEXTO_MOTIVO, textoCifra, tituloA, tituloPedidos,
-  TITULO_SIN_VENTAS, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir, type Motivo, type TarjetaQR,
+  avisoDescargado, AYUDA_QR, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar, imeiBuscado,
+  movilesExcel, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE, sinCoincidencias,
+  SUBTITULO_QR, TARJETAS_QR, textoCifra, tituloA, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir,
+  type TarjetaQR,
 } from './queRevisar'
 
-/** `sinVentas`: no se pudieron leer los vendidos; «Pedidos 15 d» cuenta solo los de pedido y lo dice (spec §10.2). */
 type Props = {
-  revisar: GrupoRevisar[]; subir: GrupoSubir[]; sinVentas: boolean; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void
+  revisar: GrupoRevisar[]; subir: GrupoSubir[]; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void
 }
 
 /** El borde de arriba de cada tarjeta (prototipo «Qué revisar»): ámbar el de sin grado y violeta el de B. */
 const BORDE: Record<TarjetaQR, string> = { revisar: 'border-t-fila-solicitud-brd', subir: 'border-t-tipo-pulido-text' }
-/** La pastilla del motivo: rojo, naranja, ámbar y gris (spec §10.1). */
-const MOTIVO: Record<Motivo, string> = {
-  NADA: 'bg-urgente-bg text-fila-urgente-brd', NINGUN_A: 'bg-aviso-conflicto-bg text-aviso-conflicto-text', UN_A: 'bg-fila-solicitud-bg text-fila-solicitud-brd',
-  CON_A: 'bg-crema text-azul-gris',
-}
-const PASTILLA = 'inline-block rounded px-1.5 text-[10.5px] font-bold whitespace-nowrap'
 const CELDA = 'px-2 py-1.5 align-top'
 const NUM = cn(CELDA, 'text-right whitespace-nowrap tabular-nums')
 const GRIS = 'ml-1 text-[11px] text-azul-gris'
@@ -38,8 +31,8 @@ const PRIMARIO = 'h-[26px] cursor-pointer rounded-lg bg-azul-noche px-2.5 text-[
 const CAMBIA_GRADO = 'inline-block rounded border border-tipo-reparacion-bg bg-tipo-reparacion-bg px-1.5 font-bold text-tipo-reparacion-text'
 
 /** «Qué revisar» (0.9.25, spec «Qué revisar» §3 y §10): dos tarjetas como «Por pasar a NSYS», la ayuda y «⬇ Descargar Excel», y la tabla de la elegida, con una fila por modelo-color que se despliega con sus
- *  móviles. Solo se mira: las listas salen del stock que ya tiene la página y de los vendidos. */
-export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, onAbrirImei }: Props) {
+ *  móviles. Solo se mira: las listas salen del stock que ya tiene la página. */
+export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }: Props) {
   const [{ queRevisar }, setEstado] = useStore(estadoStockTelefonos)
   const elegida = queRevisar.tarjeta
   // Lo desplegado, por tarjeta y modelo-color: sigue desplegado cuando el sondeo trae el stock nuevo y al volver del detalle del IMEI.
@@ -70,7 +63,7 @@ export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, on
       const nombre = nombreExcel(elegida)
       const destino = await elegirDestino(nombre, TIPO_XLSX)
       if (destino === 'cancelado') return
-      const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar, sinVentas) : excelSubir(visiblesSubir)
+      const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar) : excelSubir(visiblesSubir)
       descargar.mutate({ hoja, nombre, destino }, { onSuccess: () => avisar({ texto: avisoDescargado(hoja.filas.length), tipo: 'ok' }) })
     } finally {
       abierto.current = false
@@ -104,7 +97,7 @@ export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, on
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
         {mensaje !== null ? <p className="p-4 text-[12px] text-azul-gris">{mensaje}</p>
           : elegida === 'revisar'
-            ? <TablaRevisar grupos={visiblesRevisar} palabras={palabras} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} sinVentas={sinVentas} />
+            ? <TablaRevisar grupos={visiblesRevisar} palabras={palabras} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} />
             : <TablaSubir grupos={visiblesSubir} palabras={palabras} abiertos={abiertos} onAlternar={alternar} onAbrirImei={onAbrirImei} />}
       </div>
       <p className="shrink-0 text-[11.5px] text-azul-gris">{PIE_QR}</p>
@@ -114,13 +107,12 @@ export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, on
 
 type TablaProps<G> = { grupos: G[]; palabras: readonly string[]; abiertos: ReadonlySet<string>; onAlternar: (clave: string) => void; onAbrirImei: (imeiSn: string) => void }
 
-/** `titulos`: el texto al pasar el ratón de alguna cabecera, por su nombre. */
-function Cabecera({ columnas, desdeDerecha, titulos = {} }: { columnas: string[]; desdeDerecha: number; titulos?: Record<string, string> }) {
+function Cabecera({ columnas, desdeDerecha }: { columnas: string[]; desdeDerecha: number }) {
   return (
     <thead className="sticky top-0 bg-crema">
       <tr>
         {columnas.map((c, i) => (
-          <th key={c} scope="col" title={titulos[c]} className={cn('px-2 py-1.5 font-bold whitespace-nowrap', i >= desdeDerecha ? 'text-right' : 'text-left')}>{c}</th>
+          <th key={c} scope="col" className={cn('px-2 py-1.5 font-bold whitespace-nowrap', i >= desdeDerecha ? 'text-right' : 'text-left')}>{c}</th>
         ))}
       </tr>
     </thead>
@@ -146,12 +138,13 @@ function CeldaA({ g }: { g: GrupoBase }) {
   return <td className={NUM} title={tituloA(g)}>{g.a}{g.a > 0 && <span className={GRIS}>{g.gradosA.join(', ')}</span>}</td>
 }
 
-function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei, sinVentas }: TablaProps<GrupoRevisar> & { sinVentas: boolean }) {
-  const pedidos = cabeceraPedidos(sinVentas)
-  const columnas = ['Motivo', 'Modelo', 'Cap.', 'Color', 'Sin grado', pedidos, 'A en stock', 'Con grado']
+/** «Revisar sin grado» (spec §10.10): como «Solo n/a» de la hoja, sin motivo, «A en stock» ni «Con grado» (todo sería «Nada con
+ *  grado», 0 y 0). */
+function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoRevisar>) {
+  const columnas = ['Modelo', 'Cap.', 'Color', 'Sin grado']
   return (
     <table aria-label="Revisar sin grado" className="w-full border-collapse text-[12.5px] text-azul-medio">
-      <Cabecera columnas={columnas} desdeDerecha={4} titulos={sinVentas ? { [pedidos]: TITULO_SIN_VENTAS } : {}} />
+      <Cabecera columnas={columnas} desdeDerecha={3} />
       <tbody>
         {grupos.map((g) => {
           const clave = `revisar|${g.clave}`
@@ -159,17 +152,10 @@ function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei, sin
           return (
             <Fragment key={g.clave}>
               <tr onClick={() => onAlternar(clave)} className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', g.pendientes === 0 && SUAVE)}>
-                <td className={cn(CELDA, 'whitespace-nowrap')}>
-                  <Desplegar g={g} abierto={abierto} onAlternar={() => onAlternar(clave)} />
-                  <span className={cn(PASTILLA, MOTIVO[g.motivo], g.pendientes === 0 && 'opacity-60')}>{TEXTO_MOTIVO[g.motivo]}</span>
-                </td>
-                <td className={CELDA}>{g.modelo}</td>
+                <td className={cn(CELDA, 'whitespace-nowrap')}><Desplegar g={g} abierto={abierto} onAlternar={() => onAlternar(clave)} />{g.modelo}</td>
                 <td className={cn(CELDA, 'whitespace-nowrap')}>{textoCapacidad(g.capacidad)}</td>
                 <td className={CELDA}>{g.color}</td>
                 <td className={NUM}><Cuenta n={g.pendientes} tecnico={g.conTecnico} /></td>
-                <td className={NUM} title={tituloPedidos(g, sinVentas)}>{g.pedidos}</td>
-                <CeldaA g={g} />
-                <td className={NUM}>{g.conGrado}</td>
               </tr>
               {abierto && <Moviles g={g} palabras={palabras} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <PildoraGrado grado={m.grado} />} />}
             </Fragment>

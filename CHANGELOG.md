@@ -7,13 +7,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 ## [0.9.25] - (pendiente) — «Qué revisar» en Stock de teléfonos
 
 - **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el último Items de NSYS y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):
-  - **Revisar sin grado**: todos los modelos-color con móviles sin grado (`n/a`). Primero **lo que más se pide**, en la columna **«Pedidos 15 d»** (los vendidos en los últimos 15 días más los que están de pedido; al pasar el ratón, «9 vendidos + 3 de pedido») y, a igualdad, lo que más queda sin revisar. Cada fila dice su motivo: «Nada con grado», «Ningún A», «Solo 1 A» o «Con A» (2 o más).
+  - **Revisar sin grado**: los modelos-color en los que todo está sin grado (`n/a`), como la tabla «Solo n/a» de la hoja. Primero **lo que más queda sin revisar** y, a igualdad, por modelo, capacidad y color. En cuanto NSYS o el taller le ponen grado a uno de sus móviles, el modelo-color sale de la lista; F, FD y RMA no cuentan como grado. Columnas: Modelo, Cap., Color y Sin grado (con «+1 con técnico» si hay).
   - **Subir B a A**: los modelos-color con B y como mucho un A: candidatos a chasis (B → A; con batería nueva, B100 → A100).
 - Cada fila se despliega con sus IMEI, la ubicación, los días en stock y quién lo tiene. Un móvil con un trabajo abierto sale en gris y no cuenta.
 - **«⬇ Descargar Excel (N)»**, encima de la tabla: un Excel para imprimir, con un móvil por fila (lo que se ve, sin los del técnico) y una columna vacía, «Revisado» o «Hecho», para marcar a boli. Sale apaisado, a una página de ancho y con la cabecera en cada página. Abre «Guardar como» con el nombre ya puesto (`Que_revisar_sin_grado_2026-11-04.xlsx`).
 - En esa pestaña, la caja de arriba **busca por palabras clave**: «13 pro 256», «14 esim», un color, un SKU («i13128Azul») o un trozo de 6 cifras o más del IMEI (abre su modelo-color con el móvil resaltado). Deja solo las filas que coinciden, también en el Excel; las tarjetas siguen con todo. En «Móviles» y «Por pasar a NSYS» la caja sigue buscando IMEI.
-- «A» es A+, A o A-. Un móvil sale de la lista cuando NSYS o el taller le ponen grado.
-- Servidor y web, sin migración: el servidor da los vendidos de los últimos días (`GET /api/stock-telefonos/vendidos`) y escribe el Excel (`POST /api/stock-telefonos/que-revisar/excel`). Con el servidor de la 0.9.24, «Pedidos 15 d» cuenta solo los de pedido (y lo dice) y el Excel no se puede descargar.
+- «A» es A+, A o A-.
+- Servidor y web, sin migración: el servidor solo escribe el Excel (`POST /api/stock-telefonos/que-revisar/excel`). Con el servidor de la 0.9.24, el Excel no se puede descargar y lo demás funciona.
 
 ## [0.9.24] - 2026-11-03 — La descripción del móvil dice si es eSIM
 

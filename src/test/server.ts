@@ -12,7 +12,6 @@ import { setupServer } from 'msw/node'
  * Y desde la 0.9.22, las tarjetas de «Por pasar a NSYS» (vacías).
  * Y desde la 0.9.21, la previa del SKU del taller (fuera de NSYS).
  * Y desde la 0.9.23, «Comprobar una lista de IMEIs»: todos en NSYS (el modal de asignación pregunta por cada IMEI que se pica).
- * Y desde la 0.9.25, los vendidos de «Qué revisar» (ninguno).
  */
 export const server = setupServer(
   http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
@@ -42,8 +41,6 @@ export const server = setupServer(
     HttpResponse.json({ importaciones: [], historico: { total: 0, hechos: 0, ultimo: null, hasta: null } })),
   http.get('*/api/stock-telefonos/por-pasar/tarjetas', () => HttpResponse.json({ color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [] })),
   http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([])),
-  // 0.9.25: «Qué revisar» pide los vendidos de los últimos 15 días. Por defecto, ninguno.
-  http.get('*/api/stock-telefonos/vendidos', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn/rastro', () => HttpResponse.json([])),
   http.get('*/api/stock-telefonos/:imeiSn', () => HttpResponse.json({ message: 'NSYS no conoce el IMEI' }, { status: 404 })),
   // 0.9.23: el modal de asignación pregunta a NSYS por cada IMEI que se pica o se pega. Por defecto NSYS los conoce todos (no
