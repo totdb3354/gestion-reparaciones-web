@@ -13,7 +13,7 @@ import { PildoraGrado } from './PildoraGrado'
 import {
   avisoDescargado, AYUDA_QR, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar, imeiBuscado,
   movilesExcel, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE, sinCoincidencias,
-  SUBTITULO_QR, TARJETAS_QR, textoCifra, tituloA, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir,
+  SUBTITULO_QR, TARJETAS_QR, textoCifra, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir,
   type TarjetaQR,
 } from './queRevisar'
 
@@ -134,10 +134,6 @@ function Cuenta({ n, tecnico }: { n: number; tecnico: number }) {
   return <>{n}{tecnico > 0 && <span className={GRIS}>{`+${tecnico} con técnico`}</span>}</>
 }
 
-function CeldaA({ g }: { g: GrupoBase }) {
-  return <td className={NUM} title={tituloA(g)}>{g.a}{g.a > 0 && <span className={GRIS}>{g.gradosA.join(', ')}</span>}</td>
-}
-
 /** «Revisar sin grado» (spec §10.10): como «Solo n/a» de la hoja, sin motivo, «A en stock» ni «Con grado» (todo sería «Nada con
  *  grado», 0 y 0). */
 function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoRevisar>) {
@@ -167,7 +163,7 @@ function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: T
 }
 
 function TablaSubir({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoSubir>) {
-  const columnas = ['Modelo', 'Cap.', 'Color', 'A en stock', 'B', 'B100']
+  const columnas = ['Modelo', 'Cap.', 'Color', 'B', 'B100']
   return (
     <table aria-label="Subir B a A" className="w-full border-collapse text-[12.5px] text-azul-medio">
       <Cabecera columnas={columnas} desdeDerecha={3} />
@@ -181,7 +177,6 @@ function TablaSubir({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: Tab
                 <td className={cn(CELDA, 'whitespace-nowrap')}><Desplegar g={g} abierto={abierto} onAlternar={() => onAlternar(clave)} />{g.modelo}</td>
                 <td className={cn(CELDA, 'whitespace-nowrap')}>{textoCapacidad(g.capacidad)}</td>
                 <td className={CELDA}>{g.color}</td>
-                <CeldaA g={g} />
                 <td className={NUM}><Cuenta n={g.b} tecnico={g.bTecnico} /></td>
                 <td className={NUM}><Cuenta n={g.b100} tecnico={g.b100Tecnico} /></td>
               </tr>

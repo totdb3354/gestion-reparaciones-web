@@ -5,7 +5,7 @@ import type { Movil } from './modelo'
 import {
   avisoDescargado, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar, imeiBuscado,
   listaRevisar, listaSubir, MAX_A, movilesExcel, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias, textoCifra,
-  gradoVendible, tieneGrado, tituloA, totalQueRevisar, type GrupoRevisar,
+  gradoVendible, tieneGrado, totalQueRevisar, type GrupoRevisar,
 } from './queRevisar'
 
 let n = 0
@@ -57,7 +57,7 @@ describe('«Qué revisar»: qué grado tiene cada móvil (spec 0.9.25 §2.3)', (
     for (const g of ['MsA', 'B', 'n/a', null]) expect(esA(g), String(g)).toBe(false)
     for (const g of ['B', 'b']) expect(esB(g), g).toBe(true)
     for (const g of ['B+', 'B-', 'MsB', 'A', null]) expect(esB(g), String(g)).toBe(false)
-    expect(MAX_A).toBe(1)
+    expect(MAX_A).toBe(0)
   })
 })
 
@@ -84,7 +84,7 @@ describe('«Qué revisar»: Revisar sin grado, como «Solo n/a» de la hoja (spe
 
   it('cada modelo-color lleva sus móviles y solo dos cuentas, pendientes y con técnico: sin motivo, «Con grado» ni pedidos', () => {
     const [g] = listaRevisar([m({ ...N16, grado: 'n/a' })])
-    expect(Object.keys(g).sort()).toEqual(['a', 'capacidad', 'clave', 'color', 'conTecnico', 'esEsim', 'gradosA', 'modelo', 'moviles', 'pendientes', 'skus'])
+    expect(Object.keys(g).sort()).toEqual(['a', 'capacidad', 'clave', 'color', 'conTecnico', 'esEsim', 'modelo', 'moviles', 'pendientes', 'skus'])
   })
 
   it('primero lo que más queda sin revisar y, a igualdad, por modelo; los del técnico no cuentan; fuera lo que tiene grado y lo que no es stock', () => {
@@ -148,22 +148,36 @@ describe('«Qué revisar»: Revisar sin grado, como «Solo n/a» de la hoja (spe
   })
 })
 
-describe('«Qué revisar»: Subir B a A (spec 0.9.25 §2.5)', () => {
-  it('B y B100 de modelos con 0 o 1 A, en el orden de los modelos; el MsB no sale', () => {
+describe('«Qué revisar»: Subir B a A, solo con ningún A (spec 0.9.25 §10.11)', () => {
+  it('B y B100 de modelos sin ningún A, en el orden de los modelos; el MsB no sale ni el que tiene un A', () => {
     const lista = listaSubir(STOCK)
-    expect(lista.map(descripcion)).toEqual(['iPhone 14 eSIM 128 GB Medianoche', 'iPhone 13 512 GB Azul', 'iPhone 11 64 GB Negro'])
-    expect(lista.map(({ b, bTecnico, b100, b100Tecnico }) => [b, bTecnico, b100, b100Tecnico])).toEqual([[0, 0, 1, 0], [1, 1, 0, 0], [1, 0, 1, 0]])
-    expect(lista[2].moviles.map(pasoSubir)).toEqual(['B → A', 'B100 → A100'])
-    expect(cifraSubir(lista)).toEqual({ grupos: 3, moviles: 4 })
-    expect(totalQueRevisar(listaRevisar(STOCK), lista)).toBe(7)
+    expect(lista.map(descripcion)).toEqual(['iPhone 14 eSIM 128 GB Medianoche', 'iPhone 13 512 GB Azul'])
+    expect(lista.map(({ b, bTecnico, b100, b100Tecnico }) => [b, bTecnico, b100, b100Tecnico])).toEqual([[0, 0, 1, 0], [1, 1, 0, 0]])
+    expect(lista.map((g) => g.a)).toEqual([0, 0])
+    expect(cifraSubir(lista)).toEqual({ grupos: 2, moviles: 2 })
+    expect(totalQueRevisar(listaRevisar(STOCK), lista)).toBe(6)
   })
 
-  it('«A en stock» cuenta todos los A del modelo-color y su título dice cuáles', () => {
-    const [e14, , n11] = listaSubir(STOCK)
-    expect([e14.a, e14.gradosA, tituloA(e14)]).toEqual([0, [], 'Ningún A'])
-    expect([n11.a, n11.gradosA, tituloA(n11)]).toEqual([1, ['A'], '1 A'])
-    const [a13] = listaSubir([m({ ...A13, grado: 'B' }), m({ ...A13, grado: 'A+' })])
-    expect(tituloA(a13)).toBe('1 A+')
+  const subir = (...grados: Partial<MovilStock>[]) => listaSubir(grados.map((g) => m({ ...N11, ...g }))).map(descripcion)
+  const NEGRO = ['iPhone 11 64 GB Negro']
+
+  it('con un A (A, A+ o A-, con o sin batería nueva) y un B o un B100, ya no sale', () => {
+    expect(subir({ grado: 'A' }, { grado: 'B' })).toEqual([])
+    expect(subir({ grado: 'A+' }, { grado: 'B' })).toEqual([])
+    expect(subir({ grado: 'A-', bateriaNueva: true }, { grado: 'B', bateriaNueva: true })).toEqual([])
+    expect(subir({ grado: 'A' }, { grado: 'B', bateriaNueva: true })).toEqual([])
+  })
+
+  it('con ningún A y un B, o solo un B100, sale', () => {
+    expect(subir({ grado: 'B' })).toEqual(NEGRO)
+    expect(subir({ grado: 'B', bateriaNueva: true })).toEqual(NEGRO)
+    expect(subir({ grado: 'B' }, { grado: 'n/a' }, { grado: 'MsA' })).toEqual(NEGRO)
+    const [g] = listaSubir([m({ ...N11, grado: 'B', dias: 2 }), m({ ...N11, grado: 'B', bateriaNueva: true, dias: 1 })])
+    expect(g.moviles.map(pasoSubir)).toEqual(['B → A', 'B100 → A100'])
+  })
+
+  it('un A con técnico también cuenta: el modelo-color no sale', () => {
+    expect(subir({ grado: 'A', trabajos: [trabajo({ tecnico: 'Técnico A' })] }, { grado: 'B' })).toEqual([])
   })
 })
 
@@ -196,7 +210,6 @@ describe('«Qué revisar»: el Excel (spec 0.9.25 §10.3 y §10.10)', () => {
       m({ ...N11, grado: 'B', bateriaNueva: true, dias: 11, imeiSn: '350000000000302', ubicacion: 'Taller · Pulir',
         trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
       m({ ...N11, grado: 'B', bateriaNueva: true, dias: 30, imeiSn: '350000000000303' }),
-      m({ ...N11, grado: 'A' }),
     ])
     expect(excelSubir(lista)).toEqual({
       hoja: 'Subir B a A',

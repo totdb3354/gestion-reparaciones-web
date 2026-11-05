@@ -14,8 +14,9 @@ import { VistaQueRevisar } from './VistaQueRevisar'
 
 const P15 = { modelo: '15pro', modeloMaestro: '15 PRO', capacidad: '256GB', color: 'Titanio natural' }
 const N11 = { modelo: '11', modeloMaestro: '11', capacidad: '64GB', color: 'Negro' }
+const B11 = { ...N11, color: 'Blanco' }
 // Revisar: 15 Pro (1 pendiente +1 con técnico), 13 128 Azul (1 pendiente; su F no cuenta como grado, spec §10.8) y 12 Pro (solo
-// con técnico: en gris). Subir: 11 Negro (B → A y B100 → A100; con su A no sale en «Revisar sin grado»).
+// con técnico: en gris). Subir: 11 Blanco (B → A y B100 → A100, ningún A). El 11 Negro tiene un A: no sale en «Revisar sin grado» ni en «Subir B a A».
 const STOCK: Movil[] = [
   visto({ imeiSn: '350000000000101', ...P15, grado: 'n/a', dias: 41, ubicacion: 'En revisión' }),
   visto({ imeiSn: '350000000000102', ...P15, grado: 'n/a', dias: 23, ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
@@ -23,8 +24,8 @@ const STOCK: Movil[] = [
     ubicacion: 'Taller · Glass', trabajos: [trabajo({ categoria: 'GLASS', tecnico: 'Técnico B' })] }),
   visto({ imeiSn: '350000000000104', grado: 'n/a', ubicacion: 'En revisión' }),
   visto({ imeiSn: '350000000000105', grado: 'F' }),
-  visto({ imeiSn: '350000000000106', ...N11, grado: 'B', dias: 25 }),
-  visto({ imeiSn: '350000000000107', ...N11, grado: 'B', bateriaNueva: true, dias: 11 }),
+  visto({ imeiSn: '350000000000106', ...B11, grado: 'B', dias: 25 }),
+  visto({ imeiSn: '350000000000107', ...B11, grado: 'B', bateriaNueva: true, dias: 11 }),
   visto({ imeiSn: '350000000000108', ...N11, grado: 'A' }),
   visto({ imeiSn: '350000000000109', ...N11, grado: 'n/a' }),
 ]
@@ -57,7 +58,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('2 modelos-color · 2 móviles')
     expect(within(tarjeta('Revisar sin grado')).getByText('Solo n/a, lo que más queda primero')).toBeInTheDocument()
     expect(tarjeta('Subir B a A')).toHaveTextContent('1 modelo-color · 2 móviles')
-    expect(tarjeta('Subir B a A')).toHaveTextContent('B y B100 de modelos con 0 o 1 A')
+    expect(tarjeta('Subir B a A')).toHaveTextContent('B y B100 de modelos sin ningún A')
     for (const t of ['Revisar sin grado', 'Subir B a A']) expect(within(tarjeta(t)).getAllByRole('button')).toHaveLength(1)
     expect(screen.queryByRole('button', { name: /^Copiar lista/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Revisar sin grado' })).toHaveAttribute('aria-pressed', 'true')
@@ -175,13 +176,13 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     pintar()
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
     const tabla = screen.getByRole('table', { name: 'Subir B a A' })
-    expect(cabeceras(tabla)).toEqual(['Modelo', 'Cap.', 'Color', 'A en stock', 'B', 'B100'])
-    expect(filas(tabla).map(celdas)).toEqual([['▸iPhone 11', '64 GB', 'Negro', '1A', '1', '1']])
-    expect(within(filas(tabla)[0]).getByTitle('1 A')).toHaveTextContent('1A')
-    expect(screen.getByText(/^Los modelos-color con móviles B y como mucho un A en stock: candidatos a chasis/)).toBeInTheDocument()
+    expect(cabeceras(tabla)).toEqual(['Modelo', 'Cap.', 'Color', 'B', 'B100'])
+    expect(filas(tabla).map(celdas)).toEqual([['▸iPhone 11', '64 GB', 'Blanco', '1', '1']])
+    expect(screen.getByText('Los modelos-color con móviles B y ningún A en stock: candidatos a chasis (B → A; con batería nueva, B100 → A100). Un modelo-color sale de la lista en cuanto tiene un A.')).toBeInTheDocument()
+    expect(screen.queryByText('A en stock')).not.toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: /3 o más/ })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 11 64 GB Negro' }))
-    const [b, b100] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Negro' }))
+    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 11 64 GB Blanco' }))
+    const [b, b100] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Blanco' }))
     expect(b).toHaveTextContent('B → A')
     expect(b100).toHaveTextContent('B100 → A100')
     expect(screen.getByRole('button', { name: '⬇ Descargar Excel (2)' })).toBeEnabled()
@@ -238,11 +239,11 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const user = userEvent.setup()
     const primero = pintar()
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
-    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 11 64 GB Negro' }))
+    await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 11 64 GB Blanco' }))
     primero.unmount()
     pintar()
     expect(screen.getByRole('button', { name: 'Subir B a A' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Negro' })).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Blanco' })).toBeInTheDocument()
   })
 
   it('con el sondeo, lo desplegado sigue desplegado y un modelo-color que se queda sin nada desaparece', async () => {

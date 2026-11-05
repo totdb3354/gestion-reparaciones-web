@@ -8,8 +8,9 @@ import { palabraMoviles } from './porPasar'
  *  pueden subir a A con un chasis («Subir B a A»). Sustituye a la hoja PriorizarRevision del Apps Script. Es puro: la pantalla le
  *  pasa los móviles ya preparados (con «Quién lo tiene»). */
 
-/** Como mucho tantos A en el modelo-color para salir en «Subir B a A» (spec §2.5). En «Revisar sin grado» no se aplica. */
-export const MAX_A = 1
+/** Como mucho tantos A en el modelo-color para salir en «Subir B a A»: ninguno, como la hoja (spec §10.11). En «Revisar sin
+ *  grado» no se aplica. */
+export const MAX_A = 0
 
 // Con grado (spec §2.3): A+, A, A-, B+, B, B-, C con o sin Ms delante; Ms solo; ID, F, FD y RMA. Sin mirar mayúsculas. F, FD y
 // RMA cuentan como revisados, pero no como grado vendible (§10.8: `gradoVendible`).
@@ -34,10 +35,10 @@ export const conTecnico = (m: Movil): boolean => (m.trabajos ?? []).length > 0
 const claveDe = (m: Movil): string => `${nombreMovilNsys(m)}|${m.capacidad || SIN_DATO}|${m.color || SIN_DATO}`
 
 /** Lo común de un modelo-color de una lista: su clave, el nombre del modelo (con « eSIM»), la capacidad tal cual («128GB» o
- *  «—»), el color, cuántos A tiene en stock y cuáles, los móviles de esa lista, ordenados, y los SKU distintos de todos sus
+ *  «—»), el color, cuántos A tiene en stock, los móviles de esa lista, ordenados, y los SKU distintos de todos sus
  *  móviles (para buscar; un `n/a` casi nunca tiene). */
 export type GrupoBase = {
-  clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; a: number; gradosA: string[]; skus: string[]
+  clave: string; modelo: string; capacidad: string; color: string; esEsim: boolean; a: number; skus: string[]
   moviles: Movil[]
 }
 /** `pendientes`, los sin grado y sin técnico (el «Saldo stock» de la hoja), que mandan en el orden; `conTecnico`, los sin grado
@@ -74,10 +75,8 @@ function compararGrupos(x: GrupoBase, y: GrupoBase): number {
 }
 
 function comun(g: Grupo, deLaLista: Movil[]): GrupoBase {
-  const conA = g.todos.filter((m) => esA(m.grado))
   return {
-    clave: g.clave, modelo: g.modelo, capacidad: g.capacidad, color: g.color, esEsim: g.esEsim, a: conA.length,
-    gradosA: conA.map((m) => limpio(m.grado)),
+    clave: g.clave, modelo: g.modelo, capacidad: g.capacidad, color: g.color, esEsim: g.esEsim, a: g.todos.filter((m) => esA(m.grado)).length,
     skus: [...new Set(g.todos.flatMap((m) => (m.sku ? [m.sku] : [])))],
     moviles: ordenarMoviles(deLaLista),
   }
@@ -95,7 +94,7 @@ export function listaRevisar(moviles: readonly Movil[]): GrupoRevisar[] {
   }).sort((x, y) => y.pendientes - x.pendientes || compararGrupos(x, y))
 }
 
-/** «Subir B a A» (spec §2.5): los modelos-color con algún B y como mucho {@link MAX_A} A, en el orden de §2.7. */
+/** «Subir B a A» (spec §10.11): los modelos-color con algún B o B100 y ningún A ({@link MAX_A}), en el orden de §2.7. */
 export function listaSubir(moviles: readonly Movil[]): GrupoSubir[] {
   return grupos(moviles).flatMap((g): GrupoSubir[] => {
     const bs = g.todos.filter((m) => esB(m.grado))
@@ -132,9 +131,6 @@ export function descripcion(g: GrupoBase): string {
     .filter(Boolean).join(' ')
 }
 
-/** El título de «A en stock»: «1 A+», o «Ningún A». */
-export const tituloA = (g: GrupoBase): string => (g.a === 0 ? 'Ningún A' : `${g.a} ${g.gradosA.join(', ')}`)
-
 /** El paso de un B en «Subir B a A»: con batería nueva, B100 → A100. */
 export const pasoSubir = (m: Movil): string => (m.bateriaNueva ? 'B100 → A100' : 'B → A')
 
@@ -142,11 +138,11 @@ export type TarjetaQR = 'revisar' | 'subir'
 export const TARJETAS_QR: readonly TarjetaQR[] = ['revisar', 'subir']
 export const NOMBRE_QR: Record<TarjetaQR, string> = { revisar: 'Revisar sin grado', subir: 'Subir B a A' }
 export const SUBTITULO_QR: Record<TarjetaQR, string> = {
-  revisar: 'Solo n/a, lo que más queda primero', subir: 'B y B100 de modelos con 0 o 1 A',
+  revisar: 'Solo n/a, lo que más queda primero', subir: 'B y B100 de modelos sin ningún A',
 }
 export const AYUDA_QR: Record<TarjetaQR, string> = {
   revisar: 'Los modelos-color en los que nada tiene grado, solo n/a (la tabla «Solo n/a» de la hoja). Primero lo que más queda sin revisar. Un modelo-color sale de la lista en cuanto NSYS o el taller le ponen grado a uno de sus móviles; F, FD y RMA no cuentan.',
-  subir: 'Los modelos-color con móviles B y como mucho un A en stock: candidatos a chasis (B → A; con batería nueva, B100 → A100). Un móvil sale de la lista cuando su grado pasa a A.',
+  subir: 'Los modelos-color con móviles B y ningún A en stock: candidatos a chasis (B → A; con batería nueva, B100 → A100). Un modelo-color sale de la lista en cuanto tiene un A.',
 }
 export const VACIA_QR: Record<TarjetaQR, string> = {
   revisar: 'Nada que revisar: ningún modelo-color con todo sin grado en stock.', subir: 'Ningún B que subir.',
