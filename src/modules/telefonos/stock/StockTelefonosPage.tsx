@@ -11,7 +11,7 @@ import { BuscadorImei } from './BuscadorImei'
 import { BuscadorModelo } from './BuscadorModelo'
 import { ComprobarImeis } from './ComprobarImeis'
 import { columnasMoviles } from './columnas'
-import { claveFiltros, estadoStockTelefonos } from './estado'
+import { buscarQueRevisar, claveFiltros, estadoStockTelefonos } from './estado'
 import { FiltrosMoviles } from './FiltrosMoviles'
 import { ListaModelos } from './ListaModelos'
 import { MatrizColorGrado } from './MatrizColorGrado'
@@ -97,7 +97,7 @@ export function StockTelefonosPage() {
       <BandaNsys />
       <div className="mb-3 flex shrink-0 flex-wrap items-center gap-4">
         <BuscadorImei onElegir={abrir} onPegarVarios={setVarios}
-          palabras={vista === 'que-revisar' ? { texto: queRevisar.buscar, onTexto: (t) => setEstado((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: t } })) } : undefined} />
+          palabras={vista === 'que-revisar' ? { texto: queRevisar.buscar, onTexto: (t) => setEstado((e) => ({ ...e, queRevisar: buscarQueRevisar(e.queRevisar, t, { revisar, subir }) })) } : undefined} />
         <BotonSecundario onClick={() => setVarios('')}>Pegar varios IMEIs</BotonSecundario>
         <button type="button" role="switch" aria-checked={verNoCuenta} onClick={() => setEstado((e) => ({ ...e, verNoCuenta: !e.verNoCuenta }))}
           className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-azul-medio">

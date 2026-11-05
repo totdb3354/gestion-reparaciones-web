@@ -4,9 +4,9 @@ import { leerXlsx } from './xlsx.ts'
 
 // que-revisar.spec.ts (0.9.25, spec 2026-11-04-v0925-que-revisar-design.md §3, §10 y §10.10): el supertécnico abre Stock de
 // teléfonos → «Qué revisar», ve las dos tarjetas con su cifra y las columnas de «Revisar sin grado» (como «Solo n/a» de la hoja),
-// descarga el Excel y, si hay algún modelo-color, lo despliega y ve un IMEI. Solo LEE: el Excel no toca la base, se guarda en una
-// «Guardar como» falsa (en la memoria de la página) y no se apunta ningún IMEI en el código. Como todas las E2E, solo contra
-// PREPRODUCCIÓN: se niega a seguir sin el letrero.
+// descarga el Excel y, si hay algún modelo-color, lo elige y ve un IMEI en el panel de la derecha (§10.14). Solo LEE: el Excel
+// no toca la base, se guarda en una «Guardar como» falsa (en la memoria de la página) y no se apunta ningún IMEI en el código.
+// Como todas las E2E, solo contra PREPRODUCCIÓN: se niega a seguir sin el letrero.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const COLUMNAS_TABLA = ['Modelo', 'Cap.', 'Color', 'Sin grado']
 const COLUMNAS_EXCEL = ['Modelo', 'Capacidad', 'Color', 'Sin grado', 'Revisado']
@@ -32,7 +32,7 @@ function guardarComoFalso() {
   })
 }
 
-test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grado», descarga el Excel y despliega un modelo-color', async ({ page }) => {
+test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grado», descarga el Excel y enseña un modelo-color en el panel', async ({ page }) => {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await page.addInitScript(guardarComoFalso)
   await page.goto('/login')
@@ -76,8 +76,21 @@ test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grad
     expect(xlsx.filasConDatos(2, 'A'), 'una fila por modelo-color').toHaveLength(n)
   }
 
-  const desplegar = page.getByRole('button', { name: /^Ver los móviles de / })
-  await desplegar.first().click()
-  await expect(desplegar.first()).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByRole('table', { name: /^Móviles de / }).getByRole('button', { name: /^Abrir / }).first()).toBeVisible()
+  // El panel de la derecha (spec §10.14): sin elegir, cómo elegir; al pulsar la primera fila de modelo-color (en la fila, no en su
+  // botón), su título empieza por la descripción y enseña al menos un IMEI. Nada se despliega dentro de la tabla.
+  const panel = page.getByRole('region', { name: 'Móviles del modelo-color' })
+  await expect(panel).toHaveText('Pulsa un modelo-color para ver sus móviles.')
+  const fila = tabla.getByRole('row').filter({ has: page.getByRole('button', { name: /^Ver los móviles de / }) }).first()
+  const boton = fila.getByRole('button', { name: /^Ver los móviles de / })
+  const descripcion = ((await boton.getAttribute('aria-label')) ?? '').replace(/^Ver los móviles de /, '')
+  expect(descripcion, 'la descripción del primer modelo-color').not.toBe('')
+  await expect(boton).toHaveAttribute('aria-pressed', 'false')
+  const filasAntes = await tabla.getByRole('row').count()
+  await fila.getByRole('cell').nth(2).click() // el color
+  await expect(boton).toHaveAttribute('aria-pressed', 'true')
+  const titulo = panel.getByRole('heading')
+  await expect(titulo).toHaveText(/ · \d+ sin grado/)
+  expect((await titulo.textContent())?.startsWith(`${descripcion} · `), `el título empieza por «${descripcion}»`).toBe(true)
+  await expect(panel.getByRole('table', { name: `Móviles de ${descripcion}` }).getByRole('button', { name: /^Abrir / }).first()).toBeVisible()
+  expect(await tabla.getByRole('row').count(), 'la tabla no se despliega').toBe(filasAntes)
 })

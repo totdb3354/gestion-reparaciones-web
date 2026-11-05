@@ -174,6 +174,25 @@ export function bloquesRevisar(lista: readonly GrupoRevisar[]): BloqueRevisar[] 
   ]
 }
 
+// ---------------------------------------------------------------- el panel del modelo-color elegido (spec §10.14)
+
+/** El panel sin ningún modelo-color elegido (o con uno que ya no está en la lista). */
+export const PULSA_QR = 'Pulsa un modelo-color para ver sus móviles.'
+
+/** Lo que va en el título del panel detrás de la descripción: la cuenta y, aparte (en gris, « · +2 con técnico»), cuántos tiene
+ *  el técnico. */
+export type CuentaPanel = { texto: string; tecnico: number }
+/** «20 sin grado» (los pendientes) y los sin grado del técnico. */
+export const cuentaRevisar = (g: GrupoRevisar): CuentaPanel => ({ texto: `${g.pendientes} sin grado`, tecnico: g.conTecnico })
+/** «1 B · 2 B100» sin los del técnico, y los B y B100 del técnico. */
+export const cuentaSubir = (g: GrupoSubir): CuentaPanel => ({ texto: `${g.b} B · ${g.b100} B100`, tecnico: g.bTecnico + g.b100Tecnico })
+
+/** El modelo-color que elige una búsqueda con IMEI: el primero de los que deja la búsqueda que tiene un móvil con ese IMEI;
+ *  null si la búsqueda no busca el IMEI de ninguno (sin palabras de {@link MIN_IMEI} caracteres o más que estén en un IMEI). */
+export function elegidoPorImei(lista: readonly GrupoBase[], palabras: readonly string[]): string | null {
+  return filtrar(lista, palabras).find((g) => g.moviles.some((m) => imeiBuscado(m, palabras)))?.clave ?? null
+}
+
 // ---------------------------------------------------------------- «⬇ Descargar Excel» (spec §10.3)
 
 /** Lo que se manda a POST /api/stock-telefonos/que-revisar/excel: `PeticionExcel` de la API cumple este tipo. */
@@ -218,7 +237,8 @@ export const palabrasClave = (texto: string): string[] => texto.split(/\s+/).map
 
 const enImei = (palabra: string, imeiSn: string): boolean => palabra.length >= MIN_IMEI && plano(imeiSn).includes(palabra)
 
-/** ¿Busca alguna palabra este móvil por su IMEI? Su modelo-color se abre solo y la fila sale resaltada. */
+/** ¿Busca alguna palabra este móvil por su IMEI? Al escribirlo se elige su modelo-color ({@link elegidoPorImei}) y la fila sale
+ *  resaltada en el panel. */
 export const imeiBuscado = (m: Movil, palabras: readonly string[]): boolean => palabras.some((p) => enImei(p, m.imeiSn))
 
 /** Las piezas de la descripción con las que se busca: cada palabra del modelo, la capacidad y el color, y cada uno de los tres

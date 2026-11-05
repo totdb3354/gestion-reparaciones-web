@@ -570,7 +570,7 @@ describe('Stock de teléfonos: «Por pasar a NSYS» con cuatro tarjetas (spec 0.
 })
 
 describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
-  it('la pestaña cuenta lo pendiente de las dos tarjetas, despliega un modelo-color y abre el detalle', async () => {
+  it('la pestaña cuenta lo pendiente de las dos tarjetas, elige un modelo-color, enseña sus móviles en el panel y abre el detalle', async () => {
     const user = userEvent.setup()
     abrir()
     expect(screen.getByRole('button', { name: 'Qué revisar' })).toBeInTheDocument()
@@ -580,9 +580,33 @@ describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
     expect(screen.getByRole('article', { name: 'Revisar sin grado' })).toHaveTextContent('1 modelo-color · 1 móvil')
     expect(screen.getByRole('article', { name: 'Subir B a A' })).toHaveTextContent('1 modelo-color · 1 móvil')
     expect(screen.getByRole('table', { name: 'Revisar sin grado' })).toBeInTheDocument()
+    const panel = () => screen.getByRole('region', { name: 'Móviles del modelo-color' })
+    expect(panel()).toHaveTextContent('Pulsa un modelo-color para ver sus móviles.')
     await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Rosa' }))
-    await user.click(screen.getByRole('button', { name: 'Abrir 350000000000003' }))
+    expect(within(panel()).getByRole('heading')).toHaveTextContent(/^iPhone 13 128 GB Rosa · 1 sin grado$/)
+    await user.click(within(panel()).getByRole('button', { name: 'Abrir 350000000000003' }))
     expect(await screen.findByText('Detalle del IMEI desde /telefonos/stock')).toBeInTheDocument()
+  })
+
+  it('un trozo de IMEI en la caja elige su modelo-color en su tarjeta y lo resalta en el panel; al borrarlo, sigue elegido', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await screen.findByRole('button', { name: 'Qué revisar (2)' }))
+    const panel = () => screen.getByRole('region', { name: 'Móviles del modelo-color' })
+    const titulo = () => within(panel()).getByRole('heading')
+    const caja = screen.getByRole('searchbox', { name: 'Buscar IMEI, modelo o SKU en Qué revisar' })
+    await user.type(caja, '000003')
+    expect(titulo()).toHaveTextContent(/^iPhone 13 128 GB Rosa · 1 sin grado$/)
+    expect(screen.getByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Rosa' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(panel()).getByRole('button', { name: 'Abrir 350000000000003' }).closest('tr')).toHaveClass('bg-amarillo/40')
+    await user.clear(caja)
+    await user.type(caja, '000006')
+    await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
+    expect(titulo()).toHaveTextContent(/^iPhone 13 256 GB Rosa · 1 B · 0 B100$/)
+    await user.clear(caja)
+    await user.click(screen.getByRole('button', { name: 'Revisar sin grado' }))
+    expect(titulo()).toHaveTextContent(/^iPhone 13 128 GB Rosa · 1 sin grado$/)
+    expect(within(panel()).getByRole('button', { name: 'Abrir 350000000000003' }).closest('tr')).not.toHaveClass('bg-amarillo/40')
   })
 
   it('«Móviles» vuelve a la vista de siempre', async () => {

@@ -3,8 +3,9 @@ import type { MovilStock } from '@/shared/api/client'
 import { trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
 import {
-  avisoDescargado, bloquesRevisar, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar, imeiBuscado,
-  listaRevisar, listaSubir, MAX_A, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias, textoCifra,
+  avisoDescargado, bloquesRevisar, cifraRevisar, cifraSubir, coincide, cuentaRevisar, cuentaSubir, descripcion, elegidoPorImei, esA, esB,
+  excelRevisar, excelSubir, filtrar, imeiBuscado, listaRevisar, listaSubir, MAX_A, nombreExcel, palabrasClave, pasoSubir, PULSA_QR,
+  sinCoincidencias, textoCifra,
   gradoVendible, tieneGrado, totalQueRevisar, type GrupoRevisar,
 } from './queRevisar'
 
@@ -331,5 +332,43 @@ describe('«Qué revisar»: Revisar sin grado en dos bloques (spec 0.9.25 §10.1
   it('en singular cuando toca', () => {
     expect(bloquesRevisar([g1])).toEqual([{ titulo: 'Menos de 3 sin revisar · 1 modelo-color · 1 móvil', grupos: [g1] }])
     expect(bloquesRevisar([g('x', 3)])).toEqual([{ titulo: '3 o más sin revisar · 1 modelo-color · 3 móviles', grupos: [g('x', 3)] }])
+  })
+})
+
+describe('«Qué revisar»: el panel del modelo-color elegido (spec 0.9.25 §10.14)', () => {
+  const tecnico = [trabajo({ tecnico: 'Técnico A' })]
+
+  it('la cuenta de «Revisar sin grado»: los sin grado y, aparte, los del técnico', () => {
+    const [p15] = listaRevisar([m({ ...P15, grado: 'n/a' }), m({ ...P15, grado: 'n/a' }), m({ ...P15, grado: 'n/a', trabajos: tecnico })])
+    expect(cuentaRevisar(p15)).toEqual({ texto: '2 sin grado', tecnico: 1 })
+    const [g12] = listaRevisar([m({ ...G12P, grado: 'n/a', trabajos: tecnico })])
+    expect(cuentaRevisar(g12)).toEqual({ texto: '0 sin grado', tecnico: 1 })
+  })
+
+  it('la cuenta de «Subir B a A»: B y B100 sin los del técnico y, aparte, los B y B100 del técnico', () => {
+    const [b12] = listaSubir([
+      m({ ...B12, grado: 'B' }), m({ ...B12, grado: 'B', bateriaNueva: true }), m({ ...B12, grado: 'B', bateriaNueva: true }),
+      m({ ...B12, grado: 'B', trabajos: tecnico }), m({ ...B12, grado: 'B', bateriaNueva: true, trabajos: tecnico }),
+    ])
+    expect(cuentaSubir(b12)).toEqual({ texto: '1 B · 2 B100', tecnico: 2 })
+    const [solo] = listaSubir([m({ ...B12, grado: 'B' })])
+    expect(cuentaSubir(solo)).toEqual({ texto: '1 B · 0 B100', tecnico: 0 })
+  })
+
+  it('el texto del panel sin nada elegido', () => {
+    expect(PULSA_QR).toBe('Pulsa un modelo-color para ver sus móviles.')
+  })
+
+  it('elegidoPorImei: el primer modelo-color que deja la búsqueda con un móvil de ese IMEI; sin IMEI, ninguno', () => {
+    const lista = listaRevisar([
+      m({ ...P15, grado: 'n/a', imeiSn: '350000000099001' }), m({ ...A13, grado: 'n/a', imeiSn: '350000000099002' }),
+      m({ ...A13, grado: 'n/a', imeiSn: '350000000099003' }),
+    ])
+    expect(lista.map(descripcion)).toEqual(['iPhone 13 128 GB Azul', 'iPhone 15 Pro 256 GB Titanio natural'])
+    expect(elegidoPorImei(lista, palabrasClave('099001'))).toBe('iPhone 15 Pro|256GB|Titanio natural')
+    expect(elegidoPorImei(lista, palabrasClave('3500000000990'))).toBe('iPhone 13|128GB|Azul')
+    expect(elegidoPorImei(lista, palabrasClave('15 3500000000990'))).toBe('iPhone 15 Pro|256GB|Titanio natural')
+    expect(elegidoPorImei(lista, palabrasClave('13 099001'))).toBeNull()
+    for (const texto of ['', '13', '99001', '123456']) expect(elegidoPorImei(lista, palabrasClave(texto)), texto).toBeNull()
   })
 })
