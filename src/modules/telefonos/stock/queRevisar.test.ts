@@ -5,7 +5,7 @@ import type { Movil } from './modelo'
 import {
   avisoDescargado, cabeceraPedidos, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar,
   imeiBuscado, listaRevisar, listaSubir, MAX_A, movilesExcel, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias,
-  textoCifra, tieneGrado, tituloA, tituloPedidos, totalQueRevisar,
+  textoCifra, gradoVendible, tieneGrado, tituloA, tituloPedidos, totalQueRevisar,
 } from './queRevisar'
 
 let n = 0
@@ -61,13 +61,27 @@ describe('«Qué revisar»: qué grado tiene cada móvil (spec 0.9.25 §2.3)', (
   })
 })
 
+describe('«Qué revisar»: F, FD y RMA no cuentan como grado para el motivo (spec 0.9.25 §10.8)', () => {
+  it('gradoVendible: los grados con los que se puede vender; F, FD, RMA y lo sin grado, no', () => {
+    for (const g of ['A+', 'A', 'B', 'C', 'MsB', 'Ms', 'ID']) expect(gradoVendible(g), g).toBe(true)
+    for (const g of ['F', 'Fd', 'FD', 'RMA', 'n/a', '', null]) expect(gradoVendible(g), String(g)).toBe(false)
+  })
+
+  it('solo F o RMA con los n/a: Nada con grado y Con grado 0; con un ID: Ningún A y Con grado 1', () => {
+    const con = (...grados: string[]) => listaRevisar(grados.map((grado) => m({ ...N16, grado })))[0]
+    expect(con('n/a', 'n/a', 'n/a', 'F')).toMatchObject({ motivo: 'NADA', conGrado: 0, pendientes: 3 })
+    expect(con('n/a', 'RMA')).toMatchObject({ motivo: 'NADA', conGrado: 0, pendientes: 1 })
+    expect(con('n/a', 'ID')).toMatchObject({ motivo: 'NINGUN_A', conGrado: 1, pendientes: 1 })
+  })
+})
+
 describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §10.1, §2.6 y §2.7)', () => {
   it('todos los modelos-color con algo sin grado, también con 2 A («Con A»); sin pedidos, los de más pendientes primero, después por motivo y por modelo; fuera lo que no es stock', () => {
     expect(listaRevisar(STOCK).map((g) => [g.motivo, descripcion(g)])).toEqual([
       ['UN_A', 'iPhone 13 128 GB Azul'],
       ['NADA', 'iPhone 15 Pro 256 GB Titanio natural'],
       ['NADA', 'iPhone 13 Pro 256 GB Grafito'],
-      ['NINGUN_A', 'iPhone 16 128 GB Negro'],
+      ['NADA', 'iPhone 16 128 GB Negro'],
       ['NINGUN_A', 'iPhone 14 eSIM 128 GB Medianoche'],
       ['UN_A', 'iPhone 11 64 GB Negro'],
       ['CON_A', 'iPhone 13 Mini 128 GB Rosa'],
@@ -77,12 +91,12 @@ describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §10.1, §2.6 y §2.7
     ])
   })
 
-  it('las cuentas: pendientes sin los del técnico, A en stock y con grado (vacío y «NR» sin grado; F, ID y MsB con grado)', () => {
+  it('las cuentas: pendientes sin los del técnico, A en stock y con grado (vacío y «NR» sin grado; F cuenta como revisado pero no como grado vendible; ID y MsB sí)', () => {
     const [a13, p15, g13p, n16, e14, , r13m, , b12, g12p] = listaRevisar(STOCK)
     expect(p15).toMatchObject({ pendientes: 3, conTecnico: 1, a: 0, conGrado: 0, vendidos: 0, dePedido: 0, pedidos: 0 })
     expect(g13p).toMatchObject({ pendientes: 3, conTecnico: 0, conGrado: 0 })
     expect(g12p).toMatchObject({ pendientes: 0, conTecnico: 1 })
-    expect(n16).toMatchObject({ pendientes: 2, conGrado: 1, a: 0 })
+    expect(n16).toMatchObject({ pendientes: 2, conGrado: 0, a: 0 })
     expect(e14).toMatchObject({ pendientes: 2, conGrado: 2, a: 0 })
     expect(b12).toMatchObject({ pendientes: 1, conGrado: 1 })
     expect(a13).toMatchObject({ pendientes: 5, a: 1, gradosA: ['A+'], conGrado: 1 })

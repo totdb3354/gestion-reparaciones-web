@@ -21,6 +21,9 @@ const limpio = (grado: string | null | undefined): string => (grado ?? '').trim(
 
 /** ¿Tiene grado? Lo demás (`n/a`, vacío o un código que no es un grado) está sin revisar. */
 export const tieneGrado = (grado: string | null | undefined): boolean => CON_GRADO.test(limpio(grado))
+/** ¿Un grado con el que se puede vender? Como `tieneGrado` pero sin F, FD ni RMA: esos cuentan como revisados, pero no como
+ *  grado para el motivo de «Revisar sin grado» ni para su columna «Con grado» (spec 0.9.25 §10.8). */
+export const gradoVendible = (grado: string | null | undefined): boolean => tieneGrado(grado) && !/^(?:f|fd|rma)$/i.test(limpio(grado))
 /** A+, A o A-, sin Ms (la batería va aparte). */
 export const esA = (grado: string | null | undefined): boolean => GRADO_A.test(limpio(grado))
 /** Exactamente B, sin Ms: el que sube a A con un chasis. */
@@ -114,7 +117,7 @@ export function listaRevisar(moviles: readonly Movil[], vendidos: readonly Vendi
     const sinGrado = g.todos.filter((m) => !tieneGrado(m.grado))
     if (sinGrado.length === 0) return []
     const base = comun(g, sinGrado)
-    const conGrado = g.todos.length - sinGrado.length
+    const conGrado = g.todos.filter((x) => gradoVendible(x.grado)).length
     const tecnico = sinGrado.filter(conTecnico).length
     const motivo: Motivo = conGrado === 0 ? 'NADA' : base.a === 0 ? 'NINGUN_A' : base.a === 1 ? 'UN_A' : 'CON_A'
     const v = vendidosPorClave.get(g.clave) ?? 0
