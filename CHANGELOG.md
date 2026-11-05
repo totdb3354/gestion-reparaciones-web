@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.25] - (pendiente) — «Qué revisar» en Stock de teléfonos
+## [0.9.25] - 2026-11-05 — «Qué revisar» en Stock de teléfonos
 
 - **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el último Items de NSYS y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):
   - **Revisar sin grado**: los modelos-color en los que todo está sin grado (`n/a`), como la tabla «Solo n/a» de la hoja. Primero **lo que más queda sin revisar** y, a igualdad, por modelo, capacidad y color. En cuanto NSYS o el taller le ponen grado a uno de sus móviles, el modelo-color sale de la lista; F, FD y RMA no cuentan como grado. Columnas: Modelo, Cap., Color y Sin grado (con «+1 con técnico» si hay). La tabla se parte en dos bloques, «3 o más sin revisar» y «Menos de 3 sin revisar» (cada uno con sus modelos-color y móviles), y las dos tablas son compactas: «Sin grado» queda pegado al color.
