@@ -356,6 +356,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/que-revisar/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["excel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado": {
         parameters: {
             query?: never;
@@ -2602,6 +2618,11 @@ export interface components {
             imei: string;
             resultado: string;
         };
+        StockTelefonosPeticionExcel: {
+            hoja: string;
+            columnas: string[];
+            filas: string[][];
+        };
         StockTelefonosPeticionComprobar: {
             imeis: string[];
         };
@@ -4793,6 +4814,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TelefonoResultadoARevisarResponse"][];
+                };
+            };
+        };
+    };
+    excel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockTelefonosPeticionExcel"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

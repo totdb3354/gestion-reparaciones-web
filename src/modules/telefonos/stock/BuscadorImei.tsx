@@ -6,11 +6,17 @@ import { textoBuscado } from './modelo'
 import { imeisEn } from './varios'
 
 /** Buscador de IMEI en todos los móviles del espejo, también los vendidos: con 4 caracteres o más sugiere hasta 10; al
- *  elegir uno (o Enter con el IMEI exacto) se abre su detalle. Pegar más de un IMEI abre «Comprobar una lista de IMEIs» con lo pegado. */
-export function BuscadorImei({ onElegir, onPegarVarios }: { onElegir: (imeiSn: string) => void; onPegarVarios: (texto: string) => void }) {
-  const [texto, setTexto] = useState('')
+ *  elegir uno (o Enter con el IMEI exacto) se abre su detalle. Pegar más de un IMEI abre «Comprobar una lista de IMEIs» con lo pegado. Con `palabras` (0.9.25, «Qué revisar»), lo escrito lo guarda quien llama y
+ *  filtra su lista por palabras clave: admite espacios y solo sugiere IMEIs si son solo cifras (6 o más). */
+type Palabras = { texto: string; onTexto: (texto: string) => void }
+
+export function BuscadorImei({ onElegir, onPegarVarios, palabras }: { onElegir: (imeiSn: string) => void; onPegarVarios: (texto: string) => void; palabras?: Palabras }) {
+  const [propio, setPropio] = useState('')
+  const texto = palabras ? palabras.texto : propio
+  const setTexto = palabras ? palabras.onTexto : setPropio
   const [abierto, setAbierto] = useState(false)
-  const limpio = texto.trim()
+  // Con palabras clave, las sugerencias de IMEI solo con cifras (6 o más): con «13 pro» o un SKU no estorban.
+  const limpio = palabras ? (/^\d{6,}$/.test(texto.trim()) ? texto.trim() : '') : texto.trim()
   const { data: encontrados = [], isFetching } = useBuscarMoviles(limpio)
   const elegir = (imeiSn: string) => {
     setAbierto(false)
@@ -18,9 +24,10 @@ export function BuscadorImei({ onElegir, onPegarVarios }: { onElegir: (imeiSn: s
   }
   return (
     <div className="relative" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setAbierto(false) }}>
-      <input type="search" onFocus={() => setAbierto(true)} aria-label="Buscar IMEI en todos los móviles" placeholder="Buscar IMEI en todos los móviles…" value={texto}
+      <input type="search" onFocus={() => setAbierto(true)} aria-label={palabras ? 'Buscar IMEI, modelo o SKU en Qué revisar' : 'Buscar IMEI en todos los móviles'}
+        placeholder={palabras ? 'Buscar IMEI, modelo o SKU…' : 'Buscar IMEI en todos los móviles…'} value={texto}
         onChange={(e) => {
-          setTexto(e.target.value.replace(/[^A-Za-z0-9]/g, ''))
+          setTexto(palabras ? e.target.value : e.target.value.replace(/[^A-Za-z0-9]/g, ''))
           setAbierto(true)
         }}
         onPaste={(e) => {

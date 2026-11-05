@@ -115,6 +115,9 @@ export type PeticionDeshacerDescarte = components['schemas']['PorPasarPeticionDe
  *  baja que ha vuelto; `OpcionesTaller` trae la batería recordada (`bateriaIdRep`, `bateriaNueva`, `bateriaEn`). */
 export type FilaSinGradoNsys = components['schemas']['FilaSinGradoNsys']
 
+/** 0.9.25 (spec «Qué revisar» §10.3): la hoja que el servidor convierte en el Excel para imprimir (todo textos). */
+export type PeticionExcel = components['schemas']['StockTelefonosPeticionExcel']
+
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */
 const baseUrl = import.meta.env.MODE === 'test' ? 'http://localhost' : ''

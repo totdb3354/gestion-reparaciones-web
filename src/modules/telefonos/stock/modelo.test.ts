@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { movilBuscado, trabajo, visto } from '../test/fabrica'
+import { movil, movilBuscado, trabajo, visto } from '../test/fabrica'
 import {
-  BATERIA_NUEVA, capacidadCorta, casilla, casillaElegida, colorElegido, contarFiltros, cuentaComoStock, FILTROS_VACIOS, gradoElegido, matriz, modelosLista, muestraColor, opciones, ordenarTabla, pasa,
+  BATERIA_NUEVA, capacidadCorta, casilla, casillaElegida, colorElegido, compararCapacidades, compararModelos, contarFiltros, cuentaComoStock, modeloDe, FILTROS_VACIOS, gradoElegido, matriz, modelosLista, muestraColor, opciones, ordenarTabla, pasa,
   normalizar, partesSku, pasaSku, pestanasCapacidad, pulsarCasilla, pulsarColor, pulsarGrado, reparto, textoBuscado, textoCapacidad,
   tituloCasilla, valores,
 } from './modelo'
@@ -217,5 +217,19 @@ describe('lo del taller en las cuentas (spec 0.9.21 §2.4)', () => {
     expect(m.colores).toEqual(['Rojo'])
     expect(m.grados).toEqual(['A'])
     expect(opciones([rojo], 'color', FILTROS_VACIOS)).toEqual([{ valor: 'Rojo', cuenta: 1 }])
+  })
+})
+
+describe('orden compartido de modelos y capacidades (0.9.25, «Qué revisar»)', () => {
+  it('compararModelos: catálogo del más nuevo al más antiguo, el maestro después y sin modelo al final; 0 si es el mismo', () => {
+    const p = (modelo: string | null, maestro: string | null = modelo) => movil({ modelo, modeloMaestro: maestro })
+    const lista = [p(null, null), p('12'), p(null, '17e'), p('16'), p('13mini')]
+    expect([...lista].sort(compararModelos).map(modeloDe))
+      .toEqual(['iPhone 16', 'iPhone 13 Mini', 'iPhone 12', 'iPhone 17e', 'Sin modelo en el maestro'])
+    expect(compararModelos(p('13'), movil({ modelo: '13', capacidad: '256GB', color: 'Rosa' }))).toBe(0)
+  })
+
+  it('compararCapacidades: como número, y lo que no se entiende al final', () => {
+    expect(['1TB', '256GB', '—', '64GB'].sort(compararCapacidades)).toEqual(['64GB', '256GB', '1TB', '—'])
   })
 })

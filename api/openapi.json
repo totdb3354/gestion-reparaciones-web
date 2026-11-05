@@ -954,6 +954,35 @@
         }
       }
     },
+    "/api/stock-telefonos/que-revisar/excel" : {
+      "post" : {
+        "tags" : [ "stock-telefonos-controller" ],
+        "operationId" : "excel",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StockTelefonosPeticionExcel"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stock-telefonos/por-pasar/avisos/{idAviso}/revisado" : {
       "post" : {
         "tags" : [ "por-pasar-controller" ],
@@ -5386,6 +5415,30 @@
           },
           "resultado" : {
             "type" : "string"
+          }
+        }
+      },
+      "StockTelefonosPeticionExcel" : {
+        "required" : [ "columnas", "filas", "hoja" ],
+        "type" : "object",
+        "properties" : {
+          "hoja" : {
+            "type" : "string"
+          },
+          "columnas" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "filas" : {
+            "type" : "array",
+            "items" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
           }
         }
       },
