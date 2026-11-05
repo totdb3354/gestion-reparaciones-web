@@ -122,7 +122,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     ])
   })
 
-  it('«⬇ Descargar Excel» abre «Guardar como» con el nombre del día, manda lo que se ve (sin el del técnico) y lo avisa', async () => {
+  it('«⬇ Descargar Excel» abre «Guardar como» con el nombre del día, manda una fila por modelo-color (sin el móvil del técnico) y lo avisa', async () => {
     const user = userEvent.setup()
     const orden: string[] = []
     const escrito: Blob[] = []
@@ -139,15 +139,15 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     }))
     pintar()
     await user.click(screen.getByRole('button', { name: '⬇ Descargar Excel (2)' }))
-    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado: 2 móviles')
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado: 2 modelos-color')
     expect(ventana).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: `Que_revisar_sin_grado_${hoyMadrid()}.xlsx` }))
     expect(orden).toEqual(['ventana', 'servidor'])
     expect(cuerpos).toEqual([{
       hoja: 'Revisar sin grado',
-      columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', 'Revisado'],
+      columnas: ['Modelo', 'Capacidad', 'Color', 'Sin grado', 'Revisado'],
       filas: [
-        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000101', 'En revisión', '41', ''],
-        ['iPhone 13', '128 GB', 'Azul', '350000000000104', 'En revisión', '6', ''],
+        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '1', ''],
+        ['iPhone 13', '128 GB', 'Azul', '1', ''],
       ],
     }])
     expect(await escrito[0].text()).toBe('PK')
@@ -166,7 +166,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const boton = screen.getByRole('button', { name: '⬇ Descargar Excel (2)' })
     await user.click(boton)
     await user.click(boton)
-    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado: 2 móviles')
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado: 2 modelos-color')
     expect(ventana).toHaveBeenCalledTimes(1)
     expect(peticiones).toBe(1)
   })
@@ -185,7 +185,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const [b, b100] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Blanco' }))
     expect(b).toHaveTextContent('B → A')
     expect(b100).toHaveTextContent('B100 → A100')
-    expect(screen.getByRole('button', { name: '⬇ Descargar Excel (2)' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '⬇ Descargar Excel (1)' })).toBeEnabled()
   })
 
   it('si se cancela «Guardar como», no se pide nada al servidor ni avisa', async () => {
@@ -198,7 +198,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     }))
     pintar()
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
-    await user.click(screen.getByRole('button', { name: '⬇ Descargar Excel (2)' }))
+    await user.click(screen.getByRole('button', { name: '⬇ Descargar Excel (1)' }))
     await waitFor(() => expect(window.showSaveFilePicker)
       .toHaveBeenCalledWith(expect.objectContaining({ suggestedName: `Que_revisar_subir_B_a_A_${hoyMadrid()}.xlsx` })))
     expect(pedida).toBe(false)

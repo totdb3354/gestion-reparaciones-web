@@ -9,7 +9,7 @@ import { leerXlsx } from './xlsx.ts'
 // PREPRODUCCIÓN: se niega a seguir sin el letrero.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const COLUMNAS_TABLA = ['Modelo', 'Cap.', 'Color', 'Sin grado']
-const COLUMNAS_EXCEL = ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', 'Revisado']
+const COLUMNAS_EXCEL = ['Modelo', 'Capacidad', 'Color', 'Sin grado', 'Revisado']
 
 type Guardado = { nombre: string; bytes: number[] }
 
@@ -64,13 +64,14 @@ test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grad
     const pedida = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/stock-telefonos/que-revisar/excel')
     await excel.click()
     expect((await pedida).status(), 'el Excel (servidor 0.9.25)').toBe(200)
-    await expect(page.getByTestId('aviso-breve')).toContainText(`Descargado: ${n} móvil`)
+    await expect(page.getByTestId('aviso-breve')).toContainText(`Descargado: ${n} modelo`)
     const guardado = await page.evaluate(() => (Reflect.get(globalThis, 'guardadosE2E') as Guardado[]).at(-1))
     expect(guardado?.nombre).toMatch(/^Que_revisar_sin_grado_\d{4}-\d{2}-\d{2}\.xlsx$/)
     const xlsx = leerXlsx(Buffer.from(guardado!.bytes))
-    COLUMNAS_EXCEL.forEach((c, i) => expect(xlsx.celda(`${'ABCDEFG'[i]}1`).valor, `cabecera ${c}`).toBe(c))
-    expect(xlsx.celda('H1').valor, 'siete columnas: nada detrás de «Revisado»').toBeNull()
-    expect(xlsx.filasConDatos(2, 'D'), 'una fila por móvil, con su IMEI').toHaveLength(n)
+    COLUMNAS_EXCEL.forEach((c, i) => expect(xlsx.celda(`${'ABCDE'[i]}1`).valor, `cabecera ${c}`).toBe(c))
+    expect(xlsx.celda('F1').valor, 'cinco columnas: nada detrás de «Revisado»').toBeNull()
+    expect(Number(xlsx.celda('D2').valor), 'una fila por modelo-color, con sus móviles sin grado').toBeGreaterThanOrEqual(1)
+    expect(xlsx.filasConDatos(2, 'A'), 'una fila por modelo-color').toHaveLength(n)
   }
 
   const desplegar = page.getByRole('button', { name: /^Ver los móviles de / })

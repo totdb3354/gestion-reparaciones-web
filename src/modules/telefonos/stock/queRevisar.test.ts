@@ -4,7 +4,7 @@ import { trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
 import {
   avisoDescargado, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar, imeiBuscado,
-  listaRevisar, listaSubir, MAX_A, movilesExcel, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias, textoCifra,
+  listaRevisar, listaSubir, MAX_A, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias, textoCifra,
   gradoVendible, tieneGrado, totalQueRevisar, type GrupoRevisar,
 } from './queRevisar'
 
@@ -182,51 +182,45 @@ describe('«Qué revisar»: Subir B a A, solo con ningún A (spec 0.9.25 §10.11
 })
 
 describe('«Qué revisar»: el Excel (spec 0.9.25 §10.3 y §10.10)', () => {
-  it('«Revisar sin grado»: siete columnas, una fila por móvil, en el orden de la tabla, sin los del técnico y con «Revisado» vacía', () => {
+  it('«Revisar sin grado»: cinco columnas, una fila por modelo-color con sus pendientes, en el orden de la lista y con «Revisado» vacía', () => {
     const lista = listaRevisar([
-      m({ ...N16, grado: 'n/a', dias: 70, imeiSn: '350000000000207' }),
-      m({ ...P15, grado: 'n/a', dias: 12, imeiSn: '350000000000201' }),
-      m({ ...P15, grado: 'n/a', dias: 41, imeiSn: '350000000000202', ubicacion: 'En revisión' }),
-      m({ ...P15, grado: 'n/a', dias: 23, imeiSn: '350000000000203', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
-      m({ ...P15, grado: 'n/a', dias: null, imeiSn: '350000000000204' }),
-      m({ ...P15, grado: 'n/a', estado: 'DE_PEDIDO', imeiSn: '350000000000205' }),
+      m({ ...N16, grado: 'n/a', imeiSn: '350000000000207' }),
+      m({ ...P15, grado: 'n/a', imeiSn: '350000000000201' }),
+      m({ ...P15, grado: 'n/a', imeiSn: '350000000000202' }),
+      m({ ...P15, grado: 'n/a', imeiSn: '350000000000204' }),
+      m({ ...P15, grado: 'n/a', imeiSn: '350000000000203', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
+      m({ ...G12P, grado: 'n/a', imeiSn: '350000000000208', trabajos: [trabajo({ tecnico: 'Técnico B' })] }),
     ])
     expect(excelRevisar(lista)).toEqual({
       hoja: 'Revisar sin grado',
-      columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', 'Revisado'],
+      columnas: ['Modelo', 'Capacidad', 'Color', 'Sin grado', 'Revisado'],
       filas: [
-        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000202', 'En revisión', '41', ''],
-        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000201', 'Listos', '12', ''],
-        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '350000000000204', 'Listos', '—', ''],
-        ['iPhone 16', '128 GB', 'Negro', '350000000000207', 'Listos', '70', ''],
+        ['iPhone 15 Pro', '256 GB', 'Titanio natural', '3', ''],
+        ['iPhone 16', '128 GB', 'Negro', '1', ''],
       ],
     })
-    expect(movilesExcel(lista)).toBe(4)
   })
 
-  it('«Subir B a A»: una fila por móvil con su paso y «Hecho» vacía', () => {
+  it('«Subir B a A»: seis columnas, una fila por modelo-color con sus B y B100 sin los del técnico, y «Hecho» vacía', () => {
     const lista = listaSubir([
-      m({ ...N11, grado: 'B', dias: 25, imeiSn: '350000000000301' }),
-      m({ ...N11, grado: 'B', bateriaNueva: true, dias: 11, imeiSn: '350000000000302', ubicacion: 'Taller · Pulir',
+      m({ ...N11, grado: 'B', imeiSn: '350000000000301' }),
+      m({ ...N11, grado: 'B', bateriaNueva: true, imeiSn: '350000000000302', ubicacion: 'Taller · Pulir',
         trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
-      m({ ...N11, grado: 'B', bateriaNueva: true, dias: 30, imeiSn: '350000000000303' }),
+      m({ ...N11, grado: 'B', bateriaNueva: true, imeiSn: '350000000000303' }),
+      m({ ...B12, grado: 'B', imeiSn: '350000000000304', trabajos: [trabajo({ tecnico: 'Técnico C' })] }),
     ])
     expect(excelSubir(lista)).toEqual({
       hoja: 'Subir B a A',
-      columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Paso', 'Ubicación', 'Días en stock', 'Hecho'],
-      filas: [
-        ['iPhone 11', '64 GB', 'Negro', '350000000000303', 'B100 → A100', 'Listos', '30', ''],
-        ['iPhone 11', '64 GB', 'Negro', '350000000000301', 'B → A', 'Listos', '25', ''],
-      ],
+      columnas: ['Modelo', 'Capacidad', 'Color', 'B', 'B100', 'Hecho'],
+      filas: [['iPhone 11', '64 GB', 'Negro', '1', '1', '']],
     })
-    expect(movilesExcel(lista)).toBe(2)
   })
 
-  it('el nombre del fichero lleva el día de Madrid, y el aviso cuántos móviles', () => {
+  it('el nombre del fichero lleva el día de Madrid, y el aviso cuántos modelos-color', () => {
     expect(nombreExcel('revisar', new Date('2026-11-04T23:30:00Z'))).toBe('Que_revisar_sin_grado_2026-11-05.xlsx')
     expect(nombreExcel('subir', new Date('2026-11-04T10:00:00Z'))).toBe('Que_revisar_subir_B_a_A_2026-11-04.xlsx')
-    expect(avisoDescargado(1)).toBe('Descargado: 1 móvil')
-    expect(avisoDescargado(12)).toBe('Descargado: 12 móviles')
+    expect(avisoDescargado(1)).toBe('Descargado: 1 modelo-color')
+    expect(avisoDescargado(12)).toBe('Descargado: 12 modelos-color')
   })
 })
 

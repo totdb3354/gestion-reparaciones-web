@@ -159,33 +159,22 @@ export const textoCifra = (c: Cifra): string => `${palabraGrupos(c.grupos)} · $
 /** Lo que se manda a POST /api/stock-telefonos/que-revisar/excel: `PeticionExcel` de la API cumple este tipo. */
 export type HojaExcel = { hoja: string; columnas: string[]; filas: string[][] }
 
-/** Los móviles que van en el Excel: los de la lista, sin los del técnico, en el orden de la tabla. */
-const delExcel = (g: GrupoBase): Movil[] => g.moviles.filter((m) => !conTecnico(m))
-
-/** Cuántos móviles irán en el Excel (el N del botón). */
-export const movilesExcel = (lista: readonly GrupoBase[]): number => lista.reduce((n, g) => n + delExcel(g).length, 0)
-
-const dias = (m: Movil): string => (m.dias === null ? SIN_DATO : String(m.dias))
-
-/** «Revisar sin grado» en el Excel: una fila por móvil, con «Revisado» vacía para marcar a boli. */
+/** «Revisar sin grado» en el Excel (spec §10.12): una fila por modelo-color con algo pendiente, como «Solo n/a» de la hoja, con
+ *  «Revisado» vacía para marcar a boli. */
 export function excelRevisar(lista: readonly GrupoRevisar[]): HojaExcel {
   return {
     hoja: NOMBRE_QR.revisar,
-    columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Ubicación', 'Días en stock', 'Revisado'],
-    filas: lista.flatMap((g) => delExcel(g).map((m) => [
-      g.modelo, textoCapacidad(g.capacidad), g.color, m.imeiSn, m.ubicacion ?? SIN_DATO, dias(m), '',
-    ])),
+    columnas: ['Modelo', 'Capacidad', 'Color', 'Sin grado', 'Revisado'],
+    filas: lista.filter(pendienteRevisar).map((g) => [g.modelo, textoCapacidad(g.capacidad), g.color, String(g.pendientes), '']),
   }
 }
 
-/** «Subir B a A» en el Excel: una fila por móvil, con su paso y «Hecho» vacía. */
+/** «Subir B a A» en el Excel (spec §10.12): una fila por modelo-color con sus B y B100, sin los del técnico, y «Hecho» vacía. */
 export function excelSubir(lista: readonly GrupoSubir[]): HojaExcel {
   return {
     hoja: NOMBRE_QR.subir,
-    columnas: ['Modelo', 'Capacidad', 'Color', 'IMEI', 'Paso', 'Ubicación', 'Días en stock', 'Hecho'],
-    filas: lista.flatMap((g) => delExcel(g).map((m) => [
-      g.modelo, textoCapacidad(g.capacidad), g.color, m.imeiSn, pasoSubir(m), m.ubicacion ?? SIN_DATO, dias(m), '',
-    ])),
+    columnas: ['Modelo', 'Capacidad', 'Color', 'B', 'B100', 'Hecho'],
+    filas: lista.filter(pendienteSubir).map((g) => [g.modelo, textoCapacidad(g.capacidad), g.color, String(g.b), String(g.b100), '']),
   }
 }
 
@@ -193,8 +182,8 @@ export function excelSubir(lista: readonly GrupoSubir[]): HojaExcel {
 export const nombreExcel = (t: TarjetaQR, ahora: Date = new Date()): string =>
   `Que_revisar_${t === 'revisar' ? 'sin_grado' : 'subir_B_a_A'}_${hoyMadrid(ahora)}.xlsx`
 
-/** El aviso al guardar: «Descargado: 12 móviles». */
-export const avisoDescargado = (n: number): string => `Descargado: ${n} ${palabraMoviles(n)}`
+/** El aviso al guardar: «Descargado: 12 modelos-color». */
+export const avisoDescargado = (n: number): string => `Descargado: ${n} ${palabraGrupos(n)}`
 
 // ---------------------------------------------------------------- buscar por palabras clave (spec §3.6)
 

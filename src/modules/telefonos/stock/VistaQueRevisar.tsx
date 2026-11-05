@@ -12,7 +12,7 @@ import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
   avisoDescargado, AYUDA_QR, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar, imeiBuscado,
-  movilesExcel, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE, sinCoincidencias,
+  NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE, sinCoincidencias,
   SUBTITULO_QR, TARJETAS_QR, textoCifra, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir,
   type TarjetaQR,
 } from './queRevisar'
@@ -51,7 +51,9 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
   const visibles = elegida === 'revisar' ? visiblesRevisar : visiblesSubir
   const mensaje = cargando ? 'Cargando…' : error ? 'No se pudo cargar el stock de teléfonos.' : todas.length === 0 ? VACIA_QR[elegida]
     : visibles.length === 0 ? sinCoincidencias(queRevisar.buscar) : null
-  const nExcel = movilesExcel(visibles)
+  // Lo que llevará el Excel de la tarjeta elegida (spec §10.12): el N del botón son sus filas.
+  const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar) : excelSubir(visiblesSubir)
+  const nExcel = hoja.filas.length
   const descargar = useDescargarExcel()
   // Como las plantillas de NSYS (0.9.22.1): «Guardar como» en el mismo clic y después el Excel del servidor. Cancelar no pide nada.
   // Mientras «Guardar como» está abierto, otro clic no abre otro (la mutación apaga el botón, pero solo desde que se lanza).
@@ -63,8 +65,7 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
       const nombre = nombreExcel(elegida)
       const destino = await elegirDestino(nombre, TIPO_XLSX)
       if (destino === 'cancelado') return
-      const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar) : excelSubir(visiblesSubir)
-      descargar.mutate({ hoja, nombre, destino }, { onSuccess: () => avisar({ texto: avisoDescargado(hoja.filas.length), tipo: 'ok' }) })
+      descargar.mutate({ hoja, nombre, destino }, { onSuccess: () => avisar({ texto: avisoDescargado(nExcel), tipo: 'ok' }) })
     } finally {
       abierto.current = false
     }
