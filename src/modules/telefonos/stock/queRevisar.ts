@@ -154,6 +154,26 @@ export const palabraGrupos = (n: number): string => (n === 1 ? 'modelo-color' : 
 /** Lo que va junto a la cifra grande de la tarjeta: «modelos-color · 19 móviles». */
 export const textoCifra = (c: Cifra): string => `${palabraGrupos(c.grupos)} · ${c.moviles} ${palabraMoviles(c.moviles)}`
 
+// ---------------------------------------------------------------- «Revisar sin grado» en dos bloques (spec §10.13)
+
+/** Desde cuántos pendientes un modelo-color va en el bloque de «3 o más» (el «Saldo stock ≥ 3» de la hoja). */
+export const MIN_BLOQUE = 3
+export type BloqueRevisar = { titulo: string; grupos: GrupoRevisar[] }
+
+/** Parte la lista visible en «3 o más sin revisar» y «Menos de 3 sin revisar», cada uno con su título («… · N modelos-color · M
+ *  móviles»); conserva el orden de la lista y no devuelve el bloque que se queda sin filas. */
+export function bloquesRevisar(lista: readonly GrupoRevisar[]): BloqueRevisar[] {
+  const bloque = (nombre: string, grupos: GrupoRevisar[]): BloqueRevisar[] => {
+    if (grupos.length === 0) return []
+    const cifra: Cifra = { grupos: grupos.length, moviles: grupos.reduce((n, g) => n + g.pendientes, 0) }
+    return [{ titulo: `${nombre} sin revisar · ${cifra.grupos} ${textoCifra(cifra)}`, grupos }]
+  }
+  return [
+    ...bloque('3 o más', lista.filter((g) => g.pendientes >= MIN_BLOQUE)),
+    ...bloque('Menos de 3', lista.filter((g) => g.pendientes < MIN_BLOQUE)),
+  ]
+}
+
 // ---------------------------------------------------------------- «⬇ Descargar Excel» (spec §10.3)
 
 /** Lo que se manda a POST /api/stock-telefonos/que-revisar/excel: `PeticionExcel` de la API cumple este tipo. */

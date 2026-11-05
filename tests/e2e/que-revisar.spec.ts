@@ -58,6 +58,8 @@ test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grad
     return
   }
   await expect(tabla.getByRole('columnheader')).toHaveText(COLUMNAS_TABLA)
+  // Dos bloques (spec §10.13): al menos una fila de título, la de «3 o más» o la de «Menos de 3».
+  await expect(tabla.getByRole('row').filter({ hasText: /^(3 o más|Menos de 3) sin revisar ·/ }).first()).toBeVisible()
 
   const n = Number(/\((\d+)\)$/.exec((await excel.textContent()) ?? '')?.[1] ?? '0')
   if (n > 0) {

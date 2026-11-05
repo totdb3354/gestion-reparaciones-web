@@ -74,9 +74,9 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(screen.queryByRole('switch', { name: /3 o más/ })).not.toBeInTheDocument()
     expect(screen.queryByText(/3 o más sin revisar/)).not.toBeInTheDocument()
     const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
-    expect(filas(tabla)).toHaveLength(3)
-    expect(filas(tabla)[0]).toHaveTextContent('iPhone 15 Pro256 GBTitanio natural')
-    expect(filas(tabla)[1]).toHaveTextContent('iPhone 13')
+    expect(filas(tabla)).toHaveLength(4) // la fila de título del bloque y los tres modelos-color
+    expect(filas(tabla)[1]).toHaveTextContent('iPhone 15 Pro256 GBTitanio natural')
+    expect(filas(tabla)[2]).toHaveTextContent('iPhone 13')
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('2 modelos-color · 2 móviles')
     expect(screen.getByRole('button', { name: '⬇ Descargar Excel (2)' })).toBeEnabled()
   })
@@ -86,11 +86,12 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
     expect(cabeceras(tabla)).toEqual(['Modelo', 'Cap.', 'Color', 'Sin grado'])
     expect(filas(tabla).map(celdas)).toEqual([
+      ['Menos de 3 sin revisar · 3 modelos-color · 2 móviles'],
       ['▸iPhone 15 Pro', '256 GB', 'Titanio natural', '1+1 con técnico'],
       ['▸iPhone 13', '128 GB', 'Azul', '1'],
       ['▸iPhone 12 Pro', '128 GB', 'Grafito', '0+1 con técnico'],
     ])
-    const [uno, , tres] = filas(tabla)
+    const [, uno, , tres] = filas(tabla)
     expect(within(within(uno).getAllByRole('cell')[0]).getByRole('button', { name: 'Ver los móviles de iPhone 15 Pro 256 GB Titanio natural' }))
       .toBeInTheDocument()
     expect(within(uno).getByText('+1 con técnico')).toHaveClass('text-azul-gris')
@@ -116,7 +117,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(onAbrirImei).toHaveBeenCalledWith('350000000000101')
     await user.click(boton)
     expect(screen.queryByRole('table', { name: /^Móviles de / })).not.toBeInTheDocument()
-    await user.click(within(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[1]).getByText('Azul'))
+    await user.click(within(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[2]).getByText('Azul'))
     expect(filas(screen.getByRole('table', { name: 'Móviles de iPhone 13 128 GB Azul' })).map(celdas)).toEqual([
       ['350000000000104', 'n/a', 'En revisión', '6', '—'],
     ])
@@ -221,7 +222,47 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     pintar([STOCK[2]])
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('0 modelos-color · 0 móviles')
     expect(screen.getByRole('button', { name: '⬇ Descargar Excel' })).toBeDisabled()
-    expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[0]).toHaveClass('text-texto-suave')
+    expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[1]).toHaveClass('text-texto-suave')
+  })
+
+  it('en dos bloques: «3 o más» arriba y «Menos de 3» debajo, cada uno con su fila de título antes de sus filas; el número, en negrita', () => {
+    const muchos = [1, 2, 3].map((i) => visto({ imeiSn: `35000000000020${i}`, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', grado: 'n/a' }))
+    pintar([...STOCK, ...muchos])
+    const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
+    expect(cabeceras(tabla)).toEqual(['Modelo', 'Cap.', 'Color', 'Sin grado'])
+    expect(filas(tabla).map(celdas)).toEqual([
+      ['3 o más sin revisar · 1 modelo-color · 3 móviles'],
+      ['▸iPhone 16', '128 GB', 'Negro', '3'],
+      ['Menos de 3 sin revisar · 3 modelos-color · 2 móviles'],
+      ['▸iPhone 15 Pro', '256 GB', 'Titanio natural', '1+1 con técnico'],
+      ['▸iPhone 13', '128 GB', 'Azul', '1'],
+      ['▸iPhone 12 Pro', '128 GB', 'Grafito', '0+1 con técnico'],
+    ])
+    expect(within(filas(tabla)[1]).getByText('3')).toHaveClass('font-bold')
+    expect(within(filas(tabla)[3]).getByText('1')).toHaveClass('font-bold')
+    expect(within(filas(tabla)[3]).getByText('+1 con técnico')).not.toHaveClass('font-bold')
+  })
+
+  it('con una búsqueda que deja solo modelos-color de menos de 3, solo sale ese bloque', () => {
+    const muchos = [1, 2, 3].map((i) => visto({ imeiSn: `35000000000020${i}`, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', grado: 'n/a' }))
+    estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: '15 pro' } }))
+    pintar([...STOCK, ...muchos])
+    const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
+    expect(filas(tabla).map(celdas)).toEqual([
+      ['Menos de 3 sin revisar · 1 modelo-color · 1 móvil'],
+      ['▸iPhone 15 Pro', '256 GB', 'Titanio natural', '1+1 con técnico'],
+    ])
+    expect(within(tabla).queryByText(/^3 o más sin revisar/)).not.toBeInTheDocument()
+  })
+
+  it('«Subir B a A» sin bloques, y las dos tablas dejan de ocupar todo el ancho', async () => {
+    const user = userEvent.setup()
+    pintar()
+    expect(screen.getByRole('table', { name: 'Revisar sin grado' })).not.toHaveClass('w-full')
+    await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
+    const tabla = screen.getByRole('table', { name: 'Subir B a A' })
+    expect(tabla).not.toHaveClass('w-full')
+    expect(within(tabla).queryByText(/sin revisar ·/)).not.toBeInTheDocument()
   })
 
   it('cargando', () => {
@@ -261,7 +302,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: '15 pro' } }))
     pintar()
     const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
-    expect(filas(tabla)).toHaveLength(1)
+    expect(filas(tabla)).toHaveLength(2) // título y modelo-color
     expect(tabla).toHaveTextContent('iPhone 15 Pro')
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('2 modelos-color · 2 móviles')
     expect(screen.getByRole('button', { name: '⬇ Descargar Excel (1)' })).toBeEnabled()
@@ -276,7 +317,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
   it('un trozo de IMEI de 6 cifras abre su modelo-color con el móvil resaltado', () => {
     estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: '000101' } }))
     pintar()
-    expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[0]).toHaveTextContent('iPhone 15 Pro')
+    expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))[1]).toHaveTextContent('iPhone 15 Pro')
     const [primero, segundo] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 15 Pro 256 GB Titanio natural' }))
     expect(primero).toHaveClass('bg-amarillo/40')
     expect(segundo).not.toHaveClass('bg-amarillo/40')

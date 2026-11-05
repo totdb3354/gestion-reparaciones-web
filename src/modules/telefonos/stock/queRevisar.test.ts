@@ -3,7 +3,7 @@ import type { MovilStock } from '@/shared/api/client'
 import { trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
 import {
-  avisoDescargado, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar, imeiBuscado,
+  avisoDescargado, bloquesRevisar, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar, imeiBuscado,
   listaRevisar, listaSubir, MAX_A, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias, textoCifra,
   gradoVendible, tieneGrado, totalQueRevisar, type GrupoRevisar,
 } from './queRevisar'
@@ -306,5 +306,30 @@ describe('«Qué revisar»: buscar por palabras clave (spec 0.9.25 §3.6)', () =
 
   it('el texto sin coincidencias', () => {
     expect(sinCoincidencias('  13 negro ')).toBe('Ningún modelo-color con «13 negro».')
+  })
+})
+
+describe('«Qué revisar»: Revisar sin grado en dos bloques (spec 0.9.25 §10.13)', () => {
+  const g = (clave: string, pendientes: number, conTecnico = 0): GrupoRevisar => ({
+    clave, modelo: clave, capacidad: '128GB', color: 'Azul', esEsim: false, a: 0, skus: [], moviles: [], pendientes, conTecnico,
+  })
+  const [g5, g3, g2, g1, g0] = [g('a', 5), g('b', 3), g('c', 2), g('d', 1), g('e', 0, 1)]
+
+  it('parte en «3 o más» y «Menos de 3», con los de 0 al final del segundo, y titula cada bloque con sus cifras', () => {
+    expect(bloquesRevisar([g5, g3, g2, g1, g0])).toEqual([
+      { titulo: '3 o más sin revisar · 2 modelos-color · 8 móviles', grupos: [g5, g3] },
+      { titulo: 'Menos de 3 sin revisar · 3 modelos-color · 3 móviles', grupos: [g2, g1, g0] },
+    ])
+  })
+
+  it('un bloque sin grupos no sale', () => {
+    expect(bloquesRevisar([g5, g3])).toEqual([{ titulo: '3 o más sin revisar · 2 modelos-color · 8 móviles', grupos: [g5, g3] }])
+    expect(bloquesRevisar([g2, g0])).toEqual([{ titulo: 'Menos de 3 sin revisar · 2 modelos-color · 2 móviles', grupos: [g2, g0] }])
+    expect(bloquesRevisar([])).toEqual([])
+  })
+
+  it('en singular cuando toca', () => {
+    expect(bloquesRevisar([g1])).toEqual([{ titulo: 'Menos de 3 sin revisar · 1 modelo-color · 1 móvil', grupos: [g1] }])
+    expect(bloquesRevisar([g('x', 3)])).toEqual([{ titulo: '3 o más sin revisar · 1 modelo-color · 3 móviles', grupos: [g('x', 3)] }])
   })
 })

@@ -11,7 +11,7 @@ import { textoCapacidad, type Movil } from './modelo'
 import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
-  avisoDescargado, AYUDA_QR, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar, imeiBuscado,
+  avisoDescargado, AYUDA_QR, bloquesRevisar, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar, imeiBuscado,
   NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE, sinCoincidencias,
   SUBTITULO_QR, TARJETAS_QR, textoCifra, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir,
   type TarjetaQR,
@@ -25,6 +25,8 @@ type Props = {
 const BORDE: Record<TarjetaQR, string> = { revisar: 'border-t-fila-solicitud-brd', subir: 'border-t-tipo-pulido-text' }
 const CELDA = 'px-2 py-1.5 align-top'
 const NUM = cn(CELDA, 'text-right whitespace-nowrap tabular-nums')
+/** Las tablas ocupan lo que piden sus columnas (con un mínimo para que el desplegable de móviles no las ensanche al abrirse). */
+const TABLA = 'w-auto min-w-[560px] border-collapse text-[12.5px] text-azul-medio'
 const GRIS = 'ml-1 text-[11px] text-azul-gris'
 const SUAVE = 'text-texto-suave'
 const PRIMARIO = 'h-[26px] cursor-pointer rounded-lg bg-azul-noche px-2.5 text-[12px] font-semibold whitespace-nowrap text-superficie hover:bg-azul-noche-hover disabled:cursor-not-allowed disabled:opacity-40'
@@ -130,9 +132,9 @@ function Desplegar({ g, abierto, onAlternar }: { g: GrupoBase; abierto: boolean;
   )
 }
 
-/** Un número con, en gris, «+1 con técnico» si hay. */
+/** Un número en negrita con, en gris, «+1 con técnico» si hay. */
 function Cuenta({ n, tecnico }: { n: number; tecnico: number }) {
-  return <>{n}{tecnico > 0 && <span className={GRIS}>{`+${tecnico} con técnico`}</span>}</>
+  return <><span className="font-bold">{n}</span>{tecnico > 0 && <span className={GRIS}>{`+${tecnico} con técnico`}</span>}</>
 }
 
 /** «Revisar sin grado» (spec §10.10): como «Solo n/a» de la hoja, sin motivo, «A en stock» ni «Con grado» (todo sería «Nada con
@@ -140,24 +142,31 @@ function Cuenta({ n, tecnico }: { n: number; tecnico: number }) {
 function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoRevisar>) {
   const columnas = ['Modelo', 'Cap.', 'Color', 'Sin grado']
   return (
-    <table aria-label="Revisar sin grado" className="w-full border-collapse text-[12.5px] text-azul-medio">
+    <table aria-label="Revisar sin grado" className={TABLA}>
       <Cabecera columnas={columnas} desdeDerecha={3} />
       <tbody>
-        {grupos.map((g) => {
-          const clave = `revisar|${g.clave}`
-          const abierto = abiertos.has(clave) || g.moviles.some((m) => imeiBuscado(m, palabras))
-          return (
-            <Fragment key={g.clave}>
-              <tr onClick={() => onAlternar(clave)} className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', g.pendientes === 0 && SUAVE)}>
-                <td className={cn(CELDA, 'whitespace-nowrap')}><Desplegar g={g} abierto={abierto} onAlternar={() => onAlternar(clave)} />{g.modelo}</td>
-                <td className={cn(CELDA, 'whitespace-nowrap')}>{textoCapacidad(g.capacidad)}</td>
-                <td className={CELDA}>{g.color}</td>
-                <td className={NUM}><Cuenta n={g.pendientes} tecnico={g.conTecnico} /></td>
-              </tr>
-              {abierto && <Moviles g={g} palabras={palabras} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <PildoraGrado grado={m.grado} />} />}
-            </Fragment>
-          )
-        })}
+        {bloquesRevisar(grupos).map((b) => (
+          <Fragment key={b.titulo}>
+            <tr className="border-t border-fila-sep bg-crema/60">
+              <td colSpan={columnas.length} className={cn(CELDA, 'font-bold whitespace-nowrap text-azul-noche')}>{b.titulo}</td>
+            </tr>
+            {b.grupos.map((g) => {
+              const clave = `revisar|${g.clave}`
+              const abierto = abiertos.has(clave) || g.moviles.some((m) => imeiBuscado(m, palabras))
+              return (
+                <Fragment key={g.clave}>
+                  <tr onClick={() => onAlternar(clave)} className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', g.pendientes === 0 && SUAVE)}>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}><Desplegar g={g} abierto={abierto} onAlternar={() => onAlternar(clave)} />{g.modelo}</td>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}>{textoCapacidad(g.capacidad)}</td>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}>{g.color}</td>
+                    <td className={NUM}><Cuenta n={g.pendientes} tecnico={g.conTecnico} /></td>
+                  </tr>
+                  {abierto && <Moviles g={g} palabras={palabras} columnas={columnas.length} onAbrirImei={onAbrirImei} grado={(m) => <PildoraGrado grado={m.grado} />} />}
+                </Fragment>
+              )
+            })}
+          </Fragment>
+        ))}
       </tbody>
     </table>
   )
@@ -166,7 +175,7 @@ function TablaRevisar({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: T
 function TablaSubir({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: TablaProps<GrupoSubir>) {
   const columnas = ['Modelo', 'Cap.', 'Color', 'B', 'B100']
   return (
-    <table aria-label="Subir B a A" className="w-full border-collapse text-[12.5px] text-azul-medio">
+    <table aria-label="Subir B a A" className={TABLA}>
       <Cabecera columnas={columnas} desdeDerecha={3} />
       <tbody>
         {grupos.map((g) => {
@@ -177,7 +186,7 @@ function TablaSubir({ grupos, palabras, abiertos, onAlternar, onAbrirImei }: Tab
               <tr onClick={() => onAlternar(clave)} className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', !pendienteSubir(g) && SUAVE)}>
                 <td className={cn(CELDA, 'whitespace-nowrap')}><Desplegar g={g} abierto={abierto} onAlternar={() => onAlternar(clave)} />{g.modelo}</td>
                 <td className={cn(CELDA, 'whitespace-nowrap')}>{textoCapacidad(g.capacidad)}</td>
-                <td className={CELDA}>{g.color}</td>
+                <td className={cn(CELDA, 'whitespace-nowrap')}>{g.color}</td>
                 <td className={NUM}><Cuenta n={g.b} tecnico={g.bTecnico} /></td>
                 <td className={NUM}><Cuenta n={g.b100} tecnico={g.b100Tecnico} /></td>
               </tr>
