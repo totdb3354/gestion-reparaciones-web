@@ -134,6 +134,9 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
             nuevo (la clave) para que empiece arriba y no donde se quedó el anterior. */}
         {mensaje === null && <Panel key={detalle?.g.clave ?? ''} id={idPanel} detalle={detalle} palabras={palabras} onAbrirImei={onAbrirImei} />}
       </div>
+      {/* Región viva siempre montada y fuera del <Panel key>: el título del panel se remonta en cada elección y una región que nace
+          con su texto no se anuncia. Esta conserva el nodo y solo cambia el texto. */}
+      <p className="sr-only" aria-live="polite" data-testid="anuncio-panel">{mensaje === null && detalle !== null ? tituloPanel(detalle) : ''}</p>
       <p className="shrink-0 text-[11.5px] text-azul-gris">{PIE_QR}</p>
     </section>
   )
@@ -223,6 +226,8 @@ function TablaSubir({ grupos, elegido, panel, onElegir }: TablaProps<GrupoSubir>
 /** El panel de la derecha (spec §10.14): el título con la descripción del modelo-color elegido y su cuenta («· 20 sin grado» o
  *  «· 1 B · 2 B100», y en gris «· +2 con técnico»), pegado arriba al desplazar el panel, y debajo sus móviles. Sin elegido,
  *  cómo elegir uno. */
+const tituloPanel = (d: Detalle): string => `${descripcion(d.g)} · ${d.cuenta.texto}${d.cuenta.tecnico > 0 ? ` · +${d.cuenta.tecnico} con técnico` : ''}`
+
 function Panel({ id, detalle, palabras, onAbrirImei }: {
   id: string; detalle: Detalle | null; palabras: readonly string[]; onAbrirImei: (imeiSn: string) => void
 }) {
@@ -230,7 +235,7 @@ function Panel({ id, detalle, palabras, onAbrirImei }: {
     <section id={id} aria-label="Móviles del modelo-color" className={PANEL}>
       {detalle === null ? <p className="p-4 text-[12px] text-azul-gris">{PULSA_QR}</p> : (
         <>
-          <h2 aria-live="polite" className="sticky top-0 border-b border-fila-sep bg-superficie px-3 py-2 text-[13px] font-semibold text-azul-medio">
+          <h2 className="sticky top-0 border-b border-fila-sep bg-superficie px-3 py-2 text-[13px] font-semibold text-azul-medio">
             <span className="font-bold text-azul-noche">{descripcion(detalle.g)}</span>
             {` · ${detalle.cuenta.texto}`}
             {/* El separador fuera del <span>: el nombre accesible del título quita los espacios del borde de cada elemento. */}

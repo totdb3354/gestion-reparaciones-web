@@ -319,14 +319,16 @@ describe('«Qué revisar»: Revisar sin grado en dos bloques (spec 0.9.25 §10.1
   it('parte en «3 o más» y «Menos de 3», con los de 0 al final del segundo, y titula cada bloque con sus cifras', () => {
     expect(bloquesRevisar([g5, g3, g2, g1, g0])).toEqual([
       { titulo: '3 o más sin revisar · 2 modelos-color · 8 móviles', grupos: [g5, g3] },
-      { titulo: 'Menos de 3 sin revisar · 3 modelos-color · 3 móviles', grupos: [g2, g1, g0] },
+      { titulo: 'Menos de 3 sin revisar · 2 modelos-color · 3 móviles', grupos: [g2, g1, g0] },
     ])
   })
 
   it('un bloque sin grupos no sale', () => {
     expect(bloquesRevisar([g5, g3])).toEqual([{ titulo: '3 o más sin revisar · 2 modelos-color · 8 móviles', grupos: [g5, g3] }])
-    expect(bloquesRevisar([g2, g0])).toEqual([{ titulo: 'Menos de 3 sin revisar · 2 modelos-color · 2 móviles', grupos: [g2, g0] }])
+    expect(bloquesRevisar([g2, g0])).toEqual([{ titulo: 'Menos de 3 sin revisar · 1 modelo-color · 2 móviles', grupos: [g2, g0] }])
     expect(bloquesRevisar([])).toEqual([])
+    // Solo filas grises (todo con técnico): el título sigue, con 0.
+    expect(bloquesRevisar([g0])).toEqual([{ titulo: 'Menos de 3 sin revisar · 0 modelos-color · 0 móviles', grupos: [g0] }])
   })
 
   it('en singular cuando toca', () => {

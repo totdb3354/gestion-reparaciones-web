@@ -95,7 +95,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
     expect(cabeceras(tabla)).toEqual(['Modelo', 'Cap.', 'Color', 'Sin grado'])
     expect(filas(tabla).map(celdas)).toEqual([
-      ['Menos de 3 sin revisar · 3 modelos-color · 2 móviles'],
+      ['Menos de 3 sin revisar · 2 modelos-color · 2 móviles'],
       ['▸iPhone 15 Pro', '256 GB', 'Titanio natural', '1+1 con técnico'],
       ['▸iPhone 13', '128 GB', 'Azul', '1'],
       ['▸iPhone 12 Pro', '128 GB', 'Grafito', '0+1 con técnico'],
@@ -109,6 +109,22 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(tres).toHaveClass('text-texto-suave')
     for (const motivo of ['Nada con grado', 'Ningún A', 'Solo 1 A', 'Con A']) expect(within(tabla).queryByText(motivo)).not.toBeInTheDocument()
     expect(within(tabla).queryByText(/iPhone 11/)).not.toBeInTheDocument()
+  })
+
+  it('el anuncio del título del panel es una región viva que no se remonta: el mismo nodo cambia de texto al elegir otra fila', async () => {
+    const user = userEvent.setup()
+    pintar()
+    const vivo = screen.getByTestId('anuncio-panel')
+    expect(vivo).toHaveAttribute('aria-live', 'polite')
+    expect(vivo).toHaveTextContent(/^$/)
+    expect(titulo()).toBeNull()
+    await user.click(elegir('iPhone 15 Pro 256 GB Titanio natural'))
+    expect(screen.getByTestId('anuncio-panel')).toBe(vivo)
+    expect(vivo).toHaveTextContent('iPhone 15 Pro 256 GB Titanio natural · 1 sin grado · +1 con técnico')
+    await user.click(elegir('iPhone 13 128 GB Azul'))
+    expect(screen.getByTestId('anuncio-panel')).toBe(vivo)
+    expect(vivo).toHaveTextContent('iPhone 13 128 GB Azul · 1 sin grado')
+    expect(within(panel()).getByRole('heading')).not.toHaveAttribute('aria-live')
   })
 
   it('sin elegir, el panel dice «Pulsa…»; al pulsar una fila, su panel con la cuenta y sus móviles (más días primero; el del técnico en gris), y el IMEI abre el detalle', async () => {
@@ -334,7 +350,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(filas(tabla).map(celdas)).toEqual([
       ['3 o más sin revisar · 1 modelo-color · 3 móviles'],
       ['▸iPhone 16', '128 GB', 'Negro', '3'],
-      ['Menos de 3 sin revisar · 3 modelos-color · 2 móviles'],
+      ['Menos de 3 sin revisar · 2 modelos-color · 2 móviles'],
       ['▸iPhone 15 Pro', '256 GB', 'Titanio natural', '1+1 con técnico'],
       ['▸iPhone 13', '128 GB', 'Azul', '1'],
       ['▸iPhone 12 Pro', '128 GB', 'Grafito', '0+1 con técnico'],

@@ -161,11 +161,11 @@ export const MIN_BLOQUE = 3
 export type BloqueRevisar = { titulo: string; grupos: GrupoRevisar[] }
 
 /** Parte la lista visible en «3 o más sin revisar» y «Menos de 3 sin revisar», cada uno con su título («… · N modelos-color · M
- *  móviles»); conserva el orden de la lista y no devuelve el bloque que se queda sin filas. */
+ *  móviles», contando solo los que tienen algo pendiente, como la tarjeta y el Excel); conserva el orden de la lista y no devuelve el bloque que se queda sin filas. */
 export function bloquesRevisar(lista: readonly GrupoRevisar[]): BloqueRevisar[] {
   const bloque = (nombre: string, grupos: GrupoRevisar[]): BloqueRevisar[] => {
     if (grupos.length === 0) return []
-    const cifra: Cifra = { grupos: grupos.length, moviles: grupos.reduce((n, g) => n + g.pendientes, 0) }
+    const cifra: Cifra = { grupos: grupos.filter(pendienteRevisar).length, moviles: grupos.reduce((n, g) => n + g.pendientes, 0) }
     return [{ titulo: `${nombre} sin revisar · ${cifra.grupos} ${textoCifra(cifra)}`, grupos }]
   }
   return [

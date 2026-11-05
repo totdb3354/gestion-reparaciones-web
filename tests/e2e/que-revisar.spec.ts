@@ -72,6 +72,7 @@ test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grad
     const xlsx = leerXlsx(Buffer.from(guardado!.bytes))
     COLUMNAS_EXCEL.forEach((c, i) => expect(xlsx.celda(`${'ABCDE'[i]}1`).valor, `cabecera ${c}`).toBe(c))
     expect(xlsx.celda('F1').valor, 'cinco columnas: nada detrás de «Revisado»').toBeNull()
+    expect(typeof xlsx.celda('D2').valor, 'Sin grado como número (§10.15)').toBe('number')
     expect(Number(xlsx.celda('D2').valor), 'una fila por modelo-color, con sus móviles sin grado').toBeGreaterThanOrEqual(1)
     expect(xlsx.filasConDatos(2, 'A'), 'una fila por modelo-color').toHaveLength(n)
   }
