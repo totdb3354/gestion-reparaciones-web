@@ -4,8 +4,8 @@ import { movilVendido, trabajo, visto } from '../test/fabrica'
 import type { Movil } from './modelo'
 import {
   avisoDescargado, cabeceraPedidos, cifraRevisar, cifraSubir, coincide, descripcion, esA, esB, excelRevisar, excelSubir, filtrar,
-  imeiBuscado, listaRevisar, listaSubir, MAX_A, MIN_PENDIENTES, movilesExcel, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias,
-  soloTres, textoCifra, tieneGrado, tituloA, tituloPedidos, totalQueRevisar,
+  imeiBuscado, listaRevisar, listaSubir, MAX_A, movilesExcel, nombreExcel, palabrasClave, pasoSubir, sinCoincidencias,
+  textoCifra, tieneGrado, tituloA, tituloPedidos, totalQueRevisar,
 } from './queRevisar'
 
 let n = 0
@@ -58,7 +58,6 @@ describe('«Qué revisar»: qué grado tiene cada móvil (spec 0.9.25 §2.3)', (
     for (const g of ['B', 'b']) expect(esB(g), g).toBe(true)
     for (const g of ['B+', 'B-', 'MsB', 'A', null]) expect(esB(g), String(g)).toBe(false)
     expect(MAX_A).toBe(1)
-    expect(MIN_PENDIENTES).toBe(3)
   })
 })
 
@@ -111,22 +110,6 @@ describe('«Qué revisar»: Revisar sin grado (spec 0.9.25 §10.1, §2.6 y §2.7
   it('del mismo modelo, el físico antes que el eSIM aunque tenga más capacidad', () => {
     expect(listaRevisar([m({ ...E14, grado: 'n/a' }), m({ ...F14, capacidad: '256GB', grado: 'n/a' })]).map(descripcion))
       .toEqual(['iPhone 14 256 GB Medianoche', 'iPhone 14 eSIM 128 GB Medianoche'])
-  })
-
-  it('«Solo con 3 o más sin revisar»: encendido, los de 3 pendientes o más, en el mismo orden; apagado, todos', () => {
-    const lista = listaRevisar(STOCK)
-    expect(soloTres(lista, true).map(descripcion))
-      .toEqual(['iPhone 13 128 GB Azul', 'iPhone 15 Pro 256 GB Titanio natural', 'iPhone 13 Pro 256 GB Grafito'])
-    expect(soloTres(lista, false)).toEqual(lista)
-  })
-
-  it('«Solo con 3 o más»: los del técnico no cuentan (2 pendientes y 1 con técnico, fuera; con 3 pendientes, dentro)', () => {
-    const conTec = () => m({ ...A13, grado: 'n/a', ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] })
-    const dos = listaRevisar([m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), conTec()])
-    expect(dos[0].pendientes).toBe(2)
-    expect(soloTres(dos, true)).toEqual([])
-    const tres = listaRevisar([m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), m({ ...A13, grado: 'n/a' }), conTec()])
-    expect(soloTres(tres, true).map((g) => g.pendientes)).toEqual([3])
   })
 })
 

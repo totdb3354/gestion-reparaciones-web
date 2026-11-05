@@ -3,8 +3,8 @@ import { credenciales } from './credenciales.ts'
 import { leerXlsx } from './xlsx.ts'
 
 // que-revisar.spec.ts (0.9.25, spec 2026-11-04-v0925-que-revisar-design.md §3 y §10): el supertécnico abre Stock de teléfonos →
-// «Qué revisar», ve las dos tarjetas con su cifra, el interruptor «Solo con 3 o más sin revisar» encendido, la columna «Pedidos
-// 15 d» (y mide lo que tarda GET …/vendidos con el histórico entero), descarga el Excel y, si hay algún modelo-color, lo despliega
+// «Qué revisar», ve las dos tarjetas con su cifra, la columna «Pedidos 15 d»
+// (y mide lo que tarda GET …/vendidos con el histórico entero), descarga el Excel y, si hay algún modelo-color, lo despliega
 // y ve un IMEI. Solo LEE: los vendidos y el Excel no tocan la base, el Excel se guarda en una «Guardar como» falsa (en la memoria
 // de la página) y no se apunta ningún IMEI en el código. Como todas las E2E, solo contra PREPRODUCCIÓN: se niega a seguir sin el
 // letrero.
@@ -32,7 +32,7 @@ function guardarComoFalso() {
   })
 }
 
-test('«Qué revisar» enseña sus tarjetas, «Pedidos 15 d» y el interruptor, descarga el Excel y despliega un modelo-color', async ({ page }) => {
+test('«Qué revisar» enseña sus tarjetas, «Pedidos 15 d», descarga el Excel y despliega un modelo-color', async ({ page }) => {
   const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
   await page.addInitScript(guardarComoFalso)
   await page.goto('/login')
@@ -58,18 +58,11 @@ test('«Qué revisar» enseña sus tarjetas, «Pedidos 15 d» y el interruptor, 
   for (const nombre of ['Revisar sin grado', 'Subir B a A'])
     await expect(page.getByRole('article', { name: nombre })).toContainText(/\d+ modelos?-color · \d+ móvil(es)?/)
 
-  const tres = page.getByRole('switch', { name: 'Solo con 3 o más sin revisar' })
-  await expect(tres).toHaveAttribute('aria-checked', 'true')
   const excel = page.getByRole('button', { name: /^⬇ Descargar Excel/ })
   await expect(excel).toBeVisible()
   const tabla = page.getByRole('table', { name: 'Revisar sin grado' })
   if (await tabla.count() === 0) {
-    await expect(page.getByText(/^(Nada que revisar|Ningún modelo-color con 3 o más sin revisar)/)).toBeVisible()
-    await tres.click()
-    await expect(tres).toHaveAttribute('aria-checked', 'false')
-  }
-  if (await tabla.count() === 0) {
-    await expect(page.getByText(/^Nada que revisar/)).toBeVisible()
+    await expect(page.getByText('Nada que revisar: ningún móvil sin grado en stock.')).toBeVisible()
     return
   }
   await expect(tabla.getByRole('columnheader', { name: 'Pedidos 15 d', exact: true })).toBeVisible()

@@ -29,12 +29,10 @@ const STOCK: Movil[] = [
   visto({ imeiSn: '350000000000108', ...N11, grado: 'A' }),
 ]
 
-type Opciones = { cargando?: boolean; error?: boolean; soloTres?: boolean; vendidos?: MovilVendido[]; sinVentas?: boolean }
+type Opciones = { cargando?: boolean; error?: boolean; vendidos?: MovilVendido[]; sinVentas?: boolean }
 
-/** Pinta la vista. Los modelos-color de STOCK tienen 1 pendiente o ninguno, así que por defecto el interruptor «Solo con 3 o más
- *  sin revisar» va apagado; el test del interruptor lo enciende. */
-function pintar(moviles: Movil[] = STOCK, { cargando = false, error = false, soloTres = false, vendidos = [], sinVentas = false }: Opciones = {}) {
-  estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, soloTres } }))
+/** Pinta la vista. */
+function pintar(moviles: Movil[] = STOCK, { cargando = false, error = false, vendidos = [], sinVentas = false }: Opciones = {}) {
   const onAbrirImei = vi.fn()
   const { unmount } = renderConProviders(
     <><VistaQueRevisar revisar={listaRevisar(moviles, vendidos)} subir={listaSubir(moviles)} sinVentas={sinVentas} cargando={cargando} error={error}
@@ -46,7 +44,6 @@ function pintar(moviles: Movil[] = STOCK, { cargando = false, error = false, sol
 const cabeceras = (tabla: HTMLElement) => within(tabla).getAllByRole('columnheader').map((c) => c.textContent)
 const filas = (tabla: HTMLElement) => within(tabla).getAllByRole('row').slice(1)
 const tarjeta = (nombre: string) => screen.getByRole('article', { name: nombre })
-const interruptor = () => screen.getByRole('switch', { name: 'Solo con 3 o más sin revisar' })
 
 describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
   afterEach(() => {
@@ -67,31 +64,16 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(screen.getByText(/^Solo cuenta lo que es stock\. Un móvil con un trabajo abierto sale en gris y no cuenta ni va en el Excel\./)).toBeInTheDocument()
   })
 
-  it('se entra con «Solo con 3 o más sin revisar» encendido: solo esos modelos-color, y las tarjetas siguen con todo; apagado, todos', async () => {
-    const user = userEvent.setup()
-    expect(estadoStockTelefonos.get().queRevisar.soloTres).toBe(true)
-    const tres = [101, 102, 103].map((n) => visto({ imeiSn: `350000000000${n + 100}`, ...N11, grado: 'n/a' }))
-    pintar([...STOCK, ...tres], { soloTres: true })
-    expect(interruptor()).toHaveAttribute('aria-checked', 'true')
+  it('no hay interruptor de «3 o más»: un modelo-color con 1 pendiente sale en la tabla y va en el Excel', () => {
+    pintar()
+    expect(screen.queryByRole('switch', { name: /3 o más/ })).not.toBeInTheDocument()
+    expect(screen.queryByText(/3 o más sin revisar/)).not.toBeInTheDocument()
     const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
-    expect(filas(tabla)).toHaveLength(1)
-    expect(filas(tabla)[0]).toHaveTextContent('iPhone 1164 GBNegro3')
-    expect(tarjeta('Revisar sin grado')).toHaveTextContent('3 modelos-color · 5 móviles')
-    expect(screen.getByRole('button', { name: '⬇ Descargar Excel (3)' })).toBeEnabled()
-    await user.click(interruptor())
-    expect(interruptor()).toHaveAttribute('aria-checked', 'false')
-    expect(estadoStockTelefonos.get().queRevisar.soloTres).toBe(false)
-    expect(filas(screen.getByRole('table', { name: 'Revisar sin grado' }))).toHaveLength(4)
-    expect(screen.getByRole('button', { name: '⬇ Descargar Excel (5)' })).toBeEnabled()
-  })
-
-  it('con el interruptor encendido y nada con 3 o más, lo dice y el Excel va apagado', () => {
-    pintar(STOCK, { soloTres: true })
-    expect(screen.getByText('Ningún modelo-color con 3 o más sin revisar: apaga «Solo con 3 o más sin revisar» para verlos todos.')).toBeInTheDocument()
+    expect(filas(tabla)).toHaveLength(3)
+    expect(filas(tabla)[0]).toHaveTextContent('iPhone 15 Pro256 GBTitanio natural')
+    expect(filas(tabla)[1]).toHaveTextContent('iPhone 13')
     expect(tarjeta('Revisar sin grado')).toHaveTextContent('2 modelos-color · 2 móviles')
-    const excel = screen.getByRole('button', { name: '⬇ Descargar Excel' })
-    expect(excel).toBeDisabled()
-    expect(excel).toHaveAttribute('title', 'No hay nada pendiente')
+    expect(screen.getByRole('button', { name: '⬇ Descargar Excel (2)' })).toBeEnabled()
   })
 
   it('«Revisar sin grado»: una fila por modelo-color con su motivo y «Pedidos 15 d»; los de más pendientes primero; el que solo tiene el técnico, en gris', () => {
@@ -204,14 +186,14 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(peticiones).toBe(1)
   })
 
-  it('«Subir B a A»: su tabla, el paso de cada móvil y su Excel, sin el interruptor', async () => {
+  it('«Subir B a A»: su tabla, el paso de cada móvil y su Excel', async () => {
     const user = userEvent.setup()
     pintar()
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
     const tabla = screen.getByRole('table', { name: 'Subir B a A' })
     expect(cabeceras(tabla)).toEqual(['Modelo', 'Cap.', 'Color', 'A en stock', 'B', 'B100'])
     expect(screen.getByText(/^Los modelos-color con móviles B y como mucho un A en stock: candidatos a chasis/)).toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'Solo con 3 o más sin revisar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: /3 o más/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ver los móviles de iPhone 11 64 GB Negro' }))
     const [b, b100] = filas(screen.getByRole('table', { name: 'Móviles de iPhone 11 64 GB Negro' }))
     expect(b).toHaveTextContent('B → A')

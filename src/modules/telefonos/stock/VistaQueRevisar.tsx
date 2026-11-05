@@ -12,8 +12,8 @@ import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
   avisoDescargado, AYUDA_QR, cabeceraPedidos, cifraRevisar, cifraSubir, conTecnico, descripcion, excelRevisar, excelSubir, filtrar,
-  imeiBuscado, movilesExcel, NINGUNO_TRES, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
-  sinCoincidencias, soloTres, SUBTITULO_QR, TARJETAS_QR, TEXTO_MOTIVO, TEXTO_SOLO_TRES, textoCifra, tituloA, tituloPedidos,
+  imeiBuscado, movilesExcel, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, SIN_PENDIENTE,
+  sinCoincidencias, SUBTITULO_QR, TARJETAS_QR, TEXTO_MOTIVO, textoCifra, tituloA, tituloPedidos,
   TITULO_SIN_VENTAS, VACIA_QR, type Cifra, type GrupoBase, type GrupoRevisar, type GrupoSubir, type Motivo, type TarjetaQR,
 } from './queRevisar'
 
@@ -37,8 +37,7 @@ const SUAVE = 'text-texto-suave'
 const PRIMARIO = 'h-[26px] cursor-pointer rounded-lg bg-azul-noche px-2.5 text-[12px] font-semibold whitespace-nowrap text-superficie hover:bg-azul-noche-hover disabled:cursor-not-allowed disabled:opacity-40'
 const CAMBIA_GRADO = 'inline-block rounded border border-tipo-reparacion-bg bg-tipo-reparacion-bg px-1.5 font-bold text-tipo-reparacion-text'
 
-/** «Qué revisar» (0.9.25, spec «Qué revisar» §3 y §10): dos tarjetas como «Por pasar a NSYS», la ayuda, el interruptor «Solo con 3
- *  o más sin revisar» y «⬇ Descargar Excel», y la tabla de la elegida, con una fila por modelo-color que se despliega con sus
+/** «Qué revisar» (0.9.25, spec «Qué revisar» §3 y §10): dos tarjetas como «Por pasar a NSYS», la ayuda y «⬇ Descargar Excel», y la tabla de la elegida, con una fila por modelo-color que se despliega con sus
  *  móviles. Solo se mira: las listas salen del stock que ya tiene la página y de los vendidos. */
 export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, onAbrirImei }: Props) {
   const [{ queRevisar }, setEstado] = useStore(estadoStockTelefonos)
@@ -50,18 +49,15 @@ export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, on
     const previos = e.queRevisar.abiertos
     return { ...e, queRevisar: { ...e.queRevisar, abiertos: previos.includes(clave) ? previos.filter((c) => c !== clave) : [...previos, clave] } }
   })
-  const alternarTres = () => setEstado((e) => ({ ...e, queRevisar: { ...e.queRevisar, soloTres: !e.queRevisar.soloTres } }))
   const cifras: Record<TarjetaQR, Cifra> = { revisar: cifraRevisar(revisar), subir: cifraSubir(subir) }
-  // La caja de arriba (spec §3.6) y el interruptor (spec §10.1) filtran las tablas y el Excel; las tarjetas siguen con todo.
+  // La caja de arriba (spec §3.6) filtra las tablas y el Excel; las tarjetas siguen con todo.
   const palabras = palabrasClave(queRevisar.buscar)
-  const buscadosRevisar = filtrar(revisar, palabras)
-  const visiblesRevisar = soloTres(buscadosRevisar, queRevisar.soloTres)
+  const visiblesRevisar = filtrar(revisar, palabras)
   const visiblesSubir = filtrar(subir, palabras)
   const todas = elegida === 'revisar' ? revisar : subir
-  const buscadas = elegida === 'revisar' ? buscadosRevisar : visiblesSubir
   const visibles = elegida === 'revisar' ? visiblesRevisar : visiblesSubir
   const mensaje = cargando ? 'Cargando…' : error ? 'No se pudo cargar el stock de teléfonos.' : todas.length === 0 ? VACIA_QR[elegida]
-    : buscadas.length === 0 ? sinCoincidencias(queRevisar.buscar) : visibles.length === 0 ? NINGUNO_TRES : null
+    : visibles.length === 0 ? sinCoincidencias(queRevisar.buscar) : null
   const nExcel = movilesExcel(visibles)
   const descargar = useDescargarExcel()
   // Como las plantillas de NSYS (0.9.22.1): «Guardar como» en el mismo clic y después el Excel del servidor. Cancelar no pide nada.
@@ -99,15 +95,6 @@ export function VistaQueRevisar({ revisar, subir, sinVentas, cargando, error, on
       <div className="flex shrink-0 flex-wrap items-center gap-2.5">
         <p className="max-w-[880px] text-[11.5px] leading-snug text-azul-gris">{AYUDA_QR[elegida]}</p>
         <div className="ml-auto flex items-center gap-3">
-          {elegida === 'revisar' && (
-            <button type="button" role="switch" aria-checked={queRevisar.soloTres} onClick={alternarTres}
-              className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-azul-medio">
-              <span className={cn('relative h-[18px] w-[34px] rounded-full transition-colors', queRevisar.soloTres ? 'bg-verde-ok' : 'bg-pill-borde')}>
-                <span className={cn('absolute top-[2px] h-[14px] w-[14px] rounded-full bg-superficie transition-[left]', queRevisar.soloTres ? 'left-[18px]' : 'left-[2px]')} />
-              </span>
-              {TEXTO_SOLO_TRES}
-            </button>
-          )}
           <button type="button" disabled={nExcel === 0 || descargar.isPending} title={nExcel === 0 ? SIN_PENDIENTE : undefined}
             onClick={() => void bajar()} className={PRIMARIO}>
             {`⬇ Descargar Excel${nExcel > 0 ? ` (${nExcel})` : ''}`}

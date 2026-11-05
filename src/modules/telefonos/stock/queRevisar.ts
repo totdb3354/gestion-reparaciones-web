@@ -12,8 +12,6 @@ import { palabraMoviles } from './porPasar'
 export const MAX_A = 1
 /** «Pedidos 15 d» (spec §10.2): los vendidos de hoy y los 14 días anteriores, más los de pedido. */
 export const DIAS_PEDIDOS = 15
-/** «Solo con 3 o más sin revisar» (spec §10.1): los pendientes, sin los del técnico. */
-export const MIN_PENDIENTES = 3
 
 // Con grado (spec §2.3): A+, A, A-, B+, B, B-, C con o sin Ms delante; Ms solo; ID, F, FD y RMA. Sin mirar mayúsculas.
 const CON_GRADO = /^(?:ms(?:a\+|a-|a|b\+|b-|b|c)?|a\+|a-|a|b\+|b-|b|c|id|f|fd|rma)$/i
@@ -140,11 +138,6 @@ export function listaSubir(moviles: readonly Movil[]): GrupoSubir[] {
 export const pendienteRevisar = (g: GrupoRevisar): boolean => g.pendientes > 0
 export const pendienteSubir = (g: GrupoSubir): boolean => g.b + g.b100 > 0
 
-/** «Solo con 3 o más sin revisar» (spec §10.1): encendido, solo los modelos-color con {@link MIN_PENDIENTES} pendientes o más;
- *  apagado, todos. En el mismo orden. */
-export const soloTres = (lista: readonly GrupoRevisar[], encendido: boolean): GrupoRevisar[] =>
-  encendido ? lista.filter((g) => g.pendientes >= MIN_PENDIENTES) : [...lista]
-
 /** La cifra de una tarjeta (spec §3.2): modelos-color con algo pendiente y cuántos móviles pendientes suman. */
 export type Cifra = { grupos: number; moviles: number }
 
@@ -196,8 +189,6 @@ export const VACIA_QR: Record<TarjetaQR, string> = {
 }
 export const PIE_QR = 'Solo cuenta lo que es stock. Un móvil con un trabajo abierto sale en gris y no cuenta ni va en el Excel. «A» es A+, A o A-, con o sin batería nueva.'
 export const SIN_PENDIENTE = 'No hay nada pendiente'
-export const TEXTO_SOLO_TRES = 'Solo con 3 o más sin revisar'
-export const NINGUNO_TRES = 'Ningún modelo-color con 3 o más sin revisar: apaga «Solo con 3 o más sin revisar» para verlos todos.'
 
 export const palabraGrupos = (n: number): string => (n === 1 ? 'modelo-color' : 'modelos-color')
 /** Lo que va junto a la cifra grande de la tarjeta: «modelos-color · 19 móviles». */
