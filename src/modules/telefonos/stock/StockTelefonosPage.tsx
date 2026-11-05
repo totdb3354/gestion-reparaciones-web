@@ -96,6 +96,7 @@ export function StockTelefonosPage() {
       </div>
       <BandaNsys />
       <div className="mb-3 flex shrink-0 flex-wrap items-center gap-4">
+        {/* Si se escribe un IMEI mientras el stock carga, no se elige nada después: la búsqueda solo elige con las listas ya cargadas. */}
         <BuscadorImei onElegir={abrir} onPegarVarios={setVarios}
           palabras={vista === 'que-revisar' ? { texto: queRevisar.buscar, onTexto: (t) => setEstado((e) => ({ ...e, queRevisar: buscarQueRevisar(e.queRevisar, t, { revisar, subir }) })) } : undefined} />
         <BotonSecundario onClick={() => setVarios('')}>Pegar varios IMEIs</BotonSecundario>

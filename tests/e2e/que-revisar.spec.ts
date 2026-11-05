@@ -84,10 +84,10 @@ test('«Qué revisar» enseña sus tarjetas y las columnas de «Revisar sin grad
   const boton = fila.getByRole('button', { name: /^Ver los móviles de / })
   const descripcion = ((await boton.getAttribute('aria-label')) ?? '').replace(/^Ver los móviles de /, '')
   expect(descripcion, 'la descripción del primer modelo-color').not.toBe('')
-  await expect(boton).toHaveAttribute('aria-pressed', 'false')
+  await expect(boton).not.toHaveAttribute('aria-current')
   const filasAntes = await tabla.getByRole('row').count()
   await fila.getByRole('cell').nth(2).click() // el color
-  await expect(boton).toHaveAttribute('aria-pressed', 'true')
+  await expect(boton).toHaveAttribute('aria-current', 'true')
   const titulo = panel.getByRole('heading')
   await expect(titulo).toHaveText(/ · \d+ sin grado/)
   expect((await titulo.textContent())?.startsWith(`${descripcion} · `), `el título empieza por «${descripcion}»`).toBe(true)

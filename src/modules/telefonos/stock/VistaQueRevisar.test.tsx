@@ -102,7 +102,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     ])
     const [, uno, , tres] = filas(tabla)
     const boton = within(within(uno).getAllByRole('cell')[0]).getByRole('button', { name: 'Ver los móviles de iPhone 15 Pro 256 GB Titanio natural' })
-    expect(boton).toHaveAttribute('aria-pressed', 'false')
+    expect(boton).not.toHaveAttribute('aria-current')
     expect(boton).toHaveAttribute('aria-controls', panel().id)
     expect(boton).not.toHaveAttribute('aria-expanded')
     expect(within(uno).getByText('+1 con técnico')).toHaveClass('text-azul-gris')
@@ -118,7 +118,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(titulo()).toBeNull()
     expect(within(panel()).queryByRole('table')).not.toBeInTheDocument()
     await user.click(elegir('iPhone 15 Pro 256 GB Titanio natural'))
-    expect(elegir('iPhone 15 Pro 256 GB Titanio natural')).toHaveAttribute('aria-pressed', 'true')
+    expect(elegir('iPhone 15 Pro 256 GB Titanio natural')).toHaveAttribute('aria-current', 'true')
     expect(within(panel()).getByRole('heading', { name: 'iPhone 15 Pro 256 GB Titanio natural · 1 sin grado · +1 con técnico' })).toBeInTheDocument()
     expect(panel()).not.toHaveTextContent(PULSA)
     const moviles = within(panel()).getByRole('table', { name: 'Móviles de iPhone 15 Pro 256 GB Titanio natural' })
@@ -139,14 +139,14 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     pintar()
     const tabla = () => screen.getByRole('table', { name: 'Revisar sin grado' })
     const marcadas = () => filas(tabla()).slice(1).map((f) => [
-      within(f).getByRole('button').getAttribute('aria-pressed'), f.classList.contains('bg-seleccion-suave'),
+      within(f).getByRole('button').getAttribute('aria-current'), f.classList.contains('bg-seleccion-suave'),
     ])
-    expect(marcadas()).toEqual([['false', false], ['false', false], ['false', false]])
+    expect(marcadas()).toEqual([[null, false], [null, false], [null, false]])
     await user.click(elegir('iPhone 15 Pro 256 GB Titanio natural'))
-    expect(marcadas()).toEqual([['true', true], ['false', false], ['false', false]])
+    expect(marcadas()).toEqual([['true', true], [null, false], [null, false]])
     const antes = panel()
     await user.click(within(filas(tabla())[2]).getByText('Azul'))
-    expect(marcadas()).toEqual([['false', false], ['true', true], ['false', false]])
+    expect(marcadas()).toEqual([[null, false], ['true', true], [null, false]])
     expect(panel()).not.toBe(antes) // se pinta de nuevo: empieza arriba, no donde se quedó el del 15 Pro
     expect(panel().id).toBe(antes.id)
     expect(titulo()).toBe('iPhone 13 128 GB Azul · 1 sin grado')
@@ -154,7 +154,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
       ['350000000000104', 'n/a', 'En revisión', '6', '—'],
     ])
     await user.click(within(filas(tabla())[2]).getByText('128 GB'))
-    expect(marcadas()).toEqual([['false', false], ['true', true], ['false', false]])
+    expect(marcadas()).toEqual([[null, false], ['true', true], [null, false]])
     expect(titulo()).toBe('iPhone 13 128 GB Azul · 1 sin grado')
   })
 
@@ -179,15 +179,22 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(fila).toHaveClass('text-texto-suave')
   })
 
-  it('dos columnas desde 1024 px: la tabla a la izquierda y el panel a la derecha, arriba y con su propio desplazamiento', () => {
+  it('las dos columnas no ensanchan la pagina: el contenedor y la lista llevan min-w-0 y contain, y lo que no cabe se desplaza dentro', () => {
+    pintar()
+    const columnas = panel().parentElement!
+    expect(columnas).toHaveClass('min-w-0', '[contain:inline-size]')
+    expect(columnas.firstElementChild).toHaveClass('min-w-0', 'overflow-auto')
+  })
+
+  it('dos columnas desde 1280 px: la tabla a la izquierda y el panel a la derecha, arriba y con su propio desplazamiento', () => {
     pintar()
     const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
     const columnas = panel().parentElement!
-    expect(columnas).toHaveClass('flex', 'flex-col', 'lg:flex-row')
+    expect(columnas).toHaveClass('flex', 'flex-col', 'xl:flex-row')
     expect(columnas.firstElementChild).toContainElement(tabla)
     expect(columnas.firstElementChild).toHaveClass('overflow-auto')
     expect(columnas.lastElementChild).toBe(panel())
-    expect(panel()).toHaveClass('overflow-y-auto', 'lg:self-start', 'lg:max-h-full', 'lg:flex-1')
+    expect(panel()).toHaveClass('overflow-y-auto', 'xl:self-start', 'xl:max-h-full', 'xl:flex-1')
   })
 
   it('«⬇ Descargar Excel» abre «Guardar como» con el nombre del día, manda una fila por modelo-color (sin el móvil del técnico) y lo avisa', async () => {
@@ -251,7 +258,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(screen.queryByRole('switch', { name: /3 o más/ })).not.toBeInTheDocument()
     expect(panel()).toHaveTextContent(PULSA)
     await user.click(elegir('iPhone 11 64 GB Blanco'))
-    expect(elegir('iPhone 11 64 GB Blanco')).toHaveAttribute('aria-pressed', 'true')
+    expect(elegir('iPhone 11 64 GB Blanco')).toHaveAttribute('aria-current', 'true')
     expect(titulo()).toBe('iPhone 11 64 GB Blanco · 1 B · 1 B100')
     const moviles = within(panel()).getByRole('table', { name: 'Móviles de iPhone 11 64 GB Blanco' })
     expect(cabeceras(moviles)).toEqual(['IMEI', 'Grado', 'Ubicación', 'Días en stock', 'Quién lo tiene'])
@@ -378,7 +385,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     primero.unmount()
     pintar()
     expect(screen.getByRole('button', { name: 'Subir B a A' })).toHaveAttribute('aria-pressed', 'true')
-    expect(elegir('iPhone 11 64 GB Blanco')).toHaveAttribute('aria-pressed', 'true')
+    expect(elegir('iPhone 11 64 GB Blanco')).toHaveAttribute('aria-current', 'true')
     expect(titulo()).toBe('iPhone 11 64 GB Blanco · 1 B · 1 B100')
   })
 
@@ -391,7 +398,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     await user.click(elegir('iPhone 11 64 GB Blanco'))
     await user.click(screen.getByRole('button', { name: 'Revisar sin grado' }))
     expect(titulo()).toBe('iPhone 13 128 GB Azul · 1 sin grado')
-    expect(elegir('iPhone 13 128 GB Azul')).toHaveAttribute('aria-pressed', 'true')
+    expect(elegir('iPhone 13 128 GB Azul')).toHaveAttribute('aria-current', 'true')
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
     expect(titulo()).toBe('iPhone 11 64 GB Blanco · 1 B · 1 B100')
     expect(estadoStockTelefonos.get().queRevisar.elegido).toEqual({ revisar: 'iPhone 13|128GB|Azul', subir: 'iPhone 11|64GB|Blanco' })
@@ -419,7 +426,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     await user.click(elegir('iPhone 15 Pro 256 GB Titanio natural'))
     act(() => escribir('12 pro'))
     expect(screen.queryByRole('button', { name: 'Ver los móviles de iPhone 15 Pro 256 GB Titanio natural' })).not.toBeInTheDocument()
-    expect(elegir('iPhone 12 Pro 128 GB Grafito')).toHaveAttribute('aria-pressed', 'false')
+    expect(elegir('iPhone 12 Pro 128 GB Grafito')).not.toHaveAttribute('aria-current')
     expect(panel()).toHaveTextContent(PULSA)
     expect(titulo()).toBeNull()
   })
@@ -449,7 +456,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
       ['Menos de 3 sin revisar · 1 modelo-color · 1 móvil'],
       ['▸iPhone 15 Pro', '256 GB', 'Titanio natural', '1+1 con técnico'],
     ])
-    expect(elegir('iPhone 15 Pro 256 GB Titanio natural')).toHaveAttribute('aria-pressed', 'true')
+    expect(elegir('iPhone 15 Pro 256 GB Titanio natural')).toHaveAttribute('aria-current', 'true')
     expect(titulo()).toBe('iPhone 15 Pro 256 GB Titanio natural · 1 sin grado · +1 con técnico')
     const [primero, segundo] = filas(within(panel()).getByRole('table', { name: 'Móviles de iPhone 15 Pro 256 GB Titanio natural' }))
     expect(primero).toHaveClass('bg-amarillo/40')

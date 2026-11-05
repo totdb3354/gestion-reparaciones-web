@@ -597,7 +597,7 @@ describe('Stock de teléfonos: «Qué revisar» (spec 0.9.25 §3)', () => {
     const caja = screen.getByRole('searchbox', { name: 'Buscar IMEI, modelo o SKU en Qué revisar' })
     await user.type(caja, '000003')
     expect(titulo()).toHaveTextContent(/^iPhone 13 128 GB Rosa · 1 sin grado$/)
-    expect(screen.getByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Rosa' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Ver los móviles de iPhone 13 128 GB Rosa' })).toHaveAttribute('aria-current', 'true')
     expect(within(panel()).getByRole('button', { name: 'Abrir 350000000000003' }).closest('tr')).toHaveClass('bg-amarillo/40')
     await user.clear(caja)
     await user.type(caja, '000006')

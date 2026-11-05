@@ -35,13 +35,13 @@ const CAMBIA_GRADO = 'inline-block rounded border border-tipo-reparacion-bg bg-t
 /** La raya azul de la fila elegida, en su primera celda: con el fondo de selección (el del ratón encima, en firme), para que no se
  *  confunda con la que tiene el ratón encima. */
 const RAYA_ELEGIDA = 'shadow-[inset_3px_0_0_var(--color-azul-noche)]'
-/** Dos columnas desde 1024 px (spec §10.14): la lista con su propio desplazamiento, del ancho de su tabla (si no cabe, encoge y se
+/** Dos columnas desde 1280 px (spec §10.14; con la columna lateral abierta, menos no cabe sin ensanchar la página): la lista con su propio desplazamiento, del ancho de su tabla (si no cabe, encoge y se
  *  desplaza también a lo ancho), y el panel en el resto, con 320 px como poco. Por debajo, una encima de la otra (el panel, como
- *  mucho el 45 % del alto). Ninguna mueve a la otra: la página no se desplaza (ocupa la ventana), así que el panel se queda arriba,
+ *  mucho el 45 % del alto). Nada de aquí ensancha la página (`min-w-0` y `contain`): lo que no cabe se desplaza en su caja. Ninguna mueve a la otra: la página no se desplaza (ocupa la ventana), así que el panel se queda arriba,
  *  a la vista, mientras se baja por la lista, y se desplaza solo si es más largo que el hueco. */
-const COLUMNAS = 'flex min-h-0 flex-1 flex-col gap-3 lg:flex-row'
-const LISTA = 'min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep'
-const PANEL = 'max-h-[45%] min-h-0 shrink-0 overflow-y-auto rounded-lg border border-fila-sep lg:max-h-full lg:max-w-[820px] lg:min-w-[320px] lg:flex-1 lg:self-start'
+const COLUMNAS = 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 [contain:inline-size] xl:flex-row'
+const LISTA = 'min-h-0 min-w-0 flex-1 overflow-auto rounded-lg border border-fila-sep'
+const PANEL = 'max-h-[45%] min-h-0 shrink-0 overflow-y-auto rounded-lg border border-fila-sep xl:max-h-full xl:max-w-[820px] xl:min-w-[320px] xl:flex-1 xl:self-start'
 
 /** La columna «Grado» de los móviles del panel: su pastilla en «Revisar sin grado» y el paso en «Subir B a A». */
 const gradoRevisar = (m: Movil) => <PildoraGrado grado={m.grado} />
@@ -124,7 +124,7 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
         </div>
       </div>
       <div className={COLUMNAS}>
-        <div className={cn(LISTA, mensaje === null && 'lg:flex-initial')}>
+        <div className={cn(LISTA, mensaje === null && 'xl:flex-initial')}>
           {mensaje !== null ? <p className="p-4 text-[12px] text-azul-gris">{mensaje}</p>
             : elegida === 'revisar'
               ? <TablaRevisar grupos={visiblesRevisar} elegido={queRevisar.elegido.revisar} panel={idPanel} onElegir={elegir} />
@@ -154,7 +154,7 @@ function Cabecera({ columnas, desdeDerecha }: { columnas: string[]; desdeDerecha
 }
 
 /** Una fila de modelo-color (spec §10.14): pulsarla, o su botón con el teclado, la elige y sus móviles salen en el panel. La
- *  elegida va resaltada; el botón dice cuál es (`aria-pressed`) y a qué panel lleva (`aria-controls`). */
+ *  elegida va resaltada; el botón dice cuál es (`aria-current`) y a qué panel lleva (`aria-controls`). */
 function FilaGrupo({ g, elegido, panel, gris, onElegir, children }: {
   g: GrupoBase; elegido: boolean; panel: string; gris: boolean; onElegir: (clave: string) => void; children: ReactNode
 }) {
@@ -162,7 +162,7 @@ function FilaGrupo({ g, elegido, panel, gris, onElegir, children }: {
     <tr onClick={() => onElegir(g.clave)}
       className={cn('cursor-pointer border-t border-fila-sep hover:bg-seleccion-suave', elegido && 'bg-seleccion-suave', gris && SUAVE)}>
       <td className={cn(CELDA, 'whitespace-nowrap', elegido && RAYA_ELEGIDA)}>
-        <button type="button" aria-pressed={elegido} aria-controls={panel} aria-label={`Ver los móviles de ${descripcion(g)}`}
+        <button type="button" aria-current={elegido ? 'true' : undefined} aria-controls={panel} aria-label={`Ver los móviles de ${descripcion(g)}`}
           onClick={(e) => { e.stopPropagation(); onElegir(g.clave) }}
           className={cn('mr-1.5 cursor-pointer text-[10px]', elegido ? 'text-azul-noche' : 'text-azul-gris')}>▸</button>
         {g.modelo}
@@ -230,7 +230,7 @@ function Panel({ id, detalle, palabras, onAbrirImei }: {
     <section id={id} aria-label="Móviles del modelo-color" className={PANEL}>
       {detalle === null ? <p className="p-4 text-[12px] text-azul-gris">{PULSA_QR}</p> : (
         <>
-          <h2 className="sticky top-0 border-b border-fila-sep bg-superficie px-3 py-2 text-[13px] font-semibold text-azul-medio">
+          <h2 aria-live="polite" className="sticky top-0 border-b border-fila-sep bg-superficie px-3 py-2 text-[13px] font-semibold text-azul-medio">
             <span className="font-bold text-azul-noche">{descripcion(detalle.g)}</span>
             {` · ${detalle.cuenta.texto}`}
             {/* El separador fuera del <span>: el nombre accesible del título quita los espacios del borde de cada elemento. */}
