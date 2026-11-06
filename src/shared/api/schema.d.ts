@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-telefonos/por-pasar/ignorado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ignorar"];
+        post?: never;
+        delete: operations["deshacerIgnorado"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-telefonos/por-pasar/hecho": {
         parameters: {
             query?: never;
@@ -2471,6 +2487,9 @@ export interface components {
             grado: string | null;
             motivo: string;
         };
+        PorPasarPeticionIgnorado: {
+            imeiSn: string;
+        };
         PorPasarPeticionHecho: {
             tarjeta: string;
             imeis: string[];
@@ -3436,6 +3455,9 @@ export interface components {
             vueltoDesde: string | null;
             esEsim: boolean;
             caja: string | null;
+            ignoradoAntesPor: string | null;
+            /** Format: date-time */
+            ignoradoAntesEn: string | null;
         };
         FilaDescartadaNsys: {
             imeiSn: string;
@@ -3471,6 +3493,26 @@ export interface components {
             /** Format: date-time */
             vueltoDesde: string | null;
             esEsim: boolean;
+            ignoradoAntesPor: string | null;
+            /** Format: date-time */
+            ignoradoAntesEn: string | null;
+        };
+        FilaIgnoradaNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            esEsim: boolean;
+            /** Format: date */
+            vendidoEn: string | null;
+            /** Format: date */
+            bajaEn: string | null;
+            /** Format: date-time */
+            vueltoDesde: string;
+            ignoradoPor: string | null;
+            /** Format: date-time */
+            ignoradoEn: string;
+            tarjetas: string[];
         };
         FilaRevisarNsys: {
             /** Format: int32 */
@@ -3496,6 +3538,9 @@ export interface components {
             /** Format: date-time */
             vueltoDesde: string | null;
             esEsim: boolean;
+            ignoradoAntesPor: string | null;
+            /** Format: date-time */
+            ignoradoAntesEn: string | null;
         };
         FilaSinGradoNsys: {
             imeiSn: string;
@@ -3518,6 +3563,9 @@ export interface components {
             /** Format: date-time */
             vueltoDesde: string | null;
             esEsim: boolean;
+            ignoradoAntesPor: string | null;
+            /** Format: date-time */
+            ignoradoAntesEn: string | null;
         };
         TarjetasPorPasar: {
             color: components["schemas"]["FilaColorNsys"][];
@@ -3526,6 +3574,7 @@ export interface components {
             revisar: components["schemas"]["FilaRevisarNsys"][];
             descartadas: components["schemas"]["FilaDescartadaNsys"][];
             sinGrado: components["schemas"]["FilaSinGradoNsys"][];
+            ignorados: components["schemas"]["FilaIgnoradaNsys"][];
         };
         StockTelefonosFilaImportacion: {
             fichero: string;
@@ -4044,6 +4093,50 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["StockTelefonosPeticionVolver"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ignorar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PorPasarPeticionIgnorado"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deshacerIgnorado: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PorPasarPeticionIgnorado"];
             };
         };
         responses: {

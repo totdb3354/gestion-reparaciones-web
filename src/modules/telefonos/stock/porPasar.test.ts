@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { FilaColorNsys, TarjetasPorPasar } from '@/shared/api/client'
-import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
+import { filaAlta, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
 import {
   avisoCajas, excelCajasColor, HOJA_CAJAS, nombreCajas, paraCajasColor, SIN_CAJA, textoCaja,
-  AYUDA, avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
+  AYUDA, avisoCopiado, avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, textoEnNsys, textoIgnorado, textoIgnoradoAntes, textoVerIgnorados, TITULO_IGNORAR, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
   EXPLICA_DESCARTAR, horaDe, listaGrado, marcada, MAX_MOTIVO, modeloDeFila, modeloDelTaller, NOMBRE, paraPlantillaColor, pendientes,
   textoBateriaDeFila, textoDesde, textoDescartado, textoDescartadoAntes, textoGradoNsys, textoNumero, textoPorQue, textoUltimoTrabajo,
   textoUltimoTrabajoSinGrado, textoVerDescartados, textoVolvio, textoVuelta, TITULO_DESCARTAR, totalPendientes, VACIA, vueltosFueraDePlantilla,
@@ -225,5 +225,39 @@ describe('0.9.26: las cajas del cambio de color (spec «cajas del cambio de colo
     const dos = excelCajasColor([filaColor(), filaColor({ imeiSn: '350000000000012', caja: null })])
     expect(avisoCajas('Cajas_color_2026-11-06.xlsx', dos)).toBe('Descargado «Cajas_color_2026-11-06.xlsx» · 2 móviles en 2 cajas')
     expect(avisoCajas('mio.xlsx', excelCajasColor([filaColor()]))).toBe('Descargado «mio.xlsx» · 1 móvil en 1 caja')
+  })
+})
+
+describe('0.9.27: «ignorar» en las filas ámbar', () => {
+  it('los avisos, el pie y la ayuda', () => {
+    expect(avisoIgnorado('350000000000123')).toBe('Ignorado «350000000000123»: sale en «Ver ignorados» hasta que vuelva')
+    expect(avisoVuelveALasListas('350000000000123')).toBe('«350000000000123» vuelve a las listas')
+    expect(textoVerIgnorados(2, false)).toBe('Ver ignorados (2)')
+    expect(textoVerIgnorados(2, true)).toBe('Ocultar ignorados')
+    expect(TITULO_IGNORAR).toBe('No ha vuelto: quitarlo de las listas hasta que NSYS lo tenga otra vez en la empresa (o el taller le haga un trabajo nuevo)')
+    const frase = ' Un vendido o de baja que sale en ámbar tiene trabajo del taller después de la venta o de la baja: si es una devolución, apúntala en NSYS; si no ha vuelto, «ignorar» lo quita de las tres listas hasta que NSYS lo tenga otra vez en la empresa o el taller le haga un trabajo nuevo.'
+    for (const t of ['color', 'grado', 'revisar'] as const) expect(AYUDA[t].endsWith(frase)).toBe(true)
+    expect(AYUDA.altas).not.toContain('ignorar')
+  })
+
+  it('qué dice NSYS, quién lo ignoró y «Salió otra vez…»', () => {
+    expect(textoEnNsys(filaIgnorada())).toBe('Vendido en NSYS el 26/10/2026')
+    expect(textoEnNsys(filaIgnorada({ vendidoEn: null, bajaEn: '2026-10-15' }))).toBe('De baja en NSYS desde el 15/10/2026')
+    expect(textoIgnorado(filaIgnorada())).toBe('Supertécnico 1 · 06/11/2026 12:31')
+    expect(textoIgnorado(filaIgnorada({ ignoradoPor: null }))).toBe('— · 06/11/2026 12:31')
+    expect(textoIgnoradoAntes({ ignoradoAntesPor: 'Supertécnico 1', ignoradoAntesEn: '2026-11-06T12:31:00' }))
+      .toBe('Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo ignorara el 06/11/2026 12:31')
+    expect(textoIgnoradoAntes({ ignoradoAntesPor: null, ignoradoAntesEn: null })).toBeNull()
+    expect(textoIgnoradoAntes({} as { ignoradoAntesPor: string | null; ignoradoAntesEn: string | null })).toBeNull()
+  })
+
+  it('los ignorados de cada tarjeta, y con un servidor anterior ninguno', () => {
+    const t = tarjetas({ ignorados: [filaIgnorada(), filaIgnorada({ imeiSn: '350000000000149', tarjetas: ['GRADO', 'REVISAR'] })] })
+    expect(ignoradosDe(t, 'color').map((f) => f.imeiSn)).toEqual(['350000000000123'])
+    expect(ignoradosDe(t, 'grado').map((f) => f.imeiSn)).toEqual(['350000000000123', '350000000000149'])
+    expect(ignoradosDe(t, 'revisar').map((f) => f.imeiSn)).toEqual(['350000000000149'])
+    const viejas = tarjetas()
+    delete (viejas as Partial<typeof viejas>).ignorados
+    expect(ignoradosDe(viejas, 'color')).toEqual([])
   })
 })

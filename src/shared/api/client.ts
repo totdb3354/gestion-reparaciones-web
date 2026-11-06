@@ -115,6 +115,12 @@ export type PeticionDeshacerDescarte = components['schemas']['PorPasarPeticionDe
  *  baja que ha vuelto; `OpcionesTaller` trae la batería recordada (`bateriaIdRep`, `bateriaNueva`, `bateriaEn`). */
 export type FilaSinGradoNsys = components['schemas']['FilaSinGradoNsys']
 
+/** 0.9.27 (spec «ignorar» §4.2): un vendido o de baja ignorado de las filas ámbar, para «Ver ignorados»; `tarjetas` dice en cuáles
+ *  saldría (COLOR, GRADO, REVISAR). Las filas de Color, Grado, Revisar y Sin grado llevan `ignoradoAntesPor`/`ignoradoAntesEn` si
+ *  un trabajo nuevo superó el ignorado. */
+export type FilaIgnoradaNsys = components['schemas']['FilaIgnoradaNsys']
+export type PeticionIgnorado = components['schemas']['PorPasarPeticionIgnorado']
+
 /** 0.9.25 (spec «Qué revisar» §10.3): la hoja que el servidor convierte en el Excel para imprimir (todo textos). */
 export type PeticionExcel = components['schemas']['StockTelefonosPeticionExcel']
 

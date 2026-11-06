@@ -136,6 +136,46 @@
         }
       }
     },
+    "/api/stock-telefonos/por-pasar/ignorado" : {
+      "put" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "ignorar",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PorPasarPeticionIgnorado"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "por-pasar-controller" ],
+        "operationId" : "deshacerIgnorado",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PorPasarPeticionIgnorado"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/stock-telefonos/por-pasar/hecho" : {
       "put" : {
         "tags" : [ "por-pasar-controller" ],
@@ -5025,6 +5065,15 @@
           }
         }
       },
+      "PorPasarPeticionIgnorado" : {
+        "required" : [ "imeiSn" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          }
+        }
+      },
       "PorPasarPeticionHecho" : {
         "required" : [ "imeis", "tarjeta" ],
         "type" : "object",
@@ -7730,7 +7779,7 @@
         }
       },
       "FilaColorNsys" : {
-        "required" : [ "bajaEn", "caja", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "esEsim", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "caja", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "esEsim", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "ignoradoAntesEn", "ignoradoAntesPor", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7819,6 +7868,15 @@
           "caja" : {
             "type" : "string",
             "nullable" : true
+          },
+          "ignoradoAntesPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ignoradoAntesEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
           }
         }
       },
@@ -7853,7 +7911,7 @@
         }
       },
       "FilaGradoNsys" : {
-        "required" : [ "bajaEn", "capacidad", "conColor", "desde", "esEsim", "gradoA", "gradoDe", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "porQue", "productoNsys", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "capacidad", "conColor", "desde", "esEsim", "gradoA", "gradoDe", "hechoEn", "hechoPor", "hechoVolvio", "ignoradoAntesEn", "ignoradoAntesPor", "imeiSn", "modelo", "modeloMaestro", "porQue", "productoNsys", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7927,11 +7985,72 @@
           },
           "esEsim" : {
             "type" : "boolean"
+          },
+          "ignoradoAntesPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ignoradoAntesEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          }
+        }
+      },
+      "FilaIgnoradaNsys" : {
+        "required" : [ "bajaEn", "capacidad", "esEsim", "ignoradoEn", "ignoradoPor", "imeiSn", "modelo", "modeloMaestro", "tarjetas", "vendidoEn", "vueltoDesde" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          },
+          "vendidoEn" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
+          },
+          "bajaEn" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
+          },
+          "vueltoDesde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "ignoradoPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ignoradoEn" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "tarjetas" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         }
       },
       "FilaRevisarNsys" : {
-        "required" : [ "a", "bajaEn", "capacidad", "causa", "dato", "de", "esEsim", "fecha", "idAviso", "idRep", "imeiSn", "modelo", "modeloMaestro", "motivo", "tipo", "usuario", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "a", "bajaEn", "capacidad", "causa", "dato", "de", "esEsim", "fecha", "idAviso", "idRep", "ignoradoAntesEn", "ignoradoAntesPor", "imeiSn", "modelo", "modeloMaestro", "motivo", "tipo", "usuario", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "idAviso" : {
@@ -8003,11 +8122,20 @@
           },
           "esEsim" : {
             "type" : "boolean"
+          },
+          "ignoradoAntesPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ignoradoAntesEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
           }
         }
       },
       "FilaSinGradoNsys" : {
-        "required" : [ "bajaEn", "bateriaEn", "bateriaIdRep", "bateriaNueva", "capacidad", "categoria", "esEsim", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ultimoTrabajo", "ultimoTrabajoEn", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "bateriaEn", "bateriaIdRep", "bateriaNueva", "capacidad", "categoria", "esEsim", "gradoNsys", "ignoradoAntesEn", "ignoradoAntesPor", "imeiSn", "modelo", "modeloMaestro", "ultimoTrabajo", "ultimoTrabajoEn", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -8069,11 +8197,20 @@
           },
           "esEsim" : {
             "type" : "boolean"
+          },
+          "ignoradoAntesPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ignoradoAntesEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
           }
         }
       },
       "TarjetasPorPasar" : {
-        "required" : [ "altas", "color", "descartadas", "grado", "revisar", "sinGrado" ],
+        "required" : [ "altas", "color", "descartadas", "grado", "ignorados", "revisar", "sinGrado" ],
         "type" : "object",
         "properties" : {
           "color" : {
@@ -8110,6 +8247,12 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/FilaSinGradoNsys"
+            }
+          },
+          "ignorados" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaIgnoradaNsys"
             }
           }
         }
