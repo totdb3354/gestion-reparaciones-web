@@ -1,17 +1,17 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { TarjetasPorPasar } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
 import { elegirDestino } from '@/shared/lib/descargas'
 import {
-  nombrePlantilla, TIPO_XLSX, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useMarcarHecho, useRevisarAviso,
+  nombrePlantilla, TIPO_XLSX, useDescargarExcel, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useMarcarHecho, useRevisarAviso,
   type Plantilla,
 } from '../api'
 import { DescartarAltaDialog } from './DescartarAltaDialog'
 import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
 import {
-  avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
+  avisoCajas, avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, excelCajasColor, listaGrado, nombreCajas, paraCajasColor, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
   vueltosFueraDePlantilla, type Tarjeta, type TarjetaConHecho,
 } from './porPasar'
 import { TarjetasNsys } from './TarjetasNsys'
@@ -35,6 +35,8 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
   const deshacer = useDeshacerHecho()
   const revisar = useRevisarAviso()
   const descargar = useDescargarPlantilla()
+  const descargarExcel = useDescargarExcel()
+  const cajasAbierto = useRef(false)
   const descartar = useDescartarAlta()
   const recuperar = useDeshacerDescarte()
   const [aDescartar, setADescartar] = useState<string | null>(null)
@@ -63,14 +65,41 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
     })
   }
 
+  // 0.9.26 (spec «cajas del cambio de color» §3.2): como la plantilla, «Guardar como» en el mismo clic y después el Excel, que
+  // escribe la ruta genérica de «Qué revisar». Mientras la ventana está abierta, otro clic no abre otra.
+  const bajarCajas = async () => {
+    if (cajasAbierto.current) return
+    cajasAbierto.current = true
+    try {
+      const hoja = excelCajasColor(t.color)
+      const nombre = nombreCajas()
+      const destino = await elegirDestino(nombre, TIPO_XLSX)
+      if (destino === 'cancelado') return
+      descargarExcel.mutate({ hoja, nombre, destino }, { onSuccess: (guardado) => avisar({ texto: avisoCajas(guardado, hoja), tipo: 'ok' }) })
+    } finally {
+      cajasAbierto.current = false
+    }
+  }
+
   function boton(cual: Tarjeta) {
     if (cual === 'color' || cual === 'altas') {
       const n = cual === 'color' ? paraPlantillaColor(t.color).length : pendientes(t.altas).length
-      return (
+      const plantilla = (
         <button type="button" disabled={n === 0 || descargar.isPending} title={n === 0 ? SIN_NADA : `${n} ${n === 1 ? 'móvil' : 'móviles'}`}
           onClick={(e) => { e.stopPropagation(); void bajar(cual) }} className={PRIMARIO}>
           {`⬇ Descargar plantilla${n > 0 ? ` (${n})` : ''}`}
         </button>
+      )
+      if (cual === 'altas') return plantilla
+      const c = paraCajasColor(t.color).length
+      return (
+        <>
+          {plantilla}
+          <button type="button" disabled={c === 0 || descargarExcel.isPending} title={c === 0 ? SIN_NADA : `${c} ${c === 1 ? 'móvil' : 'móviles'}`}
+            onClick={(e) => { e.stopPropagation(); void bajarCajas() }} className={SECUNDARIO}>
+            {`⬇ Descargar cajas${c > 0 ? ` (${c})` : ''}`}
+          </button>
+        </>
       )
     }
     if (cual === 'grado') {
