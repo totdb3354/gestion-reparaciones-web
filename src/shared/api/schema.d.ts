@@ -3435,6 +3435,7 @@ export interface components {
             /** Format: date-time */
             vueltoDesde: string | null;
             esEsim: boolean;
+            caja: string | null;
         };
         FilaDescartadaNsys: {
             imeiSn: string;
