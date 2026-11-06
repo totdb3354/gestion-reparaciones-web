@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { TarjetasPorPasar } from '@/shared/api/client'
+import type { FilaColorNsys, TarjetasPorPasar } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { server } from '@/test/server'
@@ -29,6 +29,8 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
     expect(color).toHaveTextContent('2 móviles · 1 hecho')
     expect(color).toHaveTextContent('Cambia el producto: en NSYS, bórralo y súbelo otra vez con la plantilla')
     expect(within(color).getByRole('button', { name: '⬇ Descargar plantilla (1)' })).toBeEnabled()
+    // 0.9.26: las cajas llevan también la marcada «Hecho».
+    expect(within(color).getByRole('button', { name: '⬇ Descargar cajas (2)' })).toHaveAttribute('title', '2 móviles')
     const grado = screen.getByRole('article', { name: 'Cambio de grado' })
     expect(grado).toHaveTextContent('0 móviles')
     const copiar = within(grado).getByRole('button', { name: 'Copiar lista' })
@@ -46,9 +48,10 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
       filaColor({ imeiSn: '350000000000013', ponerProducto: 'Apple iPhone 13 128GB Pink', colorA: 'Pink', compruebalo: true }),
     ] }))
     const tabla = screen.getByRole('table', { name: 'Cambio de color' })
-    expect(cabeceras(tabla)).toEqual(['IMEI', 'Modelo', 'Color', 'En NSYS hoy', 'Poner en NSYS', 'Por qué', 'Desde', '✓ Marcar todo (3)'])
+    expect(cabeceras(tabla)).toEqual(['IMEI', 'Modelo', 'Color', 'En NSYS hoy', 'Caja', 'Poner en NSYS', 'Por qué', 'Desde', '✓ Marcar todo (3)'])
     const [uno, dos, tres] = filas(tabla)
     expect(uno).toHaveTextContent('iPhone 13 128GB')
+    expect(uno).toHaveTextContent('CAJA LISTOS')
     expect(uno).toHaveTextContent('Blue → (PRODUCT)RED')
     expect(uno).toHaveTextContent('también en «Cambio de grado» (después)')
     expect(uno).toHaveTextContent('Apple iPhone 13 128GB (PRODUCT)RED')
@@ -413,5 +416,100 @@ describe('«Descargar plantilla» con «Guardar como» (0.9.22.1)', () => {
     await waitFor(() => expect(window.showSaveFilePicker).toHaveBeenCalledTimes(1))
     expect(pedida).toBe(false)
     expect(screen.queryByTestId('aviso-breve')).toBeNull()
+  })
+})
+
+describe('«⬇ Descargar cajas» en «Cambio de color» (0.9.26)', () => {
+  afterEach(() => {
+    delete window.showSaveFilePicker
+    vi.restoreAllMocks()
+  })
+
+  it('la columna «Caja»: tal cual, «sin caja» en gris y, con un servidor anterior, «—»', () => {
+    const vieja: Partial<FilaColorNsys> = filaColor({ imeiSn: '350000000000013' })
+    delete vieja.caja
+    pintar(tarjetas({ color: [filaColor(), filaColor({ imeiSn: '350000000000012', caja: null }), vieja as FilaColorNsys] }))
+    const [uno, dos, tres] = filas(screen.getByRole('table', { name: 'Cambio de color' }))
+    const caja = (fila: HTMLElement) => within(fila).getAllByRole('cell')[4]
+    expect(caja(uno)).toHaveTextContent(/^CAJA LISTOS$/)
+    expect(caja(dos)).toHaveTextContent(/^sin caja$/)
+    expect(within(caja(dos)).getByText('sin caja')).toHaveClass('text-azul-gris')
+    expect(caja(tres)).toHaveTextContent(/^—$/)
+  })
+
+  it('abre «Guardar como» con su nombre antes de pedir el Excel, manda la hoja por caja con lo marcado y avisa', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const orden: string[] = []
+    const cuerpos: unknown[] = []
+    const escrito: Blob[] = []
+    const ventana = vi.fn(async () => {
+      orden.push('ventana')
+      return { name: 'mio.xlsx', createWritable: async () => ({ write: async (b: Blob) => { escrito.push(b) }, close: async () => {} }) }
+    })
+    window.showSaveFilePicker = ventana as unknown as typeof window.showSaveFilePicker
+    server.use(http.post('*/api/stock-telefonos/que-revisar/excel', async ({ request }) => {
+      orden.push('servidor')
+      cuerpos.push(await request.json())
+      return new HttpResponse('PK', { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } })
+    }))
+    pintar(tarjetas({ color: [
+      filaColor({ imeiSn: '350000000000012', caja: 'CAJA PULIR', ...HECHO }),
+      filaColor(),
+      filaColor({ imeiSn: '350000000000013', ponerProducto: null }),
+    ] }))
+    await user.click(within(screen.getByRole('article', { name: 'Cambio de color' })).getByRole('button', { name: '⬇ Descargar cajas (2)' }))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado «mio.xlsx» · 2 móviles en 2 cajas')
+    expect(ventana).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: `Cajas_color_${hoyMadrid()}.xlsx` }))
+    expect(orden).toEqual(['ventana', 'servidor'])
+    expect(cuerpos).toEqual([{
+      hoja: 'Cajas cambio de color',
+      columnas: ['IMEI', 'Caja', 'Modelo', 'Color nuevo'],
+      filas: [
+        ['350000000000011', 'CAJA LISTOS', 'iPhone 13 128GB', '(PRODUCT)RED'],
+        ['350000000000012', 'CAJA PULIR', 'iPhone 13 128GB', '(PRODUCT)RED'],
+      ],
+    }])
+    expect(await escrito[0].text()).toBe('PK')
+  })
+
+  it('sin nada que bajar está desactivado y lo dice al pasar el ratón', () => {
+    pintar(tarjetas({ color: [filaColor({ ponerProducto: null })] }))
+    const apagado = within(screen.getByRole('article', { name: 'Cambio de color' })).getByRole('button', { name: '⬇ Descargar cajas' })
+    expect(apagado).toBeDisabled()
+    expect(apagado).toHaveAttribute('title', 'No hay móviles que corregir')
+  })
+
+  it('si se cancela «Guardar como», no pide nada al servidor ni avisa', async () => {
+    const user = userEvent.setup()
+    let pedida = false
+    window.showSaveFilePicker = vi.fn(async () => { throw new DOMException('cancelado', 'AbortError') })
+    server.use(http.post('*/api/stock-telefonos/que-revisar/excel', () => {
+      pedida = true
+      return new HttpResponse('PK')
+    }))
+    pintar(tarjetas({ color: [filaColor()] }))
+    await user.click(screen.getByRole('button', { name: '⬇ Descargar cajas (1)' }))
+    await waitFor(() => expect(window.showSaveFilePicker).toHaveBeenCalledTimes(1))
+    expect(pedida).toBe(false)
+    expect(screen.queryByTestId('aviso-breve')).toBeNull()
+  })
+
+  it('un doble clic abre una sola «Guardar como» y pide un solo Excel', async () => {
+    const user = userEvent.setup()
+    const ventana = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 50))
+      return { name: 'mio.xlsx', createWritable: async () => ({ write: async () => {}, close: async () => {} }) }
+    })
+    window.showSaveFilePicker = ventana as unknown as typeof window.showSaveFilePicker
+    let peticiones = 0
+    server.use(http.post('*/api/stock-telefonos/que-revisar/excel', () => { peticiones++; return new HttpResponse('PK') }))
+    pintar(tarjetas({ color: [filaColor()] }))
+    const boton = screen.getByRole('button', { name: '⬇ Descargar cajas (1)' })
+    await user.click(boton)
+    await user.click(boton)
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado «mio.xlsx»')
+    expect(ventana).toHaveBeenCalledTimes(1)
+    expect(peticiones).toBe(1)
   })
 })

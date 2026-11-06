@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.26] - (pendiente) — Las cajas del cambio de color
+
+- **«⬇ Descargar cajas (N)»** en la tarjeta «Cambio de color» de «Por pasar a NSYS», detrás de «⬇ Descargar plantilla»: un Excel aparte (la plantilla no cambia) con el IMEI, la caja de NSYS («CAJA LISTOS»), el modelo («iPhone 14 eSIM 256GB») y el color nuevo de cada móvil, ordenado por caja (sin mirar mayúsculas, «sin caja» al final) y luego por IMEI, para devolverlos a su caja en NSYS por bloques. La plantilla de NSYS no lleva la caja: al subirla, el móvil entra sin caja. Lleva los mismos móviles que la plantilla y también los marcados «Hecho». Abre «Guardar como» con el nombre ya puesto (`Cajas_color_2026-11-06.xlsx`) y avisa de cuántos móviles y cajas lleva.
+- Columna **«Caja»** en la lista de «Cambio de color», entre «En NSYS hoy» y «Poner en NSYS»: la caja tal cual la escribe NSYS, o «sin caja» en gris.
+- La ayuda de «Cambio de color» dice el orden: descargar las cajas antes de tocar NSYS, borrar (se pueden borrar todos de una vez), subir la plantilla y devolverlos a su caja con «Location».
+- Servidor y web, sin migración: el servidor manda la `caja` en cada fila de «Cambio de color» y el Excel lo escribe la ruta de «Qué revisar» (`POST /api/stock-telefonos/que-revisar/excel`). Con el servidor de la 0.9.25, la columna y el Excel dicen «—».
+
 ## [0.9.25] - 2026-11-05 — «Qué revisar» en Stock de teléfonos
 
 - **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el último Items de NSYS y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):

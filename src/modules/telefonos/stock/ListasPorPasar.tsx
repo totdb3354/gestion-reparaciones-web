@@ -4,7 +4,7 @@ import { COMPRUEBALO, diaNsys, ETIQUETA_AVISO, queHacerAviso, SIN_PRODUCTO_NSYS,
 import { cn } from '@/shared/lib/utils'
 import { CeldaHecho } from './CeldaHecho'
 import {
-  ETIQUETA_SIN_GRADO, marcada, modeloDeFila, modeloDelTaller, pendientes, QUE_HACER_SIN_GRADO, textoBateriaDeFila, textoDescartado, textoDescartadoAntes,
+  ETIQUETA_SIN_GRADO, marcada, modeloDeFila, modeloDelTaller, pendientes, QUE_HACER_SIN_GRADO, SIN_CAJA, textoBateriaDeFila, textoCaja, textoDescartado, textoDescartadoAntes,
   textoDesde, textoGradoNsys, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoVuelta, type ConHecho,
 } from './porPasar'
 
@@ -83,11 +83,18 @@ function Resaltado({ texto, parte }: { texto: string; parte: string | null }) {
   return <>{texto.slice(0, i)}<span className={CAMBIA_COLOR}>{parte}</span>{texto.slice(i + parte.length)}</>
 }
 
+/** La caja de NSYS de la fila (0.9.26, spec «cajas del cambio de color» §3.1): tal cual; «sin caja» en gris; «—» con un servidor
+ *  anterior. */
+function Caja({ caja }: { caja: string | null | undefined }) {
+  const texto = textoCaja(caja)
+  return texto === SIN_CAJA ? <span className="text-azul-gris">{texto}</span> : <>{texto}</>
+}
+
 /** «Cambio de color» (§3.2). */
 export function ListaColor({ onAbrirImei, ...props }: ConHechoProps<FilaColorNsys>) {
   return (
     <TablaConHecho {...props} nombre="Cambio de color"
-      columnas={['IMEI', 'Modelo', 'Color', 'En NSYS hoy', 'Poner en NSYS', 'Por qué', 'Desde']}
+      columnas={['IMEI', 'Modelo', 'Color', 'En NSYS hoy', 'Caja', 'Poner en NSYS', 'Por qué', 'Desde']}
       celdas={(f) => (
         <>
           <td className={CELDA}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /><Vuelta f={f} /></td>
@@ -97,6 +104,7 @@ export function ListaColor({ onAbrirImei, ...props }: ConHechoProps<FilaColorNsy
             {f.tambienGrado && <span className={GRIS}>también en «Cambio de grado» (después)</span>}
           </td>
           <td className={CELDA}>{f.productoNsys ?? '—'}</td>
+          <td className={cn(CELDA, 'whitespace-nowrap')}><Caja caja={f.caja} /></td>
           <td className={CELDA}>
             {f.ponerProducto
               ? <b className="text-azul-noche"><Resaltado texto={f.ponerProducto} parte={f.colorA} />{f.compruebalo && <span className="font-semibold text-fila-solicitud-brd">{` (${COMPRUEBALO})`}</span>}</b>

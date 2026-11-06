@@ -7730,7 +7730,7 @@
         }
       },
       "FilaColorNsys" : {
-        "required" : [ "bajaEn", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "esEsim", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
+        "required" : [ "bajaEn", "caja", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "esEsim", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
         "properties" : {
           "imeiSn" : {
@@ -7815,6 +7815,10 @@
           },
           "esEsim" : {
             "type" : "boolean"
+          },
+          "caja" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

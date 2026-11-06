@@ -75,7 +75,8 @@ export function filaColor(p: Partial<FilaColorNsys> = {}): FilaColorNsys {
     productoNsys: 'Apple iPhone 13 128GB Blue', gradoNsys: 'B', ponerProducto: 'Apple iPhone 13 128GB (PRODUCT)RED',
     compruebalo: false, tambienGrado: false,
     porQue: [porQue({ dato: 'COLOR', origen: 'REPARACION', idRep: 'R20261024_12', usuario: 'Técnico 2', motivo: 'chasis chai13red nuevo' })],
-    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: false, ...p,
+    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: false,
+    caja: 'CAJA LISTOS', ...p,
   }
 }
 
