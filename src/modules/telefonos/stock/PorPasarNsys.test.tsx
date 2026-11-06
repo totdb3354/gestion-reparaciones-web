@@ -494,4 +494,22 @@ describe('«⬇ Descargar cajas» en «Cambio de color» (0.9.26)', () => {
     expect(pedida).toBe(false)
     expect(screen.queryByTestId('aviso-breve')).toBeNull()
   })
+
+  it('un doble clic abre una sola «Guardar como» y pide un solo Excel', async () => {
+    const user = userEvent.setup()
+    const ventana = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 50))
+      return { name: 'mio.xlsx', createWritable: async () => ({ write: async () => {}, close: async () => {} }) }
+    })
+    window.showSaveFilePicker = ventana as unknown as typeof window.showSaveFilePicker
+    let peticiones = 0
+    server.use(http.post('*/api/stock-telefonos/que-revisar/excel', () => { peticiones++; return new HttpResponse('PK') }))
+    pintar(tarjetas({ color: [filaColor()] }))
+    const boton = screen.getByRole('button', { name: '⬇ Descargar cajas (1)' })
+    await user.click(boton)
+    await user.click(boton)
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado «mio.xlsx»')
+    expect(ventana).toHaveBeenCalledTimes(1)
+    expect(peticiones).toBe(1)
+  })
 })
