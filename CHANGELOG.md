@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.27] - 2026-11-?? — «ignorar» en los vendidos que salen en ámbar
+
+- En «Por pasar a NSYS», las filas **ámbar** de «Cambio de color», «Cambio de grado» y «Revisar a mano» (un móvil que NSYS da por vendido o de baja y que el taller ha tenido después) ganan un enlace **«ignorar»**, al lado de «Hecho» como «descartar» (en «Revisar a mano», al lado de «Corregir…»), sin ventana: es para cuando el móvil no ha vuelto (por ejemplo, se reparó antes de enviarlo). Saca el móvil de las tres tarjetas y de sus números.
+- **«Ver ignorados (n)»** al pie de cada una de esas tablas: IMEI, modelo, qué dice NSYS («Vendido en NSYS el …» o «De baja en NSYS desde el …»), quién y cuándo, y **«deshacer»**.
+- Un ignorado vuelve a salir **sin ámbar** cuando NSYS lo vuelve a tener en la empresa (al apuntar la devolución), con su cambio de color o de grado pendiente, y **en ámbar** con «Salió otra vez: trabajo nuevo después de que … lo ignorara el …» si el taller le hace un trabajo nuevo.
+- La ayuda de las tres tarjetas lo explica.
+- Base, servidor y web: tabla nueva `Taller_vuelta_ignorada` (migración `migracion-ignorar-vuelta-nsys.sql`), rutas `PUT`/`DELETE /api/stock-telefonos/por-pasar/ignorado` y `ignorados` en las tarjetas. Con el servidor de la 0.9.26 no salen ni «ignorar» funciona: la web va después del servidor.
+
 ## [0.9.26] - 2026-11-06 — Las cajas del cambio de color
 
 - **«⬇ Descargar cajas (N)»** en la tarjeta «Cambio de color» de «Por pasar a NSYS», detrás de «⬇ Descargar plantilla»: un Excel aparte (la plantilla no cambia) con el IMEI, la caja de NSYS («CAJA LISTOS»), el modelo («iPhone 14 eSIM 256GB») y el color nuevo de cada móvil, ordenado por caja (sin mirar mayúsculas, «sin caja» al final) y luego por IMEI, para devolverlos a su caja en NSYS por bloques. La plantilla de NSYS no lleva la caja: al subirla, el móvil entra sin caja. Lleva los mismos móviles que la plantilla y también los marcados «Hecho». Abre «Guardar como» con el nombre ya puesto (`Cajas_color_2026-11-06.xlsx`) y avisa de cuántos móviles y cajas lleva.
