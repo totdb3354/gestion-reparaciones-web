@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.27] - 2026-11-?? — «ignorar» en los vendidos que salen en ámbar
+## [0.9.27] - 2026-11-10 — «ignorar» en los vendidos que salen en ámbar
 
 - En «Por pasar a NSYS», las filas **ámbar** de «Cambio de color», «Cambio de grado» y «Revisar a mano» (un móvil que NSYS da por vendido o de baja y que el taller ha tenido después) ganan un enlace **«ignorar»**, al lado de «Hecho» como «descartar» (en «Revisar a mano», al lado de «Corregir…»), sin ventana: es para cuando el móvil no ha vuelto (por ejemplo, se reparó antes de enviarlo). Saca el móvil de las tres tarjetas y de sus números.
 - **«Ver ignorados (n)»** al pie de cada una de esas tablas: IMEI, modelo, qué dice NSYS («Vendido en NSYS el …» o «De baja en NSYS desde el …»), quién y cuándo, y **«deshacer»**.
