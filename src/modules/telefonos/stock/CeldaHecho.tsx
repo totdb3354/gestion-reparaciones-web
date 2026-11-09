@@ -1,4 +1,5 @@
-import { horaDe, marcada, textoVolvio, TITULO_IGNORAR, type ConHecho } from './porPasar'
+import { EnlaceIgnorar } from './EnlaceIgnorar'
+import { horaDe, marcada, textoVolvio, type ConHecho } from './porPasar'
 
 type Props = { fila: ConHecho; imeiSn: string; ocupado: boolean; onMarcar: () => void; onDeshacer: () => void; onDescartar?: () => void; onIgnorar?: () => void }
 
@@ -30,12 +31,7 @@ export function CeldaHecho({ fila, imeiSn, ocupado, onMarcar, onDeshacer, onDesc
           descartar
         </button>
       )}
-      {onIgnorar && (
-        <button type="button" disabled={ocupado} aria-label={`Ignorar ${imeiSn}`} title={TITULO_IGNORAR}
-          onClick={onIgnorar} className="ml-2 cursor-pointer text-[11px] text-texto-suave hover:text-fila-urgente-brd disabled:cursor-not-allowed disabled:opacity-40">
-          ignorar
-        </button>
-      )}
+      {onIgnorar && <EnlaceIgnorar imeiSn={imeiSn} ocupado={ocupado} onIgnorar={onIgnorar} className="ml-2" />}
       {volvio && <span className="mt-0.5 block max-w-[220px] text-[11px] font-bold whitespace-normal text-fila-urgente-brd">{volvio}</span>}
     </>
   )

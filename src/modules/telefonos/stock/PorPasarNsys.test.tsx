@@ -593,5 +593,21 @@ describe('«ignorar» en las filas ámbar (0.9.27)', () => {
     pintar(viejas)
     expect(screen.queryByRole('button', { name: /^Ver ignorados/ })).not.toBeInTheDocument()
     expect(screen.queryByText(/^Salió otra vez/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ignorar 350000000000011' })).toBeInTheDocument()
+  })
+
+  it('mientras se guarda un ignorado, «ignorar» y «Hecho» de la fila están desactivados', async () => {
+    const user = userEvent.setup()
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((resolver) => { soltar = resolver })
+    server.use(http.put('*/api/stock-telefonos/por-pasar/ignorado', async () => {
+      await espera
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ color: [filaColor(vuelto)] }))
+    await user.click(screen.getByRole('button', { name: 'Ignorar 350000000000011' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ignorar 350000000000011' })).toBeDisabled())
+    expect(screen.getByRole('button', { name: 'Hecho 350000000000011' })).toBeDisabled()
+    soltar()
   })
 })

@@ -8,7 +8,7 @@ import { credenciales } from './credenciales.ts'
 // preprod). El «trabajo nuevo» lo cubren las pruebas del servidor.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 
-type ConVuelta = { imeiSn: string; vueltoDesde: string | null; hechoEn?: string | null; hechoVolvio?: string | null }
+type ConVuelta = { imeiSn: string; vueltoDesde: string | null; hechoEn?: string | null; hechoVolvio?: string | null; ignoradoAntesEn?: string | null }
 type Tarjetas = { color: ConVuelta[]; grado: ConVuelta[]; revisar: ConVuelta[]; sinGrado: ConVuelta[]; ignorados?: { imeiSn: string; tarjetas: string[] }[] }
 
 async function entrar(page: Page, usuario: string, clave: string) {
@@ -37,7 +37,7 @@ const enAlguna = (t: Tarjetas, imei: string) => [t.color, t.grado, t.revisar, t.
 
 /** Un móvil que ha vuelto de Color o Grado sin marca «Hecho» (ahí está el enlace al lado de «Hecho»), con su tarjeta. */
 function elegir(t: Tarjetas): { imei: string; tarjeta: 'Cambio de color' | 'Cambio de grado' } | null {
-  const libre = (f: ConVuelta) => f.vueltoDesde && (!f.hechoEn || f.hechoVolvio)
+  const libre = (f: ConVuelta) => f.vueltoDesde && !f.ignoradoAntesEn && (!f.hechoEn || f.hechoVolvio)
   const color = t.color.find(libre)
   if (color) return { imei: color.imeiSn, tarjeta: 'Cambio de color' }
   const grado = t.grado.find(libre)
