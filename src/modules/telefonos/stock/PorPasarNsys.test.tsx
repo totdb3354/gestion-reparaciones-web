@@ -7,7 +7,7 @@ import { hoyMadrid } from '@/shared/lib/fechas'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { filaAlta, filaColor, filaDescartada, filaGrado, filaRevisar, filaSinGrado, tarjetas } from '../test/fabrica'
+import { filaAlta, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, tarjetas } from '../test/fabrica'
 import { PorPasarNsys } from './PorPasarNsys'
 
 const HECHO = { hechoPor: 'Supertécnico 1', hechoEn: '2026-10-25T12:31:00', hechoVolvio: null }
@@ -511,5 +511,103 @@ describe('«⬇ Descargar cajas» en «Cambio de color» (0.9.26)', () => {
     expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Descargado «mio.xlsx»')
     expect(ventana).toHaveBeenCalledTimes(1)
     expect(peticiones).toBe(1)
+  })
+})
+
+describe('«ignorar» en las filas ámbar (0.9.27)', () => {
+  afterEach(() => vi.restoreAllMocks())
+  const vuelto = { vendidoEn: '2026-10-26', bajaEn: null, vueltoDesde: '2026-10-28T09:10:00' }
+
+  it('solo en las filas ámbar sin marca, al lado de «Hecho», y en «Revisar a mano» al lado de «Corregir…»', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas({
+      color: [filaColor(vuelto), filaColor({ imeiSn: '350000000000012' }), filaColor({ imeiSn: '350000000000013', ...vuelto, ...HECHO })],
+      revisar: [filaRevisar(vuelto)],
+    }))
+    const enlace = screen.getByRole('button', { name: 'Ignorar 350000000000011' })
+    expect(enlace).toHaveTextContent('ignorar')
+    expect(enlace).toHaveAttribute('title', 'No ha vuelto: quitarlo de las listas hasta que NSYS lo tenga otra vez en la empresa (o el taller le haga un trabajo nuevo)')
+    expect(screen.queryByRole('button', { name: 'Ignorar 350000000000012' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ignorar 350000000000013' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Revisar a mano' }))
+    const fila = filas(screen.getByRole('table', { name: 'Revisar a mano' }))[0]
+    expect(within(fila).getByRole('button', { name: 'Ignorar 350000000000101' })).toBeInTheDocument()
+  })
+
+  it('un clic, sin ventana, manda el IMEI y avisa', async () => {
+    const user = userEvent.setup()
+    const pedidos: unknown[] = []
+    server.use(http.put('*/api/stock-telefonos/por-pasar/ignorado', async ({ request }) => {
+      pedidos.push(await request.json())
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ grado: [filaGrado(vuelto)] }))
+    await user.click(screen.getByRole('button', { name: 'Cambio de grado' }))
+    await user.click(screen.getByRole('button', { name: 'Ignorar 350000000000022' }))
+    await waitFor(() => expect(pedidos).toEqual([{ imeiSn: '350000000000022' }]))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('Ignorado «350000000000022»: sale en «Ver ignorados» hasta que vuelva')
+  })
+
+  it('«Ver ignorados» por tarjeta: en gris, qué dice NSYS, quién, y «deshacer» los devuelve', async () => {
+    const user = userEvent.setup()
+    const pedidos: unknown[] = []
+    server.use(http.delete('*/api/stock-telefonos/por-pasar/ignorado', async ({ request }) => {
+      pedidos.push(await request.json())
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ ignorados: [filaIgnorada(), filaIgnorada({ imeiSn: '350000000000149', modelo: '12', modeloMaestro: '12',
+      capacidad: '64GB', esEsim: false, vendidoEn: null, bajaEn: '2026-10-15', ignoradoPor: null, tarjetas: ['REVISAR'] })] }))
+    expect(screen.queryByRole('table', { name: 'Ignorados' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ver ignorados (1)' }))
+    const tabla = screen.getByRole('table', { name: 'Ignorados' })
+    expect(cabeceras(tabla)).toEqual(['IMEI', 'Modelo', 'En NSYS', 'Ignorado', ''])
+    const [fila] = filas(tabla)
+    expect(fila).toHaveTextContent('350000000000123')
+    expect(fila).toHaveTextContent('iPhone 15 eSIM 256GB')
+    expect(fila).toHaveTextContent('Vendido en NSYS el 26/10/2026')
+    expect(fila).toHaveTextContent('Supertécnico 1 · 06/11/2026 12:31')
+    await user.click(screen.getByRole('button', { name: 'Deshacer ignorar 350000000000123' }))
+    await waitFor(() => expect(pedidos).toEqual([{ imeiSn: '350000000000123' }]))
+    expect(await screen.findByTestId('aviso-breve')).toHaveTextContent('«350000000000123» vuelve a las listas')
+    await user.click(screen.getByRole('button', { name: 'Ocultar ignorados' }))
+    expect(screen.queryByRole('table', { name: 'Ignorados' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Revisar a mano' }))
+    await user.click(screen.getByRole('button', { name: 'Ver ignorados (1)' }))
+    expect(screen.getByRole('table', { name: 'Ignorados' })).toHaveTextContent('De baja en NSYS desde el 15/10/2026')
+    expect(screen.getByRole('table', { name: 'Ignorados' })).toHaveTextContent('— · 06/11/2026 12:31')
+  })
+
+  it('una fila con un ignorado superado dice «Salió otra vez…» y se puede ignorar otra vez', () => {
+    pintar(tarjetas({ color: [filaColor({ ...vuelto, ignoradoAntesPor: 'Supertécnico 1', ignoradoAntesEn: '2026-11-06T12:31:00' })] }))
+    expect(screen.getByText('Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo ignorara el 06/11/2026 12:31')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ignorar 350000000000011' })).toBeInTheDocument()
+  })
+
+  it('con un servidor anterior a la 0.9.27 (sin `ignorados` ni `ignoradoAntes*`) no sale nada nuevo salvo el enlace', () => {
+    const viejas = tarjetas({ color: [filaColor(vuelto)] })
+    delete (viejas as Partial<TarjetasPorPasar>).ignorados
+    const fila = viejas.color[0] as Partial<FilaColorNsys>
+    delete fila.ignoradoAntesPor
+    delete fila.ignoradoAntesEn
+    pintar(viejas)
+    expect(screen.queryByRole('button', { name: /^Ver ignorados/ })).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Salió otra vez/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ignorar 350000000000011' })).toBeInTheDocument()
+  })
+
+  it('mientras se guarda un ignorado, «ignorar» y «Hecho» de la fila están desactivados', async () => {
+    const user = userEvent.setup()
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((resolver) => { soltar = resolver })
+    server.use(http.put('*/api/stock-telefonos/por-pasar/ignorado', async () => {
+      await espera
+      return new HttpResponse(null, { status: 204 })
+    }))
+    pintar(tarjetas({ color: [filaColor(vuelto)] }))
+    await user.click(screen.getByRole('button', { name: 'Ignorar 350000000000011' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ignorar 350000000000011' })).toBeDisabled())
+    expect(screen.getByRole('button', { name: 'Hecho 350000000000011' })).toBeDisabled()
+    soltar()
   })
 })

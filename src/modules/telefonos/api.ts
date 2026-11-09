@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   api, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
-  type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type TarjetasPorPasar,
+  type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
@@ -118,6 +118,24 @@ export function useDeshacerDescarte() {
   const recargar = useRecargarTarjetas(false)
   return useMutation({
     mutationFn: (cuerpo: PeticionDeshacerDescarte) => api.DELETE('/api/stock-telefonos/por-pasar/descarte', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
+/** PUT /api/stock-telefonos/por-pasar/ignorado (0.9.27 §4.3): «ignorar» de una fila ámbar, sin motivo. */
+export function useIgnorarVuelta() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionIgnorado) => api.PUT('/api/stock-telefonos/por-pasar/ignorado', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
+/** DELETE /api/stock-telefonos/por-pasar/ignorado: «deshacer» desde «Ver ignorados». */
+export function useDeshacerIgnorado() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionIgnorado) => api.DELETE('/api/stock-telefonos/por-pasar/ignorado', { body: cuerpo }),
     onSettled: recargar,
   })
 }
