@@ -1,12 +1,12 @@
-import { horaDe, marcada, textoVolvio, type ConHecho } from './porPasar'
+import { horaDe, marcada, textoVolvio, TITULO_IGNORAR, type ConHecho } from './porPasar'
 
-type Props = { fila: ConHecho; imeiSn: string; ocupado: boolean; onMarcar: () => void; onDeshacer: () => void; onDescartar?: () => void }
+type Props = { fila: ConHecho; imeiSn: string; ocupado: boolean; onMarcar: () => void; onDeshacer: () => void; onDescartar?: () => void; onIgnorar?: () => void }
 
 const BOTON = 'h-[26px] cursor-pointer rounded-lg border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold text-azul-medio hover:bg-seleccion-suave disabled:cursor-not-allowed disabled:opacity-40'
 
 /** «Hecho» de una fila (spec 0.9.22 §3.6): el botón; marcada, «✓ Hecho 12:31» (quién, al pasar el ratón) y «deshacer»; si la
- *  importación vio NSYS igual, el botón otra vez con el aviso en rojo. En «No está en NSYS», al lado, el enlace «descartar» (pieza 3). */
-export function CeldaHecho({ fila, imeiSn, ocupado, onMarcar, onDeshacer, onDescartar }: Props) {
+ *  importación vio NSYS igual, el botón otra vez con el aviso en rojo. En «No está en NSYS», al lado, el enlace «descartar» (pieza 3). En las filas ámbar de Color y Grado, «ignorar» (0.9.27). */
+export function CeldaHecho({ fila, imeiSn, ocupado, onMarcar, onDeshacer, onDescartar, onIgnorar }: Props) {
   if (marcada(fila) && fila.hechoEn) {
     const hora = horaDe(fila.hechoEn)
     return (
@@ -28,6 +28,12 @@ export function CeldaHecho({ fila, imeiSn, ocupado, onMarcar, onDeshacer, onDesc
         <button type="button" disabled={ocupado} aria-label={`Descartar ${imeiSn}`} title="No va a NSYS: quitarlo de la lista (con motivo)"
           onClick={onDescartar} className="ml-2 cursor-pointer text-[11px] text-texto-suave hover:text-fila-urgente-brd disabled:cursor-not-allowed disabled:opacity-40">
           descartar
+        </button>
+      )}
+      {onIgnorar && (
+        <button type="button" disabled={ocupado} aria-label={`Ignorar ${imeiSn}`} title={TITULO_IGNORAR}
+          onClick={onIgnorar} className="ml-2 cursor-pointer text-[11px] text-texto-suave hover:text-fila-urgente-brd disabled:cursor-not-allowed disabled:opacity-40">
+          ignorar
         </button>
       )}
       {volvio && <span className="mt-0.5 block max-w-[220px] text-[11px] font-bold whitespace-normal text-fila-urgente-brd">{volvio}</span>}

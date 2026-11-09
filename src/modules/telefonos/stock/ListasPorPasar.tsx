@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys } from '@/shared/api/client'
+import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys } from '@/shared/api/client'
 import { COMPRUEBALO, diaNsys, ETIQUETA_AVISO, queHacerAviso, SIN_PRODUCTO_NSYS, textoAvisoTaller } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { CeldaHecho } from './CeldaHecho'
 import {
   ETIQUETA_SIN_GRADO, marcada, modeloDeFila, modeloDelTaller, pendientes, QUE_HACER_SIN_GRADO, SIN_CAJA, textoBateriaDeFila, textoCaja, textoDescartado, textoDescartadoAntes,
-  textoDesde, textoGradoNsys, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoVuelta, type ConHecho,
+  textoDesde, textoEnNsys, textoGradoNsys, textoIgnorado, textoIgnoradoAntes, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoVerIgnorados, textoVuelta, TITULO_IGNORAR, type ConHecho,
 } from './porPasar'
 
 /** Las cuatro listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
@@ -35,15 +35,22 @@ function Imei({ imeiSn, onAbrir }: { imeiSn: string; onAbrir: (imeiSn: string) =
 
 const AMBAR = 'mt-0.5 block max-w-[260px] text-[11px] whitespace-normal text-ambar-grafico'
 
-/** La línea ámbar de un vendido o de baja que ha vuelto (0.9.22 pieza 4 §7); nada en un móvil en la empresa. */
-function Vuelta({ f }: { f: { vendidoEn: string | null; bajaEn: string | null; vueltoDesde: string | null } }) {
+/** La línea ámbar de un vendido o de baja que ha vuelto (0.9.22 pieza 4 §7) y, si un trabajo nuevo superó su ignorado, «Salió otra
+ *  vez…» (0.9.27 §5.3); nada en un móvil en la empresa. */
+function Vuelta({ f }: { f: { vendidoEn: string | null; bajaEn: string | null; vueltoDesde: string | null; ignoradoAntesPor: string | null; ignoradoAntesEn: string | null } }) {
   const texto = textoVuelta(f)
-  return texto ? <span className={AMBAR}>{texto}</span> : null
+  const otra = textoIgnoradoAntes(f)
+  return (
+    <>
+      {texto && <span className={AMBAR}>{texto}</span>}
+      {otra && <span className={cn(AMBAR, 'font-bold')}>{otra}</span>}
+    </>
+  )
 }
 
 /** Una lista con «Hecho»: la cabecera con «✓ Marcar todo (n)» (lo pendiente) y las filas marcadas en gris. */
-function TablaConHecho<T extends ConHecho & { imeiSn: string }>({ nombre, columnas, celdas, filas, vacio, ocupado, onMarcar, onDeshacer, onDescartar }:
-  Omit<ConHechoProps<T>, 'onAbrirImei'> & { nombre: string; columnas: string[]; celdas: (f: T) => ReactNode; onDescartar?: (imeiSn: string) => void }) {
+function TablaConHecho<T extends ConHecho & { imeiSn: string }>({ nombre, columnas, celdas, filas, vacio, ocupado, onMarcar, onDeshacer, onDescartar, onIgnorar }:
+  Omit<ConHechoProps<T>, 'onAbrirImei'> & { nombre: string; columnas: string[]; celdas: (f: T) => ReactNode; onDescartar?: (imeiSn: string) => void; onIgnorar?: (f: T) => (() => void) | undefined }) {
   const n = pendientes(filas).length
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
@@ -66,7 +73,7 @@ function TablaConHecho<T extends ConHecho & { imeiSn: string }>({ nombre, column
               {celdas(f)}
               <td className={cn(CELDA, 'whitespace-nowrap')}>
                 <CeldaHecho fila={f} imeiSn={f.imeiSn} ocupado={ocupado} onMarcar={() => onMarcar([f.imeiSn])} onDeshacer={() => onDeshacer(f.imeiSn)}
-                  onDescartar={onDescartar ? () => onDescartar(f.imeiSn) : undefined} />
+                  onDescartar={onDescartar ? () => onDescartar(f.imeiSn) : undefined} onIgnorar={onIgnorar?.(f)} />
               </td>
             </tr>
           ))}
@@ -91,9 +98,10 @@ function Caja({ caja }: { caja: string | null | undefined }) {
 }
 
 /** «Cambio de color» (§3.2). */
-export function ListaColor({ onAbrirImei, ...props }: ConHechoProps<FilaColorNsys>) {
+export function ListaColor({ onAbrirImei, ignorados, onIgnorar, onDeshacerIgnorado, ...props }: ConHechoProps<FilaColorNsys> & ConIgnorados) {
   return (
-    <TablaConHecho {...props} nombre="Cambio de color"
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <TablaConHecho {...props} nombre="Cambio de color" onIgnorar={(f) => (f.vueltoDesde ? () => onIgnorar(f.imeiSn) : undefined)}
       columnas={['IMEI', 'Modelo', 'Color', 'En NSYS hoy', 'Caja', 'Poner en NSYS', 'Por qué', 'Desde']}
       celdas={(f) => (
         <>
@@ -115,13 +123,16 @@ export function ListaColor({ onAbrirImei, ...props }: ConHechoProps<FilaColorNsy
           <td className={cn(CELDA, 'whitespace-nowrap')}>{textoDesde(f.desde)}</td>
         </>
       )} />
+      {ignorados.length > 0 && <Ignorados filas={ignorados} ocupado={props.ocupado} onDeshacer={onDeshacerIgnorado} />}
+    </div>
   )
 }
 
 /** «Cambio de grado» (§3.3). */
-export function ListaGrado({ onAbrirImei, ...props }: ConHechoProps<FilaGradoNsys>) {
+export function ListaGrado({ onAbrirImei, ignorados, onIgnorar, onDeshacerIgnorado, ...props }: ConHechoProps<FilaGradoNsys> & ConIgnorados) {
   return (
-    <TablaConHecho {...props} nombre="Cambio de grado"
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <TablaConHecho {...props} nombre="Cambio de grado" onIgnorar={(f) => (f.vueltoDesde ? () => onIgnorar(f.imeiSn) : undefined)}
       columnas={['IMEI', 'Modelo', 'Grado', 'Producto en NSYS hoy', 'Por qué', 'Desde']}
       celdas={(f) => (
         <>
@@ -136,6 +147,8 @@ export function ListaGrado({ onAbrirImei, ...props }: ConHechoProps<FilaGradoNsy
           <td className={cn(CELDA, 'whitespace-nowrap')}>{textoDesde(f.desde)}</td>
         </>
       )} />
+      {ignorados.length > 0 && <Ignorados filas={ignorados} ocupado={props.ocupado} onDeshacer={onDeshacerIgnorado} />}
+    </div>
   )
 }
 
@@ -176,6 +189,45 @@ function Descartados({ filas, ocupado, onRecuperar }: { filas: FilaDescartadaNsy
   )
 }
 
+/** «Ver ignorados (n)» al pie de Color, Grado y Revisar (0.9.27 §5.2): plegado al entrar; desplegado, en gris, con «deshacer». Solo
+ *  se pinta con ignorados (sin ellos se desmonta y vuelve plegado). */
+function Ignorados({ filas, ocupado, onDeshacer }: { filas: FilaIgnoradaNsys[]; ocupado: boolean; onDeshacer: (imeiSn: string) => void }) {
+  const [abierto, setAbierto] = useState(false)
+  const columnas = ['IMEI', 'Modelo', 'En NSYS', 'Ignorado', '']
+  return (
+    <div className="shrink-0">
+      <button type="button" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}
+        className="cursor-pointer text-[12px] text-azul-gris hover:underline">{textoVerIgnorados(filas.length, abierto)}</button>
+      {abierto && (
+        <div className="mt-1.5 max-h-[220px] overflow-auto rounded-lg border border-fila-sep">
+          <table aria-label="Ignorados" className="w-full border-collapse bg-badge-neutro-bg text-[12.5px] text-texto-suave">
+            <thead>
+              <tr>{columnas.map((c, i) => <th key={i} scope="col" className="px-2 py-1.5 text-left font-bold whitespace-nowrap">{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr key={f.imeiSn} className="border-t border-fila-sep">
+                  <td className={cn(CELDA, 'font-mono text-[11.5px] whitespace-nowrap')}>{f.imeiSn}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>{textoEnNsys(f)}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>{textoIgnorado(f)}</td>
+                  <td className={cn(CELDA, 'whitespace-nowrap')}>
+                    <button type="button" disabled={ocupado} aria-label={`Deshacer ignorar ${f.imeiSn}`} onClick={() => onDeshacer(f.imeiSn)}
+                      className="cursor-pointer text-[11px] text-azul-noche hover:underline disabled:opacity-40">deshacer</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Lo de «ignorar» que reciben Color, Grado y Revisar (0.9.27). */
+type ConIgnorados = { ignorados: FilaIgnoradaNsys[]; onIgnorar: (imeiSn: string) => void; onDeshacerIgnorado: (imeiSn: string) => void }
+
 type AltasProps = ConHechoProps<FilaAltaNsys> & {
   descartadas: FilaDescartadaNsys[]; onDescartar: (imeiSn: string) => void; onRecuperar: (imeiSn: string) => void
 }
@@ -208,13 +260,14 @@ export function ListaAltas({ onAbrirImei, descartadas, onDescartar, onRecuperar,
 type RevisarProps = {
   filas: FilaRevisarNsys[]; sinGrado: FilaSinGradoNsys[]; vacio: string; ocupado: boolean
   onAbrirImei: (imeiSn: string) => void; onRevisado: (idAviso: number) => void
-}
+} & ConIgnorados
 
 /** «Revisar a mano» (§3.5): primero las filas «Sin grado en NSYS» (pieza 4: sin «Revisado»; se van solas al tener grado) y
  *  después los avisos, con «✓ Revisado» si ya estaba bien. «Corregir…» abre el móvil. */
-export function ListaRevisar({ filas, sinGrado, vacio, ocupado, onAbrirImei, onRevisado }: RevisarProps) {
+export function ListaRevisar({ filas, sinGrado, vacio, ocupado, onAbrirImei, onRevisado, ignorados, onIgnorar, onDeshacerIgnorado }: RevisarProps) {
   const columnas = ['IMEI', 'Modelo', 'Qué pasa', 'Qué hacer', 'Reparación', '']
   return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
     <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
       <table aria-label="Revisar a mano" className="w-full border-collapse text-[12.5px] text-azul-medio">
         <thead className="sticky top-0 bg-crema">
@@ -239,6 +292,10 @@ export function ListaRevisar({ filas, sinGrado, vacio, ocupado, onAbrirImei, onR
                 <td className={cn(CELDA, 'whitespace-nowrap')}>{textoUltimoTrabajoSinGrado(f)}</td>
                 <td className={cn(CELDA, 'whitespace-nowrap')}>
                   <button type="button" aria-label={`Corregir ${f.imeiSn}`} onClick={() => onAbrirImei(f.imeiSn)} className={PEQUENO}>Corregir…</button>
+                  {f.vueltoDesde && (
+                    <button type="button" disabled={ocupado} aria-label={`Ignorar ${f.imeiSn}`} title={TITULO_IGNORAR} onClick={() => onIgnorar(f.imeiSn)}
+                      className="ml-2 cursor-pointer text-[11px] text-texto-suave hover:text-fila-urgente-brd disabled:cursor-not-allowed disabled:opacity-40">ignorar</button>
+                  )}
                 </td>
               </tr>
             )
@@ -257,12 +314,18 @@ export function ListaRevisar({ filas, sinGrado, vacio, ocupado, onAbrirImei, onR
                 <span className="flex gap-1.5">
                   <button type="button" disabled={ocupado} aria-label={`Revisado ${f.idRep} de ${f.imeiSn}`} onClick={() => onRevisado(f.idAviso)} className={PEQUENO}>✓ Revisado</button>
                   <button type="button" aria-label={`Corregir ${f.imeiSn}`} onClick={() => onAbrirImei(f.imeiSn)} className={PEQUENO}>Corregir…</button>
+                  {f.vueltoDesde && (
+                    <button type="button" disabled={ocupado} aria-label={`Ignorar ${f.imeiSn}`} title={TITULO_IGNORAR} onClick={() => onIgnorar(f.imeiSn)}
+                      className="cursor-pointer text-[11px] text-texto-suave hover:text-fila-urgente-brd disabled:cursor-not-allowed disabled:opacity-40">ignorar</button>
+                  )}
                 </span>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+      {ignorados.length > 0 && <Ignorados filas={ignorados} ocupado={ocupado} onDeshacer={onDeshacerIgnorado} />}
     </div>
   )
 }
