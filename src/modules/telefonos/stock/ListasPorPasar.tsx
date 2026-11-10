@@ -10,7 +10,7 @@ import {
   textoDesde, textoEnNsys, textoGradoNsys, textoIgnorado, textoIgnoradoAntes, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoGrupoCaja, textoVerIgnorados, textoVuelta, type ConHecho, type GrupoCaja,
 } from './porPasar'
 
-/** Las cuatro listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
+/** Las cinco listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
 
 const CELDA = 'px-2 py-1.5 align-top'
 const GRIS = 'block text-[11px] text-azul-gris'
@@ -354,10 +354,10 @@ export function ListaCajas({ filas, vacio, onAbrirImei, onCopiar }: CajasProps) 
                   </span>
                 </td>
               </tr>
-              {g.filas.map((f) => {
+              {g.filas.map((f, i) => {
                 const nota = notaGradoNsys(f)
                 return (
-                  <tr key={f.imeiSn} className="border-t border-fila-sep">
+                  <tr key={`${f.imeiSn}|${i}`} className="border-t border-fila-sep">
                     <td className={cn(CELDA, 'whitespace-nowrap')}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /></td>
                     <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
                     <td className={cn(CELDA, 'whitespace-nowrap')}>{f.color ?? '—'}</td>

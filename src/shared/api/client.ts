@@ -94,7 +94,7 @@ export type OpcionColor = components['schemas']['OpcionColor']
 export type SkuMaestro = components['schemas']['SkuMaestro']
 export type PeticionTaller = components['schemas']['StockTelefonosPeticionTaller']
 
-/** 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas de «Por pasar a NSYS». Las filas de Color, Grado y No está en NSYS
+/** 0.9.22 (spec «plantillas NSYS» §3): las tarjetas de «Por pasar a NSYS». Las filas de Color, Grado y No está en NSYS
  *  llevan su marca «Hecho» (`hechoPor`, `hechoEn`; `hechoVolvio` si la importación vio NSYS igual y la fila cuenta otra vez); las
  *  peticiones de «Hecho» y de «deshacer» llevan la `tarjeta` (COLOR, GRADO o ALTA). Horas de Madrid, sin zona. */
 export type TarjetasPorPasar = components['schemas']['TarjetasPorPasar']

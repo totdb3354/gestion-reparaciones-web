@@ -3,7 +3,7 @@ import type { TarjetasPorPasar } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { cuentas, EXPLICACION, NOMBRE, palabraMoviles, TARJETAS, textoHechos, type Tarjeta } from './porPasar'
 
-/** El borde de arriba de cada tarjeta (prototipo «plantillas NSYS», diseño C): morado, azul, rojo y ámbar. */
+/** El borde de arriba de cada tarjeta (prototipo «plantillas NSYS», diseño C): morado, azul, rojo, ámbar y verde azulado. */
 const BORDE: Record<Tarjeta, string> = {
   color: 'border-t-taller', grado: 'border-t-tipo-reparacion-text', altas: 'border-t-fila-urgente-brd', revisar: 'border-t-ambar',
   cajas: 'border-t-caja',

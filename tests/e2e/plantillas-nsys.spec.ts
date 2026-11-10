@@ -22,7 +22,7 @@ type FilaConHecho = { imeiSn: string; hechoEn: string | null; hechoVolvio: strin
 type FilaColor = FilaConHecho & { ponerProducto: string | null; compruebalo: boolean; colorA: string | null; caja?: string | null }
 type FilaRevisar = { imeiSn: string; idRep: string }
 // sinGrado: las filas «Sin grado en NSYS» de la 0.9.22 pieza 4 (cuentan en «Revisar a mano»; opcional por si el servidor es anterior).
-type Tarjetas = { color: FilaColor[]; grado: FilaConHecho[]; altas: FilaConHecho[]; revisar: FilaRevisar[]; sinGrado?: { imeiSn: string }[] }
+type Tarjetas = { color: FilaColor[]; grado: FilaConHecho[]; altas: FilaConHecho[]; revisar: FilaRevisar[]; sinGrado?: { imeiSn: string }[]; cajas?: { imeiSn: string }[] }
 
 // Las filas 4 a 6 (A-N) de la plantilla vacía de NSYS, que las dos plantillas llevan tal cual (los datos van desde la fila 7), y el
 // aviso de la fila 1. La fila 5 lleva los títulos de las columnas y la 6 el detalle de «Goods».
@@ -130,7 +130,7 @@ async function limpiar(page: Page) {
   if (r.estado === 400) expect(JSON.stringify(r.cuerpo), detalle).toContain(SIN_NADA)
 }
 
-test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
+test.describe('0.9.22: «Por pasar a NSYS» con sus tarjetas', () => {
   test.describe.configure({ mode: 'serial' })
   // Una sola sesión: el entorno limita los inicios de sesión por minuto.
   let pagina: Page
@@ -279,6 +279,10 @@ test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
       await expect(pagina.getByRole('article', { name: tarjeta }), tarjeta).toContainText(cuenta(filas.length, filas.length - pend))
     }
     await expect(pagina.getByRole('article', { name: 'Revisar a mano' })).toContainText(cuenta(revisar, 0))
+    // 0.9.31: «Fuera de su caja» (sin «Hecho») también cuenta en la pestaña.
+    const cajas = t.cajas?.length ?? 0
+    pendientes += cajas
+    await expect(pagina.getByRole('article', { name: 'Fuera de su caja' }), 'Fuera de su caja').toContainText(cuenta(cajas, 0))
     await expect(pestana, 'el número de la pestaña').toHaveAccessibleName(`Por pasar a NSYS (${pendientes})`)
   })
 

@@ -127,7 +127,7 @@ export function filaSinGrado(p: Partial<FilaSinGradoNsys> = {}): FilaSinGradoNsy
   }
 }
 
-/** Las cuatro tarjetas, vacías salvo lo que se pase. */
+/** Las tarjetas, vacías salvo lo que se pase. */
 export function tarjetas(p: Partial<TarjetasPorPasar> = {}): TarjetasPorPasar {
   return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [], cajas: [], ...p }
 }
