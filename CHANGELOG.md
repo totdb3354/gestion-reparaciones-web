@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.30] - 2026-11-10 — Los grados F, FD y RMA no cuentan como stock
+
+- En **Stock de teléfonos**, los móviles con grado **F**, **FD** o **RMA** ya **no cuentan como stock**, estén en la caja que estén: dejan de sumar en el total de la cabecera, en el de cada modelo y en la tabla de color y grado. Antes contaban si su caja era de las que cuentan (un RMA en «Devolución»).
+- Se siguen viendo con **«Ver también lo que no cuenta como stock»**, en gris y con la marca «NO CUENTA». Los grados **ID** y **n/a** siguen contando.
+- Solo servidor (`EstadoMovil.conGrado`, con el grado que vale: si se corrige en el ERP, cuenta o deja de contar al momento): la web no cambia, solo sube el número de versión.
+
 ## [0.9.29] - 2026-11-10 — SKU para los móviles sin grado
 
 - En **Stock de teléfonos**, los móviles **sin grado** (grado «n/a» en NSYS) ya tienen **SKU**: el de su modelo, capacidad y color acabado en **NA** (`i13128AzulNA`; en un eSIM, `i14eSIM128MedianocheNA`). Antes salían con una raya. Al buscar por SKU salen junto a los demás grados de su modelo, o solos con el SKU entero.
