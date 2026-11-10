@@ -1,3 +1,4 @@
+import type { SortingState } from '@tanstack/react-table'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useStore } from '@/shared/lib/store'
@@ -40,7 +41,7 @@ export function StockTelefonosPage() {
   // «Quién lo tiene» se calcula a la hora de la carga (dataUpdatedAt): el sondeo de 60 s lo vuelve a calcular.
   const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
-  const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista, queRevisar }, setEstado] = useStore(estadoStockTelefonos)
+  const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista, queRevisar, ordenMoviles }, setEstado] = useStore(estadoStockTelefonos)
   // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
   const porPasar = usePorPasarTarjetas()
   const nPorPasar = totalPendientes(porPasar.data)
@@ -65,7 +66,8 @@ export function StockTelefonosPage() {
   const abrirModelo = (d: Destino) => {
     // Volver a pulsar lo que ya está abierto no borra sus filtros; elegir un SKU sí los cambia.
     if (d.sku === null && d.modelo === modelo?.clave && d.capacidad === capacidad) return
-    setEstado((e) => ({ ...e, elegido: d.modelo, capacidad: d.capacidad, filtrosDe: { clave: claveFiltros(d.modelo, d.capacidad), filtros: FILTROS_VACIOS, sku: d.sku } }))
+    // 0.9.29: la columna «Cap.» solo está con «Todas»; al elegir una capacidad, un orden por «Cap.» se quita.
+    setEstado((e) => ({ ...e, ordenMoviles: d.capacidad === null ? e.ordenMoviles : e.ordenMoviles.filter((o) => o.id !== 'capacidad'), elegido: d.modelo, capacidad: d.capacidad, filtrosDe: { clave: claveFiltros(d.modelo, d.capacidad), filtros: FILTROS_VACIOS, sku: d.sku } }))
   }
   const delModelo = useMemo(
     () => (modelo?.moviles ?? []).filter((m) => (capacidad === null || capacidadDe(m) === capacidad) && pasaSku(m, sku)),
@@ -76,6 +78,10 @@ export function StockTelefonosPage() {
   const enStock = moviles.filter(cuentaComoStock).length
   const abrir = useCallback((imeiSn: string) => navigate(`/reparaciones/imeis/${encodeURIComponent(imeiSn)}`, { state: { desde: '/telefonos/stock' } }), [navigate])
   const columnas = useMemo(() => columnasMoviles(abrir, { conCapacidad: capacidad === null, sku }), [abrir, capacidad, sku])
+  // 0.9.29: el orden vive en el estado de la página (sigue al volver del detalle de un IMEI). Sin la columna «Cap.» a la vista,
+  // un orden por ella no cuenta.
+  const orden = useMemo(() => (capacidad === null ? ordenMoviles : ordenMoviles.filter((o) => o.id !== 'capacidad')), [ordenMoviles, capacidad])
+  const cambiarOrden = useCallback((o: SortingState) => setEstado((e) => ({ ...e, ordenMoviles: o })), [setEstado])
   return (
     <div className="flex h-[calc(100vh-var(--spacing-navbar))] flex-col p-10 max-[1500px]:p-5">
       <div className="mb-2 flex shrink-0 flex-wrap items-center gap-3">
@@ -136,6 +142,7 @@ export function StockTelefonosPage() {
               </div>
               <div role="region" aria-label="Tabla de móviles" className="min-h-0 flex-1">
                 <DataTable columns={columnas} data={filas} vacio="Ningún móvil con estos filtros" ajuste="fluido" alturaMax="100%"
+                  ordenacion orden={orden} onOrden={cambiarOrden}
                   getRowId={(m) => `${m.imeiSn}|${m.lote}`} onAbrir={(m) => abrir(m.imeiSn)}
                   filaClase={(m) => cn('border-l-4', 'border-l-transparent', !cuentaComoStock(m) && 'text-texto-suave')} />
               </div>

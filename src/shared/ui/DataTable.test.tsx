@@ -288,6 +288,41 @@ describe('DataTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Nombre' })).toHaveAttribute('aria-sort', 'ascending')
   })
 
+  it('0.9.29: la cabecera ordenada lleva su flecha; el segundo clic invierte y el tercero vuelve al orden de los datos', async () => {
+    render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" ordenacion />)
+    const nombres = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[0].textContent)
+    const boton = screen.getByRole('button', { name: 'Nombre' })
+    expect(boton).toHaveTextContent(/^Nombre$/)
+    await userEvent.click(boton)
+    expect(boton).toHaveTextContent('Nombre▲')
+    await userEvent.click(boton)
+    expect(nombres()).toEqual(['WEB', 'OTRO', 'AMAZON'])
+    expect(boton).toHaveTextContent('Nombre▼')
+    expect(screen.getByRole('columnheader', { name: 'Nombre' })).toHaveAttribute('aria-sort', 'descending')
+    await userEvent.click(boton)
+    expect(nombres()).toEqual(['WEB', 'OTRO', 'AMAZON'])
+    expect(boton).toHaveTextContent(/^Nombre$/)
+    expect(screen.getByRole('columnheader', { name: 'Nombre' })).not.toHaveAttribute('aria-sort')
+    // Una sola columna a la vez, también con Mayús.
+    await userEvent.click(boton)
+    await userEvent.keyboard('{Shift>}')
+    await userEvent.click(screen.getByRole('button', { name: 'Nota' }))
+    await userEvent.keyboard('{/Shift}')
+    expect(screen.getByRole('columnheader', { name: 'Nombre' })).not.toHaveAttribute('aria-sort')
+    expect(screen.getByRole('columnheader', { name: 'Nota' })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('0.9.29: con `orden` y `onOrden`, el orden lo guarda la página', async () => {
+    const onOrden = vi.fn()
+    const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" ordenacion orden={[]} onOrden={onOrden} />)
+    const nombres = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[0].textContent)
+    await userEvent.click(screen.getByRole('button', { name: 'Nombre' }))
+    expect(onOrden).toHaveBeenCalledWith([{ id: 'nombre', desc: false }])
+    expect(nombres()).toEqual(['WEB', 'OTRO', 'AMAZON'])
+    rerender(<DataTable columns={COLUMNAS} data={DATOS} vacio="" ordenacion orden={[{ id: 'nombre', desc: false }]} onOrden={onOrden} />)
+    expect(nombres()).toEqual(['AMAZON', 'OTRO', 'WEB'])
+  })
+
   it('sin ordenación las cabeceras no son botones', () => {
     render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" />)
     expect(screen.queryByRole('button', { name: 'Nombre' })).not.toBeInTheDocument()

@@ -4,6 +4,7 @@ import { useStore } from '@/shared/lib/store'
 import { clasesUbicacion } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
+import { ariaOrden, CabeceraOrden } from '@/shared/ui/CabeceraOrden'
 import { CLASES_PILDORA } from '@/shared/ui/pildora'
 import { TIPO_XLSX, useDescargarExcel } from '../api'
 import { CeldaQuien } from './CeldaQuien'
@@ -11,10 +12,10 @@ import { textoCapacidad, type Movil } from './modelo'
 import { estadoStockTelefonos } from './estado'
 import { PildoraGrado } from './PildoraGrado'
 import {
-  avisoDescargado, AYUDA_QR, bloquesRevisar, cifraRevisar, cifraSubir, conTecnico, cuentaRevisar, cuentaSubir, descripcion, excelRevisar,
-  excelSubir, filtrar, imeiBuscado, NOMBRE_QR, nombreExcel, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, PULSA_QR, SIN_PENDIENTE,
-  sinCoincidencias, SUBTITULO_QR, TARJETAS_QR, textoCifra, VACIA_QR, type Cifra, type CuentaPanel, type GrupoBase, type GrupoRevisar,
-  type GrupoSubir, type TarjetaQR,
+  avisoDescargado, AYUDA_QR, bloquesRevisar, cifraRevisar, cifraSubir, COLUMNAS_REVISAR, COLUMNAS_SUBIR, conTecnico, cuentaRevisar, cuentaSubir, descripcion, excelRevisar,
+  excelSubir, filtrar, imeiBuscado, NOMBRE_QR, nombreExcel, ordenarGrupos, palabrasClave, pasoSubir, pendienteSubir, PIE_QR, PULSA_QR, SIN_PENDIENTE,
+  sinCoincidencias, siguienteOrden, SUBTITULO_QR, TARJETAS_QR, textoCifra, VACIA_QR, type Cifra, type CuentaPanel, type GrupoBase, type GrupoRevisar,
+  type ColumnaQR, type GrupoSubir, type OrdenQR, type TarjetaQR,
 } from './queRevisar'
 
 type Props = {
@@ -66,8 +67,12 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
   const cifras: Record<TarjetaQR, Cifra> = { revisar: cifraRevisar(revisar), subir: cifraSubir(subir) }
   // La caja de arriba (spec §3.6) filtra las tablas y el Excel; las tarjetas siguen con todo.
   const palabras = palabrasClave(queRevisar.buscar)
-  const visiblesRevisar = filtrar(revisar, palabras)
-  const visiblesSubir = filtrar(subir, palabras)
+  // 0.9.29: ordenadas por la columna pulsada; de aquí salen la tabla y el Excel, que lleva el orden de la pantalla.
+  const visiblesRevisar = ordenarGrupos(filtrar(revisar, palabras), COLUMNAS_REVISAR, queRevisar.orden.revisar)
+  const visiblesSubir = ordenarGrupos(filtrar(subir, palabras), COLUMNAS_SUBIR, queRevisar.orden.subir)
+  const ordenar = (orden: OrdenQR | null) => setEstado((e) => ({
+    ...e, queRevisar: { ...e.queRevisar, orden: { ...e.queRevisar.orden, [e.queRevisar.tarjeta]: orden } },
+  }))
   const todas = elegida === 'revisar' ? revisar : subir
   const visibles = elegida === 'revisar' ? visiblesRevisar : visiblesSubir
   const mensaje = cargando ? 'Cargando…' : error ? 'No se pudo cargar el stock de teléfonos.' : todas.length === 0 ? VACIA_QR[elegida]
@@ -80,7 +85,8 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
     ? (enRevisar ? { g: enRevisar, cuenta: cuentaRevisar(enRevisar), grado: gradoRevisar } : null)
     : (enSubir ? { g: enSubir, cuenta: cuentaSubir(enSubir), grado: gradoSubir } : null)
   // Lo que llevará el Excel de la tarjeta elegida (spec §10.12): el N del botón son sus filas.
-  const hoja = elegida === 'revisar' ? excelRevisar(visiblesRevisar) : excelSubir(visiblesSubir)
+  // «Revisar sin grado» va como en la pantalla: un bloque detrás del otro, cada uno en su orden.
+  const hoja = elegida === 'revisar' ? excelRevisar(bloquesRevisar(visiblesRevisar).flatMap((b) => b.grupos)) : excelSubir(visiblesSubir)
   const nExcel = hoja.filas.length
   const descargar = useDescargarExcel()
   // Como las plantillas de NSYS (0.9.22.1): «Guardar como» en el mismo clic y después el Excel del servidor. Cancelar no pide nada.
@@ -127,8 +133,8 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
         <div className={cn(LISTA, mensaje === null && 'xl:flex-initial')}>
           {mensaje !== null ? <p className="p-4 text-[12px] text-azul-gris">{mensaje}</p>
             : elegida === 'revisar'
-              ? <TablaRevisar grupos={visiblesRevisar} elegido={queRevisar.elegido.revisar} panel={idPanel} onElegir={elegir} />
-              : <TablaSubir grupos={visiblesSubir} elegido={queRevisar.elegido.subir} panel={idPanel} onElegir={elegir} />}
+              ? <TablaRevisar grupos={visiblesRevisar} elegido={queRevisar.elegido.revisar} panel={idPanel} onElegir={elegir} orden={queRevisar.orden.revisar} onOrden={ordenar} />
+              : <TablaSubir grupos={visiblesSubir} elegido={queRevisar.elegido.subir} panel={idPanel} onElegir={elegir} orden={queRevisar.orden.subir} onOrden={ordenar} />}
         </div>
         {/* Sin filas (cargando, vacío o sin coincidencias) no hay nada que elegir: sin panel. Con otro elegido, el panel se pinta de
             nuevo (la clave) para que empiece arriba y no donde se quedó el anterior. */}
@@ -142,15 +148,24 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
   )
 }
 
-type TablaProps<G> = { grupos: G[]; elegido: string | null; panel: string; onElegir: (clave: string) => void }
+type TablaProps<G> = {
+  grupos: G[]; elegido: string | null; panel: string; onElegir: (clave: string) => void
+  orden: OrdenQR | null; onOrden: (orden: OrdenQR | null) => void
+}
 
-function Cabecera({ columnas, desdeDerecha }: { columnas: string[]; desdeDerecha: number }) {
+/** La cabecera (0.9.29): cada columna, un botón que ordena por ella, con su flecha si es la ordenada. */
+function Cabecera<G>({ columnas, desdeDerecha, orden, onOrden }: { columnas: readonly ColumnaQR<G>[]; desdeDerecha: number; orden: OrdenQR | null; onOrden: (orden: OrdenQR | null) => void }) {
   return (
     <thead className="sticky top-0 bg-crema">
       <tr>
-        {columnas.map((c, i) => (
-          <th key={c} scope="col" className={cn('px-2 py-1.5 font-bold whitespace-nowrap', i >= desdeDerecha ? 'text-right' : 'text-left')}>{c}</th>
-        ))}
+        {columnas.map((c, i) => {
+          const direccion = orden?.columna === c.nombre ? (orden.desc ? 'desc' : 'asc') : null
+          return (
+            <th key={c.nombre} scope="col" aria-sort={ariaOrden(direccion)} className={cn('px-2 py-1.5 font-bold whitespace-nowrap', i >= desdeDerecha ? 'text-right' : 'text-left')}>
+              <CabeceraOrden direccion={direccion} onClick={() => onOrden(siguienteOrden(orden, c))}>{c.nombre}</CabeceraOrden>
+            </th>
+          )
+        })}
       </tr>
     </thead>
   )
@@ -184,11 +199,11 @@ function Cuenta({ n, tecnico }: { n: number; tecnico: number }) {
 
 /** «Revisar sin grado» (spec §10.10): como «Solo n/a» de la hoja, sin motivo, «A en stock» ni «Con grado» (todo sería «Nada con
  *  grado», 0 y 0). */
-function TablaRevisar({ grupos, elegido, panel, onElegir }: TablaProps<GrupoRevisar>) {
-  const columnas = ['Modelo', 'Cap.', 'Color', 'Sin grado']
+function TablaRevisar({ grupos, elegido, panel, onElegir, orden, onOrden }: TablaProps<GrupoRevisar>) {
+  const columnas = COLUMNAS_REVISAR
   return (
     <table aria-label="Revisar sin grado" className={TABLA}>
-      <Cabecera columnas={columnas} desdeDerecha={3} />
+      <Cabecera columnas={columnas} desdeDerecha={3} orden={orden} onOrden={onOrden} />
       <tbody>
         {bloquesRevisar(grupos).map((b) => (
           <Fragment key={b.titulo}>
@@ -207,10 +222,10 @@ function TablaRevisar({ grupos, elegido, panel, onElegir }: TablaProps<GrupoRevi
   )
 }
 
-function TablaSubir({ grupos, elegido, panel, onElegir }: TablaProps<GrupoSubir>) {
+function TablaSubir({ grupos, elegido, panel, onElegir, orden, onOrden }: TablaProps<GrupoSubir>) {
   return (
     <table aria-label="Subir B a A" className={TABLA}>
-      <Cabecera columnas={['Modelo', 'Cap.', 'Color', 'B', 'B100']} desdeDerecha={3} />
+      <Cabecera columnas={COLUMNAS_SUBIR} desdeDerecha={3} orden={orden} onOrden={onOrden} />
       <tbody>
         {grupos.map((g) => (
           <FilaGrupo key={g.clave} g={g} elegido={g.clave === elegido} panel={panel} gris={!pendienteSubir(g)} onElegir={onElegir}>
