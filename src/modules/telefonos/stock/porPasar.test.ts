@@ -313,5 +313,7 @@ describe('«Fuera de su caja»: grupos por la caja que toca y lo que se copia', 
     expect(AYUDA.cajas).toContain('los F van en «CF021», los FD en «Desguace» y los RMA en «Funcionalidad pendiente»')
     expect(AYUDA.cajas).toContain('No salen los que tienen un trabajo abierto del taller ni los de pedido.')
     expect(VACIA.cajas).toBe('No hay móviles F, FD o RMA fuera de su caja.')
+    // La ayuda de «Revisar a mano» no cambia con la tarjeta nueva.
+    expect(AYUDA.revisar).toContain('«Corregir…». Los avisos de color y de deshacer se van con «Revisado» o al corregirlos.')
   })
 })
