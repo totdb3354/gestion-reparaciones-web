@@ -7,8 +7,10 @@ import { useSession } from '@/shared/session/SessionProvider'
 import { esAdminOSuperTecnico, type Sesion } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 
-/** Sidebar de StockView.fxml (`stock-sidebar-btn`): "Stock actual" · "Pedidos" · "Proveedores", en ese orden y sin badges.
- *  Desde la 0.9.16 (spec «El técnico sin Pedidos ni Proveedores») Pedidos y Proveedores son de SUPERTECNICO y ADMIN: el
+/** Sidebar de StockView.fxml (`stock-sidebar-btn`): "Stock actual" · "Compras" · "Proveedores", en ese orden y sin badges. Desde la
+ *  0.9.31 lo que era «Pedidos» se llama «Compras» (los pedidos de clientes son otra pantalla, en Teléfonos; spec pieza 2 §9.1); la
+ *  ruta sigue siendo /stock/pedidos.
+ *  Desde la 0.9.16 (spec «El técnico sin Pedidos ni Proveedores») Compras y Proveedores son de SUPERTECNICO y ADMIN: el
  *  TECNICO (y cualquier otro rol, o sin sesión) se queda con "Stock actual". `end` en el primero: sin él, NavLink lo marcaría
  *  activo también en /stock/pedidos. Iconos desde la 0.9.10. */
 // eslint-disable-next-line react-refresh/only-export-components -- la función vive con las rutas que la usan, patrón del proyecto
@@ -16,7 +18,7 @@ export function enlacesStock(sesion: Sesion | null): Enlace[] {
   const enlaces: Enlace[] = [{ to: '/stock', label: 'Stock actual', icono: Package, end: true }]
   if (esAdminOSuperTecnico(sesion)) {
     enlaces.push(
-      { to: '/stock/pedidos', label: 'Pedidos', icono: ShoppingCart },
+      { to: '/stock/pedidos', label: 'Compras', icono: ShoppingCart },
       { to: '/stock/proveedores', label: 'Proveedores', icono: Building2 },
     )
   }

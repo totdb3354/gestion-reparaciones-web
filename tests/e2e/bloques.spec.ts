@@ -217,7 +217,7 @@ test.describe('supertécnico: pedidos por bloques', () => {
   test('Nuevo pedido crea un bloque nuevo y «Añadir líneas…» le suma una segunda línea', async () => {
     const page = sup!
     await page.goto('/stock/pedidos')
-    await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Compras' })).toBeVisible()
     await expect(page.getByText(/^Actualizado [0-9][0-9]:[0-9][0-9]$/)).toBeVisible()
     await page.getByPlaceholder('Buscar componente o nº de bloque…').fill(sku!)
 

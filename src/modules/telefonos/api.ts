@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  api, type Candidato, type FilaVista, type FuenteVista, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
@@ -174,5 +174,55 @@ export function useDescargarExcel() {
       const { data } = await api.POST('/api/stock-telefonos/que-revisar/excel', { body: hoja, parseAs: 'blob' })
       return data ? guardarEn(destino, { blob: data, nombre }) : nombre
     },
+  })
+}
+
+/** Pedidos como la hoja (Teléfonos › Pedidos): todas las filas viven bajo esta clave. */
+export const CLAVE_FILAS = ['telefonos', 'pedidos', 'filas'] as const
+export const CLAVE_FUENTES_PEDIDOS = ['telefonos', 'pedidos', 'fuentes'] as const
+
+/** GET /api/pedidos/filas: las filas del intervalo de fechas, filtradas por `buscar` (el servidor dice si hay más). Sondea como
+ *  las demás vistas; al cambiar el intervalo o la búsqueda deja la lista anterior hasta que llega la nueva. */
+export function useFilas(p: { desde: string; hasta: string; buscar: string }): UseQueryResult<ListaFilas> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: [...CLAVE_FILAS, p],
+    queryFn: async () => (await api.GET('/api/pedidos/filas', { params: { query: p } })).data ?? { filas: [], hayMas: false },
+    refetchInterval: intervalo,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** GET /api/pedidos/filas/{id}/recomendados: los IMEI que el servidor propone para una fila; sin fila no pregunta. */
+export function useRecomendados(idFila: number | null): UseQueryResult<Candidato[]> {
+  return useQuery({
+    queryKey: [...CLAVE_FILAS, 'recomendados', idFila],
+    enabled: idFila != null,
+    queryFn: async () => (await api.GET('/api/pedidos/filas/{id}/recomendados', { params: { path: { id: idFila as number } } })).data ?? [],
+    meta: { sinCapa: true },
+  })
+}
+
+/** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila y recarga las filas. */
+export function usePonerImei() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ idFila, imei }: { idFila: number; imei: string | null }): Promise<FilaVista> => {
+      const { data } = await api.PUT('/api/pedidos/filas/{id}/imei', { params: { path: { id: idFila } }, body: { imei } })
+      if (!data) throw new Error('El servidor no devolvió la fila')
+      return data
+    },
+    onSettled: () => { void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+  })
+}
+
+/** GET /api/pedidos/fuentes: de dónde vienen los pedidos y cuándo se leyó cada fuente por última vez (la píldora). */
+export function useFuentesPedidos(): UseQueryResult<FuenteVista[]> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: CLAVE_FUENTES_PEDIDOS,
+    queryFn: async () => (await api.GET('/api/pedidos/fuentes')).data ?? [],
+    refetchInterval: intervalo,
+    meta: { sinCapa: true },
   })
 }

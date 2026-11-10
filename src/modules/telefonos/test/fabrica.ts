@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  Candidato, EstadoNsys, FilaVista, FuenteVista, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -139,5 +139,26 @@ export function filaIgnorada(p: Partial<FilaIgnoradaNsys> = {}): FilaIgnoradaNsy
     imeiSn: '350000000000123', modelo: '15', modeloMaestro: '15', capacidad: '256GB', esEsim: true, vendidoEn: '2026-10-26',
     bajaEn: null, vueltoDesde: '2026-10-28T09:10:00', ignoradoPor: 'Supertécnico 1', ignoradoEn: '2026-11-06T12:31:00',
     tarjetas: ['COLOR', 'GRADO'], ...p,
+  }
+}
+
+/** Pedidos como la hoja: una fila sin IMEI de un pedido inventado. */
+export function fila(p: Partial<FilaVista> = {}): FilaVista {
+  return {
+    idFila: 1, fecha: '2026-11-09', plataforma: 'Plataforma A', sku: 'i13128AzulA', imei: null, pedido: '402-0000000-0000001',
+    fechaCompra: '2026-11-08', enviada: false, nivel: null, motivo: null, skuMovil: null, caja: null, ...p,
+  }
+}
+
+/** Un IMEI recomendado para una fila (nivel 1 = el mejor). */
+export function candidato(p: Partial<Candidato> = {}): Candidato {
+  return { imei: '350000000000001', sku: 'i13128AzulA', caja: 'CAJA LISTOS', nivel: 1, ...p }
+}
+
+/** Una fuente de pedidos leída bien hoy a las 09:00. */
+export function fuente(p: Partial<FuenteVista> = {}): FuenteVista {
+  return {
+    fuente: 'Fuente A', ultimaBuena: '2026-11-10T09:00:00', resultado: 'OK', filas: 120, skuDesconocidos: null, motivo: null,
+    nivel: 'OK', ...p,
   }
 }

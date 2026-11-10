@@ -9,7 +9,7 @@ describe('enlaces de la columna de Stock', () => {
     for (const sesion of [SESION_SUPER, SESION_ADMIN]) {
       expect(enlacesStock(sesion).map((e) => [e.label, e.to, e.icono])).toEqual([
         ['Stock actual', '/stock', Package],
-        ['Pedidos', '/stock/pedidos', ShoppingCart],
+        ['Compras', '/stock/pedidos', ShoppingCart],
         ['Proveedores', '/stock/proveedores', Building2],
       ])
     }

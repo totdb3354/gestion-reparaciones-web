@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Smartphone } from 'lucide-react'
+import { ClipboardList, Smartphone } from 'lucide-react'
 import { Navigate, Outlet } from 'react-router'
 import { MSG_SIN_PERMISOS } from '@/shared/api/errors'
 import type { Enlace } from '@/shared/lib/enlaces'
@@ -11,7 +11,13 @@ import { useAlerta } from '@/shared/ui/AlertaProvider'
  *  sesión) no tiene grupo. */
 // eslint-disable-next-line react-refresh/only-export-components -- la función vive con las rutas que la usan, patrón del proyecto
 export function enlacesTelefonos(sesion: Sesion | null): Enlace[] {
-  return esAdminOSuperTecnico(sesion) ? [{ to: '/telefonos/stock', label: 'Stock de teléfonos', icono: Smartphone }] : []
+  return esAdminOSuperTecnico(sesion)
+    ? [
+        { to: '/telefonos/stock', label: 'Stock de teléfonos', icono: Smartphone },
+        // 0.9.31: «Pedidos» de clientes, spec pieza 2 §9.1
+        { to: '/telefonos/pedidos', label: 'Pedidos', icono: ClipboardList },
+      ]
+    : []
 }
 
 /** El TECNICO que llega por la dirección recibe el aviso genérico y vuelve a /reparaciones. Mismo patrón que

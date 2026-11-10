@@ -6,10 +6,15 @@ import { enlacesTelefonos, RequiereAccesoTelefonos } from './rutas'
 
 describe('rutas del módulo de teléfonos', () => {
   it('«Stock de teléfonos» solo para supertécnico y admin', () => {
-    expect(enlacesTelefonos(SESION_SUPER)).toEqual([{ to: '/telefonos/stock', label: 'Stock de teléfonos', icono: Smartphone }])
-    expect(enlacesTelefonos(SESION_ADMIN)).toHaveLength(1)
+    expect(enlacesTelefonos(SESION_SUPER)[0]).toEqual({ to: '/telefonos/stock', label: 'Stock de teléfonos', icono: Smartphone })
+    expect(enlacesTelefonos(SESION_ADMIN)).toHaveLength(2)
     expect(enlacesTelefonos(SESION_TEC)).toEqual([])
     expect(enlacesTelefonos(null)).toEqual([])
+  })
+
+  it('el supertécnico tiene Pedidos en Teléfonos y el técnico no', () => {
+    expect(enlacesTelefonos(SESION_SUPER).map((e) => e.to)).toEqual(['/telefonos/stock', '/telefonos/pedidos'])
+    expect(enlacesTelefonos(SESION_TEC)).toEqual([])
   })
 
   it('el técnico que entra por la dirección recibe el aviso y vuelve a /reparaciones', async () => {

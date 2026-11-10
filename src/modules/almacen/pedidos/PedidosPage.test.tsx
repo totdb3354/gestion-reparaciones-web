@@ -100,7 +100,7 @@ function handlersLayout() {
 describe('PedidosPage: vista', () => {
   it('título sin toggle, columnas, cancelados al final, píldora «pieza» y pie "Actualizado"; lee piezas y otros', async () => {
     montar()
-    expect(await screen.findByRole('heading', { name: 'Pedidos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Compras' })).toBeInTheDocument()
     await screen.findByText('lcd-x-negro')
     expect(screen.queryByRole('link', { name: 'Componentes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Otros' })).not.toBeInTheDocument()

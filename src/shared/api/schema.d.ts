@@ -164,6 +164,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/filas/{id}/imei": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ponerImei"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parametros/prevision": {
         parameters: {
             query?: never;
@@ -2228,6 +2244,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/fuentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fuentes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["filas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas/{id}/recomendados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recomendados"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes": {
         parameters: {
             query?: never;
@@ -2522,6 +2586,26 @@ export interface components {
         ProveedorPiezasTipoRequest: {
             prefijo: string;
             excluidos: string[];
+        };
+        PeticionImei: {
+            imei: string | null;
+        };
+        FilaVista: {
+            /** Format: int32 */
+            idFila: number;
+            /** Format: date */
+            fecha: string;
+            plataforma: string;
+            sku: string | null;
+            imei: string | null;
+            pedido: string | null;
+            /** Format: date */
+            fechaCompra: string | null;
+            enviada: boolean;
+            nivel: string | null;
+            motivo: string | null;
+            skuMovil: string | null;
+            caja: string | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -3834,6 +3918,28 @@ export interface components {
             modelos: string[];
             excluidos: string[];
         };
+        FuenteVista: {
+            fuente: string;
+            /** Format: date-time */
+            ultimaBuena: string | null;
+            resultado: string | null;
+            /** Format: int32 */
+            filas: number;
+            skuDesconocidos: string | null;
+            motivo: string | null;
+            nivel: string;
+        };
+        ListaFilas: {
+            filas: components["schemas"]["FilaVista"][];
+            hayMas: boolean;
+        };
+        RecomendadorCandidato: {
+            imei: string;
+            sku: string | null;
+            caja: string | null;
+            /** Format: int32 */
+            nivel: number;
+        };
         Lote: {
             /** Format: int32 */
             idLote: number;
@@ -4440,6 +4546,34 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ponerImei: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionImei"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaVista"];
+                };
             };
         };
     };
@@ -7917,6 +8051,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Proveedor"][];
+                };
+            };
+        };
+    };
+    fuentes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FuenteVista"][];
+                };
+            };
+        };
+    };
+    filas: {
+        parameters: {
+            query?: {
+                desde?: string;
+                hasta?: string;
+                buscar?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ListaFilas"];
+                };
+            };
+        };
+    };
+    recomendados: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecomendadorCandidato"][];
                 };
             };
         };

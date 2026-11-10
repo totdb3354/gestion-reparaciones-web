@@ -11,9 +11,9 @@ import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
 import {
   useComprobarImeis, useDescargarExcel, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useEstadoNsys, useImportacionesNsys,
-  useMarcarHecho, usePorPasarTarjetas, useRevisarAviso, useStockTelefonos,
+  useFilas, useFuentesPedidos, useMarcarHecho, usePonerImei, usePorPasarTarjetas, useRecomendados, useRevisarAviso, useStockTelefonos,
 } from './api'
-import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
+import { candidato, estadoNsys, fila, filaGrado, fuente, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
 
 function envoltorio() {
   guardarSesion(SESION_SUPER)
@@ -175,5 +175,65 @@ describe('api del stock de teléfonos', () => {
     expect(cuerpos).toEqual([hoja])
     expect(crear).toHaveBeenCalledTimes(1)
     expect((clic.mock.instances[0] as HTMLAnchorElement).download).toBe('Que_revisar_sin_grado_2026-11-04.xlsx')
+  })
+
+  it('«Pedidos como la hoja»: las filas van con el intervalo de fechas y la búsqueda', async () => {
+    const urls: URL[] = []
+    server.use(http.get('*/api/pedidos/filas', ({ request }) => {
+      urls.push(new URL(request.url))
+      return HttpResponse.json({ filas: [fila()], hayMas: true })
+    }))
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '3500' }), { wrapper: envoltorio() })
+    await waitFor(() => expect(filas.result.current.data?.filas).toHaveLength(1))
+    expect(filas.result.current.data?.hayMas).toBe(true)
+    expect(urls[0].searchParams.get('desde')).toBe('2026-10-10')
+    expect(urls[0].searchParams.get('hasta')).toBe('2026-11-10')
+    expect(urls[0].searchParams.get('buscar')).toBe('3500')
+  })
+
+  it('los recomendados de una fila: no pregunta sin fila y pide los de su id', async () => {
+    const rutas: string[] = []
+    server.use(http.get('*/api/pedidos/filas/:id/recomendados', ({ params }) => {
+      rutas.push(String(params.id))
+      return HttpResponse.json([candidato()])
+    }))
+    const wrapper = envoltorio()
+    const sin = renderHook(() => useRecomendados(null), { wrapper })
+    expect(sin.result.current.fetchStatus).toBe('idle')
+    const con = renderHook(() => useRecomendados(7), { wrapper })
+    await waitFor(() => expect(con.result.current.data).toHaveLength(1))
+    expect(rutas).toEqual(['7'])
+    expect(con.result.current.data?.[0].imei).toBe('350000000000001')
+  })
+
+  it('poner el IMEI manda {imei} a la fila y recarga la lista de filas', async () => {
+    const puestos: unknown[] = []
+    let listas = 0
+    server.use(
+      http.put('*/api/pedidos/filas/:id/imei', async ({ request, params }) => {
+        puestos.push([params.id, await request.json()])
+        return HttpResponse.json(fila({ idFila: 7, imei: '350000000000001' }))
+      }),
+      http.get('*/api/pedidos/filas', () => {
+        listas++
+        return HttpResponse.json({ filas: [fila()], hayMas: false })
+      }),
+    )
+    const wrapper = envoltorio()
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '' }), { wrapper })
+    await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    const devuelta = await poner.result.current.mutateAsync({ idFila: 7, imei: '350000000000001' })
+    expect(devuelta.imei).toBe('350000000000001')
+    expect(puestos).toEqual([['7', { imei: '350000000000001' }]])
+    await waitFor(() => expect(listas).toBe(2))
+    await poner.result.current.mutateAsync({ idFila: 7, imei: null })
+    expect(puestos[1]).toEqual(['7', { imei: null }])
+  })
+
+  it('las fuentes de pedidos vienen de /api/pedidos/fuentes', async () => {
+    server.use(http.get('*/api/pedidos/fuentes', () => HttpResponse.json([fuente()])))
+    const fuentes = renderHook(() => useFuentesPedidos(), { wrapper: envoltorio() })
+    await waitFor(() => expect(fuentes.result.current.data).toHaveLength(1))
   })
 })

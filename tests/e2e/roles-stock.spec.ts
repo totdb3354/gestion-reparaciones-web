@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
-// roles-stock.spec.ts (0.9.16, spec «El técnico sin Pedidos ni Proveedores»): el técnico no tiene Pedidos ni Proveedores
+// roles-stock.spec.ts (0.9.16, spec «El técnico sin Pedidos ni Proveedores»): el técnico no tiene Compras ni Proveedores
 // (ni en la columna, ni por URL, ni por la API) y el supertécnico y el admin sí. Solo LEE: no crea ni cambia datos. Aun así,
 // como todas las E2E, solo contra PREPRODUCCIÓN: se niega a seguir sin el letrero.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
@@ -24,12 +24,12 @@ async function estados(page: Page): Promise<number[]> {
   }, LECTURAS)
 }
 
-test('el técnico no tiene Pedidos ni Proveedores: ni en la columna, ni por URL, ni por la API', async ({ page }) => {
+test('el técnico no tiene Compras ni Proveedores: ni en la columna, ni por URL, ni por la API', async ({ page }) => {
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   await entrar(page, usuario, clave)
   const columna = page.getByRole('navigation', { name: 'Sub-navegación' })
   await expect(columna.getByRole('link', { name: 'Stock actual', exact: true })).toBeVisible()
-  await expect(columna.getByRole('link', { name: 'Pedidos', exact: true })).toHaveCount(0)
+  await expect(columna.getByRole('link', { name: 'Compras', exact: true })).toHaveCount(0)
   await expect(columna.getByRole('link', { name: 'Proveedores', exact: true })).toHaveCount(0)
   for (const ruta of ['/stock/pedidos', '/stock/proveedores']) {
     await page.goto(ruta)
@@ -40,13 +40,13 @@ test('el técnico no tiene Pedidos ni Proveedores: ni en la columna, ni por URL,
 })
 
 for (const [rol, varUsuario, varClave] of [['supertécnico', 'E2E_USER', 'E2E_PASS'], ['admin', 'ADMIN_USER', 'ADMIN_PASS']] as const) {
-  test(`el ${rol} sigue con Pedidos y Proveedores`, async ({ page }) => {
+  test(`el ${rol} sigue con Compras y Proveedores`, async ({ page }) => {
     const { usuario, clave } = credenciales(varUsuario, varClave)
     await entrar(page, usuario, clave)
     const columna = page.getByRole('navigation', { name: 'Sub-navegación' })
-    await columna.getByRole('link', { name: 'Pedidos', exact: true }).click()
+    await columna.getByRole('link', { name: 'Compras', exact: true }).click()
     await expect(page).toHaveURL(/\/stock\/pedidos$/)
-    await expect(page.getByRole('heading', { name: 'Pedidos', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Compras', exact: true })).toBeVisible()
     await columna.getByRole('link', { name: 'Proveedores', exact: true }).click()
     await expect(page).toHaveURL(/\/stock\/proveedores$/)
     await expect(page.getByRole('heading', { name: 'Proveedores', exact: true })).toBeVisible()

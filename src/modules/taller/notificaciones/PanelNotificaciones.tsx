@@ -151,7 +151,7 @@ export function PanelNotificaciones({ pestanaInicial, anclaRef, onCerrar, alerta
           ))}
         </div>
         <div className="flex-1" />
-        <button type="button" onClick={() => irA('/stock/pedidos')} className="cursor-pointer text-[12px] font-bold text-azul-noche hover:underline">→ Ir a pedidos</button>
+        <button type="button" onClick={() => irA('/stock/pedidos')} className="cursor-pointer text-[12px] font-bold text-azul-noche hover:underline">→ Ir a compras</button>
       </div>
 
       {pestana === 'solicitudes' ? (

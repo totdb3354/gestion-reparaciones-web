@@ -18,6 +18,12 @@ export type TrabajoCerrado = components['schemas']['TrabajoCerrado']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
+/** Pedidos como la hoja: una fila por pedido, con el IMEI puesto y su recomendación. `Candidato` es `RecomendadorCandidato` del servidor. */
+export type FilaVista = components['schemas']['FilaVista']
+export type ListaFilas = components['schemas']['ListaFilas']
+export type FuenteVista = components['schemas']['FuenteVista']
+export type Candidato = components['schemas']['RecomendadorCandidato']
+
 /** Almacén (sub-proyecto 4a): proveedores de componentes (`tipo` COMPONENTES/TELEFONOS viene del servidor de main). */
 export type Proveedor = components['schemas']['Proveedor']
 export type TipoPiezasProveedor = components['schemas']['ProveedorPiezasTipo']
