@@ -4,6 +4,17 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [Sin número] - (pendiente) — «Pedidos» como la hoja
+
+- En **Teléfonos › Pedidos** hay ahora una tabla como la hoja de pedidos, con las columnas **Fecha, Plataforma, SKU, IMEI, Pedido y Fecha compra**: una fila por móvil pedido.
+- Las filas **aparecen solas** a partir de los pedidos pendientes de Amazon (AMZ y FNSK) y de las tiendas web, y se ponen **en gris** cuando el pedido ya se ha enviado. Nadie las teclea.
+- Lo único que se escribe es el **IMEI**: al pulsar la celda salen los **móviles recomendados** con su caja, y se elige uno (o se escribe o se lee el IMEI y Enter). «Quitar el IMEI» deja la celda vacía.
+- La celda del IMEI se pinta **con el motivo** cuando el móvil no es el que pide el pedido, o **como aviso** en los casos de cuidado (Ms, B por A, en el taller).
+- Filtros: por **fechas** (por defecto, el último mes), una **búsqueda en todo el historial** y un **filtro en cada columna**.
+- La pantalla de compras de piezas, que se llamaba «Pedidos», pasa a llamarse **«Compras»** (no cambia nada más).
+- Solo para **supertécnicos y administradores**; el técnico no la ve.
+- Necesita el servidor de la misma versión y su migración de base de datos, que solo añade tablas.
+
 ## [0.9.30] - 2026-11-10 — Los grados F, FD y RMA no cuentan como stock
 
 - En **Stock de teléfonos**, los móviles con grado **F**, **FD** o **RMA** ya **no cuentan como stock**, estén en la caja que estén: dejan de sumar en el total de la cabecera, en el de cada modelo y en la tabla de color y grado. Antes contaban si su caja era de las que cuentan (un RMA en «Devolución»).
