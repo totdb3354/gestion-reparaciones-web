@@ -3,7 +3,7 @@ import type { FilaColorNsys, TarjetasPorPasar } from '@/shared/api/client'
 import { filaAlta, filaCaja, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
 import {
   avisoCajas, excelCajasColor, HOJA_CAJAS, nombreCajas, paraCajasColor, SIN_CAJA, textoCaja,
-  AYUDA, avisoCopiado, avisoImeisCopiados, gruposCajas, imeisDeCaja, notaGradoNsys, textoGrupoCaja,avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, textoEnNsys, textoIgnorado, textoIgnoradoAntes, textoVerIgnorados, TITULO_IGNORAR, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
+  AYUDA, avisoCopiado, avisoImeisCopiados, gruposCajas, imeisDeCaja, notaGradoNsys, textoGrupoCaja, avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, textoEnNsys, textoIgnorado, textoIgnoradoAntes, textoVerIgnorados, TITULO_IGNORAR, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
   EXPLICA_DESCARTAR, horaDe, listaGrado, marcada, MAX_MOTIVO, modeloDeFila, modeloDelTaller, NOMBRE, paraPlantillaColor, pendientes,
   textoBateriaDeFila, textoDesde, textoDescartado, textoDescartadoAntes, textoGradoNsys, textoNumero, textoPorQue, textoUltimoTrabajo,
   textoUltimoTrabajoSinGrado, textoVerDescartados, textoVolvio, textoVuelta, TITULO_DESCARTAR, totalPendientes, VACIA, vueltosFueraDePlantilla,
@@ -97,7 +97,7 @@ describe('«Por pasar a NSYS» con cuatro tarjetas (spec 0.9.22 §3)', () => {
   })
 
   it('los textos de cada tarjeta', () => {
-    expect(NOMBRE).toEqual({ color: 'Cambio de color', grado: 'Cambio de grado', altas: 'No está en NSYS', revisar: 'Revisar a mano' })
+    expect(NOMBRE).toEqual({ color: 'Cambio de color', grado: 'Cambio de grado', altas: 'No está en NSYS', revisar: 'Revisar a mano', cajas: 'Fuera de su caja' })
     expect(EXPLICACION.grado).toBe('Cambia el grado: se corrige aparte en NSYS, uno a uno. Si el móvil también cambia de color, primero el color.')
     expect(VACIA.altas).toBe('Todos los móviles del taller están en NSYS.')
     expect(AYUDA.color).toBe('Móviles a los que el taller ha cambiado el color. Antes de tocarlos en NSYS, descarga las cajas: la plantilla no lleva la caja y NSYS los deja sin ella. En NSYS: bórralos (se pueden borrar todos de una vez), súbelos otra vez con la plantilla, que lleva el grado que tienen hoy en NSYS (el grado nuevo, si lo hay, va por «Cambio de grado», después), y devuélvelos a su caja con «Location». Cada fila se va sola cuando la importación (cada 30 min) ve el color nuevo en NSYS. Un vendido o de baja que sale en ámbar tiene trabajo del taller después de la venta o de la baja: si es una devolución, apúntala en NSYS; si no ha vuelto, «ignorar» lo quita de las tres listas hasta que NSYS lo tenga otra vez en la empresa o el taller le haga un trabajo nuevo.')
@@ -293,5 +293,25 @@ describe('«Fuera de su caja»: grupos por la caja que toca y lo que se copia', 
   it('la nota del grado solo sale si NSYS aún tiene otro', () => {
     expect(notaGradoNsys(filas[0])).toBeNull()
     expect(notaGradoNsys(filas[1])).toBe('en NSYS aún B: también en «Cambio de grado»')
+  })
+
+  it('la tarjeta cuenta sus filas, sin «hechos», y suma en el número de la pestaña', () => {
+    const t = tarjetas({ grado: [filaGrado()], cajas: filas })
+    expect(cuentas(t, 'cajas')).toEqual({ total: 4, hechos: 0, pendientes: 4 })
+    expect(totalPendientes(t)).toBe(5)
+  })
+
+  it('con un servidor anterior, que no manda «cajas», la tarjeta está a cero', () => {
+    const anterior = { ...tarjetas({ grado: [filaGrado()] }), cajas: undefined } as unknown as TarjetasPorPasar
+    expect(cuentas(anterior, 'cajas')).toEqual({ total: 0, hechos: 0, pendientes: 0 })
+    expect(totalPendientes(anterior)).toBe(1)
+  })
+
+  it('sus textos', () => {
+    expect(NOMBRE.cajas).toBe('Fuera de su caja')
+    expect(EXPLICACION.cajas).toBe('F, FD o RMA en una caja que no es la de su grado: llévalo a su caja y cámbiale la «Location» en NSYS.')
+    expect(AYUDA.cajas).toContain('los F van en «CF021», los FD en «Desguace» y los RMA en «Funcionalidad pendiente»')
+    expect(AYUDA.cajas).toContain('No salen los que tienen un trabajo abierto del taller ni los de pedido.')
+    expect(VACIA.cajas).toBe('No hay móviles F, FD o RMA fuera de su caja.')
   })
 })

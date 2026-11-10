@@ -27,10 +27,10 @@ export const textoDesde = (iso: string): string => `${diaNsys(iso)} ${iso.slice(
 
 const celda = (t: string) => t.replace(/[\t\r\n]+/g, ' ')
 
-// ---------------------------------------------------------------- 0.9.22: cuatro tarjetas (spec «plantillas NSYS» §3)
+// ---------------------------------------------------------------- 0.9.22: las tarjetas (spec «plantillas NSYS» §3)
 
-export type Tarjeta = 'color' | 'grado' | 'altas' | 'revisar'
-export const TARJETAS: readonly Tarjeta[] = ['color', 'grado', 'altas', 'revisar']
+export type Tarjeta = 'color' | 'grado' | 'altas' | 'revisar' | 'cajas'
+export const TARJETAS: readonly Tarjeta[] = ['color', 'grado', 'altas', 'revisar', 'cajas']
 /** Cómo llama el servidor a las tarjetas que llevan «Hecho». */
 export const TARJETA_HECHO = { color: 'COLOR', grado: 'GRADO', altas: 'ALTA' } as const
 export type TarjetaConHecho = keyof typeof TARJETA_HECHO
@@ -39,6 +39,7 @@ export type ConHecho = Pick<FilaColorNsys, 'hechoPor' | 'hechoEn' | 'hechoVolvio
 
 export const NOMBRE: Record<Tarjeta, string> = {
   color: 'Cambio de color', grado: 'Cambio de grado', altas: 'No está en NSYS', revisar: 'Revisar a mano',
+  cajas: 'Fuera de su caja',
 }
 
 export const EXPLICACION: Record<Tarjeta, string> = {
@@ -46,6 +47,7 @@ export const EXPLICACION: Record<Tarjeta, string> = {
   grado: 'Cambia el grado: se corrige aparte en NSYS, uno a uno. Si el móvil también cambia de color, primero el color.',
   altas: 'NSYS no lo conoce: dalo de alta con la plantilla (rellena lo que falta).',
   revisar: 'Sin grado en NSYS o lo que el ERP no supo calcular: corrígelo en su ficha.',
+  cajas: 'F, FD o RMA en una caja que no es la de su grado: llévalo a su caja y cámbiale la «Location» en NSYS.',
 }
 
 /** 0.9.27 (spec «ignorar» §5.4): la frase que ganan las ayudas de Color, Grado y Revisar. */
@@ -55,12 +57,14 @@ export const AYUDA: Record<Tarjeta, string> = {
   color: 'Móviles a los que el taller ha cambiado el color. Antes de tocarlos en NSYS, descarga las cajas: la plantilla no lleva la caja y NSYS los deja sin ella. En NSYS: bórralos (se pueden borrar todos de una vez), súbelos otra vez con la plantilla, que lleva el grado que tienen hoy en NSYS (el grado nuevo, si lo hay, va por «Cambio de grado», después), y devuélvelos a su caja con «Location». Cada fila se va sola cuando la importación (cada 30 min) ve el color nuevo en NSYS.' + IGNORAR_AYUDA,
   grado: 'Todos los móviles a los que el taller ha cambiado el grado (chasis → A, batería nueva → 100…), también los que cambian de color: en esos, haz primero el color (si no, la plantilla de color le devolvería el grado de antes). En NSYS el grado se corrige aparte, sin borrar el móvil. Cada fila se va sola cuando la importación ve el grado nuevo.' + IGNORAR_AYUDA,
   altas: 'Móviles que han pasado por el taller y NSYS no conoce. La plantilla lleva lo que sabe el ERP; lo demás (capacidad, color, grado, precio, proveedor) va vacío para rellenarlo en el Excel. Cada fila se va sola cuando la importación los ve en NSYS. Si una fila no debería estar aquí (no es un móvil, es de un cliente…), «descartar» la quita con un motivo; solo vuelve si el taller le hace un trabajo nuevo.',
-  revisar: 'Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22/10; se van solos cuando NSYS los gradúa o con «Corregir…». Los avisos de color y de deshacer se van con «Revisado» o al corregirlos.' + IGNORAR_AYUDA,
+  revisar: 'Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22/10; se van solos cuando NSYS los gradúa o con «Corregir…». los avisos de color y de deshacer se van con «Revisado» o al corregirlos.' + IGNORAR_AYUDA,
+  cajas: 'Móviles con grado F, FD o RMA que NSYS tiene en la empresa y fuera de la caja de su grado: los F van en «CF021», los FD en «Desguace» y los RMA en «Funcionalidad pendiente». Copia los IMEIs de cada caja, búscalos en NSYS y cámbiales la «Location». Cada fila se va sola cuando la importación (cada 30 min) ve la caja nueva. No salen los que tienen un trabajo abierto del taller ni los de pedido.',
 }
 
 export const VACIA: Record<Tarjeta, string> = {
   color: 'Ningún cambio de color pendiente.', grado: 'Ningún cambio de grado pendiente.',
   altas: 'Todos los móviles del taller están en NSYS.', revisar: 'Nada que revisar: todo lo del taller se pudo calcular.',
+  cajas: 'No hay móviles F, FD o RMA fuera de su caja.',
 }
 
 /** Marcada «Hecho» y sin volver: no cuenta ni va en las plantillas ni en «Copiar lista». Una que volvió cuenta otra vez. */
@@ -75,12 +79,17 @@ export function cuentas(t: TarjetasPorPasar, cual: Tarjeta): { total: number; he
     const n = t.revisar.length + (t.sinGrado ?? []).length
     return { total: n, hechos: 0, pendientes: n }
   }
+  if (cual === 'cajas') {
+    // `?? []`: un servidor anterior a «Fuera de su caja» (vuelta atrás) no manda `cajas`. No lleva «Hecho».
+    const n = (t.cajas ?? []).length
+    return { total: n, hechos: 0, pendientes: n }
+  }
   const filas: readonly ConHecho[] = cual === 'color' ? t.color : cual === 'grado' ? t.grado : t.altas
   const hechos = filas.filter(marcada).length
   return { total: filas.length, hechos, pendientes: filas.length - hechos }
 }
 
-/** El número de la pestaña (spec §3.1): lo pendiente de las cuatro tarjetas. */
+/** El número de la pestaña (spec §3.1): lo pendiente de las tarjetas. */
 export function totalPendientes(t: TarjetasPorPasar | null | undefined): number {
   return t ? TARJETAS.reduce((n, cual) => n + cuentas(t, cual).pendientes, 0) : 0
 }

@@ -6,15 +6,16 @@ import { cuentas, EXPLICACION, NOMBRE, palabraMoviles, TARJETAS, textoHechos, ty
 /** El borde de arriba de cada tarjeta (prototipo «plantillas NSYS», diseño C): morado, azul, rojo y ámbar. */
 const BORDE: Record<Tarjeta, string> = {
   color: 'border-t-taller', grado: 'border-t-tipo-reparacion-text', altas: 'border-t-fila-urgente-brd', revisar: 'border-t-ambar',
+  cajas: 'border-t-caja',
 }
 
 type Props = { tarjetas: TarjetasPorPasar; elegida: Tarjeta; onElegir: (t: Tarjeta) => void; boton: (t: Tarjeta) => ReactNode }
 
-/** Las cuatro tarjetas de «Por pasar a NSYS» (spec 0.9.22 §3.1): su nombre (que la elige), su número («3 móviles · 1 hecho»), qué se
+/** Las cinco tarjetas de «Por pasar a NSYS» (spec 0.9.22 §3.1 y «Fuera de su caja» §5): su nombre (que la elige), su número («3 móviles · 1 hecho»), qué se
  *  hace y su botón. Pulsar en la tarjeta también la elige. */
 export function TarjetasNsys({ tarjetas, elegida, onElegir, boton }: Props) {
   return (
-    <div className="grid shrink-0 grid-cols-4 gap-2.5">
+    <div className="grid shrink-0 grid-cols-5 gap-2.5">
       {TARJETAS.map((t) => {
         const c = cuentas(tarjetas, t)
         return (
