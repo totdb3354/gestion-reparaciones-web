@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.28] - 2026-11-?? — Ordenar por columna en Stock de teléfonos
+## [0.9.28] - 2026-11-10 — Ordenar por columna en Stock de teléfonos
 
 - En **Stock de teléfonos**, un clic en la cabecera de una columna ordena la tabla por ella, con una flecha (▲ o ▼) en la cabecera: el primer clic ordena (el texto de la A a la Z; los números, de mayor a menor), el segundo invierte y el tercero vuelve al orden de siempre. Una columna a la vez; las filas que empatan conservan el orden de siempre y lo vacío («—») va siempre al final.
 - En la tabla de **móviles**, las ocho columnas: IMEI, Cap. (como número), Color, Grado (en su orden: A+, A, A-, B…), SKU, Ubicación (con los números como números), Quién lo tiene y Días. Con «Ver también lo que no cuenta como stock», al ordenar se mezclan con los demás.
