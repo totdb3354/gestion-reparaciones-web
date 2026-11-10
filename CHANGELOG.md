@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.29] - 2026-11-10 — SKU para los móviles sin grado
+
+- En **Stock de teléfonos**, los móviles **sin grado** (grado «n/a» en NSYS) ya tienen **SKU**: el de su modelo, capacidad y color acabado en **NA** (`i13128AzulNA`; en un eSIM, `i14eSIM128MedianocheNA`). Antes salían con una raya. Al buscar por SKU salen junto a los demás grados de su modelo, o solos con el SKU entero.
+- Siguen sin SKU los móviles cuyo producto no está en el maestro, o cuya fila no trae «SKU sin grado». Si el maestro trae un SKU propio para un n/a, se usa ese.
+- Solo servidor (`SkuNa`; lo cogen en la primera importación de Items): la web no cambia, solo sube el número de versión. De paso, la fecha con la que se decide si un móvil de baja ha vuelto al taller (los ámbar de «Por pasar a NSYS») ya solo se mueve cuando NSYS cambia el móvil, no al completar el maestro.
+
 ## [0.9.28] - 2026-11-10 — Ordenar por columna en Stock de teléfonos
 
 - En **Stock de teléfonos**, un clic en la cabecera de una columna ordena la tabla por ella, con una flecha (▲ o ▼) en la cabecera: el primer clic ordena (el texto de la A a la Z; los números, de mayor a menor), el segundo invierte y el tercero vuelve al orden de siempre. Una columna a la vez; las filas que empatan conservan el orden de siempre y lo vacío («—») va siempre al final.
