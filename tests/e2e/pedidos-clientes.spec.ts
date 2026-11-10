@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
-// pedidos-clientes.spec.ts (0.9.26, spec pieza 2): el técnico no tiene «Pedidos» de Teléfonos (ni en la columna, ni por URL,
+// pedidos-clientes.spec.ts (0.9.31, spec pieza 2): el técnico no tiene «Pedidos» de Teléfonos (ni en la columna, ni por URL,
 // ni por la API); el supertécnico la ve con su píldora de fuentes, filtra y abre una unidad. Solo LEE: los datos son los que la
 // lectura trae de ShippyPro, PEDIDOS 2026 y el Simulador; no se apunta ningún pedido ni IMEI en el código. Como todas las E2E,
 // solo contra PREPRODUCCIÓN: se niega a seguir sin el letrero.

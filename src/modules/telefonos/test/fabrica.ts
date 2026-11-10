@@ -1,5 +1,5 @@
 import type {
-  Atributos, EstadoNsys, FuentePedidosVista, MovilUnidad, PedidoVista, UnidadVista, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  Atributos, EstadoNsys, FuentePedidosVista, MovilUnidad, PedidoVista, UnidadVista, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -75,7 +75,8 @@ export function filaColor(p: Partial<FilaColorNsys> = {}): FilaColorNsys {
     productoNsys: 'Apple iPhone 13 128GB Blue', gradoNsys: 'B', ponerProducto: 'Apple iPhone 13 128GB (PRODUCT)RED',
     compruebalo: false, tambienGrado: false,
     porQue: [porQue({ dato: 'COLOR', origen: 'REPARACION', idRep: 'R20261024_12', usuario: 'Técnico 2', motivo: 'chasis chai13red nuevo' })],
-    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: false, ...p,
+    desde: '2026-10-24T10:12:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: false,
+    caja: 'CAJA LISTOS', ignoradoAntesPor: null, ignoradoAntesEn: null, ...p,
   }
 }
 
@@ -85,7 +86,7 @@ export function filaGrado(p: Partial<FilaGradoNsys> = {}): FilaGradoNsys {
     imeiSn: '350000000000022', modelo: '14', modeloMaestro: '14', capacidad: '256GB', gradoDe: 'A', gradoA: 'A100',
     productoNsys: 'Apple iPhone 14 eSIM 256GB Midnight', conColor: false,
     porQue: [porQue({ origen: 'REPARACION', idRep: 'R20261024_31', usuario: 'Técnico 2', motivo: 'batería bati14 nueva' })],
-    desde: '2026-10-24T12:40:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: true, ...p,
+    desde: '2026-10-24T12:40:00', hechoPor: null, hechoEn: null, hechoVolvio: null, vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: true, ignoradoAntesPor: null, ignoradoAntesEn: null, ...p,
   }
 }
 
@@ -111,7 +112,7 @@ export function filaRevisar(p: Partial<FilaRevisarNsys> = {}): FilaRevisarNsys {
   return {
     idAviso: 1, imeiSn: '350000000000101', modelo: '14', modeloMaestro: '14', capacidad: '512GB', tipo: 'SIN_COLOR', causa: null,
     dato: 'COLOR', de: 'chai14yellowesim', a: null, motivo: 'chasis chai14yellowesim nuevo', idRep: 'R20261022_2',
-    usuario: 'Técnico 3', fecha: '2026-10-22T11:14:00', vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: true, ...p,
+    usuario: 'Técnico 3', fecha: '2026-10-22T11:14:00', vendidoEn: null, bajaEn: null, vueltoDesde: null, esEsim: true, ignoradoAntesPor: null, ignoradoAntesEn: null, ...p,
   }
 }
 
@@ -122,13 +123,23 @@ export function filaSinGrado(p: Partial<FilaSinGradoNsys> = {}): FilaSinGradoNsy
     imeiSn: '350000000000201', modelo: '13', modeloMaestro: '13', capacidad: '128GB', gradoNsys: 'n/a',
     ultimoTrabajo: 'R20261026_205', ultimoTrabajoEn: '2026-10-26T17:28:49', categoria: 'REPARACION',
     bateriaIdRep: 'R20261026_205', bateriaNueva: true, bateriaEn: '2026-10-26T17:28:49', vendidoEn: null, bajaEn: null,
-    vueltoDesde: null, esEsim: false, ...p,
+    vueltoDesde: null, esEsim: false, ignoradoAntesPor: null, ignoradoAntesEn: null, ...p,
   }
 }
 
 /** Las cuatro tarjetas, vacías salvo lo que se pase. */
 export function tarjetas(p: Partial<TarjetasPorPasar> = {}): TarjetasPorPasar {
-  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ...p }
+  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [], ...p }
+}
+
+/** 0.9.27: un iPhone 15 eSIM 256GB vendido el 26/10, que el taller tuvo el 28/10 y Supertécnico 1 ignoró el 06/11 12:31; saldría en
+ *  Color y Grado. */
+export function filaIgnorada(p: Partial<FilaIgnoradaNsys> = {}): FilaIgnoradaNsys {
+  return {
+    imeiSn: '350000000000123', modelo: '15', modeloMaestro: '15', capacidad: '256GB', esEsim: true, vendidoEn: '2026-10-26',
+    bajaEn: null, vueltoDesde: '2026-10-28T09:10:00', ignoradoPor: 'Supertécnico 1', ignoradoEn: '2026-11-06T12:31:00',
+    tarjetas: ['COLOR', 'GRADO'], ...p,
+  }
 }
 
 /** Datos inventados de «Pedidos» (repos públicos). */

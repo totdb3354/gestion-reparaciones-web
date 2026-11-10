@@ -12,7 +12,7 @@ import { filtrar, recuentos, type Filtros } from './pedidos'
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
 
-/** «Pedidos» de clientes (0.9.26, spec pieza 2 §9.2): solo lee; disposición A del prototipo, sin la sugerencia (0.9.27). Se
+/** «Pedidos» de clientes (0.9.31, spec pieza 2 §9.2): solo lee; disposición A del prototipo, sin la sugerencia (otra versión). Se
  *  refresca cada minuto (usePedidos); la unidad elegida se conserva por su id. */
 export function PedidosPage() {
   const [{ viejos, filtros, elegida, expandidos }, poner] = useStore(estadoPedidos)

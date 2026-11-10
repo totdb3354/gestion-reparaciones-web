@@ -1,24 +1,24 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { TarjetasPorPasar } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { avisar } from '@/shared/ui/avisos'
 import { copiarAlPortapapeles } from '@/shared/ui/copiar'
 import { elegirDestino } from '@/shared/lib/descargas'
 import {
-  nombrePlantilla, TIPO_XLSX, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useMarcarHecho, useRevisarAviso,
+  nombrePlantilla, TIPO_XLSX, useDescargarExcel, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useDeshacerIgnorado, useIgnorarVuelta, useMarcarHecho, useRevisarAviso,
   type Plantilla,
 } from '../api'
 import { DescartarAltaDialog } from './DescartarAltaDialog'
 import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
 import {
-  avisoCopiado, avisoDescartado, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, listaGrado, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
+  avisoCajas, avisoCopiado, avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, excelCajasColor, listaGrado, nombreCajas, paraCajasColor, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
   vueltosFueraDePlantilla, type Tarjeta, type TarjetaConHecho,
 } from './porPasar'
 import { TarjetasNsys } from './TarjetasNsys'
 
 type Props = { tarjetas: TarjetasPorPasar | null; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void }
 
-const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [] }
+const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [] }
 const BOTON = 'h-[26px] cursor-pointer rounded-lg px-2.5 text-[12px] font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40'
 const PRIMARIO = cn(BOTON, 'bg-azul-noche text-superficie hover:bg-azul-noche-hover')
 const SECUNDARIO = cn(BOTON, 'border border-borde-input bg-superficie text-azul-medio hover:bg-seleccion-suave')
@@ -35,10 +35,19 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
   const deshacer = useDeshacerHecho()
   const revisar = useRevisarAviso()
   const descargar = useDescargarPlantilla()
+  const descargarExcel = useDescargarExcel()
+  const cajasAbierto = useRef(false)
   const descartar = useDescartarAlta()
   const recuperar = useDeshacerDescarte()
   const [aDescartar, setADescartar] = useState<string | null>(null)
-  const ocupado = marcar.isPending || deshacer.isPending || descartar.isPending || recuperar.isPending
+  const ignorar = useIgnorarVuelta()
+  const deshacerIgnorado = useDeshacerIgnorado()
+  const ocupado = marcar.isPending || deshacer.isPending || descartar.isPending || recuperar.isPending || ignorar.isPending || deshacerIgnorado.isPending
+  const conIgnorados = (cual: 'color' | 'grado' | 'revisar') => ({
+    ignorados: ignoradosDe(t, cual),
+    onIgnorar: (imeiSn: string) => ignorar.mutate({ imeiSn }, { onSuccess: () => avisar({ texto: avisoIgnorado(imeiSn), tipo: 'ok' }) }),
+    onDeshacerIgnorado: (imeiSn: string) => deshacerIgnorado.mutate({ imeiSn }, { onSuccess: () => avisar({ texto: avisoVuelveALasListas(imeiSn), tipo: 'ok' }) }),
+  })
   const sinProducto = pendientes(t.color).filter((f) => f.ponerProducto === null).length
   const vacio = cargando ? 'Cargando…' : error ? 'No se pudo cargar la lista.' : VACIA[elegida]
 
@@ -63,14 +72,41 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
     })
   }
 
+  // 0.9.26 (spec «cajas del cambio de color» §3.2): como la plantilla, «Guardar como» en el mismo clic y después el Excel, que
+  // escribe la ruta genérica de «Qué revisar». Mientras la ventana está abierta, otro clic no abre otra.
+  const bajarCajas = async () => {
+    if (cajasAbierto.current) return
+    cajasAbierto.current = true
+    try {
+      const hoja = excelCajasColor(t.color)
+      const nombre = nombreCajas()
+      const destino = await elegirDestino(nombre, TIPO_XLSX)
+      if (destino === 'cancelado') return
+      descargarExcel.mutate({ hoja, nombre, destino }, { onSuccess: (guardado) => avisar({ texto: avisoCajas(guardado, hoja), tipo: 'ok' }) })
+    } finally {
+      cajasAbierto.current = false
+    }
+  }
+
   function boton(cual: Tarjeta) {
     if (cual === 'color' || cual === 'altas') {
       const n = cual === 'color' ? paraPlantillaColor(t.color).length : pendientes(t.altas).length
-      return (
+      const plantilla = (
         <button type="button" disabled={n === 0 || descargar.isPending} title={n === 0 ? SIN_NADA : `${n} ${n === 1 ? 'móvil' : 'móviles'}`}
           onClick={(e) => { e.stopPropagation(); void bajar(cual) }} className={PRIMARIO}>
           {`⬇ Descargar plantilla${n > 0 ? ` (${n})` : ''}`}
         </button>
+      )
+      if (cual === 'altas') return plantilla
+      const c = paraCajasColor(t.color).length
+      return (
+        <>
+          {plantilla}
+          <button type="button" disabled={c === 0 || descargarExcel.isPending} title={c === 0 ? SIN_NADA : `${c} ${c === 1 ? 'móvil' : 'móviles'}`}
+            onClick={(e) => { e.stopPropagation(); void bajarCajas() }} className={SECUNDARIO}>
+            {`⬇ Descargar cajas${c > 0 ? ` (${c})` : ''}`}
+          </button>
+        </>
       )
     }
     if (cual === 'grado') {
@@ -101,8 +137,8 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
         {elegida === 'color' && sinProducto > 0 && <span className={PASTILLA}>{`${sinProducto} sin producto en NSYS: no van en la plantilla`}</span>}
         {elegida === 'grado' && <span className={PASTILLA}>en NSYS se cambian uno a uno: «Copiar lista» para tenerlos delante y «Hecho» al acabar cada uno</span>}
       </div>
-      {elegida === 'color' && <ListaColor filas={t.color} {...conHecho('color')} />}
-      {elegida === 'grado' && <ListaGrado filas={t.grado} {...conHecho('grado')} />}
+      {elegida === 'color' && <ListaColor filas={t.color} {...conHecho('color')} {...conIgnorados('color')} />}
+      {elegida === 'grado' && <ListaGrado filas={t.grado} {...conHecho('grado')} {...conIgnorados('grado')} />}
       {/* `?? []` en `descartadas`: un servidor anterior a la pieza 3 (vuelta atrás) no lo manda. */}
       {elegida === 'altas' && (
         <ListaAltas filas={t.altas} {...conHecho('altas')} descartadas={t.descartadas ?? []} onDescartar={setADescartar}
@@ -110,7 +146,7 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
       )}
       {/* `?? []` en `sinGrado`: un servidor anterior a la pieza 4 (vuelta atrás) no lo manda. */}
       {elegida === 'revisar' && (
-        <ListaRevisar filas={t.revisar} sinGrado={t.sinGrado ?? []} vacio={vacio} ocupado={revisar.isPending} onAbrirImei={onAbrirImei}
+        <ListaRevisar filas={t.revisar} sinGrado={t.sinGrado ?? []} vacio={vacio} ocupado={revisar.isPending || ignorar.isPending || deshacerIgnorado.isPending} onAbrirImei={onAbrirImei} {...conIgnorados('revisar')}
           onRevisado={(idAviso) => revisar.mutate(idAviso, { onSuccess: () => avisar({ texto: 'Revisado: sale de la lista (queda en el rastro)', tipo: 'ok' }) })} />
       )}
       <DescartarAltaDialog imeiSn={aDescartar} enviando={descartar.isPending} onCerrar={() => setADescartar(null)}

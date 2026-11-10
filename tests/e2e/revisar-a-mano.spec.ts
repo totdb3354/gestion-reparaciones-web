@@ -14,6 +14,16 @@ const IMEI = process.env.E2E_IMEI_SIN_GRADO ?? '350000000009924'
 const SIN_NADA = 'Este móvil no tiene nada del taller'
 const MOTIVO = 'E2E 0.9.22 pieza 4: Revisar a mano'
 
+/** «Guardar como» falsa, como en plantillas-nsys.spec.ts (0.9.22.1): Chromium sin cabeza no abre la de verdad y, sin ella, la
+ *  descarga de la plantilla se da por cancelada y no sale su aviso. Da un fichero con el nombre propuesto y no guarda nada. Va como
+ *  script de la página: sin nada de fuera. */
+function guardarComoFalso() {
+  Reflect.set(globalThis, 'showSaveFilePicker', async (opciones?: { suggestedName?: string }) => ({
+    name: opciones?.suggestedName ?? 'sin-nombre',
+    createWritable: async () => ({ write: async () => {}, close: async () => {}, abort: async () => {} }),
+  }))
+}
+
 type Respuesta = { estado: number; cuerpo: unknown }
 /** La vuelta de un vendido o de baja (pieza 4 §6): los tres null en un móvil en la empresa. */
 type ConVuelta = { imeiSn: string; vendidoEn: string | null; bajaEn: string | null; vueltoDesde: string | null }
@@ -156,6 +166,7 @@ test.describe('0.9.22 pieza 4: Revisar a mano con «Sin grado en NSYS» y la bat
   test.beforeAll(async ({ browser }, testInfo) => {
     const { usuario, clave } = credenciales('E2E_USER', 'E2E_PASS')
     pagina = await browser.newPage({ baseURL: testInfo.project.use.baseURL })
+    await pagina.addInitScript(guardarComoFalso)
     await entrar(pagina, usuario, clave)
     enPreprod = true
     expect((await pedir(pagina, 'GET', `/api/stock-telefonos/${IMEI}`)).estado,

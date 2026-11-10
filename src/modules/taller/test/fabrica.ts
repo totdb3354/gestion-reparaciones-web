@@ -18,7 +18,7 @@ export function resumen(parcial: Partial<ReparacionResumen> = {}): ReparacionRes
     glassEntregadoPorNombre: null, glassEntregadoPor: null, glassTecnicoNombre: null, normalAbierta: false, normalTecnicoNombre: null,
     // 0.9.21: sin NSYS por defecto (la lista dice el modelo solo, como antes). 0.9.24: sin eSIM.
     capacidad: null, color: null, esEsim: false,
-    // 0.9.26: sin pedido por defecto.
+    // 0.9.31: sin pedido por defecto.
     pedidoNumero: null, pedidoCanal: null, pedidoSku: null, pedidoRepetido: false,
     ...parcial,
   }

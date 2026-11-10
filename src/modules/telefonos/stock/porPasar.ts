@@ -1,4 +1,7 @@
-import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaSinGradoNsys, PorQueTaller, TarjetasPorPasar } from '@/shared/api/client'
+import type {
+  FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaSinGradoNsys, PeticionExcel, PorQueTaller, TarjetasPorPasar,
+} from '@/shared/api/client'
+import { hoyMadrid } from '@/shared/lib/fechas'
 import { descripcionMovil, diaNsys, nombreModeloNsys, nombreMovilNsys, textoBateriaRecordada } from '@/shared/lib/telefonoNsys'
 
 /** Reglas de la lista «Por pasar a NSYS» (0.9.21, spec «SKU del taller» §2.4). */
@@ -45,11 +48,14 @@ export const EXPLICACION: Record<Tarjeta, string> = {
   revisar: 'Sin grado en NSYS o lo que el ERP no supo calcular: corrígelo en su ficha.',
 }
 
+/** 0.9.27 (spec «ignorar» §5.4): la frase que ganan las ayudas de Color, Grado y Revisar. */
+const IGNORAR_AYUDA = ' Un vendido o de baja que sale en ámbar tiene trabajo del taller después de la venta o de la baja: si es una devolución, apúntala en NSYS; si no ha vuelto, «ignorar» lo quita de las tres listas hasta que NSYS lo tenga otra vez en la empresa o el taller le haga un trabajo nuevo.'
+
 export const AYUDA: Record<Tarjeta, string> = {
-  color: 'Móviles a los que el taller ha cambiado el color. En NSYS: bórralos y súbelos otra vez con la plantilla, que lleva el grado que tienen hoy en NSYS (el grado nuevo, si lo hay, va por «Cambio de grado», después). Cada fila se va sola cuando la importación (cada 30 min) ve el color nuevo en NSYS.',
-  grado: 'Todos los móviles a los que el taller ha cambiado el grado (chasis → A, batería nueva → 100…), también los que cambian de color: en esos, haz primero el color (si no, la plantilla de color le devolvería el grado de antes). En NSYS el grado se corrige aparte, sin borrar el móvil. Cada fila se va sola cuando la importación ve el grado nuevo.',
+  color: 'Móviles a los que el taller ha cambiado el color. Antes de tocarlos en NSYS, descarga las cajas: la plantilla no lleva la caja y NSYS los deja sin ella. En NSYS: bórralos (se pueden borrar todos de una vez), súbelos otra vez con la plantilla, que lleva el grado que tienen hoy en NSYS (el grado nuevo, si lo hay, va por «Cambio de grado», después), y devuélvelos a su caja con «Location». Cada fila se va sola cuando la importación (cada 30 min) ve el color nuevo en NSYS.' + IGNORAR_AYUDA,
+  grado: 'Todos los móviles a los que el taller ha cambiado el grado (chasis → A, batería nueva → 100…), también los que cambian de color: en esos, haz primero el color (si no, la plantilla de color le devolvería el grado de antes). En NSYS el grado se corrige aparte, sin borrar el móvil. Cada fila se va sola cuando la importación ve el grado nuevo.' + IGNORAR_AYUDA,
   altas: 'Móviles que han pasado por el taller y NSYS no conoce. La plantilla lleva lo que sabe el ERP; lo demás (capacidad, color, grado, precio, proveedor) va vacío para rellenarlo en el Excel. Cada fila se va sola cuando la importación los ve en NSYS. Si una fila no debería estar aquí (no es un móvil, es de un cliente…), «descartar» la quita con un motivo; solo vuelve si el taller le hace un trabajo nuevo.',
-  revisar: 'Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22/10; se van solos cuando NSYS los gradúa o con «Corregir…». Los avisos de color y de deshacer se van con «Revisado» o al corregirlos.',
+  revisar: 'Sin grado en NSYS: móviles sin grado que han pasado por el taller desde el 22/10; se van solos cuando NSYS los gradúa o con «Corregir…». Los avisos de color y de deshacer se van con «Revisado» o al corregirlos.' + IGNORAR_AYUDA,
 }
 
 export const VACIA: Record<Tarjeta, string> = {
@@ -182,4 +188,83 @@ export function textoVuelta(f: { vendidoEn: string | null; bajaEn: string | null
   const desde = diaNsys(f.vueltoDesde)
   if (f.vendidoEn) return `Vendido en NSYS el ${diaNsys(f.vendidoEn)} · el taller lo tiene desde el ${desde}: haz antes la devolución en NSYS`
   return `De baja en NSYS desde el ${diaNsys(f.bajaEn ?? f.vueltoDesde)} · el taller lo tiene desde el ${desde}: míralo antes en NSYS`
+}
+
+// ---------------------------------------------------------------- 0.9.26: las cajas del cambio de color
+
+/** Lo que dice la columna «Caja» y el Excel de un móvil que NSYS tiene sin caja. */
+export const SIN_CAJA = 'sin caja'
+
+/** La caja de NSYS de una fila de «Cambio de color» (spec «cajas del cambio de color» §3.1): tal cual; sin caja, «sin caja»; con
+ *  un servidor anterior a la 0.9.26, que no manda el campo, «—». */
+export function textoCaja(caja: string | null | undefined): string {
+  if (caja === undefined) return '—'
+  return caja !== null && caja.trim() !== '' ? caja : SIN_CAJA
+}
+
+/** Los móviles de «⬇ Descargar cajas» (spec §4): los de la plantilla de color (con producto, sin los que han vuelto) también si
+ *  están marcados «Hecho»: se marcan al subir la plantilla, que es cuando hacen falta las cajas. */
+export const paraCajasColor = (filas: readonly FilaColorNsys[]): FilaColorNsys[] =>
+  filas.filter((f) => f.ponerProducto !== null && !f.vueltoDesde)
+
+export const HOJA_CAJAS = 'Cajas cambio de color'
+
+/** Por caja, de la A a la Z sin mirar mayúsculas, y «sin caja» al final. */
+function compararCajas(a: string, b: string): number {
+  if (a === b) return 0
+  if (a === SIN_CAJA) return 1
+  if (b === SIN_CAJA) return -1
+  return a.localeCompare(b, 'es', { sensitivity: 'base' }) || a.localeCompare(b, 'es')
+}
+
+/** La hoja del Excel de las cajas (spec §3.3): IMEI, caja, modelo («iPhone 14 eSIM 256GB») y color nuevo como lo escribe NSYS,
+ *  por caja y, dentro, por IMEI; así cada caja es un bloque seguido, como se seleccionan en NSYS. */
+export function excelCajasColor(filas: readonly FilaColorNsys[]): PeticionExcel {
+  const lineas = paraCajasColor(filas).map((f) => ({ f, caja: textoCaja(f.caja) }))
+  lineas.sort((x, y) => compararCajas(x.caja, y.caja) || x.f.imeiSn.localeCompare(y.f.imeiSn))
+  return {
+    hoja: HOJA_CAJAS,
+    columnas: ['IMEI', 'Caja', 'Modelo', 'Color nuevo'],
+    filas: lineas.map(({ f, caja }) => [f.imeiSn, caja, modeloDeFila(f), f.colorA ?? '']),
+  }
+}
+
+/** El nombre que propone «Guardar como»: `Cajas_color_2026-11-06.xlsx`, con el día de Madrid. */
+export const nombreCajas = (ahora: Date = new Date()): string => `Cajas_color_${hoyMadrid(ahora)}.xlsx`
+
+/** «Descargado «Cajas_color_2026-11-06.xlsx» · 12 móviles en 3 cajas», de la hoja que se bajó («sin caja» cuenta como una). */
+export function avisoCajas(nombre: string, hoja: PeticionExcel): string {
+  const n = hoja.filas.length
+  const cajas = new Set(hoja.filas.map((fila) => fila[1])).size
+  return `Descargado «${nombre}» · ${n} ${palabraMoviles(n)} en ${cajas} ${cajas === 1 ? 'caja' : 'cajas'}`
+}
+
+// ---------------------------------------------------------------- 0.9.27: «ignorar» en los vendidos y de baja que salen en ámbar
+
+/** Las tarjetas que pueden tener ignorados y su nombre en `FilaIgnoradaNsys.tarjetas`. */
+export const TARJETA_IGNORADO = { color: 'COLOR', grado: 'GRADO', revisar: 'REVISAR' } as const
+export type TarjetaConIgnorados = keyof typeof TARJETA_IGNORADO
+
+export const TITULO_IGNORAR = 'No ha vuelto: quitarlo de las listas hasta que NSYS lo tenga otra vez en la empresa (o el taller le haga un trabajo nuevo)'
+export const avisoIgnorado = (imei: string): string => `Ignorado «${imei}»: sale en «Ver ignorados» hasta que vuelva`
+export const avisoVuelveALasListas = (imei: string): string => `«${imei}» vuelve a las listas`
+export const textoVerIgnorados = (n: number, abierto: boolean): string => (abierto ? 'Ocultar ignorados' : `Ver ignorados (${n})`)
+
+/** Los ignorados que saldrían en esta tarjeta. `?? []`: un servidor anterior a la 0.9.27 no manda `ignorados`. */
+export const ignoradosDe = (t: TarjetasPorPasar, cual: TarjetaConIgnorados): FilaIgnoradaNsys[] =>
+  (t.ignorados ?? []).filter((f) => f.tarjetas.includes(TARJETA_IGNORADO[cual]))
+
+/** «Vendido en NSYS el 26/10/2026» o «De baja en NSYS desde el 15/10/2026». */
+export const textoEnNsys = (f: Pick<FilaIgnoradaNsys, 'vendidoEn' | 'bajaEn'>): string =>
+  f.vendidoEn ? `Vendido en NSYS el ${diaNsys(f.vendidoEn)}` : `De baja en NSYS desde el ${f.bajaEn ? diaNsys(f.bajaEn) : '—'}`
+
+/** «Supertécnico 1 · 06/11/2026 12:31». */
+export const textoIgnorado = (f: Pick<FilaIgnoradaNsys, 'ignoradoPor' | 'ignoradoEn'>): string =>
+  `${f.ignoradoPor ?? '—'} · ${textoDesde(f.ignoradoEn)}`
+
+/** «Salió otra vez: trabajo nuevo después de que Supertécnico 1 lo ignorara el 06/11/2026 12:31»; sin un ignorado superado, null.
+ *  `!f.ignoradoAntesEn`: un servidor anterior a la 0.9.27 no manda el campo. */
+export function textoIgnoradoAntes(f: { ignoradoAntesPor: string | null; ignoradoAntesEn: string | null }): string | null {
+  if (!f.ignoradoAntesEn) return null
+  return `Salió otra vez: trabajo nuevo después de que ${f.ignoradoAntesPor ?? '—'} lo ignorara el ${textoDesde(f.ignoradoAntesEn)}`
 }

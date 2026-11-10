@@ -4,13 +4,58 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.26] - (pendiente) — «Pedidos»: qué móvil tiene cada pedido de cliente y si cuadra
+## [0.9.31] - (pendiente) — «Pedidos»: qué móvil tiene cada pedido de cliente y si cuadra
 
 - **«Pedidos»** (Teléfonos; supertécnicos y administrador): los pedidos pendientes de Amazon, Amazon Stockroom, las webs (Distribuidores, Particulares, BackiPhone) y del Simulador, de más antiguo a más nuevo, con una fila por unidad. De cada una: si ya tiene móvil (IMEI) y si ese móvil cuadra con lo que pide el pedido. Estados: **Sin móvil**, **No cuadra** (con la tabla de diferencias: modelo, capacidad, eSIM, color y grado; no está en NSYS; grado que no se vende; o necesita taller), **Con aviso** (Ms o «B por A»), **En el taller** (con quién lo tiene y en qué tiene que acabar) y **Cuadra**. Filtros por canal y estado, buscador (pedido, cliente, SKU, IMEI) y «Ver rastro» del móvil, que al volver deja la pantalla como estaba. Los pedidos con 3 o más unidades que cuadran se pliegan en una línea («✔ 3 unidades más cuadran · ver»), salvo con el filtro «Cuadra». Los del Simulador de más de 14 días no salen; el interruptor «Ver también los del Simulador de más de 14 días» los enseña. La píldora de fuentes (ShippyPro, PEDIDOS 2026, Simulador y NSYS) dice cuándo se leyó cada una y si falló. Solo lee: los IMEI se siguen tecleando en PEDIDOS 2026 o en el Simulador, como hoy.
 - **Amazon:** en PEDIDOS 2026, «AMZ» es Amazon y «FNSK»/«FSNK» es Amazon Stockroom; cada cuenta solo se empareja con sus filas. Una fila con el número de «Pedido Amazon» (se rellena al enviar) es de ese pedido si sigue pendiente y, si no, de ninguno. Las filas sin número se reparten por SKU («sin pedido concreto»): el móvil más avanzado va al pedido más antiguo. **Amazon distingue eSIM y SIM física**: el servidor empareja con el «SKU (Amazon) con eSIM» del maestro, así que un iPhone eSIM y uno con SIM física no se mezclan.
 - **Asignaciones y Pendientes** dicen bajo el IMEI «Pedido 402-0000000-0000001 · acabar en SKU» (y «IMEI en dos pedidos» si se repite), solo en los trabajos abiertos.
 - **«Pedidos» de Stock pasa a llamarse «Compras»** (menú y título); la dirección no cambia. Las E2E de Stock usan el nombre nuevo.
-- Requiere el servidor de la 0.9.26 y su migración aditiva `migracion-pedidos.sql` (tres tablas y tres columnas); con un servidor anterior, «Pedidos» da 404 y Asignaciones no pinta la línea. Servidor y web. Sin la sugerencia de móvil (0.9.27).
+- Requiere el servidor de la 0.9.31 y su migración aditiva `migracion-pedidos.sql` (tres tablas y tres columnas); con un servidor anterior, «Pedidos» da 404 y Asignaciones no pinta la línea. Servidor y web. Sin la sugerencia de móvil (va en otra versión).
+## [0.9.30] - 2026-11-10 — Los grados F, FD y RMA no cuentan como stock
+
+- En **Stock de teléfonos**, los móviles con grado **F**, **FD** o **RMA** ya **no cuentan como stock**, estén en la caja que estén: dejan de sumar en el total de la cabecera, en el de cada modelo y en la tabla de color y grado. Antes contaban si su caja era de las que cuentan (un RMA en «Devolución»).
+- Se siguen viendo con **«Ver también lo que no cuenta como stock»**, en gris y con la marca «NO CUENTA». Los grados **ID** y **n/a** siguen contando.
+- Solo servidor (`EstadoMovil.conGrado`, con el grado que vale: si se corrige en el ERP, cuenta o deja de contar al momento): la web no cambia, solo sube el número de versión.
+
+## [0.9.29] - 2026-11-10 — SKU para los móviles sin grado
+
+- En **Stock de teléfonos**, los móviles **sin grado** (grado «n/a» en NSYS) ya tienen **SKU**: el de su modelo, capacidad y color acabado en **NA** (`i13128AzulNA`; en un eSIM, `i14eSIM128MedianocheNA`). Antes salían con una raya. Al buscar por SKU salen junto a los demás grados de su modelo, o solos con el SKU entero.
+- Siguen sin SKU los móviles cuyo producto no está en el maestro, o cuya fila no trae «SKU sin grado». Si el maestro trae un SKU propio para un n/a, se usa ese.
+- Solo servidor (`SkuNa`; lo cogen en la primera importación de Items): la web no cambia, solo sube el número de versión. De paso, la fecha con la que se decide si un móvil de baja ha vuelto al taller (los ámbar de «Por pasar a NSYS») ya solo se mueve cuando NSYS cambia el móvil, no al completar el maestro.
+
+## [0.9.28] - 2026-11-10 — Ordenar por columna en Stock de teléfonos
+
+- En **Stock de teléfonos**, un clic en la cabecera de una columna ordena la tabla por ella, con una flecha (▲ o ▼) en la cabecera: el primer clic ordena (el texto de la A a la Z; los números, de mayor a menor), el segundo invierte y el tercero vuelve al orden de siempre. Una columna a la vez; las filas que empatan conservan el orden de siempre y lo vacío («—») va siempre al final.
+- En la tabla de **móviles**, las ocho columnas: IMEI, Cap. (como número), Color, Grado (en su orden: A+, A, A-, B…), SKU, Ubicación (con los números como números), Quién lo tiene y Días. Con «Ver también lo que no cuenta como stock», al ordenar se mezclan con los demás.
+- En **«Qué revisar»**, las dos tablas: «Revisar sin grado» (dentro de cada bloque) y «Subir B a A», cada una con su orden. **«⬇ Descargar Excel»** lleva las filas en el orden de la pantalla.
+- El orden se recuerda al cambiar de modelo, de vista o de tarjeta y al volver del detalle de un IMEI; se pierde al cerrar sesión. Un orden por «Cap.» se quita al elegir una capacidad (la columna solo está con «Todas»).
+- Solo web. `DataTable` gana la flecha (`CabeceraOrden`) y `orden`/`onOrden` para que la página guarde el orden; la ordenación sigue apagada por defecto, así que las demás pantallas no cambian.
+
+## [0.9.27] - 2026-11-10 — «ignorar» en los vendidos que salen en ámbar
+
+- En «Por pasar a NSYS», las filas **ámbar** de «Cambio de color», «Cambio de grado» y «Revisar a mano» (un móvil que NSYS da por vendido o de baja y que el taller ha tenido después) ganan un enlace **«ignorar»**, al lado de «Hecho» como «descartar» (en «Revisar a mano», al lado de «Corregir…»), sin ventana: es para cuando el móvil no ha vuelto (por ejemplo, se reparó antes de enviarlo). Saca el móvil de las tres tarjetas y de sus números.
+- **«Ver ignorados (n)»** al pie de cada una de esas tablas: IMEI, modelo, qué dice NSYS («Vendido en NSYS el …» o «De baja en NSYS desde el …»), quién y cuándo, y **«deshacer»**.
+- Un ignorado vuelve a salir **sin ámbar** cuando NSYS lo vuelve a tener en la empresa (al apuntar la devolución), con su cambio de color o de grado pendiente, y **en ámbar** con «Salió otra vez: trabajo nuevo después de que … lo ignorara el …» si el taller le hace un trabajo nuevo.
+- La ayuda de las tres tarjetas lo explica.
+- Base, servidor y web: tabla nueva `Taller_vuelta_ignorada` (migración `migracion-ignorar-vuelta-nsys.sql`), rutas `PUT`/`DELETE /api/stock-telefonos/por-pasar/ignorado` y `ignorados` en las tarjetas. Con el servidor de la 0.9.26 no salen ni «ignorar» funciona: la web va después del servidor.
+
+## [0.9.26] - 2026-11-06 — Las cajas del cambio de color
+
+- **«⬇ Descargar cajas (N)»** en la tarjeta «Cambio de color» de «Por pasar a NSYS», detrás de «⬇ Descargar plantilla»: un Excel aparte (la plantilla no cambia) con el IMEI, la caja de NSYS («CAJA LISTOS»), el modelo («iPhone 14 eSIM 256GB») y el color nuevo de cada móvil, ordenado por caja (sin mirar mayúsculas, «sin caja» al final) y luego por IMEI, para devolverlos a su caja en NSYS por bloques. La plantilla de NSYS no lleva la caja: al subirla, el móvil entra sin caja. Lleva los mismos móviles que la plantilla y también los marcados «Hecho». Abre «Guardar como» con el nombre ya puesto (`Cajas_color_2026-11-06.xlsx`) y avisa de cuántos móviles y cajas lleva.
+- Columna **«Caja»** en la lista de «Cambio de color», entre «En NSYS hoy» y «Poner en NSYS»: la caja tal cual la escribe NSYS, o «sin caja» en gris.
+- La ayuda de «Cambio de color» dice el orden: descargar las cajas antes de tocar NSYS, borrar (se pueden borrar todos de una vez), subir la plantilla y devolverlos a su caja con «Location».
+- Servidor y web, sin migración: el servidor manda la `caja` en cada fila de «Cambio de color» y el Excel lo escribe la ruta de «Qué revisar» (`POST /api/stock-telefonos/que-revisar/excel`). Con el servidor de la 0.9.25, la columna y el Excel dicen «—».
+
+## [0.9.25] - 2026-11-05 — «Qué revisar» en Stock de teléfonos
+
+- **«Qué revisar»**, pestaña nueva de Stock de teléfonos (supertécnicos y administrador), al lado de «Por pasar a NSYS». Hace lo que hacía la hoja «PriorizarRevision» del Apps Script, con el último Items de NSYS y lo que ha corregido el taller. Dos tarjetas, con una fila por modelo-color (modelo, capacidad y color; el eSIM aparte):
+  - **Revisar sin grado**: los modelos-color en los que todo está sin grado (`n/a`), como la tabla «Solo n/a» de la hoja. Primero **lo que más queda sin revisar** y, a igualdad, por modelo, capacidad y color. En cuanto NSYS o el taller le ponen grado a uno de sus móviles, el modelo-color sale de la lista; F, FD y RMA no cuentan como grado. Columnas: Modelo, Cap., Color y Sin grado (con «+1 con técnico» si hay). La tabla se parte en dos bloques, «3 o más sin revisar» y «Menos de 3 sin revisar» (cada uno con sus modelos-color y móviles), y las dos tablas son compactas: «Sin grado» queda pegado al color.
+  - **Subir B a A**: los modelos-color con B o B100 y ningún A (como la hoja): candidatos a chasis (B → A; con batería nueva, B100 → A100). Columnas: Modelo, Cap., Color, B y B100.
+- **Los móviles del modelo-color, en un panel a la derecha**: al pulsar una fila, queda marcada y sus IMEI salen en el panel, con la ubicación, los días en stock y quién lo tiene (en «Subir B a A», también el paso, B → A o B100 → A100); el título dice el modelo-color y su cuenta («iPhone 14 128 GB Medianoche · 20 sin grado»). Ya no se despliegan dentro de la tabla, así que la lista no se mueve. Lo elegido se queda al volver del detalle del IMEI y al cambiar de tarjeta. Por debajo de 1280 px de ancho de ventana, el panel va debajo de la tabla. Un móvil con un trabajo abierto sale en gris y no cuenta.
+- **«⬇ Descargar Excel (N)»**, encima de la tabla: un Excel para imprimir, con una fila por modelo-color (lo que se ve, sin los móviles del técnico), como las tablas de la hoja: «Sin grado» y «Revisado» en «Revisar sin grado», «B», «B100» y «Hecho» en «Subir B a A», con la última columna vacía para marcar a boli. «Sin grado», «B» y «B100» van como número (se pueden ordenar y filtrar en Excel, «≥ 3» como en la hoja) y la página sale en vertical, a una página de ancho y con la cabecera en cada página. Abre «Guardar como» con el nombre ya puesto (`Que_revisar_sin_grado_2026-11-04.xlsx`).
+- En esa pestaña, la caja de arriba **busca por palabras clave**: «13 pro 256», «14 esim», un color, un SKU («i13128Azul») o un trozo de 6 cifras o más del IMEI (elige su modelo-color y resalta el móvil en el panel). Deja solo las filas que coinciden, también en el Excel; las tarjetas siguen con todo. En «Móviles» y «Por pasar a NSYS» la caja sigue buscando IMEI.
+- «A» es A+, A o A-.
+- Servidor y web, sin migración: el servidor solo escribe el Excel (`POST /api/stock-telefonos/que-revisar/excel`). Con el servidor de la 0.9.24, el Excel no se puede descargar y lo demás funciona.
 
 ## [0.9.24] - 2026-11-03 — La descripción del móvil dice si es eSIM
 

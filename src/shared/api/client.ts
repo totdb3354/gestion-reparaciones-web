@@ -18,7 +18,7 @@ export type TrabajoCerrado = components['schemas']['TrabajoCerrado']
 export type Tecnico = components['schemas']['Tecnico']
 export type ContadoresPendientes = components['schemas']['ContadoresPendientes']
 
-/** Pedidos de clientes (0.9.26, spec pieza 2 §8): cada pedido con sus unidades y el estado de cada una. */
+/** Pedidos de clientes (0.9.31, spec pieza 2 §8): cada pedido con sus unidades y el estado de cada una. */
 export type PedidoVista = components['schemas']['PedidoVista']
 export type UnidadVista = components['schemas']['UnidadVista']
 export type MovilUnidad = components['schemas']['MovilUnidad']
@@ -121,6 +121,15 @@ export type PeticionDeshacerDescarte = components['schemas']['PorPasarPeticionDe
  *  último trabajo y su batería recordada). Color, Grado y Revisar llevan `vendidoEn`/`bajaEn`/`vueltoDesde` si es un vendido o de
  *  baja que ha vuelto; `OpcionesTaller` trae la batería recordada (`bateriaIdRep`, `bateriaNueva`, `bateriaEn`). */
 export type FilaSinGradoNsys = components['schemas']['FilaSinGradoNsys']
+
+/** 0.9.27 (spec «ignorar» §4.2): un vendido o de baja ignorado de las filas ámbar, para «Ver ignorados»; `tarjetas` dice en cuáles
+ *  saldría (COLOR, GRADO, REVISAR). Las filas de Color, Grado, Revisar y Sin grado llevan `ignoradoAntesPor`/`ignoradoAntesEn` si
+ *  un trabajo nuevo superó el ignorado. */
+export type FilaIgnoradaNsys = components['schemas']['FilaIgnoradaNsys']
+export type PeticionIgnorado = components['schemas']['PorPasarPeticionIgnorado']
+
+/** 0.9.25 (spec «Qué revisar» §10.3): la hoja que el servidor convierte en el Excel para imprimir (todo textos). */
+export type PeticionExcel = components['schemas']['StockTelefonosPeticionExcel']
 
 /** Las rutas del contrato ya llevan /api/...; baseUrl es la origin: vacía en producción (misma origin),
  *  absoluta en tests porque el fetch de jsdom no admite URLs relativas. */

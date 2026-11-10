@@ -14,7 +14,7 @@ export function enlacesTelefonos(sesion: Sesion | null): Enlace[] {
   return esAdminOSuperTecnico(sesion)
     ? [
         { to: '/telefonos/stock', label: 'Stock de teléfonos', icono: Smartphone },
-        // 0.9.26: «Pedidos» de clientes, spec pieza 2 §9.1
+        // 0.9.31: «Pedidos» de clientes, spec pieza 2 §9.1
         { to: '/telefonos/pedidos', label: 'Pedidos', icono: ClipboardList },
       ]
     : []

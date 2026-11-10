@@ -1,6 +1,6 @@
 import type { Atributos, MovilUnidad, PedidoVista, UnidadVista } from '@/shared/api/client'
 
-/** Reglas puras de «Pedidos» (0.9.26, spec pieza 2 §9.2). */
+/** Reglas puras de «Pedidos» (0.9.31, spec pieza 2 §9.2). */
 
 export type GrupoEstado = 'sin' | 'nocuadra' | 'aviso' | 'taller' | 'cuadra'
 

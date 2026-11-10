@@ -1,7 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   api, type FuentePedidosVista, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
-  type PedidoVista, type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionHecho, type TarjetasPorPasar,
+  type PedidoVista, type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho,
+  type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
@@ -122,6 +123,24 @@ export function useDeshacerDescarte() {
   })
 }
 
+/** PUT /api/stock-telefonos/por-pasar/ignorado (0.9.27 §4.3): «ignorar» de una fila ámbar, sin motivo. */
+export function useIgnorarVuelta() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionIgnorado) => api.PUT('/api/stock-telefonos/por-pasar/ignorado', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
+/** DELETE /api/stock-telefonos/por-pasar/ignorado: «deshacer» desde «Ver ignorados». */
+export function useDeshacerIgnorado() {
+  const recargar = useRecargarTarjetas(false)
+  return useMutation({
+    mutationFn: (cuerpo: PeticionIgnorado) => api.DELETE('/api/stock-telefonos/por-pasar/ignorado', { body: cuerpo }),
+    onSettled: recargar,
+  })
+}
+
 export type Plantilla = 'color' | 'altas'
 export type Descarga = { nombre: string; filas: number }
 
@@ -143,6 +162,18 @@ export function useDescargarPlantilla() {
       const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? nombrePlantilla(cual)
       const guardado = data ? await guardarEn(destino, { blob: data, nombre }) : nombre
       return { nombre: guardado, filas: Number(response.headers.get('X-Filas') ?? '0') }
+    },
+  })
+}
+
+/** POST /api/stock-telefonos/que-revisar/excel (spec 0.9.25 «Qué revisar» §10.3): el servidor convierte la hoja en un xlsx para
+ *  imprimir; aquí se guarda en `destino`, el fichero elegido en «Guardar como» antes de llamar (elegirDestino), o sin él con
+ *  `nombre` en la carpeta de descargas. Devuelve con qué nombre se guardó. Un error sale en el diálogo de siempre. */
+export function useDescargarExcel() {
+  return useMutation({
+    mutationFn: async ({ hoja, nombre, destino }: { hoja: PeticionExcel; nombre: string; destino: FileSystemFileHandle | null }): Promise<string> => {
+      const { data } = await api.POST('/api/stock-telefonos/que-revisar/excel', { body: hoja, parseAs: 'blob' })
+      return data ? guardarEn(destino, { blob: data, nombre }) : nombre
     },
   })
 }

@@ -9,6 +9,8 @@ import { leerXlsx, type Xlsx } from './xlsx.ts'
 // «Volver a lo de NSYS».
 // Además cubre lo que antes se probaba a mano en preprod: «✓ Revisado» (con doble clic) y su rastro, el contenido de las plantillas de
 // color y de altas (cabecera de la vacía de NSYS, columnas, rellenos), «Copiar lista» y los números de las tarjetas y de la pestaña.
+// 0.9.26: «⬇ Descargar cajas» lleva el móvil de prueba con la caja que da la API, también marcado «Hecho» (spec «cajas del cambio
+// de color» §3.3 y §4).
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const IMEI = process.env.E2E_IMEI_TALLER ?? '350000000009921'
 const SIN_NADA = 'Este móvil no tiene nada del taller'
@@ -17,7 +19,7 @@ const MOTIVO = 'E2E 0.9.22: prueba de las tarjetas de NSYS'
 type Respuesta = { estado: number; cuerpo: unknown }
 type Opcion = { color: string; producto: string | null }
 type FilaConHecho = { imeiSn: string; hechoEn: string | null; hechoVolvio: string | null }
-type FilaColor = FilaConHecho & { ponerProducto: string | null; compruebalo: boolean }
+type FilaColor = FilaConHecho & { ponerProducto: string | null; compruebalo: boolean; colorA: string | null; caja?: string | null }
 type FilaRevisar = { imeiSn: string; idRep: string }
 // sinGrado: las filas «Sin grado en NSYS» de la 0.9.22 pieza 4 (cuentan en «Revisar a mano»; opcional por si el servidor es anterior).
 type Tarjetas = { color: FilaColor[]; grado: FilaConHecho[]; altas: FilaConHecho[]; revisar: FilaRevisar[]; sinGrado?: { imeiSn: string }[] }
@@ -287,6 +289,35 @@ test.describe('0.9.22: «Por pasar a NSYS» con cuatro tarjetas', () => {
     await expect(pagina.getByRole('button', { name: `Deshacer Hecho de ${IMEI}` })).toBeVisible()
     const tarjetas = (await pedir(pagina, 'GET', '/api/stock-telefonos/por-pasar/tarjetas')).cuerpo as { color: FilaConHecho[] }
     expect(tarjetas.color.find((f) => f.imeiSn === IMEI)?.hechoEn, 'la marca está en el servidor').toBeTruthy()
+    await pagina.getByRole('button', { name: `Deshacer Hecho de ${IMEI}` }).click()
+    await expect(pagina.getByRole('button', { name: `Hecho ${IMEI}` })).toBeVisible()
+  })
+
+  test('«Descargar cajas» lleva el móvil con su caja de NSYS, también marcado «Hecho»', async () => {
+    test.skip(!colorNuevo, 'sin cambio de color (ver la prueba del cambio de color y de grado)')
+    await pagina.goto('/telefonos/stock')
+    await pagina.getByRole('button', { name: /^Por pasar a NSYS/ }).click()
+    await pagina.getByRole('button', { name: `Hecho ${IMEI}` }).click()
+    await expect(pagina.getByRole('button', { name: `Deshacer Hecho de ${IMEI}` })).toBeVisible()
+    const fila = (await tarjetasApi(pagina)).color.find((f) => f.imeiSn === IMEI)
+    expect(fila?.hechoEn, 'la marca está en el servidor').toBeTruthy()
+    expect(fila && 'caja' in fila, 'el servidor manda la caja (0.9.26)').toBe(true)
+    const caja = fila!.caja && fila!.caja.trim() !== '' ? fila!.caja : 'sin caja'
+
+    const respuesta = pagina.waitForResponse((r) => new URL(r.url()).pathname === '/api/stock-telefonos/que-revisar/excel')
+    await pagina.getByRole('article', { name: 'Cambio de color' }).getByRole('button', { name: /^⬇ Descargar cajas/ }).click()
+    expect((await respuesta).status(), 'el Excel de las cajas').toBe(200)
+    await expect(pagina.getByTestId('aviso-breve')).toContainText(/Descargado «Cajas_color_\d{4}-\d{2}-\d{2}\.xlsx» · \d+ móvil/)
+    const guardado = await pagina.evaluate(() => (Reflect.get(globalThis, 'guardadosE2E') as Guardado[]).at(-1))
+    expect(guardado?.nombre).toMatch(/^Cajas_color_\d{4}-\d{2}-\d{2}\.xlsx$/)
+    const xlsx = leerXlsx(Buffer.from(guardado!.bytes))
+    expect(['A1', 'B1', 'C1', 'D1'].map((c) => xlsx.celda(c).valor)).toEqual(['IMEI', 'Caja', 'Modelo', 'Color nuevo'])
+    const n = xlsx.filasConDatos(2, 'A').find((f) => xlsx.celda(`A${f}`).valor === IMEI)
+    expect(n, 'el móvil de prueba, marcado «Hecho», está en el Excel').toBeDefined()
+    expect(xlsx.celda(`B${n}`).valor, 'su caja').toBe(caja)
+    expect(String(xlsx.celda(`C${n}`).valor), 'el modelo').toMatch(/^iPhone /)
+    expect(xlsx.celda(`D${n}`).valor, 'el color nuevo').toBe(fila!.colorA ? fila!.colorA : null)
+
     await pagina.getByRole('button', { name: `Deshacer Hecho de ${IMEI}` }).click()
     await expect(pagina.getByRole('button', { name: `Hecho ${IMEI}` })).toBeVisible()
   })

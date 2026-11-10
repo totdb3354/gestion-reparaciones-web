@@ -119,3 +119,11 @@ Añadido, decidido en la spec `2026-10-25-v0922-plantillas-nsys-design.md` (raí
 - **«Revisado»** en Revisar a mano: quién y cuándo en el aviso, registro de actividad `REVISAR_AVISO_TALLER` y «Revisado por …» en
   el rastro;
 - **«compruébalo»** en la ficha del IMEI, en «Corregir…» y en la lista.
+- **Cajas del cambio de color (0.9.26):** columna «Caja» en Cambio de color (la caja de NSYS tal cual; «sin caja» en gris) y
+  «⬇ Descargar cajas»: `Cajas_color_AAAA-MM-DD.xlsx`, hoja «Cajas cambio de color», columnas IMEI, Caja, Modelo y Color nuevo,
+  ordenado por caja (sin distinguir mayúsculas, «sin caja» al final) y luego IMEI; los mismos móviles que la plantilla de color más los
+  marcados «Hecho»; lo escribe `POST /api/stock-telefonos/que-revisar/excel`.
+- **«ignorar» (0.9.27):** en las filas ámbar de Color, Grado y Revisar a mano (vendido o de baja con trabajo del taller después),
+  «ignorar» sin ventana las saca de las tres tarjetas hasta que NSYS vuelva a tener el móvil en la empresa o el taller le haga un
+  trabajo nuevo («Salió otra vez…»); «Ver ignorados (n)» con «deshacer» al pie de cada una. Tabla `Taller_vuelta_ignorada`; rutas
+  `PUT`/`DELETE /api/stock-telefonos/por-pasar/ignorado`.

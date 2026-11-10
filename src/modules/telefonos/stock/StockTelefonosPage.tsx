@@ -1,3 +1,4 @@
+import type { SortingState } from '@tanstack/react-table'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useStore } from '@/shared/lib/store'
@@ -11,7 +12,7 @@ import { BuscadorImei } from './BuscadorImei'
 import { BuscadorModelo } from './BuscadorModelo'
 import { ComprobarImeis } from './ComprobarImeis'
 import { columnasMoviles } from './columnas'
-import { claveFiltros, estadoStockTelefonos } from './estado'
+import { buscarQueRevisar, claveFiltros, estadoStockTelefonos } from './estado'
 import { FiltrosMoviles } from './FiltrosMoviles'
 import { ListaModelos } from './ListaModelos'
 import { MatrizColorGrado } from './MatrizColorGrado'
@@ -23,6 +24,8 @@ import { PastillaSku } from './PastillaSku'
 import { PestanasCapacidad } from './PestanasCapacidad'
 import { totalPendientes } from './porPasar'
 import { PorPasarNsys } from './PorPasarNsys'
+import { listaRevisar, listaSubir, totalQueRevisar } from './queRevisar'
+import { VistaQueRevisar } from './VistaQueRevisar'
 import { BandaNsys, PildoraNsys } from './PildoraNsys'
 
 const PIE = '"Quién lo tiene" sale de las asignaciones abiertas del ERP, al momento; la caja, de la última exportación de NSYS. Pasa el ratón por encima para ver desde cuándo. El IMEI abre el detalle del móvil.'
@@ -38,10 +41,14 @@ export function StockTelefonosPage() {
   // «Quién lo tiene» se calcula a la hora de la carga (dataUpdatedAt): el sondeo de 60 s lo vuelve a calcular.
   const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
-  const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista }, setEstado] = useStore(estadoStockTelefonos)
+  const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista, queRevisar, ordenMoviles }, setEstado] = useStore(estadoStockTelefonos)
   // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
   const porPasar = usePorPasarTarjetas()
   const nPorPasar = totalPendientes(porPasar.data)
+  // 0.9.25 (spec «Qué revisar» §3.1 y §10.10): las dos listas, para su pestaña y su número. Salen del stock, sin otra petición.
+  const revisar = useMemo(() => listaRevisar(moviles), [moviles])
+  const subir = useMemo(() => listaSubir(moviles), [moviles])
+  const nQueRevisar = totalQueRevisar(revisar, subir)
   // El diálogo de «Pegar varios IMEIs»: null cerrado; si no, lo que se pegó (vacío con el botón).
   const [varios, setVarios] = useState<string | null>(null)
   const lista = useMemo(() => modelosLista(moviles, verNoCuenta), [moviles, verNoCuenta])
@@ -59,7 +66,8 @@ export function StockTelefonosPage() {
   const abrirModelo = (d: Destino) => {
     // Volver a pulsar lo que ya está abierto no borra sus filtros; elegir un SKU sí los cambia.
     if (d.sku === null && d.modelo === modelo?.clave && d.capacidad === capacidad) return
-    setEstado((e) => ({ ...e, elegido: d.modelo, capacidad: d.capacidad, filtrosDe: { clave: claveFiltros(d.modelo, d.capacidad), filtros: FILTROS_VACIOS, sku: d.sku } }))
+    // 0.9.28: la columna «Cap.» solo está con «Todas»; al elegir una capacidad, un orden por «Cap.» se quita.
+    setEstado((e) => ({ ...e, ordenMoviles: d.capacidad === null ? e.ordenMoviles : e.ordenMoviles.filter((o) => o.id !== 'capacidad'), elegido: d.modelo, capacidad: d.capacidad, filtrosDe: { clave: claveFiltros(d.modelo, d.capacidad), filtros: FILTROS_VACIOS, sku: d.sku } }))
   }
   const delModelo = useMemo(
     () => (modelo?.moviles ?? []).filter((m) => (capacidad === null || capacidadDe(m) === capacidad) && pasaSku(m, sku)),
@@ -70,6 +78,10 @@ export function StockTelefonosPage() {
   const enStock = moviles.filter(cuentaComoStock).length
   const abrir = useCallback((imeiSn: string) => navigate(`/reparaciones/imeis/${encodeURIComponent(imeiSn)}`, { state: { desde: '/telefonos/stock' } }), [navigate])
   const columnas = useMemo(() => columnasMoviles(abrir, { conCapacidad: capacidad === null, sku }), [abrir, capacidad, sku])
+  // 0.9.28: el orden vive en el estado de la página (sigue al volver del detalle de un IMEI). Sin la columna «Cap.» a la vista,
+  // un orden por ella no cuenta.
+  const orden = useMemo(() => (capacidad === null ? ordenMoviles : ordenMoviles.filter((o) => o.id !== 'capacidad')), [ordenMoviles, capacidad])
+  const cambiarOrden = useCallback((o: SortingState) => setEstado((e) => ({ ...e, ordenMoviles: o })), [setEstado])
   return (
     <div className="flex h-[calc(100vh-var(--spacing-navbar))] flex-col p-10 max-[1500px]:p-5">
       <div className="mb-2 flex shrink-0 flex-wrap items-center gap-3">
@@ -77,19 +89,22 @@ export function StockTelefonosPage() {
         {!sinCargar && <PildoraContador texto={`${enStock} ${enStock === 1 ? 'móvil' : 'móviles'} en stock`} />}
         <PildoraNsys />
         <div role="group" aria-label="Vista" className="ml-auto flex overflow-hidden rounded-lg border border-borde-input">
-          {([['moviles', 'Móviles'], ['por-pasar', 'Por pasar a NSYS']] as const).map(([v, texto]) => (
+          {([['moviles', 'Móviles'], ['por-pasar', 'Por pasar a NSYS'], ['que-revisar', 'Qué revisar']] as const).map(([v, texto]) => (
             <button key={v} type="button" aria-pressed={vista === v} onClick={() => setEstado((e) => ({ ...e, vista: v }))}
               className={cn('cursor-pointer border-r border-borde-input px-3.5 py-1 text-[12px] font-semibold last:border-r-0',
                 vista === v ? 'bg-azul-noche text-superficie' : 'bg-superficie text-azul-medio hover:bg-seleccion-suave')}>
               {texto}
               {v === 'por-pasar' && <>{' '}<span className={vista === v ? 'text-superficie' : 'text-taller-text'}>{`(${nPorPasar})`}</span></>}
+              {v === 'que-revisar' && stock.data && <>{' '}<span className={vista === v ? 'text-superficie' : 'text-taller-text'}>{`(${nQueRevisar})`}</span></>}
             </button>
           ))}
         </div>
       </div>
       <BandaNsys />
       <div className="mb-3 flex shrink-0 flex-wrap items-center gap-4">
-        <BuscadorImei onElegir={abrir} onPegarVarios={setVarios} />
+        {/* Si se escribe un IMEI mientras el stock carga, no se elige nada después: la búsqueda solo elige con las listas ya cargadas. */}
+        <BuscadorImei onElegir={abrir} onPegarVarios={setVarios}
+          palabras={vista === 'que-revisar' ? { texto: queRevisar.buscar, onTexto: (t) => setEstado((e) => ({ ...e, queRevisar: buscarQueRevisar(e.queRevisar, t, { revisar, subir }) })) } : undefined} />
         <BotonSecundario onClick={() => setVarios('')}>Pegar varios IMEIs</BotonSecundario>
         <button type="button" role="switch" aria-checked={verNoCuenta} onClick={() => setEstado((e) => ({ ...e, verNoCuenta: !e.verNoCuenta }))}
           className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-azul-medio">
@@ -99,7 +114,8 @@ export function StockTelefonosPage() {
           Ver también lo que no cuenta como stock
         </button>
       </div>
-      {vista === 'por-pasar' ? <PorPasarNsys tarjetas={porPasar.data ?? null} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} /> : (
+      {vista === 'por-pasar' ? <PorPasarNsys tarjetas={porPasar.data ?? null} cargando={porPasar.isPending} error={porPasar.isError && !porPasar.data} onAbrirImei={abrir} />
+        : vista === 'que-revisar' ? <VistaQueRevisar revisar={revisar} subir={subir} cargando={stock.isPending} error={sinCargar} onAbrirImei={abrir} /> : (
       <div className="grid min-h-0 flex-1 grid-cols-[270px_1fr] gap-3 max-[1500px]:grid-cols-[230px_1fr]">
         <ListaModelos modelos={visibles} elegido={modelo?.clave ?? null} capacidad={capacidad}
           onAbrir={(m, c) => abrirModelo({ modelo: m, capacidad: c, sku: null })}
@@ -126,6 +142,7 @@ export function StockTelefonosPage() {
               </div>
               <div role="region" aria-label="Tabla de móviles" className="min-h-0 flex-1">
                 <DataTable columns={columnas} data={filas} vacio="Ningún móvil con estos filtros" ajuste="fluido" alturaMax="100%"
+                  ordenacion orden={orden} onOrden={cambiarOrden}
                   getRowId={(m) => `${m.imeiSn}|${m.lote}`} onAbrir={(m) => abrir(m.imeiSn)}
                   filaClase={(m) => cn('border-l-4', 'border-l-transparent', !cuentaComoStock(m) && 'text-texto-suave')} />
               </div>
