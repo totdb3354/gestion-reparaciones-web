@@ -105,6 +105,40 @@ export function listaSubir(moviles: readonly Movil[]): GrupoSubir[] {
   }).sort(compararGrupos)
 }
 
+// ---------------------------------------------------------------- ordenar por columna (0.9.28, spec «ordenar por columna» §6)
+
+/** La columna por la que se ordena una tabla de «Qué revisar» y el sentido. */
+export type OrdenQR = { columna: string; desc: boolean }
+/** Una columna de la tabla: su cabecera, cómo se comparan dos modelos-color por ella (de menor a mayor), si su valor está vacío
+ *  (va al final en los dos sentidos) y si el primer clic ordena de mayor a menor (los números). */
+export type ColumnaQR<G> = { nombre: string; comparar: (x: G, y: G) => number; vacio?: (g: G) => boolean; descPrimero?: boolean }
+
+const COLUMNAS_BASE: ColumnaQR<GrupoBase>[] = [
+  { nombre: 'Modelo', comparar: (x, y) => compararModelos(x.moviles[0], y.moviles[0]) || Number(x.esEsim) - Number(y.esEsim) },
+  { nombre: 'Cap.', comparar: (x, y) => compararCapacidades(x.capacidad, y.capacidad), vacio: (g) => g.capacidad === SIN_DATO },
+  { nombre: 'Color', comparar: (x, y) => x.color.localeCompare(y.color, 'es'), vacio: (g) => g.color === SIN_DATO },
+]
+const numero = <G>(nombre: string, valor: (g: G) => number): ColumnaQR<G> => ({ nombre, comparar: (x, y) => valor(x) - valor(y), descPrimero: true })
+export const COLUMNAS_REVISAR: ColumnaQR<GrupoRevisar>[] = [...COLUMNAS_BASE, numero('Sin grado', (g) => g.pendientes)]
+export const COLUMNAS_SUBIR: ColumnaQR<GrupoSubir>[] = [...COLUMNAS_BASE, numero('B', (g) => g.b), numero('B100', (g) => g.b100)]
+
+/** La lista ordenada por una columna; sin orden (o con una columna que no existe), tal cual. Los que empatan conservan el orden
+ *  de la lista (el de siempre) y los vacíos van al final en los dos sentidos. */
+export function ordenarGrupos<G>(lista: readonly G[], columnas: readonly ColumnaQR<G>[], orden: OrdenQR | null): G[] {
+  const columna = orden && columnas.find((c) => c.nombre === orden.columna)
+  if (!orden || !columna) return [...lista]
+  const vacio = (g: G) => Number(columna.vacio?.(g) ?? false)
+  return [...lista].sort((x, y) => vacio(x) - vacio(y) || (vacio(x) ? 0 : (orden.desc ? -1 : 1) * columna.comparar(x, y)))
+}
+
+/** El orden tras pulsar una cabecera: primer clic ordena (los números, de mayor a menor), el segundo invierte y el tercero
+ *  vuelve al orden de siempre. Pulsar otra columna empieza por ella. */
+export function siguienteOrden<G>(orden: OrdenQR | null, columna: ColumnaQR<G>): OrdenQR | null {
+  const primero = columna.descPrimero ?? false
+  if (orden?.columna !== columna.nombre) return { columna: columna.nombre, desc: primero }
+  return orden.desc === primero ? { columna: columna.nombre, desc: !primero } : null
+}
+
 export const pendienteRevisar = (g: GrupoRevisar): boolean => g.pendientes > 0
 export const pendienteSubir = (g: GrupoSubir): boolean => g.b + g.b100 > 0
 

@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-table'
 import { measureElement as medirElementoPorDefecto, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type SyntheticEvent } from 'react'
+import { ariaOrden, CabeceraOrden } from './CabeceraOrden'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from './context-menu'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { cn } from '@/shared/lib/utils'
@@ -98,6 +99,9 @@ type Props<T> = {
   onAbrir?: (row: T) => void
   /** Ordenación por clic en la cabecera; apagada por defecto porque el JavaFX no ordena por clic. */
   ordenacion?: boolean
+  /** 0.9.28: el orden lo guarda la página (para recordarlo al volver a ella). Sin ellas, lo guarda la tabla. */
+  orden?: SortingState
+  onOrden?: (orden: SortingState) => void
   /** Altura máxima del contenedor con scroll; sin filas es también su altura mínima. */
   alturaMax?: string
   /** A partir de cuántas filas se pintan solo las visibles (el TableView virtualiza siempre). */
@@ -215,12 +219,15 @@ export function DataTable<T>({
   pedirDesplazamiento,
   onAbrir,
   ordenacion = false,
+  orden: ordenDeFuera,
+  onOrden,
   alturaMax = 'calc(100dvh - 330px)',
   umbralVirtual = 200,
   altoFila,
   grupos,
 }: Props<T>) {
-  const [orden, setOrden] = useState<SortingState>([])
+  const [ordenPropio, setOrdenPropio] = useState<SortingState>([])
+  const orden = ordenDeFuera ?? ordenPropio
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table 8 devuelve funciones no memoizables; aviso conocido del React Compiler
   const table = useReactTable({
     data,
@@ -229,7 +236,13 @@ export function DataTable<T>({
     getSortedRowModel: getSortedRowModel(),
     enableSorting: ordenacion,
     state: { sorting: ordenacion ? orden : SIN_ORDEN },
-    onSortingChange: setOrden,
+    onSortingChange: (cambio) => {
+      const nuevo = typeof cambio === 'function' ? cambio(orden) : cambio
+      if (onOrden) onOrden(nuevo)
+      else setOrdenPropio(nuevo)
+    },
+    // Una columna a la vez; el tercer clic quita el orden y la tabla vuelve al de `data` (enableSortingRemoval, por defecto).
+    enableMultiSort: false,
     // La tabla no pagina. Con el reinicio automático, TanStack hace un setState cada vez que recalcula las filas, y bastaba
     // un valor nuevo en cada render (el `[]` de sorting, o unos datos sin memoizar) para repintar la tabla sin parar; tras
     // un clic en una fila el bucle pasaba a ser síncrono y congelaba la página.
@@ -556,13 +569,11 @@ export function DataTable<T>({
                   <TableHead
                     key={h.id}
                     colSpan={h.colSpan}
-                    aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined}
+                    aria-sort={ariaOrden(dir || null)}
                     className="text-[12px] font-bold text-azul-medio"
                   >
                     {ordenacion && h.column.getCanSort() ? (
-                      <button type="button" className="cursor-pointer" onClick={h.column.getToggleSortingHandler()}>
-                        {contenido}
-                      </button>
+                      <CabeceraOrden direccion={dir || null} onClick={h.column.getToggleSortingHandler() ?? (() => {})}>{contenido}</CabeceraOrden>
                     ) : (
                       contenido
                     )}

@@ -14,15 +14,16 @@ const STOCK: Movil[] = [
   visto({ imeiSn: '350000000000106', ...B11, grado: 'B' }),
 ]
 const LISTAS = { revisar: listaRevisar(STOCK), subir: listaSubir(STOCK) }
-const INICIAL: EstadoQueRevisar = { tarjeta: 'revisar', elegido: { revisar: null, subir: null }, buscar: '' }
+const INICIAL: EstadoQueRevisar = { tarjeta: 'revisar', elegido: { revisar: null, subir: null }, buscar: '', orden: { revisar: null, subir: null } }
 const buscar = (qr: EstadoQueRevisar, texto: string) => buscarQueRevisar(qr, texto, LISTAS)
 
 describe('estado de «Qué revisar» (spec 0.9.25 §10.14)', () => {
   it('al empezar no hay ningún modelo-color elegido en ninguna tarjeta, y reiniciarStores (cerrar sesión) lo deja así', () => {
     expect(estadoStockTelefonos.get().queRevisar).toEqual(INICIAL)
-    estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { tarjeta: 'subir', elegido: { revisar: 'iPhone 13|128GB|Azul', subir: 'iPhone 11|64GB|Blanco' }, buscar: '13' } }))
+    estadoStockTelefonos.set((e) => ({ ...e, ordenMoviles: [{ id: 'dias', desc: true }], queRevisar: { tarjeta: 'subir', elegido: { revisar: 'iPhone 13|128GB|Azul', subir: 'iPhone 11|64GB|Blanco' }, buscar: '13', orden: { revisar: { columna: 'Color', desc: false }, subir: null } } }))
     reiniciarStores()
     expect(estadoStockTelefonos.get().queRevisar).toEqual(INICIAL)
+    expect(estadoStockTelefonos.get().ordenMoviles).toEqual([])
   })
 
   it('al cambiar la búsqueda, un trozo de IMEI elige su modelo-color en la tarjeta en la que está; la otra no cambia', () => {
@@ -37,7 +38,7 @@ describe('estado de «Qué revisar» (spec 0.9.25 §10.14)', () => {
   })
 
   it('sin IMEI (palabras, menos de 6 cifras o un IMEI que no está) solo cambia lo escrito: lo elegido sigue', () => {
-    const qr: EstadoQueRevisar = { tarjeta: 'subir', elegido: { revisar: 'iPhone 13|128GB|Azul', subir: null }, buscar: '' }
+    const qr: EstadoQueRevisar = { ...INICIAL, tarjeta: 'subir', elegido: { revisar: 'iPhone 13|128GB|Azul', subir: null } }
     for (const texto of ['15 pro', '00010', '999999', '']) expect(buscar(qr, texto)).toEqual({ ...qr, buscar: texto })
   })
 

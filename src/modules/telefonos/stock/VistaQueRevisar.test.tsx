@@ -360,6 +360,55 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(within(filas(tabla)[3]).getByText('+1 con técnico')).not.toHaveClass('font-bold')
   })
 
+  it('0.9.28: un clic en la cabecera ordena dentro de cada bloque, con su flecha; el segundo invierte y el tercero vuelve al orden de siempre', async () => {
+    const user = userEvent.setup()
+    const muchos = [1, 2, 3].map((i) => visto({ imeiSn: `35000000000020${i}`, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', grado: 'n/a' }))
+    pintar([...STOCK, ...muchos])
+    const tabla = screen.getByRole('table', { name: 'Revisar sin grado' })
+    const modelos = () => filas(tabla).map((f) => celdas(f)[0].replace(/ · .*/, ''))
+    const SIEMPRE = ['3 o más sin revisar', '▸iPhone 16', 'Menos de 3 sin revisar', '▸iPhone 15 Pro', '▸iPhone 13', '▸iPhone 12 Pro']
+    expect(modelos()).toEqual(SIEMPRE)
+    const color = within(tabla).getByRole('button', { name: 'Color' })
+    await user.click(color)
+    expect(modelos()).toEqual(['3 o más sin revisar', '▸iPhone 16', 'Menos de 3 sin revisar', '▸iPhone 13', '▸iPhone 12 Pro', '▸iPhone 15 Pro'])
+    expect(within(tabla).getByRole('columnheader', { name: 'Color' })).toHaveAttribute('aria-sort', 'ascending')
+    expect(color).toHaveTextContent('Color▲')
+    expect(within(tabla).getByRole('columnheader', { name: 'Modelo' })).not.toHaveAttribute('aria-sort')
+    await user.click(color)
+    expect(modelos()).toEqual(['3 o más sin revisar', '▸iPhone 16', 'Menos de 3 sin revisar', '▸iPhone 15 Pro', '▸iPhone 12 Pro', '▸iPhone 13'])
+    expect(within(tabla).getByRole('columnheader', { name: 'Color' })).toHaveAttribute('aria-sort', 'descending')
+    expect(color).toHaveTextContent('Color▼')
+    await user.click(color)
+    expect(modelos()).toEqual(SIEMPRE)
+    expect(color).toHaveTextContent(/^Color$/)
+    // Los números empiezan de mayor a menor.
+    await user.click(within(tabla).getByRole('button', { name: 'Sin grado' }))
+    expect(within(tabla).getByRole('columnheader', { name: 'Sin grado' })).toHaveAttribute('aria-sort', 'descending')
+  })
+
+  it('0.9.28: el orden es de cada tarjeta, sigue al volver a la vista, y el Excel sale en el orden de la pantalla', async () => {
+    const user = userEvent.setup()
+    window.showSaveFilePicker = (async () => ({ name: 'mio.xlsx', createWritable: async () => ({ write: async () => {}, close: async () => {} }) })) as unknown as typeof window.showSaveFilePicker
+    const cuerpos: { filas: string[][] }[] = []
+    server.use(http.post('*/api/stock-telefonos/que-revisar/excel', async ({ request }) => {
+      cuerpos.push(await request.json() as { filas: string[][] })
+      return new HttpResponse('PK')
+    }))
+    const muchos = [1, 2, 3].map((i) => visto({ imeiSn: `35000000000020${i}`, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', grado: 'n/a' }))
+    const vista = pintar([...STOCK, ...muchos])
+    await user.click(within(screen.getByRole('table', { name: 'Revisar sin grado' })).getByRole('button', { name: 'Color' }))
+    await user.click(screen.getByRole('button', { name: '⬇ Descargar Excel (3)' }))
+    await screen.findByTestId('aviso-breve')
+    // Como en la pantalla: primero el bloque de «3 o más» y después el otro, por color; el que solo tiene el técnico no va.
+    expect(cuerpos[0].filas.map((f) => f[0])).toEqual(['iPhone 16', 'iPhone 13', 'iPhone 15 Pro'])
+    await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
+    expect(within(screen.getByRole('table', { name: 'Subir B a A' })).getByRole('columnheader', { name: 'Color' })).not.toHaveAttribute('aria-sort')
+    vista.unmount()
+    pintar([...STOCK, ...muchos])
+    await user.click(screen.getByRole('button', { name: 'Revisar sin grado' }))
+    expect(within(screen.getByRole('table', { name: 'Revisar sin grado' })).getByRole('columnheader', { name: 'Color' })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
   it('con una búsqueda que deja solo modelos-color de menos de 3, solo sale ese bloque', () => {
     const muchos = [1, 2, 3].map((i) => visto({ imeiSn: `35000000000020${i}`, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', grado: 'n/a' }))
     estadoStockTelefonos.set((e) => ({ ...e, queRevisar: { ...e.queRevisar, buscar: '15 pro' } }))

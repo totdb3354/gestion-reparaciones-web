@@ -5,7 +5,7 @@ import type { Movil } from './modelo'
 import {
   avisoDescargado, bloquesRevisar, cifraRevisar, cifraSubir, coincide, cuentaRevisar, cuentaSubir, descripcion, elegidoPorImei, esA, esB,
   excelRevisar, excelSubir, filtrar, imeiBuscado, listaRevisar, listaSubir, MAX_A, nombreExcel, palabrasClave, pasoSubir, PULSA_QR,
-  sinCoincidencias, textoCifra,
+  sinCoincidencias, textoCifra, COLUMNAS_REVISAR, COLUMNAS_SUBIR, ordenarGrupos, siguienteOrden,
   gradoVendible, tieneGrado, totalQueRevisar, type GrupoRevisar,
 } from './queRevisar'
 
@@ -372,5 +372,61 @@ describe('«Qué revisar»: el panel del modelo-color elegido (spec 0.9.25 §10.
     expect(elegidoPorImei(lista, palabrasClave('15 3500000000990'))).toBe('iPhone 15 Pro|256GB|Titanio natural')
     expect(elegidoPorImei(lista, palabrasClave('13 099001'))).toBeNull()
     for (const texto of ['', '13', '99001', '123456']) expect(elegidoPorImei(lista, palabrasClave(texto)), texto).toBeNull()
+  })
+})
+
+describe('«Qué revisar»: ordenar por columna (0.9.28, spec «ordenar por columna» §6)', () => {
+  // En el orden de siempre: 15 Pro (1 B100), 13 512 GB (2 B), 12 (1 B) y un 11 sin capacidad ni color (1 B).
+  const lista = listaSubir([
+    m({ ...B12, grado: 'B' }), m({ ...A13_512, grado: 'B' }), m({ ...A13_512, grado: 'B' }), m({ ...P15, grado: 'B', bateriaNueva: true }),
+    m({ modelo: '11', modeloMaestro: '11', capacidad: '', color: '', grado: 'B' }),
+  ])
+  const SIEMPRE = ['iPhone 15 Pro 256 GB Titanio natural', 'iPhone 13 512 GB Azul', 'iPhone 12 64 GB Blanco', 'iPhone 11']
+  const por = (columna: string, desc: boolean) => ordenarGrupos(lista, COLUMNAS_SUBIR, { columna, desc }).map(descripcion)
+
+  it('sin orden, o con una columna que no existe, la lista no cambia', () => {
+    expect(lista.map(descripcion)).toEqual(SIEMPRE)
+    expect(ordenarGrupos(lista, COLUMNAS_SUBIR, null).map(descripcion)).toEqual(SIEMPRE)
+    expect(por('Otra', false)).toEqual(SIEMPRE)
+  })
+
+  it('los números, en los dos sentidos; los que empatan conservan el orden de siempre', () => {
+    expect(por('B', true)).toEqual(['iPhone 13 512 GB Azul', 'iPhone 12 64 GB Blanco', 'iPhone 11', 'iPhone 15 Pro 256 GB Titanio natural'])
+    expect(por('B', false)).toEqual(['iPhone 15 Pro 256 GB Titanio natural', 'iPhone 12 64 GB Blanco', 'iPhone 11', 'iPhone 13 512 GB Azul'])
+    expect(por('B100', true)[0]).toBe('iPhone 15 Pro 256 GB Titanio natural')
+  })
+
+  it('la capacidad como número y el color por orden alfabético; lo que no se sabe («—»), al final en los dos sentidos', () => {
+    expect(por('Cap.', false)).toEqual(['iPhone 12 64 GB Blanco', 'iPhone 15 Pro 256 GB Titanio natural', 'iPhone 13 512 GB Azul', 'iPhone 11'])
+    expect(por('Cap.', true)).toEqual(['iPhone 13 512 GB Azul', 'iPhone 15 Pro 256 GB Titanio natural', 'iPhone 12 64 GB Blanco', 'iPhone 11'])
+    expect(por('Color', false)).toEqual(['iPhone 13 512 GB Azul', 'iPhone 12 64 GB Blanco', 'iPhone 15 Pro 256 GB Titanio natural', 'iPhone 11'])
+    expect(por('Color', true)).toEqual(['iPhone 15 Pro 256 GB Titanio natural', 'iPhone 12 64 GB Blanco', 'iPhone 13 512 GB Azul', 'iPhone 11'])
+  })
+
+  it('el modelo, en el orden de la columna lateral y al revés', () => {
+    expect(por('Modelo', false)).toEqual(SIEMPRE)
+    expect(por('Modelo', true)).toEqual([...SIEMPRE].reverse())
+  })
+
+  it('«Sin grado» ordena por los pendientes, sin los del técnico', () => {
+    const revisar = listaRevisar(STOCK)
+    const cuentas = ordenarGrupos(revisar, COLUMNAS_REVISAR, { columna: 'Sin grado', desc: false }).map((g) => g.pendientes)
+    expect(cuentas).toEqual([...cuentas].sort((a, b) => a - b))
+    expect(cuentas[0]).toBe(0)
+  })
+
+  it('los clics: ordena (los números, de mayor a menor), invierte y vuelve al orden de siempre; otra columna empieza por ella', () => {
+    const [, , color, b] = COLUMNAS_SUBIR
+    expect(siguienteOrden(null, b)).toEqual({ columna: 'B', desc: true })
+    expect(siguienteOrden({ columna: 'B', desc: true }, b)).toEqual({ columna: 'B', desc: false })
+    expect(siguienteOrden({ columna: 'B', desc: false }, b)).toBeNull()
+    expect(siguienteOrden(null, color)).toEqual({ columna: 'Color', desc: false })
+    expect(siguienteOrden({ columna: 'Color', desc: false }, color)).toEqual({ columna: 'Color', desc: true })
+    expect(siguienteOrden({ columna: 'Color', desc: true }, color)).toBeNull()
+    expect(siguienteOrden({ columna: 'B', desc: false }, color)).toEqual({ columna: 'Color', desc: false })
+  })
+
+  it('el Excel lleva las filas en el orden que se le da', () => {
+    expect(excelSubir(ordenarGrupos(lista, COLUMNAS_SUBIR, { columna: 'Cap.', desc: false })).filas.map((f) => f[0])).toEqual(['iPhone 12', 'iPhone 15 Pro', 'iPhone 13', 'iPhone 11'])
   })
 })
