@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -124,6 +124,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await user.click(await celdaVacia())
     await user.keyboard('{Escape}')
     expect(campo()).not.toBeInTheDocument()
+    expect(await celdaVacia()).toHaveFocus()
     await user.click(await celdaVacia())
     await user.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(campo()).not.toBeInTheDocument()
@@ -133,6 +134,62 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await user.click(await celdaVacia())
     await user.click(screen.getByRole('button', { name: /350000000000001/ }))
     expect(screen.getAllByRole('textbox', { name: 'IMEI' })).toHaveLength(1)
-    expect(within((campo() as HTMLElement).closest('td') as HTMLElement).getByText('350000000000001')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /350000000000001/ })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('si el PUT falla, el desplegable sigue abierto con lo escrito', async () => {
+    const user = userEvent.setup()
+    server.use(http.put('*/api/pedidos/filas/:id/imei', () => { puts.push({ id: 'x', cuerpo: null }); return HttpResponse.json({ mensaje: 'No se pudo' }, { status: 422 }) }))
+    abrir()
+    await user.click(await celdaVacia())
+    await user.type(campo() as HTMLElement, '350000000000555{Enter}')
+    await waitFor(() => expect(puts).toHaveLength(1))
+    await new Promise((r) => setTimeout(r, 100))
+    // El diálogo de error (modal) deja el resto fuera del árbol de accesibilidad: se busca con `hidden`.
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    const abierto = screen.getByRole('textbox', { name: 'IMEI', hidden: true })
+    expect(abierto).toHaveValue('350000000000555')
+  })
+
+  it('un segundo Enter con el PUT pendiente no manda otra petición', async () => {
+    const user = userEvent.setup()
+    let liberar = () => {}
+    const espera = new Promise<void>((r) => { liberar = r })
+    server.use(http.put('*/api/pedidos/filas/:id/imei', async ({ params }) => {
+      puts.push({ id: String(params.id), cuerpo: null })
+      await espera
+      return HttpResponse.json(fila({ idFila: Number(params.id) }))
+    }))
+    abrir()
+    await user.click(await celdaVacia())
+    await user.type(campo() as HTMLElement, '350000000000555{Enter}{Enter}')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(puts).toHaveLength(1)
+    liberar()
+    await waitFor(() => expect(campo()).not.toBeInTheDocument())
+    expect(puts).toHaveLength(1)
+  })
+
+  it('mientras llegan los recomendados dice «Cargando…»; sin ninguno, que no hay', async () => {
+    const user = userEvent.setup()
+    let liberar = () => {}
+    const espera = new Promise<void>((r) => { liberar = r })
+    server.use(http.get('*/api/pedidos/filas/:id/recomendados', async () => { await espera; return HttpResponse.json([]) }))
+    abrir()
+    await user.click(await celdaVacia())
+    expect(await screen.findByText('Cargando…')).toBeInTheDocument()
+    liberar()
+    expect(await screen.findByText(/No hay ningún móvil de ese modelo/)).toBeInTheDocument()
+  })
+
+  it('un sondeo con filas nuevas deja abierto el desplegable con lo escrito', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await user.click(await celdaVacia())
+    await user.type(campo() as HTMLElement, '3500000')
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: FILAS.map((f) => ({ ...f, plataforma: 'Plataforma Z' })), hayMas: false })))
+    await queryClient.invalidateQueries()
+    await waitFor(() => expect(screen.getAllByText('Plataforma Z').length).toBe(5))
+    expect(campo()).toHaveValue('3500000')
   })
 })
