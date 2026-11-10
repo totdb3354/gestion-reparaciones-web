@@ -288,7 +288,7 @@ describe('DataTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Nombre' })).toHaveAttribute('aria-sort', 'ascending')
   })
 
-  it('0.9.29: la cabecera ordenada lleva su flecha; el segundo clic invierte y el tercero vuelve al orden de los datos', async () => {
+  it('0.9.28: la cabecera ordenada lleva su flecha; el segundo clic invierte y el tercero vuelve al orden de los datos', async () => {
     render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" ordenacion />)
     const nombres = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[0].textContent)
     const boton = screen.getByRole('button', { name: 'Nombre' })
@@ -312,7 +312,7 @@ describe('DataTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Nota' })).toHaveAttribute('aria-sort', 'ascending')
   })
 
-  it('0.9.29: con `orden` y `onOrden`, el orden lo guarda la página', async () => {
+  it('0.9.28: con `orden` y `onOrden`, el orden lo guarda la página', async () => {
     const onOrden = vi.fn()
     const { rerender } = render(<DataTable columns={COLUMNAS} data={DATOS} vacio="" ordenacion orden={[]} onOrden={onOrden} />)
     const nombres = () => screen.getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[0].textContent)

@@ -105,7 +105,7 @@ export function listaSubir(moviles: readonly Movil[]): GrupoSubir[] {
   }).sort(compararGrupos)
 }
 
-// ---------------------------------------------------------------- ordenar por columna (0.9.29, spec «ordenar por columna» §6)
+// ---------------------------------------------------------------- ordenar por columna (0.9.28, spec «ordenar por columna» §6)
 
 /** La columna por la que se ordena una tabla de «Qué revisar» y el sentido. */
 export type OrdenQR = { columna: string; desc: boolean }

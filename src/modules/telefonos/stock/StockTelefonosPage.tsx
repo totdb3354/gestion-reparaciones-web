@@ -66,7 +66,7 @@ export function StockTelefonosPage() {
   const abrirModelo = (d: Destino) => {
     // Volver a pulsar lo que ya está abierto no borra sus filtros; elegir un SKU sí los cambia.
     if (d.sku === null && d.modelo === modelo?.clave && d.capacidad === capacidad) return
-    // 0.9.29: la columna «Cap.» solo está con «Todas»; al elegir una capacidad, un orden por «Cap.» se quita.
+    // 0.9.28: la columna «Cap.» solo está con «Todas»; al elegir una capacidad, un orden por «Cap.» se quita.
     setEstado((e) => ({ ...e, ordenMoviles: d.capacidad === null ? e.ordenMoviles : e.ordenMoviles.filter((o) => o.id !== 'capacidad'), elegido: d.modelo, capacidad: d.capacidad, filtrosDe: { clave: claveFiltros(d.modelo, d.capacidad), filtros: FILTROS_VACIOS, sku: d.sku } }))
   }
   const delModelo = useMemo(
@@ -78,7 +78,7 @@ export function StockTelefonosPage() {
   const enStock = moviles.filter(cuentaComoStock).length
   const abrir = useCallback((imeiSn: string) => navigate(`/reparaciones/imeis/${encodeURIComponent(imeiSn)}`, { state: { desde: '/telefonos/stock' } }), [navigate])
   const columnas = useMemo(() => columnasMoviles(abrir, { conCapacidad: capacidad === null, sku }), [abrir, capacidad, sku])
-  // 0.9.29: el orden vive en el estado de la página (sigue al volver del detalle de un IMEI). Sin la columna «Cap.» a la vista,
+  // 0.9.28: el orden vive en el estado de la página (sigue al volver del detalle de un IMEI). Sin la columna «Cap.» a la vista,
   // un orden por ella no cuenta.
   const orden = useMemo(() => (capacidad === null ? ordenMoviles : ordenMoviles.filter((o) => o.id !== 'capacidad')), [ordenMoviles, capacidad])
   const cambiarOrden = useCallback((o: SortingState) => setEstado((e) => ({ ...e, ordenMoviles: o })), [setEstado])

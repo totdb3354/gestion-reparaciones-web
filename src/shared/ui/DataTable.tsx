@@ -99,7 +99,7 @@ type Props<T> = {
   onAbrir?: (row: T) => void
   /** Ordenación por clic en la cabecera; apagada por defecto porque el JavaFX no ordena por clic. */
   ordenacion?: boolean
-  /** 0.9.29: el orden lo guarda la página (para recordarlo al volver a ella). Sin ellas, lo guarda la tabla. */
+  /** 0.9.28: el orden lo guarda la página (para recordarlo al volver a ella). Sin ellas, lo guarda la tabla. */
   orden?: SortingState
   onOrden?: (orden: SortingState) => void
   /** Altura máxima del contenedor con scroll; sin filas es también su altura mínima. */

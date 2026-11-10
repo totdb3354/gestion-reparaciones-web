@@ -360,7 +360,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(within(filas(tabla)[3]).getByText('+1 con técnico')).not.toHaveClass('font-bold')
   })
 
-  it('0.9.29: un clic en la cabecera ordena dentro de cada bloque, con su flecha; el segundo invierte y el tercero vuelve al orden de siempre', async () => {
+  it('0.9.28: un clic en la cabecera ordena dentro de cada bloque, con su flecha; el segundo invierte y el tercero vuelve al orden de siempre', async () => {
     const user = userEvent.setup()
     const muchos = [1, 2, 3].map((i) => visto({ imeiSn: `35000000000020${i}`, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', grado: 'n/a' }))
     pintar([...STOCK, ...muchos])
@@ -386,7 +386,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(within(tabla).getByRole('columnheader', { name: 'Sin grado' })).toHaveAttribute('aria-sort', 'descending')
   })
 
-  it('0.9.29: el orden es de cada tarjeta, sigue al volver a la vista, y el Excel sale en el orden de la pantalla', async () => {
+  it('0.9.28: el orden es de cada tarjeta, sigue al volver a la vista, y el Excel sale en el orden de la pantalla', async () => {
     const user = userEvent.setup()
     window.showSaveFilePicker = (async () => ({ name: 'mio.xlsx', createWritable: async () => ({ write: async () => {}, close: async () => {} }) })) as unknown as typeof window.showSaveFilePicker
     const cuerpos: { filas: string[][] }[] = []

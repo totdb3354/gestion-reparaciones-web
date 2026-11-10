@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.28] - 2026-11-?? — Ordenar por columna en Stock de teléfonos
+
+- En **Stock de teléfonos**, un clic en la cabecera de una columna ordena la tabla por ella, con una flecha (▲ o ▼) en la cabecera: el primer clic ordena (el texto de la A a la Z; los números, de mayor a menor), el segundo invierte y el tercero vuelve al orden de siempre. Una columna a la vez; las filas que empatan conservan el orden de siempre y lo vacío («—») va siempre al final.
+- En la tabla de **móviles**, las ocho columnas: IMEI, Cap. (como número), Color, Grado (en su orden: A+, A, A-, B…), SKU, Ubicación (con los números como números), Quién lo tiene y Días. Con «Ver también lo que no cuenta como stock», al ordenar se mezclan con los demás.
+- En **«Qué revisar»**, las dos tablas: «Revisar sin grado» (dentro de cada bloque) y «Subir B a A», cada una con su orden. **«⬇ Descargar Excel»** lleva las filas en el orden de la pantalla.
+- El orden se recuerda al cambiar de modelo, de vista o de tarjeta y al volver del detalle de un IMEI; se pierde al cerrar sesión. Un orden por «Cap.» se quita al elegir una capacidad (la columna solo está con «Todas»).
+- Solo web. `DataTable` gana la flecha (`CabeceraOrden`) y `orden`/`onOrden` para que la página guarde el orden; la ordenación sigue apagada por defecto, así que las demás pantallas no cambian.
+
 ## [0.9.27] - 2026-11-10 — «ignorar» en los vendidos que salen en ámbar
 
 - En «Por pasar a NSYS», las filas **ámbar** de «Cambio de color», «Cambio de grado» y «Revisar a mano» (un móvil que NSYS da por vendido o de baja y que el taller ha tenido después) ganan un enlace **«ignorar»**, al lado de «Hecho» como «descartar» (en «Revisar a mano», al lado de «Corregir…»), sin ventana: es para cuando el móvil no ha vuelto (por ejemplo, se reparó antes de enviarlo). Saca el móvil de las tres tarjetas y de sus números.

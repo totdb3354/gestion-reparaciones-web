@@ -100,7 +100,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(filas()).toHaveLength(2)
     await user.click(colorAzul())
     expect(filas()).toHaveLength(1)
-    // El filtro, no la cabecera de la tabla (0.9.29: las cabeceras también son botones).
+    // El filtro, no la cabecera de la tabla (0.9.28: las cabeceras también son botones).
     await user.click(screen.getAllByRole('button', { name: 'Ubicación' }).find((b) => !b.closest('table')) as HTMLElement)
     await user.click(screen.getByRole('checkbox', { name: 'Listos (1)' }))
     expect(filas()).toHaveLength(1)
@@ -534,7 +534,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
   })
 })
 
-describe('Stock de teléfonos: ordenar la tabla de móviles por columna (0.9.29)', () => {
+describe('Stock de teléfonos: ordenar la tabla de móviles por columna (0.9.28)', () => {
   const tabla = () => screen.getByRole('region', { name: 'Tabla de móviles' })
   const imeis = () => filas().map(imeiDe)
   const cabecera = (nombre: string) => within(tabla()).getByRole('button', { name: nombre })

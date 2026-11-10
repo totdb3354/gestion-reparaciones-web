@@ -12,7 +12,7 @@ const MARCA = 'ml-1 inline-block rounded border px-1 align-[1px] text-[10px] fon
 /** Texto de la A a la Z sin mirar mayúsculas ni acentos, con los números como números («Caja 2» antes que «Caja 10»). */
 export const compararTexto = (a: string, b: string): number => a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' }) || a.localeCompare(b, 'es')
 
-/** Por qué se ordena una columna (0.9.29, spec «ordenar por columna» §5): su valor y cómo se compara. Lo vacío (null, '' o
+/** Por qué se ordena una columna (0.9.28, spec «ordenar por columna» §5): su valor y cómo se compara. Lo vacío (null, '' o
  *  «—») no tiene valor y va siempre al final, en los dos sentidos. `descPrimero`: el primer clic ordena de mayor a menor. */
 function orden<V extends string | number>(valor: (m: Movil) => V | null | undefined, comparar: (a: V, b: V) => number, descPrimero = false) {
   return {

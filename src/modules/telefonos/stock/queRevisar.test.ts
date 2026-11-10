@@ -375,7 +375,7 @@ describe('«Qué revisar»: el panel del modelo-color elegido (spec 0.9.25 §10.
   })
 })
 
-describe('«Qué revisar»: ordenar por columna (0.9.29, spec «ordenar por columna» §6)', () => {
+describe('«Qué revisar»: ordenar por columna (0.9.28, spec «ordenar por columna» §6)', () => {
   // En el orden de siempre: 15 Pro (1 B100), 13 512 GB (2 B), 12 (1 B) y un 11 sin capacidad ni color (1 B).
   const lista = listaSubir([
     m({ ...B12, grado: 'B' }), m({ ...A13_512, grado: 'B' }), m({ ...A13_512, grado: 'B' }), m({ ...P15, grado: 'B', bateriaNueva: true }),

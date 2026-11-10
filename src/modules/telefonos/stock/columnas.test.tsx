@@ -20,7 +20,7 @@ function pintar() {
 const orden = () => screen.getAllByRole('row').slice(1).map((f) => within(f).getByRole('button', { name: /^Abrir / }).textContent?.slice(-1)).join('')
 const pulsar = (columna: string) => userEvent.click(screen.getByRole('button', { name: columna }))
 
-describe('columnas de la tabla de móviles: por qué se ordena cada una (0.9.29, spec «ordenar por columna» §5)', () => {
+describe('columnas de la tabla de móviles: por qué se ordena cada una (0.9.28, spec «ordenar por columna» §5)', () => {
   it('compararTexto: sin mirar mayúsculas ni acentos y con los números como números', () => {
     expect(['Caja 10', 'caja 3', 'Caja 2', 'Árbol', 'azul'].sort(compararTexto)).toEqual(['Árbol', 'azul', 'Caja 2', 'caja 3', 'Caja 10'])
   })

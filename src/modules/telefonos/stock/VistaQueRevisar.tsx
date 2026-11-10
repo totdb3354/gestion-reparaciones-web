@@ -67,7 +67,7 @@ export function VistaQueRevisar({ revisar, subir, cargando, error, onAbrirImei }
   const cifras: Record<TarjetaQR, Cifra> = { revisar: cifraRevisar(revisar), subir: cifraSubir(subir) }
   // La caja de arriba (spec §3.6) filtra las tablas y el Excel; las tarjetas siguen con todo.
   const palabras = palabrasClave(queRevisar.buscar)
-  // 0.9.29: ordenadas por la columna pulsada; de aquí salen la tabla y el Excel, que lleva el orden de la pantalla.
+  // 0.9.28: ordenadas por la columna pulsada; de aquí salen la tabla y el Excel, que lleva el orden de la pantalla.
   const visiblesRevisar = ordenarGrupos(filtrar(revisar, palabras), COLUMNAS_REVISAR, queRevisar.orden.revisar)
   const visiblesSubir = ordenarGrupos(filtrar(subir, palabras), COLUMNAS_SUBIR, queRevisar.orden.subir)
   const ordenar = (orden: OrdenQR | null) => setEstado((e) => ({
@@ -153,7 +153,7 @@ type TablaProps<G> = {
   orden: OrdenQR | null; onOrden: (orden: OrdenQR | null) => void
 }
 
-/** La cabecera (0.9.29): cada columna, un botón que ordena por ella, con su flecha si es la ordenada. */
+/** La cabecera (0.9.28): cada columna, un botón que ordena por ella, con su flecha si es la ordenada. */
 function Cabecera<G>({ columnas, desdeDerecha, orden, onOrden }: { columnas: readonly ColumnaQR<G>[]; desdeDerecha: number; orden: OrdenQR | null; onOrden: (orden: OrdenQR | null) => void }) {
   return (
     <thead className="sticky top-0 bg-crema">
