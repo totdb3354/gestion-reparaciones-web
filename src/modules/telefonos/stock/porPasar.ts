@@ -1,5 +1,5 @@
 import type {
-  FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaSinGradoNsys, PeticionExcel, PorQueTaller, TarjetasPorPasar,
+  FilaAltaNsys, FilaCajaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaSinGradoNsys, PeticionExcel, PorQueTaller, TarjetasPorPasar,
 } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { descripcionMovil, diaNsys, nombreModeloNsys, nombreMovilNsys, textoBateriaRecordada } from '@/shared/lib/telefonoNsys'
@@ -268,3 +268,35 @@ export function textoIgnoradoAntes(f: { ignoradoAntesPor: string | null; ignorad
   if (!f.ignoradoAntesEn) return null
   return `Salió otra vez: trabajo nuevo después de que ${f.ignoradoAntesPor ?? '—'} lo ignorara el ${textoDesde(f.ignoradoAntesEn)}`
 }
+
+// ---------------------------------------------------------------- «Fuera de su caja»: los F, FD y RMA que no están en la caja de su grado
+
+/** Los móviles que van a la misma caja; `grado`, el del grupo en mayúsculas («Fd» es FD). */
+export type GrupoCaja = { cajaQueToca: string; grado: string; filas: FilaCajaNsys[] }
+
+/** Las filas por la caja que toca, en el orden en que llegan (el servidor ya las manda por caja que toca, caja de hoy e IMEI). */
+export function gruposCajas(filas: readonly FilaCajaNsys[]): GrupoCaja[] {
+  const grupos: GrupoCaja[] = []
+  for (const f of filas) {
+    let grupo = grupos.find((g) => g.cajaQueToca === f.cajaQueToca)
+    if (!grupo) {
+      grupo = { cajaQueToca: f.cajaQueToca, grado: f.grado.trim().toUpperCase(), filas: [] }
+      grupos.push(grupo)
+    }
+    grupo.filas.push(f)
+  }
+  return grupos
+}
+
+/** «grado F · 3 móviles», al lado de «Llevar a «CF021»». */
+export const textoGrupoCaja = (g: GrupoCaja): string => `grado ${g.grado} · ${g.filas.length} ${palabraMoviles(g.filas.length)}`
+
+/** Lo que copia «Copiar IMEIs»: los IMEIs del grupo, uno por línea, para buscarlos en NSYS. */
+export const imeisDeCaja = (filas: readonly FilaCajaNsys[]): string => filas.map((f) => f.imeiSn).join('\n')
+
+export const avisoImeisCopiados = (n: number, caja: string): string =>
+  `Copiado: ${n} ${n === 1 ? 'IMEI' : 'IMEIs'} para «${caja}». Búscalos en NSYS y cámbiales la «Location»`
+
+/** «en NSYS aún B: también en «Cambio de grado»»: el taller ha puesto el grado y NSYS todavía tiene otro; si no, nada. */
+export const notaGradoNsys = (f: FilaCajaNsys): string | null =>
+  f.gradoNsys ? `en NSYS aún ${f.gradoNsys}: también en «Cambio de grado»` : null

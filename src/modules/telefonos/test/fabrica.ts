@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  EstadoNsys, FilaAltaNsys, FilaCajaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -129,7 +129,7 @@ export function filaSinGrado(p: Partial<FilaSinGradoNsys> = {}): FilaSinGradoNsy
 
 /** Las cuatro tarjetas, vacías salvo lo que se pase. */
 export function tarjetas(p: Partial<TarjetasPorPasar> = {}): TarjetasPorPasar {
-  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [], ...p }
+  return { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [], cajas: [], ...p }
 }
 
 /** 0.9.27: un iPhone 15 eSIM 256GB vendido el 26/10, que el taller tuvo el 28/10 y Supertécnico 1 ignoró el 06/11 12:31; saldría en
@@ -139,5 +139,13 @@ export function filaIgnorada(p: Partial<FilaIgnoradaNsys> = {}): FilaIgnoradaNsy
     imeiSn: '350000000000123', modelo: '15', modeloMaestro: '15', capacidad: '256GB', esEsim: true, vendidoEn: '2026-10-26',
     bajaEn: null, vueltoDesde: '2026-10-28T09:10:00', ignoradoPor: 'Supertécnico 1', ignoradoEn: '2026-11-06T12:31:00',
     tarjetas: ['COLOR', 'GRADO'], ...p,
+  }
+}
+
+/** «Fuera de su caja»: un iPhone 12 64GB de grado F que NSYS tiene en «CAJA REP. OFICINA»; le toca «CF021». */
+export function filaCaja(p: Partial<FilaCajaNsys> = {}): FilaCajaNsys {
+  return {
+    imeiSn: '350000000000214', modelo: '12', modeloMaestro: '12', capacidad: '64GB', esEsim: false, color: 'Negro', grado: 'F',
+    gradoNsys: null, caja: 'CAJA REP. OFICINA', ubicacion: 'Taller · Reparación', cajaQueToca: 'CF021', ...p,
   }
 }

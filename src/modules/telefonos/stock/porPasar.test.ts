@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { FilaColorNsys, TarjetasPorPasar } from '@/shared/api/client'
-import { filaAlta, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
+import { filaAlta, filaCaja, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, porQue, tarjetas } from '../test/fabrica'
 import {
   avisoCajas, excelCajasColor, HOJA_CAJAS, nombreCajas, paraCajasColor, SIN_CAJA, textoCaja,
-  AYUDA, avisoCopiado, avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, textoEnNsys, textoIgnorado, textoIgnoradoAntes, textoVerIgnorados, TITULO_IGNORAR, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
+  AYUDA, avisoCopiado, avisoImeisCopiados, gruposCajas, imeisDeCaja, notaGradoNsys, textoGrupoCaja,avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, textoEnNsys, textoIgnorado, textoIgnoradoAntes, textoVerIgnorados, TITULO_IGNORAR, avisoPlantillaAltas, avisoPlantillaColor, avisoVuelve, cuentas, EJEMPLOS_MOTIVO, EXPLICACION,
   EXPLICA_DESCARTAR, horaDe, listaGrado, marcada, MAX_MOTIVO, modeloDeFila, modeloDelTaller, NOMBRE, paraPlantillaColor, pendientes,
   textoBateriaDeFila, textoDesde, textoDescartado, textoDescartadoAntes, textoGradoNsys, textoNumero, textoPorQue, textoUltimoTrabajo,
   textoUltimoTrabajoSinGrado, textoVerDescartados, textoVolvio, textoVuelta, TITULO_DESCARTAR, totalPendientes, VACIA, vueltosFueraDePlantilla,
@@ -259,5 +259,39 @@ describe('0.9.27: «ignorar» en las filas ámbar', () => {
     const viejas = tarjetas()
     delete (viejas as Partial<typeof viejas>).ignorados
     expect(ignoradosDe(viejas, 'color')).toEqual([])
+  })
+})
+
+describe('«Fuera de su caja»: grupos por la caja que toca y lo que se copia', () => {
+  const filas = [
+    filaCaja(),
+    filaCaja({ imeiSn: '350000000000222', grado: 'F', gradoNsys: 'B' }),
+    filaCaja({ imeiSn: '350000000000248', grado: 'Fd', caja: 'Funcionalidad pendiente', ubicacion: 'Devolución', cajaQueToca: 'Desguace' }),
+    filaCaja({ imeiSn: '350000000000263', grado: 'RMA', caja: null, ubicacion: 'En revisión', cajaQueToca: 'Funcionalidad pendiente' }),
+  ]
+
+  it('un grupo por caja que toca, en el orden en que llegan, con su grado en mayúsculas', () => {
+    const grupos = gruposCajas(filas)
+    expect(grupos.map((g) => g.cajaQueToca)).toEqual(['CF021', 'Desguace', 'Funcionalidad pendiente'])
+    expect(grupos.map((g) => g.grado)).toEqual(['F', 'FD', 'RMA'])
+    expect(grupos[0].filas.map((f) => f.imeiSn)).toEqual(['350000000000214', '350000000000222'])
+    expect(gruposCajas([])).toEqual([])
+  })
+
+  it('la cabecera del grupo dice el grado y cuántos', () => {
+    const [cf021, desguace] = gruposCajas(filas)
+    expect(textoGrupoCaja(cf021)).toBe('grado F · 2 móviles')
+    expect(textoGrupoCaja(desguace)).toBe('grado FD · 1 móvil')
+  })
+
+  it('se copian los IMEIs del grupo, uno por línea, y el aviso dice para qué caja', () => {
+    expect(imeisDeCaja(gruposCajas(filas)[0].filas)).toBe('350000000000214\n350000000000222')
+    expect(avisoImeisCopiados(3, 'CF021')).toBe('Copiado: 3 IMEIs para «CF021». Búscalos en NSYS y cámbiales la «Location»')
+    expect(avisoImeisCopiados(1, 'Desguace')).toBe('Copiado: 1 IMEI para «Desguace». Búscalos en NSYS y cámbiales la «Location»')
+  })
+
+  it('la nota del grado solo sale si NSYS aún tiene otro', () => {
+    expect(notaGradoNsys(filas[0])).toBeNull()
+    expect(notaGradoNsys(filas[1])).toBe('en NSYS aún B: también en «Cambio de grado»')
   })
 })

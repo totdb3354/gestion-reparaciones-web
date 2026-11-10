@@ -3427,6 +3427,19 @@ export interface components {
             descartadoAntesEn: string | null;
             descartadoAntesMotivo: string | null;
         };
+        FilaCajaNsys: {
+            imeiSn: string;
+            modelo: string | null;
+            modeloMaestro: string | null;
+            capacidad: string | null;
+            esEsim: boolean;
+            color: string | null;
+            grado: string;
+            gradoNsys: string | null;
+            caja: string | null;
+            ubicacion: string | null;
+            cajaQueToca: string;
+        };
         FilaColorNsys: {
             imeiSn: string;
             modelo: string | null;
@@ -3575,6 +3588,7 @@ export interface components {
             descartadas: components["schemas"]["FilaDescartadaNsys"][];
             sinGrado: components["schemas"]["FilaSinGradoNsys"][];
             ignorados: components["schemas"]["FilaIgnoradaNsys"][];
+            cajas: components["schemas"]["FilaCajaNsys"][];
         };
         StockTelefonosFilaImportacion: {
             fichero: string;

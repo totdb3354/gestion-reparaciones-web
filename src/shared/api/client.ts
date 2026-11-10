@@ -121,6 +121,11 @@ export type FilaSinGradoNsys = components['schemas']['FilaSinGradoNsys']
 export type FilaIgnoradaNsys = components['schemas']['FilaIgnoradaNsys']
 export type PeticionIgnorado = components['schemas']['PorPasarPeticionIgnorado']
 
+/** «Fuera de su caja»: la quinta tarjeta de «Por pasar a NSYS». Un móvil en la empresa con grado F, FD o RMA (`grado`, el que vale)
+ *  en una caja que no es la de su grado: `caja`, la de NSYS hoy (null: sin caja); `ubicacion`, cómo la llama el ERP;
+ *  `cajaQueToca`, «CF021», «Desguace» o «Funcionalidad pendiente»; `gradoNsys`, el de NSYS si el taller lo ha cambiado. */
+export type FilaCajaNsys = components['schemas']['FilaCajaNsys']
+
 /** 0.9.25 (spec «Qué revisar» §10.3): la hoja que el servidor convierte en el Excel para imprimir (todo textos). */
 export type PeticionExcel = components['schemas']['StockTelefonosPeticionExcel']
 
