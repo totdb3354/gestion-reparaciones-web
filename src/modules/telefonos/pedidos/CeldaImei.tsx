@@ -42,7 +42,7 @@ export function CeldaImei({ fila, abierta, onAbrir }: Props) {
       {clase === 'enviada' ? boton : (
         <Popover open={abierta} onOpenChange={(o) => onAbrir(fila.idFila, o)}>
           <PopoverTrigger asChild>{boton}</PopoverTrigger>
-          <PopoverContent align="start" sideOffset={2} collisionPadding={8} aria-label="Poner el IMEI"
+          <PopoverContent align="start" sideOffset={2} collisionPadding={8} hideWhenDetached aria-label="Poner el IMEI"
             // Pasar el foco a otro sitio no lo cierra (si falla el PUT, el diálogo de error roba el foco; y al pulsar otra celda, la
             // que se cierra devolvía el foco a la suya y cerraba la nueva). Lo cierran Escape, el clic fuera y «Cerrar»; el
             // diálogo de error tampoco cuenta como «fuera».

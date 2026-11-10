@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { COLUMNAS, TEXTO_NIVEL, claseCelda, haceUnMes, recuento, textoMotivo } from './filas'
+import { COLUMNAS, TEXTO_NIVEL, claseCelda, filtrarColumnas, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -62,5 +62,56 @@ describe('haceUnMes', () => {
     expect(haceUnMes('2026-01-15')).toBe('2025-12-15')
     expect(haceUnMes('2026-03-31')).toBe('2026-02-28')
     expect(haceUnMes('2028-03-31')).toBe('2028-02-29')
+  })
+})
+
+describe('rangoDe', () => {
+  // 15 de marzo de 2026, a mediodia (Madrid)
+  const hoy = new Date('2026-03-15T11:00:00Z')
+  it('cada periodo', () => {
+    expect(rangoDe('mes', hoy)).toEqual({ desde: '2026-02-15', hasta: '2026-03-15' })
+    expect(rangoDe('tres-meses', hoy)).toEqual({ desde: '2025-12-15', hasta: '2026-03-15' })
+    expect(rangoDe('anio', hoy)).toEqual({ desde: '2026-01-01', hasta: '2026-03-15' })
+    expect(rangoDe('todo', hoy)).toEqual({ desde: '2000-01-01', hasta: '2026-03-15' })
+    expect(rangoDe('rango', hoy, { desde: '2026-01-10', hasta: '2026-02-20' })).toEqual({ desde: '2026-01-10', hasta: '2026-02-20' })
+  })
+  it('tres meses atras recorta al ultimo dia del mes', () => {
+    expect(rangoDe('tres-meses', new Date('2026-05-31T10:00:00Z')).desde).toBe('2026-02-28')
+  })
+  it('usa el dia de Madrid, no el UTC', () => {
+    expect(rangoDe('mes', new Date('2026-03-14T23:30:00Z')).hasta).toBe('2026-03-15')
+  })
+})
+
+describe('valores y filtrarColumnas', () => {
+  const filas = [
+    fila({ idFila: 1, plataforma: 'Web', sku: 'b2' }),
+    fila({ idFila: 2, plataforma: 'Amazon', sku: 'a1', imei: '350000000000001' }),
+    fila({ idFila: 3, plataforma: 'Web', sku: 'a1', enviada: true }),
+    fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
+  ]
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false }
+  it('valores: distintos y ordenados', () => {
+    expect(valores(filas, 'plataforma')).toEqual(['Amazon', 'Web'])
+    expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
+  })
+  it('sin filtros devuelve las mismas filas', () => {
+    expect(filtrarColumnas(filas, vacio)).toEqual(filas)
+  })
+  it('por plataforma y sku, combinados, reutilizando los objetos', () => {
+    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']) })
+    expect(r.map((f) => f.idFila)).toEqual([1, 3, 4])
+    expect(r[0]).toBe(filas[0])
+    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']), skus: new Set(['a1', 'c3']) }).map((f) => f.idFila)).toEqual([3, 4])
+  })
+  it('solo sin IMEI: sin enviar y sin IMEI', () => {
+    expect(filtrarColumnas(filas, { ...vacio, soloSinImei: true }).map((f) => f.idFila)).toEqual([1])
+  })
+  it('un valor elegido que ya no existe se ignora', () => {
+    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta']) })).toEqual(filas)
+    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta', 'Amazon']) }).map((f) => f.idFila)).toEqual([2])
+  })
+  it('vigente: la seleccion que sigue existiendo', () => {
+    expect([...vigente(new Set(['a', 'x']), ['a', 'b'])]).toEqual(['a'])
   })
 })

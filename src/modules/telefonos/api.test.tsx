@@ -191,6 +191,17 @@ describe('api del stock de teléfonos', () => {
     expect(urls[0].searchParams.get('buscar')).toBe('3500')
   })
 
+  it('una busqueda vacia o en blanco no se manda', async () => {
+    const urls: URL[] = []
+    server.use(http.get('*/api/pedidos/filas', ({ request }) => { urls.push(new URL(request.url)); return HttpResponse.json({ filas: [], hayMas: false }) }))
+    const wrapper = envoltorio()
+    const a = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '' }), { wrapper })
+    const b = renderHook(() => useFilas({ desde: '2026-10-11', hasta: '2026-11-10', buscar: '  ' }), { wrapper })
+    await waitFor(() => expect(a.result.current.isSuccess && b.result.current.isSuccess).toBe(true))
+    expect(urls).toHaveLength(2)
+    expect(urls.every((u) => !u.searchParams.has('buscar'))).toBe(true)
+  })
+
   it('los recomendados de una fila: no pregunta sin fila y pide los de su id', async () => {
     const rutas: string[] = []
     server.use(http.get('*/api/pedidos/filas/:id/recomendados', ({ params }) => {

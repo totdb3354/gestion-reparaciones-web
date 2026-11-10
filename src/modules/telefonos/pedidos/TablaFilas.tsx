@@ -1,9 +1,11 @@
-import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { FilaVista } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { COLUMNAS } from './filas'
+
+type Columna = (typeof COLUMNAS)[number]
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
@@ -27,8 +29,10 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: 
 
 /** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija y las enviadas en
  *  gris. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
-export function TablaFilas({ filas }: { filas: FilaVista[] }) {
+export function TablaFilas({ filas, filtros }: { filas: FilaVista[]; filtros?: Partial<Record<Columna, ReactNode>> }) {
   const [abierta, setAbierta] = useState<number | null>(null)
+  // Si la fila abierta ya no se pinta (un filtro la esconde) o ya está enviada, se cierra: así no se reabre sola al quitar el filtro.
+  if (abierta !== null && !filas.some((f) => f.idFila === abierta && !f.enviada)) setAbierta(null)
   // Estable (para el `memo` de las filas). Cerrar una celda que ya no es la abierta no hace nada: el cierre tardío de la anterior
   // (foco, clic fuera) no puede cerrar la que acaba de abrirse.
   const cambiar = useCallback((id: number, abrir: boolean) => setAbierta((a) => (abrir ? id : a === id ? null : a)), [])
@@ -53,7 +57,7 @@ export function TablaFilas({ filas }: { filas: FilaVista[] }) {
         <thead>
           <tr>
             {COLUMNAS.map((c) => (
-              <th key={c} scope="col" className="sticky top-0 z-[2] border-r border-b border-fila-sep bg-fila-maestro-bg px-2.5 py-1.5 text-left text-[12px] font-bold">{c}</th>
+              <th key={c} scope="col" className="sticky top-0 z-[2] border-r border-b border-fila-sep bg-fila-maestro-bg px-2.5 py-1.5 text-left text-[12px] font-bold has-[[data-activo]]:bg-[#dbe6fb]">{c}{filtros?.[c]}</th>
             ))}
           </tr>
         </thead>

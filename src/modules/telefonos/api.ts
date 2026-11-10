@@ -183,11 +183,13 @@ export const CLAVE_FUENTES_PEDIDOS = ['telefonos', 'pedidos', 'fuentes'] as cons
 
 /** GET /api/pedidos/filas: las filas del intervalo de fechas, filtradas por `buscar` (el servidor dice si hay más). Sondea como
  *  las demás vistas; al cambiar el intervalo o la búsqueda deja la lista anterior hasta que llega la nueva. */
-export function useFilas(p: { desde: string; hasta: string; buscar: string }): UseQueryResult<ListaFilas> {
+export function useFilas(p: { desde: string; hasta: string; buscar?: string }): UseQueryResult<ListaFilas> {
   const intervalo = useIntervaloRefresco(true)
+  // Una búsqueda vacía o en blanco no se manda: el servidor la tomaría por una búsqueda.
+  const query = { desde: p.desde, hasta: p.hasta, buscar: p.buscar?.trim() ? p.buscar : undefined }
   return useQuery({
-    queryKey: [...CLAVE_FILAS, p],
-    queryFn: async () => (await api.GET('/api/pedidos/filas', { params: { query: p } })).data ?? { filas: [], hayMas: false },
+    queryKey: [...CLAVE_FILAS, query],
+    queryFn: async () => (await api.GET('/api/pedidos/filas', { params: { query } })).data ?? { filas: [], hayMas: false },
     refetchInterval: intervalo,
     placeholderData: keepPreviousData,
   })

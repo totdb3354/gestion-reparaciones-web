@@ -6,6 +6,7 @@ import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
 import { PedidosPage } from './PedidosPage'
+import { maquetarJsdom } from './layoutJsdom'
 
 const FILAS = [
   fila({ idFila: 1, enviada: true, imei: '350000000000010', pedido: '402-0000000-0000011' }),
@@ -19,6 +20,7 @@ let puts: { id: string; cuerpo: unknown }[] = []
 
 beforeEach(() => {
   puts = []
+  maquetarJsdom()
   server.use(
     http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: FILAS, hayMas: false })),
     http.get('*/api/pedidos/fuentes', () => HttpResponse.json([fuente({ fuente: 'SHIPPYPRO' })])),
@@ -77,7 +79,8 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     abrir()
     await user.click(await celdaVacia())
     expect(campo()).toBeInTheDocument()
-    const c = await screen.findByRole('button', { name: /350000000000101/ })
+    await waitFor(() => expect(campo()).toHaveFocus())
+    const c =await screen.findByRole('button', { name: /350000000000101/ })
     expect(c).toHaveTextContent('CAJA LISTOS')
     expect(c).toHaveTextContent('igual que el pedido')
     expect(screen.getByRole('button', { name: /350000000000103/ })).toHaveTextContent('hay que transformarlo')
@@ -139,14 +142,14 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
 
   it('si el PUT falla, el desplegable sigue abierto con lo escrito', async () => {
     const user = userEvent.setup()
-    server.use(http.put('*/api/pedidos/filas/:id/imei', () => { puts.push({ id: 'x', cuerpo: null }); return HttpResponse.json({ mensaje: 'No se pudo' }, { status: 422 }) }))
+    server.use(http.put('*/api/pedidos/filas/:id/imei', () => { puts.push({ id: 'x', cuerpo: null }); return HttpResponse.json({ message: 'No se pudo' }, { status: 422 }) }))
     abrir()
     await user.click(await celdaVacia())
     await user.type(campo() as HTMLElement, '350000000000555{Enter}')
     await waitFor(() => expect(puts).toHaveLength(1))
-    await new Promise((r) => setTimeout(r, 100))
+    // El desplegable también es role=dialog: el de error se distingue por su texto.
+    expect(await screen.findByText('No se pudo')).toBeInTheDocument()
     // El diálogo de error (modal) deja el resto fuera del árbol de accesibilidad: se busca con `hidden`.
-    expect(await screen.findByRole('dialog')).toBeInTheDocument()
     const abierto = screen.getByRole('textbox', { name: 'IMEI', hidden: true })
     expect(abierto).toHaveValue('350000000000555')
   })
@@ -163,8 +166,9 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     abrir()
     await user.click(await celdaVacia())
     await user.type(campo() as HTMLElement, '350000000000555{Enter}{Enter}')
-    await new Promise((r) => setTimeout(r, 50))
-    expect(puts).toHaveLength(1)
+    // Los dos Enter ya se han tecleado (user.type espera): el segundo no pudo mandar otra petición mientras la primera seguía pendiente.
+    await waitFor(() => expect(puts).toHaveLength(1))
+    expect(campo()).toHaveAttribute('readonly')
     liberar()
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
     expect(puts).toHaveLength(1)
