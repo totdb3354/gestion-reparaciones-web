@@ -26,11 +26,12 @@ function Marco({ columna, activo, children }: { columna: string; activo: boolean
   )
 }
 
-function Casilla({ marcada, onCambio, texto }: { marcada: boolean; onCambio: (m: boolean) => void; texto: string }) {
+function Casilla({ marcada, onCambio, texto, n }: { marcada: boolean; onCambio: (m: boolean) => void; texto: string; n?: number }) {
   return (
     <label className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-seleccion-suave">
       <Checkbox checked={marcada} onCheckedChange={(m) => onCambio(m === true)} />
       <span className="truncate">{texto}</span>
+      {n !== undefined && <span className="ml-auto pl-3 text-[11px] text-azul-gris">{n}</span>}
     </label>
   )
 }
@@ -59,6 +60,23 @@ export function FiltroColumna({ columna, valores, seleccion, onChange }: PropsVa
         {vistos.map((v) => <Casilla key={v} marcada={seleccion.has(v)} onCambio={(m) => alternar(v, m)} texto={v} />)}
         {vistos.length === 0 && <p className="px-1.5 py-1 text-azul-gris">Ningún valor coincide.</p>}
       </div>
+    </Marco>
+  )
+}
+
+/** El filtro de Plataforma: una casilla por tienda (no por cliente) que tenga filas entre las recibidas, con su recuento; «Todos» (sin
+ *  ninguna marcada, no filtra). Un cliente concreto se busca por su nombre en el buscador. */
+export function FiltroTienda({ tiendas, seleccion, onChange }: {
+  tiendas: { valor: string; texto: string; n: number }[]; seleccion: Set<string>; onChange: (s: Set<string>) => void
+}) {
+  const activo = tiendas.some((t) => seleccion.has(t.valor))
+  return (
+    <Marco columna="Plataforma" activo={activo}>
+      <Casilla marcada={!activo} onCambio={() => onChange(new Set())} texto="Todos" />
+      {tiendas.map((t) => (
+        <Casilla key={t.valor} marcada={seleccion.has(t.valor)} texto={t.texto} n={t.n}
+          onCambio={(m) => { const s = new Set(seleccion); if (m) s.add(t.valor); else s.delete(t.valor); onChange(s) }} />
+      ))}
     </Marco>
   )
 }

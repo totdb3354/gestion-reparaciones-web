@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type Candidato, type FilaVista, type FuenteVista, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  api, type CambioImei, type Candidato, type FilaVista, type FuenteVista, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
@@ -210,6 +210,19 @@ export function useRecomendados(idFila: number | null): UseQueryResult<Candidato
     queryFn: async ({ signal }) => (await api.GET('/api/pedidos/filas/{id}/recomendados', { params: { path: { id: idFila as number } }, signal })).data ?? [],
     gcTime: 0,
     meta: { sinCapa: true },
+  })
+}
+
+/** GET /api/pedidos/filas/{id}/cambios: quién ha puesto, cambiado o quitado el IMEI de una fila, del más reciente al más antiguo (vacía
+ *  en el histórico). Sin `idFila` no pregunta (el panel cerrado, o una fila del histórico). Cuelga de `CLAVE_FILAS`: `usePonerImei`
+ *  invalida ese prefijo al terminar, así que tras guardar un IMEI en la fila se vuelve a pedir. Un fallo se enseña en el panel,
+ *  no en el diálogo global. */
+export function useCambiosImei(idFila: number | null): UseQueryResult<CambioImei[]> {
+  return useQuery({
+    queryKey: [...CLAVE_FILAS, 'cambios', idFila],
+    enabled: idFila != null,
+    queryFn: async ({ signal }) => (await api.GET('/api/pedidos/filas/{id}/cambios', { params: { path: { id: idFila as number } }, signal })).data ?? [],
+    meta: { sinCapa: true, silenciarError: true },
   })
 }
 

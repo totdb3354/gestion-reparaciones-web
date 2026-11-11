@@ -596,6 +596,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/historico": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["estado_1"];
+        put?: never;
+        post: operations["cargar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes/verificar": {
         parameters: {
             query?: never;
@@ -2292,6 +2308,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/filas/{id}/cambios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["cambios"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes": {
         parameters: {
             query?: never;
@@ -2611,6 +2643,7 @@ export interface components {
             motivo: string | null;
             skuMovil: string | null;
             caja: string | null;
+            canal: string | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -2849,6 +2882,51 @@ export interface components {
             nombre: string;
             divisa: string;
             tipo: string;
+        };
+        CargaHistoricoEstadoCarga: {
+            /** @enum {string} */
+            estado: "NUNCA" | "EN_CURSO" | "OK" | "ERROR";
+            /** Format: date-time */
+            empezo: string | null;
+            /** Format: date-time */
+            acabo: string | null;
+            informe: components["schemas"]["InformeCarga"];
+            motivo: string | null;
+        };
+        InformeCarga: {
+            /** Format: int32 */
+            filasLeidas: number;
+            /** Format: int32 */
+            cargadasHistorico: number;
+            /** Format: int32 */
+            descartadasVacias: number;
+            /** Format: int32 */
+            sinFechaHeredada: number;
+            /** Format: int32 */
+            sinFechaDescartada: number;
+            /** Format: int32 */
+            imeiNoEsImei: number;
+            /** Format: int32 */
+            traspasadasA: number;
+            /** Format: int32 */
+            traspasadasB: number;
+            /** Format: int32 */
+            traspasadasC: number;
+            /** Format: int32 */
+            yaPuesto: number;
+            /** Format: int32 */
+            conflicto: number;
+            /** Format: int32 */
+            casadasSinImei: number;
+            /** Format: int32 */
+            sinPareja: number;
+            /** Format: int32 */
+            yaVendidoNsys: number;
+            /** Format: int32 */
+            ventaAnterior: number;
+            plataformas: {
+                [key: string]: number;
+            };
         };
         LoteVerificarRequest: {
             imeis: string[];
@@ -3958,6 +4036,13 @@ export interface components {
             caja: string | null;
             /** Format: int32 */
             nivel: number;
+        };
+        CambioImei: {
+            usuario: string | null;
+            /** Format: date-time */
+            fecha: string;
+            imeiAnterior: string | null;
+            imeiNuevo: string | null;
         };
         Lote: {
             /** Format: int32 */
@@ -5464,6 +5549,60 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    estado_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CargaHistoricoEstadoCarga"];
+                };
+            };
+        };
+    };
+    cargar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CargaHistoricoEstadoCarga"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8136,6 +8275,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RecomendadorCandidato"][];
+                };
+            };
+        };
+    };
+    cambios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CambioImei"][];
                 };
             };
         };

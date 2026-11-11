@@ -1541,6 +1541,46 @@
         }
       }
     },
+    "/api/pedidos/historico" : {
+      "get" : {
+        "tags" : [ "historico-controller" ],
+        "operationId" : "estado_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CargaHistoricoEstadoCarga"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "historico-controller" ],
+        "operationId" : "cargar",
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CargaHistoricoEstadoCarga"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "409" : {
+            "description" : "Conflict"
+          }
+        }
+      }
+    },
     "/api/lotes/verificar" : {
       "post" : {
         "tags" : [ "lote-controller" ],
@@ -4755,6 +4795,36 @@
         }
       }
     },
+    "/api/pedidos/filas/{id}/cambios" : {
+      "get" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "cambios",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CambioImei"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lotes" : {
       "get" : {
         "tags" : [ "lote-controller" ],
@@ -5325,7 +5395,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "caja", "editable", "envioFecha", "estado", "fecha", "fechaCompra", "idFila", "imei", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sku", "skuMovil", "transportista" ],
+        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "fecha", "fechaCompra", "idFila", "imei", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sku", "skuMovil", "transportista" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5388,6 +5458,10 @@
             "nullable" : true
           },
           "caja" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "canal" : {
             "type" : "string",
             "nullable" : true
           }
@@ -6077,6 +6151,106 @@
           },
           "tipo" : {
             "type" : "string"
+          }
+        }
+      },
+      "CargaHistoricoEstadoCarga" : {
+        "required" : [ "acabo", "empezo", "estado", "informe", "motivo" ],
+        "type" : "object",
+        "properties" : {
+          "estado" : {
+            "type" : "string",
+            "enum" : [ "NUNCA", "EN_CURSO", "OK", "ERROR" ]
+          },
+          "empezo" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "acabo" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "informe" : {
+            "$ref" : "#/components/schemas/InformeCarga"
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "InformeCarga" : {
+        "required" : [ "cargadasHistorico", "casadasSinImei", "conflicto", "descartadasVacias", "filasLeidas", "imeiNoEsImei", "plataformas", "sinFechaDescartada", "sinFechaHeredada", "sinPareja", "traspasadasA", "traspasadasB", "traspasadasC", "ventaAnterior", "yaPuesto", "yaVendidoNsys" ],
+        "type" : "object",
+        "properties" : {
+          "filasLeidas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cargadasHistorico" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descartadasVacias" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sinFechaHeredada" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sinFechaDescartada" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imeiNoEsImei" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "traspasadasA" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "traspasadasB" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "traspasadasC" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "yaPuesto" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "conflicto" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "casadasSinImei" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sinPareja" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "yaVendidoNsys" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ventaAnterior" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "plataformas" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },
@@ -9302,6 +9476,28 @@
           "nivel" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }
+      },
+      "CambioImei" : {
+        "required" : [ "fecha", "imeiAnterior", "imeiNuevo", "usuario" ],
+        "type" : "object",
+        "properties" : {
+          "usuario" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "imeiAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "imeiNuevo" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

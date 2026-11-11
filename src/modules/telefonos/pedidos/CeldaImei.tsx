@@ -16,14 +16,14 @@ const NIVEL: Record<1 | 2 | 3, string> = {
   3: 'bg-[#FFE0B2] text-[#B45309]',
 }
 
-type Props = { fila: FilaVista; abierta: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
+type Props = { fila: FilaVista; abierta: boolean; marcada?: boolean; elegida?: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
 
 /** La única celda editable de la tabla (spec «Pedidos como la hoja» §3.1 y 6 bis): el IMEI de la fila, con su motivo o su caja.
  *  Al pulsarla (si la fila es editable: todas menos el histórico, enviadas incluidas) se abre el desplegable con el campo, los recomendados y «Quitar el IMEI». El
  *  desplegable es el Popover del proyecto (portal anclado a la celda): no lo recorta el scroll de la tabla, se coloca arriba
  *  si abajo no cabe y acompaña a su celda cuando la tabla se desplaza. Escape y el clic fuera lo cierran (lo hace Radix, que
  *  además devuelve el foco a la celda). */
-export function CeldaImei({ fila, abierta, onAbrir }: Props) {
+export function CeldaImei({ fila, abierta, marcada, elegida, onAbrir }: Props) {
   const clase = claseCelda(fila)
   const motivo = textoMotivo(fila)
   const boton = (
@@ -39,7 +39,10 @@ export function CeldaImei({ fila, abierta, onAbrir }: Props) {
   )
   const tono = tonoFila(fila)
   return (
-    <td className={cn('min-w-[290px] p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]))}>
+    <td data-imei className={cn('min-w-[290px] p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]),
+      elegida && 'shadow-[inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]')}>
+      {/* La raya azul es solo color: este texto la dice a quien no la ve. */}
+      {marcada && <span className="sr-only">Última fila abierta</span>}
       {!fila.editable ? (
         // Sin edición (el histórico): solo el texto; sin IMEI, la celda queda vacía, sin invitar a ponerlo.
         fila.imei && <span className="flex min-h-8 items-center px-2.5 py-1 font-mono text-[12.5px]">{fila.imei}</span>

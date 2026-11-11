@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
+import { tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -115,23 +115,22 @@ describe('rangoDe: bordes', () => {
 describe('valores y filtrarColumnas', () => {
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', sku: 'b2' }),
-    fila({ idFila: 2, plataforma: 'Amazon', sku: 'a1', imei: '350000000000001' }),
+    fila({ idFila: 2, plataforma: 'Amazon', canal: 'AMAZON', sku: 'a1', imei: '350000000000001' }),
     fila({ idFila: 3, plataforma: 'Web', sku: 'a1', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
   ]
   const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>() }
   it('valores: distintos y ordenados', () => {
-    expect(valores(filas, 'plataforma')).toEqual(['Amazon', 'Web'])
     expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
   })
   it('sin filtros devuelve las mismas filas', () => {
     expect(filtrarColumnas(filas, vacio)).toEqual(filas)
   })
   it('por plataforma y sku, combinados, reutilizando los objetos', () => {
-    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']) })
+    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['PARTICULARES']) })
     expect(r.map((f) => f.idFila)).toEqual([1, 3, 4])
     expect(r[0]).toBe(filas[0])
-    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']), skus: new Set(['a1', 'c3']) }).map((f) => f.idFila)).toEqual([3, 4])
+    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['PARTICULARES']), skus: new Set(['a1', 'c3']) }).map((f) => f.idFila)).toEqual([3, 4])
   })
   it('solo sin IMEI: editables sin IMEI, enviadas incluidas; el histórico no', () => {
     const con = [...filas, fila({ idFila: 5, estado: 'HISTORICO', editable: false })]
@@ -152,7 +151,7 @@ describe('valores y filtrarColumnas', () => {
   })
   it('un valor elegido que ya no existe se ignora', () => {
     expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta']) })).toEqual(filas)
-    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta', 'Amazon']) }).map((f) => f.idFila)).toEqual([2])
+    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta', 'AMAZON']) }).map((f) => f.idFila)).toEqual([2])
   })
   it('vigente: la seleccion que sigue existiendo', () => {
     expect([...vigente(new Set(['a', 'x']), ['a', 'b'])]).toEqual(['a'])
@@ -194,12 +193,12 @@ describe('filtros combinados', () => {
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', estado: 'ENVIADA' }),
     fila({ idFila: 2, plataforma: 'Web', estado: 'ENVIADA', imei: '350000000000001' }),
-    fila({ idFila: 3, plataforma: 'Amazon', estado: 'ENVIADA' }),
+    fila({ idFila: 3, plataforma: 'Amazon', canal: 'AMAZON', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web' }),
     fila({ idFila: 5, plataforma: 'Web', estado: 'HISTORICO', editable: false }),
   ]
   it('Plataforma + Enviado + Solo sin IMEI a la vez', () => {
-    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']), enviado: new Set(['ENVIADA']), soloSinImei: true })
+    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['PARTICULARES']), enviado: new Set(['ENVIADA']), soloSinImei: true })
     expect(r.map((f) => f.idFila)).toEqual([1])
   })
   it('el histórico ya no cae en «Enviados»: tiene su propia casilla', () => {
@@ -212,6 +211,24 @@ describe('filtros combinados', () => {
   })
 })
 
+describe('tiendas', () => {
+  const filas = [
+    fila({ idFila: 1, canal: 'AMAZON', plataforma: 'AMZ' }), fila({ idFila: 2, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web A' }),
+    fila({ idFila: 3, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web B' }), fila({ idFila: 4, canal: null, estado: 'HISTORICO', editable: false }),
+    fila({ idFila: 5, canal: 'CANAL_NUEVO' }),
+  ]
+  it('solo las tiendas con filas, en orden y con su recuento; lo sin canal o desconocido, en «Histórico (otros)»', () => {
+    expect(tiendasPresentes(filas)).toEqual([
+      { valor: 'AMAZON', texto: 'AMZ', n: 1 }, { valor: 'DISTRIBUIDORES', texto: 'Fonestockroom', n: 2 }, { valor: 'OTROS', texto: 'Histórico (otros)', n: 2 },
+    ])
+  })
+  it('filtra por tienda y deja el nombre del cliente en la columna', () => {
+    const r = filtrarColumnas(filas, { ...SIN_FILTROS, plataformas: new Set(['DISTRIBUIDORES']) })
+    expect(r.map((f) => f.plataforma)).toEqual(['Cliente Web A', 'Cliente Web B'])
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, plataformas: new Set(['OTROS']) }).map((f) => f.idFila)).toEqual([4, 5])
+  })
+})
+
 describe('contadores', () => {
   it('cada contador aplica solo su filtro y se reconoce como aplicado', () => {
     for (const c of ['filas', 'pendientes', 'sinImei', 'noCuadran'] as const) expect(contadorAplicado(filtrosDeContador(c))).toBe(c)
@@ -220,7 +237,7 @@ describe('contadores', () => {
   })
   it('una combinación que no es la de ningún contador no marca ninguno; con algún filtro hay filtros', () => {
     expect(contadorAplicado({ ...SIN_FILTROS, soloSinImei: true, noCuadran: true })).toBeNull()
-    expect(contadorAplicado({ ...SIN_FILTROS, plataformas: new Set(['Web']) })).toBeNull()
+    expect(contadorAplicado({ ...SIN_FILTROS, plataformas: new Set(['PARTICULARES']) })).toBeNull()
     expect(hayFiltros(SIN_FILTROS)).toBe(false)
     expect(hayFiltros({ ...SIN_FILTROS, noCuadran: true })).toBe(true)
   })

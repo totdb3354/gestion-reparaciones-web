@@ -143,8 +143,32 @@ export function contadorAplicado(f: FiltrosColumna): Contador | null {
 
 export const hayFiltros = (f: FiltrosColumna): boolean => contadorAplicado(f) !== 'filas'
 
+/** Las tiendas del filtro de Plataforma (spec v2 §3.1), en este orden: el valor es el `canal` del ERP; `OTROS` son las filas del
+ *  histórico sin canal (y cualquier canal que la web aún no conozca). */
+export const TIENDAS: { valor: string; texto: string }[] = [
+  { valor: 'AMAZON', texto: 'AMZ' },
+  { valor: 'AMAZON_STOCKROOM', texto: 'FNSK' },
+  { valor: 'DISTRIBUIDORES', texto: 'Fonestockroom' },
+  { valor: 'PARTICULARES', texto: 'Fonestore' },
+  { valor: 'BACKIPHONE', texto: 'BackiPhone' },
+  { valor: 'OTROS', texto: 'Histórico (otros)' },
+]
+const VALORES_TIENDA = new Set(TIENDAS.map((t) => t.valor))
+
+/** La tienda de una fila: su canal, o `OTROS`. */
+export const tiendaDe = (f: FilaVista): string => (f.canal && VALORES_TIENDA.has(f.canal) ? f.canal : 'OTROS')
+
+export const textoTienda = (valor: string): string => TIENDAS.find((t) => t.valor === valor)?.texto ?? valor
+
+/** Las tiendas que tienen filas entre las recibidas, con su recuento (en una pasada). */
+export function tiendasPresentes(filas: FilaVista[]): { valor: string; texto: string; n: number }[] {
+  const n = new Map<string, number>()
+  for (const f of filas) { const t = tiendaDe(f); n.set(t, (n.get(t) ?? 0) + 1) }
+  return TIENDAS.filter((t) => n.has(t.valor)).map((t) => ({ ...t, n: n.get(t.valor) as number }))
+}
+
 /** Los valores distintos de una columna, ordenados. */
-export function valores(filas: FilaVista[], columna: 'plataforma' | 'sku'): string[] {
+export function valores(filas: FilaVista[], columna: 'sku' | 'plataforma'): string[] {
   return [...new Set(filas.map((f) => f[columna]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b, 'es'))
 }
 
@@ -166,11 +190,11 @@ export const OPCIONES_ENVIADO: { valor: EstadoFila; texto: string }[] = [
  *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
  *  con él, un array nuevo con los mismos objetos. */
 export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
-  const plataformas = vigente(f.plataformas, valores(filas, 'plataforma'))
+  const plataformas = vigente(f.plataformas, tiendasPresentes(filas).map((t) => t.valor))
   const skus = vigente(f.skus, valores(filas, 'sku'))
   if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0) return filas
   return filas.filter((x) =>
-    (plataformas.size === 0 || (x.plataforma != null && plataformas.has(x.plataforma)))
+    (plataformas.size === 0 || plataformas.has(tiendaDe(x)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || (x.editable && !x.imei))
     && (!f.noCuadran || noCuadra(x))

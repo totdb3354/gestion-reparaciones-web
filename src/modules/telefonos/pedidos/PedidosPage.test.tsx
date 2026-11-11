@@ -72,7 +72,7 @@ describe('Pedidos como la hoja: la tabla', () => {
     await screen.findByRole('button', { name: '9 filas' })
     const celda = (pedido: string) => screen.getByText(pedido).closest('tr')!.querySelectorAll('td')[5]
     // Visible sin ratón: etiqueta con el día y el mes, y tras ella transportista y seguimiento; además, el título.
-    expect(celda('402-0000000-0000011')).toHaveTextContent('Enviado 09/11UPS 1Z0000000000000001')
+    expect(celda('402-0000000-0000011')).toHaveTextContent('Enviado 09/11 UPS 1Z0000000000000001')
     expect(celda('402-0000000-0000011')).toHaveAttribute('title', 'UPS · 1Z0000000000000001')
     expect(celda('402-0000000-0000019').textContent).toBe('Enviado 09/11')
     expect(celda('402-0000000-0000019')).not.toHaveAttribute('title')

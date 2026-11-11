@@ -4,11 +4,12 @@ import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
 import { useFilas } from '../api'
 import { estadoPedidos, type EstadoPedidos } from './estado'
-import { FiltroColumna, FiltroEnviado, FiltroImei } from './FiltroColumna'
+import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './FiltroColumna'
+import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, recuento, valores, vigente, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, recuento, textoTienda, tiendasPresentes, valores, vigente, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -33,11 +34,11 @@ export function PedidosPage() {
   const todo = useMemo(() => rangoDe('todo', new Date()), [hoy]) // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useFilas(buscando ? { ...todo, buscar: aplicado.trim() } : { desde, hasta })
   const filas = useMemo(() => lista.data?.filas ?? [], [lista.data])
-  const plataformas = useMemo(() => valores(filas, 'plataforma'), [filas])
+  const tiendas = useMemo(() => tiendasPresentes(filas), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
   const filtros = useMemo<FiltrosColumna>(
-    () => ({ plataformas: vigente(e.plataformas, plataformas), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
-    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, plataformas, skus],
+    () => ({ plataformas: vigente(e.plataformas, tiendas.map((t) => t.valor)), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, tiendas, skus],
   )
   const filtrando = hayFiltros(filtros)
   const contadorPuesto = contadorAplicado(filtros)
@@ -46,6 +47,21 @@ export function PedidosPage() {
   const cuenta = useMemo(() => recuento(filas), [filas])
   const etiquetas = useMemo(() => etiquetasDe(filtros), [filtros])
   const sinCargar = lista.isError && !lista.data
+  // El panel enseña la fila elegida (por `idFila`); si ya no está entre las recibidas, se cierra.
+  const elegida = useMemo(() => (e.filaElegida === null ? null : filas.find((f) => f.idFila === e.filaElegida) ?? null), [filas, e.filaElegida])
+  const cerrarPanel = () => setE((s) => (s.filaElegida === null ? s : { ...s, filaElegida: null }))
+  useEffect(() => {
+    if (e.filaElegida !== null && lista.data && !lista.isPlaceholderData && !elegida) setE((s) => ({ ...s, filaElegida: null }))
+  }, [e.filaElegida, lista.data, lista.isPlaceholderData, elegida, setE])
+  // Escape cierra el panel, salvo que haya un desplegable o un diálogo abierto (que usan su propio Escape).
+  useEffect(() => {
+    if (!elegida) return
+    const alPulsar = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')) cerrarPanel()
+    }
+    window.addEventListener('keydown', alPulsar)
+    return () => window.removeEventListener('keydown', alPulsar)
+  })
   const poner = (f: Partial<FiltrosColumna>) => setE((s) => ({ ...s, ...f }))
   const quitarFiltros = () => setE((s) => ({ ...s, ...SIN_FILTROS, buscar: '' }))
   const CONTADORES: { id: Contador; texto: string; ayuda: string }[] = [
@@ -106,12 +122,15 @@ export function PedidosPage() {
         <p className="p-4 text-[12px] text-azul-gris">{buscando ? 'Ningún pedido coincide con la búsqueda.' : 'No hay pedidos en este periodo.'}</p>
       )}
       {filas.length > 0 && (
+        <div className="flex min-h-0 flex-1 gap-2.5">
         <TablaFilas filas={vistas} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
-          Plataforma: <FiltroColumna columna="Plataforma" valores={plataformas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
+          Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
           IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })} />,
         }} />
+        {elegida && <PanelFila fila={elegida} onCerrar={cerrarPanel} />}
+        </div>
       )}
       {filas.length > 0 && (
         <p className="mt-2 shrink-0 text-[11.5px] text-azul-gris">
@@ -128,7 +147,7 @@ type Etiqueta = { clave: string; texto: string; quitar: (s: EstadoPedidos) => Es
 function etiquetasDe(f: FiltrosColumna): Etiqueta[] {
   const sin = (conjunto: Set<string>, v: string) => { const n = new Set(conjunto); n.delete(v); return n }
   return [
-    ...[...f.plataformas].map((v) => ({ clave: `p:${v}`, texto: `Plataforma: ${v}`, quitar: (s: EstadoPedidos) => ({ ...s, plataformas: sin(s.plataformas, v) }) })),
+    ...[...f.plataformas].map((v) => ({ clave: `p:${v}`, texto: `Plataforma: ${textoTienda(v)}`, quitar: (s: EstadoPedidos) => ({ ...s, plataformas: sin(s.plataformas, v) }) })),
     ...[...f.skus].map((v) => ({ clave: `s:${v}`, texto: `SKU: ${v}`, quitar: (s: EstadoPedidos) => ({ ...s, skus: sin(s.skus, v) }) })),
     ...OPCIONES_ENVIADO.filter((o) => f.enviado.has(o.valor)).map((o) => ({ clave: `e:${o.valor}`, texto: o.texto, quitar: (s: EstadoPedidos) => ({ ...s, enviado: sin(s.enviado, o.valor) }) })),
     ...(f.soloSinImei ? [{ clave: 'sin', texto: 'Sin IMEI', quitar: (s: EstadoPedidos) => ({ ...s, soloSinImei: false }) }] : []),

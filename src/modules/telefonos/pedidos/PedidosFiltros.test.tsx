@@ -11,7 +11,7 @@ import { haceUnMes, rangoDe } from './filas'
 import { PedidosPage } from './PedidosPage'
 
 const MIXTAS = [
-  fila({ idFila: 1, plataforma: 'Amazon', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
+  fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
   fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
@@ -190,12 +190,12 @@ describe('Pedidos: filtros por columna', () => {
     const pedidas = urls.length
     await abrirFiltro(user, 'Plataforma')
     expect(screen.getByRole('checkbox', { name: 'Todos' })).toBeChecked()
-    await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
+    await user.click(screen.getByRole('checkbox', { name: /^AMZ/ }))
     expect(filasPintadas()).toBe(1)
     expect(screen.getByText('1 a la vista')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Filtrar Plataforma (filtro activo)' })).toBeInTheDocument()
     expect(urls).toHaveLength(pedidas)
-    await user.click(screen.getByRole('checkbox', { name: 'Web' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Fonestore/ }))
     expect(filasPintadas()).toBe(4)
   })
 
@@ -204,7 +204,7 @@ describe('Pedidos: filtros por columna', () => {
     abrir()
     await screen.findByRole('button', { name: '4 filas' })
     await abrirFiltro(user, 'Plataforma')
-    await user.click(screen.getByRole('checkbox', { name: 'Web' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Fonestore/ }))
     await user.keyboard('{Escape}')
     await abrirFiltro(user, 'SKU')
     await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
@@ -227,7 +227,7 @@ describe('Pedidos: filtros por columna', () => {
     abrir()
     await screen.findByRole('button', { name: '4 filas' })
     await abrirFiltro(user, 'Plataforma')
-    await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
+    await user.click(screen.getByRole('checkbox', { name: /^AMZ/ }))
     await user.keyboard('{Escape}')
     await abrirFiltro(user, 'SKU')
     await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
@@ -235,7 +235,7 @@ describe('Pedidos: filtros por columna', () => {
     expect(await screen.findByText(/Ningún pedido cumple los filtros de columna/)).toBeInTheDocument()
     expect(screen.getAllByRole('columnheader')).toHaveLength(7)
     await abrirFiltro(user, 'Plataforma (filtro activo)')
-    await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
+    await user.click(screen.getByRole('checkbox', { name: /^AMZ/ }))
     expect(screen.queryByText(/Ningún pedido cumple los filtros de columna/)).not.toBeInTheDocument()
     expect(filasPintadas()).toBe(2)
   })
@@ -316,7 +316,7 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
     fireEvent.change(buscador(), { target: { value: '3500' } })
     await waitFor(() => expect(ultima().searchParams.get('buscar')).toBe('3500'))
     await abrirFiltro(user, 'Plataforma')
-    await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
+    await user.click(screen.getByRole('checkbox', { name: /^AMZ/ }))
     await user.keyboard('{Escape}')
     primera.unmount()
     abrir()

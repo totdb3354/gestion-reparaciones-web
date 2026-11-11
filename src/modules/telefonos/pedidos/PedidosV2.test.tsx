@@ -12,7 +12,7 @@ import { PedidosPage } from './PedidosPage'
 // Pantalla v2 (parte 1): contadores pulsables, filtros como etiquetas, la caja delante y la raya azul.
 // 6 filas: pendientes 4 (1, 2, 4, 5), sin IMEI 2 (1, 4), no cuadran 1 (5), enviada 1 (3) e histórico 1 (6).
 const FILAS = [
-  fila({ idFila: 1, plataforma: 'Amazon', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
+  fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
   fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
@@ -82,11 +82,11 @@ describe('Pedidos v2: contadores pulsables', () => {
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Este año')
     fireEvent.change(buscador(), { target: { value: 'a' } }) // con un solo carácter no es búsqueda
     await abrirFiltro(user, 'Plataforma')
-    await user.click(screen.getByRole('checkbox', { name: 'Web' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Fonestore/ }))
     await user.keyboard('{Escape}')
-    expect(screen.getByRole('button', { name: 'Quitar filtro Plataforma: Web' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar filtro Plataforma: Fonestore' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '1 no cuadran' }))
-    expect(screen.queryByRole('button', { name: 'Quitar filtro Plataforma: Web' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Quitar filtro Plataforma: Fonestore' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Quitar filtro No cuadran' })).toBeInTheDocument()
     expect(buscador()).toHaveValue('a')
     expect(screen.getByLabelText('Periodo:')).toHaveValue('anio')
@@ -109,7 +109,7 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     abrir()
     await contador('6 filas')
     await abrirFiltro(user, 'Plataforma')
-    await user.click(screen.getByRole('checkbox', { name: 'Web' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Fonestore/ }))
     await user.keyboard('{Escape}')
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
@@ -119,15 +119,15 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Pendientes' }))
     await user.keyboard('{Escape}')
     const caja = buscador().parentElement!
-    for (const t of ['Plataforma: Web', 'Sin IMEI', 'No cuadran', 'Pendientes']) expect(caja).toHaveTextContent(t)
+    for (const t of ['Plataforma: Fonestore', 'Sin IMEI', 'No cuadran', 'Pendientes']) expect(caja).toHaveTextContent(t)
     await user.click(screen.getByRole('button', { name: 'Quitar filtro Sin IMEI' }))
     expect(screen.queryByRole('button', { name: 'Quitar filtro Sin IMEI' })).not.toBeInTheDocument()
-    for (const t of ['Plataforma: Web', 'No cuadran', 'Pendientes']) expect(screen.getByRole('button', { name: `Quitar filtro ${t}` })).toBeInTheDocument()
+    for (const t of ['Plataforma: Fonestore', 'No cuadran', 'Pendientes']) expect(screen.getByRole('button', { name: `Quitar filtro ${t}` })).toBeInTheDocument()
     expect(filasPintadas()).toBe(1) // Web + no cuadran + pendientes: solo la 5
     await user.click(screen.getByRole('button', { name: 'Quitar filtro No cuadran' }))
     expect(filasPintadas()).toBe(3) // Web pendientes: 2, 4 y 5
     await user.click(screen.getByRole('button', { name: 'Quitar filtro Pendientes' }))
-    await user.click(screen.getByRole('button', { name: 'Quitar filtro Plataforma: Web' }))
+    await user.click(screen.getByRole('button', { name: 'Quitar filtro Plataforma: Fonestore' }))
     expect(filasPintadas()).toBe(6)
     expect(screen.queryByRole('button', { name: 'Quitar filtros' })).not.toBeInTheDocument()
   })
@@ -214,6 +214,9 @@ describe('Pedidos v2: la caja delante y la raya azul', () => {
     await user.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(tr('402-0000000-0000021')).toHaveAttribute('data-aqui')
     expect(tr('402-0000000-0000021').querySelector('td')).toHaveClass('shadow-[inset_4px_0_0_#2f6fe0]')
+    // La raya es solo color: la celda del IMEI de esa fila lo dice también con texto, y solo esa.
+    expect(screen.getAllByText('Última fila abierta')).toHaveLength(1)
+    expect(tr('402-0000000-0000021')).toContainElement(screen.getByText('Última fila abierta'))
     await user.click(screen.getByRole('button', { name: /350000000000003/ }))
     expect(document.querySelectorAll('tr[data-aqui]')).toHaveLength(1)
     expect(tr('402-0000000-0000025')).toHaveAttribute('data-aqui')

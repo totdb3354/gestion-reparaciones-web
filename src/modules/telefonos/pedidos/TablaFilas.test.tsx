@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { fila } from '../test/fabrica'
+import { estadoPedidos } from './estado'
 import { TablaFilas } from './TablaFilas'
 
 // Cuenta cuántas veces se pinta la celda de cada fila: solo se pinta si se pinta su fila.
@@ -25,6 +26,7 @@ function Arnes() {
 
 beforeEach(() => {
   pintadas.clear()
+  estadoPedidos.reset()
   server.use(http.get('*/api/pedidos/filas/:id/recomendados', () => HttpResponse.json([])))
 })
 
@@ -41,5 +43,14 @@ describe('TablaFilas: no se repinta entera', () => {
     expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([3, 2, 1, 1])
     await user.click(screen.getByRole('button', { name: 'sondear' }))
     expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([3, 3, 2, 1])
+  })
+
+  it('elegir una fila (para el panel) repinta solo la que deja de estar elegida y la nueva', async () => {
+    const user = userEvent.setup()
+    renderConProviders(<Arnes />, { sesion: SESION_SUPER })
+    await user.click(screen.getByRole('button', { name: '402-0000000-0000001' }))
+    expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([2, 1, 1, 1])
+    await user.click(screen.getByRole('button', { name: '402-0000000-0000003' }))
+    expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([3, 1, 2, 1])
   })
 })

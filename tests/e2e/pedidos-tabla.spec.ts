@@ -127,6 +127,14 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   await expect(localizarCelda()).toContainText(imei)
   expect(pendiente, 'la web puso el IMEI con un PUT').not.toBeNull()
 
+  // El panel de la fila (al pulsar la celda «Pedido») enseña el cambio recién hecho; se cierra antes de quitar el IMEI.
+  await filas.filter({ has: page.locator('td:nth-child(5)', { hasText: celdaPedido(pedido) }) }).nth(orden).getByRole('cell').nth(4).click()
+  const detalle = page.getByRole('region', { name: 'Detalle del pedido' })
+  await expect(detalle).toBeVisible()
+  await expect(detalle).toContainText(`puso ${imei}`)
+  await detalle.getByRole('button', { name: 'Cerrar' }).click()
+  await expect(detalle).toBeHidden()
+
   // Lo quita desde la propia pantalla.
   await localizarCelda().getByRole('button').click()
   await page.getByRole('button', { name: 'Quitar el IMEI' }).click()
