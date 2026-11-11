@@ -61,8 +61,8 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
       <dl className="m-0 grid grid-cols-[104px_1fr] gap-x-2 gap-y-1.5 text-[12.5px]">
         <Dato nombre="Pedido">{f.pedido}</Dato>
         <Dato nombre="Estado"><EtiquetaEstado fila={f} estado={estado} conDetalle={false} /></Dato>
-        <Dato nombre="Tienda">{f.plataforma}</Dato>
-        <Dato nombre="Plataforma">{textoTienda(tiendaDe(f))}</Dato>
+        <Dato nombre="Tienda">{textoTienda(tiendaDe(f))}</Dato>
+        <Dato nombre="Plataforma">{f.plataforma}</Dato>
         <Dato nombre="SKU"><span className="font-mono text-[12px]">{f.sku}</span></Dato>
         <Dato nombre="Fecha">{dia(f.fecha)}</Dato>
         <Dato nombre="Fecha compra">{dia(f.fechaCompra)}</Dato>

@@ -95,6 +95,21 @@ describe('Pedidos v2: el panel de la fila', () => {
     expect(panel()).toBeNull()
   })
 
+  it('con el panel y el desplegable del IMEI abiertos, un Escape cierra el desplegable y el siguiente, el panel', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('Cliente Web A'))
+    expect(panel()).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    expect(screen.getByRole('textbox', { name: 'IMEI' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'IMEI' })).not.toBeInTheDocument())
+    expect(panel()).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(panel()).toBeNull()
+  })
+
   it('pulsar la celda del IMEI abre el desplegable y no el panel', async () => {
     const user = userEvent.setup()
     abrir()
@@ -111,6 +126,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     await esperar()
     await user.click(celda('Cliente Web A'))
     const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
+    expect(p.querySelector('dl')!.textContent).toMatch(/TiendaFonestockroom.*PlataformaCliente Web A/)
     for (const t of ['402-0000000-0000042', 'Cliente Web A', 'Fonestockroom', 'i13128AzulA', '09/11/2026', '08/11/2026', 'Pendiente', '350000000000011', 'i14128NegroA', 'CAJA LISTOS', 'otro modelo, capacidad o eSIM']) {
       expect(p).toHaveTextContent(t)
     }
@@ -149,7 +165,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     abrir()
     await esperar()
     await user.click(celda('Cliente Web A'))
-    expect(await screen.findByText('No se pudo cargar quién ha tocado el IMEI.', undefined, { timeout: 8000 })).toBeInTheDocument()
+    expect(await screen.findByText('No se pudo cargar quién ha tocado el IMEI.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
 

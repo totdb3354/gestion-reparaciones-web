@@ -53,14 +53,16 @@ export function PedidosPage() {
   useEffect(() => {
     if (e.filaElegida !== null && lista.data && !lista.isPlaceholderData && !elegida) setE((s) => ({ ...s, filaElegida: null }))
   }, [e.filaElegida, lista.data, lista.isPlaceholderData, elegida, setE])
-  // Escape cierra el panel, salvo que haya un desplegable o un diálogo abierto (que usan su propio Escape).
+  // Escape cierra el panel, pero un solo Escape cierra solo lo que esté encima (un desplegable o un diálogo de Radix). Se escucha en
+  // captura en `window`, que corre antes que el Escape de Radix (en `document`, también en captura): así se mira si hay algo encima
+  // antes de que Radix lo desmonte.
   useEffect(() => {
     if (!elegida) return
     const alPulsar = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')) cerrarPanel()
+      if (ev.key === 'Escape' && !document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')) cerrarPanel()
     }
-    window.addEventListener('keydown', alPulsar)
-    return () => window.removeEventListener('keydown', alPulsar)
+    window.addEventListener('keydown', alPulsar, true)
+    return () => window.removeEventListener('keydown', alPulsar, true)
   })
   const poner = (f: Partial<FiltrosColumna>) => setE((s) => ({ ...s, ...f }))
   const quitarFiltros = () => setE((s) => ({ ...s, ...SIN_FILTROS, buscar: '' }))
