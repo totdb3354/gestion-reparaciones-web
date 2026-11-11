@@ -4833,6 +4833,40 @@
         }
       }
     },
+    "/api/pedidos/filas/{id}/etiqueta" : {
+      "get" : {
+        "tags" : [ "etiqueta-fila-controller" ],
+        "operationId" : "etiqueta",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/pdf" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "502" : {
+            "description" : "Bad Gateway"
+          }
+        }
+      }
+    },
     "/api/pedidos/filas/{id}/cambios" : {
       "get" : {
         "tags" : [ "filas-controller" ],

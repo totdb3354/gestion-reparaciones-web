@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { CambioImei, FilaVista } from '@/shared/api/client'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { useCambiosImei } from '../api'
+import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
 import { estadoDe, estadoPantalla, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
 
@@ -71,6 +72,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
         {envio && f.transportista && <Dato nombre="Transportista">{nombreTransportista(f.transportista)}</Dato>}
         {envio && f.seguimiento && <Dato nombre="Seguimiento">{f.seguimiento}</Dato>}
       </dl>
+      {f.tieneEtiqueta && <PrevisualizarEtiqueta key={f.idFila} fila={f} />}
       <Titulo>El móvil</Titulo>
       {f.imei ? (
         <dl className="m-0 grid grid-cols-[104px_1fr] gap-x-2 gap-y-1.5 text-[12.5px]">

@@ -4,6 +4,7 @@ import {
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
+import { ApiError } from '@/shared/api/errors'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { guardarEn, nombreDeDescarga, type TipoFichero } from '@/shared/lib/descargas'
 import { hoyMadrid } from '@/shared/lib/fechas'
@@ -225,6 +226,35 @@ export function useCambiosImei(idFila: number | null): UseQueryResult<CambioImei
     meta: { sinCapa: true, silenciarError: true },
   })
 }
+
+/** GET /api/pedidos/filas/{id}/etiqueta: el PDF de la etiqueta de la fila, como Blob (sale con el token de la sesión como cualquier
+ *  llamada). Solo vive mientras el diálogo de previsualización está abierto (`gcTime` y `staleTime` a 0: no se guarda en la
+ *  caché más allá de eso) y un fallo se enseña dentro del diálogo, no en el global. El cliente descarta el cuerpo de los errores,
+ *  así que el texto sale del estado: 404 (sin etiqueta o fila que no existe) y 502 (ShippyPro no la dio); el resto lo dice el diálogo con su texto genérico. */
+export function useEtiquetaPdf(idFila: number): UseQueryResult<Blob> {
+  return useQuery({
+    queryKey: [...CLAVE_FILAS, 'etiqueta', idFila],
+    queryFn: async ({ signal }) => {
+      try {
+        const { data } = await api.GET('/api/pedidos/filas/{id}/etiqueta', { params: { path: { id: idFila } }, parseAs: 'blob', signal })
+        if (!data) throw new Error('El servidor no devolvió la etiqueta')
+        return data as Blob
+      } catch (e) {
+        const estado = e instanceof ApiError ? e.status : 0
+        if (estado === 404) throw new Error(MSG_ETIQUETA_SIN, { cause: e })
+        if (estado === 502) throw new Error(MSG_ETIQUETA_SHIPPYPRO, { cause: e })
+        throw e
+      }
+    },
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    meta: { sinCapa: true, silenciarError: true },
+  })
+}
+
+export const MSG_ETIQUETA_SIN = 'Este pedido no tiene etiqueta generada'
+export const MSG_ETIQUETA_SHIPPYPRO = 'No se pudo obtener la etiqueta de ShippyPro. Inténtalo de nuevo.'
 
 /** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila. `clave` va en la cabecera Idempotency-Key (la da
  *  el desplegable con crearClavesIdempotencia). Al responder, la fila devuelta se escribe en las listas de la caché para que la
