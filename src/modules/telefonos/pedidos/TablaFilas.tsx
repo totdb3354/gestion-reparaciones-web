@@ -3,7 +3,7 @@ import type { FilaVista } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
-import { COLUMNAS } from './filas'
+import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, tonoFila } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -14,7 +14,9 @@ type PropsFila = { fila: FilaVista; abierta: boolean; onAbrir: (idFila: number, 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian) y su `abierta` son los mismos. Las fechas se dan formato aquí dentro. */
 export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: PropsFila) {
-  const td = cn('h-8 border-r border-b border-form-fila-brd px-2.5 py-1 whitespace-nowrap', f.enviada && 'bg-[#fafbfc] text-[#8b93a1]')
+  const tono = tonoFila(f)
+  const td = cn('h-8 border-r border-b border-form-fila-brd px-2.5 py-1 whitespace-nowrap', tono && CLASE_TONO[tono])
+  const estado = estadoDe(f)
   return (
     <tr>
       <td className={td}>{dia(f.fecha)}</td>
@@ -22,13 +24,16 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: 
       <td className={cn(td, 'font-mono text-[12px]')}>{f.sku}</td>
       <CeldaImei fila={f} abierta={abierta} onAbrir={onAbrir} />
       <td className={td}>{f.pedido}</td>
+      <td className={td} title={estado === 'ENVIADA' ? detalleEnvio(f) : undefined}>
+        {estado === 'ENVIADA' ? dia(f.envioFecha) : estado === 'NO_PENDIENTE' ? 'Ya no está pendiente' : null}
+      </td>
       <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>
   )
 })
 
-/** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija y las enviadas en
- *  gris. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
+/** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, las enviadas y el
+ *  histórico en gris y las «ya no pendientes» en un tono suave. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
 export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: {
   filas: FilaVista[]
   /** Cuántas filas ha recibido la página (sin filtrar por columna): solo llegar filas nuevas baja al final, no filtrar. */
@@ -38,8 +43,8 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: 
   vacio?: ReactNode
 }) {
   const [abierta, setAbierta] = useState<number | null>(null)
-  // Si la fila abierta ya no se pinta (un filtro la esconde) o ya está enviada, se cierra: así no se reabre sola al quitar el filtro.
-  if (abierta !== null && !filas.some((f) => f.idFila === abierta && !f.enviada)) setAbierta(null)
+  // Si la fila abierta ya no se pinta (un filtro la esconde) o ya no se puede editar, se cierra: así no se reabre sola al quitar el filtro.
+  if (abierta !== null && !filas.some((f) => f.idFila === abierta && f.editable)) setAbierta(null)
   // Estable (para el `memo` de las filas). Cerrar una celda que ya no es la abierta no hace nada: el cierre tardío de la anterior
   // (foco, clic fuera) no puede cerrar la que acaba de abrirse.
   const cambiar = useCallback((id: number, abrir: boolean) => setAbierta((a) => (abrir ? id : a === id ? null : a)), [])

@@ -2601,7 +2601,12 @@ export interface components {
             pedido: string | null;
             /** Format: date */
             fechaCompra: string | null;
-            enviada: boolean;
+            estado: string;
+            editable: boolean;
+            /** Format: date-time */
+            envioFecha: string | null;
+            transportista: string | null;
+            seguimiento: string | null;
             nivel: string | null;
             motivo: string | null;
             skuMovil: string | null;

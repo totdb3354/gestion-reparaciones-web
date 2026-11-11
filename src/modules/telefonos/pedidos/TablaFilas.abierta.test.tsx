@@ -35,11 +35,11 @@ describe('TablaFilas: la celda abierta no se reabre sola', () => {
     expect(campo()).not.toBeInTheDocument()
   })
 
-  it('si la fila abierta pasa a enviada, se cierra y no se reabre al volver a estar sin enviar', async () => {
+  it('si la fila abierta deja de ser editable, se cierra y no se reabre al volver a serlo', async () => {
     const user = userEvent.setup()
     function Enviable() {
-      const [enviada, setEnviada] = useState(false)
-      return (<><button onClick={() => setEnviada((s) => !s)}>enviar</button><TablaFilas filas={[fila({ idFila: 1, enviada }), FILAS[1]]} /></>)
+      const [historica, setHistorica] = useState(false)
+      return (<><button onClick={() => setHistorica((s) => !s)}>enviar</button><TablaFilas filas={[fila({ idFila: 1, ...(historica ? { estado: 'HISTORICO', editable: false } : {}) }), FILAS[1]]} /></>)
     }
     renderConProviders(<Enviable />, { sesion: SESION_SUPER })
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])

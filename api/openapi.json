@@ -5325,7 +5325,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "caja", "enviada", "fecha", "fechaCompra", "idFila", "imei", "motivo", "nivel", "pedido", "plataforma", "sku", "skuMovil" ],
+        "required" : [ "caja", "editable", "envioFecha", "estado", "fecha", "fechaCompra", "idFila", "imei", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sku", "skuMovil", "transportista" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5356,8 +5356,24 @@
             "format" : "date",
             "nullable" : true
           },
-          "enviada" : {
+          "estado" : {
+            "type" : "string"
+          },
+          "editable" : {
             "type" : "boolean"
+          },
+          "envioFecha" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "transportista" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "seguimiento" : {
+            "type" : "string",
+            "nullable" : true
           },
           "nivel" : {
             "type" : "string",

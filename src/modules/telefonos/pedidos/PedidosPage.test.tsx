@@ -9,11 +9,15 @@ import { PedidosPage } from './PedidosPage'
 import { maquetarJsdom } from '@/test/layoutJsdom'
 
 const FILAS = [
-  fila({ idFila: 1, enviada: true, imei: '350000000000010', pedido: '402-0000000-0000011' }),
+  fila({ idFila: 1, estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', transportista: 'UPSv2', seguimiento: '1Z0000000000000001', imei: '350000000000010', pedido: '402-0000000-0000011' }),
   fila({ idFila: 2, pedido: '402-0000000-0000012', imei: '350000000000001', nivel: 'OK', caja: 'CAJA LISTOS' }),
   fila({ idFila: 3, pedido: '402-0000000-0000013' }),
   fila({ idFila: 4, pedido: '402-0000000-0000014', imei: '350000000000999', nivel: 'MAL', motivo: 'COLOR_O_GRADO', skuMovil: 'i14eSIM128RojoA', caja: 'CAJA LISTOS' }),
   fila({ idFila: 5, pedido: '402-0000000-0000015', imei: '350000000000002', nivel: 'AVISO', motivo: 'MS' }),
+  fila({ idFila: 6, estado: 'NO_PENDIENTE', pedido: '402-0000000-0000016', imei: '350000000000003', nivel: 'MAL', motivo: 'EN_OTRA_FILA' }),
+  fila({ idFila: 7, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000017', imei: '350000000000004', envioFecha: '2026-10-01T08:00:00' }),
+  fila({ idFila: 8, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000018' }),
+  fila({ idFila: 9, estado: 'ENVIADA', envioFecha: '2026-11-09T11:00:00', pedido: '402-0000000-0000019' }),
 ]
 
 let puts: { id: string; cuerpo: unknown }[] = []
@@ -39,16 +43,16 @@ beforeEach(() => {
 })
 
 const abrir = () => renderConProviders(<PedidosPage />, { sesion: SESION_SUPER, ruta: '/telefonos/pedidos' })
-const celdaVacia = async () => screen.findByRole('button', { name: /pulsa para poner el IMEI/ })
+const celdaVacia = async () => (await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ }))[0]
 const campo = () => screen.queryByRole('textbox', { name: 'IMEI' })
 
 describe('Pedidos como la hoja: la tabla', () => {
-  it('cabecera con el recuento y la tabla con sus seis columnas, sin letras ni número de fila', async () => {
+  it('cabecera con el recuento y la tabla con sus siete columnas, sin letras ni número de fila', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Pedidos' })).toBeInTheDocument()
-    expect(await screen.findByText('5 filas · 4 sin enviar · 1 sin IMEI')).toBeInTheDocument()
-    expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Fecha compra'])
-    expect(screen.getAllByRole('row')).toHaveLength(6)
+    expect(await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')).toBeInTheDocument()
+    expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'])
+    expect(screen.getAllByRole('row')).toHaveLength(10)
     expect(screen.getAllByText('09/11/2026').length).toBeGreaterThan(0)
   })
 
@@ -61,11 +65,57 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect(await celdaVacia()).toBeInTheDocument()
   })
 
-  it('una fila enviada no abre el desplegable', async () => {
+  it('«Enviado»: la fecha del envío con su transportista y seguimiento, «Ya no está pendiente», o nada', async () => {
+    abrir()
+    await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
+    const celda = (pedido: string) => screen.getByText(pedido).closest('tr')!.querySelectorAll('td')[5]
+    expect(celda('402-0000000-0000011')).toHaveTextContent('09/11/2026')
+    expect(celda('402-0000000-0000011')).toHaveAttribute('title', 'UPS · 1Z0000000000000001')
+    expect(celda('402-0000000-0000019')).toHaveTextContent('09/11/2026')
+    expect(celda('402-0000000-0000019')).not.toHaveAttribute('title')
+    expect(celda('402-0000000-0000016')).toHaveTextContent('Ya no está pendiente')
+    expect(celda('402-0000000-0000013')).toBeEmptyDOMElement()
+    // El histórico, aunque tenga fecha de envío, no la enseña.
+    expect(celda('402-0000000-0000017')).toBeEmptyDOMElement()
+  })
+
+  it('el tono de la fila: gris en enviada e histórico, suave en no pendiente, nada en pendiente', async () => {
+    abrir()
+    await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
+    const td = (pedido: string) => screen.getByText(pedido).closest('td')!
+    expect(td('402-0000000-0000011')).toHaveClass('bg-[#fafbfc]')
+    expect(td('402-0000000-0000017')).toHaveClass('bg-[#fafbfc]')
+    expect(td('402-0000000-0000016')).toHaveClass('bg-seleccion-suave')
+    expect(td('402-0000000-0000016')).not.toHaveClass('bg-[#fafbfc]')
+    expect(td('402-0000000-0000013').className).not.toMatch(/bg-/)
+  })
+
+  it('una fila enviada se edita: abre el desplegable con «Quitar el IMEI» y hace PUT', async () => {
     const user = userEvent.setup()
     abrir()
-    await user.click(await screen.findByText('350000000000010'))
+    await user.click(await screen.findByRole('button', { name: /350000000000010/ }))
+    expect(campo()).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Quitar el IMEI' }))
+    await waitFor(() => expect(puts).toEqual([{ id: '1', cuerpo: { imei: null } }]))
+  })
+
+  it('una enviada sin IMEI invita a ponerlo; una no pendiente con aviso lo enseña', async () => {
+    abrir()
+    const vacias = await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ })
+    expect(vacias).toHaveLength(2)
+    expect(screen.getByRole('button', { name: /350000000000003/ })).toHaveTextContent('ya está en otro pedido')
+  })
+
+  it('una fila del histórico es texto: sin botón, y sin invitación si no tiene IMEI', async () => {
+    const user = userEvent.setup()
+    abrir()
+    const conImei = await screen.findByText('350000000000004')
+    expect(conImei.closest('button')).toBeNull()
+    await user.click(conImei)
     expect(campo()).not.toBeInTheDocument()
+    const sinImei = screen.getByText('402-0000000-0000018').closest('tr')!.querySelectorAll('td')[3]
+    expect(sinImei).toBeEmptyDOMElement()
+    expect(screen.queryAllByText(/pulsa para poner el IMEI/)).toHaveLength(2)
   })
 
   it('sin filas, lo dice', async () => {
@@ -198,7 +248,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await user.type(campo() as HTMLElement, '3500000')
     server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: FILAS.map((f) => ({ ...f, plataforma: 'Plataforma Z' })), hayMas: false })))
     await queryClient.invalidateQueries()
-    await waitFor(() => expect(screen.getAllByText('Plataforma Z').length).toBe(5))
+    await waitFor(() => expect(screen.getAllByText('Plataforma Z').length).toBe(9))
     expect(campo()).toHaveValue('3500000')
   })
 })

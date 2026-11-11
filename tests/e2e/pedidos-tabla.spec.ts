@@ -2,14 +2,14 @@ import { expect, test, type Page } from '@playwright/test'
 import { credenciales } from './credenciales.ts'
 
 // pedidos-tabla.spec.ts (0.9.32, spec «Pedidos como la hoja»): el técnico no tiene «Pedidos» en Teléfonos (ni en la columna, ni por
-// URL, ni por la API) y el supertécnico ve la hoja con sus seis columnas y puede poner un IMEI recomendado en una fila viva sin IMEI.
+// URL, ni por la API) y el supertécnico ve la hoja con sus siete columnas y puede poner un IMEI recomendado en una fila viva sin IMEI.
 // Esa prueba ESCRIBE un IMEI y lo QUITA al terminar (también si falla a mitad o se pasa de tiempo): la limpieza está en un
 // `afterEach` (que corre incluso tras un timeout), va por la API con el token de la sesión y un contexto de peticiones propio
 // (sin depender de la página ni de los fixtures de la prueba) y se comprueba que respondió 2xx. No apunta ningún IMEI,
 // pedido ni cliente en el código: todo se lee de la pantalla.
 // Como todas las E2E, solo contra PREPRODUCCIÓN: se niega a seguir sin el letrero.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
-const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Fecha compra']
+const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra']
 
 async function entrar(page: Page, usuario: string, clave: string) {
   await page.goto('/login')
@@ -85,11 +85,14 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   const textos = (await cabeceras.allTextContents()).map((t) => t.trim())
   COLUMNAS.forEach((c, i) => expect(textos[i], `cabecera ${i + 1}`).toBe(c))
 
-  // Las filas vivas (celda de IMEI pulsable) sin IMEI.
+  // Las filas pendientes (su celda «Enviado» vacía: ni enviada ni «Ya no está pendiente») con el IMEI pulsable y sin poner: así
+  // la prueba nunca escribe en una fila ya enviada.
   const filas = hoja.locator('tbody tr')
-  const sinImei = filas.filter({ has: page.locator('button:not([disabled])', { hasText: 'pulsa para poner el IMEI…' }) })
+  const sinImei = filas
+    .filter({ has: page.locator('td:nth-child(6):empty') })
+    .filter({ has: page.locator('button:not([disabled])', { hasText: 'pulsa para poner el IMEI…' }) })
   const cuantas = await sinImei.count()
-  test.skip(cuantas === 0, 'no hay ninguna fila viva sin IMEI en Pedidos en el último mes: no se puede probar el IMEI recomendado')
+  test.skip(cuantas === 0, 'no hay ninguna fila viva pendiente sin IMEI en Pedidos en el último mes: no se puede probar el IMEI recomendado')
   // Las filas se recuerdan por el texto de su «Pedido» (solo en variables) y su orden entre las filas con ese mismo pedido, no por
   // su posición en la tabla: si llegan o se quitan filas, se vuelven a localizar igual.
   const candidatas = await sinImei.evaluateAll((trs) => trs.slice(0, 8).map((tr) => {

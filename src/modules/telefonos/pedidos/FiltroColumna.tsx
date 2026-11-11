@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ListFilter } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from '@/shared/ui/checkbox'
+import { OPCIONES_ENVIADO } from './filas'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 
 /** Con más valores que estos, el desplegable lleva una caja para acortar la lista (el SKU puede tener cientos). */
@@ -62,7 +63,19 @@ export function FiltroColumna({ columna, valores, seleccion, onChange }: PropsVa
   )
 }
 
-/** El filtro de IMEI: «Solo sin IMEI» deja las filas sin enviar y sin IMEI. */
+/** El filtro de «Enviado»: Pendientes, Enviados y Ya no pendientes (sin ninguna marcada, no filtra). */
+export function FiltroEnviado({ seleccion, onChange }: { seleccion: Set<string>; onChange: (s: Set<string>) => void }) {
+  return (
+    <Marco columna="Enviado" activo={seleccion.size > 0}>
+      {OPCIONES_ENVIADO.map((o) => (
+        <Casilla key={o.valor} marcada={seleccion.has(o.valor)} texto={o.texto}
+          onCambio={(m) => { const s = new Set(seleccion); if (m) s.add(o.valor); else s.delete(o.valor); onChange(s) }} />
+      ))}
+    </Marco>
+  )
+}
+
+/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también). */
 export function FiltroSinImei({ activo, onChange }: { activo: boolean; onChange: (a: boolean) => void }) {
   return (
     <Marco columna="IMEI" activo={activo}>

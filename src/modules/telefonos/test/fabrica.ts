@@ -154,7 +154,8 @@ export function filaCaja(p: Partial<FilaCajaNsys> = {}): FilaCajaNsys {
 export function fila(p: Partial<FilaVista> = {}): FilaVista {
   return {
     idFila: 1, fecha: '2026-11-09', plataforma: 'Plataforma A', sku: 'i13128AzulA', imei: null, pedido: '402-0000000-0000001',
-    fechaCompra: '2026-11-08', enviada: false, nivel: null, motivo: null, skuMovil: null, caja: null, ...p,
+    fechaCompra: '2026-11-08', estado: 'PENDIENTE', editable: true, envioFecha: null, transportista: null, seguimiento: null,
+    nivel: null, motivo: null, skuMovil: null, caja: null, ...p,
   }
 }
 

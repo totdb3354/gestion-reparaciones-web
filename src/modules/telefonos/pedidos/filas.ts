@@ -2,7 +2,7 @@ import type { FilaVista } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
 
 /** Las columnas de la tabla, con los nombres de la hoja (sin letras). */
-export const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Fecha compra'] as const
+export const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'] as const
 
 /** Lo que cada recomendado dice de sí mismo respecto al pedido (nivel 1 = el mejor). */
 export const TEXTO_NIVEL: Record<1 | 2 | 3, string> = {
@@ -29,19 +29,53 @@ export function textoMotivo(f: FilaVista): string | null {
   }
 }
 
-/** Cómo se pinta la celda del IMEI: enviada (gris), vacía, o por el nivel que dice el servidor. */
-export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'aviso' | 'mal' | 'enviada' {
-  if (f.enviada) return 'enviada'
+/** El estado de una fila que calcula el servidor (el contrato lo tipa como texto). */
+export type EstadoFila = 'PENDIENTE' | 'ENVIADA' | 'NO_PENDIENTE' | 'HISTORICO'
+
+export const estadoDe = (f: FilaVista): EstadoFila => f.estado as EstadoFila
+
+/** El transportista como lo lee el usuario: sin el sufijo técnico de ShippyPro («UPSv2» → «UPS», «GLSSpain» → «GLS»). */
+export const nombreTransportista = (t: string): string => t.replace(/(v2|Spain)$/, '')
+
+/** Lo que dice el título de la celda «Enviado»: «transportista · seguimiento», o lo que haya de los dos; sin nada, undefined. */
+export function detalleEnvio(f: FilaVista): string | undefined {
+  const partes = [f.transportista ? nombreTransportista(f.transportista) : null, f.seguimiento].filter((x): x is string => !!x)
+  return partes.length > 0 ? partes.join(' · ') : undefined
+}
+
+/** El tono de toda la fila: gris solo en las enviadas y el histórico; las «ya no pendientes» llevan uno más suave (y su texto);
+ *  las pendientes, ninguno. */
+export function tonoFila(f: FilaVista): 'gris' | 'suave' | null {
+  switch (estadoDe(f)) {
+    case 'ENVIADA':
+    case 'HISTORICO': return 'gris'
+    case 'NO_PENDIENTE': return 'suave'
+    default: return null
+  }
+}
+
+/** Las clases del fondo (y el texto) de cada tono. El suave es `seleccion-suave`, el azul pálido de las selecciones: ni gris ni
+ *  el ámbar y el naranja de los avisos del IMEI. */
+export const CLASE_TONO: Record<'gris' | 'suave', string> = {
+  gris: 'bg-[#fafbfc] text-[#8b93a1]',
+  suave: 'bg-seleccion-suave',
+}
+
+/** Cómo se pinta la celda del IMEI: vacía, o por el nivel que dice el servidor (solo lo manda en pendientes y no pendientes). */
+export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'aviso' | 'mal' {
   if (!f.imei) return 'vacia'
   if (f.nivel === 'AVISO') return 'aviso'
   if (f.nivel === 'MAL') return 'mal'
   return 'ok'
 }
 
-/** El contador de la cabecera: todas las filas, las sin enviar y, de estas, las que aún no tienen IMEI. */
-export function recuento(filas: FilaVista[]): { total: number; sinEnviar: number; sinImei: number } {
-  const vivas = filas.filter((f) => !f.enviada)
-  return { total: filas.length, sinEnviar: vivas.length, sinImei: vivas.filter((f) => !f.imei).length }
+/** El contador de la cabecera: todas las filas, las pendientes y las editables que aún no tienen IMEI (enviadas incluidas). */
+export function recuento(filas: FilaVista[]): { total: number; pendientes: number; sinImei: number } {
+  return {
+    total: filas.length,
+    pendientes: filas.filter((f) => estadoDe(f) === 'PENDIENTE').length,
+    sinImei: filas.filter((f) => f.editable && !f.imei).length,
+  }
 }
 
 /** El día de hace `n` meses respecto de `hoy` (`YYYY-MM-DD`): el mismo día de ese mes, o el último si no existe (31 de marzo
@@ -69,7 +103,7 @@ export function rangoDe(p: Periodo, hoy: Date, rango?: { desde: string; hasta: s
   }
 }
 
-export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean }
+export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; enviado: Set<string> }
 
 /** Los valores distintos de una columna, ordenados. */
 export function valores(filas: FilaVista[], columna: 'plataforma' | 'sku'): string[] {
@@ -82,16 +116,25 @@ export function vigente(elegidos: Set<string>, disponibles: string[]): Set<strin
   return new Set([...elegidos].filter((v) => hay.has(v)))
 }
 
+/** Las opciones del filtro «Enviado»; el histórico cuenta como «ENVIADA» (es historia cerrada). */
+export const OPCIONES_ENVIADO: { valor: 'PENDIENTE' | 'ENVIADA' | 'NO_PENDIENTE'; texto: string }[] = [
+  { valor: 'PENDIENTE', texto: 'Pendientes' },
+  { valor: 'ENVIADA', texto: 'Enviados' },
+  { valor: 'NO_PENDIENTE', texto: 'Ya no pendientes' },
+]
+const grupoEnviado = (f: FilaVista): string => (estadoDe(f) === 'HISTORICO' ? 'ENVIADA' : estadoDe(f))
+
 /** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
- *  filas sin enviar y sin IMEI. Sin filtro devuelve las mismas filas; con él, un array nuevo con los mismos objetos. */
+ *  filas editables sin IMEI (las enviadas también). Sin filtro devuelve las mismas filas; con él, un array nuevo con los mismos objetos. */
 export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
   const plataformas = vigente(f.plataformas, valores(filas, 'plataforma'))
   const skus = vigente(f.skus, valores(filas, 'sku'))
-  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei) return filas
+  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && f.enviado.size === 0) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || (x.plataforma != null && plataformas.has(x.plataforma)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
-    && (!f.soloSinImei || (!x.enviada && !x.imei)))
+    && (!f.soloSinImei || (x.editable && !x.imei))
+    && (f.enviado.size === 0 || f.enviado.has(grupoEnviado(x))))
 }
 
 /** Un rango con las dos fechas puestas y en orden. */

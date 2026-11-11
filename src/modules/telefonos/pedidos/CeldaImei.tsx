@@ -4,7 +4,7 @@ import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { cn } from '@/shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { usePonerImei, useRecomendados } from '../api'
-import { TEXTO_NIVEL, claseCelda, textoMotivo } from './filas'
+import { CLASE_TONO, TEXTO_NIVEL, claseCelda, textoMotivo, tonoFila } from './filas'
 
 const FONDO: Record<string, string> = {
   aviso: 'bg-form-agotado-bg',
@@ -18,8 +18,8 @@ const NIVEL: Record<1 | 2 | 3, string> = {
 
 type Props = { fila: FilaVista; abierta: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
 
-/** La única celda editable de la tabla (spec «Pedidos como la hoja» §3.1): el IMEI de la fila, con su motivo o su caja. Al
- *  pulsarla (si la fila no está enviada) se abre el desplegable con el campo, los recomendados y «Quitar el IMEI». El
+/** La única celda editable de la tabla (spec «Pedidos como la hoja» §3.1 y 6 bis): el IMEI de la fila, con su motivo o su caja.
+ *  Al pulsarla (si la fila es editable: todas menos el histórico, enviadas incluidas) se abre el desplegable con el campo, los recomendados y «Quitar el IMEI». El
  *  desplegable es el Popover del proyecto (portal anclado a la celda): no lo recorta el scroll de la tabla, se coloca arriba
  *  si abajo no cabe y acompaña a su celda cuando la tabla se desplaza. Escape y el clic fuera lo cierran (lo hace Radix, que
  *  además devuelve el foco a la celda). */
@@ -27,20 +27,23 @@ export function CeldaImei({ fila, abierta, onAbrir }: Props) {
   const clase = claseCelda(fila)
   const motivo = textoMotivo(fila)
   const boton = (
-    <button type="button" disabled={clase === 'enviada'}
-      className={cn('flex min-h-8 w-full items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px]',
-        clase === 'enviada' ? 'cursor-default' : 'cursor-pointer hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
+    <button type="button"
+      className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
         clase === 'vacia' && 'font-sans italic text-texto-sub')}>
       {fila.imei ?? 'pulsa para poner el IMEI…'}
-      {clase !== 'enviada' && motivo && (
+      {motivo && (
         <span className={cn('font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
       )}
-      {clase !== 'enviada' && !motivo && fila.caja && <span className="font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
+      {!motivo && fila.caja && <span className="font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
   )
+  const tono = tonoFila(fila)
   return (
-    <td className={cn('min-w-[290px] p-0', FONDO[clase])}>
-      {clase === 'enviada' ? boton : (
+    <td className={cn('min-w-[290px] p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]))}>
+      {!fila.editable ? (
+        // Sin edición (el histórico): solo el texto; sin IMEI, la celda queda vacía, sin invitar a ponerlo.
+        fila.imei && <span className="flex min-h-8 items-center px-2.5 py-1 font-mono text-[12.5px]">{fila.imei}</span>
+      ) : (
         <Popover open={abierta} onOpenChange={(o) => onAbrir(fila.idFila, o)}>
           <PopoverTrigger asChild>{boton}</PopoverTrigger>
           <PopoverContent align="start" sideOffset={2} collisionPadding={8} hideWhenDetached aria-label="Poner el IMEI"

@@ -4,7 +4,7 @@ import { useStore } from '@/shared/lib/store'
 import { PildoraContador } from '@/shared/ui/PildoraContador'
 import { useFilas } from '../api'
 import { estadoPedidos } from './estado'
-import { FiltroColumna, FiltroSinImei } from './FiltroColumna'
+import { FiltroColumna, FiltroEnviado, FiltroSinImei } from './FiltroColumna'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas } from './TablaFilas'
@@ -36,21 +36,21 @@ export function PedidosPage() {
   const plataformas = useMemo(() => valores(filas, 'plataforma'), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
   const filtros = useMemo(
-    () => ({ plataformas: vigente(e.plataformas, plataformas), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei }),
-    [e.plataformas, e.skus, e.soloSinImei, plataformas, skus],
+    () => ({ plataformas: vigente(e.plataformas, plataformas), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, enviado: e.enviado }),
+    [e.plataformas, e.skus, e.soloSinImei, e.enviado, plataformas, skus],
   )
-  const filtrando = filtros.plataformas.size > 0 || filtros.skus.size > 0 || filtros.soloSinImei
+  const filtrando = filtros.plataformas.size > 0 || filtros.skus.size > 0 || filtros.soloSinImei || filtros.enviado.size > 0
   const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
-  const { total, sinEnviar, sinImei } = recuento(filas)
+  const { total, pendientes, sinImei } = recuento(filas)
   const sinCargar = lista.isError && !lista.data
-  const quitarFiltros = () => setE((s) => ({ ...s, plataformas: new Set(), skus: new Set(), soloSinImei: false }))
+  const quitarFiltros = () => setE((s) => ({ ...s, plataformas: new Set(), skus: new Set(), soloSinImei: false, enviado: new Set() }))
 
   return (
     <div className="flex h-[calc(100vh-var(--spacing-navbar))] flex-col p-10 max-[1500px]:p-5">
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-azul-medio">Pedidos</h1>
         {lista.data && (
-          <PildoraContador texto={`${total} filas · ${sinEnviar} sin enviar · ${sinImei} sin IMEI${filtrando ? ` · ${vistas.length} a la vista` : ''}`} />
+          <PildoraContador texto={`${total} filas · ${pendientes} pendientes · ${sinImei} sin IMEI${filtrando ? ` · ${vistas.length} a la vista` : ''}`} />
         )}
         <PildoraFuentes />
         {filtrando && (
@@ -83,12 +83,13 @@ export function PedidosPage() {
         <TablaFilas filas={vistas} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroColumna columna="Plataforma" valores={plataformas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
+          Enviado: <FiltroEnviado seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
           IMEI: <FiltroSinImei activo={filtros.soloSinImei} onChange={(soloSinImei) => setE((s) => ({ ...s, soloSinImei }))} />,
         }} />
       )}
       {filas.length > 0 && (
         <p className="mt-2 shrink-0 text-[11.5px] text-azul-gris">
-          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo); en gris, ya enviado.
+          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo); en gris, ya enviado (o del histórico); en azul pálido, «Ya no está pendiente». El IMEI se puede poner, cambiar o quitar también en las enviadas; el histórico no se edita.
         </p>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { COLUMNAS, TEXTO_NIVEL, claseCelda, filtrarColumnas, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
+import { COLUMNAS, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -29,9 +29,12 @@ describe('textoMotivo', () => {
 })
 
 describe('claseCelda', () => {
-  it('enviada gana, con o sin IMEI', () => {
-    expect(claseCelda(fila({ enviada: true }))).toBe('enviada')
-    expect(claseCelda(fila({ enviada: true, imei: '350000000000001', nivel: 'MAL' }))).toBe('enviada')
+  it('el aviso sale siempre que el servidor mande nivel, también en una no pendiente', () => {
+    expect(claseCelda(fila({ estado: 'NO_PENDIENTE', imei: '350000000000001', nivel: 'MAL' }))).toBe('mal')
+  })
+  it('una enviada con IMEI y sin nivel es normal, sin aviso ni caja', () => {
+    expect(claseCelda(fila({ estado: 'ENVIADA', imei: '350000000000001' }))).toBe('ok')
+    expect(claseCelda(fila({ estado: 'ENVIADA' }))).toBe('vacia')
   })
   it('sin IMEI, vacía', () => expect(claseCelda(fila())).toBe('vacia'))
   it('por nivel', () => {
@@ -44,18 +47,19 @@ describe('claseCelda', () => {
 })
 
 describe('recuento', () => {
-  it('cuenta total, sin enviar y sin IMEI (solo entre las sin enviar)', () => {
+  it('cuenta total, pendientes y sin IMEI (entre las editables, enviadas incluidas; el histórico no)', () => {
     const filas = [
-      fila({ idFila: 1, enviada: true }), fila({ idFila: 2, imei: '350000000000001' }), fila({ idFila: 3 }), fila({ idFila: 4 }),
+      fila({ idFila: 1, estado: 'ENVIADA' }), fila({ idFila: 2, imei: '350000000000001' }), fila({ idFila: 3 }),
+      fila({ idFila: 4, estado: 'NO_PENDIENTE' }), fila({ idFila: 5, estado: 'HISTORICO', editable: false }),
     ]
-    expect(recuento(filas)).toEqual({ total: 4, sinEnviar: 3, sinImei: 2 })
+    expect(recuento(filas)).toEqual({ total: 5, pendientes: 2, sinImei: 3 })
   })
-  it('vacío', () => expect(recuento([])).toEqual({ total: 0, sinEnviar: 0, sinImei: 0 }))
+  it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0 }))
 })
 
 describe('constantes', () => {
   it('columnas y textos de nivel', () => {
-    expect([...COLUMNAS]).toEqual(['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Fecha compra'])
+    expect([...COLUMNAS]).toEqual(['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'])
     expect(TEXTO_NIVEL[3]).toBe('hay que transformarlo')
   })
 })
@@ -111,10 +115,10 @@ describe('valores y filtrarColumnas', () => {
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', sku: 'b2' }),
     fila({ idFila: 2, plataforma: 'Amazon', sku: 'a1', imei: '350000000000001' }),
-    fila({ idFila: 3, plataforma: 'Web', sku: 'a1', enviada: true }),
+    fila({ idFila: 3, plataforma: 'Web', sku: 'a1', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
   ]
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, enviado: new Set<string>() }
   it('valores: distintos y ordenados', () => {
     expect(valores(filas, 'plataforma')).toEqual(['Amazon', 'Web'])
     expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
@@ -128,8 +132,21 @@ describe('valores y filtrarColumnas', () => {
     expect(r[0]).toBe(filas[0])
     expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']), skus: new Set(['a1', 'c3']) }).map((f) => f.idFila)).toEqual([3, 4])
   })
-  it('solo sin IMEI: sin enviar y sin IMEI', () => {
-    expect(filtrarColumnas(filas, { ...vacio, soloSinImei: true }).map((f) => f.idFila)).toEqual([1])
+  it('solo sin IMEI: editables sin IMEI, enviadas incluidas; el histórico no', () => {
+    const con = [...filas, fila({ idFila: 5, estado: 'HISTORICO', editable: false })]
+    expect(filtrarColumnas(con, { ...vacio, soloSinImei: true }).map((f) => f.idFila)).toEqual([1, 3])
+  })
+  it('por «Enviado»: pendientes, enviados (el histórico cuenta como enviado) y ya no pendientes', () => {
+    const con = [
+      fila({ idFila: 1 }), fila({ idFila: 2, estado: 'ENVIADA' }), fila({ idFila: 3, estado: 'NO_PENDIENTE' }),
+      fila({ idFila: 4, estado: 'HISTORICO', editable: false }),
+    ]
+    const ids = (e: string[]) => filtrarColumnas(con, { ...vacio, enviado: new Set(e) }).map((f) => f.idFila)
+    expect(ids([])).toEqual([1, 2, 3, 4])
+    expect(ids(['PENDIENTE'])).toEqual([1])
+    expect(ids(['ENVIADA'])).toEqual([2, 4])
+    expect(ids(['NO_PENDIENTE'])).toEqual([3])
+    expect(ids(['PENDIENTE', 'NO_PENDIENTE'])).toEqual([1, 3])
   })
   it('un valor elegido que ya no existe se ignora', () => {
     expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta']) })).toEqual(filas)
@@ -137,5 +154,28 @@ describe('valores y filtrarColumnas', () => {
   })
   it('vigente: la seleccion que sigue existiendo', () => {
     expect([...vigente(new Set(['a', 'x']), ['a', 'b'])]).toEqual(['a'])
+  })
+})
+
+describe('envío', () => {
+  it('el transportista sin el sufijo técnico', () => {
+    expect(nombreTransportista('UPSv2')).toBe('UPS')
+    expect(nombreTransportista('GLSSpain')).toBe('GLS')
+    expect(nombreTransportista('Correos')).toBe('Correos')
+  })
+  it('detalle: transportista y seguimiento, lo que haya, o nada', () => {
+    expect(detalleEnvio(fila({ transportista: 'UPSv2', seguimiento: '1Z0000000000000001' }))).toBe('UPS · 1Z0000000000000001')
+    expect(detalleEnvio(fila({ transportista: 'GLSSpain' }))).toBe('GLS')
+    expect(detalleEnvio(fila({ seguimiento: 'ABC' }))).toBe('ABC')
+    expect(detalleEnvio(fila())).toBeUndefined()
+  })
+})
+
+describe('tonoFila', () => {
+  it('gris solo enviada e histórico; la no pendiente, su tono; la pendiente, ninguno', () => {
+    expect(tonoFila(fila({ estado: 'ENVIADA' }))).toBe('gris')
+    expect(tonoFila(fila({ estado: 'HISTORICO', editable: false }))).toBe('gris')
+    expect(tonoFila(fila({ estado: 'NO_PENDIENTE' }))).toBe('suave')
+    expect(tonoFila(fila())).toBeNull()
   })
 })

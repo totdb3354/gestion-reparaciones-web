@@ -12,8 +12,10 @@ export type EstadoPedidos = {
   plataformas: Set<string>
   skus: Set<string>
   soloSinImei: boolean
+  /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `ENVIADA`, `NO_PENDIENTE`); vacío = todos. */
+  enviado: Set<string>
 }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, enviado: new Set(),
 })

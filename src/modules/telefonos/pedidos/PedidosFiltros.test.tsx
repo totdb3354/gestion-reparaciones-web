@@ -13,10 +13,10 @@ import { PedidosPage } from './PedidosPage'
 const MIXTAS = [
   fila({ idFila: 1, plataforma: 'Amazon', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
-  fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', enviada: true, imei: '350000000000002', pedido: '402-0000000-0000023' }),
+  fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
 ]
-const CONTADOR = '4 filas · 3 sin enviar · 2 sin IMEI'
+const CONTADOR = '4 filas · 3 pendientes · 2 sin IMEI'
 
 let urls: URL[] = []
 let respuesta: { filas: typeof MIXTAS; hayMas: boolean } = { filas: MIXTAS, hayMas: false }
@@ -234,21 +234,42 @@ describe('Pedidos: filtros por columna', () => {
     await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
     await user.keyboard('{Escape}')
     expect(await screen.findByText(/Ningún pedido cumple los filtros de columna/)).toBeInTheDocument()
-    expect(screen.getAllByRole('columnheader')).toHaveLength(6)
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7)
     await abrirFiltro(user, 'Plataforma (filtro activo)')
     await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
     expect(screen.queryByText(/Ningún pedido cumple los filtros de columna/)).not.toBeInTheDocument()
     expect(filasPintadas()).toBe(2)
   })
 
-  it('«Solo sin IMEI» deja las filas sin enviar y sin IMEI', async () => {
+  it('«Solo sin IMEI» deja las filas editables sin IMEI, las enviadas también', async () => {
     const user = userEvent.setup()
+    respuesta = { filas: [...MIXTAS, fila({ idFila: 5, estado: 'ENVIADA', pedido: '402-0000000-0000025' }), fila({ idFila: 6, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000026' })], hayMas: false }
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByText('6 filas · 3 pendientes · 3 sin IMEI')
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
+    expect(filasPintadas()).toBe(3)
+    expect(screen.getByText(/· 3 a la vista/)).toBeInTheDocument()
+  })
+
+  it('el filtro de «Enviado» tiene Pendientes, Enviados y Ya no pendientes, y se recuerda', async () => {
+    const user = userEvent.setup()
+    respuesta = { filas: [...MIXTAS, fila({ idFila: 5, estado: 'NO_PENDIENTE', pedido: '402-0000000-0000025' }), fila({ idFila: 6, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000026' })], hayMas: false }
+    const primera = abrir()
+    await screen.findByText('6 filas · 3 pendientes · 3 sin IMEI')
+    await abrirFiltro(user, 'Enviado')
+    await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
     expect(filasPintadas()).toBe(2)
-    expect(screen.getByText(/· 2 a la vista/)).toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: 'Ya no pendientes' }))
+    expect(filasPintadas()).toBe(3)
+    await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
+    expect(filasPintadas()).toBe(1)
+    await user.click(screen.getByRole('checkbox', { name: 'Pendientes' }))
+    expect(filasPintadas()).toBe(4)
+    await user.keyboard('{Escape}')
+    primera.unmount()
+    abrir()
+    expect(await screen.findByText('6 filas · 3 pendientes · 3 sin IMEI · 4 a la vista')).toBeInTheDocument()
   })
 
   it('«Quitar filtros» los quita todos y desaparece', async () => {
@@ -271,7 +292,7 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
     const user = userEvent.setup()
     respuesta = { filas: [MIXTAS[2]], hayMas: false }
     abrir()
-    await screen.findByText('1 filas · 0 sin enviar · 0 sin IMEI')
+    await screen.findByText('1 filas · 0 pendientes · 0 sin IMEI')
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
     expect(await screen.findByText(/Ningún pedido cumple los filtros de columna/)).toBeInTheDocument()
