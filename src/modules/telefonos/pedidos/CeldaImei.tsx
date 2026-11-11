@@ -27,19 +27,19 @@ export function CeldaImei({ fila, abierta, marcada, elegida, onAbrir }: Props) {
   const clase = claseCelda(fila)
   const motivo = textoMotivo(fila)
   const boton = (
-    <button type="button"
+    <button type="button" title={[fila.imei ?? 'pulsa para poner el IMEI…', motivo ?? fila.caja].filter(Boolean).join(' · ')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
         clase === 'vacia' && 'font-sans italic text-texto-sub')}>
-      {fila.imei ?? 'pulsa para poner el IMEI…'}
+      <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>
       {motivo && (
-        <span className={cn('font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
+        <span className={cn('min-w-0 truncate font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
       )}
-      {!motivo && fila.caja && <span className="font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
+      {!motivo && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
   )
   const tono = tonoFila(fila)
   return (
-    <td data-imei className={cn('min-w-[290px] p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]),
+    <td data-imei className={cn('overflow-hidden p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]),
       elegida && 'shadow-[inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]')}>
       {/* La raya azul es solo color: este texto la dice a quien no la ve. */}
       {marcada && <span className="sr-only">Última fila abierta</span>}

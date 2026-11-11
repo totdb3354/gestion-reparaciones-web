@@ -30,6 +30,26 @@ async function llamar(page: Page, metodo: string, ruta: string, cuerpo?: unknown
   }, [metodo, ruta, cuerpo === undefined ? undefined : JSON.stringify(cuerpo)] as const)
 }
 
+/** La página no se desplaza a los lados (solo lectura): con el panel abierto, además, «Cerrar» (del panel) y la cabecera «Fecha» (la
+ *  primera columna) están enteros dentro de la ventana. Dice qué se sale y por cuántos píxeles. */
+async function sinDesbordar(page: Page, donde: string, conPanel = false) {
+  // Como texto: el tsconfig de las E2E no trae los tipos del DOM.
+  const m = await page.evaluate(`(() => {
+    const caja = (el) => { const b = el && el.getBoundingClientRect(); return b ? { x: b.x, r: b.right } : null }
+    const panel = document.querySelector('[aria-label="Detalle del pedido"]')
+    const fecha = [...document.querySelectorAll('thead th')].find((t) => t.textContent.trim().startsWith('Fecha') && !t.textContent.trim().startsWith('Fecha compra'))
+    const cerrar = [...(panel ? panel.querySelectorAll('button') : [])].find((b) => b.textContent.trim() === 'Cerrar')
+    return { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, ancho: window.innerWidth, fecha: caja(fecha), cerrar: caja(cerrar) }
+  })()`) as { sw: number; cw: number; ancho: number; fecha: { x: number; r: number } | null; cerrar: { x: number; r: number } | null }
+  expect(m.sw, `${donde}: la página se desplaza a los lados, sobran ${m.sw - m.cw} px (scrollWidth ${m.sw}, clientWidth ${m.cw})`).toBeLessThanOrEqual(m.cw + 1)
+  if (!conPanel) return
+  for (const [nombre, c] of [['la cabecera «Fecha»', m.fecha], ['el botón «Cerrar» del panel', m.cerrar]] as const) {
+    expect(c, `${donde}: no se encuentra ${nombre}`).not.toBeNull()
+    expect(c!.x, `${donde}: ${nombre} se sale por la izquierda ${Math.round(-c!.x)} px`).toBeGreaterThanOrEqual(0)
+    expect(c!.r, `${donde}: ${nombre} se sale por la derecha ${Math.round(c!.r - m.ancho)} px`).toBeLessThanOrEqual(m.ancho)
+  }
+}
+
 test('el técnico no tiene Pedidos en Teléfonos: ni en la columna, ni por URL, ni por la API', async ({ page }) => {
   const { usuario, clave } = credenciales('TEC_USER', 'TEC_PASS')
   await entrar(page, usuario, clave)
@@ -84,6 +104,7 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   await expect(cabeceras).toHaveCount(COLUMNAS.length)
   const textos = (await cabeceras.allTextContents()).map((t) => t.trim())
   COLUMNAS.forEach((c, i) => expect(textos[i], `cabecera ${i + 1}`).toBe(c))
+  await sinDesbordar(page, 'con la tabla cargada y el panel cerrado')
 
   // El filtro de «Enviado» distingue la etiqueta generada (el móvil sigue en el almacén) de lo enviado (etiqueta impresa).
   await page.getByRole('button', { name: /^Filtrar Enviado/ }).click()
@@ -137,8 +158,10 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   const detalle = page.getByRole('region', { name: 'Detalle del pedido' })
   await expect(detalle).toBeVisible()
   await expect(detalle).toContainText(`puso ${imei}`)
+  await sinDesbordar(page, 'con el panel «Detalle del pedido» abierto', true)
   await detalle.getByRole('button', { name: 'Cerrar' }).click()
   await expect(detalle).toBeHidden()
+  await sinDesbordar(page, 'al cerrar el panel')
 
   // Lo quita desde la propia pantalla.
   await localizarCelda().getByRole('button').click()

@@ -50,7 +50,7 @@ export function PrevisualizarEtiqueta({ fila: f }: { fila: FilaVista }) {
       <DialogTrigger asChild>
         <button type="button" className="mt-2 h-7 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold text-azul-medio">Previsualizar etiqueta</button>
       </DialogTrigger>
-      <DialogContent className="flex h-[88vh] w-[min(820px,94vw)] max-w-[min(820px,94vw)] flex-col gap-2.5 bg-superficie p-5">
+      <DialogContent sobrePanelCarga className="flex h-[88vh] w-[min(820px,94vw)] max-w-[min(820px,94vw)] flex-col gap-2.5 bg-superficie p-5">
         <DialogTitle>Previsualización de la etiqueta</DialogTitle>
         <DialogDescription className="m-0 rounded-md border border-[#e0b24a] bg-[#fff6dc] px-2.5 py-1.5 text-[12.5px] font-semibold text-[#6b4a00]">{AVISO}</DialogDescription>
         <div className="flex items-center gap-2 text-[12.5px]">

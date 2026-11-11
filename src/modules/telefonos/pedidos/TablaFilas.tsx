@@ -74,7 +74,7 @@ function FilaHueco({ alto }: { alto: number }) {
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
 export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, elegida, onAbrir, onElegir }: PropsFila) {
   const tono = tonoFila(f)
-  const td = cn('h-8 border-r border-b border-form-fila-brd px-2.5 py-1 whitespace-nowrap', tono && CLASE_TONO[tono])
+  const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap', tono && CLASE_TONO[tono])
   const servidor = estadoDe(f)
   const estado = estadoPantalla(f)
   // Los bordes de la fila elegida (panel) y la raya azul de la última celda abierta comparten la sombra de la primera celda.
@@ -215,7 +215,12 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   return (
     <div ref={contenedor} role="region" aria-label="Tabla de pedidos" className={cn('min-h-0 min-w-0 flex-1 overflow-auto rounded-md border border-borde-input bg-superficie', ventana && '[overflow-anchor:none]')}
       onScroll={(ev) => { const c = ev.currentTarget; pegado.current = c.scrollHeight - c.scrollTop - c.clientHeight < 8 }}>
-      <table className="w-full border-collapse text-[13px] tabular-nums" aria-rowcount={ventana ? filas.length + 1 : undefined}>
+      {/* Anchos fijos: lo largo se corta con puntos suspensivos en vez de ensanchar la tabla. «Enviado» toma lo que sobra; si ni así
+          cabe, el contenedor se desplaza por dentro (min-w), nunca la página. */}
+      <table className="w-full min-w-[925px] table-fixed border-collapse text-[13px] tabular-nums" aria-rowcount={ventana ? filas.length + 1 : undefined}>
+        <colgroup>
+          <col className="w-[100px]" /><col className="w-[110px]" /><col className="w-[116px]" /><col className="w-[235px]" /><col className="w-[160px]" /><col /><col className="w-[96px]" />
+        </colgroup>
         <thead ref={cabeza}>
           <tr aria-rowindex={ventana ? 1 : undefined}>
             {COLUMNAS.map((c) => (

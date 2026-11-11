@@ -11,7 +11,7 @@ const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 const diaHora = (iso: string) => `${diaNsys(iso)} ${iso.slice(11, 16)}`
 
 function Dato({ nombre, children }: { nombre: string; children: ReactNode }) {
-  return (<><dt className="text-azul-gris">{nombre}</dt><dd className="m-0 font-semibold break-words">{children}</dd></>)
+  return (<><dt className="text-azul-gris">{nombre}</dt><dd className="m-0 min-w-0 font-semibold [overflow-wrap:anywhere]">{children}</dd></>)
 }
 
 const Titulo = ({ children }: { children: ReactNode }) => (
@@ -53,13 +53,13 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
   const motivo = textoMotivo(f)
   const envio = estado === 'GENERADA' || estado === 'ENVIADO'
   return (
-    <section aria-label="Detalle del pedido" className="w-[340px] max-w-[40%] shrink-0 overflow-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
+    <section aria-label="Detalle del pedido" className="w-[380px] max-w-[40%] min-w-0 shrink-0 overflow-x-hidden overflow-y-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
       <div className="mb-2.5 flex items-center gap-2">
         <h2 className="m-0 text-[15px] font-bold text-azul-medio">Detalle del pedido</h2>
         <button type="button" onClick={onCerrar} className="ml-auto h-7 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold">Cerrar</button>
       </div>
       <h3 className="mb-1.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">El pedido</h3>
-      <dl className="m-0 grid grid-cols-[104px_1fr] gap-x-2 gap-y-1.5 text-[12.5px]">
+      <dl className="m-0 grid grid-cols-[104px_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[12.5px]">
         <Dato nombre="Pedido">{f.pedido}</Dato>
         <Dato nombre="Estado"><EtiquetaEstado fila={f} estado={estado} conDetalle={false} /></Dato>
         <Dato nombre="Tienda">{textoTienda(tiendaDe(f))}</Dato>
@@ -75,7 +75,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
       {f.tieneEtiqueta && <PrevisualizarEtiqueta key={f.idFila} fila={f} />}
       <Titulo>El móvil</Titulo>
       {f.imei ? (
-        <dl className="m-0 grid grid-cols-[104px_1fr] gap-x-2 gap-y-1.5 text-[12.5px]">
+        <dl className="m-0 grid grid-cols-[104px_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[12.5px]">
           <Dato nombre="IMEI"><span className="font-mono text-[12px]">{f.imei}</span></Dato>
           {f.skuMovil && <Dato nombre="Es"><span className="font-mono text-[12px]">{f.skuMovil}</span></Dato>}
           {f.caja && <Dato nombre="Caja">{f.caja}</Dato>}

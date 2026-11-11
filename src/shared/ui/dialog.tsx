@@ -56,17 +56,23 @@ function DialogContent({
   children,
   showCloseButton = true,
   onInteractOutside,
+  sobrePanelCarga = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** Sube la ventana y su fondo por encima del panel flotante de carga (z-[55]), que de normal queda sobre las ventanas para
+   *  poder usarse con una abierta. Para las ventanas grandes que lo taparían entero o le quitarían el botón de cerrar. Sigue por
+   *  debajo de la capa de carga (z-[60]). */
+  sobrePanelCarga?: boolean
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
+      <DialogOverlay className={sobrePanelCarga ? "z-[58]" : undefined} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
           "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          sobrePanelCarga && "z-[58]",
           className
         )}
         onInteractOutside={(e) => {
