@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.31] - 2026-11-?? — «Fuera de su caja»: los F, FD y RMA que no están en la caja de su grado
+## [0.9.31] - 2026-11-11 — «Fuera de su caja»: los F, FD y RMA que no están en la caja de su grado
 
 - En «Por pasar a NSYS» hay una **quinta tarjeta, «Fuera de su caja»**: los móviles con grado **F**, **FD** o **RMA** que NSYS tiene en la empresa y en una caja que no es la de su grado (los F van en «CF021», los FD en «Desguace» y los RMA en «Funcionalidad pendiente»). Un móvil sin caja también sale.
 - La lista va **agrupada por la caja que toca** («Llevar a «CF021»») y cada grupo tiene **«Copiar IMEIs (n)»**, que los copia uno por línea para buscarlos en NSYS y cambiarles la «Location».
