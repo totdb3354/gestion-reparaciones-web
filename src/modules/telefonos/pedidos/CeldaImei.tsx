@@ -103,9 +103,9 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
       )}
       {recomendados.data?.map((c) => (
         <button key={c.imei} type="button" disabled={poner.isPending} onClick={() => guardar(c.imei)}
-          className="grid w-full cursor-pointer grid-cols-[112px_118px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
+          className="grid w-full cursor-pointer grid-cols-[150px_118px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
           {/* Lo que la persona se lleva al almacén es la caja: va delante y resaltada. */}
-          <span title={c.caja ?? undefined} className="truncate rounded-md bg-[#eef0f3] px-2 py-px font-bold">{c.caja}</span>
+          <span className="justify-self-start rounded-md bg-[#eef0f3] px-2 py-px font-bold [overflow-wrap:anywhere]">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
           <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && <>es {c.sku}</>}</span>
           <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
