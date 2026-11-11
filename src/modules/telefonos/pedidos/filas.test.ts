@@ -83,6 +83,26 @@ describe('rangoDe', () => {
   })
 })
 
+describe('rangoDe: bordes', () => {
+  it('1 de enero y 29 de febrero', () => {
+    const ene = new Date('2026-01-01T12:00:00Z')
+    expect(rangoDe('mes', ene)).toEqual({ desde: '2025-12-01', hasta: '2026-01-01' })
+    expect(rangoDe('tres-meses', ene).desde).toBe('2025-10-01')
+    expect(rangoDe('anio', ene).desde).toBe('2026-01-01')
+    const bis = new Date('2028-02-29T12:00:00Z')
+    expect(rangoDe('mes', bis).desde).toBe('2028-01-29')
+    expect(rangoDe('tres-meses', bis).desde).toBe('2027-11-29')
+  })
+  it('un rango con una fecha vacia o al reves vuelve al ultimo mes', () => {
+    const hoy = new Date('2026-03-15T11:00:00Z')
+    const mes = { desde: '2026-02-15', hasta: '2026-03-15' }
+    expect(rangoDe('rango', hoy, { desde: '', hasta: '' })).toEqual(mes)
+    expect(rangoDe('rango', hoy, { desde: '2026-01-01', hasta: '' })).toEqual(mes)
+    expect(rangoDe('rango', hoy, { desde: '2026-03-01', hasta: '2026-01-01' })).toEqual(mes)
+    expect(rangoDe('rango', hoy)).toEqual(mes)
+  })
+})
+
 describe('valores y filtrarColumnas', () => {
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', sku: 'b2' }),

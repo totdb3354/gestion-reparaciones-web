@@ -29,7 +29,14 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: 
 
 /** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija y las enviadas en
  *  gris. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
-export function TablaFilas({ filas, filtros }: { filas: FilaVista[]; filtros?: Partial<Record<Columna, ReactNode>> }) {
+export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: {
+  filas: FilaVista[]
+  /** Cuántas filas ha recibido la página (sin filtrar por columna): solo llegar filas nuevas baja al final, no filtrar. */
+  recibidas?: number
+  filtros?: Partial<Record<Columna, ReactNode>>
+  /** Lo que se enseña en el cuerpo si no hay filas que pintar (la cabecera y sus filtros siguen). */
+  vacio?: ReactNode
+}) {
   const [abierta, setAbierta] = useState<number | null>(null)
   // Si la fila abierta ya no se pinta (un filtro la esconde) o ya está enviada, se cierra: así no se reabre sola al quitar el filtro.
   if (abierta !== null && !filas.some((f) => f.idFila === abierta && !f.enviada)) setAbierta(null)
@@ -42,14 +49,15 @@ export function TablaFilas({ filas, filtros }: { filas: FilaVista[]; filtros?: P
   const alturaPrevia = useRef<number | null>(null)
   const vistas = useRef(0)
 
+  // En cada pintado: «estaba abajo» se calcula con la altura del pintado anterior (filtrar cambia la altura sin que el usuario se mueva).
   useLayoutEffect(() => {
     const c = contenedor.current
     if (!c) return
     const estabaAbajo = alturaPrevia.current === null || alturaPrevia.current - c.scrollTop - c.clientHeight < 8
-    if (filas.length > vistas.current && estabaAbajo) c.scrollTop = c.scrollHeight
-    vistas.current = filas.length
+    if (recibidas > vistas.current && estabaAbajo) c.scrollTop = c.scrollHeight
+    vistas.current = recibidas
     alturaPrevia.current = c.scrollHeight
-  }, [filas.length])
+  })
 
   return (
     <div ref={contenedor} role="region" aria-label="Tabla de pedidos" className="min-h-0 flex-1 overflow-auto rounded-md border border-borde-input bg-superficie">
@@ -62,6 +70,7 @@ export function TablaFilas({ filas, filtros }: { filas: FilaVista[]; filtros?: P
           </tr>
         </thead>
         <tbody>
+          {filas.length === 0 && vacio && <tr><td colSpan={COLUMNAS.length} className="p-4 text-[12px] text-azul-gris">{vacio}</td></tr>}
           {filas.map((f) => <FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} onAbrir={cambiar} />)}
         </tbody>
       </table>

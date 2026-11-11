@@ -1,12 +1,12 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
 import { PedidosPage } from './PedidosPage'
-import { maquetarJsdom } from './layoutJsdom'
+import { maquetarJsdom } from '@/test/layoutJsdom'
 
 const FILAS = [
   fila({ idFila: 1, enviada: true, imei: '350000000000010', pedido: '402-0000000-0000011' }),
@@ -17,6 +17,8 @@ const FILAS = [
 ]
 
 let puts: { id: string; cuerpo: unknown }[] = []
+
+afterEach(() => { vi.restoreAllMocks() })
 
 beforeEach(() => {
   puts = []
@@ -80,7 +82,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await user.click(await celdaVacia())
     expect(campo()).toBeInTheDocument()
     await waitFor(() => expect(campo()).toHaveFocus())
-    const c =await screen.findByRole('button', { name: /350000000000101/ })
+    const c = await screen.findByRole('button', { name: /350000000000101/ })
     expect(c).toHaveTextContent('CAJA LISTOS')
     expect(c).toHaveTextContent('igual que el pedido')
     expect(screen.getByRole('button', { name: /350000000000103/ })).toHaveTextContent('hay que transformarlo')

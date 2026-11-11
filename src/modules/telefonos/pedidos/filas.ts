@@ -56,14 +56,14 @@ export const haceUnMes = (hoy: string): string => haceMeses(hoy, 1)
 
 export type Periodo = 'mes' | 'tres-meses' | 'anio' | 'todo' | 'rango'
 
-/** Las fechas (`YYYY-MM-DD`, día de Madrid) que pide cada periodo; «todo» empieza en 2000. Con `rango` sin fechas, el último mes. */
+/** Las fechas (`YYYY-MM-DD`, día de Madrid) que pide cada periodo; «todo» empieza en 2000. Un `rango` sin las dos fechas (o al revés) no vale: el último mes. */
 export function rangoDe(p: Periodo, hoy: Date, rango?: { desde: string; hasta: string }): { desde: string; hasta: string } {
   const hasta = hoyMadrid(hoy)
   switch (p) {
     case 'tres-meses': return { desde: haceMeses(hasta, 3), hasta }
     case 'anio': return { desde: `${hasta.slice(0, 4)}-01-01`, hasta }
     case 'todo': return { desde: '2000-01-01', hasta }
-    case 'rango': return rango ?? { desde: haceUnMes(hasta), hasta }
+    case 'rango': return rangoValido(rango) ? rango : { desde: haceUnMes(hasta), hasta }
     default: return { desde: haceUnMes(hasta), hasta }
   }
 }
@@ -91,4 +91,9 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVist
     (plataformas.size === 0 || (x.plataforma != null && plataformas.has(x.plataforma)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || (!x.enviada && !x.imei)))
+}
+
+/** Un rango con las dos fechas puestas y en orden. */
+export function rangoValido(r?: { desde: string; hasta: string }): r is { desde: string; hasta: string } {
+  return !!r && !!r.desde && !!r.hasta && r.desde <= r.hasta
 }

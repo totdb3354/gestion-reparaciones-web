@@ -8,7 +8,7 @@ import { FiltroColumna, FiltroSinImei } from './FiltroColumna'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas } from './TablaFilas'
-import { filtrarColumnas, rangoDe, recuento, valores, vigente } from './filas'
+import { filtrarColumnas, rangoDe, rangoValido, recuento, valores, vigente } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -29,7 +29,9 @@ export function PedidosPage() {
   const hoy = hoyMadrid()
   // `hoy` está en las dependencias para que, pasada la medianoche, el periodo se recalcule.
   const { desde, hasta } = useMemo(() => rangoDe(e.periodo, new Date(), e.rango), [e.periodo, e.rango, hoy]) // eslint-disable-line react-hooks/exhaustive-deps
-  const lista = useFilas({ desde, hasta, buscar: buscando ? aplicado.trim() : undefined })
+  // Con una búsqueda en marcha el periodo no cuenta: se piden siempre las mismas fechas, así cambiarlo no pide otra vez.
+  const todo = useMemo(() => rangoDe('todo', new Date()), [hoy]) // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useFilas(buscando ? { ...todo, buscar: aplicado.trim() } : { desde, hasta })
   const filas = useMemo(() => lista.data?.filas ?? [], [lista.data])
   const plataformas = useMemo(() => valores(filas, 'plataforma'), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
@@ -58,14 +60,15 @@ export function PedidosPage() {
       </div>
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}
-          onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, rango: p === 'rango' && s.periodo !== 'rango' ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
+          // Al elegir «Rango…» salen las fechas guardadas, o, si no hay, las del periodo que se aplicaba.
+          onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, rango: p === 'rango' && !rangoValido(s.rango) ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
           onRango={(rango) => setE((s) => ({ ...s, rango }))} />
         <input aria-label="Buscar en todo el historial" placeholder="Buscar en todo el historial…" autoComplete="off" value={e.buscar}
           onChange={(ev) => setE((s) => ({ ...s, buscar: ev.target.value }))}
           className="h-8 w-72 rounded-md border border-borde-input bg-superficie px-2 text-[12px]" />
         {buscando && <p className="text-[12px] text-azul-gris">La búsqueda mira en todo el historial; el periodo no se aplica.</p>}
       </div>
-      {lista.data?.hayMas && (
+      {buscando && e.buscar.trim().length >= MIN_BUSCAR && lista.data?.hayMas && (
         <p role="status" className="mb-2 shrink-0 text-[12px] font-bold text-form-agotado-text">
           Hay más de 500 resultados: se enseñan los 500 más recientes. Afina la búsqueda.
         </p>
@@ -75,11 +78,8 @@ export function PedidosPage() {
       {lista.data && filas.length === 0 && (
         <p className="p-4 text-[12px] text-azul-gris">{buscando ? 'Ningún pedido coincide con la búsqueda.' : 'No hay pedidos en este periodo.'}</p>
       )}
-      {filas.length > 0 && vistas.length === 0 && (
-        <p className="p-4 text-[12px] text-azul-gris">Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos.</p>
-      )}
-      {vistas.length > 0 && (
-        <TablaFilas filas={vistas} filtros={{
+      {filas.length > 0 && (
+        <TablaFilas filas={vistas} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroColumna columna="Plataforma" valores={plataformas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           IMEI: <FiltroSinImei activo={filtros.soloSinImei} onChange={(soloSinImei) => setE((s) => ({ ...s, soloSinImei }))} />,
