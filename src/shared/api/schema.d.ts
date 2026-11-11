@@ -4068,6 +4068,7 @@ export interface components {
             skuDesconocidos: string | null;
             motivo: string | null;
             nivel: string;
+            aviso: string | null;
         };
         ListaFilas: {
             filas: components["schemas"]["FilaVista"][];

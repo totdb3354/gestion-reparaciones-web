@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { usePonerImei, useRecomendados } from '../api'
 import { CLASE_TONO, TEXTO_NIVEL, claseCelda, textoMotivo, tonoFila } from './filas'
 
-const FONDO: Record<string, string> = {
+export const FONDO: Record<string, string> = {
   aviso: 'bg-form-agotado-bg',
   mal: 'bg-[#FFE0B2]',
 }
@@ -58,7 +58,7 @@ export function CeldaImei({ fila, abierta, marcada, elegida, onAbrir }: Props) {
             onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.('[role="dialog"],[role="alertdialog"]')) e.preventDefault() }}
             // Al cerrar, el foco vuelve a la celda, salvo que ya esté en el desplegable de otra celda recién abierta.
             onCloseAutoFocus={(e) => { if (document.activeElement?.closest('[data-slot="popover-content"]')) e.preventDefault() }}
-            className="w-[540px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
+            className="w-[600px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
             <Desplegable fila={fila} onCerrar={() => onAbrir(fila.idFila, false)} />
           </PopoverContent>
         </Popover>
@@ -103,11 +103,11 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
       )}
       {recomendados.data?.map((c) => (
         <button key={c.imei} type="button" disabled={poner.isPending} onClick={() => guardar(c.imei)}
-          className="grid w-full cursor-pointer grid-cols-[132px_118px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
+          className="grid w-full cursor-pointer grid-cols-[112px_118px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
           {/* Lo que la persona se lleva al almacén es la caja: va delante y resaltada. */}
           <span title={c.caja ?? undefined} className="truncate rounded-md bg-[#eef0f3] px-2 py-px font-bold">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
-          <span title={c.nivel === 3 ? c.sku ?? undefined : undefined} className="truncate text-azul-gris">{c.nivel === 3 && <>es {c.sku}</>}</span>
+          <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && <>es {c.sku}</>}</span>
           <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
         </button>
       ))}

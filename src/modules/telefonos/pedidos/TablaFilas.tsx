@@ -33,8 +33,8 @@ type PropsFila = {
 const SOMBRA_RAYA = 'shadow-[inset_4px_0_0_#2f6fe0]'
 const SOMBRA_ELEGIDA = 'shadow-[inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]'
 const SOMBRA_AMBAS = 'shadow-[inset_4px_0_0_#2f6fe0,inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]'
-const ETIQUETA = 'inline-block rounded-lg px-2 py-px text-[11px] font-bold'
-const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
+export const ETIQUETA = 'inline-block rounded-lg px-2 py-px text-[11px] font-bold'
+export const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
   PENDIENTE: 'border border-dashed border-[#C8CDD5] bg-superficie text-azul-gris',
   GENERADA: 'bg-pill-aviso-bg text-pill-aviso-text',
   ENVIADO: 'bg-fila-reparado-bg text-[#2f7d3b]',

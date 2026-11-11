@@ -61,11 +61,11 @@ const medidas = (page: Page) => page.evaluate(() => {
   const panel = document.querySelector('[aria-label="Detalle del pedido"]')
   const cerrar = panel ? [...panel.querySelectorAll('button')].find((b) => b.textContent === 'Cerrar') ?? null : null
   const fecha = [...document.querySelectorAll('thead th')].find((t) => t.textContent?.startsWith('Fecha') && !t.textContent.startsWith('Fecha compra')) ?? null
-  const leyenda = [...document.querySelectorAll('p')].find((p) => p.textContent?.startsWith('Las filas las crea el ERP')) ?? null
+  const ayuda = document.querySelector('button[aria-label="Ayuda de Pedidos"]')
   const barra = document.querySelector('header')
   return {
     ancho: de.clientWidth, scrollW: de.scrollWidth, scrollX: window.scrollX, altoDoc: de.scrollHeight, altoVentana: de.clientHeight,
-    barra: r(barra), titulo: r(document.querySelector('h1')), fecha: r(fecha), leyenda: r(leyenda), tabla: r(tabla), panel: r(panel), cerrar: r(cerrar),
+    barra: r(barra), titulo: r(document.querySelector('h1')), fecha: r(fecha), ayuda: r(ayuda), tabla: r(tabla), panel: r(panel), cerrar: r(cerrar),
     tablaScrollW: tabla ? tabla.scrollWidth : 0, tablaClientW: tabla ? tabla.clientWidth : 0,
     cols: [...document.querySelectorAll('thead th')].map((t) => { const b = t.getBoundingClientRect(); return `${t.textContent?.slice(0, 6)}:${Math.round(b.x)}-${Math.round(b.right)}` }),
   }
@@ -109,8 +109,8 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
         expect(m.titulo!.x, `${donde}: titulo fuera`).toBeGreaterThanOrEqual(0)
         expect(m.fecha!.x, `${donde}: columna Fecha fuera`).toBeGreaterThanOrEqual(0)
         expect(m.fecha!.r, donde).toBeLessThanOrEqual(m.ancho)
-        expect(m.leyenda!.x, donde).toBeGreaterThanOrEqual(0)
-        expect(m.leyenda!.r, `${donde}: la leyenda se sale`).toBeLessThanOrEqual(m.ancho)
+        expect(m.ayuda!.x, donde).toBeGreaterThanOrEqual(0)
+        expect(m.ayuda!.r, `${donde}: el boton de ayuda se sale`).toBeLessThanOrEqual(m.ancho)
         expect(m.tabla!.r, donde).toBeLessThanOrEqual(m.ancho)
         if (abierto) {
           expect(m.panel!.r, `${donde}: panel fuera`).toBeLessThanOrEqual(m.ancho)
@@ -151,34 +151,28 @@ test('la fila del historico con un nombre larguisimo y el panel no se salen', as
   expect(await panel(page).evaluate((p) => p.scrollWidth - p.clientWidth)).toBeLessThanOrEqual(0)
 })
 
-test('la previsualizacion de la etiqueta queda por encima del panel de carga', async ({ page }) => {
+test('en Pedidos no se pinta el panel flotante de carga (aunque este abierto) y la previsualizacion se puede cerrar', async ({ page }) => {
   const datos = await preparar(page, 2_000, 'abierto')
   for (const ancho of [1280, 1366]) {
     await page.setViewportSize({ width: ancho, height: 900 })
     await page.goto('/telefonos/pedidos')
     await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
     await expect(page.getByRole('button', { name: pedido(2_000), exact: true })).toBeVisible()
-    await expect(page.getByTestId('panel-carga')).toBeVisible()
+    await expect(page.getByTestId('panel-carga')).toHaveCount(0)
+    // Lo recordado no se toca: sigue «abierto» para cuando se vuelva a otra pantalla.
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('panelCarga') ?? 'null').estado)).toBe('abierto')
     await page.getByRole('button', { name: pedido(datos.larga), exact: true }).click()
     await page.getByRole('button', { name: 'Previsualizar etiqueta' }).click()
     const dialogo = page.getByRole('dialog', { name: 'Previsualización de la etiqueta' })
     await expect(dialogo).toBeVisible()
     await page.waitForTimeout(300)
-    const r = await page.evaluate(() => {
+    const cubierto = await page.evaluate(() => {
       const d = document.querySelector('[data-slot="dialog-content"]')!
       const x = d.querySelector('[data-slot="dialog-close"]')!.getBoundingClientRect()
-      const centro = { x: x.x + x.width / 2, y: x.y + x.height / 2 }
-      const el = document.elementFromPoint(centro.x, centro.y)
-      const carga = document.querySelector('[data-testid="panel-carga"]')!.getBoundingClientRect()
-      const solapa = x.right > carga.left && x.left < carga.right && x.bottom > carga.top && x.top < carga.bottom
-      // Un punto del panel de carga que queda bajo el dialogo y el fondo: lo que se toca ahi es el fondo oscuro o el dialogo.
-      const sobreCarga = document.elementFromPoint(carga.left + carga.width / 2, carga.top + 10)
-      return { cubierto: !el || !d.contains(el), el: el?.tagName, solapa, cargaTapada: !!sobreCarga && !sobreCarga.closest('[data-testid="panel-carga"]') }
+      const el = document.elementFromPoint(x.x + x.width / 2, x.y + x.height / 2)
+      return !el || !d.contains(el)
     })
-    console.log(`CIFRAS dialogo ${ancho} ` + JSON.stringify(r))
-    expect(r.solapa, `${ancho}: el caso de prueba debe solapar con el panel de carga`).toBe(true)
-    expect(r.cubierto, `${ancho}: el boton de cerrar del dialogo esta tapado por ${r.el}`).toBe(false)
-    expect(r.cargaTapada, `${ancho}: el panel de carga queda por encima del fondo del dialogo`).toBe(true)
+    expect(cubierto, `${ancho}: el boton de cerrar del dialogo esta tapado`).toBe(false)
     if (CAPTURAS) await page.screenshot({ path: `${CAPTURAS}/dialogo-${ancho}.png` })
     await page.keyboard.press('Escape')
     await expect(dialogo).toHaveCount(0)

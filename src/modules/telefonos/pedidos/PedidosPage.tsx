@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib/utils'
 import { useFilas } from '../api'
 import { estadoPedidos, type EstadoPedidos } from './estado'
 import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './FiltroColumna'
+import { AyudaPedidos } from './AyudaPedidos'
 import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
@@ -105,6 +106,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
             {filtrando && <span className="inline-block rounded-xl bg-badge-neutro-bg px-2.5 py-[3px] text-[12px] font-bold text-azul-gris">{vistas.length} a la vista</span>}
           </div>
         )}
+        <AyudaPedidos />
         {ventana && <span className="text-[11.5px] text-azul-gris">Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).</span>}
         <PildoraFuentes />
       </div>
@@ -152,11 +154,6 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         }} />
         {elegida && <PanelFila fila={elegida} onCerrar={cerrarPanel} />}
         </div>
-      )}
-      {filas.length > 0 && (
-        <p className="mt-2 shrink-0 text-[11.5px] text-azul-gris">
-          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo). El estado del pedido va en la columna «Enviado»: «Etiqueta generada» es que ya hay etiqueta pero aún no se ha impreso (el móvil sigue en el almacén) y «Enviado», que la etiqueta se imprimió. En gris, el histórico de la hoja, que no se edita. El IMEI se puede poner, cambiar o quitar también en las enviadas. La raya azul marca la última celda de IMEI que abriste.
-        </p>
       )}
     </div>
   )

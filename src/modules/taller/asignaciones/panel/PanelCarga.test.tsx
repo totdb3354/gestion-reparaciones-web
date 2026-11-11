@@ -549,6 +549,36 @@ describe('PanelCarga: con una ventana abierta', () => {
     expect(campo.selectionEnd).toBe(5)
   })
 
+  describe('en «Teléfonos › Pedidos»', () => {
+    const montarRuta = (ruta: string) => {
+      const { router } = renderConRouter(
+        [{ children: [{ path: '/telefonos/pedidos', element: <PanelCarga /> }, { path: '/stock', element: <PanelCarga /> }] }],
+        { sesion: SESION_SUPER, ruta },
+      )
+      return router
+    }
+
+    it('no se pinta (ni pide la carga) y lo recordado queda como estaba; al salir vuelve', async () => {
+      const peticiones = servirCarga()
+      localStorage.setItem(CLAVE_PANEL_CARGA, JSON.stringify({ estado: 'abierto', alcance: 'total', ancla: { esq: 'tr', x: 40, y: 50 } }))
+      const antes = localStorage.getItem(CLAVE_PANEL_CARGA)
+      const router = montarRuta('/telefonos/pedidos')
+      await tick()
+      expect(screen.queryByRole('region', { name: 'Carga de técnicos', hidden: true })).not.toBeInTheDocument()
+      expect(peticiones.n).toBe(0)
+      expect(localStorage.getItem(CLAVE_PANEL_CARGA)).toBe(antes)
+      await act(() => router.navigate('/stock'))
+      expect(await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })).toBeInTheDocument()
+      expect(localStorage.getItem(CLAVE_PANEL_CARGA)).toBe(antes)
+    })
+
+    it('en otra ruta se pinta', async () => {
+      servirCarga()
+      montarRuta('/stock')
+      expect(await screen.findByRole('region', { name: 'Carga de técnicos', hidden: true })).toBeInTheDocument()
+    })
+  })
+
   describe('pulsar un técnico con una ventana abierta', () => {
     const montarEn = (ruta: string) => {
       function Marco() {

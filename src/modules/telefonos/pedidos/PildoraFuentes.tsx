@@ -32,13 +32,18 @@ export function PildoraFuentes() {
   }
   const niveles = nsys?.ultimaExportacion ? [...data.map((f) => f.nivel), nsys.nivel] : data.map((f) => f.nivel)
   const nivel = niveles.reduce((peor, n) => (ORDEN.indexOf(n) > ORDEN.indexOf(peor) ? n : peor), 'OK')
-  const visible = `ShippyPro · NSYS: ${TEXTO[nivel] ?? nivel}`
+  // Un aviso de una fuente (ShippyPro) pone la píldora en ámbar y lo dice en su texto, aunque el nivel sea «al día».
+  const conAviso = data.some((f) => !!f.aviso)
+  const textoNivel = conAviso && nivel === 'OK' ? 'con avisos' : (TEXTO[nivel] ?? nivel)
+  const nivelPildora = conAviso && nivel === 'OK' ? 'RETRASO' : nivel
+  const avisados = data.filter((f) => f.aviso).map((f) => NOMBRE[f.fuente] ?? f.fuente)
+  const visible = conAviso && nivel === 'OK' ? `${avisados.join(' · ')}: con avisos` : `ShippyPro · NSYS: ${textoNivel}`
   const items = nsys?.ultimaExportacion ? horaItems(nsys.ultimaExportacion) : null
   return (
     <Popover>
       <PopoverTrigger aria-label={`Fuentes: ${visible}`} className="ml-auto cursor-pointer rounded-full">
-        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES[nivel] ?? CLASES.OK)}>
-          <span aria-hidden className={cn('h-2 w-2 rounded-full', PUNTO[nivel] ?? PUNTO.OK)} />
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]', CLASES[nivelPildora] ?? CLASES.OK)}>
+          <span aria-hidden className={cn('h-2 w-2 rounded-full', PUNTO[nivelPildora] ?? PUNTO.OK)} />
           {visible}
         </span>
       </PopoverTrigger>
@@ -51,6 +56,7 @@ export function PildoraFuentes() {
                 Última lectura buena: {hora(f.ultimaBuena)}
                 {f.resultado && f.resultado !== 'OK' && <> · la última, {f.resultado.toLowerCase()}{f.motivo ? `: ${f.motivo}` : ''}</>}
                 {f.skuDesconocidos && <> · SKU que no están en el maestro: {f.skuDesconocidos}</>}
+                {f.aviso && <> · Aviso: {f.aviso}</>}
               </div>
             </li>
           ))}

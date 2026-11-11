@@ -9516,7 +9516,7 @@
         }
       },
       "FuenteVista" : {
-        "required" : [ "filas", "fuente", "motivo", "nivel", "resultado", "skuDesconocidos", "ultimaBuena" ],
+        "required" : [ "aviso", "filas", "fuente", "motivo", "nivel", "resultado", "skuDesconocidos", "ultimaBuena" ],
         "type" : "object",
         "properties" : {
           "fuente" : {
@@ -9545,6 +9545,10 @@
           },
           "nivel" : {
             "type" : "string"
+          },
+          "aviso" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

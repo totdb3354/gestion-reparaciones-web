@@ -22,6 +22,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - La pantalla de compras de piezas, que se llamaba «Pedidos», pasa a llamarse **«Compras»** (no cambia nada más).
 - Solo para **supertécnicos y administradores**; el técnico no la ve.
 - Con **muchas filas** (más de 5.000 a la vista tras los filtros de columna; por ejemplo «Este año» o «Todo») la tabla **pinta solo las filas que se ven** y va pintando el resto según haces scroll, así abrirla o cambiar un filtro no tarda segundos. Las filas están todas: la barra de scroll las abarca, los contadores y los filtros cuentan sobre todas, y siguen igual la cabecera fija, abrir al final, la celda del IMEI, la raya azul y el panel. En ese modo, **Control+F lleva al buscador de la pantalla** (que busca en todo el historial) en vez de abrir el del navegador, y una nota junto a los contadores lo avisa. Hasta 5.000 filas, la tabla es la de siempre y Control+F es el del navegador.
+- La **leyenda** de debajo de la tabla pasa a un botón **«?»** junto a los contadores («Ayuda de Pedidos»): abre «Cómo se lee esta tabla», una lista corta con una muestra de cada color y de cada etiqueta (IMEI en ámbar y en naranja, Pendiente, Etiqueta generada, Enviado, Ya no está pendiente, De la hoja, la raya azul). La tabla gana la altura que ocupaba.
+- En la lista de **recomendados** el texto «es <SKU>» de los móviles que hay que transformar sale **entero** (pasa a una segunda línea si no cabe) y el desplegable es algo más ancho.
+- En esta pantalla **no se pinta el panel flotante «Carga de técnicos»** (tapaba las cabeceras «Enviado» y «Fecha compra»); lo que recuerda (abierto, minimizado, cerrado y sitio) no se toca, y en las demás pantallas sigue igual.
+- Si ShippyPro manda un **aviso**, la píldora de fuentes pone el punto en **ámbar**, dice «ShippyPro: con avisos» y el aviso sale en su detalle. Necesita el campo `aviso` de `GET /api/pedidos/fuentes` del servidor.
 - Necesita el servidor de la misma versión y su migración de base de datos, que solo añade tablas.
 ## [0.9.31] - 2026-11-11 — «Fuera de su caja»: los F, FD y RMA que no están en la caja de su grado
 

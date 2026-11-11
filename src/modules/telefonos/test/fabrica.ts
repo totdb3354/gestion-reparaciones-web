@@ -168,6 +168,6 @@ export function candidato(p: Partial<Candidato> = {}): Candidato {
 export function fuente(p: Partial<FuenteVista> = {}): FuenteVista {
   return {
     fuente: 'Fuente A', ultimaBuena: '2026-11-10T09:00:00', resultado: 'OK', filas: 120, skuDesconocidos: null, motivo: null,
-    nivel: 'OK', ...p,
+    nivel: 'OK', aviso: null, ...p,
   }
 }
