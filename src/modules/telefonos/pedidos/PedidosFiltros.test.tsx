@@ -16,7 +16,6 @@ const MIXTAS = [
   fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
 ]
-const CONTADOR = '4 filas · 3 pendientes · 2 sin IMEI'
 
 let urls: URL[] = []
 let respuesta: { filas: typeof MIXTAS; hayMas: boolean } = { filas: MIXTAS, hayMas: false }
@@ -42,7 +41,7 @@ const abrirFiltro = async (user: ReturnType<typeof userEvent.setup>, columna: st
 describe('Pedidos: filtro de fechas', () => {
   it('por defecto pide el último mes y, sin búsqueda, no manda buscar', async () => {
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     const hasta = hoyMadrid()
     expect(urls[0].searchParams.get('desde')).toBe(haceUnMes(hasta))
     expect(urls[0].searchParams.get('hasta')).toBe(hasta)
@@ -52,7 +51,7 @@ describe('Pedidos: filtro de fechas', () => {
   it('cambiar el periodo pide otras fechas', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Últimos 3 meses')
     await waitFor(() => expect(ultima().searchParams.get('desde')).toBe(rangoDe('tres-meses', new Date()).desde))
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Todo')
@@ -64,7 +63,7 @@ describe('Pedidos: filtro de fechas', () => {
   it('«Rango…» enseña dos fechas; un rango al revés o incompleto conserva el anterior', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Rango…')
     fireEvent.change(screen.getByLabelText('Desde:'), { target: { value: '2026-01-10' } })
     fireEvent.change(screen.getByLabelText('Hasta:'), { target: { value: '2026-02-20' } })
@@ -84,7 +83,7 @@ describe('Pedidos: rango de fechas', () => {
   it('la primera vez que se elige «Rango…» salen y se piden las fechas del periodo aplicado', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Rango…')
     expect(screen.getByLabelText('Desde:')).toHaveValue(mes().desde)
     expect(screen.getByLabelText('Hasta:')).toHaveValue(mes().hasta)
@@ -94,7 +93,7 @@ describe('Pedidos: rango de fechas', () => {
   it('rango propio, «Último mes» y «Rango…» otra vez: sale y se pide el rango guardado', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Rango…')
     fireEvent.change(screen.getByLabelText('Desde:'), { target: { value: '2026-01-10' } })
     fireEvent.change(screen.getByLabelText('Hasta:'), { target: { value: '2026-02-20' } })
@@ -110,7 +109,7 @@ describe('Pedidos: rango de fechas', () => {
   it('un rango guardado con fechas vacías pide el último mes', async () => {
     estadoPedidos.set((s) => ({ ...s, periodo: 'rango', rango: { desde: '', hasta: '' } }))
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     expect(pedidas()).toEqual(mes())
   })
 })
@@ -124,7 +123,7 @@ describe('Pedidos: buscador', () => {
       return HttpResponse.json(respuesta)
     }))
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     expect(screen.queryByText('Buscando…')).not.toBeInTheDocument()
     fireEvent.change(buscador(), { target: { value: '35' } })
     expect(await screen.findByText('Buscando…')).toBeInTheDocument()
@@ -135,7 +134,7 @@ describe('Pedidos: buscador', () => {
 
   it('tras 300 ms pide con buscar y atenúa el periodo; vaciarlo vuelve al periodo', async () => {
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     fireEvent.change(buscador(), { target: { value: '35' } })
     expect(urls.some((u) => u.searchParams.has('buscar'))).toBe(false) // aún no ha pasado la espera
     await waitFor(() => expect(ultima().searchParams.get('buscar')).toBe('35'))
@@ -148,7 +147,7 @@ describe('Pedidos: buscador', () => {
 
   it('con menos de 2 caracteres no hay búsqueda aunque pase la espera', async () => {
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     const pedidas = urls.length
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     try {
@@ -162,7 +161,7 @@ describe('Pedidos: buscador', () => {
   it('con «hay más» enseña el aviso de los 500 y lo quita en cuanto se borra la búsqueda', async () => {
     respuesta = { filas: MIXTAS, hayMas: true }
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     expect(screen.queryByText(/Hay más de 500/)).not.toBeInTheDocument() // sin búsqueda no hay aviso
     fireEvent.change(buscador(), { target: { value: '35' } })
     expect(await screen.findByText('Hay más de 500 resultados: se enseñan los 500 más recientes. Afina la búsqueda.')).toBeInTheDocument()
@@ -173,7 +172,7 @@ describe('Pedidos: buscador', () => {
   it('con una búsqueda en marcha, cambiar el periodo no pide otra vez', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     fireEvent.change(buscador(), { target: { value: '35' } })
     await waitFor(() => expect(ultima().searchParams.get('buscar')).toBe('35'))
     const pedidas = urls.length
@@ -187,13 +186,13 @@ describe('Pedidos: filtros por columna', () => {
   it('el de plataforma esconde filas sin pedir nada, marca la cabecera y añade «a la vista»', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     const pedidas = urls.length
     await abrirFiltro(user, 'Plataforma')
     expect(screen.getByRole('checkbox', { name: 'Todos' })).toBeChecked()
     await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
     expect(filasPintadas()).toBe(1)
-    expect(screen.getByText(`${CONTADOR} · 1 a la vista`)).toBeInTheDocument()
+    expect(screen.getByText('1 a la vista')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Filtrar Plataforma (filtro activo)' })).toBeInTheDocument()
     expect(urls).toHaveLength(pedidas)
     await user.click(screen.getByRole('checkbox', { name: 'Web' }))
@@ -203,14 +202,14 @@ describe('Pedidos: filtros por columna', () => {
   it('el de SKU y el de plataforma se combinan', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await abrirFiltro(user, 'Plataforma')
     await user.click(screen.getByRole('checkbox', { name: 'Web' }))
     await user.keyboard('{Escape}')
     await abrirFiltro(user, 'SKU')
     await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
     expect(filasPintadas()).toBe(2)
-    expect(screen.getByText(/· 2 a la vista/)).toBeInTheDocument()
+    expect(screen.getByText('2 a la vista')).toBeInTheDocument()
   })
 
   it('con muchos valores lleva una caja para acortar la lista', async () => {
@@ -226,7 +225,7 @@ describe('Pedidos: filtros por columna', () => {
   it('si los filtros no dejan ninguna fila, la cabecera sigue y un solo filtro se ajusta ahí', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await abrirFiltro(user, 'Plataforma')
     await user.click(screen.getByRole('checkbox', { name: 'Amazon' }))
     await user.keyboard('{Escape}')
@@ -245,23 +244,23 @@ describe('Pedidos: filtros por columna', () => {
     const user = userEvent.setup()
     respuesta = { filas: [...MIXTAS, fila({ idFila: 5, estado: 'ENVIADA', pedido: '402-0000000-0000025' }), fila({ idFila: 6, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000026' })], hayMas: false }
     abrir()
-    await screen.findByText('6 filas · 3 pendientes · 3 sin IMEI')
+    await screen.findByRole('button', { name: '6 filas' })
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
     expect(filasPintadas()).toBe(3)
-    expect(screen.getByText(/· 3 a la vista/)).toBeInTheDocument()
+    expect(screen.getByText('3 a la vista')).toBeInTheDocument()
   })
 
-  it('el filtro de «Enviado» tiene Pendientes, Enviados y Ya no pendientes, y se recuerda', async () => {
+  it('el filtro de «Enviado» tiene Pendientes, Enviados, Ya no pendientes e Histórico, y se recuerda', async () => {
     const user = userEvent.setup()
     respuesta = { filas: [...MIXTAS, fila({ idFila: 5, estado: 'NO_PENDIENTE', pedido: '402-0000000-0000025' }), fila({ idFila: 6, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000026' })], hayMas: false }
     const primera = abrir()
-    await screen.findByText('6 filas · 3 pendientes · 3 sin IMEI')
+    await screen.findByRole('button', { name: '6 filas' })
     await abrirFiltro(user, 'Enviado')
     await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
-    expect(filasPintadas()).toBe(2)
+    expect(filasPintadas()).toBe(1)
     await user.click(screen.getByRole('checkbox', { name: 'Ya no pendientes' }))
-    expect(filasPintadas()).toBe(3)
+    expect(filasPintadas()).toBe(2)
     await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
     expect(filasPintadas()).toBe(1)
     await user.click(screen.getByRole('checkbox', { name: 'Pendientes' }))
@@ -269,13 +268,13 @@ describe('Pedidos: filtros por columna', () => {
     await user.keyboard('{Escape}')
     primera.unmount()
     abrir()
-    expect(await screen.findByText('6 filas · 3 pendientes · 3 sin IMEI · 4 a la vista')).toBeInTheDocument()
+    expect(await screen.findByText('4 a la vista')).toBeInTheDocument()
   })
 
   it('«Quitar filtros» los quita todos y desaparece', async () => {
     const user = userEvent.setup()
     abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     expect(screen.queryByRole('button', { name: 'Quitar filtros' })).not.toBeInTheDocument()
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
@@ -292,7 +291,7 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
     const user = userEvent.setup()
     respuesta = { filas: [MIXTAS[2]], hayMas: false }
     abrir()
-    await screen.findByText('1 filas · 0 pendientes · 0 sin IMEI')
+    await screen.findByRole('button', { name: '1 filas' })
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
     expect(await screen.findByText(/Ningún pedido cumple los filtros de columna/)).toBeInTheDocument()
@@ -312,7 +311,7 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
   it('al salir y volver siguen el periodo, la búsqueda y los filtros', async () => {
     const user = userEvent.setup()
     const primera = abrir()
-    await screen.findByText(CONTADOR)
+    await screen.findByRole('button', { name: '4 filas' })
     await user.selectOptions(screen.getByLabelText('Periodo:'), 'Este año')
     fireEvent.change(buscador(), { target: { value: '3500' } })
     await waitFor(() => expect(ultima().searchParams.get('buscar')).toBe('3500'))
@@ -323,7 +322,7 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
     abrir()
     expect(await screen.findByLabelText('Periodo:')).toHaveValue('anio')
     expect(buscador()).toHaveValue('3500')
-    expect(await screen.findByText(`${CONTADOR} · 1 a la vista`)).toBeInTheDocument()
+    expect(await screen.findByText('1 a la vista')).toBeInTheDocument()
     expect(ultima().searchParams.get('buscar')).toBe('3500')
   })
 })

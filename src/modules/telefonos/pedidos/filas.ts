@@ -52,22 +52,15 @@ export function detalleEnvio(f: FilaVista, separador = ' · '): string | undefin
   return partes.length > 0 ? partes.join(separador) : undefined
 }
 
-/** El tono de toda la fila: gris solo en las enviadas y el histórico; las «ya no pendientes» llevan uno más suave (y su texto);
- *  las pendientes, ninguno. */
-export function tonoFila(f: FilaVista): 'gris' | 'suave' | null {
-  switch (estadoDe(f)) {
-    case 'ENVIADA':
-    case 'HISTORICO': return 'gris'
-    case 'NO_PENDIENTE': return 'suave'
-    default: return null
-  }
+/** El tono de toda la fila: gris solo en el histórico (lo único que no se puede editar). El resto de estados se lee en la etiqueta
+ *  de la columna «Enviado», no en el color de la fila. */
+export function tonoFila(f: FilaVista): 'gris' | null {
+  return estadoDe(f) === 'HISTORICO' ? 'gris' : null
 }
 
-/** Las clases del fondo (y el texto) de cada tono. El suave es `seleccion-suave`, el azul pálido de las selecciones: ni gris ni
- *  el ámbar y el naranja de los avisos del IMEI. */
-export const CLASE_TONO: Record<'gris' | 'suave', string> = {
+/** Las clases del fondo (y el texto) del tono de la fila. */
+export const CLASE_TONO: Record<'gris', string> = {
   gris: 'bg-[#fafbfc] text-[#8b93a1]',
-  suave: 'bg-seleccion-suave',
 }
 
 /** Cómo se pinta la celda del IMEI: vacía, o por el nivel que dice el servidor (solo lo manda en pendientes y no pendientes). */
@@ -78,13 +71,21 @@ export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'aviso' | 'mal' {
   return 'ok'
 }
 
-/** El contador de la cabecera: todas las filas, las pendientes y las editables que aún no tienen IMEI (enviadas incluidas). */
-export function recuento(filas: FilaVista[]): { total: number; pendientes: number; sinImei: number } {
-  return {
-    total: filas.length,
-    pendientes: filas.filter((f) => estadoDe(f) === 'PENDIENTE').length,
-    sinImei: filas.filter((f) => f.editable && !f.imei).length,
+/** Las filas cuyo IMEI no cuadra con el pedido (la celda en naranja). */
+export const noCuadra = (f: FilaVista): boolean => f.nivel === 'MAL'
+
+export type Recuento = { total: number; pendientes: number; sinImei: number; noCuadran: number }
+
+/** Los contadores de la cabecera: todas las filas, las pendientes, las editables que aún no tienen IMEI (enviadas incluidas) y las
+ *  que no cuadran. Una sola pasada. */
+export function recuento(filas: FilaVista[]): Recuento {
+  const r: Recuento = { total: filas.length, pendientes: 0, sinImei: 0, noCuadran: 0 }
+  for (const f of filas) {
+    if (estadoDe(f) === 'PENDIENTE') r.pendientes++
+    if (f.editable && !f.imei) r.sinImei++
+    if (noCuadra(f)) r.noCuadran++
   }
+  return r
 }
 
 /** El día de hace `n` meses respecto de `hoy` (`YYYY-MM-DD`): el mismo día de ese mes, o el último si no existe (31 de marzo
@@ -112,7 +113,35 @@ export function rangoDe(p: Periodo, hoy: Date, rango?: { desde: string; hasta: s
   }
 }
 
-export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; enviado: Set<string> }
+export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; enviado: Set<string> }
+
+export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set() }
+
+/** Los contadores pulsables de la cabecera y el filtro que cada uno aplica (sustituye a los filtros de columna). */
+export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'noCuadran'
+
+export function filtrosDeContador(c: Contador): FiltrosColumna {
+  switch (c) {
+    case 'pendientes': return { ...SIN_FILTROS, enviado: new Set(['PENDIENTE']) }
+    case 'sinImei': return { ...SIN_FILTROS, soloSinImei: true }
+    case 'noCuadran': return { ...SIN_FILTROS, noCuadran: true }
+    default: return { ...SIN_FILTROS }
+  }
+}
+
+/** El contador que está aplicado: el que deja exactamente sus filtros y ninguno más; null si hay otra combinación. */
+export function contadorAplicado(f: FiltrosColumna): Contador | null {
+  const nada = f.plataformas.size === 0 && f.skus.size === 0
+  if (!nada) return null
+  const enviado = f.enviado.size === 1 && f.enviado.has('PENDIENTE')
+  if (f.enviado.size === 0 && !f.soloSinImei && !f.noCuadran) return 'filas'
+  if (enviado && !f.soloSinImei && !f.noCuadran) return 'pendientes'
+  if (f.enviado.size === 0 && f.soloSinImei && !f.noCuadran) return 'sinImei'
+  if (f.enviado.size === 0 && !f.soloSinImei && f.noCuadran) return 'noCuadran'
+  return null
+}
+
+export const hayFiltros = (f: FiltrosColumna): boolean => contadorAplicado(f) !== 'filas'
 
 /** Los valores distintos de una columna, ordenados. */
 export function valores(filas: FilaVista[], columna: 'plataforma' | 'sku'): string[] {
@@ -125,25 +154,27 @@ export function vigente(elegidos: Set<string>, disponibles: string[]): Set<strin
   return new Set([...elegidos].filter((v) => hay.has(v)))
 }
 
-/** Las opciones del filtro «Enviado»; el histórico cuenta como «ENVIADA» (es historia cerrada). */
-export const OPCIONES_ENVIADO: { valor: 'PENDIENTE' | 'ENVIADA' | 'NO_PENDIENTE'; texto: string }[] = [
+/** Las opciones del filtro «Enviado»: una por estado; el histórico ya no cuenta como enviado. */
+export const OPCIONES_ENVIADO: { valor: EstadoFila; texto: string }[] = [
   { valor: 'PENDIENTE', texto: 'Pendientes' },
   { valor: 'ENVIADA', texto: 'Enviados' },
   { valor: 'NO_PENDIENTE', texto: 'Ya no pendientes' },
+  { valor: 'HISTORICO', texto: 'Histórico de la hoja' },
 ]
-const grupoEnviado = (f: FilaVista): string => (estadoDe(f) === 'HISTORICO' ? 'ENVIADA' : estadoDe(f))
 
 /** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
- *  filas editables sin IMEI (las enviadas también). Sin filtro devuelve las mismas filas; con él, un array nuevo con los mismos objetos. */
+ *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
+ *  con él, un array nuevo con los mismos objetos. */
 export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
   const plataformas = vigente(f.plataformas, valores(filas, 'plataforma'))
   const skus = vigente(f.skus, valores(filas, 'sku'))
-  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && f.enviado.size === 0) return filas
+  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || (x.plataforma != null && plataformas.has(x.plataforma)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || (x.editable && !x.imei))
-    && (f.enviado.size === 0 || f.enviado.has(grupoEnviado(x))))
+    && (!f.noCuadran || noCuadra(x))
+    && (f.enviado.size === 0 || f.enviado.has(estadoDe(x))))
 }
 
 /** Un rango con las dos fechas puestas y en orden. */

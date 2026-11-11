@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
+import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
 import { maquetarJsdom } from '@/test/layoutJsdom'
 
@@ -26,6 +27,7 @@ afterEach(() => { vi.restoreAllMocks() })
 
 beforeEach(() => {
   puts = []
+  estadoPedidos.reset()
   maquetarJsdom()
   server.use(
     http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: FILAS, hayMas: false })),
@@ -50,7 +52,7 @@ describe('Pedidos como la hoja: la tabla', () => {
   it('cabecera con el recuento y la tabla con sus siete columnas, sin letras ni número de fila', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Pedidos' })).toBeInTheDocument()
-    expect(await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '9 filas' })).toBeInTheDocument()
     expect(screen.getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'])
     expect(screen.getAllByRole('row')).toHaveLength(10)
     expect(screen.getAllByText('09/11/2026').length).toBeGreaterThan(0)
@@ -65,24 +67,24 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect(await celdaVacia()).toBeInTheDocument()
   })
 
-  it('«Enviado»: la fecha del envío con su transportista y seguimiento, «Ya no está pendiente», o nada', async () => {
+  it('«Enviado» es una etiqueta con texto: Pendiente, Enviado dd/mm con transportista y seguimiento, Ya no está pendiente, De la hoja', async () => {
     abrir()
-    await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
+    await screen.findByRole('button', { name: '9 filas' })
     const celda = (pedido: string) => screen.getByText(pedido).closest('tr')!.querySelectorAll('td')[5]
-    // Visible sin ratón: fecha, transportista y seguimiento; además, el título.
-    expect(celda('402-0000000-0000011')).toHaveTextContent('09/11/2026 · UPS 1Z0000000000000001')
+    // Visible sin ratón: etiqueta con el día y el mes, y tras ella transportista y seguimiento; además, el título.
+    expect(celda('402-0000000-0000011')).toHaveTextContent('Enviado 09/11UPS 1Z0000000000000001')
     expect(celda('402-0000000-0000011')).toHaveAttribute('title', 'UPS · 1Z0000000000000001')
-    expect(celda('402-0000000-0000019').textContent).toBe('09/11/2026')
+    expect(celda('402-0000000-0000019').textContent).toBe('Enviado 09/11')
     expect(celda('402-0000000-0000019')).not.toHaveAttribute('title')
-    expect(celda('402-0000000-0000016')).toHaveTextContent('Ya no está pendiente')
-    expect(celda('402-0000000-0000013')).toBeEmptyDOMElement()
+    expect(celda('402-0000000-0000016').textContent).toBe('Ya no está pendiente')
+    expect(celda('402-0000000-0000013').textContent).toBe('Pendiente')
     // El histórico, aunque tenga fecha de envío, no la enseña.
-    expect(celda('402-0000000-0000017')).toBeEmptyDOMElement()
+    expect(celda('402-0000000-0000017').textContent).toBe('De la hoja')
   })
 
   it('cada fila lleva su estado en `data-estado`', async () => {
     abrir()
-    await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
+    await screen.findByRole('button', { name: '9 filas' })
     const estado = (pedido: string) => screen.getByText(pedido).closest('tr')!.getAttribute('data-estado')
     expect(['11', '13', '16', '17'].map((n) => estado(`402-0000000-00000${n}`))).toEqual(['ENVIADA', 'PENDIENTE', 'NO_PENDIENTE', 'HISTORICO'])
   })
@@ -93,16 +95,14 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect((await screen.findByText('402-0000000-0000031')).closest('tr')!.querySelectorAll('td')[5]).toHaveTextContent(/^Enviado$/)
   })
 
-  it('el tono de la fila: gris en enviada e histórico, suave en no pendiente, nada en pendiente', async () => {
+  it('la fila va en gris solo si es del histórico: enviada, pendiente y no pendiente, en texto normal', async () => {
     abrir()
-    await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
+    await screen.findByRole('button', { name: '9 filas' })
     const td = (pedido: string) => screen.getByText(pedido).closest('td')!
-    expect(td('402-0000000-0000011')).toHaveClass('bg-[#fafbfc]')
     expect(td('402-0000000-0000017')).toHaveClass('bg-[#fafbfc]')
-    expect(td('402-0000000-0000016')).toHaveClass('bg-seleccion-suave')
-    expect(td('402-0000000-0000016')).not.toHaveClass('bg-[#fafbfc]')
-    expect(td('402-0000000-0000013').className).not.toMatch(/bg-/)
+    for (const n of ['11', '13', '16']) expect(td(`402-0000000-00000${n}`).className).not.toMatch(/bg-|text-\[#8b93a1\]/)
   })
+
 
   it('una fila enviada se edita: abre el desplegable con «Quitar el IMEI» y hace PUT', async () => {
     const user = userEvent.setup()

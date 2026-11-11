@@ -108,7 +108,7 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   // No todas las filas tienen un móvil recomendado en stock (un SKU sin existencias no lo tiene): se prueba con las primeras
   // hasta dar con una que sí.
   const desplegable = page.getByRole('dialog', { name: 'Poner el IMEI' })
-  const recomendado = desplegable.getByRole('button').filter({ hasText: /^\d{15}/ }).first()
+  const recomendado = desplegable.getByRole('button').filter({ hasText: /\d{15}/ }).first()
   let hay = false
   for (const candidata of candidatas) {
     [pedido, orden] = candidata
@@ -120,7 +120,7 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
     await expect(desplegable).toBeHidden()
   }
   test.skip(!hay, `ninguna de las ${candidatas.length} primeras filas vivas sin IMEI tiene móviles recomendados en stock`)
-  const imei = (await recomendado.locator('span').first().textContent())?.trim() ?? ''
+  const imei = (await recomendado.getByText(/^\d{15}$/).textContent())?.trim() ?? ''
   expect(imei).toMatch(/^\d{15}$/)
   await recomendado.click()
   await expect(desplegable).toBeHidden()

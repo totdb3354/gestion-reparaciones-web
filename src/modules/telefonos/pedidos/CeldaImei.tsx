@@ -91,7 +91,7 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); enviar() } }}
         className="h-8 w-full rounded-md border border-borde-input px-2 font-mono text-[13px]" />
       {error && <p role="alert" className="mt-1 text-[12px] font-bold text-texto-error">{error}</p>}
-      <div className="mt-1.5 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>}</div>
+      <div className="mt-1.5 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>} · dónde buscarlo</div>
       {recomendados.isPending && <p className="px-2 py-1.5 text-[12px] text-azul-gris">Cargando…</p>}
       {recomendados.isError && <p className="px-2 py-1.5 text-[12px] text-azul-gris">No se pudieron cargar los recomendados.</p>}
       {recomendados.data?.length === 0 && (
@@ -100,8 +100,9 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
       {recomendados.data?.map((c) => (
         <button key={c.imei} type="button" disabled={poner.isPending} onClick={() => guardar(c.imei)}
           className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
+          {/* Lo que la persona se lleva al almacén es la caja: va delante y resaltada. */}
+          <span className="rounded-md bg-[#eef0f3] px-2 py-px font-bold">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
-          <span>{c.caja}</span>
           {c.nivel === 3 && <span className="text-azul-gris">es {c.sku}</span>}
           <span className={cn('ml-auto rounded-lg px-2 py-px text-[11px] font-bold', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
         </button>

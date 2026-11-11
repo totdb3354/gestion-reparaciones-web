@@ -7,12 +7,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 ## [0.9.32] - (pendiente) — «Pedidos» como la hoja
 
 - En **Teléfonos › Pedidos** hay ahora una tabla como la hoja de pedidos, con las columnas **Fecha, Plataforma, SKU, IMEI, Pedido, Enviado y Fecha compra**: una fila por móvil pedido.
-- Las filas **aparecen solas** a partir de los pedidos pendientes de Amazon (AMZ y FNSK) y de las tiendas web, y se ponen **en gris** cuando el pedido ya se ha enviado. Nadie las teclea.
-- La columna **«Enviado»** enseña la **fecha real del envío** (la que da ShippyPro) y, al pasar el ratón, el **transportista y el seguimiento**. Solo las filas enviadas van en gris; las que han dejado de estar pendientes sin haberse enviado (un pedido cancelado, por ejemplo) dicen **«Ya no está pendiente»** y llevan otro tono. Hay un filtro en la columna «Enviado» (Pendientes, Enviados, Ya no pendientes).
+- Las filas **aparecen solas** a partir de los pedidos pendientes de Amazon (AMZ y FNSK) y de las tiendas web. Nadie las teclea.
+- El **estado** de cada fila es una **etiqueta con texto** en la columna **«Enviado»**: «Pendiente», verde «Enviado dd/mm» (con el transportista y el seguimiento a continuación), azul «Ya no está pendiente» y gris «De la hoja». La fila entera solo va **en gris** si es del histórico de la hoja, que no se puede editar y sale **mezclado por fecha** con el resto. La fecha es la **real del envío** (la que da ShippyPro); al pasar el ratón, el título repite transportista y seguimiento.
+- Junto al título hay cuatro **contadores que son botones**: «N filas», «N pendientes», «N sin IMEI» y «N no cuadran». Pulsar uno **sustituye** los filtros de columna por el suyo (el buscador y el periodo no se tocan); «filas» los quita todos. Con algún filtro puesto sale también «N a la vista».
+- Los **filtros puestos se ven como etiquetas** dentro de la caja del buscador, cada una con su ✕ para quitar solo ese; «Quitar filtros» los quita todos y vacía el buscador. El filtro de «Enviado» tiene cuatro casillas (Pendientes, Enviados, Ya no pendientes e Histórico de la hoja) y el del IMEI añade «No cuadran» junto a «Solo sin IMEI».
+- Los **recomendados** empiezan por **la caja**, resaltada, y el título dice «Recomendados para SKU · dónde buscarlo». La última celda de IMEI que abriste deja su fila con una **raya azul** en el borde izquierdo, se guarde o no un IMEI: sirve para encontrarla al volver del almacén. Se recuerda mientras la pantalla esté abierta y no va al servidor.
 - Las filas se pueden **editar siempre**, también las enviadas y las que ya no están pendientes (menos las del histórico antiguo): poner, cambiar o quitar el IMEI.
 - Lo único que se escribe es el **IMEI**: al pulsar la celda salen los **móviles recomendados** con su caja, y se elige uno (o se escribe o se lee el IMEI y Enter). «Quitar el IMEI» deja la celda vacía.
 - La celda del IMEI se pinta **con el motivo** cuando el móvil no es el que pide el pedido, o **como aviso** en los casos de cuidado (Ms, B por A, en el taller).
-- Filtros: por **fechas** (por defecto, el último mes), una **búsqueda en todo el historial** y **filtros** en las columnas **Plataforma** y **SKU**, y «Solo sin IMEI» en la del **IMEI**.
+- Filtros: por **fechas** (por defecto, el último mes), una **búsqueda en todo el historial** y **filtros** en las columnas **Plataforma**, **SKU**, **Enviado** e **IMEI**.
 - La pantalla de compras de piezas, que se llamaba «Pedidos», pasa a llamarse **«Compras»** (no cambia nada más).
 - Solo para **supertécnicos y administradores**; el técnico no la ve.
 - Necesita el servidor de la misma versión y su migración de base de datos, que solo añade tablas.

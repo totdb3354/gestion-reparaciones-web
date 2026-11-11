@@ -63,7 +63,7 @@ export function FiltroColumna({ columna, valores, seleccion, onChange }: PropsVa
   )
 }
 
-/** El filtro de «Enviado»: Pendientes, Enviados y Ya no pendientes (sin ninguna marcada, no filtra). */
+/** El filtro de «Enviado»: Pendientes, Enviados, Ya no pendientes e Histórico de la hoja (sin ninguna marcada, no filtra). */
 export function FiltroEnviado({ seleccion, onChange }: { seleccion: Set<string>; onChange: (s: Set<string>) => void }) {
   return (
     <Marco columna="Enviado" activo={seleccion.size > 0}>
@@ -75,11 +75,14 @@ export function FiltroEnviado({ seleccion, onChange }: { seleccion: Set<string>;
   )
 }
 
-/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también). */
-export function FiltroSinImei({ activo, onChange }: { activo: boolean; onChange: (a: boolean) => void }) {
+/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también) y «No cuadran», las del IMEI en naranja. */
+export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran }: {
+  sinImei: boolean; noCuadran: boolean; onSinImei: (a: boolean) => void; onNoCuadran: (a: boolean) => void
+}) {
   return (
-    <Marco columna="IMEI" activo={activo}>
-      <Casilla marcada={activo} onCambio={onChange} texto="Solo sin IMEI" />
+    <Marco columna="IMEI" activo={sinImei || noCuadran}>
+      <Casilla marcada={sinImei} onCambio={onSinImei} texto="Solo sin IMEI" />
+      <Casilla marcada={noCuadran} onCambio={onNoCuadran} texto="No cuadran" />
     </Marco>
   )
 }

@@ -3,48 +3,64 @@ import type { FilaVista } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
-import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, tonoFila } from './filas'
+import { useStore } from '@/shared/lib/store'
+import { estadoPedidos } from './estado'
+import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, tonoFila, type EstadoFila } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
-type PropsFila = { fila: FilaVista; abierta: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
+type PropsFila = { fila: FilaVista; abierta: boolean; marcada: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
 
-/** La fecha del envío y, tras ella, el transportista y el seguimiento (visibles, sin esperar al ratón); sin fecha, «Enviado». */
-function Envio({ fila: f }: { fila: FilaVista }) {
-  const detalle = detalleEnvio(f, ' ')
+const ETIQUETA = 'inline-block rounded-lg px-2 py-px text-[11px] font-bold'
+const COLOR_ETIQUETA: Record<EstadoFila, string> = {
+  PENDIENTE: 'border border-dashed border-[#C8CDD5] bg-superficie text-azul-gris',
+  ENVIADA: 'bg-fila-reparado-bg text-[#2f7d3b]',
+  NO_PENDIENTE: 'bg-[#dbe6fb] text-[#1d3a78]',
+  HISTORICO: 'bg-[#eceef2] text-[#6b7482]',
+}
+
+/** El estado de la fila como etiqueta con texto (el color nunca es la única señal). En las enviadas, tras ella van el transportista
+ *  y el seguimiento, visibles sin esperar al ratón. */
+function Estado({ fila: f, estado }: { fila: FilaVista; estado: EstadoFila }) {
+  const detalle = estado === 'ENVIADA' ? detalleEnvio(f, ' ') : undefined
+  const texto = {
+    PENDIENTE: 'Pendiente',
+    ENVIADA: f.envioFecha ? `Enviado ${dia(f.envioFecha).slice(0, 5)}` : 'Enviado',
+    NO_PENDIENTE: 'Ya no está pendiente',
+    HISTORICO: 'De la hoja',
+  }[estado]
   return (
     <>
-      {f.envioFecha ? dia(f.envioFecha) : 'Enviado'}
-      {detalle && <span className="font-sans text-[11px] text-azul-gris"> · {detalle}</span>}
+      <span className={cn(ETIQUETA, COLOR_ETIQUETA[estado])}>{texto}</span>
+      {detalle && <span className="ml-1.5 font-sans text-[11px] text-azul-gris">{detalle}</span>}
     </>
   )
 }
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
- *  su `fila` (TanStack conserva los objetos que no cambian) y su `abierta` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: PropsFila) {
+ *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta` y su `marcada` son los mismos. Las fechas se dan formato aquí dentro. */
+export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, marcada, onAbrir }: PropsFila) {
   const tono = tonoFila(f)
   const td = cn('h-8 border-r border-b border-form-fila-brd px-2.5 py-1 whitespace-nowrap', tono && CLASE_TONO[tono])
   const estado = estadoDe(f)
   return (
-    <tr data-estado={estado}>
-      <td className={td}>{dia(f.fecha)}</td>
+    <tr data-estado={estado} data-aqui={marcada || undefined}>
+      {/* La raya azul del borde izquierdo: la última fila cuya celda de IMEI se abrió. */}
+      <td className={cn(td, marcada && 'shadow-[inset_4px_0_0_#2f6fe0]')}>{dia(f.fecha)}</td>
       <td className={td}>{f.plataforma}</td>
       <td className={cn(td, 'font-mono text-[12px]')}>{f.sku}</td>
       <CeldaImei fila={f} abierta={abierta} onAbrir={onAbrir} />
       <td className={td}>{f.pedido}</td>
-      <td className={td} title={estado === 'ENVIADA' ? detalleEnvio(f) : undefined}>
-        {estado === 'ENVIADA' ? <Envio fila={f} /> : estado === 'NO_PENDIENTE' ? 'Ya no está pendiente' : null}
-      </td>
+      <td className={td} title={estado === 'ENVIADA' ? detalleEnvio(f) : undefined}><Estado fila={f} estado={estado} /></td>
       <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>
   )
 })
 
-/** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, las enviadas y el
- *  histórico en gris y las «ya no pendientes» en un tono suave. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
+/** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, el estado como etiqueta
+ *  en «Enviado» y solo el histórico en gris. La última celda de IMEI abierta deja su fila con una raya azul. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
 export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: {
   filas: FilaVista[]
   /** Cuántas filas ha recibido la página (sin filtrar por columna): solo llegar filas nuevas baja al final, no filtrar. */
@@ -58,7 +74,11 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: 
   if (abierta !== null && !filas.some((f) => f.idFila === abierta && f.editable)) setAbierta(null)
   // Estable (para el `memo` de las filas). Cerrar una celda que ya no es la abierta no hace nada: el cierre tardío de la anterior
   // (foco, clic fuera) no puede cerrar la que acaba de abrirse.
-  const cambiar = useCallback((id: number, abrir: boolean) => setAbierta((a) => (abrir ? id : a === id ? null : a)), [])
+  const cambiar = useCallback((id: number, abrir: boolean) => {
+    setAbierta((a) => (abrir ? id : a === id ? null : a))
+    if (abrir) estadoPedidos.set((s) => (s.ultimaAbierta === id ? s : { ...s, ultimaAbierta: id }))
+  }, [])
+  const [{ ultimaAbierta }] = useStore(estadoPedidos)
   const contenedor = useRef<HTMLDivElement>(null)
   // La altura que tenía el contenido tras el último pintado. Añadir filas no cambia `scrollTop` pero sí la altura, así que
   // «estaba abajo» se calcula justo antes de decidir con la altura de entonces, no con un valor guardado en un scroll antiguo.
@@ -87,7 +107,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: 
         </thead>
         <tbody>
           {filas.length === 0 && vacio && <tr><td colSpan={COLUMNAS.length} className="p-4 text-[12px] text-azul-gris">{vacio}</td></tr>}
-          {filas.map((f) => <FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} onAbrir={cambiar} />)}
+          {filas.map((f) => <FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={ultimaAbierta === f.idFila} onAbrir={cambiar} />)}
         </tbody>
       </table>
     </div>

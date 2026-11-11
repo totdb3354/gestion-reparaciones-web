@@ -12,10 +12,14 @@ export type EstadoPedidos = {
   plataformas: Set<string>
   skus: Set<string>
   soloSinImei: boolean
-  /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `ENVIADA`, `NO_PENDIENTE`); vacío = todos. */
+  /** Solo las filas con el IMEI en naranja (nivel MAL). */
+  noCuadran: boolean
+  /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `ENVIADA`, `NO_PENDIENTE`, `HISTORICO`); vacío = todos. */
   enviado: Set<string>
+  /** La última fila cuya celda de IMEI se abrió (se guarde o no): lleva la raya azul. Solo en memoria. */
+  ultimaAbierta: number | null
 }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, enviado: new Set(),
+  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), ultimaAbierta: null,
 })

@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { useStore } from '@/shared/lib/store'
-import { PildoraContador } from '@/shared/ui/PildoraContador'
+import { cn } from '@/shared/lib/utils'
 import { useFilas } from '../api'
-import { estadoPedidos } from './estado'
-import { FiltroColumna, FiltroEnviado, FiltroSinImei } from './FiltroColumna'
+import { estadoPedidos, type EstadoPedidos } from './estado'
+import { FiltroColumna, FiltroEnviado, FiltroImei } from './FiltroColumna'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas } from './TablaFilas'
-import { filtrarColumnas, rangoDe, rangoValido, recuento, valores, vigente } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, recuento, valores, vigente, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -35,37 +35,63 @@ export function PedidosPage() {
   const filas = useMemo(() => lista.data?.filas ?? [], [lista.data])
   const plataformas = useMemo(() => valores(filas, 'plataforma'), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
-  const filtros = useMemo(
-    () => ({ plataformas: vigente(e.plataformas, plataformas), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, enviado: e.enviado }),
-    [e.plataformas, e.skus, e.soloSinImei, e.enviado, plataformas, skus],
+  const filtros = useMemo<FiltrosColumna>(
+    () => ({ plataformas: vigente(e.plataformas, plataformas), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, plataformas, skus],
   )
-  const filtrando = filtros.plataformas.size > 0 || filtros.skus.size > 0 || filtros.soloSinImei || filtros.enviado.size > 0
+  const filtrando = hayFiltros(filtros)
+  const contadorPuesto = contadorAplicado(filtros)
   const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
-  const { total, pendientes, sinImei } = recuento(filas)
+  // Los contadores cuentan sobre lo recibido (no sobre lo filtrado), en una sola pasada y solo cuando cambian las filas.
+  const cuenta = useMemo(() => recuento(filas), [filas])
+  const etiquetas = useMemo(() => etiquetasDe(filtros), [filtros])
   const sinCargar = lista.isError && !lista.data
-  const quitarFiltros = () => setE((s) => ({ ...s, plataformas: new Set(), skus: new Set(), soloSinImei: false, enviado: new Set() }))
+  const poner = (f: Partial<FiltrosColumna>) => setE((s) => ({ ...s, ...f }))
+  const quitarFiltros = () => setE((s) => ({ ...s, ...SIN_FILTROS, buscar: '' }))
+  const CONTADORES: { id: Contador; texto: string; ayuda: string }[] = [
+    { id: 'filas', texto: `${cuenta.total} filas`, ayuda: 'Todas las filas: quita los filtros de columna' },
+    { id: 'pendientes', texto: `${cuenta.pendientes} pendientes`, ayuda: 'Solo las pendientes' },
+    { id: 'sinImei', texto: `${cuenta.sinImei} sin IMEI`, ayuda: 'Solo las que aún no tienen IMEI' },
+    { id: 'noCuadran', texto: `${cuenta.noCuadran} no cuadran`, ayuda: 'Solo las que tienen el IMEI en naranja' },
+  ]
 
   return (
     <div className="flex h-[calc(100vh-var(--spacing-navbar))] flex-col p-10 max-[1500px]:p-5">
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-azul-medio">Pedidos</h1>
         {lista.data && (
-          <PildoraContador texto={`${total} filas · ${pendientes} pendientes · ${sinImei} sin IMEI${filtrando ? ` · ${vistas.length} a la vista` : ''}`} />
+          <div role="group" aria-label="Contadores" className="flex flex-wrap items-center gap-1.5">
+            {CONTADORES.map((c) => (
+              <button key={c.id} type="button" title={c.ayuda} aria-pressed={contadorPuesto === c.id} onClick={() => setE((s) => ({ ...s, ...filtrosDeContador(c.id) }))}
+                className={cn('cursor-pointer rounded-xl border px-2.5 py-[3px] text-[12px] font-bold hover:border-[#9db8e8] hover:bg-seleccion-suave',
+                  contadorPuesto === c.id ? 'border-azul-noche bg-azul-noche text-superficie hover:border-azul-noche hover:bg-azul-noche' : 'border-borde-input bg-badge-neutro-bg text-azul-gris')}>{c.texto}</button>
+            ))}
+            {filtrando && <span className="inline-block rounded-xl bg-badge-neutro-bg px-2.5 py-[3px] text-[12px] font-bold text-azul-gris">{vistas.length} a la vista</span>}
+          </div>
         )}
         <PildoraFuentes />
-        {filtrando && (
-          <button type="button" onClick={quitarFiltros}
-            className="h-8 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold text-azul-medio">Quitar filtros</button>
-        )}
       </div>
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}
           // Al elegir «Rango…» salen las fechas guardadas, o, si no hay, las del periodo que se aplicaba.
           onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, rango: p === 'rango' && !rangoValido(s.rango) ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
           onRango={(rango) => setE((s) => ({ ...s, rango }))} />
-        <input aria-label="Buscar en todo el historial" placeholder="Buscar en todo el historial…" autoComplete="off" value={e.buscar}
-          onChange={(ev) => setE((s) => ({ ...s, buscar: ev.target.value }))}
-          className="h-8 w-72 rounded-md border border-borde-input bg-superficie px-2 text-[12px]" />
+        <div className="flex min-h-8 w-[28rem] max-w-full flex-wrap items-center gap-1.5 rounded-md border border-borde-input bg-superficie px-2 py-[3px]">
+          {etiquetas.map((t) => (
+            <span key={t.clave} className="inline-flex items-center gap-1 rounded-md border border-[#9db8e8] bg-seleccion-suave py-px pr-1 pl-2 text-[11.5px] font-bold text-[#1d3a78]">
+              {t.texto}
+              <button type="button" aria-label={`Quitar filtro ${t.texto}`} onClick={() => setE((s) => t.quitar(s))}
+                className="cursor-pointer px-1 text-[13px] leading-none font-bold">✕</button>
+            </span>
+          ))}
+          <input aria-label="Buscar en todo el historial" placeholder="Buscar en todo el historial…" autoComplete="off" value={e.buscar}
+            onChange={(ev) => setE((s) => ({ ...s, buscar: ev.target.value }))}
+            className="h-6 min-w-40 flex-1 bg-transparent text-[12px] outline-none" />
+        </div>
+        {(filtrando || e.buscar !== '') && (
+          <button type="button" onClick={quitarFiltros}
+            className="h-8 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold text-azul-medio">Quitar filtros</button>
+        )}
         {buscando && <p className="text-[12px] text-azul-gris">La búsqueda mira en todo el historial; el periodo no se aplica.</p>}
       </div>
       {buscando && e.buscar.trim().length >= MIN_BUSCAR && lista.data?.hayMas && (
@@ -84,14 +110,28 @@ export function PedidosPage() {
           Plataforma: <FiltroColumna columna="Plataforma" valores={plataformas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
-          IMEI: <FiltroSinImei activo={filtros.soloSinImei} onChange={(soloSinImei) => setE((s) => ({ ...s, soloSinImei }))} />,
+          IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })} />,
         }} />
       )}
       {filas.length > 0 && (
         <p className="mt-2 shrink-0 text-[11.5px] text-azul-gris">
-          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo); en gris, ya enviado (o del histórico); en azul pálido, «Ya no está pendiente». El IMEI se puede poner, cambiar o quitar también en las enviadas; el histórico no se edita.
+          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo). El estado del pedido va en la columna «Enviado»; en gris, el histórico de la hoja, que no se edita. El IMEI se puede poner, cambiar o quitar también en las enviadas. La raya azul marca la última celda de IMEI que abriste.
         </p>
       )}
     </div>
   )
+}
+
+type Etiqueta = { clave: string; texto: string; quitar: (s: EstadoPedidos) => EstadoPedidos }
+
+/** Los filtros de columna puestos, como etiquetas con su forma de quitarlos (uno a uno). */
+function etiquetasDe(f: FiltrosColumna): Etiqueta[] {
+  const sin = (conjunto: Set<string>, v: string) => { const n = new Set(conjunto); n.delete(v); return n }
+  return [
+    ...[...f.plataformas].map((v) => ({ clave: `p:${v}`, texto: `Plataforma: ${v}`, quitar: (s: EstadoPedidos) => ({ ...s, plataformas: sin(s.plataformas, v) }) })),
+    ...[...f.skus].map((v) => ({ clave: `s:${v}`, texto: `SKU: ${v}`, quitar: (s: EstadoPedidos) => ({ ...s, skus: sin(s.skus, v) }) })),
+    ...OPCIONES_ENVIADO.filter((o) => f.enviado.has(o.valor)).map((o) => ({ clave: `e:${o.valor}`, texto: o.texto, quitar: (s: EstadoPedidos) => ({ ...s, enviado: sin(s.enviado, o.valor) }) })),
+    ...(f.soloSinImei ? [{ clave: 'sin', texto: 'Sin IMEI', quitar: (s: EstadoPedidos) => ({ ...s, soloSinImei: false }) }] : []),
+    ...(f.noCuadran ? [{ clave: 'nc', texto: 'No cuadran', quitar: (s: EstadoPedidos) => ({ ...s, noCuadran: false }) }] : []),
+  ]
 }

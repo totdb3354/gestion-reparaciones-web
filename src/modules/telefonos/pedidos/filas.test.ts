@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { COLUMNAS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
+import { COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -51,10 +51,11 @@ describe('recuento', () => {
     const filas = [
       fila({ idFila: 1, estado: 'ENVIADA' }), fila({ idFila: 2, imei: '350000000000001' }), fila({ idFila: 3 }),
       fila({ idFila: 4, estado: 'NO_PENDIENTE' }), fila({ idFila: 5, estado: 'HISTORICO', editable: false }),
+      fila({ idFila: 6, imei: '350000000000002', nivel: 'MAL', motivo: 'MODELO' }), fila({ idFila: 7, imei: '350000000000003', nivel: 'AVISO' }),
     ]
-    expect(recuento(filas)).toEqual({ total: 5, pendientes: 2, sinImei: 3 })
+    expect(recuento(filas)).toEqual({ total: 7, pendientes: 4, sinImei: 3, noCuadran: 1 })
   })
-  it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0 }))
+  it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0, noCuadran: 0 }))
 })
 
 describe('constantes', () => {
@@ -118,7 +119,7 @@ describe('valores y filtrarColumnas', () => {
     fila({ idFila: 3, plataforma: 'Web', sku: 'a1', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
   ]
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, enviado: new Set<string>() }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>() }
   it('valores: distintos y ordenados', () => {
     expect(valores(filas, 'plataforma')).toEqual(['Amazon', 'Web'])
     expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
@@ -136,7 +137,7 @@ describe('valores y filtrarColumnas', () => {
     const con = [...filas, fila({ idFila: 5, estado: 'HISTORICO', editable: false })]
     expect(filtrarColumnas(con, { ...vacio, soloSinImei: true }).map((f) => f.idFila)).toEqual([1, 3])
   })
-  it('por «Enviado»: pendientes, enviados (el histórico cuenta como enviado) y ya no pendientes', () => {
+  it('por «Enviado»: pendientes, enviados, ya no pendientes e histórico', () => {
     const con = [
       fila({ idFila: 1 }), fila({ idFila: 2, estado: 'ENVIADA' }), fila({ idFila: 3, estado: 'NO_PENDIENTE' }),
       fila({ idFila: 4, estado: 'HISTORICO', editable: false }),
@@ -144,7 +145,8 @@ describe('valores y filtrarColumnas', () => {
     const ids = (e: string[]) => filtrarColumnas(con, { ...vacio, enviado: new Set(e) }).map((f) => f.idFila)
     expect(ids([])).toEqual([1, 2, 3, 4])
     expect(ids(['PENDIENTE'])).toEqual([1])
-    expect(ids(['ENVIADA'])).toEqual([2, 4])
+    expect(ids(['ENVIADA'])).toEqual([2])
+    expect(ids(['HISTORICO'])).toEqual([4])
     expect(ids(['NO_PENDIENTE'])).toEqual([3])
     expect(ids(['PENDIENTE', 'NO_PENDIENTE'])).toEqual([1, 3])
   })
@@ -172,10 +174,10 @@ describe('envío', () => {
 })
 
 describe('tonoFila', () => {
-  it('gris solo enviada e histórico; la no pendiente, su tono; la pendiente, ninguno', () => {
-    expect(tonoFila(fila({ estado: 'ENVIADA' }))).toBe('gris')
+  it('gris solo el histórico; enviada, no pendiente y pendiente, ninguno', () => {
     expect(tonoFila(fila({ estado: 'HISTORICO', editable: false }))).toBe('gris')
-    expect(tonoFila(fila({ estado: 'NO_PENDIENTE' }))).toBe('suave')
+    expect(tonoFila(fila({ estado: 'ENVIADA' }))).toBeNull()
+    expect(tonoFila(fila({ estado: 'NO_PENDIENTE' }))).toBeNull()
     expect(tonoFila(fila())).toBeNull()
   })
 })
@@ -188,7 +190,7 @@ describe('estadoDe', () => {
 })
 
 describe('filtros combinados', () => {
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, enviado: new Set<string>() }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>() }
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', estado: 'ENVIADA' }),
     fila({ idFila: 2, plataforma: 'Web', estado: 'ENVIADA', imei: '350000000000001' }),
@@ -200,7 +202,26 @@ describe('filtros combinados', () => {
     const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']), enviado: new Set(['ENVIADA']), soloSinImei: true })
     expect(r.map((f) => f.idFila)).toEqual([1])
   })
-  it('el histórico cae en «Enviados»', () => {
-    expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['ENVIADA']) }).map((f) => f.idFila)).toEqual([1, 2, 3, 5])
+  it('el histórico ya no cae en «Enviados»: tiene su propia casilla', () => {
+    expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['ENVIADA']) }).map((f) => f.idFila)).toEqual([1, 2, 3])
+    expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['HISTORICO']) }).map((f) => f.idFila)).toEqual([5])
+  })
+  it('«no cuadran» deja las del IMEI en naranja (nivel MAL)', () => {
+    const f = [fila({ idFila: 1, imei: '350000000000001', nivel: 'MAL' }), fila({ idFila: 2, imei: '350000000000002', nivel: 'AVISO' }), fila({ idFila: 3 })]
+    expect(filtrarColumnas(f, { ...vacio, noCuadran: true }).map((x) => x.idFila)).toEqual([1])
+  })
+})
+
+describe('contadores', () => {
+  it('cada contador aplica solo su filtro y se reconoce como aplicado', () => {
+    for (const c of ['filas', 'pendientes', 'sinImei', 'noCuadran'] as const) expect(contadorAplicado(filtrosDeContador(c))).toBe(c)
+    expect(filtrosDeContador('pendientes').enviado).toEqual(new Set(['PENDIENTE']))
+    expect(filtrosDeContador('filas')).toEqual(SIN_FILTROS)
+  })
+  it('una combinación que no es la de ningún contador no marca ninguno; con algún filtro hay filtros', () => {
+    expect(contadorAplicado({ ...SIN_FILTROS, soloSinImei: true, noCuadran: true })).toBeNull()
+    expect(contadorAplicado({ ...SIN_FILTROS, plataformas: new Set(['Web']) })).toBeNull()
+    expect(hayFiltros(SIN_FILTROS)).toBe(false)
+    expect(hayFiltros({ ...SIN_FILTROS, noCuadran: true })).toBe(true)
   })
 })
