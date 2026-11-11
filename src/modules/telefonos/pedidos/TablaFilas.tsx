@@ -6,7 +6,7 @@ import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos } from './estado'
-import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, tonoFila, type EstadoFila } from './filas'
+import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -34,20 +34,26 @@ const SOMBRA_RAYA = 'shadow-[inset_4px_0_0_#2f6fe0]'
 const SOMBRA_ELEGIDA = 'shadow-[inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]'
 const SOMBRA_AMBAS = 'shadow-[inset_4px_0_0_#2f6fe0,inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]'
 const ETIQUETA = 'inline-block rounded-lg px-2 py-px text-[11px] font-bold'
-const COLOR_ETIQUETA: Record<EstadoFila, string> = {
+const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
   PENDIENTE: 'border border-dashed border-[#C8CDD5] bg-superficie text-azul-gris',
-  ENVIADA: 'bg-fila-reparado-bg text-[#2f7d3b]',
+  GENERADA: 'bg-pill-aviso-bg text-pill-aviso-text',
+  ENVIADO: 'bg-fila-reparado-bg text-[#2f7d3b]',
   NO_PENDIENTE: 'bg-[#dbe6fb] text-[#1d3a78]',
   HISTORICO: 'bg-[#eceef2] text-[#6b7482]',
 }
 
-/** El estado de la fila como etiqueta con texto (el color nunca es la única señal). En las enviadas, tras ella van el transportista
- *  y el seguimiento, visibles sin esperar al ratón. */
-export function EtiquetaEstado({ fila: f, estado, conDetalle = true }: { fila: FilaVista; estado: EstadoFila; conDetalle?: boolean }) {
-  const detalle = conDetalle && estado === 'ENVIADA' ? detalleEnvio(f, ' ') : undefined
+/** Un espacio y «dd/mm» de una fecha del servidor, o nada. */
+const diaMes = (iso: string | null) => (iso ? ` ${dia(iso).slice(0, 5)}` : '')
+
+/** El estado de la fila como etiqueta con texto (el color nunca es la única señal). Con etiqueta generada o enviada, tras ella van el
+ *  transportista y el seguimiento, visibles sin esperar al ratón. «Etiqueta generada» lleva la fecha del envío y «Enviado» (etiqueta
+ *  impresa), la de la impresión. */
+export function EtiquetaEstado({ fila: f, estado, conDetalle = true }: { fila: FilaVista; estado: EstadoPantalla; conDetalle?: boolean }) {
+  const detalle = conDetalle && (estado === 'GENERADA' || estado === 'ENVIADO') ? detalleEnvio(f, ' ') : undefined
   const texto = {
     PENDIENTE: 'Pendiente',
-    ENVIADA: f.envioFecha ? `Enviado ${dia(f.envioFecha).slice(0, 5)}` : 'Enviado',
+    GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
+    ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
     NO_PENDIENTE: 'Ya no está pendiente',
     HISTORICO: 'De la hoja',
   }[estado]
@@ -69,7 +75,8 @@ function FilaHueco({ alto }: { alto: number }) {
 export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, elegida, onAbrir, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   const td = cn('h-8 border-r border-b border-form-fila-brd px-2.5 py-1 whitespace-nowrap', tono && CLASE_TONO[tono])
-  const estado = estadoDe(f)
+  const servidor = estadoDe(f)
+  const estado = estadoPantalla(f)
   // Los bordes de la fila elegida (panel) y la raya azul de la última celda abierta comparten la sombra de la primera celda.
   // Clases escritas enteras (Tailwind no ve las que se montan con plantillas).
   const sombra = marcada ? (elegida ? SOMBRA_AMBAS : SOMBRA_RAYA) : elegida ? SOMBRA_ELEGIDA : undefined
@@ -77,7 +84,7 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
   return (
     // Un clic en cualquier celda menos la del IMEI elige la fila. Se comprueba en el DOM (el desplegable del IMEI sube por React
     // desde su portal, pero no está dentro de la fila).
-    <tr data-estado={estado} aria-rowindex={indice} data-aqui={marcada || undefined} data-elegida={elegida || undefined}
+    <tr data-estado={servidor} data-impresa={f.impresaEn ? 'true' : undefined} aria-rowindex={indice} data-aqui={marcada || undefined} data-elegida={elegida || undefined}
       onClick={(ev) => {
         const celda = (ev.target as Element).closest('td')
         if (celda && ev.currentTarget.contains(celda) && !celda.hasAttribute('data-imei')) onElegir(f.idFila)
@@ -91,7 +98,7 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
         {/* El botón es la forma de elegir la fila con teclado. */}
         <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">{f.pedido}</button>
       </td>
-      <td className={cn(td, bordes)} title={estado === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} /></td>
+      <td className={cn(td, bordes)} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} /></td>
       <td className={cn(td, bordes)}>{dia(f.fechaCompra)}</td>
     </tr>
   )

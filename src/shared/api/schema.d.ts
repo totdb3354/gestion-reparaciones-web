@@ -2260,6 +2260,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/vendidos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vendidos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pedidos/fuentes": {
         parameters: {
             query?: never;
@@ -2639,6 +2655,9 @@ export interface components {
             envioFecha: string | null;
             transportista: string | null;
             seguimiento: string | null;
+            /** Format: date-time */
+            impresaEn: string | null;
+            tieneEtiqueta: boolean;
             nivel: string | null;
             motivo: string | null;
             skuMovil: string | null;
@@ -4014,6 +4033,14 @@ export interface components {
             vende: boolean;
             modelos: string[];
             excluidos: string[];
+        };
+        Vendido: {
+            imei: string;
+            sku: string | null;
+            canal: string | null;
+            pedido: string | null;
+            /** Format: date-time */
+            fechaImei: string;
         };
         FuenteVista: {
             fuente: string;
@@ -8209,6 +8236,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Proveedor"][];
+                };
+            };
+        };
+    };
+    vendidos: {
+        parameters: {
+            query?: {
+                dias?: number;
+                canal?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Vendido"][];
                 };
             };
         };

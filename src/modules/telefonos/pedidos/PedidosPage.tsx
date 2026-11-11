@@ -9,7 +9,7 @@ import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, recuento, textoTienda, tiendasPresentes, valores, vigente, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, recuento, recuentoEstados, textoTienda, tiendasPresentes, valores, vigente, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -36,6 +36,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const filas = useMemo(() => lista.data?.filas ?? [], [lista.data])
   const tiendas = useMemo(() => tiendasPresentes(filas), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
+  const estados = useMemo(() => recuentoEstados(filas), [filas])
   const filtros = useMemo<FiltrosColumna>(
     () => ({ plataformas: vigente(e.plataformas, tiendas.map((t) => t.valor)), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
     [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, tiendas, skus],
@@ -146,7 +147,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         <TablaFilas filas={vistas} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
-          Enviado: <FiltroEnviado seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
+          Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
           IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })} />,
         }} />
         {elegida && <PanelFila fila={elegida} onCerrar={cerrarPanel} />}
@@ -154,7 +155,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
       )}
       {filas.length > 0 && (
         <p className="mt-2 shrink-0 text-[11.5px] text-azul-gris">
-          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo). El estado del pedido va en la columna «Enviado»; en gris, el histórico de la hoja, que no se edita. El IMEI se puede poner, cambiar o quitar también en las enviadas. La raya azul marca la última celda de IMEI que abriste.
+          Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI: en ámbar, vale con aviso; en naranja, no cuadra (mira el motivo). El estado del pedido va en la columna «Enviado»: «Etiqueta generada» es que ya hay etiqueta pero aún no se ha impreso (el móvil sigue en el almacén) y «Enviado», que la etiqueta se imprimió. En gris, el histórico de la hoja, que no se edita. El IMEI se puede poner, cambiar o quitar también en las enviadas. La raya azul marca la última celda de IMEI que abriste.
         </p>
       )}
     </div>

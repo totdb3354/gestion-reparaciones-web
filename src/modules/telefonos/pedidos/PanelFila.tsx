@@ -3,7 +3,7 @@ import type { CambioImei, FilaVista } from '@/shared/api/client'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { useCambiosImei } from '../api'
 import { EtiquetaEstado } from './TablaFilas'
-import { estadoDe, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
+import { estadoDe, estadoPantalla, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 /** «2026-11-09T10:30:00» → «09/11/2026 10:30» (hora de Madrid, cortada del texto como las demás fechas). */
@@ -48,9 +48,9 @@ function Cambios({ fila }: { fila: FilaVista }) {
 
 /** El panel de la derecha (spec v2 §3.5): el pedido, el móvil y quién ha tocado el IMEI. Solo enseña; el IMEI se pone en la celda. */
 export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
-  const estado = estadoDe(f)
+  const estado = estadoPantalla(f)
   const motivo = textoMotivo(f)
-  const envio = estado === 'ENVIADA'
+  const envio = estado === 'GENERADA' || estado === 'ENVIADO'
   return (
     <section aria-label="Detalle del pedido" className="w-[340px] max-w-[40%] shrink-0 overflow-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
       <div className="mb-2.5 flex items-center gap-2">
@@ -66,6 +66,8 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
         <Dato nombre="SKU"><span className="font-mono text-[12px]">{f.sku}</span></Dato>
         <Dato nombre="Fecha">{dia(f.fecha)}</Dato>
         <Dato nombre="Fecha compra">{dia(f.fechaCompra)}</Dato>
+        {envio && <Dato nombre="Etiqueta generada">{f.envioFecha ? diaHora(f.envioFecha) : 'sí'}</Dato>}
+        {envio && <Dato nombre={f.impresaEn ? 'Enviado (etiqueta impresa)' : 'Enviado'}>{f.impresaEn ? diaHora(f.impresaEn) : 'Etiqueta sin imprimir todavía'}</Dato>}
         {envio && f.transportista && <Dato nombre="Transportista">{nombreTransportista(f.transportista)}</Dato>}
         {envio && f.seguimiento && <Dato nombre="Seguimiento">{f.seguimiento}</Dato>}
       </dl>

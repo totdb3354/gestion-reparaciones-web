@@ -4702,6 +4702,44 @@
         }
       }
     },
+    "/api/pedidos/vendidos" : {
+      "get" : {
+        "tags" : [ "vendidos-controller" ],
+        "operationId" : "vendidos",
+        "parameters" : [ {
+          "name" : "dias",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 7
+          }
+        }, {
+          "name" : "canal",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Vendido"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pedidos/fuentes" : {
       "get" : {
         "tags" : [ "filas-controller" ],
@@ -5395,7 +5433,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "fecha", "fechaCompra", "idFila", "imei", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sku", "skuMovil", "transportista" ],
+        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5444,6 +5482,14 @@
           "seguimiento" : {
             "type" : "string",
             "nullable" : true
+          },
+          "impresaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "tieneEtiqueta" : {
+            "type" : "boolean"
           },
           "nivel" : {
             "type" : "string",
@@ -9407,6 +9453,31 @@
             "items" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "Vendido" : {
+        "required" : [ "canal", "fechaImei", "imei", "pedido", "sku" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "canal" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pedido" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fechaImei" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       },

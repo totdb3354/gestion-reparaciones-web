@@ -42,6 +42,16 @@ export function estadoDe(f: FilaVista): EstadoFila {
   }
 }
 
+/** El estado que ve el usuario en la columna «Enviado»: el del servidor, con ENVIADA partida en «etiqueta generada» (la etiqueta
+ *  existe pero no se ha impreso: el móvil sigue en el almacén) y «enviado» (la etiqueta se imprimió). */
+export type EstadoPantalla = 'PENDIENTE' | 'GENERADA' | 'ENVIADO' | 'NO_PENDIENTE' | 'HISTORICO'
+
+/** El estado de pantalla de una fila (una comparación por fila; sin trabajo extra). */
+export function estadoPantalla(f: FilaVista): EstadoPantalla {
+  const e = estadoDe(f)
+  return e === 'ENVIADA' ? (f.impresaEn ? 'ENVIADO' : 'GENERADA') : e
+}
+
 /** El transportista como lo lee el usuario: sin el sufijo técnico de ShippyPro («UPSv2» → «UPS», «GLSSpain» → «GLS»). */
 export const nombreTransportista = (t: string): string => t.replace(/(v2|Spain)$/, '')
 
@@ -178,13 +188,21 @@ export function vigente(elegidos: Set<string>, disponibles: string[]): Set<strin
   return new Set([...elegidos].filter((v) => hay.has(v)))
 }
 
-/** Las opciones del filtro «Enviado»: una por estado; el histórico ya no cuenta como enviado. */
-export const OPCIONES_ENVIADO: { valor: EstadoFila; texto: string }[] = [
+/** Las opciones del filtro «Enviado»: una por estado de pantalla; el histórico no cuenta como enviado. */
+export const OPCIONES_ENVIADO: { valor: EstadoPantalla; texto: string }[] = [
   { valor: 'PENDIENTE', texto: 'Pendientes' },
-  { valor: 'ENVIADA', texto: 'Enviados' },
+  { valor: 'GENERADA', texto: 'Etiqueta generada' },
+  { valor: 'ENVIADO', texto: 'Enviados' },
   { valor: 'NO_PENDIENTE', texto: 'Ya no pendientes' },
   { valor: 'HISTORICO', texto: 'Histórico de la hoja' },
 ]
+
+/** Cuántas filas hay de cada estado de pantalla entre las recibidas (una pasada). */
+export function recuentoEstados(filas: FilaVista[]): Record<EstadoPantalla, number> {
+  const r: Record<EstadoPantalla, number> = { PENDIENTE: 0, GENERADA: 0, ENVIADO: 0, NO_PENDIENTE: 0, HISTORICO: 0 }
+  for (const f of filas) r[estadoPantalla(f)]++
+  return r
+}
 
 /** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
  *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
@@ -198,7 +216,7 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVist
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || (x.editable && !x.imei))
     && (!f.noCuadran || noCuadra(x))
-    && (f.enviado.size === 0 || f.enviado.has(estadoDe(x))))
+    && (f.enviado.size === 0 || f.enviado.has(estadoPantalla(x))))
 }
 
 /** Un rango con las dos fechas puestas y en orden. */

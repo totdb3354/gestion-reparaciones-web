@@ -81,12 +81,15 @@ export function FiltroTienda({ tiendas, seleccion, onChange }: {
   )
 }
 
-/** El filtro de «Enviado»: Pendientes, Enviados, Ya no pendientes e Histórico de la hoja (sin ninguna marcada, no filtra). */
-export function FiltroEnviado({ seleccion, onChange }: { seleccion: Set<string>; onChange: (s: Set<string>) => void }) {
+/** El filtro de «Enviado»: Pendientes, Etiqueta generada, Enviados, Ya no pendientes e Histórico de la hoja, cada uno con su
+ *  recuento (sin ninguna marcada, no filtra). */
+export function FiltroEnviado({ seleccion, onChange, recuentos }: {
+  seleccion: Set<string>; onChange: (s: Set<string>) => void; recuentos: Record<string, number>
+}) {
   return (
     <Marco columna="Enviado" activo={seleccion.size > 0}>
       {OPCIONES_ENVIADO.map((o) => (
-        <Casilla key={o.valor} marcada={seleccion.has(o.valor)} texto={o.texto}
+        <Casilla key={o.valor} marcada={seleccion.has(o.valor)} texto={o.texto} n={recuentos[o.valor] ?? 0}
           onCambio={(m) => { const s = new Set(seleccion); if (m) s.add(o.valor); else s.delete(o.valor); onChange(s) }} />
       ))}
     </Marco>

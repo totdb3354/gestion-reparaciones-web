@@ -15,7 +15,7 @@ export type EstadoPedidos = {
   soloSinImei: boolean
   /** Solo las filas con el IMEI en naranja (nivel MAL). */
   noCuadran: boolean
-  /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `ENVIADA`, `NO_PENDIENTE`, `HISTORICO`); vacío = todos. */
+  /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `GENERADA`, `ENVIADO`, `NO_PENDIENTE`, `HISTORICO`); vacío = todos. */
   enviado: Set<string>
   /** La última fila cuya celda de IMEI se abrió (se guarde o no): lleva la raya azul. Solo en memoria. */
   ultimaAbierta: number | null
