@@ -14,7 +14,7 @@ import { PedidosPage } from './PedidosPage'
 const FILAS = [
   fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
-  fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', imei: '350000000000002', pedido: '402-0000000-0000023' }),
+  fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', impresaEn: '2026-11-10T09:00:00', tieneEtiqueta: true, imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
   fila({ idFila: 5, plataforma: 'Web', imei: '350000000000003', nivel: 'MAL', motivo: 'MODELO', pedido: '402-0000000-0000025' }),
   fila({ idFila: 6, estado: 'HISTORICO', editable: false, imei: '350000000000004', pedido: '402-0000000-0000026' }),
@@ -116,7 +116,7 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     await user.click(screen.getByRole('checkbox', { name: 'No cuadran' }))
     await user.keyboard('{Escape}')
     await abrirFiltro(user, 'Enviado')
-    await user.click(screen.getByRole('checkbox', { name: 'Pendientes' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Pendientes/ }))
     await user.keyboard('{Escape}')
     const caja = buscador().parentElement!
     for (const t of ['Plataforma: Fonestore', 'Sin IMEI', 'No cuadran', 'Pendientes']) expect(caja).toHaveTextContent(t)
@@ -144,15 +144,15 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     expect(screen.queryByRole('button', { name: /Quitar filtro / })).not.toBeInTheDocument()
   })
 
-  it('el filtro de «Enviado» tiene cuatro casillas y el histórico ya no cuenta como enviado', async () => {
+  it('el filtro de «Enviado» tiene cinco casillas con su recuento y el histórico no cuenta como enviado', async () => {
     const user = userEvent.setup()
     abrir()
     await contador('6 filas')
     await abrirFiltro(user, 'Enviado')
-    for (const n of ['Pendientes', 'Enviados', 'Ya no pendientes', 'Histórico de la hoja']) expect(screen.getByRole('checkbox', { name: n })).toBeInTheDocument()
-    await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
+    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Etiqueta generada0', 'Enviados1', 'Ya no pendientes0', 'Histórico de la hoja1'])
+    await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
-    await user.click(screen.getByRole('checkbox', { name: 'Histórico de la hoja' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Histórico de la hoja/ }))
     expect(filasPintadas()).toBe(2)
   })
 
@@ -173,7 +173,7 @@ describe('Pedidos v2: el estado como etiqueta y el histórico', () => {
     abrir()
     await contador('6 filas')
     const enviada = tr('402-0000000-0000023')
-    expect(enviada).toHaveTextContent('Enviado')
+    expect(enviada).toHaveTextContent('Enviado 10/11')
     expect(enviada.querySelector('td')!.className).not.toMatch(/bg-|text-\[#8b93a1\]/)
     const historica = tr('402-0000000-0000026')
     expect(historica).toHaveTextContent('De la hoja')

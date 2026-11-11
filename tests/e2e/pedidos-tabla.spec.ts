@@ -85,6 +85,11 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   const textos = (await cabeceras.allTextContents()).map((t) => t.trim())
   COLUMNAS.forEach((c, i) => expect(textos[i], `cabecera ${i + 1}`).toBe(c))
 
+  // El filtro de «Enviado» distingue la etiqueta generada (el móvil sigue en el almacén) de lo enviado (etiqueta impresa).
+  await page.getByRole('button', { name: /^Filtrar Enviado/ }).click()
+  for (const n of ['Pendientes', 'Etiqueta generada', 'Enviados', 'Ya no pendientes', 'Histórico de la hoja']) await expect(page.getByRole('checkbox', { name: n })).toBeVisible()
+  await page.keyboard.press('Escape')
+
   // Las filas pendientes (la web marca cada fila con `data-estado`) con el IMEI pulsable y sin poner: así la prueba nunca
   // escribe en una fila ya enviada.
   const filas = hoja.locator('tbody tr')

@@ -13,7 +13,7 @@ import { PedidosPage } from './PedidosPage'
 const FILAS = [
   fila({ idFila: 1, canal: 'AMAZON', plataforma: 'AMZ', pedido: '402-0000000-0000041' }),
   fila({ idFila: 2, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web A', pedido: '402-0000000-0000042', imei: '350000000000011', nivel: 'MAL', motivo: 'MODELO', skuMovil: 'i14128NegroA', caja: 'CAJA LISTOS' }),
-  fila({ idFila: 3, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web B', pedido: '402-0000000-0000043', estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', transportista: 'UPSv2', seguimiento: '1Z0000000000000002' }),
+  fila({ idFila: 3, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web B', pedido: '402-0000000-0000043', estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', impresaEn: '2026-11-10T09:15:00', tieneEtiqueta: true, transportista: 'UPSv2', seguimiento: '1Z0000000000000002' }),
   fila({ idFila: 4, canal: null, estado: 'HISTORICO', editable: false, plataforma: 'Cliente Web C', imei: '350000000000012', pedido: '402-0000000-0000044' }),
 ]
 
@@ -144,10 +144,26 @@ describe('Pedidos v2: el panel de la fila', () => {
     await esperar()
     await user.click(celda('Cliente Web B'))
     const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
-    expect(p).toHaveTextContent('Enviado 09/11')
+    expect(p).toHaveTextContent('Enviado 10/11')
+    expect(p).toHaveTextContent('Etiqueta generada09/11/2026 10:30')
+    expect(p).toHaveTextContent('Enviado (etiqueta impresa)10/11/2026 09:15')
     expect(p).toHaveTextContent('UPS')
     expect(p).toHaveTextContent('1Z0000000000000002')
     expect(await screen.findByText('Nadie ha puesto IMEI todavía.')).toBeInTheDocument()
+  })
+
+  it('con la etiqueta generada y sin imprimir, el panel dice «Etiqueta sin imprimir todavía» y no pone fecha de envío', async () => {
+    const user = userEvent.setup()
+    respuesta = [fila({ idFila: 7, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web D', pedido: '402-0000000-0000047', estado: 'ENVIADA', envioFecha: '2026-11-09T11:05:00', tieneEtiqueta: true, transportista: 'GLSSpain', seguimiento: '1Z0000000000000003' })]
+    abrir()
+    await screen.findByRole('button', { name: '1 filas' })
+    await user.click(celda('Cliente Web D'))
+    const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
+    expect(p).toHaveTextContent('Etiqueta generada 09/11')
+    expect(p).toHaveTextContent('Etiqueta generada09/11/2026 11:05')
+    expect(p).toHaveTextContent('EnviadoEtiqueta sin imprimir todavía')
+    expect(p).not.toHaveTextContent('Enviado (etiqueta impresa)')
+    expect(p).toHaveTextContent('GLS')
   })
 
   it('una fila del histórico no pide nada y dice que viene de la hoja', async () => {

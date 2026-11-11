@@ -10,7 +10,7 @@ import { PedidosPage } from './PedidosPage'
 import { maquetarJsdom } from '@/test/layoutJsdom'
 
 const FILAS = [
-  fila({ idFila: 1, estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', transportista: 'UPSv2', seguimiento: '1Z0000000000000001', imei: '350000000000010', pedido: '402-0000000-0000011' }),
+  fila({ idFila: 1, estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', impresaEn: '2026-11-10T09:15:00', tieneEtiqueta: true, transportista: 'UPSv2', seguimiento: '1Z0000000000000001', imei: '350000000000010', pedido: '402-0000000-0000011' }),
   fila({ idFila: 2, pedido: '402-0000000-0000012', imei: '350000000000001', nivel: 'OK', caja: 'CAJA LISTOS' }),
   fila({ idFila: 3, pedido: '402-0000000-0000013' }),
   fila({ idFila: 4, pedido: '402-0000000-0000014', imei: '350000000000999', nivel: 'MAL', motivo: 'COLOR_O_GRADO', skuMovil: 'i14eSIM128RojoA', caja: 'CAJA LISTOS' }),
@@ -18,7 +18,7 @@ const FILAS = [
   fila({ idFila: 6, estado: 'NO_PENDIENTE', pedido: '402-0000000-0000016', imei: '350000000000003', nivel: 'MAL', motivo: 'EN_OTRA_FILA' }),
   fila({ idFila: 7, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000017', imei: '350000000000004', envioFecha: '2026-10-01T08:00:00' }),
   fila({ idFila: 8, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000018' }),
-  fila({ idFila: 9, estado: 'ENVIADA', envioFecha: '2026-11-09T11:00:00', pedido: '402-0000000-0000019' }),
+  fila({ idFila: 9, estado: 'ENVIADA', envioFecha: '2026-11-09T11:00:00', tieneEtiqueta: true, pedido: '402-0000000-0000019' }),
 ]
 
 let puts: { id: string; cuerpo: unknown }[] = []
@@ -67,14 +67,15 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect(await celdaVacia()).toBeInTheDocument()
   })
 
-  it('«Enviado» es una etiqueta con texto: Pendiente, Enviado dd/mm con transportista y seguimiento, Ya no está pendiente, De la hoja', async () => {
+  it('«Enviado» es una etiqueta con texto: Pendiente, Etiqueta generada dd/mm, Enviado dd/mm (fecha de la impresión) con transportista y seguimiento, Ya no está pendiente, De la hoja', async () => {
     abrir()
     await screen.findByRole('button', { name: '9 filas' })
     const celda = (pedido: string) => screen.getByText(pedido).closest('tr')!.querySelectorAll('td')[5]
     // Visible sin ratón: etiqueta con el día y el mes, y tras ella transportista y seguimiento; además, el título.
-    expect(celda('402-0000000-0000011')).toHaveTextContent('Enviado 09/11 UPS 1Z0000000000000001')
+    // «Enviado» lleva la fecha de la impresión (10/11), no la del envío (09/11).
+    expect(celda('402-0000000-0000011')).toHaveTextContent('Enviado 10/11 UPS 1Z0000000000000001')
     expect(celda('402-0000000-0000011')).toHaveAttribute('title', 'UPS · 1Z0000000000000001')
-    expect(celda('402-0000000-0000019').textContent).toBe('Enviado 09/11')
+    expect(celda('402-0000000-0000019').textContent).toBe('Etiqueta generada 09/11')
     expect(celda('402-0000000-0000019')).not.toHaveAttribute('title')
     expect(celda('402-0000000-0000016').textContent).toBe('Ya no está pendiente')
     expect(celda('402-0000000-0000013').textContent).toBe('Pendiente')
@@ -89,10 +90,21 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect(['11', '13', '16', '17'].map((n) => estado(`402-0000000-00000${n}`))).toEqual(['ENVIADA', 'PENDIENTE', 'NO_PENDIENTE', 'HISTORICO'])
   })
 
-  it('una enviada sin fecha dice «Enviado»', async () => {
+  it('una etiqueta generada sin fecha dice «Etiqueta generada», y la «Enviado» lleva `data-impresa`', async () => {
     server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [fila({ idFila: 1, estado: 'ENVIADA', pedido: '402-0000000-0000031' })], hayMas: false })))
     abrir()
-    expect((await screen.findByText('402-0000000-0000031')).closest('tr')!.querySelectorAll('td')[5]).toHaveTextContent(/^Enviado$/)
+    expect((await screen.findByText('402-0000000-0000031')).closest('tr')!.querySelectorAll('td')[5]).toHaveTextContent(/^Etiqueta generada$/)
+  })
+
+  it('`data-impresa` solo en las filas con la etiqueta impresa; `data-estado` sigue siendo el del servidor', async () => {
+    abrir()
+    await screen.findByRole('button', { name: '9 filas' })
+    const tr = (n: string) => screen.getByText(`402-0000000-00000${n}`).closest('tr')!
+    expect(tr('11')).toHaveAttribute('data-impresa', 'true')
+    expect(tr('11')).toHaveAttribute('data-estado', 'ENVIADA')
+    expect(tr('19')).not.toHaveAttribute('data-impresa')
+    expect(tr('19')).toHaveAttribute('data-estado', 'ENVIADA')
+    expect(tr('13')).not.toHaveAttribute('data-impresa')
   })
 
   it('la fila va en gris solo si es del histórico: enviada, pendiente y no pendiente, en texto normal', async () => {

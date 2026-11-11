@@ -13,7 +13,7 @@ import { PedidosPage } from './PedidosPage'
 const MIXTAS = [
   fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
-  fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', imei: '350000000000002', pedido: '402-0000000-0000023' }),
+  fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', impresaEn: '2026-11-10T09:00:00', tieneEtiqueta: true, imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
 ]
 
@@ -257,13 +257,13 @@ describe('Pedidos: filtros por columna', () => {
     const primera = abrir()
     await screen.findByRole('button', { name: '6 filas' })
     await abrirFiltro(user, 'Enviado')
-    await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
-    await user.click(screen.getByRole('checkbox', { name: 'Ya no pendientes' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Ya no pendientes/ }))
     expect(filasPintadas()).toBe(2)
-    await user.click(screen.getByRole('checkbox', { name: 'Enviados' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
-    await user.click(screen.getByRole('checkbox', { name: 'Pendientes' }))
+    await user.click(screen.getByRole('checkbox', { name: /^Pendientes/ }))
     expect(filasPintadas()).toBe(4)
     await user.keyboard('{Escape}')
     primera.unmount()

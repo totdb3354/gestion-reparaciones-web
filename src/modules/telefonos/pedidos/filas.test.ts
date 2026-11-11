@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
+import { estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -136,15 +136,17 @@ describe('valores y filtrarColumnas', () => {
     const con = [...filas, fila({ idFila: 5, estado: 'HISTORICO', editable: false })]
     expect(filtrarColumnas(con, { ...vacio, soloSinImei: true }).map((f) => f.idFila)).toEqual([1, 3])
   })
-  it('por «Enviado»: pendientes, enviados, ya no pendientes e histórico', () => {
+  it('por «Enviado»: pendientes, etiqueta generada, enviados, ya no pendientes e histórico', () => {
     const con = [
-      fila({ idFila: 1 }), fila({ idFila: 2, estado: 'ENVIADA' }), fila({ idFila: 3, estado: 'NO_PENDIENTE' }),
-      fila({ idFila: 4, estado: 'HISTORICO', editable: false }),
+      fila({ idFila: 1 }), fila({ idFila: 2, estado: 'ENVIADA', impresaEn: '2026-11-10T09:00:00' }), fila({ idFila: 3, estado: 'NO_PENDIENTE' }),
+      fila({ idFila: 4, estado: 'HISTORICO', editable: false }), fila({ idFila: 5, estado: 'ENVIADA' }),
     ]
     const ids = (e: string[]) => filtrarColumnas(con, { ...vacio, enviado: new Set(e) }).map((f) => f.idFila)
-    expect(ids([])).toEqual([1, 2, 3, 4])
+    expect(ids([])).toEqual([1, 2, 3, 4, 5])
     expect(ids(['PENDIENTE'])).toEqual([1])
-    expect(ids(['ENVIADA'])).toEqual([2])
+    expect(ids(['ENVIADO'])).toEqual([2])
+    expect(ids(['GENERADA'])).toEqual([5])
+    expect(ids(['GENERADA', 'ENVIADO'])).toEqual([2, 5])
     expect(ids(['HISTORICO'])).toEqual([4])
     expect(ids(['NO_PENDIENTE'])).toEqual([3])
     expect(ids(['PENDIENTE', 'NO_PENDIENTE'])).toEqual([1, 3])
@@ -198,11 +200,11 @@ describe('filtros combinados', () => {
     fila({ idFila: 5, plataforma: 'Web', estado: 'HISTORICO', editable: false }),
   ]
   it('Plataforma + Enviado + Solo sin IMEI a la vez', () => {
-    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['PARTICULARES']), enviado: new Set(['ENVIADA']), soloSinImei: true })
+    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['PARTICULARES']), enviado: new Set(['GENERADA']), soloSinImei: true })
     expect(r.map((f) => f.idFila)).toEqual([1])
   })
   it('el histórico ya no cae en «Enviados»: tiene su propia casilla', () => {
-    expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['ENVIADA']) }).map((f) => f.idFila)).toEqual([1, 2, 3])
+    expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['GENERADA']) }).map((f) => f.idFila)).toEqual([1, 2, 3])
     expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['HISTORICO']) }).map((f) => f.idFila)).toEqual([5])
   })
   it('«no cuadran» deja las del IMEI en naranja (nivel MAL)', () => {
@@ -240,5 +242,22 @@ describe('contadores', () => {
     expect(contadorAplicado({ ...SIN_FILTROS, plataformas: new Set(['PARTICULARES']) })).toBeNull()
     expect(hayFiltros(SIN_FILTROS)).toBe(false)
     expect(hayFiltros({ ...SIN_FILTROS, noCuadran: true })).toBe(true)
+  })
+})
+
+describe('estadoPantalla y recuentoEstados', () => {
+  const con = [
+    fila({ idFila: 1 }),
+    fila({ idFila: 2, estado: 'ENVIADA', envioFecha: '2026-11-09T10:00:00' }),
+    fila({ idFila: 3, estado: 'ENVIADA', envioFecha: '2026-11-09T10:00:00', impresaEn: '2026-11-10T09:00:00' }),
+    fila({ idFila: 4, estado: 'NO_PENDIENTE' }),
+    fila({ idFila: 5, estado: 'HISTORICO', editable: false }),
+    fila({ idFila: 6, estado: 'ENVIADA', impresaEn: '2026-11-10T09:00:00' }),
+  ]
+  it('ENVIADA sin impresión es «etiqueta generada»; con impresión, «enviado»; el resto, el del servidor', () => {
+    expect(con.map(estadoPantalla)).toEqual(['PENDIENTE', 'GENERADA', 'ENVIADO', 'NO_PENDIENTE', 'HISTORICO', 'ENVIADO'])
+  })
+  it('cuenta cada estado de pantalla en una pasada', () => {
+    expect(recuentoEstados(con)).toEqual({ PENDIENTE: 1, GENERADA: 1, ENVIADO: 2, NO_PENDIENTE: 1, HISTORICO: 1 })
   })
 })

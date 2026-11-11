@@ -12,6 +12,7 @@ const FILAS = Array.from({ length: N }, (_, k) => {
     idFila: i, fecha: d, plataforma: i % 2 ? 'Web' : 'Amazon', canal: i % 2 ? null : 'AMAZON', sku: 'i14128NegroA',
     imei: i % 6 === 0 ? null : `3500000${String(i).padStart(8, '0')}`, pedido: pedido(i), fechaCompra: d,
     estado: i % 6 === 0 ? 'PENDIENTE' : 'ENVIADA', editable: true, envioFecha: i % 6 === 0 ? null : `${d}T10:00:00Z`,
+    impresaEn: i % 6 === 0 || i % 2 ? null : `${d}T12:00:00Z`, tieneEtiqueta: i % 6 !== 0,
     transportista: i % 6 === 0 ? null : 'Transportista A', seguimiento: i % 6 === 0 ? null : `SEG${i}`, nivel: null, motivo: null, skuMovil: null, caja: null,
   }
 })
