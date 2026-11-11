@@ -85,11 +85,10 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   const textos = (await cabeceras.allTextContents()).map((t) => t.trim())
   COLUMNAS.forEach((c, i) => expect(textos[i], `cabecera ${i + 1}`).toBe(c))
 
-  // Las filas pendientes (su celda «Enviado» vacía: ni enviada ni «Ya no está pendiente») con el IMEI pulsable y sin poner: así
-  // la prueba nunca escribe en una fila ya enviada.
+  // Las filas pendientes (la web marca cada fila con `data-estado`) con el IMEI pulsable y sin poner: así la prueba nunca
+  // escribe en una fila ya enviada.
   const filas = hoja.locator('tbody tr')
-  const sinImei = filas
-    .filter({ has: page.locator('td:nth-child(6):empty') })
+  const sinImei = hoja.locator('tbody tr[data-estado="PENDIENTE"]')
     .filter({ has: page.locator('button:not([disabled])', { hasText: 'pulsa para poner el IMEI…' }) })
   const cuantas = await sinImei.count()
   test.skip(cuantas === 0, 'no hay ninguna fila viva pendiente sin IMEI en Pedidos en el último mes: no se puede probar el IMEI recomendado')

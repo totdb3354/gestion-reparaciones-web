@@ -69,14 +69,28 @@ describe('Pedidos como la hoja: la tabla', () => {
     abrir()
     await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
     const celda = (pedido: string) => screen.getByText(pedido).closest('tr')!.querySelectorAll('td')[5]
-    expect(celda('402-0000000-0000011')).toHaveTextContent('09/11/2026')
+    // Visible sin ratón: fecha, transportista y seguimiento; además, el título.
+    expect(celda('402-0000000-0000011')).toHaveTextContent('09/11/2026 · UPS 1Z0000000000000001')
     expect(celda('402-0000000-0000011')).toHaveAttribute('title', 'UPS · 1Z0000000000000001')
-    expect(celda('402-0000000-0000019')).toHaveTextContent('09/11/2026')
+    expect(celda('402-0000000-0000019').textContent).toBe('09/11/2026')
     expect(celda('402-0000000-0000019')).not.toHaveAttribute('title')
     expect(celda('402-0000000-0000016')).toHaveTextContent('Ya no está pendiente')
     expect(celda('402-0000000-0000013')).toBeEmptyDOMElement()
     // El histórico, aunque tenga fecha de envío, no la enseña.
     expect(celda('402-0000000-0000017')).toBeEmptyDOMElement()
+  })
+
+  it('cada fila lleva su estado en `data-estado`', async () => {
+    abrir()
+    await screen.findByText('9 filas · 4 pendientes · 2 sin IMEI')
+    const estado = (pedido: string) => screen.getByText(pedido).closest('tr')!.getAttribute('data-estado')
+    expect(['11', '13', '16', '17'].map((n) => estado(`402-0000000-00000${n}`))).toEqual(['ENVIADA', 'PENDIENTE', 'NO_PENDIENTE', 'HISTORICO'])
+  })
+
+  it('una enviada sin fecha dice «Enviado»', async () => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [fila({ idFila: 1, estado: 'ENVIADA', pedido: '402-0000000-0000031' })], hayMas: false })))
+    abrir()
+    expect((await screen.findByText('402-0000000-0000031')).closest('tr')!.querySelectorAll('td')[5]).toHaveTextContent(/^Enviado$/)
   })
 
   it('el tono de la fila: gris en enviada e histórico, suave en no pendiente, nada en pendiente', async () => {

@@ -11,6 +11,17 @@ const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
 type PropsFila = { fila: FilaVista; abierta: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
 
+/** La fecha del envío y, tras ella, el transportista y el seguimiento (visibles, sin esperar al ratón); sin fecha, «Enviado». */
+function Envio({ fila: f }: { fila: FilaVista }) {
+  const detalle = detalleEnvio(f, ' ')
+  return (
+    <>
+      {f.envioFecha ? dia(f.envioFecha) : 'Enviado'}
+      {detalle && <span className="font-sans text-[11px] text-azul-gris"> · {detalle}</span>}
+    </>
+  )
+}
+
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian) y su `abierta` son los mismos. Las fechas se dan formato aquí dentro. */
 export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: PropsFila) {
@@ -18,14 +29,14 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, onAbrir }: 
   const td = cn('h-8 border-r border-b border-form-fila-brd px-2.5 py-1 whitespace-nowrap', tono && CLASE_TONO[tono])
   const estado = estadoDe(f)
   return (
-    <tr>
+    <tr data-estado={estado}>
       <td className={td}>{dia(f.fecha)}</td>
       <td className={td}>{f.plataforma}</td>
       <td className={cn(td, 'font-mono text-[12px]')}>{f.sku}</td>
       <CeldaImei fila={f} abierta={abierta} onAbrir={onAbrir} />
       <td className={td}>{f.pedido}</td>
       <td className={td} title={estado === 'ENVIADA' ? detalleEnvio(f) : undefined}>
-        {estado === 'ENVIADA' ? dia(f.envioFecha) : estado === 'NO_PENDIENTE' ? 'Ya no está pendiente' : null}
+        {estado === 'ENVIADA' ? <Envio fila={f} /> : estado === 'NO_PENDIENTE' ? 'Ya no está pendiente' : null}
       </td>
       <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>

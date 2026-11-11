@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { COLUMNAS, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
+import { COLUMNAS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -177,5 +177,30 @@ describe('tonoFila', () => {
     expect(tonoFila(fila({ estado: 'HISTORICO', editable: false }))).toBe('gris')
     expect(tonoFila(fila({ estado: 'NO_PENDIENTE' }))).toBe('suave')
     expect(tonoFila(fila())).toBeNull()
+  })
+})
+
+describe('estadoDe', () => {
+  it('un estado que la web no conoce se trata como pendiente', () => {
+    expect(estadoDe(fila({ estado: 'ALGO_NUEVO' }))).toBe('PENDIENTE')
+    expect(estadoDe(fila({ estado: 'HISTORICO' }))).toBe('HISTORICO')
+  })
+})
+
+describe('filtros combinados', () => {
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, enviado: new Set<string>() }
+  const filas = [
+    fila({ idFila: 1, plataforma: 'Web', estado: 'ENVIADA' }),
+    fila({ idFila: 2, plataforma: 'Web', estado: 'ENVIADA', imei: '350000000000001' }),
+    fila({ idFila: 3, plataforma: 'Amazon', estado: 'ENVIADA' }),
+    fila({ idFila: 4, plataforma: 'Web' }),
+    fila({ idFila: 5, plataforma: 'Web', estado: 'HISTORICO', editable: false }),
+  ]
+  it('Plataforma + Enviado + Solo sin IMEI a la vez', () => {
+    const r = filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Web']), enviado: new Set(['ENVIADA']), soloSinImei: true })
+    expect(r.map((f) => f.idFila)).toEqual([1])
+  })
+  it('el histórico cae en «Enviados»', () => {
+    expect(filtrarColumnas(filas, { ...vacio, enviado: new Set(['ENVIADA']) }).map((f) => f.idFila)).toEqual([1, 2, 3, 5])
   })
 })

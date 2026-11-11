@@ -32,15 +32,24 @@ export function textoMotivo(f: FilaVista): string | null {
 /** El estado de una fila que calcula el servidor (el contrato lo tipa como texto). */
 export type EstadoFila = 'PENDIENTE' | 'ENVIADA' | 'NO_PENDIENTE' | 'HISTORICO'
 
-export const estadoDe = (f: FilaVista): EstadoFila => f.estado as EstadoFila
+export function estadoDe(f: FilaVista): EstadoFila {
+  switch (f.estado) {
+    case 'ENVIADA':
+    case 'NO_PENDIENTE':
+    case 'HISTORICO': return f.estado
+    // PENDIENTE y cualquier valor que la web aún no conozca: se trata como pendiente.
+    default: return 'PENDIENTE'
+  }
+}
 
 /** El transportista como lo lee el usuario: sin el sufijo técnico de ShippyPro («UPSv2» → «UPS», «GLSSpain» → «GLS»). */
 export const nombreTransportista = (t: string): string => t.replace(/(v2|Spain)$/, '')
 
-/** Lo que dice el título de la celda «Enviado»: «transportista · seguimiento», o lo que haya de los dos; sin nada, undefined. */
-export function detalleEnvio(f: FilaVista): string | undefined {
+/** El transportista y el seguimiento de una enviada, o lo que haya de los dos; sin nada, undefined. Con `separador` « · » es el
+ *  título de la celda «Enviado»; con « », lo que se ve tras la fecha. */
+export function detalleEnvio(f: FilaVista, separador = ' · '): string | undefined {
   const partes = [f.transportista ? nombreTransportista(f.transportista) : null, f.seguimiento].filter((x): x is string => !!x)
-  return partes.length > 0 ? partes.join(' · ') : undefined
+  return partes.length > 0 ? partes.join(separador) : undefined
 }
 
 /** El tono de toda la fila: gris solo en las enviadas y el histórico; las «ya no pendientes» llevan uno más suave (y su texto);
