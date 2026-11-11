@@ -85,27 +85,39 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
   const textos = (await cabeceras.allTextContents()).map((t) => t.trim())
   COLUMNAS.forEach((c, i) => expect(textos[i], `cabecera ${i + 1}`).toBe(c))
 
-  // La primera fila viva (celda de IMEI pulsable) sin IMEI.
+  // Las filas vivas (celda de IMEI pulsable) sin IMEI.
   const filas = hoja.locator('tbody tr')
   const sinImei = filas.filter({ has: page.locator('button:not([disabled])', { hasText: 'pulsa para poner el IMEI…' }) })
-  test.skip(await sinImei.count() === 0, 'no hay ninguna fila viva sin IMEI en Pedidos en el último mes: no se puede probar el IMEI recomendado')
-  // La fila se recuerda por el texto de su «Pedido» (solo en una variable) y su orden entre las filas con ese mismo pedido, no por
-  // su posición en la tabla: si llegan o se quitan filas, se vuelve a localizar igual.
-  const [pedido, orden] = await sinImei.first().evaluate((tr) => {
+  const cuantas = await sinImei.count()
+  test.skip(cuantas === 0, 'no hay ninguna fila viva sin IMEI en Pedidos en el último mes: no se puede probar el IMEI recomendado')
+  // Las filas se recuerdan por el texto de su «Pedido» (solo en variables) y su orden entre las filas con ese mismo pedido, no por
+  // su posición en la tabla: si llegan o se quitan filas, se vuelven a localizar igual.
+  const candidatas = await sinImei.evaluateAll((trs) => trs.slice(0, 8).map((tr) => {
     const t = tr as unknown as { cells: ArrayLike<{ textContent: string | null }>; parentElement: { children: ArrayLike<unknown> } }
     const texto = (x: unknown) => ((x as typeof t).cells[4]?.textContent ?? '').trim()
     const mismas = Array.from(t.parentElement.children).filter((x) => texto(x) === texto(tr))
-    return [texto(tr), mismas.indexOf(tr)] as const
-  })
+    return [texto(tr), mismas.indexOf(tr)] as [string, number]
+  }))
   const escapar = (c: string) => c.replace(/[.*+?^$|()[\]{}\\]/g, '\\$&')
   const celdaPedido = (c: string) => new RegExp('^\\s*' + escapar(c) + '\\s*$')
+  let [pedido, orden] = candidatas[0]
   const localizarCelda = () => filas.filter({ has: page.locator('td:nth-child(5)', { hasText: celdaPedido(pedido) }) }).nth(orden).getByRole('cell').nth(3)
 
-  await localizarCelda().getByRole('button').click()
+  // No todas las filas tienen un móvil recomendado en stock (un SKU sin existencias no lo tiene): se prueba con las primeras
+  // hasta dar con una que sí.
   const desplegable = page.getByRole('dialog', { name: 'Poner el IMEI' })
-  await expect(desplegable).toBeVisible()
   const recomendado = desplegable.getByRole('button').filter({ hasText: /^\d{15}/ }).first()
-  test.skip(!(await recomendado.waitFor({ timeout: 10_000 }).then(() => true, () => false)), 'la fila no tiene móviles recomendados en stock')
+  let hay = false
+  for (const candidata of candidatas) {
+    [pedido, orden] = candidata
+    await localizarCelda().getByRole('button').click()
+    await expect(desplegable).toBeVisible()
+    hay = await recomendado.waitFor({ timeout: 6_000 }).then(() => true, () => false)
+    if (hay) break
+    await page.keyboard.press('Escape')
+    await expect(desplegable).toBeHidden()
+  }
+  test.skip(!hay, `ninguna de las ${candidatas.length} primeras filas vivas sin IMEI tiene móviles recomendados en stock`)
   const imei = (await recomendado.locator('span').first().textContent())?.trim() ?? ''
   expect(imei).toMatch(/^\d{15}$/)
   await recomendado.click()
