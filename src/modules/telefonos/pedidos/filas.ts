@@ -24,7 +24,8 @@ export function textoMotivo(f: FilaVista): string | null {
     case 'EN_TALLER': return 'en el taller'
     case 'MS': return 'es un Ms'
     case 'B_POR_A': return 'B por A'
-    default: return null
+    // Un motivo que la web aún no conoce: el color nunca es la única señal.
+    default: return f.motivo ? 'revisar' : null
   }
 }
 

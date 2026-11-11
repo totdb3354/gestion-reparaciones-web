@@ -234,12 +234,81 @@ describe('api del stock de teléfonos', () => {
     const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '' }), { wrapper })
     await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
     const poner = renderHook(() => usePonerImei(), { wrapper })
-    const devuelta = await poner.result.current.mutateAsync({ idFila: 7, imei: '350000000000001' })
+    const devuelta = await poner.result.current.mutateAsync({ idFila: 7, imei: '350000000000001', clave: 'k1' })
     expect(devuelta.imei).toBe('350000000000001')
     expect(puestos).toEqual([['7', { imei: '350000000000001' }]])
     await waitFor(() => expect(listas).toBe(2))
-    await poner.result.current.mutateAsync({ idFila: 7, imei: null })
+    await poner.result.current.mutateAsync({ idFila: 7, imei: null, clave: 'k2' })
     expect(puestos[1]).toEqual(['7', { imei: null }])
+  })
+
+  it('solo la primera carga de las filas usa la capa de carga: buscar o cambiar de periodo no (sinCapa)', async () => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [fila()], hayMas: false })))
+    const qc = crearQueryClient({ retry: false })
+    guardarSesion(SESION_SUPER)
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}><SessionProvider>{children}</SessionProvider></QueryClientProvider>
+    )
+    const { result, rerender } = renderHook((p: { buscar: string }) => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: p.buscar }), {
+      wrapper, initialProps: { buscar: '' },
+    })
+    // La primera carga, aún sin datos, sí usa la capa.
+    expect(qc.getQueryCache().findAll({ queryKey: ['telefonos', 'pedidos', 'filas', 'lista'] })[0].meta?.sinCapa).toBeUndefined()
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    rerender({ buscar: 'ab' })
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false))
+    const consultas = qc.getQueryCache().findAll({ queryKey: ['telefonos', 'pedidos', 'filas', 'lista'] })
+    expect(consultas).toHaveLength(2)
+    const porBuscar = (q: { queryKey: readonly unknown[] }) => (q.queryKey[4] as { buscar?: string }).buscar
+    expect(consultas.find((q) => porBuscar(q) === 'ab')?.meta?.sinCapa).toBe(true)
+  })
+
+  it('al cambiar la busqueda se ven las filas anteriores (isPlaceholderData) hasta que llegan las nuevas', async () => {
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(http.get('*/api/pedidos/filas', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('buscar')) await espera
+      return HttpResponse.json({ filas: [fila({ idFila: new URL(request.url).searchParams.has('buscar') ? 2 : 1 })], hayMas: false })
+    }))
+    const { result, rerender } = renderHook((p: { buscar: string }) => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: p.buscar }), {
+      wrapper: envoltorio(), initialProps: { buscar: '' },
+    })
+    await waitFor(() => expect(result.current.data?.filas[0].idFila).toBe(1))
+    rerender({ buscar: 'ab' })
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(true))
+    expect(result.current.data?.filas[0].idFila).toBe(1)
+    soltar()
+    await waitFor(() => expect(result.current.data?.filas[0].idFila).toBe(2))
+    expect(result.current.isPlaceholderData).toBe(false)
+  })
+
+  it('poner el IMEI escribe la fila devuelta en la lista antes de que vuelva el GET y manda la Idempotency-Key', async () => {
+    let claves: (string | null)[] = []
+    let listas = 0
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(
+      http.put('*/api/pedidos/filas/:id/imei', ({ request }) => {
+        claves.push(request.headers.get('Idempotency-Key'))
+        return HttpResponse.json(fila({ idFila: 7, imei: '350000000000001' }))
+      }),
+      http.get('*/api/pedidos/filas', async () => {
+        listas++
+        if (listas > 1) await espera
+        return HttpResponse.json({ filas: [fila({ idFila: 7 })], hayMas: false })
+      }),
+    )
+    const wrapper = envoltorio()
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10' }), { wrapper })
+    await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
+    expect(filas.result.current.data?.filas[0].imei).toBeNull()
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    await poner.result.current.mutateAsync({ idFila: 7, imei: '350000000000001', clave: 'clave-1' })
+    await waitFor(() => expect(filas.result.current.data?.filas[0].imei).toBe('350000000000001'))
+    expect(listas).toBe(2)
+    expect(claves).toEqual(['clave-1'])
+    soltar()
+    claves = []
   })
 
   it('las fuentes de pedidos vienen de /api/pedidos/fuentes', async () => {

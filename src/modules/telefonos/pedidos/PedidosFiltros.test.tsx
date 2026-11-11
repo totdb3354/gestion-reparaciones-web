@@ -116,6 +116,23 @@ describe('Pedidos: rango de fechas', () => {
 })
 
 describe('Pedidos: buscador', () => {
+  it('mientras llega la búsqueda se ven las filas de antes y un «Buscando…»', async () => {
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(http.get('*/api/pedidos/filas', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('buscar')) await espera
+      return HttpResponse.json(respuesta)
+    }))
+    abrir()
+    await screen.findByText(CONTADOR)
+    expect(screen.queryByText('Buscando…')).not.toBeInTheDocument()
+    fireEvent.change(buscador(), { target: { value: '35' } })
+    expect(await screen.findByText('Buscando…')).toBeInTheDocument()
+    expect(filasPintadas()).toBe(4)
+    soltar()
+    await waitFor(() => expect(screen.queryByText('Buscando…')).not.toBeInTheDocument())
+  })
+
   it('tras 300 ms pide con buscar y atenúa el periodo; vaciarlo vuelve al periodo', async () => {
     abrir()
     await screen.findByText(CONTADOR)

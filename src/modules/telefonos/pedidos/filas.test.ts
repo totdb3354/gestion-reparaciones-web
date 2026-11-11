@@ -19,6 +19,10 @@ describe('textoMotivo', () => {
     expect(textoMotivo(fila({ motivo, skuMovil }))).toBe(esperado)
   })
 
+  it('un motivo desconocido dice «revisar»: el color no es la única señal', () => {
+    expect(textoMotivo(fila({ motivo: 'MOTIVO_NUEVO' }))).toBe('revisar')
+  })
+
   it('sin motivo, null', () => {
     expect(textoMotivo(fila())).toBeNull()
   })

@@ -73,6 +73,7 @@ export function PedidosPage() {
           Hay más de 500 resultados: se enseñan los 500 más recientes. Afina la búsqueda.
         </p>
       )}
+      {lista.isPlaceholderData && <p role="status" className="mb-2 shrink-0 text-[12px] text-azul-gris">Buscando…</p>}
       {lista.isPending && <p className="p-4 text-[12px] text-azul-gris">Cargando…</p>}
       {sinCargar && <p className="p-4 text-[12px] text-azul-gris">No se pudieron cargar los pedidos.</p>}
       {lista.data && filas.length === 0 && (

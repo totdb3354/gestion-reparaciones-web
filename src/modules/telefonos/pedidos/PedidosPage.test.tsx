@@ -87,6 +87,9 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(c).toHaveTextContent('igual que el pedido')
     expect(screen.getByRole('button', { name: /350000000000103/ })).toHaveTextContent('hay que transformarlo')
     expect(screen.queryByRole('button', { name: 'Quitar el IMEI' })).not.toBeInTheDocument()
+    // El SKU del título sale tal cual (sin pasarlo a mayúsculas).
+    const sku = screen.getByText('i13128AzulA', { selector: 'span.normal-case' })
+    expect(sku.parentElement).toHaveTextContent('Recomendados para i13128AzulA')
   })
 
   it('elegir un candidato hace PUT con ese IMEI y cierra', async () => {

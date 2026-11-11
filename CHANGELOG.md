@@ -10,7 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Las filas **aparecen solas** a partir de los pedidos pendientes de Amazon (AMZ y FNSK) y de las tiendas web, y se ponen **en gris** cuando el pedido ya se ha enviado. Nadie las teclea.
 - Lo único que se escribe es el **IMEI**: al pulsar la celda salen los **móviles recomendados** con su caja, y se elige uno (o se escribe o se lee el IMEI y Enter). «Quitar el IMEI» deja la celda vacía.
 - La celda del IMEI se pinta **con el motivo** cuando el móvil no es el que pide el pedido, o **como aviso** en los casos de cuidado (Ms, B por A, en el taller).
-- Filtros: por **fechas** (por defecto, el último mes), una **búsqueda en todo el historial** y un **filtro en cada columna**.
+- Filtros: por **fechas** (por defecto, el último mes), una **búsqueda en todo el historial** y **filtros** en las columnas **Plataforma** y **SKU**, y «Solo sin IMEI» en la del **IMEI**.
 - La pantalla de compras de piezas, que se llamaba «Pedidos», pasa a llamarse **«Compras»** (no cambia nada más).
 - Solo para **supertécnicos y administradores**; el técnico no la ve.
 - Necesita el servidor de la misma versión y su migración de base de datos, que solo añade tablas.

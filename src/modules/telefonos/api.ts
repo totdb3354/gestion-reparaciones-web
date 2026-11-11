@@ -182,37 +182,53 @@ export const CLAVE_FILAS = ['telefonos', 'pedidos', 'filas'] as const
 export const CLAVE_FUENTES_PEDIDOS = ['telefonos', 'pedidos', 'fuentes'] as const
 
 /** GET /api/pedidos/filas: las filas del intervalo de fechas, filtradas por `buscar` (el servidor dice si hay más). Sondea como
- *  las demás vistas; al cambiar el intervalo o la búsqueda deja la lista anterior hasta que llega la nueva. */
+ *  las demás vistas; al cambiar el intervalo o la búsqueda deja la lista anterior hasta que llega la nueva (`isPlaceholderData`,
+ *  que la página enseña como «Buscando…»). Solo la primera carga usa la capa de carga global: las siguientes no, porque la capa
+ *  se traga las teclas que el usuario sigue escribiendo en el buscador. */
 export function useFilas(p: { desde: string; hasta: string; buscar?: string }): UseQueryResult<ListaFilas> {
   const intervalo = useIntervaloRefresco(true)
+  const qc = useQueryClient()
+  // Ya hubo una carga con datos (de cualquier búsqueda o periodo): las siguientes no encienden la capa.
+  const yaCargo = qc.getQueryCache().findAll({ queryKey: [...CLAVE_FILAS, 'lista'] }).some((q) => q.state.data !== undefined)
   // Una búsqueda vacía o en blanco no se manda: el servidor la tomaría por una búsqueda.
   const query = { desde: p.desde, hasta: p.hasta, buscar: p.buscar?.trim() ? p.buscar : undefined }
   return useQuery({
-    queryKey: [...CLAVE_FILAS, query],
-    queryFn: async () => (await api.GET('/api/pedidos/filas', { params: { query } })).data ?? { filas: [], hayMas: false },
+    queryKey: [...CLAVE_FILAS, 'lista', query],
+    queryFn: async ({ signal }) => (await api.GET('/api/pedidos/filas', { params: { query }, signal })).data ?? { filas: [], hayMas: false },
     refetchInterval: intervalo,
     placeholderData: keepPreviousData,
+    meta: yaCargo ? { sinCapa: true } : undefined,
   })
 }
 
-/** GET /api/pedidos/filas/{id}/recomendados: los IMEI que el servidor propone para una fila; sin fila no pregunta. */
+/** GET /api/pedidos/filas/{id}/recomendados: los IMEI que el servidor propone para una fila; sin fila no pregunta. `gcTime: 0`:
+ *  al reabrir una fila se piden de nuevo (los de antes pueden estar ya en otra fila). */
 export function useRecomendados(idFila: number | null): UseQueryResult<Candidato[]> {
   return useQuery({
     queryKey: [...CLAVE_FILAS, 'recomendados', idFila],
     enabled: idFila != null,
-    queryFn: async () => (await api.GET('/api/pedidos/filas/{id}/recomendados', { params: { path: { id: idFila as number } } })).data ?? [],
+    queryFn: async ({ signal }) => (await api.GET('/api/pedidos/filas/{id}/recomendados', { params: { path: { id: idFila as number } }, signal })).data ?? [],
+    gcTime: 0,
     meta: { sinCapa: true },
   })
 }
 
-/** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila y recarga las filas. */
+/** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila. `clave` va en la cabecera Idempotency-Key (la da
+ *  el desplegable con crearClavesIdempotencia). Al responder, la fila devuelta se escribe en las listas de la caché para que la
+ *  celda enseñe el IMEI al momento; después se recargan las filas (el aviso de las demás filas depende de esta). */
 export function usePonerImei() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ idFila, imei }: { idFila: number; imei: string | null }): Promise<FilaVista> => {
-      const { data } = await api.PUT('/api/pedidos/filas/{id}/imei', { params: { path: { id: idFila } }, body: { imei } })
+    mutationFn: async ({ idFila, imei, clave }: { idFila: number; imei: string | null; clave: string }): Promise<FilaVista> => {
+      const { data } = await api.PUT('/api/pedidos/filas/{id}/imei', {
+        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { imei },
+      })
       if (!data) throw new Error('El servidor no devolvió la fila')
       return data
+    },
+    onSuccess: (fila) => {
+      qc.setQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] },
+        (l) => (l ? { ...l, filas: l.filas.map((f) => (f.idFila === fila.idFila ? fila : f)) } : l))
     },
     onSettled: () => { void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
   })
@@ -223,7 +239,7 @@ export function useFuentesPedidos(): UseQueryResult<FuenteVista[]> {
   const intervalo = useIntervaloRefresco(true)
   return useQuery({
     queryKey: CLAVE_FUENTES_PEDIDOS,
-    queryFn: async () => (await api.GET('/api/pedidos/fuentes')).data ?? [],
+    queryFn: async ({ signal }) => (await api.GET('/api/pedidos/fuentes', { signal })).data ?? [],
     refetchInterval: intervalo,
     meta: { sinCapa: true },
   })

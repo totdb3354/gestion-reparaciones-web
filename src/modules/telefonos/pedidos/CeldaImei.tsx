@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FilaVista } from '@/shared/api/client'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { cn } from '@/shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { usePonerImei, useRecomendados } from '../api'
@@ -64,11 +65,13 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
   const [error, setError] = useState<string | null>(null)
   const recomendados = useRecomendados(fila.idFila)
   const poner = usePonerImei()
+  const [claves] = useState(() => crearClavesIdempotencia())
 
   // Si falla, la política global ya abre el diálogo de error: el desplegable se queda abierto para reintentar.
   const guardar = (imei: string | null) => {
     if (poner.isPending) return
-    poner.mutate({ idFila: fila.idFila, imei }, { onSuccess: onCerrar })
+    const operacion = `imei:${fila.idFila}`
+    poner.mutate({ idFila: fila.idFila, imei, clave: claves.para(operacion, { imei }) }, { onSuccess: () => { claves.hecha(operacion); onCerrar() } })
   }
   const enviar = () => {
     const imei = texto.trim()
@@ -85,11 +88,11 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); enviar() } }}
         className="h-8 w-full rounded-md border border-borde-input px-2 font-mono text-[13px]" />
       {error && <p role="alert" className="mt-1 text-[12px] font-bold text-texto-error">{error}</p>}
-      <div className="mt-1.5 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku ? ` para ${fila.sku}` : ''}</div>
+      <div className="mt-1.5 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>}</div>
       {recomendados.isPending && <p className="px-2 py-1.5 text-[12px] text-azul-gris">Cargando…</p>}
       {recomendados.isError && <p className="px-2 py-1.5 text-[12px] text-azul-gris">No se pudieron cargar los recomendados.</p>}
       {recomendados.data?.length === 0 && (
-        <p className="px-2 py-1.5 text-[12px] text-azul-gris">No hay ningún móvil de ese modelo, capacidad y color libre en stock.</p>
+        <p className="px-2 py-1.5 text-[12px] text-azul-gris">No hay ningún móvil de ese modelo y capacidad libre en stock.</p>
       )}
       {recomendados.data?.map((c) => (
         <button key={c.imei} type="button" disabled={poner.isPending} onClick={() => guardar(c.imei)}

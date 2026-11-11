@@ -7,8 +7,7 @@ import { useSession } from '@/shared/session/SessionProvider'
 import { esAdminOSuperTecnico, type Sesion } from '@/shared/session/storage'
 import { useAlerta } from '@/shared/ui/AlertaProvider'
 
-/** Sidebar de StockView.fxml (`stock-sidebar-btn`): "Stock actual" · "Compras" · "Proveedores", en ese orden y sin badges. Desde la
- *  0.9.31 lo que era «Pedidos» se llama «Compras» (los pedidos de clientes son otra pantalla, en Teléfonos; spec pieza 2 §9.1); la
+/** Sidebar de StockView.fxml (`stock-sidebar-btn`): "Stock actual" · "Compras" · "Proveedores", en ese orden y sin badges. Ahora lo que era «Pedidos» se llama «Compras» (los pedidos de clientes son otra pantalla, en Teléfonos; spec «Pedidos como la hoja»); la
  *  ruta sigue siendo /stock/pedidos.
  *  Desde la 0.9.16 (spec «El técnico sin Pedidos ni Proveedores») Compras y Proveedores son de SUPERTECNICO y ADMIN: el
  *  TECNICO (y cualquier otro rol, o sin sesión) se queda con "Stock actual". `end` en el primero: sin él, NavLink lo marcaría
