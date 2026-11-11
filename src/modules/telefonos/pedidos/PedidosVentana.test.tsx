@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { maquetarJsdom } from '@/test/layoutJsdom'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { estadoNsys, fila, fuente } from '../test/fabrica'
@@ -14,6 +15,8 @@ const crear = (n: number) => Array.from({ length: n }, (_, i) => fila({
   idFila: i + 1, pedido: `402-0000000-${String(i + 1).padStart(7, '0')}`, plataforma: i % 2 ? 'Web' : 'Amazon', imei: i % 3 === 0 ? '350000000000001' : null,
 }))
 let filas = crear(0)
+
+afterEach(() => { vi.restoreAllMocks() })
 
 beforeEach(() => {
   estadoPedidos.reset()
@@ -85,5 +88,30 @@ describe('Pedidos: tabla con muchas filas', () => {
     expect(estadoPedidos.get().ultimaAbierta).toBe(7)
     expect(document.querySelector('tr[data-elegida]')?.textContent).toContain('402-0000000-0000005')
     expect(document.querySelector('tr[data-aqui]')?.textContent).toContain('402-0000000-0000007')
+  })
+
+  it('la fila con la celda del IMEI abierta sigue pintada (y con lo tecleado) aunque salga de la ventana; con el desplegable abierto Control+F no se intercepta', async () => {
+    maquetarJsdom()
+    const user = userEvent.setup()
+    filas = crear(300)
+    abrir(20)
+    await screen.findByRole('button', { name: '300 filas' })
+    await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.type(screen.getByRole('textbox', { name: 'IMEI' }), '35000')
+    const c = region()
+    c.scrollTop = 300 * 32 + 1000
+    fireEvent.scroll(c)
+    expect(await screen.findByRole('button', { name: '402-0000000-0000300' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue('35000')
+    expect(trs()).toBeLessThan(60)
+    expect(ctrlF()).toBe(true)
+  })
+
+  it('en modo ventana la tabla dice cuantas filas tiene y cada fila su numero', async () => {
+    filas = crear(300)
+    abrir(20)
+    await screen.findByRole('button', { name: '300 filas' })
+    expect(screen.getByRole('table')).toHaveAttribute('aria-rowcount', '301')
+    expect(document.querySelector('tbody tr[data-estado]')).toHaveAttribute('aria-rowindex', '2')
   })
 })

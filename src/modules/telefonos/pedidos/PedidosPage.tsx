@@ -50,6 +50,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     if (!ventana) return
     const alPulsar = (ev: KeyboardEvent) => {
       if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey && ev.key.toLowerCase() === 'f') {
+        // Con un dialogo o un desplegable (el del IMEI) abierto, o sin buscador al que ir, se deja al navegador.
+        if (!buscador.current || document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')) return
         ev.preventDefault()
         buscador.current?.focus()
         buscador.current?.select()
