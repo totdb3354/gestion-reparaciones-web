@@ -1,4 +1,5 @@
 import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
 import type { FilaVista } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
@@ -8,6 +9,15 @@ import { estadoPedidos } from './estado'
 import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, tonoFila, type EstadoFila } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
+
+/** Spec Pedidos v2 §5: con más filas a la vista que esto (tras los filtros de columna) la tabla pinta solo las que se ven. Hasta
+ *  aquí, entera y con el Control+F del navegador. Es un valor del código: bajarlo si en preprod justo por debajo ya no va fluido. */
+export const UMBRAL_VENTANA = 5000
+/** Alto de una fila (h-8) mientras no se haya medido la real, y filas extra pintadas por arriba y por abajo del hueco visible. */
+const ALTO_FILA = 32
+const FILAS_DE_MARGEN = 12
+/** Sin maquetación (jsdom, o la tabla aún oculta) el contenedor mide 0: con este rectángulo se pinta un puñado de filas, no ninguna. */
+const RECT_DE_RESERVA = { width: 1000, height: 600 }
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
@@ -82,8 +92,10 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, abierta, marcada, el
 
 /** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, el estado como etiqueta
  *  en «Enviado» y solo el histórico en gris. La última celda de IMEI abierta deja su fila con una raya azul. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
-export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: {
+export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ventana = false }: {
   filas: FilaVista[]
+  /** Modo «muchas filas»: solo se pintan las filas visibles (más un margen); la barra de scroll abarca todas. Lo decide la página por el umbral. */
+  ventana?: boolean
   /** Cuántas filas ha recibido la página (sin filtrar por columna): solo llegar filas nuevas baja al final, no filtrar. */
   recibidas?: number
   filtros?: Partial<Record<Columna, ReactNode>>
@@ -106,13 +118,39 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: 
   // «estaba abajo» se calcula justo antes de decidir con la altura de entonces, no con un valor guardado en un scroll antiguo.
   const alturaPrevia = useRef<number | null>(null)
   const vistas = useRef(0)
+  const modoPrevio = useRef(ventana)
+  // Alto real de una fila, medido en la primera pintada (con 1 px de diferencia por borde el scroll se descuadraría a las 20.000 filas).
+  const [alto, setAlto] = useState(ALTO_FILA)
+  const virtualizador = useVirtualizer({
+    count: ventana ? filas.length : 0,
+    getScrollElement: () => contenedor.current,
+    estimateSize: () => alto,
+    overscan: FILAS_DE_MARGEN,
+    enabled: ventana,
+    getItemKey: (i) => filas[i]?.idFila ?? i,
+    initialRect: RECT_DE_RESERVA,
+    observeElementRect: (v, cb) => observeElementRect(v, (r) => cb(r.height > 0 ? r : RECT_DE_RESERVA)),
+  })
+  const items = ventana ? virtualizador.getVirtualItems() : []
+  const hueco = ventana && items.length > 0
+    ? { arriba: items[0].start, abajo: Math.max(0, virtualizador.getTotalSize() - items[items.length - 1].end) }
+    : { arriba: 0, abajo: 0 }
+  const aMedir = useRef<HTMLTableSectionElement>(null)
+  useLayoutEffect(() => {
+    if (!ventana) return
+    const h = aMedir.current?.querySelector<HTMLElement>('tr[data-estado]')?.offsetHeight ?? 0
+    if (h > 0 && Math.abs(h - alto) >= 0.5) { setAlto(h); virtualizador.measure() }
+  })
 
   // En cada pintado: «estaba abajo» se calcula con la altura del pintado anterior (filtrar cambia la altura sin que el usuario se mueva).
   useLayoutEffect(() => {
     const c = contenedor.current
     if (!c) return
     const estabaAbajo = alturaPrevia.current === null || alturaPrevia.current - c.scrollTop - c.clientHeight < 8
-    if (recibidas > vistas.current && estabaAbajo) c.scrollTop = c.scrollHeight
+    // Cruzar el umbral por un filtro: quien estaba abajo sigue abajo; si no, el scroll en píxeles se queda (las filas miden lo mismo).
+    const cambioModo = modoPrevio.current !== ventana
+    if ((recibidas > vistas.current || cambioModo) && estabaAbajo) c.scrollTop = c.scrollHeight
+    modoPrevio.current = ventana
     vistas.current = recibidas
     alturaPrevia.current = c.scrollHeight
   })
@@ -127,9 +165,11 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio }: 
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody ref={aMedir}>
           {filas.length === 0 && vacio && <tr><td colSpan={COLUMNAS.length} className="p-4 text-[12px] text-azul-gris">{vacio}</td></tr>}
-          {filas.map((f) => <FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={ultimaAbierta === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)}
+          {hueco.arriba > 0 && <tr aria-hidden="true"><td colSpan={COLUMNAS.length} style={{ height: hueco.arriba, padding: 0, border: 0 }} /></tr>}
+          {(ventana ? items.map((it) => filas[it.index]).filter(Boolean) : filas).map((f) => <FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={ultimaAbierta === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)}
+          {hueco.abajo > 0 && <tr aria-hidden="true"><td colSpan={COLUMNAS.length} style={{ height: hueco.abajo, padding: 0, border: 0 }} /></tr>}
         </tbody>
       </table>
     </div>

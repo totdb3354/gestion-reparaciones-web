@@ -20,6 +20,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Filtros: por **fechas** (por defecto, el último mes), una **búsqueda en todo el historial** y **filtros** en las columnas **Plataforma**, **SKU**, **Enviado** e **IMEI**.
 - La pantalla de compras de piezas, que se llamaba «Pedidos», pasa a llamarse **«Compras»** (no cambia nada más).
 - Solo para **supertécnicos y administradores**; el técnico no la ve.
+- Con **muchas filas** (más de 5.000 a la vista tras los filtros de columna; por ejemplo «Este año» o «Todo») la tabla **pinta solo las filas que se ven** y va pintando el resto según haces scroll, así abrirla o cambiar un filtro no tarda segundos. Las filas están todas: la barra de scroll las abarca, los contadores y los filtros cuentan sobre todas, y siguen igual la cabecera fija, abrir al final, la celda del IMEI, la raya azul y el panel. En ese modo, **Control+F lleva al buscador de la pantalla** (que busca en todo el historial) en vez de abrir el del navegador, y una nota junto a los contadores lo avisa. Hasta 5.000 filas, la tabla es la de siempre y Control+F es el del navegador.
 - Necesita el servidor de la misma versión y su migración de base de datos, que solo añade tablas.
 ## [0.9.31] - 2026-11-11 — «Fuera de su caja»: los F, FD y RMA que no están en la caja de su grado
 

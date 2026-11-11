@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
@@ -8,7 +8,7 @@ import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './Filtro
 import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
-import { TablaFilas } from './TablaFilas'
+import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
 import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, recuento, textoTienda, tiendasPresentes, valores, vigente, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
@@ -18,7 +18,7 @@ const MIN_BUSCAR = 2
 /** «Pedidos» como la hoja (spec «Pedidos como la hoja» §3): una fila por móvil pedido, que crea el ERP desde ShippyPro; lo único
  *  que se teclea es el IMEI. Arriba, el filtro de fechas (por defecto, el último mes), el buscador (mira en todo el historial) y,
  *  en las cabeceras, los filtros por columna, que se aplican en el cliente sobre lo recibido. Todo se guarda en `estadoPedidos`. */
-export function PedidosPage() {
+export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la vista por encima de las cuales la tabla pinta solo las visibles (se puede bajar en las pruebas). */ umbralVentana?: number } = {}) {
   const [e, setE] = useStore(estadoPedidos)
   const [aplicado, setAplicado] = useState(e.buscar)
   useEffect(() => {
@@ -41,8 +41,23 @@ export function PedidosPage() {
     [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, tiendas, skus],
   )
   const filtrando = hayFiltros(filtros)
+  const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
   const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
+  const ventana = vistas.length > umbralVentana
+  // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
+  useEffect(() => {
+    if (!ventana) return
+    const alPulsar = (ev: KeyboardEvent) => {
+      if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey && ev.key.toLowerCase() === 'f') {
+        ev.preventDefault()
+        buscador.current?.focus()
+        buscador.current?.select()
+      }
+    }
+    window.addEventListener('keydown', alPulsar)
+    return () => window.removeEventListener('keydown', alPulsar)
+  }, [ventana])
   // Los contadores cuentan sobre lo recibido (no sobre lo filtrado), en una sola pasada y solo cuando cambian las filas.
   const cuenta = useMemo(() => recuento(filas), [filas])
   const etiquetas = useMemo(() => etiquetasDe(filtros), [filtros])
@@ -87,6 +102,7 @@ export function PedidosPage() {
             {filtrando && <span className="inline-block rounded-xl bg-badge-neutro-bg px-2.5 py-[3px] text-[12px] font-bold text-azul-gris">{vistas.length} a la vista</span>}
           </div>
         )}
+        {ventana && <span className="text-[11.5px] text-azul-gris">Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).</span>}
         <PildoraFuentes />
       </div>
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
@@ -102,7 +118,7 @@ export function PedidosPage() {
                 className="cursor-pointer px-1 text-[13px] leading-none font-bold">✕</button>
             </span>
           ))}
-          <input aria-label="Buscar en todo el historial" placeholder="Buscar en todo el historial…" autoComplete="off" value={e.buscar}
+          <input ref={buscador} aria-label="Buscar en todo el historial" placeholder="Buscar en todo el historial…" autoComplete="off" value={e.buscar}
             onChange={(ev) => setE((s) => ({ ...s, buscar: ev.target.value }))}
             className="h-6 min-w-40 flex-1 bg-transparent text-[12px] outline-none" />
         </div>
@@ -125,7 +141,7 @@ export function PedidosPage() {
       )}
       {filas.length > 0 && (
         <div className="flex min-h-0 flex-1 gap-2.5">
-        <TablaFilas filas={vistas} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
+        <TablaFilas filas={vistas} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
