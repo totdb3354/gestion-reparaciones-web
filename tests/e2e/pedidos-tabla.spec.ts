@@ -39,9 +39,11 @@ async function sinDesbordar(page: Page, donde: string, conPanel = false) {
     const panel = document.querySelector('[aria-label="Detalle del pedido"]')
     const fecha = [...document.querySelectorAll('thead th')].find((t) => t.textContent.trim().startsWith('Fecha') && !t.textContent.trim().startsWith('Fecha compra'))
     const cerrar = [...(panel ? panel.querySelectorAll('button') : [])].find((b) => b.textContent.trim() === 'Cerrar')
-    return { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, ancho: window.innerWidth, fecha: caja(fecha), cerrar: caja(cerrar) }
-  })()`) as { sw: number; cw: number; ancho: number; fecha: { x: number; r: number } | null; cerrar: { x: number; r: number } | null }
+    return { sh: document.documentElement.scrollHeight, ch: document.documentElement.clientHeight, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, ancho: window.innerWidth, fecha: caja(fecha), cerrar: caja(cerrar) }
+  })()`) as { sh: number; ch: number; sw: number; cw: number; ancho: number; fecha: { x: number; r: number } | null; cerrar: { x: number; r: number } | null }
   expect(m.sw, `${donde}: la página se desplaza a los lados, sobran ${m.sw - m.cw} px (scrollWidth ${m.sw}, clientWidth ${m.cw})`).toBeLessThanOrEqual(m.cw + 1)
+  // Tampoco hacia abajo: solo se desplaza la tabla. (Un texto oculto dentro de la tabla llego a alargar el documento 69.000 px.)
+  expect(m.sh, `${donde}: la página se desplaza hacia abajo, sobran ${m.sh - m.ch} px (scrollHeight ${m.sh}, clientHeight ${m.ch})`).toBeLessThanOrEqual(m.ch + 1)
   if (!conPanel) return
   for (const [nombre, c] of [['la cabecera «Fecha»', m.fecha], ['el botón «Cerrar» del panel', m.cerrar]] as const) {
     expect(c, `${donde}: no se encuentra ${nombre}`).not.toBeNull()

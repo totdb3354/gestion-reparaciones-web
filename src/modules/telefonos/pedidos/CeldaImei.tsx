@@ -39,9 +39,10 @@ export function CeldaImei({ fila, abierta, marcada, elegida, onAbrir }: Props) {
   )
   const tono = tonoFila(fila)
   return (
-    <td data-imei className={cn('overflow-hidden p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]),
+    <td data-imei className={cn('relative overflow-hidden p-0', FONDO[clase] ?? (tono && CLASE_TONO[tono]),
       elegida && 'shadow-[inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]')}>
-      {/* La raya azul es solo color: este texto la dice a quien no la ve. */}
+      {/* La raya azul es solo color: este texto la dice a quien no la ve. Es `absolute` (sr-only): la celda es `relative` para que
+          se quede dentro de ella; si no, cuelga del documento y lo alarga tanto como la tabla (se podia desplazar la pagina entera). */}
       {marcada && <span className="sr-only">Última fila abierta</span>}
       {!fila.editable ? (
         // Sin edición (el histórico): solo el texto; sin IMEI, la celda queda vacía, sin invitar a ponerlo.
@@ -57,7 +58,7 @@ export function CeldaImei({ fila, abierta, marcada, elegida, onAbrir }: Props) {
             onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.('[role="dialog"],[role="alertdialog"]')) e.preventDefault() }}
             // Al cerrar, el foco vuelve a la celda, salvo que ya esté en el desplegable de otra celda recién abierta.
             onCloseAutoFocus={(e) => { if (document.activeElement?.closest('[data-slot="popover-content"]')) e.preventDefault() }}
-            className="w-[470px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
+            className="w-[540px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
             <Desplegable fila={fila} onCerrar={() => onAbrir(fila.idFila, false)} />
           </PopoverContent>
         </Popover>
@@ -102,12 +103,12 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
       )}
       {recomendados.data?.map((c) => (
         <button key={c.imei} type="button" disabled={poner.isPending} onClick={() => guardar(c.imei)}
-          className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
+          className="grid w-full cursor-pointer grid-cols-[132px_118px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
           {/* Lo que la persona se lleva al almacén es la caja: va delante y resaltada. */}
-          <span className="rounded-md bg-[#eef0f3] px-2 py-px font-bold">{c.caja}</span>
+          <span title={c.caja ?? undefined} className="truncate rounded-md bg-[#eef0f3] px-2 py-px font-bold">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
-          {c.nivel === 3 && <span className="text-azul-gris">es {c.sku}</span>}
-          <span className={cn('ml-auto rounded-lg px-2 py-px text-[11px] font-bold', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
+          <span title={c.nivel === 3 ? c.sku ?? undefined : undefined} className="truncate text-azul-gris">{c.nivel === 3 && <>es {c.sku}</>}</span>
+          <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
         </button>
       ))}
       <div className="mt-1.5 flex gap-2">

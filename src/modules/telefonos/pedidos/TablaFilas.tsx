@@ -91,8 +91,8 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
       }}>
       {/* La raya azul del borde izquierdo: la última fila cuya celda de IMEI se abrió. */}
       <td className={cn(td, sombra)}>{dia(f.fecha)}</td>
-      <td className={cn(td, bordes)}>{f.plataforma}</td>
-      <td className={cn(td, bordes, 'font-mono text-[12px]')}>{f.sku}</td>
+      <td className={cn(td, bordes)} title={f.plataforma}>{f.plataforma}</td>
+      <td className={cn(td, bordes, 'font-mono text-[12px]')} title={f.sku ?? undefined}>{f.sku}</td>
       <CeldaImei fila={f} abierta={abierta} marcada={marcada} elegida={elegida} onAbrir={onAbrir} />
       <td className={cn(td, bordes)}>
         {/* El botón es la forma de elegir la fila con teclado. */}
@@ -213,13 +213,14 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   }
 
   return (
-    <div ref={contenedor} role="region" aria-label="Tabla de pedidos" className={cn('min-h-0 min-w-0 flex-1 overflow-auto rounded-md border border-borde-input bg-superficie', ventana && '[overflow-anchor:none]')}
+    <div ref={contenedor} role="region" aria-label="Tabla de pedidos" className={cn('relative min-h-0 min-w-0 flex-1 overflow-auto rounded-md border border-borde-input bg-superficie', ventana && '[overflow-anchor:none]')}
       onScroll={(ev) => { const c = ev.currentTarget; pegado.current = c.scrollHeight - c.scrollTop - c.clientHeight < 8 }}>
-      {/* Anchos fijos: lo largo se corta con puntos suspensivos en vez de ensanchar la tabla. «Enviado» toma lo que sobra; si ni así
-          cabe, el contenedor se desplaza por dentro (min-w), nunca la página. */}
+      {/* Anchos en porcentaje: el espacio se reparte entre todas (el SKU y el IMEI, que es lo que se lee, se llevan lo más). Lo
+          largo se corta con puntos suspensivos y lleva `title`; si no cabe el mínimo, el contenedor se desplaza por dentro, nunca
+          la página. */}
       <table className="w-full min-w-[925px] table-fixed border-collapse text-[13px] tabular-nums" aria-rowcount={ventana ? filas.length + 1 : undefined}>
         <colgroup>
-          <col className="w-[100px]" /><col className="w-[110px]" /><col className="w-[116px]" /><col className="w-[235px]" /><col className="w-[160px]" /><col /><col className="w-[96px]" />
+          <col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[18%]" /><col className="w-[23%]" /><col className="w-[14%]" /><col /><col className="w-[8%]" />
         </colgroup>
         <thead ref={cabeza}>
           <tr aria-rowindex={ventana ? 1 : undefined}>

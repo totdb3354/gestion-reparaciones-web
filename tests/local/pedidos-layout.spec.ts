@@ -64,7 +64,7 @@ const medidas = (page: Page) => page.evaluate(() => {
   const leyenda = [...document.querySelectorAll('p')].find((p) => p.textContent?.startsWith('Las filas las crea el ERP')) ?? null
   const barra = document.querySelector('header')
   return {
-    ancho: de.clientWidth, scrollW: de.scrollWidth, scrollX: window.scrollX,
+    ancho: de.clientWidth, scrollW: de.scrollWidth, scrollX: window.scrollX, altoDoc: de.scrollHeight, altoVentana: de.clientHeight,
     barra: r(barra), titulo: r(document.querySelector('h1')), fecha: r(fecha), leyenda: r(leyenda), tabla: r(tabla), panel: r(panel), cerrar: r(cerrar),
     tablaScrollW: tabla ? tabla.scrollWidth : 0, tablaClientW: tabla ? tabla.clientWidth : 0,
     cols: [...document.querySelectorAll('thead th')].map((t) => { const b = t.getBoundingClientRect(); return `${t.textContent?.slice(0, 6)}:${Math.round(b.x)}-${Math.round(b.right)}` }),
@@ -84,6 +84,12 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
       await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
       await expect(page.getByRole('button', { name: pedido(n), exact: true })).toBeVisible()
       await page.waitForTimeout(400)
+      // Se abre y se cierra una celda de IMEI del final: la fila queda marcada («Última fila abierta», texto oculto). Ese texto
+      // llego a alargar el documento tanto como la tabla; las medidas de abajo lo vigilan.
+      await page.locator('[aria-label="Tabla de pedidos"] td[data-imei] button').last().click()
+      await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeHidden()
 
       for (const abierto of [false, true]) {
         if (abierto) {
@@ -97,6 +103,7 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
         const donde = `${nombre} ${ancho} ${abierto ? 'con' : 'sin'} panel`
         expect(m.scrollW, `${donde}: la pagina desborda, sobran ${m.scrollW - m.ancho} px`).toBeLessThanOrEqual(m.ancho)
         expect(m.scrollX, donde).toBe(0)
+        expect(m.altoDoc, `${donde}: la pagina se desplaza hacia abajo, sobran ${m.altoDoc - m.altoVentana} px`).toBeLessThanOrEqual(m.altoVentana + 1)
         expect(m.barra!.x, donde).toBeGreaterThanOrEqual(0)
         expect(m.barra!.r, `${donde}: la barra superior no llega al borde derecho`).toBeGreaterThanOrEqual(m.ancho - 1)
         expect(m.titulo!.x, `${donde}: titulo fuera`).toBeGreaterThanOrEqual(0)
