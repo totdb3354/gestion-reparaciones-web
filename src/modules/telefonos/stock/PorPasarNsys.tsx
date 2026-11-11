@@ -9,16 +9,16 @@ import {
   type Plantilla,
 } from '../api'
 import { DescartarAltaDialog } from './DescartarAltaDialog'
-import { ListaAltas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
+import { ListaAltas, ListaCajas, ListaColor, ListaGrado, ListaRevisar } from './ListasPorPasar'
 import {
-  avisoCajas, avisoCopiado, avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, excelCajasColor, listaGrado, nombreCajas, paraCajasColor, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
+  avisoCajas, avisoCopiado, avisoImeisCopiados, imeisDeCaja, avisoDescartado, avisoIgnorado, avisoVuelveALasListas, ignoradosDe, avisoPlantillaAltas, avisoPlantillaColor, AYUDA, avisoVuelve, cuentas, excelCajasColor, listaGrado, nombreCajas, paraCajasColor, paraPlantillaColor, pendientes, TARJETA_HECHO, VACIA,
   vueltosFueraDePlantilla, type Tarjeta, type TarjetaConHecho,
 } from './porPasar'
 import { TarjetasNsys } from './TarjetasNsys'
 
 type Props = { tarjetas: TarjetasPorPasar | null; cargando: boolean; error: boolean; onAbrirImei: (imeiSn: string) => void }
 
-const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [] }
+const VACIAS: TarjetasPorPasar = { color: [], grado: [], altas: [], revisar: [], descartadas: [], sinGrado: [], ignorados: [], cajas: [] }
 const BOTON = 'h-[26px] cursor-pointer rounded-lg px-2.5 text-[12px] font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40'
 const PRIMARIO = cn(BOTON, 'bg-azul-noche text-superficie hover:bg-azul-noche-hover')
 const SECUNDARIO = cn(BOTON, 'border border-borde-input bg-superficie text-azul-medio hover:bg-seleccion-suave')
@@ -26,7 +26,7 @@ const PASTILLA = 'rounded px-1.5 text-[10.5px] font-bold bg-fila-solicitud-bg te
 const SIN_NADA = 'No hay móviles que corregir'
 
 /** La pestaña «Por pasar a NSYS» del stock de teléfonos desde la 0.9.22 (spec «plantillas NSYS» §3, diseño C del prototipo): arriba
- *  las cuatro tarjetas con su número y su botón; debajo, la ayuda y la lista de la elegida (la de color al entrar). Las plantillas
+ *  las cinco tarjetas con su número y su botón; debajo, la ayuda y la lista de la elegida (la de color al entrar). Las plantillas
  *  las hace el servidor; «Copiar lista» copia para Excel. */
 export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) {
   const [elegida, setElegida] = useState<Tarjeta>('color')
@@ -122,10 +122,10 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
         </button>
       )
     }
-    const n = cuentas(t, 'revisar').total
+    const n = cuentas(t, cual).total
     return (
       <button type="button" disabled={n === 0} title={n === 0 ? SIN_NADA : undefined}
-        onClick={(e) => { e.stopPropagation(); setElegida('revisar') }} className={SECUNDARIO}>Ver</button>
+        onClick={(e) => { e.stopPropagation(); setElegida(cual) }} className={SECUNDARIO}>Ver</button>
     )
   }
 
@@ -148,6 +148,14 @@ export function PorPasarNsys({ tarjetas, cargando, error, onAbrirImei }: Props) 
       {elegida === 'revisar' && (
         <ListaRevisar filas={t.revisar} sinGrado={t.sinGrado ?? []} vacio={vacio} ocupado={revisar.isPending || ignorar.isPending || deshacerIgnorado.isPending} onAbrirImei={onAbrirImei} {...conIgnorados('revisar')}
           onRevisado={(idAviso) => revisar.mutate(idAviso, { onSuccess: () => avisar({ texto: 'Revisado: sale de la lista (queda en el rastro)', tipo: 'ok' }) })} />
+      )}
+      {/* `?? []` en `cajas`: un servidor anterior a «Fuera de su caja» (vuelta atrás) no lo manda. */}
+      {elegida === 'cajas' && (
+        <ListaCajas filas={t.cajas ?? []} vacio={vacio} onAbrirImei={onAbrirImei}
+          onCopiar={(g) => {
+            void copiarAlPortapapeles(imeisDeCaja(g.filas))
+            avisar({ texto: avisoImeisCopiados(g.filas.length, g.cajaQueToca), tipo: 'ok' })
+          }} />
       )}
       <DescartarAltaDialog imeiSn={aDescartar} enviando={descartar.isPending} onCerrar={() => setADescartar(null)}
         onDescartar={(motivo) => {

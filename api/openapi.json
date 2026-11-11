@@ -7778,6 +7778,52 @@
           }
         }
       },
+      "FilaCajaNsys" : {
+        "required" : [ "caja", "cajaQueToca", "capacidad", "color", "esEsim", "grado", "gradoNsys", "imeiSn", "modelo", "modeloMaestro", "ubicacion" ],
+        "type" : "object",
+        "properties" : {
+          "imeiSn" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "modeloMaestro" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "capacidad" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "esEsim" : {
+            "type" : "boolean"
+          },
+          "color" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "grado" : {
+            "type" : "string"
+          },
+          "gradoNsys" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "caja" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "ubicacion" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "cajaQueToca" : {
+            "type" : "string"
+          }
+        }
+      },
       "FilaColorNsys" : {
         "required" : [ "bajaEn", "caja", "capacidad", "colorA", "colorDe", "compruebalo", "desde", "esEsim", "gradoNsys", "hechoEn", "hechoPor", "hechoVolvio", "ignoradoAntesEn", "ignoradoAntesPor", "imeiSn", "modelo", "modeloMaestro", "ponerProducto", "porQue", "productoNsys", "tambienGrado", "vendidoEn", "vueltoDesde" ],
         "type" : "object",
@@ -8210,7 +8256,7 @@
         }
       },
       "TarjetasPorPasar" : {
-        "required" : [ "altas", "color", "descartadas", "grado", "ignorados", "revisar", "sinGrado" ],
+        "required" : [ "altas", "cajas", "color", "descartadas", "grado", "ignorados", "revisar", "sinGrado" ],
         "type" : "object",
         "properties" : {
           "color" : {
@@ -8253,6 +8299,12 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/FilaIgnoradaNsys"
+            }
+          },
+          "cajas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaCajaNsys"
             }
           }
         }

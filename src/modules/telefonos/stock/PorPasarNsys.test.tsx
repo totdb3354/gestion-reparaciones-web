@@ -7,7 +7,7 @@ import { hoyMadrid } from '@/shared/lib/fechas'
 import { AvisoBreveHost } from '@/shared/ui/AvisoBreve'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
-import { filaAlta, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, tarjetas } from '../test/fabrica'
+import { filaAlta, filaCaja, filaColor, filaDescartada, filaGrado, filaIgnorada, filaRevisar, filaSinGrado, tarjetas } from '../test/fabrica'
 import { PorPasarNsys } from './PorPasarNsys'
 
 const HECHO = { hechoPor: 'Supertécnico 1', hechoEn: '2026-10-25T12:31:00', hechoVolvio: null }
@@ -609,5 +609,69 @@ describe('«ignorar» en las filas ámbar (0.9.27)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Ignorar 350000000000011' })).toBeDisabled())
     expect(screen.getByRole('button', { name: 'Hecho 350000000000011' })).toBeDisabled()
     soltar()
+  })
+})
+
+describe('«Fuera de su caja»: la quinta tarjeta', () => {
+  const CAJAS = [
+    filaCaja(),
+    filaCaja({ imeiSn: '350000000000222', gradoNsys: 'B' }),
+    filaCaja({ imeiSn: '350000000000230', caja: null, ubicacion: 'En revisión' }),
+    filaCaja({ imeiSn: '350000000000263', grado: 'RMA', caja: null, ubicacion: 'En revisión', cajaQueToca: 'Funcionalidad pendiente' }),
+  ]
+
+  it('dice cuántos hay y «Ver» abre su lista con la ayuda', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas({ cajas: CAJAS }))
+    const tarjeta = screen.getByRole('article', { name: 'Fuera de su caja' })
+    expect(tarjeta).toHaveTextContent('4 móviles')
+    expect(tarjeta).toHaveTextContent('F, FD o RMA en una caja que no es la de su grado')
+    await user.click(within(tarjeta).getByRole('button', { name: 'Ver' }))
+    expect(screen.getByRole('button', { name: 'Fuera de su caja' })).toHaveAttribute('aria-pressed', 'true')
+    expect(cabeceras(screen.getByRole('table', { name: 'Fuera de su caja' }))).toEqual(['IMEI', 'Modelo', 'Color', 'Grado', 'Caja de hoy en NSYS'])
+    expect(screen.getByText(/los F van en «CF021»/)).toBeInTheDocument()
+  })
+
+  it('sin móviles, «Ver» no se puede pulsar y la lista lo dice', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas())
+    const tarjeta = screen.getByRole('article', { name: 'Fuera de su caja' })
+    expect(tarjeta).toHaveTextContent('0 móviles')
+    expect(within(tarjeta).getByRole('button', { name: 'Ver' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Fuera de su caja' }))
+    expect(screen.getByRole('table', { name: 'Fuera de su caja' })).toHaveTextContent('No hay móviles F, FD o RMA fuera de su caja.')
+  })
+
+  it('la lista va por la caja que toca, con «sin caja», el nombre del ERP y la nota de «Cambio de grado»', async () => {
+    const user = userEvent.setup()
+    const abrir = pintar(tarjetas({ cajas: CAJAS }))
+    await user.click(screen.getByRole('button', { name: 'Fuera de su caja' }))
+    const [grupoF, uno, dos, tres, grupoRma, cuatro] = filas(screen.getByRole('table', { name: 'Fuera de su caja' }))
+    expect(grupoF).toHaveTextContent('Llevar a «CF021»')
+    expect(grupoF).toHaveTextContent('grado F · 3 móviles')
+    expect(uno).toHaveTextContent('iPhone 12 64GB')
+    expect(uno).toHaveTextContent('Negro')
+    expect(uno).toHaveTextContent('CAJA REP. OFICINA')
+    expect(uno).toHaveTextContent('Taller · Reparación')
+    expect(dos).toHaveTextContent('en NSYS aún B: también en «Cambio de grado»')
+    expect(tres).toHaveTextContent('sin caja')
+    expect(tres).toHaveTextContent('En revisión')
+    expect(grupoRma).toHaveTextContent('Llevar a «Funcionalidad pendiente»')
+    expect(grupoRma).toHaveTextContent('grado RMA · 1 móvil')
+    expect(cuatro).toHaveTextContent('350000000000263')
+    await user.click(within(uno).getByRole('button', { name: 'Abrir 350000000000214' }))
+    expect(abrir).toHaveBeenCalledWith('350000000000214')
+  })
+
+  it('«Copiar IMEIs» copia los del grupo, uno por línea, y avisa', async () => {
+    const user = userEvent.setup()
+    pintar(tarjetas({ cajas: CAJAS }))
+    await user.click(screen.getByRole('button', { name: 'Fuera de su caja' }))
+    const boton = screen.getByRole('button', { name: 'Copiar IMEIs para CF021' })
+    expect(boton).toHaveTextContent('Copiar IMEIs (3)')
+    await user.click(boton)
+    await waitFor(async () => expect(await navigator.clipboard.readText()).toBe('350000000000214\n350000000000222\n350000000000230'))
+    expect(await screen.findByTestId('aviso-breve'))
+      .toHaveTextContent('Copiado: 3 IMEIs para «CF021». Búscalos en NSYS y cámbiales la «Location»')
   })
 })

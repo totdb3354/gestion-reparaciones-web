@@ -127,3 +127,7 @@ Añadido, decidido en la spec `2026-10-25-v0922-plantillas-nsys-design.md` (raí
   «ignorar» sin ventana las saca de las tres tarjetas hasta que NSYS vuelva a tener el móvil en la empresa o el taller le haga un
   trabajo nuevo («Salió otra vez…»); «Ver ignorados (n)» con «deshacer» al pie de cada una. Tabla `Taller_vuelta_ignorada`; rutas
   `PUT`/`DELETE /api/stock-telefonos/por-pasar/ignorado`.
+- **«Fuera de su caja» (0.9.31):** quinta tarjeta con los móviles F, FD y RMA en la empresa que no están en la caja de su grado
+  (F → «CF021», FD → «Desguace», RMA → «Funcionalidad pendiente»; sin caja también), sin los de trabajo abierto ni los de
+  pedido; en grupos por la caja que toca, con «Copiar IMEIs». Sin «Hecho». Campo `cajas` de `GET
+  /api/stock-telefonos/por-pasar/tarjetas`.

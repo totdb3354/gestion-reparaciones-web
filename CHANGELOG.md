@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.31] - 2026-11-11 — «Fuera de su caja»: los F, FD y RMA que no están en la caja de su grado
+
+- En «Por pasar a NSYS» hay una **quinta tarjeta, «Fuera de su caja»**: los móviles con grado **F**, **FD** o **RMA** que NSYS tiene en la empresa y en una caja que no es la de su grado (los F van en «CF021», los FD en «Desguace» y los RMA en «Funcionalidad pendiente»). Un móvil sin caja también sale.
+- La lista va **agrupada por la caja que toca** («Llevar a «CF021»») y cada grupo tiene **«Copiar IMEIs (n)»**, que los copia uno por línea para buscarlos en NSYS y cambiarles la «Location».
+- Cada fila enseña la caja de hoy como la escribe NSYS y cómo la llama el ERP. Si el taller ha puesto el grado y NSYS aún tiene otro, lo dice: «también en «Cambio de grado»».
+- No lleva «Hecho»: la fila se va sola cuando la importación ve la caja nueva. No salen los móviles con un trabajo abierto del taller ni los de pedido.
+- Servidor y web, sin base de datos: `cajas` en las tarjetas de «Por pasar a NSYS». Con el servidor anterior la tarjeta sale a 0.
+
 ## [0.9.30] - 2026-11-10 — Los grados F, FD y RMA no cuentan como stock
 
 - En **Stock de teléfonos**, los móviles con grado **F**, **FD** o **RMA** ya **no cuentan como stock**, estén en la caja que estén: dejan de sumar en el total de la cabecera, en el de cada modelo y en la tabla de color y grado. Antes contaban si su caja era de las que cuentan (un RMA en «Devolución»).
