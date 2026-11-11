@@ -42,7 +42,7 @@ export function StockTelefonosPage() {
   const moviles = useMemo(() => preparar(stock.data ?? [], stock.dataUpdatedAt), [stock.data, stock.dataUpdatedAt])
   const sinCargar = stock.isError && !stock.data
   const [{ verNoCuenta, textoModelo, elegido, capacidad: capacidadElegida, filtrosDe, vista, queRevisar, ordenMoviles }, setEstado] = useStore(estadoStockTelefonos)
-  // 0.9.22 (spec «plantillas NSYS» §3): las cuatro tarjetas, para su pestaña y lo pendiente.
+  // 0.9.22 (spec «plantillas NSYS» §3): las tarjetas, para su pestaña y lo pendiente.
   const porPasar = usePorPasarTarjetas()
   const nPorPasar = totalPendientes(porPasar.data)
   // 0.9.25 (spec «Qué revisar» §3.1 y §10.10): las dos listas, para su pestaña y su número. Salen del stock, sin otra petición.

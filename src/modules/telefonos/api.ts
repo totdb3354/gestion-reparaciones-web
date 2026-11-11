@@ -55,7 +55,7 @@ export function useComprobarImeis(imeis: string[]): UseQueryResult<MovilComproba
   })
 }
 
-/** GET /api/stock-telefonos/por-pasar/tarjetas (spec 0.9.22 §3): las cuatro tarjetas, para la pestaña y su número. Sondea como
+/** GET /api/stock-telefonos/por-pasar/tarjetas (spec 0.9.22 §3): las cinco tarjetas, para la pestaña y su número. Sondea como
  *  el stock: las filas se van solas con cada importación. */
 export function usePorPasarTarjetas(): UseQueryResult<TarjetasPorPasar | null> {
   const intervalo = useIntervaloRefresco(true)

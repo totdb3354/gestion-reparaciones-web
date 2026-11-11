@@ -173,4 +173,6 @@
   --color-taller: #7C3AED;
   --color-taller-bg: #F1EAFE;
   --color-taller-text: #6D28D9;
+  /* «Fuera de su caja» (prototipo): el borde de arriba de la quinta tarjeta de «Por pasar a NSYS». */
+  --color-caja: #0D9488;
 }

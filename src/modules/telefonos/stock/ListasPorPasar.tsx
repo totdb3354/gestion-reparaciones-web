@@ -1,15 +1,16 @@
-import { useState, type ReactNode } from 'react'
-import type { FilaAltaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys } from '@/shared/api/client'
+import { Fragment, useState, type ReactNode } from 'react'
+import type { FilaAltaNsys, FilaCajaNsys, FilaColorNsys, FilaDescartadaNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys } from '@/shared/api/client'
 import { COMPRUEBALO, diaNsys, ETIQUETA_AVISO, queHacerAviso, SIN_PRODUCTO_NSYS, textoAvisoTaller } from '@/shared/lib/telefonoNsys'
 import { cn } from '@/shared/lib/utils'
 import { CeldaHecho } from './CeldaHecho'
 import { EnlaceIgnorar } from './EnlaceIgnorar'
+import { PildoraGrado } from './PildoraGrado'
 import {
-  ETIQUETA_SIN_GRADO, marcada, modeloDeFila, modeloDelTaller, pendientes, QUE_HACER_SIN_GRADO, SIN_CAJA, textoBateriaDeFila, textoCaja, textoDescartado, textoDescartadoAntes,
-  textoDesde, textoEnNsys, textoGradoNsys, textoIgnorado, textoIgnoradoAntes, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoVerIgnorados, textoVuelta, type ConHecho,
+  ETIQUETA_SIN_GRADO, marcada, gruposCajas, modeloDeFila, modeloDelTaller, notaGradoNsys, pendientes, QUE_HACER_SIN_GRADO, SIN_CAJA, textoBateriaDeFila, textoCaja, textoDescartado, textoDescartadoAntes,
+  textoDesde, textoEnNsys, textoGradoNsys, textoIgnorado, textoIgnoradoAntes, textoPorQue, textoUltimoTrabajo, textoUltimoTrabajoSinGrado, textoVerDescartados, textoGrupoCaja, textoVerIgnorados, textoVuelta, type ConHecho, type GrupoCaja,
 } from './porPasar'
 
-/** Las cuatro listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
+/** Las cinco listas de «Por pasar a NSYS» (spec 0.9.22 §3.2-§3.5). El IMEI abre el detalle del móvil, como en la 0.9.21. */
 
 const CELDA = 'px-2 py-1.5 align-top'
 const GRIS = 'block text-[11px] text-azul-gris'
@@ -321,6 +322,60 @@ export function ListaRevisar({ filas, sinGrado, vacio, ocupado, onAbrirImei, onR
         </table>
       </div>
       {ignorados.length > 0 && <Ignorados filas={ignorados} ocupado={ocupado} onDeshacer={onDeshacerIgnorado} />}
+    </div>
+  )
+}
+
+type CajasProps = { filas: FilaCajaNsys[]; vacio: string; onAbrirImei: (imeiSn: string) => void; onCopiar: (grupo: GrupoCaja) => void }
+
+/** «Fuera de su caja» (spec «Fuera de su caja» §5): los F, FD y RMA que no están en la caja de su grado, en grupos por la caja que
+ *  toca, cada uno con «Copiar IMEIs». Sin «Hecho»: la fila se va sola cuando la importación ve la caja nueva. */
+export function ListaCajas({ filas, vacio, onAbrirImei, onCopiar }: CajasProps) {
+  const columnas = ['IMEI', 'Modelo', 'Color', 'Grado', 'Caja de hoy en NSYS']
+  return (
+    <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-fila-sep">
+      <table aria-label="Fuera de su caja" className="w-full border-collapse text-[12.5px] text-azul-medio">
+        <thead className="sticky top-0 bg-crema">
+          <tr>{columnas.map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left font-bold whitespace-nowrap">{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {filas.length === 0 && (
+            <tr><td colSpan={columnas.length} className="px-2 py-3 text-[12px] text-azul-gris">{vacio}</td></tr>
+          )}
+          {gruposCajas(filas).map((g) => (
+            <Fragment key={g.cajaQueToca}>
+              <tr className="border-t border-fila-sep bg-seleccion-suave">
+                <td colSpan={columnas.length} className="px-2 py-1.5">
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-[13px] font-bold">{`Llevar a «${g.cajaQueToca}»`}</span>
+                    <span className="text-[12px] text-azul-gris">{textoGrupoCaja(g)}</span>
+                    <button type="button" aria-label={`Copiar IMEIs para ${g.cajaQueToca}`} onClick={() => onCopiar(g)}
+                      className={cn(PEQUENO, 'ml-auto')}>{`Copiar IMEIs (${g.filas.length})`}</button>
+                  </span>
+                </td>
+              </tr>
+              {g.filas.map((f, i) => {
+                const nota = notaGradoNsys(f)
+                return (
+                  <tr key={`${f.imeiSn}|${i}`} className="border-t border-fila-sep">
+                    <td className={cn(CELDA, 'whitespace-nowrap')}><Imei imeiSn={f.imeiSn} onAbrir={onAbrirImei} /></td>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}>{modeloDeFila(f)}</td>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}>{f.color ?? '—'}</td>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}>
+                      <PildoraGrado grado={f.grado} />
+                      {nota && <span className={GRIS}>{nota}</span>}
+                    </td>
+                    <td className={cn(CELDA, 'whitespace-nowrap')}>
+                      {f.caja ? f.caja : <span className="font-semibold text-ambar-grafico">{SIN_CAJA}</span>}
+                      <span className={GRIS}>{f.ubicacion ?? '—'}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
