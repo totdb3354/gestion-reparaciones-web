@@ -15,13 +15,13 @@ describe('usePresencia y PanelDeslizante', () => {
 
   it('al cerrar sigue montado con el ultimo valor mientras sale y se desmonta al terminar', () => {
     const { rerender } = render(<Prueba valor="fila A" />)
-    expect(screen.getByText('fila A').parentElement).toHaveClass('w-0') // entra: empieza cerrado
+    expect(screen.getByText('fila A').parentElement).toHaveClass('opacity-0') // entra: empieza cerrado
     act(() => { vi.advanceTimersByTime(30) })
     expect(screen.getByText('fila A').parentElement).not.toHaveAttribute('data-saliendo')
-    expect(screen.getByText('fila A').parentElement).toHaveClass('w-[min(380px,40vw)]') // abierto
+    expect(screen.getByText('fila A').parentElement).toHaveClass('opacity-100') // abierto
     rerender(<Prueba valor={null} />)
     expect(screen.getByText('fila A').parentElement).toHaveAttribute('data-saliendo')
-    expect(screen.getByText('fila A').parentElement).toHaveClass('w-0')
+    expect(screen.getByText('fila A').parentElement).toHaveClass('opacity-0')
     act(() => { vi.advanceTimersByTime(MS_PANEL - 10) })
     expect(screen.getByText('fila A')).toBeInTheDocument()
     act(() => { vi.advanceTimersByTime(20) })

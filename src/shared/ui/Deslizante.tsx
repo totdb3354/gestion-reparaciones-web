@@ -34,17 +34,20 @@ export function useAbierto(saliendo: boolean, ref: React.RefObject<HTMLElement |
   return dentro && !saliendo
 }
 
-/** Hueco de un panel que acompaña a una tabla (en un `flex` en fila): entra desde la derecha ensanchándose mientras la tabla se
- *  estrecha, y sale al revés. Solo CSS (ancho, margen y opacidad), sin repintar a React en cada fotograma; el contenido mantiene su
- *  ancho y se recorta. `saliendo` lo da `usePresencia`. */
+/** Hueco de un panel que acompaña a una tabla (en un `flex` en fila). El hueco toma su ancho DE GOLPE (la tabla se recoloca una
+ *  sola vez) y lo que se anima es el contenido, que entra desde la derecha con `transform` y opacidad, y sale al revés. Animar el
+ *  ancho obligaba a recolocar la tabla entera (miles de celdas) en cada fotograma y el panel iba a tirones. `saliendo` lo da
+ *  `usePresencia`. */
 export function PanelDeslizante({ saliendo, children }: { saliendo: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const abierto = useAbierto(saliendo, ref)
   return (
-    <div ref={ref} data-saliendo={saliendo || undefined}
-      className={cn('flex min-h-0 shrink-0 overflow-hidden transition-[width,margin-left,opacity] duration-200 ease-out motion-reduce:transition-none',
-        abierto ? 'ml-2.5 w-[min(380px,40vw)] opacity-100' : 'ml-0 w-0 opacity-0')}>
-      {children}
+    <div className="ml-2.5 flex min-h-0 w-[min(380px,40vw)] shrink-0 overflow-hidden">
+      <div ref={ref} data-saliendo={saliendo || undefined}
+        className={cn('flex min-h-0 w-full transition-[transform,opacity] duration-200 ease-out will-change-transform motion-reduce:transition-none',
+          abierto ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0')}>
+        {children}
+      </div>
     </div>
   )
 }
