@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FilaVista } from '@/shared/api/client'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { cn } from '@/shared/lib/utils'
@@ -69,33 +69,57 @@ export function CeldaImei({ fila, abierta, marcada, onAbrir }: Props) {
   )
 }
 
+const CIFRAS_IMEI = 15
+
 function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const recomendados = useRecomendados(fila.idFila)
   const poner = usePonerImei()
   const [claves] = useState(() => crearClavesIdempotencia())
+  // Hay un guardado en vuelo. Es una referencia y no `poner.isPending` porque un lector de códigos teclea las cifras y su Enter de
+  // golpe: ese Enter llega antes de que React haya pintado el estado «pendiente» y no debe mandar un segundo guardado.
+  const enCurso = useRef(false)
 
-  // Si falla, la política global ya abre el diálogo de error: el desplegable se queda abierto para reintentar.
+  // Si falla, la política global ya abre el diálogo de error: el desplegable se queda abierto (con las 15 cifras) para reintentar con Enter.
   const guardar = (imei: string | null) => {
-    if (poner.isPending) return
+    if (enCurso.current || poner.isPending) return
+    enCurso.current = true
     const operacion = `imei:${fila.idFila}`
-    poner.mutate({ idFila: fila.idFila, imei, clave: claves.para(operacion, { imei }) }, { onSuccess: () => { claves.hecha(operacion); onCerrar() } })
+    poner.mutate({ idFila: fila.idFila, imei, clave: claves.para(operacion, { imei }) }, {
+      onSuccess: () => { claves.hecha(operacion); onCerrar() },
+      onSettled: () => { enCurso.current = false },
+    })
   }
   const enviar = () => {
-    const imei = texto.trim()
-    if (!/^\d{15}$/.test(imei)) { setError('Un IMEI son 15 cifras'); return }
+    if (enCurso.current) return
+    if (texto.length !== CIFRAS_IMEI) { setError(`Un IMEI son ${CIFRAS_IMEI} cifras`); return }
     setError(null)
-    guardar(imei)
+    guardar(texto)
+  }
+  // Solo cifras (también al pegar, y sin los espacios o saltos que pueda mandar el lector) y como mucho 15. Al llegar a 15 se guarda
+  // solo, una vez: el disparo es el paso de menos de 15 a 15 cifras, no cada pintado.
+  const cambiar = (valor: string) => {
+    if (enCurso.current) return
+    const cifras = valor.replace(/\D/g, '').slice(0, CIFRAS_IMEI)
+    const llegaA15 = cifras.length === CIFRAS_IMEI && texto.length < CIFRAS_IMEI
+    setTexto(cifras)
+    setError(null)
+    if (llegaA15) guardar(cifras)
   }
 
   return (
     <div>
-      <input autoFocus aria-label="IMEI" inputMode="numeric" placeholder="Escribe o lee el IMEI y pulsa Enter" value={texto}
-        readOnly={poner.isPending}
-        onChange={(e) => { setTexto(e.target.value); setError(null) }}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); enviar() } }}
-        className="h-8 w-full rounded-md border border-borde-input px-2 font-mono text-[13px]" />
+      <div className="relative">
+        <input autoFocus aria-label="IMEI" inputMode="numeric" pattern="[0-9]*" autoComplete="off"
+          placeholder="Lee o escribe el IMEI (15 cifras)" value={texto}
+          readOnly={poner.isPending}
+          onChange={(e) => cambiar(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); enviar() } }}
+          className="h-8 w-full rounded-md border border-borde-input pr-14 pl-2 font-mono text-[13px]" />
+        {/* El contador es solo una ayuda a la vista: oculto al lector de pantalla para que no lea cada cifra. */}
+        <span aria-hidden="true" data-contador className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 font-mono text-[11px] text-azul-gris">{texto.length}/{CIFRAS_IMEI}</span>
+      </div>
       {error && <p role="alert" className="mt-1 text-[12px] font-bold text-texto-error">{error}</p>}
       <div className="mt-1.5 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>} · dónde buscarlo</div>
       {recomendados.isPending && <p className="px-2 py-1.5 text-[12px] text-azul-gris">Cargando…</p>}

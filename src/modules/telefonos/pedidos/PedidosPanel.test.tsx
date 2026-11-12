@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -179,12 +179,17 @@ describe('Pedidos v2: el panel de la fila', () => {
     for (const t of ['402-0000000-0000042', 'Cliente Web A', 'Fonestockroom', 'i13128AzulA', '09/11/2026', '08/11/2026', 'Pendiente', '350000000000011', 'i14128NegroA', 'CAJA LISTOS', 'otro modelo, capacidad o eSIM']) {
       expect(p).toHaveTextContent(t)
     }
+    expect(within(p).getByRole('heading', { name: 'Historial' })).toBeInTheDocument()
+    expect(within(p).queryByText('Quién ha tocado el IMEI')).not.toBeInTheDocument()
     const items = await screen.findAllByRole('listitem')
+    // La fila entró el 09/11 (solo día: su inicio), así que va entre el cambio del 09/11 08:00 y el del 08/11.
     expect(items.map((i) => i.textContent)).toEqual([
       'Supertécnico 1 cambió 350000000000010 por 35000000000001110/11/2026 12:05',
       'Carga desde la hoja puso 35000000000001009/11/2026 08:00',
+      'Entró desde ShippyPro09/11/2026',
       'Supertécnico 1 quitó 35000000000000908/11/2026 09:00',
     ])
+    expect(within(p).getByRole('list', { name: 'Historial de la fila' })).toHaveClass('overflow-y-auto', 'max-h-[40vh]')
   })
 
   it('una enviada enseña transportista y seguimiento; sin cambios dice que nadie ha puesto IMEI', async () => {
@@ -199,6 +204,11 @@ describe('Pedidos v2: el panel de la fila', () => {
     expect(p).toHaveTextContent('UPS')
     expect(p).toHaveTextContent('1Z0000000000000002')
     expect(await screen.findByText('Nadie ha puesto IMEI todavía.')).toBeInTheDocument()
+    expect(screen.getAllByRole('listitem').map((i) => i.textContent)).toEqual([
+      'Enviado (etiqueta impresa)10/11/2026 09:15',
+      'Etiqueta generada · UPS09/11/2026 10:30',
+      'Entró desde ShippyPro09/11/2026',
+    ])
   })
 
   it('con la etiqueta generada y sin imprimir, el panel dice «Etiqueta sin imprimir todavía» y no pone fecha de envío', async () => {
@@ -244,6 +254,62 @@ describe('Pedidos v2: el panel de la fila', () => {
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
     await waitFor(() => expect(pedidosCambios.filter((i) => i === '1').length).toBeGreaterThanOrEqual(2))
+  })
+
+  it('al poner un IMEI con el panel abierto, el IMEI y la entrada del historial salen al momento, antes de que acabe la recarga', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('AMZ'))
+    const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
+    await screen.findByText('Nadie ha puesto IMEI todavía.')
+    expect(p).toHaveTextContent('Sin IMEI todavía.')
+    // A partir de aquí las recargas se quedan esperando: lo que se vea es lo que escribió la mutación, no la recarga.
+    let soltar = () => {}
+    const puerta = new Promise<void>((r) => { soltar = r })
+    let recargas = 0
+    server.use(
+      http.get('*/api/pedidos/filas', async () => { recargas++; await puerta; return HttpResponse.json({ filas: FILAS, hayMas: false }) }),
+      http.get('*/api/pedidos/filas/:id/cambios', async () => { recargas++; await puerta; return HttpResponse.json([]) }),
+    )
+    await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
+    await waitFor(() => expect(within(p).getByText('350000000000101', { selector: 'span' })).toBeInTheDocument())
+    expect(p).not.toHaveTextContent('Sin IMEI todavía.')
+    const primera = within(p).getAllByRole('listitem')[0]
+    expect(primera.textContent).toMatch(/^tecnico_f puso 350000000000101\d\d\/\d\d\/\d{4} \d\d:\d\d$/)
+    expect(within(p).getAllByRole('listitem')).toHaveLength(2)
+    await waitFor(() => expect(recargas).toBeGreaterThan(0)) // ya se pidió la recarga y sigue sin llegar
+    soltar()
+  })
+
+  it('quitar el IMEI con el panel abierto antepone «quitó» con el IMEI anterior', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('Cliente Web A'))
+    const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
+    await waitFor(() => expect(within(p).getAllByRole('listitem')).toHaveLength(4))
+    const puerta = new Promise<void>(() => {}) // las recargas no acaban: se ve lo que escribió la mutación
+    server.use(
+      http.get('*/api/pedidos/filas', async () => { await puerta; return HttpResponse.json({ filas: FILAS, hayMas: false }) }),
+      http.get('*/api/pedidos/filas/:id/cambios', async () => { await puerta; return HttpResponse.json([]) }),
+    )
+    server.use(http.put('*/api/pedidos/filas/:id/imei', ({ params }) => HttpResponse.json(fila({ idFila: Number(params.id), pedido: '402-0000000-0000042', plataforma: 'Cliente Web A', canal: 'DISTRIBUIDORES', imei: null }))))
+    await user.click(screen.getByRole('button', { name: /350000000000011/ }))
+    await user.click(screen.getByRole('button', { name: 'Quitar el IMEI' }))
+    await waitFor(() => expect(within(p).getAllByRole('listitem')).toHaveLength(5))
+    expect(within(p).getAllByRole('listitem')[0].textContent).toMatch(/^tecnico_f quitó 350000000000011/)
+  })
+
+  it('si el panel de esa fila nunca se abrió, no se crea su lista de cambios en la caché', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await esperar()
+    await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'IMEI' })).not.toBeInTheDocument())
+    expect(queryClient.getQueryCache().findAll().filter((q) => q.queryKey.includes('cambios'))).toHaveLength(0)
   })
 
   it('la fila elegida sigue al filtrar y el panel se cierra si la fila deja de estar entre las recibidas', async () => {

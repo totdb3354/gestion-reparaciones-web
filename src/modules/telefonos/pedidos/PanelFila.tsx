@@ -4,6 +4,7 @@ import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { useCambiosImei } from '../api'
 import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
+import { construirHistorial, type EntradaHistorial } from './historial'
 import { estadoDe, estadoPantalla, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
@@ -27,27 +28,40 @@ function textoCambio(c: CambioImei): ReactNode {
   return <>sin cambio de IMEI</>
 }
 
-function Cambios({ fila }: { fila: FilaVista }) {
+/** Un hito de la propia fila: lo que pasó, y cuándo (sin hora si solo se sabe el día). */
+function textoHito(e: Exclude<EntradaHistorial, { tipo: 'imei' }>): { quien: string; texto: ReactNode } {
+  if (e.tipo === 'entro') return { quien: 'Entró desde ShippyPro', texto: null }
+  if (e.tipo === 'etiqueta') return { quien: 'Etiqueta generada', texto: e.transportista ? <> · {nombreTransportista(e.transportista)}</> : null }
+  return { quien: 'Enviado (etiqueta impresa)', texto: null }
+}
+
+/** El historial de la fila (más reciente arriba): los cambios del IMEI y los hitos de la propia fila. Con su propio scroll. */
+function Historial({ fila }: { fila: FilaVista }) {
   const historico = estadoDe(fila) === 'HISTORICO'
   // Una fila del histórico no tiene registro: no se pide nada.
   const cambios = useCambiosImei(historico ? null : fila.idFila)
   if (historico) return <p className="text-[12px] text-azul-gris">Viene de la hoja: no hay registro de quién lo puso.</p>
   if (cambios.isPending) return <p className="text-[12px] text-azul-gris">Cargando…</p>
   if (cambios.isError) return <p className="text-[12px] text-azul-gris">No se pudo cargar quién ha tocado el IMEI.</p>
-  if (cambios.data.length === 0) return <p className="text-[12px] text-azul-gris">Nadie ha puesto IMEI todavía.</p>
+  const entradas = construirHistorial(fila, cambios.data)
   return (
-    <ul className="m-0 list-none p-0">
-      {cambios.data.map((c, i) => (
-        <li key={i} className="border-b border-dashed border-form-fila-brd py-1.5 text-[12px]">
-          <span className="font-bold">{c.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(c)}
-          <div className="text-[11px] text-azul-gris">{diaHora(c.fecha)}</div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul aria-label="Historial de la fila" tabIndex={0} className="m-0 max-h-[40vh] list-none overflow-x-hidden overflow-y-auto p-0">
+        {entradas.map((e) => (
+          <li key={e.clave} className="border-b border-dashed border-form-fila-brd py-1.5 text-[12px]">
+            {e.tipo === 'imei'
+              ? <><span className="font-bold">{e.cambio.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(e.cambio)}</>
+              : <><span className="font-bold">{textoHito(e).quien}</span>{textoHito(e).texto}</>}
+            <div className="text-[11px] text-azul-gris">{e.conHora ? diaHora(e.cuando) : diaNsys(e.cuando)}</div>
+          </li>
+        ))}
+      </ul>
+      {cambios.data.length === 0 && <p className="mt-1 text-[12px] text-azul-gris">Nadie ha puesto IMEI todavía.</p>}
+    </>
   )
 }
 
-/** El panel de la derecha (spec v2 §3.5): el pedido, el móvil y quién ha tocado el IMEI. Solo enseña; el IMEI se pone en la celda. */
+/** El panel de la derecha (spec v2 §3.5): el pedido, el móvil y el historial de la fila. Solo enseña; el IMEI se pone en la celda. */
 export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
   const estado = estadoPantalla(f)
   const motivo = textoMotivo(f)
@@ -84,8 +98,8 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
       ) : (
         <p className="text-[12px] text-azul-gris">{f.editable ? 'Sin IMEI todavía.' : 'Sin IMEI.'}</p>
       )}
-      <Titulo>Quién ha tocado el IMEI</Titulo>
-      <Cambios fila={f} />
+      <Titulo>Historial</Titulo>
+      <Historial fila={f} />
     </section>
   )
 }

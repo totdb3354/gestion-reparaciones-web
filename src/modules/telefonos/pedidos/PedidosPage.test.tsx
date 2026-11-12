@@ -226,7 +226,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     server.use(http.put('*/api/pedidos/filas/:id/imei', () => { puts.push({ id: 'x', cuerpo: null }); return HttpResponse.json({ message: 'No se pudo' }, { status: 422 }) }))
     abrir()
     await user.click(await celdaVacia())
-    await user.type(campo() as HTMLElement, '350000000000555{Enter}')
+    await user.type(campo() as HTMLElement, '350000000000555')
     await waitFor(() => expect(puts).toHaveLength(1))
     // El desplegable también es role=dialog: el de error se distingue por su texto.
     expect(await screen.findByText('No se pudo')).toBeInTheDocument()
@@ -253,6 +253,108 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     liberar()
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
     expect(puts).toHaveLength(1)
+  })
+
+  describe('el campo del IMEI con lector de códigos', () => {
+    it('solo admite cifras, también al pegar, con el contador n/15 y el texto de ayuda', async () => {
+      const user = userEvent.setup()
+      abrir()
+      await user.click(await celdaVacia())
+      const c = campo() as HTMLElement
+      expect(c).toHaveAttribute('placeholder', 'Lee o escribe el IMEI (15 cifras)')
+      expect(c).toHaveAttribute('inputmode', 'numeric')
+      expect(c).toHaveAttribute('autocomplete', 'off')
+      expect(screen.getByText('0/15')).toHaveAttribute('aria-hidden', 'true')
+      await user.type(c, '35a0-b 0')
+      expect(c).toHaveValue('3500')
+      expect(screen.getByText('4/15')).toBeInTheDocument()
+      await user.paste(' 0x00\n000 ')
+      expect(c).toHaveValue('3500000000')
+      expect(puts).toEqual([])
+    })
+
+    it('al llegar a 15 cifras guarda solo, una vez, y cierra sin pulsar Enter', async () => {
+      const user = userEvent.setup()
+      abrir()
+      await user.click(await celdaVacia())
+      await user.type(campo() as HTMLElement, '350000000000055')
+      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000055' } }]))
+      await waitFor(() => expect(campo()).not.toBeInTheDocument())
+      expect(puts).toHaveLength(1)
+    })
+
+    it('pegar el IMEI entero con espacios y salto de línea (lo que manda un lector) lo guarda', async () => {
+      const user = userEvent.setup()
+      abrir()
+      await user.click(await celdaVacia())
+      await (campo() as HTMLElement).focus()
+      await user.paste('350 000 000 000 055\n')
+      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000055' } }]))
+    })
+
+    it('cifras de más se descartan: nunca pasa de 15', async () => {
+      const user = userEvent.setup()
+      abrir()
+      await user.click(await celdaVacia())
+      await user.paste('3500000000000559999')
+      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000055' } }]))
+    })
+
+    it('el Enter que manda el lector tras las 15 cifras no da error ni guarda por segunda vez mientras el guardado sigue pendiente', async () => {
+      const user = userEvent.setup()
+      let liberar = () => {}
+      const espera = new Promise<void>((r) => { liberar = r })
+      server.use(http.put('*/api/pedidos/filas/:id/imei', async ({ params }) => {
+        puts.push({ id: String(params.id), cuerpo: null })
+        await espera
+        return HttpResponse.json(fila({ idFila: Number(params.id) }))
+      }))
+      abrir()
+      await user.click(await celdaVacia())
+      const c = campo() as HTMLElement
+      await user.type(c, '350000000000055{Enter}{Enter}')
+      await user.keyboard('7')
+      await waitFor(() => expect(puts).toHaveLength(1))
+      expect(c).toHaveValue('350000000000055')
+      expect(screen.queryByText('Un IMEI son 15 cifras')).not.toBeInTheDocument()
+      liberar()
+      await waitFor(() => expect(campo()).not.toBeInTheDocument())
+      expect(puts).toHaveLength(1)
+    })
+
+    it('Enter con menos de 15 cifras da el error y no guarda', async () => {
+      const user = userEvent.setup()
+      abrir()
+      await user.click(await celdaVacia())
+      await user.type(campo() as HTMLElement, '3500{Enter}')
+      expect(screen.getByRole('alert')).toHaveTextContent('Un IMEI son 15 cifras')
+      expect(puts).toEqual([])
+      await user.type(campo() as HTMLElement, '0')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('si el guardado falla se queda abierto con las 15 cifras, no se repite solo y Enter reintenta', async () => {
+      const user = userEvent.setup()
+      let fallar = true
+      server.use(http.put('*/api/pedidos/filas/:id/imei', ({ params }) => {
+        puts.push({ id: String(params.id), cuerpo: null })
+        return fallar ? HttpResponse.json({ message: 'No se pudo' }, { status: 422 }) : HttpResponse.json(fila({ idFila: Number(params.id) }))
+      }))
+      abrir()
+      await user.click(await celdaVacia())
+      await user.type(campo() as HTMLElement, '350000000000055')
+      expect(await screen.findByText('No se pudo')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Aceptar' }))
+      await waitFor(() => expect(screen.queryByText('No se pudo')).not.toBeInTheDocument())
+      const c = screen.getByRole('textbox', { name: 'IMEI' })
+      expect(c).toHaveValue('350000000000055')
+      expect(c).not.toHaveAttribute('readonly')
+      expect(puts).toHaveLength(1)
+      fallar = false
+      await user.type(c, '{Enter}')
+      await waitFor(() => expect(puts).toHaveLength(2))
+      await waitFor(() => expect(campo()).not.toBeInTheDocument())
+    })
   })
 
   it('mientras llegan los recomendados dice «Cargando…»; sin ninguno, que no hay', async () => {

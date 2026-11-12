@@ -8,6 +8,7 @@ import { ApiError } from '@/shared/api/errors'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { guardarEn, nombreDeDescarga, type TipoFichero } from '@/shared/lib/descargas'
 import { hoyMadrid } from '@/shared/lib/fechas'
+import { leerSesion } from '@/shared/session/storage'
 
 export const CLAVE_IMPORTACIONES_NSYS = ['telefonos', 'importaciones'] as const
 /** 0.9.23: el estado de NSYS y el tope de IMEIs viven en `shared` (también los usa el modal de asignación del taller); se
@@ -256,6 +257,13 @@ export function useEtiquetaPdf(idFila: number): UseQueryResult<Blob> {
 export const MSG_ETIQUETA_SIN = 'Este pedido no tiene etiqueta generada'
 export const MSG_ETIQUETA_SHIPPYPRO = 'No se pudo obtener la etiqueta de ShippyPro. Inténtalo de nuevo.'
 
+/** Ahora, hora local, con el formato que da la API («2026-11-12T09:12:00»). */
+function ahoraLocal(): string {
+  const d = new Date()
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}T${dos(d.getHours())}:${dos(d.getMinutes())}:${dos(d.getSeconds())}`
+}
+
 /** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila. `clave` va en la cabecera Idempotency-Key (la da
  *  el desplegable con crearClavesIdempotencia). Al responder, la fila devuelta se escribe en las listas de la caché para que la
  *  celda enseñe el IMEI al momento; después se recargan las filas (el aviso de las demás filas depende de esta). */
@@ -270,6 +278,18 @@ export function usePonerImei() {
       return data
     },
     onSuccess: (fila) => {
+      // El IMEI que tenía la fila antes de esta escritura (lo dice la lista en caché, que aún no se ha tocado).
+      let anterior: string | null = null
+      for (const [, l] of qc.getQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] })) {
+        const previa = l?.filas.find((f) => f.idFila === fila.idFila)
+        if (previa) { anterior = previa.imei; break }
+      }
+      // El panel de la fila enseña el cambio al momento: se antepone a su lista de cambios, si está en la caché (si el panel
+      // nunca se abrió, no hay nada que adelantar). Después `onSettled` la recarga y manda la del servidor.
+      if (anterior !== fila.imei) {
+        const nuevo: CambioImei = { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: anterior, imeiNuevo: fila.imei }
+        qc.setQueryData<CambioImei[]>([...CLAVE_FILAS, 'cambios', fila.idFila], (c) => (c ? [nuevo, ...c] : c))
+      }
       qc.setQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] },
         (l) => (l ? { ...l, filas: l.filas.map((f) => (f.idFila === fila.idFila ? fila : f)) } : l))
     },

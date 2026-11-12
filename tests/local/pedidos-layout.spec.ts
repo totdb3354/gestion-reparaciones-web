@@ -31,6 +31,13 @@ function filas(n: number) {
   return { lista, historica: h.idFila, larga: e.idFila, aviso: w.idFila }
 }
 
+// Un historial largo (40 cambios de IMEI, el primero con un IMEI y un usuario larguisimos): la lista del panel tiene su propio scroll.
+const CAMBIOS = Array.from({ length: 40 }, (_, k) => ({
+  usuario: k === 0 ? 'Supertecnico con un nombre larguisimo que no cabe en el panel de ningun modo posible' : 'Supertecnico 1',
+  fecha: `2026-02-${String(28 - (k % 28)).padStart(2, '0')}T10:${String(k % 60).padStart(2, '0')}:00`,
+  imeiAnterior: k % 3 === 0 ? null : `35000000000${String(k).padStart(4, '0')}`, imeiNuevo: k % 3 === 2 ? null : `35000000001${String(k).padStart(4, '0')}`,
+}))
+
 // Un PDF minimo valido.
 const PDF = Buffer.from('%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R/Size 4>>\n%%EOF\n')
 
@@ -46,7 +53,7 @@ async function preparar(page: Page, n: number, panelCarga: 'cerrado' | 'abierto'
     if (ruta === '/api/pedidos/filas') return route.fulfill({ json: { filas: datos.lista, hayMas: false } })
     if (ruta === '/api/pedidos/fuentes') return route.fulfill({ json: [{ fuente: 'SHIPPYPRO', ultimaOk: new Date().toISOString(), ultimoIntento: new Date().toISOString(), ultimoError: null, ok: true }] })
     if (/\/api\/pedidos\/filas\/\d+\/etiqueta$/.test(ruta)) return route.fulfill({ status: 200, contentType: 'application/pdf', body: PDF })
-    if (/\/api\/pedidos\/filas\/\d+\/cambios$/.test(ruta)) return route.fulfill({ json: [] })
+    if (/\/api\/pedidos\/filas\/\d+\/cambios$/.test(ruta)) return route.fulfill({ json: CAMBIOS })
     if (ruta === '/api/reparaciones/carga-tecnicos') return route.fulfill({ json: { pedidos: [], total: [] } })
     if (ruta.endsWith('/recomendados')) return route.fulfill({ json: [] })
     return route.fulfill({ json: ruta.includes('estado') ? {} : [] })
@@ -131,6 +138,14 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
           // Lo largo se parte dentro del panel.
           const sobra = await panel(page).evaluate((p) => p.scrollWidth - p.clientWidth)
           expect(sobra, `${donde}: algo se sale del panel por los lados`).toBeLessThanOrEqual(0)
+          // El historial tiene su propio scroll: no estira el panel (que no pasa de la tabla) y su primera entrada se ve sin desplazar.
+          const lista = panel(page).getByRole('list', { name: 'Historial de la fila' })
+          await expect(lista).toBeVisible()
+          const h = await lista.evaluate((l) => ({ sh: l.scrollHeight, ch: l.clientHeight, sw: l.scrollWidth, cw: l.clientWidth, top: l.scrollTop, alto: window.innerHeight }))
+          expect(h.sh, `${donde}: el historial largo debe desplazarse dentro de si mismo`).toBeGreaterThan(h.ch)
+          expect(h.ch, `${donde}: el historial pasa del 40% de la ventana`).toBeLessThanOrEqual(h.alto * 0.4 + 1)
+          expect(h.sw, `${donde}: el historial se sale por los lados`).toBeLessThanOrEqual(h.cw)
+          expect(h.top, donde).toBe(0)
           if (ancho >= 1600) expect(m.tablaScrollW, `${donde}: la tabla necesita scroll horizontal`).toBeLessThanOrEqual(m.tablaClientW)
           if (CAPTURAS && (ancho === 1366 || ancho === 1920)) await page.screenshot({ path: `${CAPTURAS}/${nombre}-${ancho}-panel.png` })
           // Cierra el panel para la vuelta siguiente.
