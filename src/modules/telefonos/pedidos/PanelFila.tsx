@@ -53,7 +53,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
   const motivo = textoMotivo(f)
   const envio = estado === 'GENERADA' || estado === 'ENVIADO'
   return (
-    <section aria-label="Detalle del pedido" className="w-[380px] max-w-[40%] min-w-0 shrink-0 overflow-x-hidden overflow-y-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
+    <section aria-label="Detalle del pedido" className="w-[min(380px,40vw)] min-w-0 shrink-0 overflow-x-hidden overflow-y-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
       <div className="mb-2.5 flex items-center gap-2">
         <h2 className="m-0 text-[15px] font-bold text-azul-medio">Detalle del pedido</h2>
         <button type="button" onClick={onCerrar} className="ml-auto h-7 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold">Cerrar</button>

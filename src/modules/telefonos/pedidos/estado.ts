@@ -17,12 +17,12 @@ export type EstadoPedidos = {
   noCuadran: boolean
   /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `GENERADA`, `ENVIADO`, `NO_PENDIENTE`, `HISTORICO`); vacío = todos. */
   enviado: Set<string>
-  /** La última fila cuya celda de IMEI se abrió (se guarde o no): lleva la raya azul. Solo en memoria. */
-  ultimaAbierta: number | null
+  /** «La fila en la que estás»: la última que se tocó, abriendo su celda de IMEI (se guarde o no) o su detalle. Lleva el fondo azul suave y la raya azul. Solo en memoria. */
+  filaAqui: number | null
   /** La fila cuyo detalle enseña el panel de la derecha (por `idFila`: sobrevive a filtrar). Solo en memoria. */
   filaElegida: number | null
 }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), ultimaAbierta: null, filaElegida: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), filaAqui: null, filaElegida: null,
 })

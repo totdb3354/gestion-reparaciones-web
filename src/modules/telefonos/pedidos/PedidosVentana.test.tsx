@@ -76,8 +76,9 @@ describe('Pedidos: tabla con muchas filas', () => {
     abrir(20)
     await screen.findByRole('button', { name: '30 filas' })
     await user.click(screen.getByRole('button', { name: '402-0000000-0000005' }))
-    estadoPedidos.set((s) => ({ ...s, ultimaAbierta: 7 }))
-    expect(document.querySelector('tr[data-elegida]')).not.toBeNull()
+    await screen.findByRole('region', { name: 'Detalle del pedido' })
+    estadoPedidos.set((s) => ({ ...s, filaAqui: 7 }))
+    expect(document.querySelector('tr[data-aqui]')).not.toBeNull()
     // 30 > 20: ventana. Un filtro que deja 20 filas la quita.
     await user.click(screen.getByRole('button', { name: '20 sin IMEI' }))
     await waitFor(() => expect(screen.queryByText(NOTA)).toBeNull())
@@ -85,8 +86,8 @@ describe('Pedidos: tabla con muchas filas', () => {
     await user.click(screen.getByRole('button', { name: '30 filas' }))
     await waitFor(() => expect(screen.getByText(NOTA)).toBeInTheDocument())
     expect(estadoPedidos.get().filaElegida).toBe(5)
-    expect(estadoPedidos.get().ultimaAbierta).toBe(7)
-    expect(document.querySelector('tr[data-elegida]')?.textContent).toContain('402-0000000-0000005')
+    expect(estadoPedidos.get().filaAqui).toBe(7)
+    expect(screen.getByRole('region', { name: 'Detalle del pedido' })).toHaveTextContent('402-0000000-0000005')
     expect(document.querySelector('tr[data-aqui]')?.textContent).toContain('402-0000000-0000007')
   })
 

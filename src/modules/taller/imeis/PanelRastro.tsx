@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { useAbierto } from '@/shared/ui/Deslizante'
 import type { EventoRastro } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
 import { hayAntesDelHistorico, NOTA_ANTES_DEL_HISTORICO, verEvento } from './rastro'
@@ -18,11 +19,15 @@ function MarcaRevision({ className }: { className?: string }) {
   )
 }
 
-type Props = { imei: string; eventos: EventoRastro[]; onCerrar: () => void; onIrATrabajo: (idRep: string) => void }
+type Props = { imei: string; eventos: EventoRastro[]; onCerrar: () => void; onIrATrabajo: (idRep: string) => void
+  /** Ya se ha pedido cerrarlo y está saliendo (desliza hacia la derecha): el padre lo desmonta al terminar. */
+  saliendo?: boolean }
 
 /** El rastro del teléfono en un panel lateral sobre la vista de trabajos (0.9.17, spec §9.3; opción A del prototipo):
  *  línea de tiempo del más reciente al más antiguo. Un evento de taller resalta su fila en la tabla de detrás. */
-export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo }: Props) {
+export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo, saliendo = false }: Props) {
+  const raiz = useRef<HTMLElement>(null)
+  const abierto = useAbierto(saliendo, raiz)
   // onCerrar en una ref: el listener se registra una sola vez aunque el padre pase una función nueva en cada render.
   const cerrar = useRef(onCerrar)
   useEffect(() => { cerrar.current = onCerrar })
@@ -37,7 +42,9 @@ export function PanelRastro({ imei, eventos, onCerrar, onIrATrabajo }: Props) {
     return () => window.removeEventListener('keydown', tecla)
   }, [])
   return (
-    <aside role="dialog" aria-label="Rastro" className="fixed inset-y-0 right-0 z-40 flex w-[min(500px,42vw)] min-w-[380px] flex-col bg-superficie shadow-[-6px_0_24px_rgba(0,18,50,0.25)]">
+    <aside ref={raiz} role="dialog" aria-label="Rastro" data-saliendo={saliendo || undefined}
+      className={cn('fixed inset-y-0 right-0 z-40 flex w-[min(500px,42vw)] min-w-[380px] flex-col bg-superficie shadow-[-6px_0_24px_rgba(0,18,50,0.25)] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none',
+        abierto ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0')}>
       <header className="flex items-center gap-2.5 border-b border-fila-sep px-[18px] py-3.5">
         <h2 className="text-[15px] font-bold text-azul-noche">Rastro</h2>
         <span className="font-mono text-[12px] text-azul-gris">{imei}</span>

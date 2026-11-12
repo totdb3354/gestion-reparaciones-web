@@ -190,7 +190,7 @@ describe('Pedidos v2: el estado como etiqueta y el histórico', () => {
   })
 })
 
-describe('Pedidos v2: la caja delante y la raya azul', () => {
+describe('Pedidos v2: la caja delante y la fila marcada', () => {
   const celdaVacia = async () => (await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ }))[0]
 
   it('cada recomendado empieza por la caja, resaltada; el título dice dónde buscarlo; el IMEI sigue en su span', async () => {
@@ -205,7 +205,7 @@ describe('Pedidos v2: la caja delante y la raya azul', () => {
     expect(screen.getByText('i13128AzulA', { selector: 'span.normal-case' }).parentElement).toHaveTextContent('Recomendados para i13128AzulA · dónde buscarlo')
   })
 
-  it('la última celda abierta deja su fila con la raya azul, se guarde o no, y pasa a la siguiente que se abra', async () => {
+  it('la última celda abierta deja su fila marcada (fondo y raya azules), se guarde o no, y pasa a la siguiente que se abra', async () => {
     const user = userEvent.setup()
     abrir()
     await contador('6 filas')
@@ -213,10 +213,10 @@ describe('Pedidos v2: la caja delante y la raya azul', () => {
     await user.click(await celdaVacia())
     await user.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(tr('402-0000000-0000021')).toHaveAttribute('data-aqui')
-    expect(tr('402-0000000-0000021').querySelector('td')).toHaveClass('shadow-[inset_4px_0_0_#2f6fe0]')
+    expect(tr('402-0000000-0000021').querySelector('td')).toHaveClass('shadow-[inset_4px_0_0_#2f6fe0]', 'bg-seleccion-suave')
     // La raya es solo color: la celda del IMEI de esa fila lo dice también con texto, y solo esa.
-    expect(screen.getAllByText('Última fila abierta')).toHaveLength(1)
-    expect(tr('402-0000000-0000021')).toContainElement(screen.getByText('Última fila abierta'))
+    expect(screen.getAllByText('Fila en la que estás')).toHaveLength(1)
+    expect(tr('402-0000000-0000021')).toContainElement(screen.getByText('Fila en la que estás'))
     await user.click(screen.getByRole('button', { name: /350000000000003/ }))
     expect(document.querySelectorAll('tr[data-aqui]')).toHaveLength(1)
     expect(tr('402-0000000-0000025')).toHaveAttribute('data-aqui')

@@ -22,7 +22,9 @@ const RECT_DE_RESERVA = { width: 1000, height: 600 }
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
 type PropsFila = {
-  fila: FilaVista; abierta: boolean; marcada: boolean; elegida: boolean
+  fila: FilaVista; abierta: boolean; marcada: boolean
+  /** Su detalle está abierto en el panel (solo se dice con `aria-pressed`; la marca visual es `marcada`). */
+  elegida: boolean
   /** Solo en modo ventana: su número de fila para los lectores de pantalla (la tabla dice cuántas hay y solo se pintan unas). */
   indice?: number
   onAbrir: (idFila: number, abrir: boolean) => void
@@ -30,9 +32,8 @@ type PropsFila = {
   onElegir: (idFila: number) => void
 }
 
+/** La raya azul del borde izquierdo de «la fila en la que estás» (su primera celda). */
 const SOMBRA_RAYA = 'shadow-[inset_4px_0_0_#2f6fe0]'
-const SOMBRA_ELEGIDA = 'shadow-[inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]'
-const SOMBRA_AMBAS = 'shadow-[inset_4px_0_0_#2f6fe0,inset_0_1px_0_#2f6fe0,inset_0_-1px_0_#2f6fe0]'
 export const ETIQUETA = 'inline-block rounded-lg px-2 py-px text-[11px] font-bold'
 export const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
   PENDIENTE: 'border border-dashed border-[#C8CDD5] bg-superficie text-azul-gris',
@@ -74,38 +75,34 @@ function FilaHueco({ alto }: { alto: number }) {
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
 export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, elegida, onAbrir, onElegir }: PropsFila) {
   const tono = tonoFila(f)
-  const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap', tono && CLASE_TONO[tono])
+  // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
+  const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap last:border-r-0', tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave')
   const servidor = estadoDe(f)
   const estado = estadoPantalla(f)
-  // Los bordes de la fila elegida (panel) y la raya azul de la última celda abierta comparten la sombra de la primera celda.
-  // Clases escritas enteras (Tailwind no ve las que se montan con plantillas).
-  const sombra = marcada ? (elegida ? SOMBRA_AMBAS : SOMBRA_RAYA) : elegida ? SOMBRA_ELEGIDA : undefined
-  const bordes = elegida ? SOMBRA_ELEGIDA : undefined
   return (
     // Un clic en cualquier celda menos la del IMEI elige la fila. Se comprueba en el DOM (el desplegable del IMEI sube por React
     // desde su portal, pero no está dentro de la fila).
-    <tr data-estado={servidor} data-impresa={f.impresaEn ? 'true' : undefined} aria-rowindex={indice} data-aqui={marcada || undefined} data-elegida={elegida || undefined}
+    <tr data-estado={servidor} data-impresa={f.impresaEn ? 'true' : undefined} aria-rowindex={indice} data-aqui={marcada || undefined}
       onClick={(ev) => {
         const celda = (ev.target as Element).closest('td')
         if (celda && ev.currentTarget.contains(celda) && !celda.hasAttribute('data-imei')) onElegir(f.idFila)
       }}>
-      {/* La raya azul del borde izquierdo: la última fila cuya celda de IMEI se abrió. */}
-      <td className={cn(td, sombra)}>{dia(f.fecha)}</td>
-      <td className={cn(td, bordes)} title={f.plataforma}>{f.plataforma}</td>
-      <td className={cn(td, bordes, 'font-mono text-[12px]')} title={f.sku ?? undefined}>{f.sku}</td>
-      <CeldaImei fila={f} abierta={abierta} marcada={marcada} elegida={elegida} onAbrir={onAbrir} />
-      <td className={cn(td, bordes)}>
+      <td className={cn(td, marcada && SOMBRA_RAYA)}>{dia(f.fecha)}</td>
+      <td className={td} title={f.plataforma}>{f.plataforma}</td>
+      <td className={cn(td, 'font-mono text-[12px]')} title={f.sku ?? undefined}>{f.sku}</td>
+      <CeldaImei fila={f} abierta={abierta} marcada={marcada} onAbrir={onAbrir} />
+      <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
         <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">{f.pedido}</button>
       </td>
-      <td className={cn(td, bordes)} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} /></td>
-      <td className={cn(td, bordes)}>{dia(f.fechaCompra)}</td>
+      <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} /></td>
+      <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>
   )
 })
 
 /** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, el estado como etiqueta
- *  en «Enviado» y solo el histórico en gris. La última celda de IMEI abierta deja su fila con una raya azul. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
+ *  en «Enviado» y solo el histórico en gris. La última fila que se toca (su celda de IMEI o su detalle) queda marcada en azul suave con una raya. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
 export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ventana = false }: {
   filas: FilaVista[]
   /** Modo «muchas filas»: solo se pintan las filas visibles (más un margen); la barra de scroll abarca todas. Lo decide la página por el umbral. */
@@ -125,10 +122,11 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   // (foco, clic fuera) no puede cerrar la que acaba de abrirse.
   const cambiar = useCallback((id: number, abrir: boolean) => {
     setAbierta((a) => (abrir ? id : a === id ? null : a))
-    if (abrir) estadoPedidos.set((s) => (s.ultimaAbierta === id ? s : { ...s, ultimaAbierta: id }))
+    if (abrir) estadoPedidos.set((s) => (s.filaAqui === id ? s : { ...s, filaAqui: id }))
   }, [])
-  const elegir = useCallback((id: number) => estadoPedidos.set((s) => ({ ...s, filaElegida: s.filaElegida === id ? null : id })), [])
-  const [{ ultimaAbierta, filaElegida }] = useStore(estadoPedidos)
+  // Abrir un detalle (no cerrarlo) también deja ahí «la fila en la que estás».
+  const elegir = useCallback((id: number) => estadoPedidos.set((s) => (s.filaElegida === id ? { ...s, filaElegida: null } : { ...s, filaElegida: id, filaAqui: id })), [])
+  const [{ filaAqui, filaElegida }] = useStore(estadoPedidos)
   const contenedor = useRef<HTMLDivElement>(null)
   // La altura que tenía el contenido tras el último pintado. Añadir filas no cambia `scrollTop` pero sí la altura, así que
   // «estaba abajo» se calcula justo antes de decidir con la altura de entonces, no con un valor guardado en un scroll antiguo.
@@ -203,13 +201,13 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={ultimaAbierta === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
     if (total - fin > 0.5) cuerpo.push(<FilaHueco key="hf" alto={total - fin} />)
   } else {
-    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={ultimaAbierta === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)
+    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)
   }
 
   return (
@@ -218,14 +216,14 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       {/* Anchos en porcentaje: el espacio se reparte entre todas (el SKU y el IMEI, que es lo que se lee, se llevan lo más). Lo
           largo se corta con puntos suspensivos y lleva `title`; si no cabe el mínimo, el contenedor se desplaza por dentro, nunca
           la página. */}
-      <table className="w-full min-w-[925px] table-fixed border-collapse text-[13px] tabular-nums" aria-rowcount={ventana ? filas.length + 1 : undefined}>
+      <table className="w-full min-w-[925px] table-fixed border-separate border-spacing-0 text-[13px] tabular-nums" aria-rowcount={ventana ? filas.length + 1 : undefined}>
         <colgroup>
           <col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[18%]" /><col className="w-[23%]" /><col className="w-[14%]" /><col /><col className="w-[8%]" />
         </colgroup>
         <thead ref={cabeza}>
           <tr aria-rowindex={ventana ? 1 : undefined}>
             {COLUMNAS.map((c) => (
-              <th key={c} scope="col" className="sticky top-0 z-[2] border-r border-b border-fila-sep bg-fila-maestro-bg px-2.5 py-1.5 text-left text-[12px] font-bold has-[[data-activo]]:bg-[#dbe6fb]">{c}{filtros?.[c]}</th>
+              <th key={c} scope="col" className="sticky top-0 z-[2] border-r border-b border-fila-sep bg-fila-maestro-bg px-2.5 last:border-r-0 py-1.5 text-left text-[12px] font-bold has-[[data-activo]]:bg-[#dbe6fb]">{c}{filtros?.[c]}</th>
             ))}
           </tr>
         </thead>

@@ -40,7 +40,7 @@ export function AyudaPedidos() {
             Histórico de la hoja: no se edita.
           </Linea>
           <Linea>El IMEI se puede poner, cambiar o quitar también en las filas enviadas.</Linea>
-          <Linea muestra={<span aria-hidden className="inline-block h-4 w-1 rounded-sm bg-[#2f6fe0]" />}>La raya azul marca la última celda de IMEI que abriste.</Linea>
+          <Linea muestra={<span aria-hidden className="inline-block h-5 w-full max-w-24 rounded-sm bg-seleccion-suave shadow-[inset_4px_0_0_#2f6fe0]" />}>La fila en azul es la última que has tocado: te ayuda a encontrarla al volver.</Linea>
         </ul>
       </PopoverContent>
     </Popover>

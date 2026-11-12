@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
+import { PanelDeslizante, usePresencia } from '@/shared/ui/Deslizante'
 import { useFilas } from '../api'
 import { estadoPedidos, type EstadoPedidos } from './estado'
 import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './FiltroColumna'
@@ -68,6 +69,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const sinCargar = lista.isError && !lista.data
   // El panel enseña la fila elegida (por `idFila`); si ya no está entre las recibidas, se cierra.
   const elegida = useMemo(() => (e.filaElegida === null ? null : filas.find((f) => f.idFila === e.filaElegida) ?? null), [filas, e.filaElegida])
+  // El panel se queda montado mientras sale (desliza hacia la derecha) con la última fila que enseñaba.
+  const presente = usePresencia(elegida)
   const cerrarPanel = () => setE((s) => (s.filaElegida === null ? s : { ...s, filaElegida: null }))
   useEffect(() => {
     if (e.filaElegida !== null && lista.data && !lista.isPlaceholderData && !elegida) setE((s) => ({ ...s, filaElegida: null }))
@@ -145,14 +148,14 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         <p className="p-4 text-[12px] text-azul-gris">{buscando ? 'Ningún pedido coincide con la búsqueda.' : 'No hay pedidos en este periodo.'}</p>
       )}
       {filas.length > 0 && (
-        <div className="flex min-h-0 flex-1 gap-2.5">
+        <div className="flex min-h-0 flex-1">
         <TablaFilas filas={vistas} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
           IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })} />,
         }} />
-        {elegida && <PanelFila fila={elegida} onCerrar={cerrarPanel} />}
+        {presente.valor && <PanelDeslizante saliendo={presente.saliendo}><PanelFila fila={presente.valor} onCerrar={cerrarPanel} /></PanelDeslizante>}
         </div>
       )}
     </div>

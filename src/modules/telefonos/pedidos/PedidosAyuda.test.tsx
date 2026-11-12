@@ -44,7 +44,7 @@ describe('Pedidos: botón de ayuda', () => {
     expect(within(ayuda).getByText(/Las filas las crea el ERP/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/IMEI en ámbar/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/IMEI en naranja/)).toBeInTheDocument()
-    expect(within(ayuda).getByText(/raya azul/)).toBeInTheDocument()
+    expect(within(ayuda).getByText('La fila en azul es la última que has tocado: te ayuda a encontrarla al volver.')).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: 'Cómo se lee esta tabla' })).not.toBeInTheDocument()
     expect(boton).toHaveFocus()

@@ -72,6 +72,54 @@ describe('Pedidos v2: filtro de Plataforma por tienda', () => {
   })
 })
 
+describe('Pedidos: la fila en la que estás (una sola marca)', () => {
+  it('abrir el panel de una fila la marca; abrir la celda del IMEI de otra mueve la marca sin cerrar ni cambiar el panel; sobrevive a filtrar', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    expect(document.querySelector('tr[data-aqui]')).toBeNull()
+    await user.click(celda('Cliente Web A'))
+    expect(document.querySelectorAll('tr[data-aqui]')).toHaveLength(1)
+    expect(tr('402-0000000-0000042')).toHaveAttribute('data-aqui')
+    expect(tr('402-0000000-0000042').querySelector('td')).toHaveClass('shadow-[inset_4px_0_0_#2f6fe0]', 'bg-seleccion-suave')
+    expect(screen.getAllByText('Fila en la que estás')).toHaveLength(1)
+    await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await screen.findByRole('textbox', { name: 'IMEI' })
+    expect(document.querySelectorAll('tr[data-aqui]')).toHaveLength(1)
+    expect(tr('402-0000000-0000041')).toHaveAttribute('data-aqui')
+    expect(panel()).toHaveTextContent('402-0000000-0000042') // el panel sigue con su fila
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: '1 no cuadran' }))
+    expect(estadoPedidos.get().filaAqui).toBe(1)
+    await user.click(screen.getByRole('button', { name: '4 filas' }))
+    expect(document.querySelectorAll('tr[data-aqui]')).toHaveLength(1)
+    expect(tr('402-0000000-0000041')).toHaveAttribute('data-aqui')
+  })
+
+  it('el panel entra y sale: al cerrar sigue montado mientras sale y luego se desmonta', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('Cliente Web A'))
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(panel()).toBeInTheDocument()
+    expect(panel()!.parentElement).toHaveAttribute('data-saliendo')
+    await waitFor(() => expect(panel()).toBeNull())
+    expect(estadoPedidos.get().filaAqui).toBe(2) // la marca no se quita al cerrar el panel
+  })
+
+  it('con «reducir movimiento» el panel desaparece al momento', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false }))
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('Cliente Web A'))
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(panel()).toBeNull()
+    vi.unstubAllGlobals()
+  })
+})
+
 describe('Pedidos v2: el panel de la fila', () => {
   it('se abre al pulsar una celda que no es la del IMEI, cambia de fila, y se cierra con la misma fila, «Cerrar» y Escape', async () => {
     const user = userEvent.setup()
@@ -80,19 +128,20 @@ describe('Pedidos v2: el panel de la fila', () => {
     expect(panel()).toBeNull()
     await user.click(celda('Cliente Web A'))
     expect(panel()).toBeInTheDocument()
-    expect(tr('402-0000000-0000042')).toHaveAttribute('data-elegida')
+    expect(tr('402-0000000-0000042')).toHaveAttribute('data-aqui')
     await user.click(celda('Cliente Web B'))
     expect(panel()).toHaveTextContent('402-0000000-0000043')
-    expect(document.querySelectorAll('tr[data-elegida]')).toHaveLength(1)
+    expect(document.querySelectorAll('tr[data-aqui]')).toHaveLength(1)
+    expect(tr('402-0000000-0000043')).toHaveAttribute('data-aqui')
     await user.click(celda('Cliente Web B'))
-    expect(panel()).toBeNull()
+    await waitFor(() => expect(panel()).toBeNull())
     await user.click(celda('Cliente Web A'))
     await user.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(panel()).toBeNull()
+    await waitFor(() => expect(panel()).toBeNull())
     await user.click(screen.getByRole('button', { name: '402-0000000-0000041' })) // con teclado/botón
     expect(panel()).toHaveTextContent('402-0000000-0000041')
     await user.keyboard('{Escape}')
-    expect(panel()).toBeNull()
+    await waitFor(() => expect(panel()).toBeNull())
   })
 
   it('con el panel y el desplegable del IMEI abiertos, un Escape cierra el desplegable y el siguiente, el panel', async () => {
@@ -107,7 +156,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'IMEI' })).not.toBeInTheDocument())
     expect(panel()).toBeInTheDocument()
     await user.keyboard('{Escape}')
-    expect(panel()).toBeNull()
+    await waitFor(() => expect(panel()).toBeNull())
   })
 
   it('pulsar la celda del IMEI abre el desplegable y no el panel', async () => {

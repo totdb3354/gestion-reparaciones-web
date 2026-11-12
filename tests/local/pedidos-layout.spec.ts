@@ -25,7 +25,10 @@ function filas(n: number) {
   const h = lista[n - 2], e = lista[n - 3]
   Object.assign(h, { estado: 'HISTORICO', editable: false, plataforma: NOMBRE_LARGO, sku: 'i14128NegroAConUnSkuMuyLargoParaProbar', imei: null, envioFecha: null, impresaEn: null, tieneEtiqueta: false, transportista: null, seguimiento: null })
   Object.assign(e, { estado: 'ENVIADA', editable: true, imei: '350000099999999', transportista: 'UPSv2', seguimiento: SEGUIMIENTO_LARGO, envioFecha: `${e.fecha}T10:00:00Z`, impresaEn: `${e.fecha}T12:00:00Z`, tieneEtiqueta: true, motivo: 'MODELO' })
-  return { lista, historica: h.idFila, larga: e.idFila }
+  // Una con el IMEI en ambar (aviso) para mirar sus bordes.
+  const w = lista[n - 4]
+  Object.assign(w, { nivel: 'AVISO', motivo: 'B por A' })
+  return { lista, historica: h.idFila, larga: e.idFila, aviso: w.idFila }
 }
 
 // Un PDF minimo valido.
@@ -50,6 +53,9 @@ async function preparar(page: Page, n: number, panelCarga: 'cerrado' | 'abierto'
   })
   return datos
 }
+
+/** El panel entra y sale deslizando (~200 ms): las medidas esperan a que termine. */
+const esperarAnimacion = (page: Page) => page.waitForTimeout(500)
 
 const panel = (page: Page) => page.getByRole('region', { name: 'Detalle del pedido' })
 
@@ -84,7 +90,7 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
       await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
       await expect(page.getByRole('button', { name: pedido(n), exact: true })).toBeVisible()
       await page.waitForTimeout(400)
-      // Se abre y se cierra una celda de IMEI del final: la fila queda marcada («Última fila abierta», texto oculto). Ese texto
+      // Se abre y se cierra una celda de IMEI del final: la fila queda marcada («Fila en la que estás», texto oculto). Ese texto
       // llego a alargar el documento tanto como la tabla; las medidas de abajo lo vigilan.
       await page.locator('[aria-label="Tabla de pedidos"] td[data-imei] button').last().click()
       await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
@@ -96,7 +102,7 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
           // Una fila con la etiqueta, el seguimiento largo y el estado en «Enviado»: se abre pulsando fuera de la celda del IMEI.
           await page.getByRole('button', { name: pedido(datos.larga), exact: true }).click()
           await expect(panel(page)).toBeVisible()
-          await page.waitForTimeout(200)
+          await esperarAnimacion(page)
         }
         const m = await medidas(page)
         cifras[`${ancho}${abierto ? ' con panel' : ' sin panel'}`] = { scrollW: m.scrollW, ancho: m.ancho, tabla: m.tabla && Math.round(m.tabla.w), tablaScroll: `${m.tablaScrollW}/${m.tablaClientW}`, panel: m.panel && Math.round(m.panel.w), barraR: m.barra && Math.round(m.barra.r) }
@@ -146,6 +152,7 @@ test('la fila del historico con un nombre larguisimo y el panel no se salen', as
   await page.getByRole('button', { name: pedido(1_999), exact: true }).click()
   await expect(panel(page)).toBeVisible()
   expect(datos.historica).toBe(1_999)
+  await esperarAnimacion(page)
   const m = await medidas(page)
   expect(m.scrollW).toBeLessThanOrEqual(m.ancho)
   expect(await panel(page).evaluate((p) => p.scrollWidth - p.clientWidth)).toBeLessThanOrEqual(0)
@@ -177,4 +184,54 @@ test('en Pedidos no se pinta el panel flotante de carga (aunque este abierto) y 
     await page.keyboard.press('Escape')
     await expect(dialogo).toHaveCount(0)
   }
+})
+
+test('la cuadricula no se interrumpe en la celda del IMEI (vacia, con aviso, historico) y solo hay una fila marcada', async ({ page }) => {
+  const datos = await preparar(page, 60)
+  await page.setViewportSize({ width: 1600, height: 900 })
+  await page.goto('/telefonos/pedidos')
+  await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
+  await expect(page.getByRole('button', { name: pedido(60), exact: true })).toBeVisible()
+  const fila = (i: number) => page.locator('tr[data-estado]', { has: page.getByRole('button', { name: pedido(i), exact: true }) })
+  const bordes = (i: number) => fila(i).evaluate((tr) => {
+    const imei = tr.querySelector('td[data-imei]')!
+    const c = (el: Element) => { const e = getComputedStyle(el); return { b: `${e.borderBottomWidth} ${e.borderBottomStyle} ${e.borderBottomColor}`, r: `${e.borderRightWidth} ${e.borderRightStyle} ${e.borderRightColor}` } }
+    return { imei: c(imei), vecina: c(imei.previousElementSibling!), siguiente: c(imei.nextElementSibling!) }
+  })
+  for (const [nombre, i] of [['vacia', 6], ['aviso', datos.aviso], ['historico', datos.historica]] as const) {
+    const b = await bordes(i)
+    expect(b.imei.b, `${nombre}: borde inferior del IMEI`).toBe(b.vecina.b)
+    expect(b.imei.b, nombre).not.toMatch(/^0px/)
+    expect(b.imei.r, `${nombre}: borde derecho del IMEI`).toBe(b.vecina.r)
+    expect(b.imei.r, nombre).not.toMatch(/^0px/)
+    expect(b.imei.b, nombre).toBe(b.siguiente.b)
+  }
+  // La cabecera y el cuerpo usan el mismo color de linea entre columnas y no hay doble linea en la ultima.
+  const cab = await page.evaluate(() => [...document.querySelectorAll('thead th')].map((t) => getComputedStyle(t).borderRightWidth))
+  expect(cab.slice(0, -1).every((w) => w === '1px')).toBe(true)
+  expect(cab.at(-1)).toBe('0px')
+
+  // Una sola fila marcada: la del IMEI abierto, luego la del panel, luego otra vez la del IMEI (el panel no cambia).
+  const marcadas = () => page.locator('tr[data-aqui]')
+  await expect(marcadas()).toHaveCount(0)
+  await fila(6).locator('td[data-imei] button').click()
+  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeHidden()
+  await expect(marcadas()).toHaveCount(1)
+  await expect(marcadas()).toContainText(pedido(6))
+  await page.getByRole('button', { name: pedido(58), exact: true }).click()
+  await expect(panel(page)).toBeVisible()
+  await expect(marcadas()).toHaveCount(1)
+  await expect(marcadas()).toContainText(pedido(58))
+  await fila(6).locator('td[data-imei] button').click()
+  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
+  await expect(marcadas()).toHaveCount(1)
+  await expect(marcadas()).toContainText(pedido(6))
+  await expect(panel(page)).toContainText(pedido(58))
+  await page.keyboard.press('Escape')
+  // La celda del IMEI de la fila marcada lleva los mismos bordes que su vecina.
+  const b = await bordes(6)
+  expect(b.imei.b).toBe(b.vecina.b)
+  expect(b.imei.r).toBe(b.vecina.r)
 })
