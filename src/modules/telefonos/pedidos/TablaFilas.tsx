@@ -28,6 +28,7 @@ type PropsFila = {
   /** Solo en modo ventana: su número de fila para los lectores de pantalla (la tabla dice cuántas hay y solo se pintan unas). */
   indice?: number
   onAbrir: (idFila: number, abrir: boolean) => void
+  onSaltar: (idFila: number) => boolean
   /** Pulsar la fila (fuera de la celda del IMEI): abre su panel, cambia de fila o lo cierra. */
   onElegir: (idFila: number) => void
 }
@@ -73,7 +74,7 @@ function FilaHueco({ alto }: { alto: number }) {
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, elegida, onAbrir, onElegir }: PropsFila) {
+export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
   const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap last:border-r-0', tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave')
@@ -90,7 +91,7 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
       <td className={cn(td, marcada && SOMBRA_RAYA)}>{dia(f.fecha)}</td>
       <td className={td} title={f.plataforma}>{f.plataforma}</td>
       <td className={cn(td, 'font-mono text-[12px]')} title={f.sku ?? undefined}>{f.sku}</td>
-      <CeldaImei fila={f} abierta={abierta} marcada={marcada} onAbrir={onAbrir} />
+      <CeldaImei fila={f} abierta={abierta} marcada={marcada} onAbrir={onAbrir} onSaltar={onSaltar} />
       <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
         <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">{f.pedido}</button>
@@ -123,6 +124,23 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   const cambiar = useCallback((id: number, abrir: boolean) => {
     setAbierta((a) => (abrir ? id : a === id ? null : a))
     if (abrir) estadoPedidos.set((s) => (s.filaAqui === id ? s : { ...s, filaAqui: id }))
+  }, [])
+  // Guardar un IMEI tecleado o leído abre al instante la celda de la siguiente fila editable y sin IMEI de las que se ven (en su orden).
+  // Va por referencias para que la función sea estable (la `memo` de las filas) y use siempre las filas de ahora.
+  const filasAhora = useRef(filas)
+  filasAhora.current = filas
+  const aEnseñar = useRef<number | null>(null)
+  const saltar = useCallback((desde: number) => {
+    const lista = filasAhora.current
+    const i = lista.findIndex((f) => f.idFila === desde)
+    if (i < 0) return false
+    const j = lista.findIndex((f, k) => k > i && f.editable && !f.imei)
+    if (j < 0) return false
+    const id = lista[j].idFila
+    aEnseñar.current = j
+    setAbierta(id)
+    estadoPedidos.set((s) => (s.filaAqui === id ? s : { ...s, filaAqui: id }))
+    return true
   }, [])
   // Abrir un detalle (no cerrarlo) también deja ahí «la fila en la que estás».
   const elegir = useCallback((id: number) => estadoPedidos.set((s) => (s.filaElegida === id ? { ...s, filaElegida: null } : { ...s, filaElegida: id, filaAqui: id })), [])
@@ -162,6 +180,15 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
     observeElementRect: (v, cb) => observeElementRect(v, (r) => cb(r.height > 0 ? r : RECT_DE_RESERVA)),
   })
   const items = ventana ? virtualizador.getVirtualItems() : []
+  // Tras un salto, la fila destino queda a la vista: en modo ventana se desplaza a su posición (puede no estar pintada; `fijas` la pinta
+  // al abrirse) y en el normal se la lleva al borde más cercano.
+  useLayoutEffect(() => {
+    const j = aEnseñar.current
+    if (j === null) return
+    aEnseñar.current = null
+    if (ventana) { pegado.current = false; virtualizador.scrollToIndex(j, { align: 'auto' }) }
+    else contenedor.current?.querySelector<HTMLElement>('tr[data-aqui]')?.scrollIntoView({ block: 'nearest' })
+  }, [abierta, ventana, virtualizador])
   const aMedir = useRef<HTMLTableSectionElement>(null)
   const cabeza = useRef<HTMLTableSectionElement>(null)
   useLayoutEffect(() => {
@@ -201,13 +228,13 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
     if (total - fin > 0.5) cuerpo.push(<FilaHueco key="hf" alto={total - fin} />)
   } else {
-    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onElegir={elegir} />)
+    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
   }
 
   return (

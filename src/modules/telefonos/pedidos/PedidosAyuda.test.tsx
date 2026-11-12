@@ -64,6 +64,7 @@ describe('Pedidos: recomendados', () => {
   it('el SKU completo de un candidato de nivel 3 está en el DOM, sin recortar', async () => {
     abrir()
     await userEvent.click((await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ }))[0])
+    await userEvent.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     const sku = await screen.findByText('es i14eSIM256BlancoAMuyLargo')
     expect(sku).toBeInTheDocument()
     expect(sku.className).not.toMatch(/truncate/)

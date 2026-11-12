@@ -106,7 +106,6 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
                 className={cn('cursor-pointer rounded-xl border px-2.5 py-[3px] text-[12px] font-bold hover:border-[#9db8e8] hover:bg-seleccion-suave',
                   contadorPuesto === c.id ? 'border-azul-noche bg-azul-noche text-superficie hover:border-azul-noche hover:bg-azul-noche' : 'border-borde-input bg-badge-neutro-bg text-azul-gris')}>{c.texto}</button>
             ))}
-            {filtrando && <span className="inline-block rounded-xl bg-badge-neutro-bg px-2.5 py-[3px] text-[12px] font-bold text-azul-gris">{vistas.length} a la vista</span>}
           </div>
         )}
         <AyudaPedidos />

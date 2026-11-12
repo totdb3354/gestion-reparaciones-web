@@ -16,14 +16,18 @@ const NIVEL: Record<1 | 2 | 3, string> = {
   3: 'bg-[#FFE0B2] text-[#B45309]',
 }
 
-type Props = { fila: FilaVista; abierta: boolean; marcada?: boolean; onAbrir: (idFila: number, abrir: boolean) => void }
+type Props = {
+  fila: FilaVista; abierta: boolean; marcada?: boolean; onAbrir: (idFila: number, abrir: boolean) => void
+  /** Al guardar un IMEI tecleado o leído: abre la celda vacía siguiente y dice si la hay (si no, la celda actual se cierra al guardar). */
+  onSaltar?: (idFila: number) => boolean
+}
 
 /** La única celda editable de la tabla (spec «Pedidos como la hoja» §3.1 y 6 bis): el IMEI de la fila, con su motivo o su caja.
  *  Al pulsarla (si la fila es editable: todas menos el histórico, enviadas incluidas) se abre el desplegable con el campo, los recomendados y «Quitar el IMEI». El
  *  desplegable es el Popover del proyecto (portal anclado a la celda): no lo recorta el scroll de la tabla, se coloca arriba
  *  si abajo no cabe y acompaña a su celda cuando la tabla se desplaza. Escape y el clic fuera lo cierran (lo hace Radix, que
  *  además devuelve el foco a la celda). */
-export function CeldaImei({ fila, abierta, marcada, onAbrir }: Props) {
+export function CeldaImei({ fila, abierta, marcada, onAbrir, onSaltar }: Props) {
   const clase = claseCelda(fila)
   const motivo = textoMotivo(fila)
   const boton = (
@@ -60,8 +64,8 @@ export function CeldaImei({ fila, abierta, marcada, onAbrir }: Props) {
             onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.('[role="dialog"],[role="alertdialog"]')) e.preventDefault() }}
             // Al cerrar, el foco vuelve a la celda, salvo que ya esté en el desplegable de otra celda recién abierta.
             onCloseAutoFocus={(e) => { if (document.activeElement?.closest('[data-slot="popover-content"]')) e.preventDefault() }}
-            className="w-[680px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
-            <Desplegable fila={fila} onCerrar={() => onAbrir(fila.idFila, false)} />
+            className="w-auto max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
+            <Desplegable fila={fila} onCerrar={() => onAbrir(fila.idFila, false)} onSaltar={onSaltar ? () => onSaltar(fila.idFila) : undefined} />
           </PopoverContent>
         </Popover>
       )}
@@ -71,31 +75,39 @@ export function CeldaImei({ fila, abierta, marcada, onAbrir }: Props) {
 
 const CIFRAS_IMEI = 15
 
-function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
+function Desplegable({ fila, onCerrar, onSaltar }: { fila: FilaVista; onCerrar: () => void; onSaltar?: () => boolean }) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const recomendados = useRecomendados(fila.idFila)
+  // Los recomendados no se piden ni se enseñan hasta que se desplieguen; cada vez que se abre una celda empieza plegado.
+  const [ver, setVer] = useState(false)
+  const recomendados = useRecomendados(fila.idFila, ver)
   const poner = usePonerImei()
   const [claves] = useState(() => crearClavesIdempotencia())
   // Hay un guardado en vuelo. Es una referencia y no `poner.isPending` porque un lector de códigos teclea las cifras y su Enter de
   // golpe: ese Enter llega antes de que React haya pintado el estado «pendiente» y no debe mandar un segundo guardado.
   const enCurso = useRef(false)
 
-  // Si falla, la política global ya abre el diálogo de error: el desplegable se queda abierto (con las 15 cifras) para reintentar con Enter.
-  const guardar = (imei: string | null) => {
+  // Si falla, la política global ya abre el diálogo de error. Con `salto` (IMEI tecleado o leído) la celda siguiente vacía se abre al
+  // momento, sin esperar al servidor, y esta se desmonta con el guardado en vuelo: por eso el cierre de claves va en la promesa
+  // (`mutateAsync`) y no en los callbacks de `mutate`, que un componente desmontado no recibe. Sin celda a la que saltar (o si se
+  // eligió un recomendado, o «Quitar»), se cierra al guardar y, si falla, se queda abierta con las 15 cifras para reintentar con Enter.
+  const guardar = (imei: string | null, salto = false) => {
     if (enCurso.current || poner.isPending) return
     enCurso.current = true
     const operacion = `imei:${fila.idFila}`
-    poner.mutate({ idFila: fila.idFila, imei, clave: claves.para(operacion, { imei }) }, {
-      onSuccess: () => { claves.hecha(operacion); onCerrar() },
-      onSettled: () => { enCurso.current = false },
-    })
+    const salta = salto && !!onSaltar && onSaltar()
+    poner.mutateAsync({ idFila: fila.idFila, imei, clave: claves.para(operacion, { imei }) }).then(
+      () => { claves.hecha(operacion); enCurso.current = false; if (!salta) onCerrar() },
+      () => { enCurso.current = false },
+    )
   }
   const enviar = () => {
     if (enCurso.current) return
+    // El Enter que manda el lector llega a la celda recién abierta, vacía: no es un error.
+    if (texto.length === 0) return
     if (texto.length !== CIFRAS_IMEI) { setError(`Un IMEI son ${CIFRAS_IMEI} cifras`); return }
     setError(null)
-    guardar(texto)
+    guardar(texto, true)
   }
   // Solo cifras (también al pegar, y sin los espacios o saltos que pueda mandar el lector) y como mucho 15. Al llegar a 15 se guarda
   // solo, una vez: el disparo es el paso de menos de 15 a 15 cifras, no cada pintado.
@@ -105,11 +117,11 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
     const llegaA15 = cifras.length === CIFRAS_IMEI && texto.length < CIFRAS_IMEI
     setTexto(cifras)
     setError(null)
-    if (llegaA15) guardar(cifras)
+    if (llegaA15) guardar(cifras, true)
   }
 
   return (
-    <div>
+    <div className={ver ? 'w-[680px] max-w-full' : 'w-[360px] max-w-full'}>
       <div className="relative">
         <input autoFocus aria-label="IMEI" inputMode="numeric" pattern="[0-9]*" autoComplete="off"
           placeholder="Lee o escribe el IMEI (15 cifras)" value={texto}
@@ -121,7 +133,10 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
         <span aria-hidden="true" data-contador className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 font-mono text-[11px] text-azul-gris">{texto.length}/{CIFRAS_IMEI}</span>
       </div>
       {error && <p role="alert" className="mt-1 text-[12px] font-bold text-texto-error">{error}</p>}
-      <div className="mt-1.5 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>} · dónde buscarlo</div>
+      <button type="button" aria-expanded={ver} onClick={() => setVer((v) => !v)}
+        className="mt-1 cursor-pointer bg-transparent px-0.5 text-[11.5px] text-azul-medio underline underline-offset-2">{ver ? 'Ocultar recomendados' : 'Ver recomendados'}</button>
+      {ver && <>
+      <div className="mt-1 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>} · dónde buscarlo</div>
       {recomendados.isPending && <p className="px-2 py-1.5 text-[12px] text-azul-gris">Cargando…</p>}
       {recomendados.isError && <p className="px-2 py-1.5 text-[12px] text-azul-gris">No se pudieron cargar los recomendados.</p>}
       {recomendados.data?.length === 0 && (
@@ -137,6 +152,7 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
           <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
         </button>
       ))}
+      </>}
       <div className="mt-1.5 flex gap-2">
         {fila.imei && (
           <button type="button" disabled={poner.isPending} onClick={() => guardar(null)}

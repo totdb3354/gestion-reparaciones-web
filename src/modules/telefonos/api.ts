@@ -205,10 +205,10 @@ export function useFilas(p: { desde: string; hasta: string; buscar?: string }): 
 
 /** GET /api/pedidos/filas/{id}/recomendados: los IMEI que el servidor propone para una fila; sin fila no pregunta. `gcTime: 0`:
  *  al reabrir una fila se piden de nuevo (los de antes pueden estar ya en otra fila). */
-export function useRecomendados(idFila: number | null): UseQueryResult<Candidato[]> {
+export function useRecomendados(idFila: number | null, activo = true): UseQueryResult<Candidato[]> {
   return useQuery({
     queryKey: [...CLAVE_FILAS, 'recomendados', idFila],
-    enabled: idFila != null,
+    enabled: idFila != null && activo,
     queryFn: async ({ signal }) => (await api.GET('/api/pedidos/filas/{id}/recomendados', { params: { path: { id: idFila as number } }, signal })).data ?? [],
     gcTime: 0,
     meta: { sinCapa: true },

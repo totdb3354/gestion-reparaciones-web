@@ -46,6 +46,9 @@ beforeEach(() => {
 
 const abrir = () => renderConProviders(<PedidosPage />, { sesion: SESION_SUPER, ruta: '/telefonos/pedidos' })
 const celdaVacia = async () => (await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ }))[0]
+// Sin ninguna fila vacía por debajo de la 3 (la 9, enviada, tenía el campo vacío): al guardar no hay a dónde saltar y la celda se cierra.
+const sinSalto = () => server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: FILAS.map((f) => (f.idFila === 9 ? { ...f, imei: '350000000000009' } : f)), hayMas: false })))
+const verRecomendados = async (user: ReturnType<typeof userEvent.setup>) => { await user.click(await screen.findByRole('button', { name: 'Ver recomendados' })) }
 const campo = () => screen.queryByRole('textbox', { name: 'IMEI' })
 
 describe('Pedidos como la hoja: la tabla', () => {
@@ -158,6 +161,8 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await user.click(await celdaVacia())
     expect(campo()).toBeInTheDocument()
     await waitFor(() => expect(campo()).toHaveFocus())
+    expect(screen.queryByRole('button', { name: /350000000000101/ })).not.toBeInTheDocument()
+    await verRecomendados(user)
     const c = await screen.findByRole('button', { name: /350000000000101/ })
     expect(c).toHaveTextContent('CAJA LISTOS')
     expect(c).toHaveTextContent('igual que el pedido')
@@ -172,8 +177,10 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await celdaVacia())
+    await verRecomendados(user)
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
     await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000101' } }]))
+    // Elegir un recomendado con el ratón no salta a la siguiente fila vacía (la 9): se cierra.
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
   })
 
@@ -224,6 +231,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
   it('si el PUT falla, el desplegable sigue abierto con lo escrito', async () => {
     const user = userEvent.setup()
     server.use(http.put('*/api/pedidos/filas/:id/imei', () => { puts.push({ id: 'x', cuerpo: null }); return HttpResponse.json({ message: 'No se pudo' }, { status: 422 }) }))
+    sinSalto()
     abrir()
     await user.click(await celdaVacia())
     await user.type(campo() as HTMLElement, '350000000000555')
@@ -244,6 +252,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       await espera
       return HttpResponse.json(fila({ idFila: Number(params.id) }))
     }))
+    sinSalto()
     abrir()
     await user.click(await celdaVacia())
     await user.type(campo() as HTMLElement, '350000000000555{Enter}{Enter}')
@@ -275,6 +284,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
 
     it('al llegar a 15 cifras guarda solo, una vez, y cierra sin pulsar Enter', async () => {
       const user = userEvent.setup()
+      sinSalto()
       abrir()
       await user.click(await celdaVacia())
       await user.type(campo() as HTMLElement, '350000000000055')
@@ -309,6 +319,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
         await espera
         return HttpResponse.json(fila({ idFila: Number(params.id) }))
       }))
+      sinSalto()
       abrir()
       await user.click(await celdaVacia())
       const c = campo() as HTMLElement
@@ -340,6 +351,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
         puts.push({ id: String(params.id), cuerpo: null })
         return fallar ? HttpResponse.json({ message: 'No se pudo' }, { status: 422 }) : HttpResponse.json(fila({ idFila: Number(params.id) }))
       }))
+      sinSalto()
       abrir()
       await user.click(await celdaVacia())
       await user.type(campo() as HTMLElement, '350000000000055')
@@ -364,6 +376,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     server.use(http.get('*/api/pedidos/filas/:id/recomendados', async () => { await espera; return HttpResponse.json([]) }))
     abrir()
     await user.click(await celdaVacia())
+    await verRecomendados(user)
     expect(await screen.findByText('Cargando…')).toBeInTheDocument()
     liberar()
     expect(await screen.findByText(/No hay ningún móvil de ese modelo/)).toBeInTheDocument()

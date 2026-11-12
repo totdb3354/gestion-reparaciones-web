@@ -145,8 +145,8 @@ test('Pedidos con 26.700 filas en Chromium real', async ({ page }) => {
   await buscador.fill('')
   await page.waitForTimeout(800)
   await page.getByRole('button', { name: 'Filtrar Plataforma' }).click()
-  cifras.marcarFiltroMs = await medir(page, () => page.getByRole('checkbox', { name: /^AMZ/ }).click(), () => expect(page.getByText(`${N / 2} a la vista`)).toBeVisible())
-  cifras.quitarFiltroMs = await medir(page, () => page.getByRole('checkbox', { name: /^AMZ/ }).click(), () => expect(page.getByText(/a la vista/)).toHaveCount(0))
+  cifras.marcarFiltroMs = await medir(page, () => page.getByRole('checkbox', { name: /^AMZ/ }).click(), () => expect(page.locator('table[aria-rowcount]')).toHaveAttribute('aria-rowcount', String(N / 2 + 1)))
+  cifras.quitarFiltroMs = await medir(page, () => page.getByRole('checkbox', { name: /^AMZ/ }).click(), () => expect(page.locator('table[aria-rowcount]')).toHaveAttribute('aria-rowcount', String(N + 1)))
   await page.keyboard.press('Escape')
 
   // (f) cruzar el umbral con un filtro en los dos sentidos; la fila elegida sobrevive.

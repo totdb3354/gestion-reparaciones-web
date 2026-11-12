@@ -142,6 +142,8 @@ test('el supertécnico ve la hoja de Pedidos y pone y quita un IMEI recomendado 
     [pedido, orden] = candidata
     await localizarCelda().getByRole('button').click()
     await expect(desplegable).toBeVisible()
+    // Los recomendados ya no salen solos: hay que desplegarlos.
+    await desplegable.getByRole('button', { name: 'Ver recomendados' }).click()
     hay = await recomendado.waitFor({ timeout: 6_000 }).then(() => true, () => false)
     if (hay) break
     await page.keyboard.press('Escape')

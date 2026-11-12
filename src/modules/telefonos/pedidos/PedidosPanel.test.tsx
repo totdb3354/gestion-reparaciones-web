@@ -165,6 +165,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     await esperar()
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
     expect(screen.getByRole('textbox', { name: 'IMEI' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     await user.click(await screen.findByRole('button', { name: /350000000000101/ })) // un recomendado, dentro del desplegable
     expect(panel()).toBeNull()
   })
@@ -252,6 +253,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     await screen.findByText('Nadie ha puesto IMEI todavía.')
     expect(pedidosCambios).toEqual(['1'])
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
     await waitFor(() => expect(pedidosCambios.filter((i) => i === '1').length).toBeGreaterThanOrEqual(2))
   })
@@ -273,6 +275,7 @@ describe('Pedidos v2: el panel de la fila', () => {
       http.get('*/api/pedidos/filas/:id/cambios', async () => { recargas++; await puerta; return HttpResponse.json([]) }),
     )
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
     await waitFor(() => expect(within(p).getByText('350000000000101', { selector: 'span' })).toBeInTheDocument())
     expect(p).not.toHaveTextContent('Sin IMEI todavía.')
@@ -307,6 +310,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     const { queryClient } = abrir()
     await esperar()
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'IMEI' })).not.toBeInTheDocument())
     expect(queryClient.getQueryCache().findAll().filter((q) => q.queryKey.includes('cambios'))).toHaveLength(0)

@@ -51,17 +51,14 @@ describe('Pedidos v2: contadores pulsables', () => {
     abrir()
     await contador('6 filas')
     expect(pulsado('6 filas')).toBe('true')
-    expect(screen.queryByText(/a la vista/)).not.toBeInTheDocument()
     for (const [nombre, n] of [['4 pendientes', 4], ['2 sin IMEI', 2], ['1 no cuadran', 1]] as const) {
       await user.click(screen.getByRole('button', { name: nombre }))
       expect(filasPintadas()).toBe(n)
-      expect(screen.getByText(`${n} a la vista`)).toBeInTheDocument()
       expect(pulsado(nombre)).toBe('true')
       expect(pulsado('6 filas')).toBe('false')
     }
     await user.click(screen.getByRole('button', { name: '6 filas' }))
     expect(filasPintadas()).toBe(6)
-    expect(screen.queryByText(/a la vista/)).not.toBeInTheDocument()
   })
 
   it('«sin IMEI» incluye las enviadas sin IMEI; «no cuadran» es el nivel MAL', async () => {
@@ -197,6 +194,7 @@ describe('Pedidos v2: la caja delante y la fila marcada', () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await celdaVacia())
+    await user.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     const c = await screen.findByRole('button', { name: /350000000000101/ })
     const spans = c.querySelectorAll('span')
     expect(spans[0]).toHaveTextContent('CAJA LISTOS')

@@ -183,7 +183,7 @@ describe('Pedidos: buscador', () => {
 })
 
 describe('Pedidos: filtros por columna', () => {
-  it('el de plataforma esconde filas sin pedir nada, marca la cabecera y añade «a la vista»', async () => {
+  it('el de plataforma esconde filas sin pedir nada, marca la cabecera', async () => {
     const user = userEvent.setup()
     abrir()
     await screen.findByRole('button', { name: '4 filas' })
@@ -192,7 +192,6 @@ describe('Pedidos: filtros por columna', () => {
     expect(screen.getByRole('checkbox', { name: 'Todos' })).toBeChecked()
     await user.click(screen.getByRole('checkbox', { name: /^AMZ/ }))
     expect(filasPintadas()).toBe(1)
-    expect(screen.getByText('1 a la vista')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Filtrar Plataforma (filtro activo)' })).toBeInTheDocument()
     expect(urls).toHaveLength(pedidas)
     await user.click(screen.getByRole('checkbox', { name: /^Fonestore/ }))
@@ -209,7 +208,6 @@ describe('Pedidos: filtros por columna', () => {
     await abrirFiltro(user, 'SKU')
     await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
     expect(filasPintadas()).toBe(2)
-    expect(screen.getByText('2 a la vista')).toBeInTheDocument()
   })
 
   it('con muchos valores lleva una caja para acortar la lista', async () => {
@@ -248,7 +246,6 @@ describe('Pedidos: filtros por columna', () => {
     await abrirFiltro(user, 'IMEI')
     await user.click(screen.getByRole('checkbox', { name: 'Solo sin IMEI' }))
     expect(filasPintadas()).toBe(3)
-    expect(screen.getByText('3 a la vista')).toBeInTheDocument()
   })
 
   it('el filtro de «Enviado» tiene Pendientes, Enviados, Ya no pendientes e Histórico, y se recuerda', async () => {
@@ -268,7 +265,7 @@ describe('Pedidos: filtros por columna', () => {
     await user.keyboard('{Escape}')
     primera.unmount()
     abrir()
-    expect(await screen.findByText('4 a la vista')).toBeInTheDocument()
+    await waitFor(() => expect(filasPintadas()).toBe(4))
   })
 
   it('«Quitar filtros» los quita todos y desaparece', async () => {
@@ -282,7 +279,6 @@ describe('Pedidos: filtros por columna', () => {
     await user.click(screen.getByRole('button', { name: 'Quitar filtros' }))
     expect(filasPintadas()).toBe(4)
     expect(screen.queryByRole('button', { name: 'Quitar filtros' })).not.toBeInTheDocument()
-    expect(screen.queryByText(/a la vista/)).not.toBeInTheDocument()
   })
 })
 
@@ -322,7 +318,7 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
     abrir()
     expect(await screen.findByLabelText('Periodo:')).toHaveValue('anio')
     expect(buscador()).toHaveValue('3500')
-    expect(await screen.findByText('1 a la vista')).toBeInTheDocument()
+    await waitFor(() => expect(filasPintadas()).toBe(1))
     expect(ultima().searchParams.get('buscar')).toBe('3500')
   })
 })
