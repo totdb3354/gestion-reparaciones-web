@@ -60,7 +60,7 @@ export function CeldaImei({ fila, abierta, marcada, onAbrir }: Props) {
             onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.('[role="dialog"],[role="alertdialog"]')) e.preventDefault() }}
             // Al cerrar, el foco vuelve a la celda, salvo que ya esté en el desplegable de otra celda recién abierta.
             onCloseAutoFocus={(e) => { if (document.activeElement?.closest('[data-slot="popover-content"]')) e.preventDefault() }}
-            className="w-[600px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
+            className="w-[680px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
             <Desplegable fila={fila} onCerrar={() => onAbrir(fila.idFila, false)} />
           </PopoverContent>
         </Popover>
@@ -109,7 +109,7 @@ function Desplegable({ fila, onCerrar }: { fila: FilaVista; onCerrar: () => void
           {/* Lo que la persona se lleva al almacén es la caja: va delante y resaltada. */}
           <span className="justify-self-start rounded-md bg-[#eef0f3] px-2 py-px font-bold [overflow-wrap:anywhere]">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
-          <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && <>es {c.sku}</>}</span>
+          <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && (c.sku ? <>es {c.sku}</> : <span className="font-sans italic">SKU sin identificar</span>)}</span>
           <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
         </button>
       ))}
