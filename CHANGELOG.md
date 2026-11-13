@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.32.1] - (pendiente) — Ayuda del envío parcial
+## [0.9.33] - (pendiente) — Ayuda del envío parcial
 
 - La ayuda «Cómo se lee esta tabla» de **Pedidos** explica el **envío parcial** (la etiqueta ámbar «Falta por enviar»: se marca a mano en el panel de la fila, cuenta como pendiente y se quita sola al sincronizar su IMEI con la web, o a mano con «Ya ha salido») y la marca **«1/3»** junto al SKU de los móviles de un pedido de varios.
 - Solo web.
