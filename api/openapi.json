@@ -5463,6 +5463,10 @@
           "imei" : {
             "type" : "string",
             "nullable" : true
+          },
+          "imeiAnterior" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

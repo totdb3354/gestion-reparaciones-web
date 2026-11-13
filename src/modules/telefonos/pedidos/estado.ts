@@ -21,8 +21,15 @@ export type EstadoPedidos = {
   filaAqui: number | null
   /** La fila cuyo detalle enseña el panel de la derecha (por `idFila`: sobrevive a filtrar). Solo en memoria. */
   filaElegida: number | null
+  /** Los guardados de IMEI que han fallado, por `idFila`: la celda sigue en rojo hasta que se guarde bien (o se recargue la página). Guarda lo que se
+   *  intentó y la clave de idempotencia, para que reabrir la celda y reintentar mande la MISMA petición. Solo en memoria. */
+  fallosImei: Record<number, FalloImei>
+  /** El aviso no modal de arriba de la tabla («No se guardó el IMEI del pedido X…»), hasta que se cierre. */
+  avisoImei: string | null
 }
 
+export type FalloImei = { imei: string | null; clave: string; mensaje: string }
+
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), filaAqui: null, filaElegida: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
 })

@@ -2653,6 +2653,8 @@ export interface components {
         };
         PeticionImei: {
             imei: string | null;
+            /** El IMEI que la fila tenía en pantalla al abrir la celda ("" = sin IMEI). null o ausente = no comprobar. Si no coincide, 409. */
+            imeiAnterior?: string | null;
         };
         FilaVista: {
             /** Format: int32 */

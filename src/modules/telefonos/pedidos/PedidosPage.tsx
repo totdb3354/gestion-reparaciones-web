@@ -46,7 +46,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const filtrando = hayFiltros(filtros)
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
-  const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
+  const presentes = useMemo(() => ({ tiendas: tiendas.map((t) => t.valor), skus }), [tiendas, skus])
+  const vistas = useMemo(() => filtrarColumnas(filas, filtros, presentes), [filas, filtros, presentes])
   const ventana = vistas.length > umbralVentana
   // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
   useEffect(() => {
@@ -139,6 +140,14 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         <p role="status" className="mb-2 shrink-0 text-[12px] font-bold text-form-agotado-text">
           Hay más de 500 resultados: se enseñan los 500 más recientes. Afina la búsqueda.
         </p>
+      )}
+      {e.avisoImei && (
+        // No modal: no roba el foco (se está leyendo la fila de al lado) y dice de qué pedido es. Se queda hasta que se cierre.
+        <div role="alert" className="mb-2 flex shrink-0 items-start gap-2 rounded-md border border-[#e0a0a0] bg-[#FDE2E2] px-3 py-1.5 text-[12.5px] font-bold text-texto-error">
+          <span className="min-w-0 flex-1">{e.avisoImei}</span>
+          <button type="button" aria-label="Cerrar el aviso" title="Cerrar" onClick={() => setE((s) => ({ ...s, avisoImei: null }))}
+            className="cursor-pointer px-1 text-[14px] leading-none font-bold">✕</button>
+        </div>
       )}
       {lista.isPlaceholderData && <p role="status" className="mb-2 shrink-0 text-[12px] text-azul-gris">Buscando…</p>}
       {lista.isPending && <p className="p-4 text-[12px] text-azul-gris">Cargando…</p>}

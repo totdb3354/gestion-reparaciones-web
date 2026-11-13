@@ -5,7 +5,7 @@ import { cn } from '@/shared/lib/utils'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
-import { estadoPedidos } from './estado'
+import { estadoPedidos, type FalloImei } from './estado'
 import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
@@ -23,6 +23,8 @@ const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
 type PropsFila = {
   fila: FilaVista; abierta: boolean; marcada: boolean
+  /** El último guardado del IMEI de esta fila falló (la celda se ve en rojo). */
+  fallo?: FalloImei
   /** Su detalle está abierto en el panel (solo se dice con `aria-pressed`; la marca visual es `marcada`). */
   elegida: boolean
   /** Solo en modo ventana: su número de fila para los lectores de pantalla (la tabla dice cuántas hay y solo se pintan unas). */
@@ -74,7 +76,7 @@ function FilaHueco({ alto }: { alto: number }) {
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
+export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, fallo, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
   const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap last:border-r-0', tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave')
@@ -91,7 +93,7 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
       <td className={cn(td, marcada && SOMBRA_RAYA)}>{dia(f.fecha)}</td>
       <td className={td} title={f.plataforma}>{f.plataforma}</td>
       <td className={cn(td, 'font-mono text-[12px]')} title={f.sku ?? undefined}>{f.sku}</td>
-      <CeldaImei fila={f} abierta={abierta} marcada={marcada} onAbrir={onAbrir} onSaltar={onSaltar} />
+      <CeldaImei fila={f} abierta={abierta} marcada={marcada} fallo={fallo} onAbrir={onAbrir} onSaltar={onSaltar} />
       <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
         <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">{f.pedido}</button>
@@ -144,7 +146,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   }, [])
   // Abrir un detalle (no cerrarlo) también deja ahí «la fila en la que estás».
   const elegir = useCallback((id: number) => estadoPedidos.set((s) => (s.filaElegida === id ? { ...s, filaElegida: null } : { ...s, filaElegida: id, filaAqui: id })), [])
-  const [{ filaAqui, filaElegida }] = useStore(estadoPedidos)
+  const [{ filaAqui, filaElegida, fallosImei }] = useStore(estadoPedidos)
   const contenedor = useRef<HTMLDivElement>(null)
   // La altura que tenía el contenido tras el último pintado. Añadir filas no cambia `scrollTop` pero sí la altura, así que
   // «estaba abajo» se calcula justo antes de decidir con la altura de entonces, no con un valor guardado en un scroll antiguo.
@@ -228,13 +230,13 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
     if (total - fin > 0.5) cuerpo.push(<FilaHueco key="hf" alto={total - fin} />)
   } else {
-    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
   }
 
   return (

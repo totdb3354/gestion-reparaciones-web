@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   api, type CambioImei, type Candidato, type FilaVista, type FuenteVista, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
@@ -264,20 +264,43 @@ function ahoraLocal(): string {
   return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}T${dos(d.getHours())}:${dos(d.getMinutes())}:${dos(d.getSeconds())}`
 }
 
+/** Lo que se espera tras el último guardado de un IMEI antes de recargar las filas: con muchas lecturas seguidas (y el periodo «Todo»,
+ *  ~26.000 filas) se recarga UNA vez, no tras cada una. */
+export const RECARGA_TRAS_GUARDAR_MS = 1500
+const recargasPendientes = new WeakMap<QueryClient, ReturnType<typeof setTimeout>>()
+/** Un temporizador por QueryClient, compartido entre guardados: cada guardado lo reinicia. */
+function recargarFilasTrasEspera(qc: QueryClient) {
+  const previo = recargasPendientes.get(qc)
+  if (previo !== undefined) clearTimeout(previo)
+  recargasPendientes.set(qc, setTimeout(() => {
+    recargasPendientes.delete(qc)
+    void qc.invalidateQueries({ queryKey: CLAVE_FILAS })
+  }, RECARGA_TRAS_GUARDAR_MS))
+}
+
 /** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila. `clave` va en la cabecera Idempotency-Key (la da
- *  el desplegable con crearClavesIdempotencia). Al responder, la fila devuelta se escribe en las listas de la caché para que la
- *  celda enseñe el IMEI al momento; después se recargan las filas (el aviso de las demás filas depende de esta). */
+ *  el desplegable con crearClavesIdempotencia). `imeiAnterior` es el IMEI que la fila tenía en pantalla al abrir la celda (`''` si no
+ *  tenía): el servidor responde 409 si otra persona lo cambió entre medias. Al responder, la fila devuelta se escribe en las listas de
+ *  la caché para que la celda enseñe el IMEI al momento; las filas se recargan una sola vez, {@link RECARGA_TRAS_GUARDAR_MS} después
+ *  del último guardado (el aviso de las demás filas depende de esta).
+ *
+ *  Un fallo no abre el diálogo global (ni el de conexión): lo enseña la pantalla de Pedidos sin modal, en la celda y en un aviso. */
 export function usePonerImei() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ idFila, imei, clave }: { idFila: number; imei: string | null; clave: string }): Promise<FilaVista> => {
+    mutationFn: async ({ idFila, imei, imeiAnterior, clave }: { idFila: number; imei: string | null; imeiAnterior: string; clave: string }): Promise<FilaVista> => {
       const { data } = await api.PUT('/api/pedidos/filas/{id}/imei', {
-        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { imei },
+        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { imei, imeiAnterior },
       })
       if (!data) throw new Error('El servidor no devolvió la fila')
       return data
     },
-    onSuccess: (fila) => {
+    meta: { silenciarError: true, silenciarConexion: true },
+    onSuccess: async (fila) => {
+      // Un sondeo que salió antes de este guardado y aún no ha vuelto traería la fila con su valor viejo y la pisaría: se cancela antes
+      // de escribir la fila (solo las listas que ya tienen datos; una primera carga no se toca). Antes lo evitaba la recarga inmediata,
+      // que cancelaba lo que hubiera en vuelo.
+      await qc.cancelQueries({ queryKey: [...CLAVE_FILAS, 'lista'], predicate: (q) => q.state.data !== undefined })
       // El IMEI que tenía la fila antes de esta escritura (lo dice la lista en caché, que aún no se ha tocado).
       let anterior: string | null = null
       for (const [, l] of qc.getQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] })) {
@@ -293,7 +316,7 @@ export function usePonerImei() {
       qc.setQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] },
         (l) => (l ? { ...l, filas: l.filas.map((f) => (f.idFila === fila.idFila ? fila : f)) } : l))
     },
-    onSettled: () => { void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+    onSettled: () => { recargarFilasTrasEspera(qc) },
   })
 }
 

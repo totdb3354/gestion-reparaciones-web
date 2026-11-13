@@ -13,11 +13,11 @@ import { estaConectado, reportarExito } from './conexion'
 /** Botón que dispara una mutación real (POST /api/clientes). El aviso al usuario, si toca, lo pone el
  *  MutationCache del QueryClient; el "FALLO" solo marca que la mutación ya terminó (el onError propio
  *  corre después del de la caché), para poder comprobar si hay diálogo o no sin carreras. */
-function BotonMutacion({ silenciar = false }: { silenciar?: boolean }) {
+function BotonMutacion({ silenciar = false, silenciarConexion = false }: { silenciar?: boolean; silenciarConexion?: boolean }) {
   const [fallo, setFallo] = useState(false)
   const m = useMutation({
     mutationFn: (nombre: string) => api.POST('/api/clientes', { body: { nombre } }),
-    meta: silenciar ? { silenciarError: true } : undefined,
+    meta: silenciar || silenciarConexion ? { silenciarError: silenciar, silenciarConexion } : undefined,
     onError: () => setFallo(true),
   })
   return (
@@ -65,6 +65,14 @@ describe('crearQueryClient: errores de mutaciones', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
     expect(await screen.findByRole('dialog', { name: 'Error' })).toBeInTheDocument()
     expect(screen.getByText('Sin conexión con el servidor: HTTP 503')).toBeInTheDocument()
+  })
+
+  it('con meta.silenciarConexion tampoco abre el diálogo ante un corte de conexión: lo avisa la vista (Pedidos)', async () => {
+    server.use(http.post('*/api/clientes', () => HttpResponse.text('boom', { status: 503 })))
+    renderConProviders(<BotonMutacion silenciar silenciarConexion />)
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    expect(await screen.findByText('FALLO')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument()
   })
 
   it('un 422 abre el diálogo de error con el mensaje del servidor', async () => {

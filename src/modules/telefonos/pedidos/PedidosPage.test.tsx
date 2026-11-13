@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '@/test/server'
 import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
+import { imeiConLuhnMalo, imeiValido } from '../test/imeiValido'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
 import { maquetarJsdom } from '@/test/layoutJsdom'
@@ -21,6 +22,9 @@ const FILAS = [
   fila({ idFila: 9, estado: 'ENVIADA', envioFecha: '2026-11-09T11:00:00', tieneEtiqueta: true, pedido: '402-0000000-0000019' }),
 ]
 
+// IMEI sintéticos que pasan la cifra de control (el campo ya no guarda uno que no cuadre).
+const I555 = imeiValido(555)
+const I55 = imeiValido(55)
 let puts: { id: string; cuerpo: unknown }[] = []
 
 afterEach(() => { vi.restoreAllMocks() })
@@ -125,7 +129,7 @@ describe('Pedidos como la hoja: la tabla', () => {
     await user.click(await screen.findByRole('button', { name: /350000000000010/ }))
     expect(campo()).toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Quitar el IMEI' }))
-    await waitFor(() => expect(puts).toEqual([{ id: '1', cuerpo: { imei: null } }]))
+    await waitFor(() => expect(puts).toEqual([{ id: '1', cuerpo: { imei: null, imeiAnterior: '350000000000010' } }]))
   })
 
   it('una enviada sin IMEI invita a ponerlo; una no pendiente con aviso lo enseña', async () => {
@@ -179,7 +183,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await user.click(await celdaVacia())
     await verRecomendados(user)
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
-    await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000101' } }]))
+    await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000101', imeiAnterior: '' } }]))
     // Elegir un recomendado con el ratón no salta a la siguiente fila vacía (la 9): se cierra.
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
   })
@@ -188,8 +192,8 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await celdaVacia())
-    await user.type(campo() as HTMLElement, '350000000000555{Enter}')
-    await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000555' } }]))
+    await user.type(campo() as HTMLElement, `${I555}{Enter}`)
+    await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: I555, imeiAnterior: '' } }]))
   })
 
   it('escribir 14 cifras no llama y enseña el mensaje bajo el campo', async () => {
@@ -206,7 +210,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     abrir()
     await user.click(await screen.findByRole('button', { name: /350000000000999/ }))
     await user.click(screen.getByRole('button', { name: 'Quitar el IMEI' }))
-    await waitFor(() => expect(puts).toEqual([{ id: '4', cuerpo: { imei: null } }]))
+    await waitFor(() => expect(puts).toEqual([{ id: '4', cuerpo: { imei: null, imeiAnterior: '350000000000999' } }]))
   })
 
   it('Escape, «Cerrar» y el clic fuera cierran; solo hay uno abierto', async () => {
@@ -234,13 +238,17 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     sinSalto()
     abrir()
     await user.click(await celdaVacia())
-    await user.type(campo() as HTMLElement, '350000000000555')
+    await user.type(campo() as HTMLElement, I555)
     await waitFor(() => expect(puts).toHaveLength(1))
-    // El desplegable también es role=dialog: el de error se distingue por su texto.
-    expect(await screen.findByText('No se pudo')).toBeInTheDocument()
-    // El diálogo de error (modal) deja el resto fuera del árbol de accesibilidad: se busca con `hidden`.
-    const abierto = screen.getByRole('textbox', { name: 'IMEI', hidden: true })
-    expect(abierto).toHaveValue('350000000000555')
+    // Sin diálogo modal: el aviso es una franja de la página con el pedido, y el desplegable sigue abierto con lo escrito.
+    expect(await screen.findByText('No se guardó el IMEI del pedido 402-0000000-0000013. Vuelve a abrir su celda.')).toBeInTheDocument()
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue(I555)
+    // El aviso (role=alert, no modal) se cierra con su botón.
+    const aviso = screen.getByRole('alert')
+    expect(aviso).toHaveTextContent('402-0000000-0000013')
+    await user.click(screen.getByRole('button', { name: 'Cerrar el aviso' }))
+    expect(screen.queryByText(/No se guardó el IMEI del pedido/)).not.toBeInTheDocument()
   })
 
   it('un segundo Enter con el PUT pendiente no manda otra petición', async () => {
@@ -255,7 +263,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     sinSalto()
     abrir()
     await user.click(await celdaVacia())
-    await user.type(campo() as HTMLElement, '350000000000555{Enter}{Enter}')
+    await user.type(campo() as HTMLElement, `${I555}{Enter}{Enter}`)
     // Los dos Enter ya se han tecleado (user.type espera): el segundo no pudo mandar otra petición mientras la primera seguía pendiente.
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(campo()).toHaveAttribute('readonly')
@@ -287,8 +295,8 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       sinSalto()
       abrir()
       await user.click(await celdaVacia())
-      await user.type(campo() as HTMLElement, '350000000000055')
-      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000055' } }]))
+      await user.type(campo() as HTMLElement, I55)
+      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: I55, imeiAnterior: '' } }]))
       await waitFor(() => expect(campo()).not.toBeInTheDocument())
       expect(puts).toHaveLength(1)
     })
@@ -298,16 +306,36 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       abrir()
       await user.click(await celdaVacia())
       await (campo() as HTMLElement).focus()
-      await user.paste('350 000 000 000 055\n')
-      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000055' } }]))
+      await user.paste(`${I55.replace(/(\d{3})(?=\d)/g, '$1 ')}\n`)
+      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: I55, imeiAnterior: '' } }]))
     })
 
-    it('cifras de más se descartan: nunca pasa de 15', async () => {
+    it('cifras de más NO se cortan: error «Hay más de 15 cifras», contador en rojo y no se guarda', async () => {
       const user = userEvent.setup()
       abrir()
       await user.click(await celdaVacia())
-      await user.paste('3500000000000559999')
-      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: '350000000000055' } }]))
+      await user.paste(`${I55}9999`)
+      expect(screen.getByRole('alert')).toHaveTextContent('Hay más de 15 cifras: lee un solo IMEI')
+      expect(campo()).toHaveValue(`${I55}9999`)
+      expect(screen.getByText('19/15')).toHaveClass('text-texto-error')
+      await new Promise((r) => setTimeout(r, 300))
+      expect(puts).toEqual([])
+    })
+
+    it('con la cifra de control mala no guarda, ni solo ni con Enter; «Guardar igualmente» sí y cierra', async () => {
+      const user = userEvent.setup()
+      sinSalto()
+      abrir()
+      await user.click(await celdaVacia())
+      const malo = imeiConLuhnMalo(55)
+      await user.type(campo() as HTMLElement, `${malo}{Enter}`)
+      expect(await screen.findByRole('alert')).toHaveTextContent('La cifra de control no cuadra: revisa el IMEI')
+      await user.keyboard('{Enter}')
+      await new Promise((r) => setTimeout(r, 300))
+      expect(puts).toEqual([])
+      await user.click(screen.getByRole('button', { name: 'Guardar igualmente' }))
+      await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: malo, imeiAnterior: '' } }]))
+      await waitFor(() => expect(campo()).not.toBeInTheDocument())
     })
 
     it('el Enter que manda el lector tras las 15 cifras no da error ni guarda por segunda vez mientras el guardado sigue pendiente', async () => {
@@ -323,10 +351,10 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       abrir()
       await user.click(await celdaVacia())
       const c = campo() as HTMLElement
-      await user.type(c, '350000000000055{Enter}{Enter}')
+      await user.type(c, `${I55}{Enter}{Enter}`)
       await user.keyboard('7')
       await waitFor(() => expect(puts).toHaveLength(1))
-      expect(c).toHaveValue('350000000000055')
+      expect(c).toHaveValue(I55)
       expect(screen.queryByText('Un IMEI son 15 cifras')).not.toBeInTheDocument()
       liberar()
       await waitFor(() => expect(campo()).not.toBeInTheDocument())
@@ -354,18 +382,18 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       sinSalto()
       abrir()
       await user.click(await celdaVacia())
-      await user.type(campo() as HTMLElement, '350000000000055')
-      expect(await screen.findByText('No se pudo')).toBeInTheDocument()
-      await user.click(screen.getByRole('button', { name: 'Aceptar' }))
-      await waitFor(() => expect(screen.queryByText('No se pudo')).not.toBeInTheDocument())
+      await user.type(campo() as HTMLElement, I55)
+      expect(await screen.findByText(/No se guardó el IMEI del pedido/)).toBeInTheDocument()
       const c = screen.getByRole('textbox', { name: 'IMEI' })
-      expect(c).toHaveValue('350000000000055')
+      expect(c).toHaveValue(I55)
       expect(c).not.toHaveAttribute('readonly')
       expect(puts).toHaveLength(1)
       fallar = false
       await user.type(c, '{Enter}')
       await waitFor(() => expect(puts).toHaveLength(2))
       await waitFor(() => expect(campo()).not.toBeInTheDocument())
+      // Guardado bien: la celda ya no está en rojo.
+      expect(screen.queryByText(/pulsa para reintentar/)).not.toBeInTheDocument()
     })
   })
 

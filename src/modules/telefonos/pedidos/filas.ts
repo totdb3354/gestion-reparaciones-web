@@ -207,9 +207,10 @@ export function recuentoEstados(filas: FilaVista[]): Record<EstadoPantalla, numb
 /** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
  *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
  *  con él, un array nuevo con los mismos objetos. */
-export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
-  const plataformas = vigente(f.plataformas, tiendasPresentes(filas).map((t) => t.valor))
-  const skus = vigente(f.skus, valores(filas, 'sku'))
+export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, presentes?: { tiendas: string[]; skus: string[] }): FilaVista[] {
+  // La página ya tiene las tiendas y los SKU presentes (los calcula una vez por carga): se los pasa para no recorrer 26.000 filas otra vez.
+  const plataformas = vigente(f.plataformas, presentes?.tiendas ?? tiendasPresentes(filas).map((t) => t.valor))
+  const skus = vigente(f.skus, presentes?.skus ?? valores(filas, 'sku'))
   if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || plataformas.has(tiendaDe(x)))

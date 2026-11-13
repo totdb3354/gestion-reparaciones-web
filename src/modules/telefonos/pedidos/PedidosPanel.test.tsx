@@ -255,7 +255,8 @@ describe('Pedidos v2: el panel de la fila', () => {
     await user.click(screen.getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
     await user.click(await screen.findByRole('button', { name: 'Ver recomendados' }))
     await user.click(await screen.findByRole('button', { name: /350000000000101/ }))
-    await waitFor(() => expect(pedidosCambios.filter((i) => i === '1').length).toBeGreaterThanOrEqual(2))
+    // La recarga llega 1,5 s despues del guardado (una sola, compartida entre guardados).
+    await waitFor(() => expect(pedidosCambios.filter((i) => i === '1').length).toBeGreaterThanOrEqual(2), { timeout: 4000 })
   })
 
   it('al poner un IMEI con el panel abierto, el IMEI y la entrada del historial salen al momento, antes de que acabe la recarga', async () => {
@@ -282,7 +283,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     const primera = within(p).getAllByRole('listitem')[0]
     expect(primera.textContent).toMatch(/^tecnico_f puso 350000000000101\d\d\/\d\d\/\d{4} \d\d:\d\d$/)
     expect(within(p).getAllByRole('listitem')).toHaveLength(2)
-    await waitFor(() => expect(recargas).toBeGreaterThan(0)) // ya se pidió la recarga y sigue sin llegar
+    await waitFor(() => expect(recargas).toBeGreaterThan(0), { timeout: 4000 }) // ya se pidió la recarga y sigue sin llegar
     soltar()
   })
 
