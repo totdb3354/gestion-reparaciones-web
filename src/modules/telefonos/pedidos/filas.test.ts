@@ -56,6 +56,14 @@ describe('recuento', () => {
     expect(recuento(filas)).toEqual({ total: 7, pendientes: 4, sinImei: 3, noCuadran: 1 })
   })
   it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0, noCuadran: 0 }))
+  it('un móvil «Cancelado» sin IMEI no cuenta como sin IMEI ni sale con «Solo sin IMEI»; las demás marcas sí', () => {
+    const filas = [
+      fila({ idFila: 1, marca: 'CANCELADO' }), fila({ idFila: 2, marca: 'ESPERA_STOCK' }),
+      fila({ idFila: 3, marca: 'EN_REVISION' }), fila({ idFila: 4 }),
+    ]
+    expect(recuento(filas).sinImei).toBe(3)
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, soloSinImei: true }).map((f) => f.idFila)).toEqual([2, 3, 4])
+  })
 })
 
 describe('constantes', () => {

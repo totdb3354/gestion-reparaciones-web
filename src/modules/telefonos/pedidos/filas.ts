@@ -139,13 +139,18 @@ export const noCuadra = (f: FilaVista): boolean => f.nivel === 'MAL'
 
 export type Recuento = { total: number; pendientes: number; sinImei: number; noCuadran: number }
 
+/** ¿Le falta el IMEI? Editable y sin IMEI (enviadas incluidas), salvo «Cancelado»: ese móvil no sale y no necesita IMEI. */
+export function faltaImei(f: FilaVista): boolean {
+  return f.editable && !f.imei && f.marca !== 'CANCELADO'
+}
+
 /** Los contadores de la cabecera: todas las filas, las pendientes, las editables que aún no tienen IMEI (enviadas incluidas) y las
  *  que no cuadran. Una sola pasada. */
 export function recuento(filas: FilaVista[]): Recuento {
   const r: Recuento = { total: filas.length, pendientes: 0, sinImei: 0, noCuadran: 0 }
   for (const f of filas) {
     if (esPendiente(f)) r.pendientes++
-    if (f.editable && !f.imei) r.sinImei++
+    if (faltaImei(f)) r.sinImei++
     if (noCuadra(f)) r.noCuadran++
   }
   return r
@@ -283,7 +288,7 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVist
   return filas.filter((x) =>
     (plataformas.size === 0 || plataformas.has(tiendaDe(x)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
-    && (!f.soloSinImei || (x.editable && !x.imei))
+    && (!f.soloSinImei || faltaImei(x))
     && (!f.noCuadran || noCuadra(x))
     && (f.enviado.size === 0 || pasaEnviado(x, f.enviado))
     && (marcas.size === 0 || (x.marca != null && marcas.has(x.marca))))
