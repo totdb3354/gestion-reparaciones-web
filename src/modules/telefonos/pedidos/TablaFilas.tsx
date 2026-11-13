@@ -6,7 +6,7 @@ import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos, type FalloImei } from './estado'
-import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, tonoFila, type EstadoPantalla } from './filas'
+import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -25,6 +25,8 @@ type PropsFila = {
   fila: FilaVista; abierta: boolean; marcada: boolean
   /** El último guardado del IMEI de esta fila falló (la celda se ve en rojo). */
   fallo?: FalloImei
+  /** «1/3»: el lugar de la fila en su pedido de varios móviles (nada si el pedido es de uno). */
+  numero?: string
   /** Su detalle está abierto en el panel (solo se dice con `aria-pressed`; la marca visual es `marcada`). */
   elegida: boolean
   /** Solo en modo ventana: su número de fila para los lectores de pantalla (la tabla dice cuántas hay y solo se pintan unas). */
@@ -40,6 +42,7 @@ const SOMBRA_RAYA = 'shadow-[inset_4px_0_0_#2f6fe0]'
 export const ETIQUETA = 'inline-block rounded-lg px-2 py-px text-[11px] font-bold'
 export const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
   PENDIENTE: 'border border-dashed border-[#C8CDD5] bg-superficie text-azul-gris',
+  FALTA_ENVIAR: 'bg-pill-aviso-bg text-pill-aviso-text',
   GENERADA: 'bg-pill-aviso-bg text-pill-aviso-text',
   ENVIADO: 'bg-fila-reparado-bg text-[#2f7d3b]',
   NO_PENDIENTE: 'bg-[#dbe6fb] text-[#1d3a78]',
@@ -56,6 +59,7 @@ export function EtiquetaEstado({ fila: f, estado, conDetalle = true }: { fila: F
   const detalle = conDetalle && (estado === 'GENERADA' || estado === 'ENVIADO') ? detalleEnvio(f, ' ') : undefined
   const texto = {
     PENDIENTE: 'Pendiente',
+    FALTA_ENVIAR: 'Envío parcial · falta por enviar',
     GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
     ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
     NO_PENDIENTE: 'Ya no está pendiente',
@@ -76,7 +80,7 @@ function FilaHueco({ alto }: { alto: number }) {
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, fallo, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
+export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, fallo, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
   const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap last:border-r-0', tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave')
@@ -92,7 +96,12 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
       }}>
       <td className={cn(td, marcada && SOMBRA_RAYA)}>{dia(f.fecha)}</td>
       <td className={td} title={f.plataforma}>{f.plataforma}</td>
-      <td className={cn(td, 'font-mono text-[12px]')} title={f.sku ?? undefined}>{f.sku}</td>
+      <td className={cn(td, 'font-mono text-[12px]')} title={f.sku ?? undefined}>
+        {numero
+          // La marca se queda a la derecha del SKU sin ensanchar la columna: el SKU se corta con puntos suspensivos, la marca no.
+          ? <div className="flex items-baseline gap-1.5"><span className="min-w-0 truncate">{f.sku}</span><span data-numero-pedido title="Móviles de este pedido" className="shrink-0 font-sans text-[10px] text-azul-gris">{numero}</span></div>
+          : f.sku}
+      </td>
       <CeldaImei fila={f} abierta={abierta} marcada={marcada} fallo={fallo} onAbrir={onAbrir} onSaltar={onSaltar} />
       <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
@@ -106,7 +115,7 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
 
 /** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, el estado como etiqueta
  *  en «Enviado» y solo el histórico en gris. La última fila que se toca (su celda de IMEI o su detalle) queda marcada en azul suave con una raya. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
-export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ventana = false }: {
+export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ventana = false, numeros: numerosDados }: {
   filas: FilaVista[]
   /** Modo «muchas filas»: solo se pintan las filas visibles (más un margen); la barra de scroll abarca todas. Lo decide la página por el umbral. */
   ventana?: boolean
@@ -115,8 +124,11 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   filtros?: Partial<Record<Columna, ReactNode>>
   /** Lo que se enseña en el cuerpo si no hay filas que pintar (la cabecera y sus filtros siguen). */
   vacio?: ReactNode
+  /** «1/3»… por `idFila` (ver `numerosDePedido`). La página lo calcula sobre todas las filas recibidas para que un filtro no cambie los números. */
+  numeros?: Map<number, string>
 }) {
   const [abierta, setAbierta] = useState<number | null>(null)
+  const numeros = useMemo(() => numerosDados ?? numerosDePedido(filas), [numerosDados, filas])
   // Posición de cada fila por su id (se rehace solo cuando cambian las filas): así «¿sigue la abierta?» y «¿dónde está?» no recorren la lista en cada pintado.
   const indice = useMemo(() => new Map(filas.map((f, i) => [f.idFila, i])), [filas])
   // Si la fila abierta ya no se pinta (un filtro la esconde) o ya no se puede editar, se cierra: así no se reabre sola al quitar el filtro.
@@ -230,13 +242,13 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
     if (total - fin > 0.5) cuerpo.push(<FilaHueco key="hf" alto={total - fin} />)
   } else {
-    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
   }
 
   return (

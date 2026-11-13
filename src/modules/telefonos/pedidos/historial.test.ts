@@ -3,7 +3,7 @@ import type { CambioImei } from '@/shared/api/client'
 import { fila } from '../test/fabrica'
 import { construirHistorial } from './historial'
 
-const cambio = (fecha: string, p: Partial<CambioImei> = {}): CambioImei => ({ usuario: 'Supertécnico 1', fecha, imeiAnterior: null, imeiNuevo: '350000000000010', ...p })
+const cambio = (fecha: string, p: Partial<CambioImei> = {}): CambioImei => ({ usuario: 'Supertécnico 1', fecha, imeiAnterior: null, imeiNuevo: '350000000000010', tipo: 'IMEI', ...p })
 const claves = (f: ReturnType<typeof fila>, c: CambioImei[]) => construirHistorial(f, c).map((e) => e.tipo)
 
 describe('construirHistorial', () => {
@@ -37,5 +37,29 @@ describe('construirHistorial', () => {
 
   it('no inventa hitos que la fila no tiene', () => {
     expect(claves(fila({ fecha: '2026-11-09', envioFecha: null, impresaEn: null }), [])).toEqual(['entro'])
+  })
+
+  it('las marcas de «falta por enviar» salen con su texto y su autor, y no como cambios de IMEI', () => {
+    const marca = (tipo: string, usuario: string | null, fecha: string) => cambio(fecha, { tipo, usuario, imeiNuevo: null })
+    const h = construirHistorial(fila({ fecha: '2026-11-01' }), [
+      marca('YA_ENVIADO', null, '2026-11-12T09:00:00'),
+      marca('YA_ENVIADO', 'Técnico 2', '2026-11-11T09:00:00'),
+      marca('FALTA_ENVIAR', 'Técnico 1', '2026-11-10T09:00:00'),
+    ])
+    expect(h.slice(0, 3)).toEqual([
+      { tipo: 'marca', clave: 'i0', cuando: '2026-11-12T09:00:00', conHora: true, texto: 'Ya ha salido: sincronizado con la web', quien: 'plugin de la web' },
+      { tipo: 'marca', clave: 'i1', cuando: '2026-11-11T09:00:00', conHora: true, texto: 'Ya ha salido (marca quitada)', quien: 'Técnico 2' },
+      { tipo: 'marca', clave: 'i2', cuando: '2026-11-10T09:00:00', conHora: true, texto: 'Marcada: falta por enviar', quien: 'Técnico 1' },
+    ])
+  })
+
+  it('un apunte de IMEI sin usuario sigue siendo el traspaso de la hoja (tipo IMEI)', () => {
+    const h = construirHistorial(fila({ fecha: '2026-11-09' }), [cambio('2026-11-09T08:00:00', { usuario: null })])
+    expect(h[0]).toMatchObject({ tipo: 'imei' })
+  })
+
+  it('«sincronizadaEn» es un hito «Sincronizado con la web» en su fecha', () => {
+    const h = construirHistorial(fila({ fecha: '2026-11-09', sincronizadaEn: '2026-11-12T09:00:00' }), [])
+    expect(h[0]).toEqual({ tipo: 'sincronizado', clave: 'sincronizado', cuando: '2026-11-12T09:00:00', conHora: true })
   })
 })

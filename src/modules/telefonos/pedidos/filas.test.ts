@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, textoMotivo, valores, vigente } from './filas'
+import { estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, vigente } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -258,6 +258,51 @@ describe('estadoPantalla y recuentoEstados', () => {
     expect(con.map(estadoPantalla)).toEqual(['PENDIENTE', 'GENERADA', 'ENVIADO', 'NO_PENDIENTE', 'HISTORICO', 'ENVIADO'])
   })
   it('cuenta cada estado de pantalla en una pasada', () => {
-    expect(recuentoEstados(con)).toEqual({ PENDIENTE: 1, GENERADA: 1, ENVIADO: 2, NO_PENDIENTE: 1, HISTORICO: 1 })
+    expect(recuentoEstados(con)).toEqual({ PENDIENTE: 1, FALTA_ENVIAR: 0, GENERADA: 1, ENVIADO: 2, NO_PENDIENTE: 1, HISTORICO: 1 })
+  })
+})
+
+describe('«falta por enviar» (envío parcial de web)', () => {
+  const enviada = { estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00' }
+  const marcada = (p = {}) => fila({ ...enviada, faltaEnviarEn: '2026-11-10T09:00:00', ...p })
+
+  it('una ENVIADA con marca es FALTA_ENVIAR, tenga o no la etiqueta impresa, y cuenta como pendiente', () => {
+    expect(estadoPantalla(marcada())).toBe('FALTA_ENVIAR')
+    expect(estadoPantalla(marcada({ impresaEn: '2026-11-10T08:00:00' }))).toBe('FALTA_ENVIAR')
+    expect(esPendiente(marcada())).toBe(true)
+    expect(esPendiente(fila(enviada))).toBe(false)
+  })
+
+  it('con otro estado del servidor la marca se ignora', () => {
+    expect(estadoPantalla(fila({ estado: 'PENDIENTE', faltaEnviarEn: '2026-11-10T09:00:00' }))).toBe('PENDIENTE')
+    expect(estadoPantalla(fila({ estado: 'NO_PENDIENTE', faltaEnviarEn: '2026-11-10T09:00:00' }))).toBe('NO_PENDIENTE')
+    expect(estadoPantalla(fila({ estado: 'HISTORICO', editable: false, faltaEnviarEn: '2026-11-10T09:00:00' }))).toBe('HISTORICO')
+  })
+
+  it('el contador de pendientes la incluye', () => {
+    expect(recuento([fila(), marcada({ idFila: 2 }), fila({ ...enviada, idFila: 3 })]).pendientes).toBe(2)
+  })
+
+  it('el filtro «Pendientes» la deja ver y «Falta por enviar» deja solo esas; el recuento de Pendientes la incluye', () => {
+    const filas = [fila({ idFila: 1 }), marcada({ idFila: 2 }), fila({ ...enviada, idFila: 3 })]
+    const con = (...v: string[]) => filtrarColumnas(filas, { ...SIN_FILTROS, enviado: new Set(v) }).map((x) => x.idFila)
+    expect(con('PENDIENTE')).toEqual([1, 2])
+    expect(con('FALTA_ENVIAR')).toEqual([2])
+    expect(con('GENERADA')).toEqual([3])
+    expect(recuentoEstados(filas)).toMatchObject({ PENDIENTE: 2, FALTA_ENVIAR: 1, GENERADA: 1 })
+  })
+})
+
+describe('numerosDePedido', () => {
+  const p = (idFila: number, pedido: string, extra = {}) => fila({ idFila, pedido, canal: 'PARTICULARES', ...extra })
+
+  it('numera «1/3», «2/3», «3/3» las filas de un mismo pedido en el orden de la lista; un pedido de una fila no lleva marca', () => {
+    const n = numerosDePedido([p(1, 'A'), p(2, 'B'), p(3, 'A'), p(4, 'A')])
+    expect([...n]).toEqual([[1, '1/3'], [3, '2/3'], [4, '3/3']])
+  })
+
+  it('el mismo pedido en otro canal es otro pedido, y el histórico no cuenta', () => {
+    const n = numerosDePedido([p(1, 'A'), p(2, 'A', { canal: 'AMAZON' }), p(3, 'A', { estado: 'HISTORICO', editable: false })])
+    expect(n.size).toBe(0)
   })
 })

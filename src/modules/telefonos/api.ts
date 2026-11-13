@@ -4,7 +4,7 @@ import {
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
-import { ApiError } from '@/shared/api/errors'
+import { ApiError, StaleDataError } from '@/shared/api/errors'
 import { useIntervaloRefresco } from '@/shared/api/refresco'
 import { guardarEn, nombreDeDescarga, type TipoFichero } from '@/shared/lib/descargas'
 import { hoyMadrid } from '@/shared/lib/fechas'
@@ -278,6 +278,23 @@ function recargarFilasTrasEspera(qc: QueryClient) {
   }, RECARGA_TRAS_GUARDAR_MS))
 }
 
+/** Escribe la fila que devolvió el servidor en las listas de la caché (la celda y el panel la enseñan al momento) y, si `apunte`
+ *  da un cambio (a partir de la fila tal como estaba en la caché), lo antepone a la lista de cambios de la fila, si el panel la tiene
+ *  en la caché (si nunca se abrió, no hay nada que adelantar). Un sondeo que salió antes del guardado y aún no ha vuelto traería la fila
+ *  con su valor viejo y la pisaría: se cancela antes (solo las listas que ya tienen datos; una primera carga no se toca). */
+async function escribirFila(qc: QueryClient, fila: FilaVista, apunte: (previa: FilaVista | undefined) => CambioImei | null) {
+  await qc.cancelQueries({ queryKey: [...CLAVE_FILAS, 'lista'], predicate: (q) => q.state.data !== undefined })
+  let previa: FilaVista | undefined
+  for (const [, l] of qc.getQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] })) {
+    previa = l?.filas.find((f) => f.idFila === fila.idFila)
+    if (previa) break
+  }
+  const nuevo = apunte(previa)
+  if (nuevo) qc.setQueryData<CambioImei[]>([...CLAVE_FILAS, 'cambios', fila.idFila], (c) => (c ? [nuevo, ...c] : c))
+  qc.setQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] },
+    (l) => (l ? { ...l, filas: l.filas.map((f) => (f.idFila === fila.idFila ? fila : f)) } : l))
+}
+
 /** PUT /api/pedidos/filas/{id}/imei: pone (o quita, con null) el IMEI de una fila. `clave` va en la cabecera Idempotency-Key (la da
  *  el desplegable con crearClavesIdempotencia). `imeiAnterior` es el IMEI que la fila tenía en pantalla al abrir la celda (`''` si no
  *  tenía): el servidor responde 409 si otra persona lo cambió entre medias. Al responder, la fila devuelta se escribe en las listas de
@@ -296,26 +313,38 @@ export function usePonerImei() {
       return data
     },
     meta: { silenciarError: true, silenciarConexion: true },
-    onSuccess: async (fila) => {
-      // Un sondeo que salió antes de este guardado y aún no ha vuelto traería la fila con su valor viejo y la pisaría: se cancela antes
-      // de escribir la fila (solo las listas que ya tienen datos; una primera carga no se toca). Antes lo evitaba la recarga inmediata,
-      // que cancelaba lo que hubiera en vuelo.
-      await qc.cancelQueries({ queryKey: [...CLAVE_FILAS, 'lista'], predicate: (q) => q.state.data !== undefined })
-      // El IMEI que tenía la fila antes de esta escritura (lo dice la lista en caché, que aún no se ha tocado).
-      let anterior: string | null = null
-      for (const [, l] of qc.getQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] })) {
-        const previa = l?.filas.find((f) => f.idFila === fila.idFila)
-        if (previa) { anterior = previa.imei; break }
-      }
-      // El panel de la fila enseña el cambio al momento: se antepone a su lista de cambios, si está en la caché (si el panel
-      // nunca se abrió, no hay nada que adelantar). Después `onSettled` la recarga y manda la del servidor.
-      if (anterior !== fila.imei) {
-        const nuevo: CambioImei = { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: anterior, imeiNuevo: fila.imei }
-        qc.setQueryData<CambioImei[]>([...CLAVE_FILAS, 'cambios', fila.idFila], (c) => (c ? [nuevo, ...c] : c))
-      }
-      qc.setQueriesData<ListaFilas>({ queryKey: [...CLAVE_FILAS, 'lista'] },
-        (l) => (l ? { ...l, filas: l.filas.map((f) => (f.idFila === fila.idFila ? fila : f)) } : l))
+    onSuccess: (fila) => escribirFila(qc, fila, (previa) => {
+      // El panel de la fila enseña el cambio al momento. El IMEI que tenía la fila antes de esta escritura lo dice la lista en caché.
+      if ((previa?.imei ?? null) === fila.imei) return null
+      return { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: previa?.imei ?? null, imeiNuevo: fila.imei, tipo: 'IMEI' }
+    }),
+    // Un 409 (otra persona cambió el IMEI) no se reintenta con el mismo `imeiAnterior`: se recargan las filas en el acto para ver
+    // el IMEI que puso la otra persona (la espera de `onSettled` sería innecesaria).
+    onError: (e) => { if (e instanceof StaleDataError) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+    onSettled: () => { recargarFilasTrasEspera(qc) },
+  })
+}
+
+/** PUT /api/pedidos/filas/{id}/falta-enviar: pone (`falta: true`) o quita la marca «falta por enviar» de una fila de web con la etiqueta
+ *  generada (un envío parcial: el pedido sale por partes). `clave` va en la cabecera Idempotency-Key. Como el guardado del IMEI, escribe
+ *  la fila devuelta en las listas de la caché, adelanta el apunte en el historial del panel y recarga las filas una sola vez. Un 409
+ *  (no se puede marcar, o es histórico) o un 404 salen por la vía normal de errores, con el mensaje del servidor. */
+export function useFaltaEnviar() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ idFila, falta, clave }: { idFila: number; falta: boolean; clave: string }): Promise<FilaVista> => {
+      const { data } = await api.PUT('/api/pedidos/filas/{id}/falta-enviar', {
+        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { falta },
+      })
+      if (!data) throw new Error('El servidor no devolvió la fila')
+      return data
     },
+    onSuccess: (fila) => escribirFila(qc, fila, (previa) => {
+      const antes = previa?.faltaEnviarEn != null
+      const ahora = fila.faltaEnviarEn != null
+      if (antes === ahora) return null
+      return { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: ahora ? 'FALTA_ENVIAR' : 'YA_ENVIADO' }
+    }),
     onSettled: () => { recargarFilasTrasEspera(qc) },
   })
 }

@@ -44,12 +44,41 @@ export function estadoDe(f: FilaVista): EstadoFila {
 
 /** El estado que ve el usuario en la columna «Enviado»: el del servidor, con ENVIADA partida en «etiqueta generada» (la etiqueta
  *  existe pero no se ha impreso: el móvil sigue en el almacén) y «enviado» (la etiqueta se imprimió). */
-export type EstadoPantalla = 'PENDIENTE' | 'GENERADA' | 'ENVIADO' | 'NO_PENDIENTE' | 'HISTORICO'
+export type EstadoPantalla = 'PENDIENTE' | 'FALTA_ENVIAR' | 'GENERADA' | 'ENVIADO' | 'NO_PENDIENTE' | 'HISTORICO'
 
-/** El estado de pantalla de una fila (una comparación por fila; sin trabajo extra). */
+/** El estado de pantalla de una fila (una comparación por fila; sin trabajo extra). Una enviada con la marca «falta por enviar» (un
+ *  envío parcial de web) es `FALTA_ENVIAR`; con otro estado del servidor la marca se ignora (un pedido reabierto vuelve a pendiente). */
 export function estadoPantalla(f: FilaVista): EstadoPantalla {
   const e = estadoDe(f)
-  return e === 'ENVIADA' ? (f.impresaEn ? 'ENVIADO' : 'GENERADA') : e
+  if (e !== 'ENVIADA') return e
+  return f.faltaEnviarEn ? 'FALTA_ENVIAR' : f.impresaEn ? 'ENVIADO' : 'GENERADA'
+}
+
+/** Cuenta como pendiente: lo está en el servidor, o es un envío parcial al que aún le falta un móvil por salir. */
+export function esPendiente(f: FilaVista): boolean {
+  const e = estadoPantalla(f)
+  return e === 'PENDIENTE' || e === 'FALTA_ENVIAR'
+}
+
+/** Las tiendas web (el plugin de la web sincroniza sus envíos): solo en ellas se puede marcar «falta por enviar». */
+const CANALES_WEB = new Set(['DISTRIBUIDORES', 'PARTICULARES', 'BACKIPHONE'])
+export const esCanalWeb = (f: FilaVista): boolean => f.canal != null && CANALES_WEB.has(f.canal)
+
+/** El número de cada fila dentro de su pedido de varios móviles: «1/3», «2/3»… en el orden de la lista. Solo cuentan las filas con
+ *  `canal` y `pedido` (el histórico no) y los pedidos de más de una fila; las demás no salen en el mapa. Una pasada por cambio de filas. */
+export function numerosDePedido(filas: FilaVista[]): Map<number, string> {
+  const grupos = new Map<string, number[]>()
+  for (const f of filas) {
+    if (estadoDe(f) === 'HISTORICO' || !f.canal || !f.pedido) continue
+    const clave = `${f.canal}|${f.pedido}`
+    const g = grupos.get(clave)
+    if (g) g.push(f.idFila); else grupos.set(clave, [f.idFila])
+  }
+  const r = new Map<number, string>()
+  for (const g of grupos.values()) {
+    if (g.length > 1) g.forEach((id, i) => r.set(id, `${i + 1}/${g.length}`))
+  }
+  return r
 }
 
 /** El transportista como lo lee el usuario: sin el sufijo técnico de ShippyPro («UPSv2» → «UPS», «GLSSpain» → «GLS»). */
@@ -91,7 +120,7 @@ export type Recuento = { total: number; pendientes: number; sinImei: number; noC
 export function recuento(filas: FilaVista[]): Recuento {
   const r: Recuento = { total: filas.length, pendientes: 0, sinImei: 0, noCuadran: 0 }
   for (const f of filas) {
-    if (estadoDe(f) === 'PENDIENTE') r.pendientes++
+    if (esPendiente(f)) r.pendientes++
     if (f.editable && !f.imei) r.sinImei++
     if (noCuadra(f)) r.noCuadran++
   }
@@ -191,17 +220,29 @@ export function vigente(elegidos: Set<string>, disponibles: string[]): Set<strin
 /** Las opciones del filtro «Enviado»: una por estado de pantalla; el histórico no cuenta como enviado. */
 export const OPCIONES_ENVIADO: { valor: EstadoPantalla; texto: string }[] = [
   { valor: 'PENDIENTE', texto: 'Pendientes' },
+  { valor: 'FALTA_ENVIAR', texto: 'Falta por enviar' },
   { valor: 'GENERADA', texto: 'Etiqueta generada' },
   { valor: 'ENVIADO', texto: 'Enviados' },
   { valor: 'NO_PENDIENTE', texto: 'Ya no pendientes' },
   { valor: 'HISTORICO', texto: 'Histórico de la hoja' },
 ]
 
-/** Cuántas filas hay de cada estado de pantalla entre las recibidas (una pasada). */
+/** Cuántas filas hay de cada estado de pantalla entre las recibidas (una pasada). «Falta por enviar» cuenta aparte y también dentro de
+ *  «Pendientes», porque ese filtro las deja ver. */
 export function recuentoEstados(filas: FilaVista[]): Record<EstadoPantalla, number> {
-  const r: Record<EstadoPantalla, number> = { PENDIENTE: 0, GENERADA: 0, ENVIADO: 0, NO_PENDIENTE: 0, HISTORICO: 0 }
-  for (const f of filas) r[estadoPantalla(f)]++
+  const r: Record<EstadoPantalla, number> = { PENDIENTE: 0, FALTA_ENVIAR: 0, GENERADA: 0, ENVIADO: 0, NO_PENDIENTE: 0, HISTORICO: 0 }
+  for (const f of filas) {
+    const e = estadoPantalla(f)
+    r[e]++
+    if (e === 'FALTA_ENVIAR') r.PENDIENTE++
+  }
   return r
+}
+
+/** ¿La fila pasa el filtro «Enviado»? «Pendientes» deja también las de «Falta por enviar». */
+const pasaEnviado = (f: FilaVista, elegidos: Set<string>): boolean => {
+  const e = estadoPantalla(f)
+  return elegidos.has(e) || (e === 'FALTA_ENVIAR' && elegidos.has('PENDIENTE'))
 }
 
 /** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
@@ -217,7 +258,7 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, presentes
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || (x.editable && !x.imei))
     && (!f.noCuadran || noCuadra(x))
-    && (f.enviado.size === 0 || f.enviado.has(estadoPantalla(x))))
+    && (f.enviado.size === 0 || pasaEnviado(x, f.enviado)))
 }
 
 /** Un rango con las dos fechas puestas y en orden. */

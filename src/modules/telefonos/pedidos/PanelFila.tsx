@@ -1,15 +1,19 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { CambioImei, FilaVista } from '@/shared/api/client'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
-import { useCambiosImei } from '../api'
+import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
+import { useCambiosImei, useFaltaEnviar } from '../api'
 import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
 import { construirHistorial, type EntradaHistorial } from './historial'
-import { estadoDe, estadoPantalla, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
+import { esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 /** «2026-11-09T10:30:00» → «09/11/2026 10:30» (hora de Madrid, cortada del texto como las demás fechas). */
 const diaHora = (iso: string) => `${diaNsys(iso)} ${iso.slice(11, 16)}`
+
+/** «2026-11-09T10:30:00» → «09/11 10:30». */
+const diaMesHora = (iso: string) => `${diaNsys(iso).slice(0, 5)} ${iso.slice(11, 16)}`
 
 function Dato({ nombre, children }: { nombre: string; children: ReactNode }) {
   return (<><dt className="text-azul-gris">{nombre}</dt><dd className="m-0 min-w-0 font-semibold [overflow-wrap:anywhere]">{children}</dd></>)
@@ -29,7 +33,8 @@ function textoCambio(c: CambioImei): ReactNode {
 }
 
 /** Un hito de la propia fila: lo que pasó, y cuándo (sin hora si solo se sabe el día). */
-function textoHito(e: Exclude<EntradaHistorial, { tipo: 'imei' }>): { quien: string; texto: ReactNode } {
+function textoHito(e: Exclude<EntradaHistorial, { tipo: 'imei' | 'marca' }>): { quien: string; texto: ReactNode } {
+  if (e.tipo === 'sincronizado') return { quien: 'Sincronizado con la web', texto: null }
   if (e.tipo === 'entro') return { quien: 'Entró desde ShippyPro', texto: null }
   if (e.tipo === 'etiqueta') return { quien: 'Etiqueta generada', texto: e.transportista ? <> · {nombreTransportista(e.transportista)}</> : null }
   return { quien: 'Enviado (etiqueta impresa)', texto: null }
@@ -51,6 +56,8 @@ function Historial({ fila }: { fila: FilaVista }) {
           <li key={e.clave} className="border-b border-dashed border-form-fila-brd py-1.5 text-[12px]">
             {e.tipo === 'imei'
               ? <><span className="font-bold">{e.cambio.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(e.cambio)}</>
+              : e.tipo === 'marca'
+              ? <><span className="font-bold">{e.texto}</span>{e.quien && <> · {e.quien}</>}</>
               : <><span className="font-bold">{textoHito(e).quien}</span>{textoHito(e).texto}</>}
             <div className="text-[11px] text-azul-gris">{e.conHora ? diaHora(e.cuando) : diaNsys(e.cuando)}</div>
           </li>
@@ -61,11 +68,34 @@ function Historial({ fila }: { fila: FilaVista }) {
   )
 }
 
+/** El envío parcial (una fila de web con la etiqueta generada de un pedido que sale por partes): «Falta por enviar» pone la marca y «Ya ha
+ *  salido» la quita. Un 409 o un 404 salen por el diálogo normal de errores con el mensaje del servidor. */
+function MarcaFalta({ fila: f }: { fila: FilaVista }) {
+  const marcar = useFaltaEnviar()
+  const [claves] = useState(() => crearClavesIdempotencia())
+  const marcada = estadoPantalla(f) === 'FALTA_ENVIAR'
+  const puede = f.editable && (marcada || (esCanalWeb(f) && estadoDe(f) === 'ENVIADA'))
+  if (!marcada && !puede) return null
+  const pulsar = (falta: boolean) => {
+    const operacion = `falta:${f.idFila}`
+    marcar.mutate({ idFila: f.idFila, falta, clave: claves.para(operacion, { falta }) }, { onSuccess: () => claves.hecha(operacion) })
+  }
+  return (
+    <div className="mt-2 text-[12.5px]">
+      {marcada && f.faltaEnviarEn && <p className="m-0 mb-1.5 font-bold text-pill-aviso-text">Envío parcial: falta por enviar desde {diaMesHora(f.faltaEnviarEn)}</p>}
+      {puede && (
+        <button type="button" disabled={marcar.isPending} onClick={() => pulsar(!marcada)}
+          className="h-7 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold disabled:cursor-default disabled:opacity-60">{marcada ? 'Ya ha salido' : 'Falta por enviar'}</button>
+      )}
+    </div>
+  )
+}
+
 /** El panel de la derecha (spec v2 §3.5): el pedido, el móvil y el historial de la fila. Solo enseña; el IMEI se pone en la celda. */
 export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
   const estado = estadoPantalla(f)
   const motivo = textoMotivo(f)
-  const envio = estado === 'GENERADA' || estado === 'ENVIADO'
+  const envio = estadoDe(f) === 'ENVIADA'
   return (
     <section aria-label="Detalle del pedido" className="w-[min(380px,40vw)] min-w-0 shrink-0 overflow-x-hidden overflow-y-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
       <div className="mb-2.5 flex items-center gap-2">
@@ -86,6 +116,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
         {envio && f.transportista && <Dato nombre="Transportista">{nombreTransportista(f.transportista)}</Dato>}
         {envio && f.seguimiento && <Dato nombre="Seguimiento">{f.seguimiento}</Dato>}
       </dl>
+      <MarcaFalta key={`falta${f.idFila}`} fila={f} />
       {f.tieneEtiqueta && <PrevisualizarEtiqueta key={f.idFila} fila={f} />}
       <Titulo>El móvil</Titulo>
       {f.imei ? (

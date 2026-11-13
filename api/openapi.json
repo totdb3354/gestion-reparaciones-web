@@ -494,6 +494,50 @@
         }
       }
     },
+    "/api/pedidos/filas/{id}/falta-enviar" : {
+      "put" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "ponerFaltaEnviar",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PeticionFaltaEnviar"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FilaVista"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pedidos/filas/{id}/imei" : {
       "put" : {
         "tags" : [ "filas-controller" ],
@@ -5456,6 +5500,15 @@
           }
         }
       },
+      "PeticionFaltaEnviar" : {
+        "required" : [ "falta" ],
+        "type" : "object",
+        "properties" : {
+          "falta" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "PeticionImei" : {
         "required" : [ "imei" ],
         "type" : "object",
@@ -5471,7 +5524,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
+        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5547,6 +5600,16 @@
           },
           "canal" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "faltaEnviarEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "sincronizadaEn" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           }
         }
@@ -9593,7 +9656,7 @@
         }
       },
       "CambioImei" : {
-        "required" : [ "fecha", "imeiAnterior", "imeiNuevo", "usuario" ],
+        "required" : [ "fecha", "imeiAnterior", "imeiNuevo", "tipo", "usuario" ],
         "type" : "object",
         "properties" : {
           "usuario" : {
@@ -9611,6 +9674,9 @@
           "imeiNuevo" : {
             "type" : "string",
             "nullable" : true
+          },
+          "tipo" : {
+            "type" : "string"
           }
         }
       },

@@ -141,12 +141,12 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     expect(screen.queryByRole('button', { name: /Quitar filtro / })).not.toBeInTheDocument()
   })
 
-  it('el filtro de «Enviado» tiene cinco casillas con su recuento y el histórico no cuenta como enviado', async () => {
+  it('el filtro de «Enviado» tiene seis casillas con su recuento y el histórico no cuenta como enviado', async () => {
     const user = userEvent.setup()
     abrir()
     await contador('6 filas')
     await abrirFiltro(user, 'Enviado')
-    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Etiqueta generada0', 'Enviados1', 'Ya no pendientes0', 'Histórico de la hoja1'])
+    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Falta por enviar0', 'Etiqueta generada0', 'Enviados1', 'Ya no pendientes0', 'Histórico de la hoja1'])
     await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
     await user.click(screen.getByRole('checkbox', { name: /^Histórico de la hoja/ }))

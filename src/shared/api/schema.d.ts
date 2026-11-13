@@ -164,6 +164,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/filas/{id}/falta-enviar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ponerFaltaEnviar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pedidos/filas/{id}/imei": {
         parameters: {
             query?: never;
@@ -2681,6 +2697,10 @@ export interface components {
             skuMovil: string | null;
             caja: string | null;
             canal: string | null;
+            /** Format: date-time */
+            faltaEnviarEn: string | null;
+            /** Format: date-time */
+            sincronizadaEn: string | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -4089,6 +4109,11 @@ export interface components {
             fecha: string;
             imeiAnterior: string | null;
             imeiNuevo: string | null;
+            /** IMEI (cambio de IMEI), FALTA_ENVIAR (alguien puso la marca) o YA_ENVIADO (se quitó: usuario null = el plugin de la web al sincronizar). */
+            tipo: string;
+        };
+        PeticionFaltaEnviar: {
+            falta: boolean;
         };
         Lote: {
             /** Format: int32 */
@@ -4696,6 +4721,34 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ponerFaltaEnviar: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionFaltaEnviar"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaVista"];
+                };
             };
         };
     };

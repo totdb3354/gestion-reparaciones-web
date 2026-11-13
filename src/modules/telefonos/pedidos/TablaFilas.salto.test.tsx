@@ -151,18 +151,41 @@ describe('TablaFilas: salto a la siguiente celda vacía', () => {
     expect(estadoPedidos.get().fallosImei).toEqual({})
   })
 
-  it('un fallo en una celda sin salto también deja la celda en rojo y el aviso, sin diálogo', async () => {
+  it('un fallo (no 409) en una celda sin salto deja la celda en rojo y el aviso, sin diálogo, y se queda abierta para reintentar', async () => {
+    const user = userEvent.setup()
+    server.use(http.put('*/api/pedidos/filas/:id/imei', () => HttpResponse.json({ message: 'No se pudo' }, { status: 422 })))
+    abrirTabla([f(1), f(2)])
+    await user.click(await vacia(1))
+    await user.keyboard(B)
+    await waitFor(() => expect(estadoPedidos.get().avisoImei).toBe(`No se guardó el IMEI del pedido ${pedido(2)}. Vuelve a abrir su celda.`))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    // Sin salto, el desplegable se queda abierto con lo escrito.
+    expect(campo()).toHaveValue(B)
+    expect(screen.getByRole('button', { name: /pulsa para reintentar/ })).toBeInTheDocument()
+  })
+
+  it('un 409 (otra persona cambió el IMEI) no deja estado de fallo con reintento: solo el aviso con el mensaje del servidor, y la celda se cierra', async () => {
     const user = userEvent.setup()
     server.use(http.put('*/api/pedidos/filas/:id/imei', () => HttpResponse.json({ message: 'Otra persona lo ha cambiado' }, { status: 409 })))
     abrirTabla([f(1), f(2)])
     await user.click(await vacia(1))
     await user.keyboard(B)
-    // Un 409 enseña el mensaje del servidor (con el pedido).
     await waitFor(() => expect(estadoPedidos.get().avisoImei).toBe(`Pedido ${pedido(2)}: Otra persona lo ha cambiado`))
+    expect(estadoPedidos.get().fallosImei).toEqual({})
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-    // Sin salto, el desplegable se queda abierto con lo escrito.
-    expect(campo()).toHaveValue(B)
-    expect(screen.getByRole('button', { name: /pulsa para reintentar/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pulsa para reintentar/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(campo()).not.toBeInTheDocument())
+  })
+
+  it('el salto también llega a una fila marcada «falta por enviar» sin IMEI (cuenta como pendiente)', async () => {
+    const user = userEvent.setup()
+    const marcada = { estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', faltaEnviarEn: '2026-11-10T09:00:00', canal: 'DISTRIBUIDORES' }
+    abrirTabla([f(1), f(2, marcada), f(3)])
+    await user.click(await vacia())
+    await user.keyboard(A)
+    await waitFor(() => expect(puts).toEqual([pulsar('1', A)]))
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    expect(campo()).toHaveFocus()
   })
 
   it('el guardado manda siempre imeiAnterior: el IMEI que tenía la fila al abrir la celda, «» si no tenía', async () => {
