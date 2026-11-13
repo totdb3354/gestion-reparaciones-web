@@ -316,7 +316,7 @@ export function usePonerImei() {
     onSuccess: (fila) => escribirFila(qc, fila, (previa) => {
       // El panel de la fila enseña el cambio al momento. El IMEI que tenía la fila antes de esta escritura lo dice la lista en caché.
       if ((previa?.imei ?? null) === fila.imei) return null
-      return { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: previa?.imei ?? null, imeiNuevo: fila.imei, tipo: 'IMEI' }
+      return { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: previa?.imei ?? null, imeiNuevo: fila.imei, tipo: 'IMEI', detalle: null }
     }),
     // Un 409 (otra persona cambió el IMEI) no se reintenta con el mismo `imeiAnterior`: se recargan las filas en el acto para ver
     // el IMEI que puso la otra persona (la espera de `onSettled` sería innecesaria).
@@ -343,8 +343,36 @@ export function useFaltaEnviar() {
       const antes = previa?.faltaEnviarEn != null
       const ahora = fila.faltaEnviarEn != null
       if (antes === ahora) return null
-      return { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: ahora ? 'FALTA_ENVIAR' : 'YA_ENVIADO' }
+      return { usuario: leerSesion()?.nombreUsuario ?? null, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: ahora ? 'FALTA_ENVIAR' : 'YA_ENVIADO', detalle: null }
     }),
+    onSettled: () => { recargarFilasTrasEspera(qc) },
+  })
+}
+
+/** PUT /api/pedidos/filas/{id}/marca: pone, cambia o quita (`marca: null`) la marca de una fila de ShippyPro, con su nota opcional.
+ *  `marcaAnterior` es la marca que la fila tenía en pantalla al abrir el editor (`''` si no tenía): el servidor responde 409 si otra
+ *  persona la cambió entre medias. Como el IMEI y «falta por enviar»: clave de idempotencia, la fila devuelta se escribe en las cachés,
+ *  el apunte se adelanta en el historial y las filas se recargan una sola vez. Un fallo no abre el diálogo global: lo enseña quien llama. */
+export function usePonerMarca() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ idFila, marca, nota, marcaAnterior, clave }: { idFila: number; marca: string | null; nota: string | null; marcaAnterior: string; clave: string }): Promise<FilaVista> => {
+      const { data } = await api.PUT('/api/pedidos/filas/{id}/marca', {
+        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { marca, nota, marcaAnterior },
+      })
+      if (!data) throw new Error('El servidor no devolvió la fila')
+      return data
+    },
+    meta: { silenciarError: true, silenciarConexion: true },
+    onSuccess: (fila) => escribirFila(qc, fila, (previa) => {
+      const antes = previa?.marca ?? null
+      if (antes === fila.marca && (previa?.marcaNota ?? null) === fila.marcaNota) return null
+      const usuario = leerSesion()?.nombreUsuario ?? null
+      if (!fila.marca) return antes ? { usuario, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: 'MARCA_QUITADA', detalle: antes } : null
+      return { usuario, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: 'MARCA', detalle: fila.marcaNota ? `${fila.marca} — ${fila.marcaNota}` : fila.marca }
+    }),
+    // Un 409 (otra persona cambió la marca) no se reintenta con la misma `marcaAnterior`: se recargan las filas en el acto.
+    onError: (e) => { if (e instanceof StaleDataError) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
     onSettled: () => { recargarFilasTrasEspera(qc) },
   })
 }

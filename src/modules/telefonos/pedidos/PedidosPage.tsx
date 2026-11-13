@@ -11,7 +11,7 @@ import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, textoTienda, tiendasPresentes, valores, vigente, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -40,15 +40,15 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
   const numeros = useMemo(() => numerosDePedido(filas), [filas])
   const estados = useMemo(() => recuentoEstados(filas), [filas])
+  const conMarca = useMemo(() => recuentoMarcas(filas), [filas])
   const filtros = useMemo<FiltrosColumna>(
-    () => ({ plataformas: vigente(e.plataformas, tiendas.map((t) => t.valor)), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
-    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, tiendas, skus],
+    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas],
   )
   const filtrando = hayFiltros(filtros)
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
-  const presentes = useMemo(() => ({ tiendas: tiendas.map((t) => t.valor), skus }), [tiendas, skus])
-  const vistas = useMemo(() => filtrarColumnas(filas, filtros, presentes), [filas, filtros, presentes])
+  const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
   const ventana = vistas.length > umbralVentana
   // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
   useEffect(() => {
@@ -162,7 +162,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
-          IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })} />,
+          IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })}
+          marcas={filtros.marcas} onMarcas={(marcas) => poner({ marcas })} recuentoMarcas={conMarca} />,
         }} />
         {presente.valor && <PanelDeslizante saliendo={presente.saliendo}><PanelFila fila={presente.valor} onCerrar={cerrarPanel} /></PanelDeslizante>}
         </div>
@@ -181,6 +182,7 @@ function etiquetasDe(f: FiltrosColumna): Etiqueta[] {
     ...[...f.skus].map((v) => ({ clave: `s:${v}`, texto: `SKU: ${v}`, quitar: (s: EstadoPedidos) => ({ ...s, skus: sin(s.skus, v) }) })),
     ...OPCIONES_ENVIADO.filter((o) => f.enviado.has(o.valor)).map((o) => ({ clave: `e:${o.valor}`, texto: o.texto, quitar: (s: EstadoPedidos) => ({ ...s, enviado: sin(s.enviado, o.valor) }) })),
     ...(f.soloSinImei ? [{ clave: 'sin', texto: 'Sin IMEI', quitar: (s: EstadoPedidos) => ({ ...s, soloSinImei: false }) }] : []),
+    ...[...f.marcas].map((v) => ({ clave: `m:${v}`, texto: `Con marca: ${textoMarca(v)}`, quitar: (s: EstadoPedidos) => ({ ...s, marcas: sin(s.marcas, v) }) })),
     ...(f.noCuadran ? [{ clave: 'nc', texto: 'No cuadran', quitar: (s: EstadoPedidos) => ({ ...s, noCuadran: false }) }] : []),
   ]
 }

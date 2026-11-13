@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { FONDO } from './CeldaImei'
-import { CLASE_TONO } from './filas'
+import { CLASE_TONO, colorMarca } from './filas'
 import { COLOR_ETIQUETA, ETIQUETA } from './TablaFilas'
 
 /** Una línea de la ayuda: la muestra (con el estilo real de la tabla, si la hay) y la idea en una frase. */
@@ -38,6 +38,19 @@ export function AyudaPedidos() {
             Envío parcial de una web: este móvil sale después que el resto del pedido. Se marca a mano en el panel de la fila y cuenta
             como pendiente. Se quita sola al sincronizar su IMEI con la web (Fonestockroom) o a mano con «Ya ha salido».
           </Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, colorMarca('ESPERA_STOCK'))}>En espera de stock</span>}>
+            Marca: no hay ese móvil en el stock. Cuenta como pendiente y el lector no salta a ella; se quita sola al poner un IMEI.
+          </Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, colorMarca('EN_REVISION'))}>En revisión</span>}>
+            Marca: hay algo que aclarar antes de enviarlo. Cuenta como pendiente y el lector no salta a ella; se quita a mano.
+          </Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, colorMarca('PENDIENTE_COLOR'))}>Pendiente de color</span>}>
+            Marca: solo enseña su etiqueta y su nota; no cambia los contadores ni el lector.
+          </Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.CANCELADO)}>Cancelado</span>}>
+            Marca: el cliente anula ese móvil y el resto del pedido sigue. No cuenta como pendiente y el lector no salta a ella.
+          </Linea>
+          <Linea>Las marcas se ponen en la celda del IMEI (debajo del campo) o en el panel de la fila, con una nota si quieres. Una fila con marca no va al bot de vendidos.</Linea>
           <Linea muestra={
             <span className="flex items-baseline gap-1.5 text-[12px]">i13128AzulA<span className="font-sans text-[10px] text-azul-gris">1/3</span></span>
           }>El móvil es uno de los de un pedido de varios.</Linea>

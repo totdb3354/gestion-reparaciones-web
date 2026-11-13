@@ -4,6 +4,16 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.34] - (pendiente) — Marcas de la fila en Pedidos
+
+- En **Pedidos**, una fila puede llevar una **marca** con una **nota** opcional (hasta 200 caracteres): **«En espera de stock»** (no hay ese móvil en el stock de teléfonos), **«En revisión»** (hay algo que aclarar antes de enviarlo), **«Pendiente de color»** y **«Cancelado»** (el cliente anula ese móvil y el resto del pedido sigue). Sustituyen a los textos que se escribían en la celda del IMEI de la hoja.
+- Se ponen desde el desplegable de la **celda del IMEI** (debajo del campo, sin quitarle el foco al lector) o desde el **panel de la fila**, donde se ve también quién la puso y cuándo. La celda enseña la marca como etiqueta, con la nota al pasar el ratón.
+- «En espera de stock» y «En revisión» cuentan como pendientes, pero **el lector no salta a ellas**; «En espera de stock» **se quita sola al poner el IMEI**. «Cancelado» deja de contar como pendiente (ni en «N pendientes» ni en «N sin IMEI») y la celda de envío dice **«Cancelado»** en gris. «Pendiente de color» solo enseña su etiqueta y su nota.
+- **Una fila con marca no va al bot de vendidos** (como en la hoja, donde un texto en la celda del IMEI significaba que no había IMEI); al quitar la marca vuelve como recién puesta.
+- Filtros: «Cancelado» en el de «Enviado», y «Con marca» (una casilla por marca, con su recuento) en el del IMEI. El historial apunta cada marca, su nota y quién la quitó (o «al poner el IMEI»). La ayuda «Cómo se lee esta tabla» explica las cuatro.
+- Un **filtro de columna** cuyo valor ya no está entre las filas se sigue viendo con su ✕ y se puede quitar; antes quedaba oculto y volvía a aplicarse solo.
+- Necesita el servidor de la misma versión y su migración (`migracion-pedidos-marcas.sql`, que solo añade columnas). El servidor web limita a 30 por minuto (ráfaga de 20) las llamadas del bot de vendidos y del plugin de la web.
+
 ## [0.9.33] - (pendiente) — Ayuda del envío parcial
 
 - La ayuda «Cómo se lee esta tabla» de **Pedidos** explica el **envío parcial** (la etiqueta ámbar «Falta por enviar»: se marca a mano en el panel de la fila, cuenta como pendiente y se quita sola al sincronizar su IMEI con la web, o a mano con «Ya ha salido») y la marca **«1/3»** junto al SKU de los móviles de un pedido de varios.

@@ -74,6 +74,27 @@ describe('TablaFilas: salto a la siguiente celda vacía', () => {
     expect(puts).toEqual([pulsar('1', A)])
   })
 
+  it('no salta a las filas En espera de stock, En revisión ni Cancelado, pero sí a la de Pendiente de color', async () => {
+    const user = userEvent.setup()
+    abrirTabla([
+      f(1), f(2, { marca: 'ESPERA_STOCK' }), f(3, { marca: 'EN_REVISION' }), f(4, { marca: 'CANCELADO' }), f(5, { marca: 'PENDIENTE_COLOR' }), f(6),
+    ])
+    await user.click(await vacia())
+    await user.keyboard(A)
+    await waitFor(() => expect(puts).toEqual([pulsar('1', A)]))
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(5)))
+    expect(campo()).toHaveFocus()
+  })
+
+  it('con solo filas marcadas por debajo, se cierra', async () => {
+    const user = userEvent.setup()
+    abrirTabla([f(1), f(2, { marca: 'ESPERA_STOCK' }), f(3, { marca: 'CANCELADO' })])
+    await user.click(await vacia())
+    await user.keyboard(A)
+    await waitFor(() => expect(puts).toEqual([pulsar('1', A)]))
+    await waitFor(() => expect(campo()).not.toBeInTheDocument())
+  })
+
   it('sin ninguna vacía por debajo, se cierra (aunque haya una vacía por encima)', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1), f(2)])

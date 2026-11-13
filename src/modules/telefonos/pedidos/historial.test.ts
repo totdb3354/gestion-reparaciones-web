@@ -3,7 +3,7 @@ import type { CambioImei } from '@/shared/api/client'
 import { fila } from '../test/fabrica'
 import { construirHistorial } from './historial'
 
-const cambio = (fecha: string, p: Partial<CambioImei> = {}): CambioImei => ({ usuario: 'Supertécnico 1', fecha, imeiAnterior: null, imeiNuevo: '350000000000010', tipo: 'IMEI', ...p })
+const cambio = (fecha: string, p: Partial<CambioImei> = {}): CambioImei => ({ usuario: 'Supertécnico 1', fecha, imeiAnterior: null, imeiNuevo: '350000000000010', tipo: 'IMEI', detalle: null, ...p })
 const claves = (f: ReturnType<typeof fila>, c: CambioImei[]) => construirHistorial(f, c).map((e) => e.tipo)
 
 describe('construirHistorial', () => {
@@ -61,5 +61,20 @@ describe('construirHistorial', () => {
   it('«sincronizadaEn» es un hito «Sincronizado con la web» en su fecha', () => {
     const h = construirHistorial(fila({ fecha: '2026-11-09', sincronizadaEn: '2026-11-12T09:00:00' }), [])
     expect(h[0]).toEqual({ tipo: 'sincronizado', clave: 'sincronizado', cuando: '2026-11-12T09:00:00', conHora: true })
+  })
+
+  it('MARCA y MARCA_QUITADA salen como marcas con su texto, su nota y quién', () => {
+    const h = construirHistorial(fila({ fecha: '2026-11-09' }), [
+      cambio('2026-11-12T10:00:00', { tipo: 'MARCA', imeiNuevo: null, detalle: 'ESPERA_STOCK — llega el lunes — y el martes' }),
+      cambio('2026-11-12T09:00:00', { tipo: 'MARCA', imeiNuevo: null, detalle: 'CANCELADO' }),
+      cambio('2026-11-11T09:00:00', { tipo: 'MARCA_QUITADA', imeiNuevo: null, detalle: 'EN_REVISION' }),
+      cambio('2026-11-10T09:00:00', { tipo: 'MARCA_QUITADA', imeiNuevo: null, detalle: 'ESPERA_STOCK — al poner el IMEI' }),
+    ])
+    expect(h.slice(0, 4)).toMatchObject([
+      { tipo: 'marca', texto: 'Marca: En espera de stock — llega el lunes — y el martes', quien: 'Supertécnico 1' },
+      { tipo: 'marca', texto: 'Marca: Cancelado' },
+      { tipo: 'marca', texto: 'Marca quitada (En revisión)' },
+      { tipo: 'marca', texto: 'Marca quitada al poner el IMEI (En espera de stock)' },
+    ])
   })
 })

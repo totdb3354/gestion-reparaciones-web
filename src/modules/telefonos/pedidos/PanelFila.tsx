@@ -6,7 +6,8 @@ import { useCambiosImei, useFaltaEnviar } from '../api'
 import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
 import { construirHistorial, type EntradaHistorial } from './historial'
-import { esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, textoMotivo, textoTienda, tiendaDe } from './filas'
+import { EditorMarca } from './EditorMarca'
+import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, textoMarca, textoMotivo, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 /** «2026-11-09T10:30:00» → «09/11/2026 10:30» (hora de Madrid, cortada del texto como las demás fechas). */
@@ -91,6 +92,26 @@ function MarcaFalta({ fila: f }: { fila: FilaVista }) {
   )
 }
 
+/** La marca de la fila (En espera de stock, En revisión, Pendiente de color o Cancelado): cuál es, su nota, quién la puso y cuándo, y el
+ *  editor para cambiarla o quitarla. El editor se rehace cuando la fila cambia de marca (guardado propio o recarga con la de otra persona). */
+function SeccionMarca({ fila: f }: { fila: FilaVista }) {
+  if (!f.editable && !f.marca) return null
+  return (
+    <div className="mt-2 text-[12.5px]">
+      {f.marca ? (
+        <>
+          <p className="m-0 flex flex-wrap items-baseline gap-1.5">
+            <span className={`inline-block rounded-lg px-2 py-px text-[11px] font-bold ${colorMarca(f.marca)}`}>{textoMarca(f.marca)}</span>
+            {f.marcaNota && <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{f.marcaNota}</span>}
+          </p>
+          {f.marcaEn && <p className="m-0 mt-0.5 text-[11px] text-azul-gris">Puesta{f.marcaPor ? ` por ${f.marcaPor}` : ''} el {diaHora(f.marcaEn)}</p>}
+        </>
+      ) : <p className="m-0 text-[12px] text-azul-gris">Sin marca.</p>}
+      {f.editable && <EditorMarca key={`${f.idFila}:${f.marca}:${f.marcaNota}:${f.marcaEn}`} fila={f} />}
+    </div>
+  )
+}
+
 /** El panel de la derecha (spec v2 §3.5): el pedido, el móvil y el historial de la fila. Solo enseña; el IMEI se pone en la celda. */
 export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
   const estado = estadoPantalla(f)
@@ -117,6 +138,8 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
         {envio && f.seguimiento && <Dato nombre="Seguimiento">{f.seguimiento}</Dato>}
       </dl>
       <MarcaFalta key={`falta${f.idFila}`} fila={f} />
+      <Titulo>Marca</Titulo>
+      <SeccionMarca fila={f} />
       {f.tieneEtiqueta && <PrevisualizarEtiqueta key={f.idFila} fila={f} />}
       <Titulo>El móvil</Titulo>
       {f.imei ? (

@@ -6,7 +6,7 @@ import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos, type FalloImei } from './estado'
-import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, tonoFila, type EstadoPantalla } from './filas'
+import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -46,6 +46,7 @@ export const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
   GENERADA: 'bg-pill-aviso-bg text-pill-aviso-text',
   ENVIADO: 'bg-fila-reparado-bg text-[#2f7d3b]',
   NO_PENDIENTE: 'bg-[#dbe6fb] text-[#1d3a78]',
+  CANCELADO: 'bg-[#eceef2] text-[#6b7482]',
   HISTORICO: 'bg-[#eceef2] text-[#6b7482]',
 }
 
@@ -63,6 +64,7 @@ export function EtiquetaEstado({ fila: f, estado, conDetalle = true }: { fila: F
     GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
     ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
     NO_PENDIENTE: 'Ya no está pendiente',
+    CANCELADO: 'Cancelado',
     HISTORICO: 'De la hoja',
   }[estado]
   return (
@@ -148,7 +150,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
     const lista = filasAhora.current
     const i = lista.findIndex((f) => f.idFila === desde)
     if (i < 0) return false
-    const j = lista.findIndex((f, k) => k > i && f.editable && !f.imei)
+    const j = lista.findIndex((f, k) => k > i && saltaElLector(f))
     if (j < 0) return false
     const id = lista[j].idFila
     aEnseñar.current = j

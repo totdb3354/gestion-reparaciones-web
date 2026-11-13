@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ListFilter } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from '@/shared/ui/checkbox'
-import { OPCIONES_ENVIADO } from './filas'
+import { MARCAS, OPCIONES_ENVIADO, textoTienda } from './filas'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 
 /** Con más valores que estos, el desplegable lleva una caja para acortar la lista (el SKU puede tener cientos). */
@@ -39,10 +39,13 @@ function Casilla({ marcada, onCambio, texto, n }: { marcada: boolean; onCambio: 
 type PropsValores = { columna: string; valores: string[]; seleccion: Set<string>; onChange: (s: Set<string>) => void }
 
 /** El filtro de Plataforma o SKU: los valores que hay en lo recibido, con casillas y «Todos» (sin ninguna marcada, no filtra). */
-export function FiltroColumna({ columna, valores, seleccion, onChange }: PropsValores) {
+export function FiltroColumna({ columna, valores: recibidos, seleccion, onChange }: PropsValores) {
   const [texto, setTexto] = useState('')
+  // Un valor elegido que ya no está entre las filas sigue en la lista, marcado y con recuento 0, para poder desmarcarlo.
+  const ausentes = [...seleccion].filter((v) => !recibidos.includes(v)).sort((a, b) => a.localeCompare(b, 'es'))
+  const valores = [...recibidos, ...ausentes]
   const vistos = texto.trim() ? valores.filter((v) => v.toLowerCase().includes(texto.trim().toLowerCase())) : valores
-  const activo = valores.some((v) => seleccion.has(v))
+  const activo = seleccion.size > 0
   const alternar = (v: string, marcado: boolean) => {
     const s = new Set(seleccion)
     if (marcado) s.add(v)
@@ -57,7 +60,7 @@ export function FiltroColumna({ columna, valores, seleccion, onChange }: PropsVa
       )}
       <Casilla marcada={!activo} onCambio={() => onChange(new Set())} texto="Todos" />
       <div className="max-h-64 overflow-y-auto">
-        {vistos.map((v) => <Casilla key={v} marcada={seleccion.has(v)} onCambio={(m) => alternar(v, m)} texto={v} />)}
+        {vistos.map((v) => <Casilla key={v} marcada={seleccion.has(v)} onCambio={(m) => alternar(v, m)} texto={v} n={ausentes.includes(v) ? 0 : undefined} />)}
         {vistos.length === 0 && <p className="px-1.5 py-1 text-azul-gris">Ningún valor coincide.</p>}
       </div>
     </Marco>
@@ -66,10 +69,12 @@ export function FiltroColumna({ columna, valores, seleccion, onChange }: PropsVa
 
 /** El filtro de Plataforma: una casilla por tienda (no por cliente) que tenga filas entre las recibidas, con su recuento; «Todos» (sin
  *  ninguna marcada, no filtra). Un cliente concreto se busca por su nombre en el buscador. */
-export function FiltroTienda({ tiendas, seleccion, onChange }: {
+export function FiltroTienda({ tiendas: presentes, seleccion, onChange }: {
   tiendas: { valor: string; texto: string; n: number }[]; seleccion: Set<string>; onChange: (s: Set<string>) => void
 }) {
-  const activo = tiendas.some((t) => seleccion.has(t.valor))
+  // Una tienda elegida que ya no tiene filas sigue en la lista, marcada y con recuento 0, para poder desmarcarla.
+  const tiendas = [...presentes, ...[...seleccion].filter((v) => !presentes.some((t) => t.valor === v)).map((v) => ({ valor: v, texto: textoTienda(v), n: 0 }))]
+  const activo = seleccion.size > 0
   return (
     <Marco columna="Plataforma" activo={activo}>
       <Casilla marcada={!activo} onCambio={() => onChange(new Set())} texto="Todos" />
@@ -96,14 +101,23 @@ export function FiltroEnviado({ seleccion, onChange, recuentos }: {
   )
 }
 
-/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también) y «No cuadran», las del IMEI en naranja. */
-export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran }: {
+/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también), «No cuadran», las del IMEI en naranja,
+ *  y «Con marca», una casilla por marca (En espera de stock, En revisión, Pendiente de color, Cancelado) con su recuento. */
+export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran, marcas, onMarcas, recuentoMarcas }: {
   sinImei: boolean; noCuadran: boolean; onSinImei: (a: boolean) => void; onNoCuadran: (a: boolean) => void
+  marcas: Set<string>; onMarcas: (s: Set<string>) => void; recuentoMarcas: Record<string, number>
 }) {
   return (
-    <Marco columna="IMEI" activo={sinImei || noCuadran}>
+    <Marco columna="IMEI" activo={sinImei || noCuadran || marcas.size > 0}>
       <Casilla marcada={sinImei} onCambio={onSinImei} texto="Solo sin IMEI" />
       <Casilla marcada={noCuadran} onCambio={onNoCuadran} texto="No cuadran" />
+      <div role="group" aria-label="Con marca">
+        <p className="mt-1.5 mb-0.5 border-t border-form-fila-brd px-1.5 pt-1.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Con marca</p>
+        {MARCAS.map((m) => (
+          <Casilla key={m.valor} marcada={marcas.has(m.valor)} texto={m.texto} n={recuentoMarcas[m.valor] ?? 0}
+            onCambio={(a) => { const s = new Set(marcas); if (a) s.add(m.valor); else s.delete(m.valor); onMarcas(s) }} />
+        ))}
+      </div>
     </Marco>
   )
 }

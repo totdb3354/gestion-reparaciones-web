@@ -44,17 +44,41 @@ export function estadoDe(f: FilaVista): EstadoFila {
 
 /** El estado que ve el usuario en la columna «Enviado»: el del servidor, con ENVIADA partida en «etiqueta generada» (la etiqueta
  *  existe pero no se ha impreso: el móvil sigue en el almacén) y «enviado» (la etiqueta se imprimió). */
-export type EstadoPantalla = 'PENDIENTE' | 'FALTA_ENVIAR' | 'GENERADA' | 'ENVIADO' | 'NO_PENDIENTE' | 'HISTORICO'
+export type EstadoPantalla = 'PENDIENTE' | 'FALTA_ENVIAR' | 'GENERADA' | 'ENVIADO' | 'NO_PENDIENTE' | 'CANCELADO' | 'HISTORICO'
+
+/** Las marcas de la fila (una como mucho, con una nota opcional): el valor es el que manda y devuelve el servidor. */
+export const MARCAS: { valor: string; texto: string }[] = [
+  { valor: 'ESPERA_STOCK', texto: 'En espera de stock' },
+  { valor: 'EN_REVISION', texto: 'En revisión' },
+  { valor: 'PENDIENTE_COLOR', texto: 'Pendiente de color' },
+  { valor: 'CANCELADO', texto: 'Cancelado' },
+]
+/** El texto de una marca; una que la web aún no conoce se enseña tal cual (la marca nunca se esconde). */
+export const textoMarca = (valor: string): string => MARCAS.find((m) => m.valor === valor)?.texto ?? valor
+/** El color de la etiqueta de cada marca (ámbar suave, azul suave y gris). */
+export const COLOR_MARCA: Record<string, string> = {
+  ESPERA_STOCK: 'bg-pill-aviso-bg text-pill-aviso-text',
+  PENDIENTE_COLOR: 'bg-pill-aviso-bg text-pill-aviso-text',
+  EN_REVISION: 'bg-[#dbe6fb] text-[#1d3a78]',
+  CANCELADO: 'bg-[#eceef2] text-[#6b7482]',
+}
+export const colorMarca = (valor: string): string => COLOR_MARCA[valor] ?? COLOR_MARCA.CANCELADO
+/** Las marcas a las que el lector NO salta: la fila tiene un motivo para quedarse sin IMEI. «Pendiente de color» es como sin marca. */
+const MARCAS_SIN_SALTO = new Set(['ESPERA_STOCK', 'EN_REVISION', 'CANCELADO'])
+/** ¿Puede el salto del lector abrir esta fila? Editable, sin IMEI y sin una marca que diga que no hay que ponérselo ahora. */
+export const saltaElLector = (f: FilaVista): boolean => f.editable && !f.imei && !(f.marca != null && MARCAS_SIN_SALTO.has(f.marca))
 
 /** El estado de pantalla de una fila (una comparación por fila; sin trabajo extra). Una enviada con la marca «falta por enviar» (un
  *  envío parcial de web) es `FALTA_ENVIAR`; con otro estado del servidor la marca se ignora (un pedido reabierto vuelve a pendiente). */
 export function estadoPantalla(f: FilaVista): EstadoPantalla {
   const e = estadoDe(f)
+  // «Cancelado» gana a todo (también a la marca de envío parcial): el móvil ya no sale.
+  if (f.marca === 'CANCELADO' && e !== 'HISTORICO') return 'CANCELADO'
   if (e !== 'ENVIADA') return e
   return f.faltaEnviarEn ? 'FALTA_ENVIAR' : f.impresaEn ? 'ENVIADO' : 'GENERADA'
 }
 
-/** Cuenta como pendiente: lo está en el servidor, o es un envío parcial al que aún le falta un móvil por salir. */
+/** Cuenta como pendiente: lo está en el servidor, o es un envío parcial al que aún le falta un móvil por salir. Una cancelada no. */
 export function esPendiente(f: FilaVista): boolean {
   const e = estadoPantalla(f)
   return e === 'PENDIENTE' || e === 'FALTA_ENVIAR'
@@ -115,13 +139,18 @@ export const noCuadra = (f: FilaVista): boolean => f.nivel === 'MAL'
 
 export type Recuento = { total: number; pendientes: number; sinImei: number; noCuadran: number }
 
+/** ¿Le falta el IMEI? Editable y sin IMEI (enviadas incluidas), salvo «Cancelado»: ese móvil no sale y no necesita IMEI. */
+export function faltaImei(f: FilaVista): boolean {
+  return f.editable && !f.imei && f.marca !== 'CANCELADO'
+}
+
 /** Los contadores de la cabecera: todas las filas, las pendientes, las editables que aún no tienen IMEI (enviadas incluidas) y las
  *  que no cuadran. Una sola pasada. */
 export function recuento(filas: FilaVista[]): Recuento {
   const r: Recuento = { total: filas.length, pendientes: 0, sinImei: 0, noCuadran: 0 }
   for (const f of filas) {
     if (esPendiente(f)) r.pendientes++
-    if (f.editable && !f.imei) r.sinImei++
+    if (faltaImei(f)) r.sinImei++
     if (noCuadra(f)) r.noCuadran++
   }
   return r
@@ -152,9 +181,9 @@ export function rangoDe(p: Periodo, hoy: Date, rango?: { desde: string; hasta: s
   }
 }
 
-export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; enviado: Set<string> }
+export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; enviado: Set<string>; marcas: Set<string> }
 
-export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set() }
+export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set() }
 
 /** Los contadores pulsables de la cabecera y el filtro que cada uno aplica (sustituye a los filtros de columna). */
 export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'noCuadran'
@@ -170,7 +199,7 @@ export function filtrosDeContador(c: Contador): FiltrosColumna {
 
 /** El contador que está aplicado: el que deja exactamente sus filtros y ninguno más; null si hay otra combinación. */
 export function contadorAplicado(f: FiltrosColumna): Contador | null {
-  const nada = f.plataformas.size === 0 && f.skus.size === 0
+  const nada = f.plataformas.size === 0 && f.skus.size === 0 && f.marcas.size === 0
   if (!nada) return null
   const enviado = f.enviado.size === 1 && f.enviado.has('PENDIENTE')
   if (f.enviado.size === 0 && !f.soloSinImei && !f.noCuadran) return 'filas'
@@ -211,12 +240,6 @@ export function valores(filas: FilaVista[], columna: 'sku' | 'plataforma'): stri
   return [...new Set(filas.map((f) => f[columna]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b, 'es'))
 }
 
-/** Lo elegido que todavía existe entre los valores recibidos: un valor que ya no está se ignora. */
-export function vigente(elegidos: Set<string>, disponibles: string[]): Set<string> {
-  const hay = new Set(disponibles)
-  return new Set([...elegidos].filter((v) => hay.has(v)))
-}
-
 /** Las opciones del filtro «Enviado»: una por estado de pantalla; el histórico no cuenta como enviado. */
 export const OPCIONES_ENVIADO: { valor: EstadoPantalla; texto: string }[] = [
   { valor: 'PENDIENTE', texto: 'Pendientes' },
@@ -224,18 +247,26 @@ export const OPCIONES_ENVIADO: { valor: EstadoPantalla; texto: string }[] = [
   { valor: 'GENERADA', texto: 'Etiqueta generada' },
   { valor: 'ENVIADO', texto: 'Enviados' },
   { valor: 'NO_PENDIENTE', texto: 'Ya no pendientes' },
+  { valor: 'CANCELADO', texto: 'Cancelado' },
   { valor: 'HISTORICO', texto: 'Histórico de la hoja' },
 ]
 
 /** Cuántas filas hay de cada estado de pantalla entre las recibidas (una pasada). «Falta por enviar» cuenta aparte y también dentro de
  *  «Pendientes», porque ese filtro las deja ver. */
 export function recuentoEstados(filas: FilaVista[]): Record<EstadoPantalla, number> {
-  const r: Record<EstadoPantalla, number> = { PENDIENTE: 0, FALTA_ENVIAR: 0, GENERADA: 0, ENVIADO: 0, NO_PENDIENTE: 0, HISTORICO: 0 }
+  const r: Record<EstadoPantalla, number> = { PENDIENTE: 0, FALTA_ENVIAR: 0, GENERADA: 0, ENVIADO: 0, NO_PENDIENTE: 0, CANCELADO: 0, HISTORICO: 0 }
   for (const f of filas) {
     const e = estadoPantalla(f)
     r[e]++
     if (e === 'FALTA_ENVIAR') r.PENDIENTE++
   }
+  return r
+}
+
+/** Cuántas filas hay con cada marca entre las recibidas (una pasada). Solo salen las marcas que hay. */
+export function recuentoMarcas(filas: FilaVista[]): Record<string, number> {
+  const r: Record<string, number> = {}
+  for (const f of filas) if (f.marca) r[f.marca] = (r[f.marca] ?? 0) + 1
   return r
 }
 
@@ -245,20 +276,22 @@ const pasaEnviado = (f: FilaVista, elegidos: Set<string>): boolean => {
   return elegidos.has(e) || (e === 'FALTA_ENVIAR' && elegidos.has('PENDIENTE'))
 }
 
-/** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
+/** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; un valor elegido que ya no está
+ *  entre las filas sigue filtrando (la pantalla lo enseña con su etiqueta y la tabla explica que no queda nada); «solo sin IMEI» deja las
  *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
  *  con él, un array nuevo con los mismos objetos. */
-export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, presentes?: { tiendas: string[]; skus: string[] }): FilaVista[] {
-  // La página ya tiene las tiendas y los SKU presentes (los calcula una vez por carga): se los pasa para no recorrer 26.000 filas otra vez.
-  const plataformas = vigente(f.plataformas, presentes?.tiendas ?? tiendasPresentes(filas).map((t) => t.valor))
-  const skus = vigente(f.skus, presentes?.skus ?? valores(filas, 'sku'))
-  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0) return filas
+export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
+  // Se aplica exactamente lo guardado, este o no entre las filas: cada valor se ve como etiqueta y se puede quitar (nada oculto).
+  const { plataformas, skus } = f
+  const { marcas } = f
+  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0 && marcas.size === 0) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || plataformas.has(tiendaDe(x)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
-    && (!f.soloSinImei || (x.editable && !x.imei))
+    && (!f.soloSinImei || faltaImei(x))
     && (!f.noCuadran || noCuadra(x))
-    && (f.enviado.size === 0 || pasaEnviado(x, f.enviado)))
+    && (f.enviado.size === 0 || pasaEnviado(x, f.enviado))
+    && (marcas.size === 0 || (x.marca != null && marcas.has(x.marca))))
 }
 
 /** Un rango con las dos fechas puestas y en orden. */
