@@ -1,7 +1,7 @@
 {
   "name": "gestion-reparaciones-web",
   "private": true,
-  "version": "0.9.32",
+  "version": "0.9.32.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
