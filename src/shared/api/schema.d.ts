@@ -180,6 +180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/filas/{id}/marca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ponerMarca"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pedidos/filas/{id}/imei": {
         parameters: {
             query?: never;
@@ -2701,6 +2717,11 @@ export interface components {
             faltaEnviarEn: string | null;
             /** Format: date-time */
             sincronizadaEn: string | null;
+            marca: string | null;
+            marcaNota: string | null;
+            /** Format: date-time */
+            marcaEn: string | null;
+            marcaPor: string | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -4109,11 +4130,17 @@ export interface components {
             fecha: string;
             imeiAnterior: string | null;
             imeiNuevo: string | null;
-            /** IMEI (cambio de IMEI), FALTA_ENVIAR (alguien puso la marca) o YA_ENVIADO (se quitó: usuario null = el plugin de la web al sincronizar). */
+            /** IMEI (cambio de IMEI), FALTA_ENVIAR (alguien puso la marca) o YA_ENVIADO (se quitó: usuario null = el plugin de la web al sincronizar), MARCA o MARCA_QUITADA (detalle lleva la marca y su nota). */
             tipo: string;
+            detalle: string | null;
         };
         PeticionFaltaEnviar: {
             falta: boolean;
+        };
+        PeticionMarca: {
+            marca: string | null;
+            nota?: string | null;
+            marcaAnterior?: string | null;
         };
         Lote: {
             /** Format: int32 */
@@ -4738,6 +4765,34 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PeticionFaltaEnviar"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaVista"];
+                };
+            };
+        };
+    };
+    ponerMarca: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionMarca"];
             };
         };
         responses: {

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ListFilter } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from '@/shared/ui/checkbox'
-import { OPCIONES_ENVIADO, textoTienda } from './filas'
+import { MARCAS, OPCIONES_ENVIADO, textoTienda } from './filas'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 
 /** Con más valores que estos, el desplegable lleva una caja para acortar la lista (el SKU puede tener cientos). */
@@ -101,14 +101,23 @@ export function FiltroEnviado({ seleccion, onChange, recuentos }: {
   )
 }
 
-/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también) y «No cuadran», las del IMEI en naranja. */
-export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran }: {
+/** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también), «No cuadran», las del IMEI en naranja,
+ *  y «Con marca», una casilla por marca (En espera de stock, En revisión, Pendiente de color, Cancelado) con su recuento. */
+export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran, marcas, onMarcas, recuentoMarcas }: {
   sinImei: boolean; noCuadran: boolean; onSinImei: (a: boolean) => void; onNoCuadran: (a: boolean) => void
+  marcas: Set<string>; onMarcas: (s: Set<string>) => void; recuentoMarcas: Record<string, number>
 }) {
   return (
-    <Marco columna="IMEI" activo={sinImei || noCuadran}>
+    <Marco columna="IMEI" activo={sinImei || noCuadran || marcas.size > 0}>
       <Casilla marcada={sinImei} onCambio={onSinImei} texto="Solo sin IMEI" />
       <Casilla marcada={noCuadran} onCambio={onNoCuadran} texto="No cuadran" />
+      <div role="group" aria-label="Con marca">
+        <p className="mt-1.5 mb-0.5 border-t border-form-fila-brd px-1.5 pt-1.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Con marca</p>
+        {MARCAS.map((m) => (
+          <Casilla key={m.valor} marcada={marcas.has(m.valor)} texto={m.texto} n={recuentoMarcas[m.valor] ?? 0}
+            onCambio={(a) => { const s = new Set(marcas); if (a) s.add(m.valor); else s.delete(m.valor); onMarcas(s) }} />
+        ))}
+      </div>
     </Marco>
   )
 }

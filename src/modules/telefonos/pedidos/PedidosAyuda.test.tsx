@@ -48,6 +48,10 @@ describe('Pedidos: botón de ayuda', () => {
     expect(within(ayuda).getByText('Falta por enviar')).toBeInTheDocument()
     expect(within(ayuda).getByText(/Envío parcial de una web: este móvil sale después que el resto del pedido/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/«Ya ha salido»/)).toBeInTheDocument()
+    // Las cuatro marcas de la fila, con su etiqueta de muestra y su frase.
+    for (const t of ['En espera de stock', 'En revisión', 'Pendiente de color', 'Cancelado']) expect(within(ayuda).getByText(t)).toBeInTheDocument()
+    expect(within(ayuda).getByText(/hay algo que aclarar antes de enviarlo/)).toBeInTheDocument()
+    expect(within(ayuda).getByText(/el cliente anula ese móvil/)).toBeInTheDocument()
     expect(within(ayuda).getByText('1/3')).toBeInTheDocument()
     expect(within(ayuda).getByText('El móvil es uno de los de un pedido de varios.')).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')

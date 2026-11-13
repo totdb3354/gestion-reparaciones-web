@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -119,7 +119,7 @@ describe('valores y filtrarColumnas', () => {
     fila({ idFila: 3, plataforma: 'Web', sku: 'a1', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
   ]
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>() }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>() }
   it('valores: distintos y ordenados', () => {
     expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
   })
@@ -188,7 +188,7 @@ describe('estadoDe', () => {
 })
 
 describe('filtros combinados', () => {
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>() }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>() }
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', estado: 'ENVIADA' }),
     fila({ idFila: 2, plataforma: 'Web', estado: 'ENVIADA', imei: '350000000000001' }),
@@ -255,7 +255,7 @@ describe('estadoPantalla y recuentoEstados', () => {
     expect(con.map(estadoPantalla)).toEqual(['PENDIENTE', 'GENERADA', 'ENVIADO', 'NO_PENDIENTE', 'HISTORICO', 'ENVIADO'])
   })
   it('cuenta cada estado de pantalla en una pasada', () => {
-    expect(recuentoEstados(con)).toEqual({ PENDIENTE: 1, FALTA_ENVIAR: 0, GENERADA: 1, ENVIADO: 2, NO_PENDIENTE: 1, HISTORICO: 1 })
+    expect(recuentoEstados(con)).toEqual({ PENDIENTE: 1, FALTA_ENVIAR: 0, GENERADA: 1, ENVIADO: 2, NO_PENDIENTE: 1, CANCELADO: 0, HISTORICO: 1 })
   })
 })
 
@@ -301,5 +301,43 @@ describe('numerosDePedido', () => {
   it('el mismo pedido en otro canal es otro pedido, y el histórico no cuenta', () => {
     const n = numerosDePedido([p(1, 'A'), p(2, 'A', { canal: 'AMAZON' }), p(3, 'A', { estado: 'HISTORICO', editable: false })])
     expect(n.size).toBe(0)
+  })
+})
+
+describe('marcas de la fila', () => {
+  const marca = (m: string | null, p: Parameters<typeof fila>[0] = {}) => fila({ marca: m, ...p })
+  it('«Cancelado» gana a todo en el estado de pantalla (también a «falta por enviar»), pero no al histórico', () => {
+    expect(estadoPantalla(marca('CANCELADO'))).toBe('CANCELADO')
+    expect(estadoPantalla(marca('CANCELADO', { estado: 'ENVIADA', faltaEnviarEn: '2026-11-10T09:05:00', impresaEn: '2026-11-10T10:00:00' }))).toBe('CANCELADO')
+    expect(estadoPantalla(marca('CANCELADO', { estado: 'NO_PENDIENTE' }))).toBe('CANCELADO')
+    expect(estadoPantalla(marca('CANCELADO', { estado: 'HISTORICO', editable: false }))).toBe('HISTORICO')
+    expect(estadoPantalla(marca('EN_REVISION'))).toBe('PENDIENTE')
+    expect(estadoPantalla(marca('ESPERA_STOCK', { estado: 'ENVIADA' }))).toBe('GENERADA')
+  })
+  it('cuentan como pendientes las sin marca, ESPERA_STOCK, EN_REVISION y PENDIENTE_COLOR; CANCELADO no', () => {
+    const filas = [marca(null, { idFila: 1 }), marca('ESPERA_STOCK', { idFila: 2 }), marca('EN_REVISION', { idFila: 3 }), marca('PENDIENTE_COLOR', { idFila: 4 }), marca('CANCELADO', { idFila: 5 })]
+    expect(filas.map(esPendiente)).toEqual([true, true, true, true, false])
+    expect(recuento(filas).pendientes).toBe(4)
+    expect(recuentoEstados(filas)).toMatchObject({ PENDIENTE: 4, CANCELADO: 1 })
+  })
+  it('el lector salta a las editables sin IMEI salvo con ESPERA_STOCK, EN_REVISION o CANCELADO', () => {
+    expect(saltaElLector(marca(null))).toBe(true)
+    expect(saltaElLector(marca('PENDIENTE_COLOR'))).toBe(true)
+    for (const m of ['ESPERA_STOCK', 'EN_REVISION', 'CANCELADO']) expect(saltaElLector(marca(m))).toBe(false)
+    expect(saltaElLector(marca(null, { imei: '350000000000001' }))).toBe(false)
+    expect(saltaElLector(marca(null, { editable: false }))).toBe(false)
+  })
+  it('recuentoMarcas cuenta solo las marcas que hay, y el filtro «Con marca» deja las filas con esas marcas', () => {
+    const filas = [marca(null, { idFila: 1 }), marca('ESPERA_STOCK', { idFila: 2 }), marca('CANCELADO', { idFila: 3 }), marca('CANCELADO', { idFila: 4 })]
+    expect(recuentoMarcas(filas)).toEqual({ ESPERA_STOCK: 1, CANCELADO: 2 })
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, marcas: new Set(['CANCELADO']) }).map((f) => f.idFila)).toEqual([3, 4])
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, marcas: new Set(['CANCELADO', 'ESPERA_STOCK']) }).map((f) => f.idFila)).toEqual([2, 3, 4])
+    expect(filtrarColumnas(filas, SIN_FILTROS)).toBe(filas)
+    expect(hayFiltros({ ...SIN_FILTROS, marcas: new Set(['CANCELADO']) })).toBe(true)
+    expect(contadorAplicado({ ...SIN_FILTROS, marcas: new Set(['CANCELADO']) })).toBeNull()
+  })
+  it('textoMarca: los cuatro textos y, de una desconocida, el valor tal cual', () => {
+    expect(['ESPERA_STOCK', 'EN_REVISION', 'PENDIENTE_COLOR', 'CANCELADO'].map(textoMarca)).toEqual(['En espera de stock', 'En revisión', 'Pendiente de color', 'Cancelado'])
+    expect(textoMarca('OTRA')).toBe('OTRA')
   })
 })

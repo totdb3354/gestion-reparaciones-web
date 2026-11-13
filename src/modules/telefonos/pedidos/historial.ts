@@ -1,4 +1,5 @@
 import type { CambioImei, FilaVista } from '@/shared/api/client'
+import { textoMarca } from './filas'
 
 /** Una entrada del «Historial» del panel: un cambio de IMEI (del servidor) o un hito de la propia fila. `cuando` es el instante
  *  para ordenar («2026-11-09T10:30:00»); `conHora` es false en el hito que solo trae el día (la entrada desde ShippyPro). */
@@ -18,6 +19,17 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
     const cuando = cambio.fecha.slice(0, 19)
     // Las marcas de «falta por enviar» (envío parcial de web) no son cambios de IMEI; un apunte de IMEI sin usuario es el traspaso de la hoja.
     if (cambio.tipo === 'FALTA_ENVIAR') return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Marcada: falta por enviar', quien: cambio.usuario ?? '' }
+    if (cambio.tipo === 'MARCA') {
+      // detalle = «MARCA» o «MARCA — nota».
+      const [marca, ...nota] = (cambio.detalle ?? '').split(' — ')
+      return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `Marca: ${textoMarca(marca)}${nota.length ? ` — ${nota.join(' — ')}` : ''}`, quien: cambio.usuario ?? '' }
+    }
+    if (cambio.tipo === 'MARCA_QUITADA') {
+      // detalle = la marca que tenía; con « — al poner el IMEI», la quitó el ERP al poner el IMEI.
+      const [marca, motivo] = (cambio.detalle ?? '').split(' — ')
+      const cual = marca ? ` (${textoMarca(marca)})` : ''
+      return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `Marca quitada${motivo ? ` ${motivo}` : ''}${cual}`, quien: cambio.usuario ?? '' }
+    }
     if (cambio.tipo === 'YA_ENVIADO') {
       return cambio.usuario
         ? { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Ya ha salido (marca quitada)', quien: cambio.usuario }

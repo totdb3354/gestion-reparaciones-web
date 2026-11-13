@@ -538,6 +538,50 @@
         }
       }
     },
+    "/api/pedidos/filas/{id}/marca" : {
+      "put" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "ponerMarca",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PeticionMarca"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FilaVista"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pedidos/filas/{id}/imei" : {
       "put" : {
         "tags" : [ "filas-controller" ],
@@ -5509,6 +5553,24 @@
           }
         }
       },
+      "PeticionMarca" : {
+        "required" : [ "marca" ],
+        "type" : "object",
+        "properties" : {
+          "marca" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "nota" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "marcaAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
       "PeticionImei" : {
         "required" : [ "imei" ],
         "type" : "object",
@@ -5524,7 +5586,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
+        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5610,6 +5672,23 @@
           "sincronizadaEn" : {
             "type" : "string",
             "format" : "date-time",
+            "nullable" : true
+          },
+          "marca" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "marcaNota" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "marcaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "marcaPor" : {
+            "type" : "string",
             "nullable" : true
           }
         }
@@ -9656,7 +9735,7 @@
         }
       },
       "CambioImei" : {
-        "required" : [ "fecha", "imeiAnterior", "imeiNuevo", "tipo", "usuario" ],
+        "required" : [ "detalle", "fecha", "imeiAnterior", "imeiNuevo", "tipo", "usuario" ],
         "type" : "object",
         "properties" : {
           "usuario" : {
@@ -9677,6 +9756,10 @@
           },
           "tipo" : {
             "type" : "string"
+          },
+          "detalle" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },

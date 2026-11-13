@@ -7,7 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { usePonerImei, useRecomendados } from '../api'
 import { estadoPedidos, type FalloImei } from './estado'
 import { CIFRAS_IMEI, QUIETO_MS, SUSTITUIR_MS, luhnCuadra } from './imei'
-import { CLASE_TONO, TEXTO_NIVEL, claseCelda, textoMotivo, tonoFila } from './filas'
+import { EditorMarca } from './EditorMarca'
+import { CLASE_TONO, TEXTO_NIVEL, claseCelda, colorMarca, textoMarca, textoMotivo, tonoFila } from './filas'
 
 export const FONDO: Record<string, string> = {
   aviso: 'bg-form-agotado-bg',
@@ -38,13 +39,18 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
   const motivo = textoMotivo(fila)
   // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
   const textoFallo = fallo ? (fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
+  // La marca (con su nota al pasar el ratón) ocupa, sin IMEI, el sitio de «pulsa para poner el IMEI…»; con IMEI va tras él.
+  const marca = fila.marca ? (fila.marcaNota ? `${textoMarca(fila.marca)} — ${fila.marcaNota}` : textoMarca(fila.marca)) : null
   const boton = (
-    <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', motivo ?? fila.caja].filter(Boolean).join(' · ')}
+    <button type="button" title={fallo ? textoFallo : [fila.imei ?? (marca ? null : 'pulsa para poner el IMEI…'), marca, motivo ?? fila.caja].filter(Boolean).join(' · ')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
         clase === 'vacia' && 'font-sans italic text-texto-sub')}>
       {fallo
         ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{textoFallo}</span>
-        : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
+        : (fila.imei || !fila.marca) && <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
+      {!fallo && fila.marca && (
+        <span data-marca={fila.marca} className={cn('inline-block shrink-0 rounded-lg px-2 py-px font-sans text-[11px] font-bold not-italic', colorMarca(fila.marca))}>{textoMarca(fila.marca)}</span>
+      )}
       {!fallo && motivo && (
         <span className={cn('min-w-0 truncate font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
       )}
@@ -208,6 +214,8 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
         <button type="button" onClick={() => guardar(texto)}
           className="mt-1 h-6 cursor-pointer rounded-md border border-borde-input bg-superficie px-2 text-[11.5px] font-semibold">Guardar igualmente</button>
       )}
+      {/* Debajo del campo y sin enfocarse solo: el foco se queda en el IMEI para el lector de códigos. */}
+      <EditorMarca fila={fila} onHecho={onCerrar} />
       <button type="button" aria-expanded={ver} onClick={() => setVer((v) => !v)}
         className="mt-1 cursor-pointer bg-transparent px-0.5 text-[11.5px] text-azul-medio underline underline-offset-2">{ver ? 'Ocultar recomendados' : 'Ver recomendados'}</button>
       {ver && <>

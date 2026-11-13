@@ -155,7 +155,8 @@ export function fila(p: Partial<FilaVista> = {}): FilaVista {
   return {
     idFila: 1, fecha: '2026-11-09', plataforma: 'Plataforma A', sku: 'i13128AzulA', imei: null, pedido: '402-0000000-0000001',
     fechaCompra: '2026-11-08', estado: 'PENDIENTE', editable: true, envioFecha: null, impresaEn: null, tieneEtiqueta: false, transportista: null, seguimiento: null,
-    nivel: null, motivo: null, skuMovil: null, caja: null, canal: 'PARTICULARES', faltaEnviarEn: null, sincronizadaEn: null, ...p,
+    nivel: null, motivo: null, skuMovil: null, caja: null, canal: 'PARTICULARES', faltaEnviarEn: null, sincronizadaEn: null,
+    marca: null, marcaNota: null, marcaEn: null, marcaPor: null, ...p,
   }
 }
 
