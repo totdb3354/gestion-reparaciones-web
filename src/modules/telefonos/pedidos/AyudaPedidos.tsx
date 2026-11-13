@@ -34,6 +34,13 @@ export function AyudaPedidos() {
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Pendiente</span>}>Aún no se ha preparado el envío.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.GENERADA)}>Etiqueta generada</span>}>La etiqueta existe pero no se ha impreso: el móvil sigue en el almacén.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.ENVIADO)}>Enviado</span>}>La etiqueta se imprimió.</Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.FALTA_ENVIAR)}>Falta por enviar</span>}>
+            Envío parcial de una web: este móvil sale después que el resto del pedido. Se marca a mano en el panel de la fila y cuenta
+            como pendiente. Se quita sola al sincronizar su IMEI con la web (Fonestockroom) o a mano con «Ya ha salido».
+          </Linea>
+          <Linea muestra={
+            <span className="flex items-baseline gap-1.5 text-[12px]">i13128AzulA<span className="font-sans text-[10px] text-azul-gris">1/3</span></span>
+          }>El móvil es uno de los de un pedido de varios.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.NO_PENDIENTE)}>Ya no está pendiente</span>}>El pedido ya no está pendiente en ShippyPro.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.HISTORICO)}>De la hoja</span>}>
             <span className={cn('mr-1.5 rounded-sm px-1.5 py-px text-[11px]', CLASE_TONO.gris)}>Fila en gris</span>
