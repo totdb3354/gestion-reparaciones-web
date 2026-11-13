@@ -22,6 +22,7 @@ import { CABECERAS_DETALLE, filaDetalle } from './csvImeis'
 import { useFichaMovil, useRastro } from './apiNsys'
 import { CorregirTallerDialog } from './CorregirTallerDialog'
 import { FichaMovil } from './FichaMovil'
+import { usePresencia } from '@/shared/ui/Deslizante'
 import { PanelRastro } from './PanelRastro'
 import { useTrabajos, useTrabajosCargados } from './useTrabajos'
 
@@ -41,6 +42,8 @@ export function ImeiDetallePage() {
   const ficha = useFichaMovil(imei, veNsys)
   const rastro = useRastro(imei, veNsys && !!ficha.data)
   const [rastroAbierto, setRastroAbierto] = useState(false)
+  // El panel del rastro se queda montado mientras sale (desliza hacia la derecha).
+  const rastroPresente = usePresencia(rastroAbierto && rastro.data ? rastro.data : null)
   const [corrigiendo, setCorrigiendo] = useState(false)
   const cargados = useTrabajosCargados()
   const sinTrabajos = cargados && !trabajos.some((t) => t.imei === imei)
@@ -98,8 +101,8 @@ export function ImeiDetallePage() {
         filaClase={(r) => cn('border-l-8', estadoIncidencia(r) === 'abiertas' ? 'border-l-fila-incidencia-brd' : estadoIncidencia(r) === 'cerradas' ? 'border-l-fila-reparado-brd' : 'border-l-transparent', esAjeno(r, filtros) && 'opacity-45')}
         menuFila={(r, celda) => <MenuHistorial rep={r} celda={celda} texto={textoCeldaTrabajo(r, celda.columnaId, FMT)} puedeEditar={puedeEditar} puedeCorregirCliente={esAdminOSuperTecnico(sesion)} acciones={accionesMenu} />}
       />
-      {rastroAbierto && rastro.data && (
-        <PanelRastro imei={imei} eventos={rastro.data} onCerrar={() => setRastroAbierto(false)}
+      {rastroPresente.valor && (
+        <PanelRastro imei={imei} eventos={rastroPresente.valor} saliendo={rastroPresente.saliendo} onCerrar={() => setRastroAbierto(false)}
           onIrATrabajo={(idRep) => { setSeleccionada(idRep); setPeticionDesplazamiento((n) => n + 1) }} />
       )}
       {dialogos}

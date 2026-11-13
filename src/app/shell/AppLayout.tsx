@@ -30,7 +30,8 @@ export function AppLayout() {
         <ConnectionBanner />
         <div className="flex flex-1">
           <SubNav />
-          <main className="flex-1">
+          {/* min-w-0: sin él, el ancho mínimo del contenido (una tabla ancha) ensancha la página en vez de desplazarse en su contenedor. */}
+          <main className="min-w-0 flex-1">
             <Outlet />
           </main>
         </div>

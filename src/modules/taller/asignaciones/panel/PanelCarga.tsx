@@ -17,6 +17,8 @@ import { useArrastre } from './useArrastre'
 import { useColocarAnclado } from './useColocarAnclado'
 
 const RUTA_ASIGNACIONES = '/reparaciones/asignaciones'
+/** Pantallas donde el panel flotante no se pinta. */
+const RUTAS_SIN_PANEL = ['/telefonos/pedidos']
 const MSG_ERROR = 'No se pudo cargar la carga de técnicos.'
 const MSG_SIN_TECNICOS = 'Sin técnicos activos'
 /** Nombre accesible de la lista: puede haber otras listas en la pantalla. */
@@ -28,7 +30,10 @@ const hayVentanaAbierta = () => document.querySelector('[data-slot="dialog-overl
  *  no monta nada ni pide nada. Abierto, minimizado (pastilla) o cerrado, según lo que recuerde el navegador. */
 export function PanelCarga() {
   const { sesion } = useSession()
+  const { pathname } = useLocation()
   if (!esAdminOSuperTecnico(sesion)) return null
+  // En «Teléfonos › Pedidos» no se pinta (taparía las cabeceras de la tabla). No se toca lo recordado: al salir vuelve como estaba.
+  if (RUTAS_SIN_PANEL.includes(pathname.replace(/\/+$/, ''))) return null
   return <PanelCargaVisible />
 }
 

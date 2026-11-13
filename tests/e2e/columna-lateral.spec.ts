@@ -24,8 +24,8 @@ test('navegación por grupos y columna lateral plegable', async ({ page }) => {
   const columna = page.getByRole('navigation', { name: 'Sub-navegación' })
   await expect(columna).toHaveCSS('width', '200px')
 
-  // Un clic desde cualquier sitio: de Pedidos a Historial sin pasar por la barra superior.
-  await columna.getByRole('link', { name: 'Pedidos', exact: true }).click()
+  // Un clic desde cualquier sitio: de Compras a Historial sin pasar por la barra superior.
+  await columna.getByRole('link', { name: 'Compras', exact: true }).click()
   await expect(page).toHaveURL(/\/stock\/pedidos$/)
   await columna.getByRole('link', { name: 'Historial', exact: true }).click()
   await expect(page).toHaveURL(/\/reparaciones\/historial$/)
@@ -34,9 +34,9 @@ test('navegación por grupos y columna lateral plegable', async ({ page }) => {
   const stock = columna.getByRole('button', { name: /^Stock/ })
   await stock.click()
   await expect(stock).toHaveAttribute('aria-expanded', 'false')
-  await expect(columna.getByRole('link', { name: 'Pedidos', exact: true })).toHaveCount(0)
+  await expect(columna.getByRole('link', { name: 'Compras', exact: true })).toHaveCount(0)
   await stock.click()
-  await expect(columna.getByRole('link', { name: 'Pedidos', exact: true })).toBeVisible()
+  await expect(columna.getByRole('link', { name: 'Compras', exact: true })).toBeVisible()
 
   // Plegar la columna, recargar y navegar por un icono con su nombre «Grupo · Pestaña».
   await page.getByRole('button', { name: 'Ocultar menú lateral' }).click()

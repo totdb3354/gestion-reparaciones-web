@@ -164,6 +164,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/filas/{id}/falta-enviar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ponerFaltaEnviar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas/{id}/imei": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ponerImei"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parametros/prevision": {
         parameters: {
             query?: never;
@@ -574,6 +606,22 @@ export interface paths {
         get: operations["getAll_1"];
         put?: never;
         post: operations["insertar_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/historico": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["estado_1"];
+        put?: never;
+        post: operations["cargar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2228,6 +2276,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/vendidos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vendidos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/fuentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fuentes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["filas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas/{id}/recomendados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recomendados"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas/{id}/etiqueta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["etiqueta"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas/{id}/cambios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["cambios"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes": {
         parameters: {
             query?: never;
@@ -2523,6 +2667,41 @@ export interface components {
             prefijo: string;
             excluidos: string[];
         };
+        PeticionImei: {
+            imei: string | null;
+            /** El IMEI que la fila tenía en pantalla al abrir la celda ("" = sin IMEI). null o ausente = no comprobar. Si no coincide, 409. */
+            imeiAnterior?: string | null;
+        };
+        FilaVista: {
+            /** Format: int32 */
+            idFila: number;
+            /** Format: date */
+            fecha: string;
+            plataforma: string;
+            sku: string | null;
+            imei: string | null;
+            pedido: string | null;
+            /** Format: date */
+            fechaCompra: string | null;
+            estado: string;
+            editable: boolean;
+            /** Format: date-time */
+            envioFecha: string | null;
+            transportista: string | null;
+            seguimiento: string | null;
+            /** Format: date-time */
+            impresaEn: string | null;
+            tieneEtiqueta: boolean;
+            nivel: string | null;
+            motivo: string | null;
+            skuMovil: string | null;
+            caja: string | null;
+            canal: string | null;
+            /** Format: date-time */
+            faltaEnviarEn: string | null;
+            /** Format: date-time */
+            sincronizadaEn: string | null;
+        };
         PesosPrevision: {
             /** Format: int32 */
             peso1: number;
@@ -2760,6 +2939,51 @@ export interface components {
             nombre: string;
             divisa: string;
             tipo: string;
+        };
+        CargaHistoricoEstadoCarga: {
+            /** @enum {string} */
+            estado: "NUNCA" | "EN_CURSO" | "OK" | "ERROR";
+            /** Format: date-time */
+            empezo: string | null;
+            /** Format: date-time */
+            acabo: string | null;
+            informe: components["schemas"]["InformeCarga"];
+            motivo: string | null;
+        };
+        InformeCarga: {
+            /** Format: int32 */
+            filasLeidas: number;
+            /** Format: int32 */
+            cargadasHistorico: number;
+            /** Format: int32 */
+            descartadasVacias: number;
+            /** Format: int32 */
+            sinFechaHeredada: number;
+            /** Format: int32 */
+            sinFechaDescartada: number;
+            /** Format: int32 */
+            imeiNoEsImei: number;
+            /** Format: int32 */
+            traspasadasA: number;
+            /** Format: int32 */
+            traspasadasB: number;
+            /** Format: int32 */
+            traspasadasC: number;
+            /** Format: int32 */
+            yaPuesto: number;
+            /** Format: int32 */
+            conflicto: number;
+            /** Format: int32 */
+            casadasSinImei: number;
+            /** Format: int32 */
+            sinPareja: number;
+            /** Format: int32 */
+            yaVendidoNsys: number;
+            /** Format: int32 */
+            ventaAnterior: number;
+            plataformas: {
+                [key: string]: number;
+            };
         };
         LoteVerificarRequest: {
             imeis: string[];
@@ -3848,6 +4072,49 @@ export interface components {
             modelos: string[];
             excluidos: string[];
         };
+        Vendido: {
+            imei: string;
+            sku: string | null;
+            canal: string | null;
+            pedido: string | null;
+            /** Format: date-time */
+            fechaImei: string;
+        };
+        FuenteVista: {
+            fuente: string;
+            /** Format: date-time */
+            ultimaBuena: string | null;
+            resultado: string | null;
+            /** Format: int32 */
+            filas: number;
+            skuDesconocidos: string | null;
+            motivo: string | null;
+            nivel: string;
+            aviso: string | null;
+        };
+        ListaFilas: {
+            filas: components["schemas"]["FilaVista"][];
+            hayMas: boolean;
+        };
+        RecomendadorCandidato: {
+            imei: string;
+            sku: string | null;
+            caja: string | null;
+            /** Format: int32 */
+            nivel: number;
+        };
+        CambioImei: {
+            usuario: string | null;
+            /** Format: date-time */
+            fecha: string;
+            imeiAnterior: string | null;
+            imeiNuevo: string | null;
+            /** IMEI (cambio de IMEI), FALTA_ENVIAR (alguien puso la marca) o YA_ENVIADO (se quitó: usuario null = el plugin de la web al sincronizar). */
+            tipo: string;
+        };
+        PeticionFaltaEnviar: {
+            falta: boolean;
+        };
         Lote: {
             /** Format: int32 */
             idLote: number;
@@ -4454,6 +4721,62 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ponerFaltaEnviar: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionFaltaEnviar"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaVista"];
+                };
+            };
+        };
+    };
+    ponerImei: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionImei"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaVista"];
+                };
             };
         };
     };
@@ -5325,6 +5648,60 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    estado_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CargaHistoricoEstadoCarga"];
+                };
+            };
+        };
+    };
+    cargar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CargaHistoricoEstadoCarga"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7931,6 +8308,153 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Proveedor"][];
+                };
+            };
+        };
+    };
+    vendidos: {
+        parameters: {
+            query?: {
+                dias?: number;
+                canal?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Vendido"][];
+                };
+            };
+        };
+    };
+    fuentes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FuenteVista"][];
+                };
+            };
+        };
+    };
+    filas: {
+        parameters: {
+            query?: {
+                desde?: string;
+                hasta?: string;
+                buscar?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ListaFilas"];
+                };
+            };
+        };
+    };
+    recomendados: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecomendadorCandidato"][];
+                };
+            };
+        };
+    };
+    etiqueta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cambios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CambioImei"][];
                 };
             };
         };

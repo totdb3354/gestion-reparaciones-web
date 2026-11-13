@@ -494,6 +494,94 @@
         }
       }
     },
+    "/api/pedidos/filas/{id}/falta-enviar" : {
+      "put" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "ponerFaltaEnviar",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PeticionFaltaEnviar"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FilaVista"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pedidos/filas/{id}/imei" : {
+      "put" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "ponerImei",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PeticionImei"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FilaVista"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/parametros/prevision" : {
       "get" : {
         "tags" : [ "parametro-controller" ],
@@ -1493,6 +1581,46 @@
         "responses" : {
           "201" : {
             "description" : "Created"
+          }
+        }
+      }
+    },
+    "/api/pedidos/historico" : {
+      "get" : {
+        "tags" : [ "historico-controller" ],
+        "operationId" : "estado_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CargaHistoricoEstadoCarga"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "historico-controller" ],
+        "operationId" : "cargar",
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CargaHistoricoEstadoCarga"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "409" : {
+            "description" : "Conflict"
           }
         }
       }
@@ -4618,6 +4746,201 @@
         }
       }
     },
+    "/api/pedidos/vendidos" : {
+      "get" : {
+        "tags" : [ "vendidos-controller" ],
+        "operationId" : "vendidos",
+        "parameters" : [ {
+          "name" : "dias",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 7
+          }
+        }, {
+          "name" : "canal",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Vendido"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pedidos/fuentes" : {
+      "get" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "fuentes",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FuenteVista"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pedidos/filas" : {
+      "get" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "filas",
+        "parameters" : [ {
+          "name" : "desde",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "hasta",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "buscar",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ListaFilas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pedidos/filas/{id}/recomendados" : {
+      "get" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "recomendados",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RecomendadorCandidato"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pedidos/filas/{id}/etiqueta" : {
+      "get" : {
+        "tags" : [ "etiqueta-fila-controller" ],
+        "operationId" : "etiqueta",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/pdf" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "502" : {
+            "description" : "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/pedidos/filas/{id}/cambios" : {
+      "get" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "cambios",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CambioImei"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lotes" : {
       "get" : {
         "tags" : [ "lote-controller" ],
@@ -5174,6 +5497,120 @@
             "items" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "PeticionFaltaEnviar" : {
+        "required" : [ "falta" ],
+        "type" : "object",
+        "properties" : {
+          "falta" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PeticionImei" : {
+        "required" : [ "imei" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "imeiAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "FilaVista" : {
+        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
+        "type" : "object",
+        "properties" : {
+          "idFila" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "plataforma" : {
+            "type" : "string"
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "imei" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pedido" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fechaCompra" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
+          },
+          "estado" : {
+            "type" : "string"
+          },
+          "editable" : {
+            "type" : "boolean"
+          },
+          "envioFecha" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "transportista" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "seguimiento" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "impresaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "tieneEtiqueta" : {
+            "type" : "boolean"
+          },
+          "nivel" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "skuMovil" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "caja" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "canal" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "faltaEnviarEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "sincronizadaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
           }
         }
       },
@@ -5861,6 +6298,106 @@
           },
           "tipo" : {
             "type" : "string"
+          }
+        }
+      },
+      "CargaHistoricoEstadoCarga" : {
+        "required" : [ "acabo", "empezo", "estado", "informe", "motivo" ],
+        "type" : "object",
+        "properties" : {
+          "estado" : {
+            "type" : "string",
+            "enum" : [ "NUNCA", "EN_CURSO", "OK", "ERROR" ]
+          },
+          "empezo" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "acabo" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "informe" : {
+            "$ref" : "#/components/schemas/InformeCarga"
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "InformeCarga" : {
+        "required" : [ "cargadasHistorico", "casadasSinImei", "conflicto", "descartadasVacias", "filasLeidas", "imeiNoEsImei", "plataformas", "sinFechaDescartada", "sinFechaHeredada", "sinPareja", "traspasadasA", "traspasadasB", "traspasadasC", "ventaAnterior", "yaPuesto", "yaVendidoNsys" ],
+        "type" : "object",
+        "properties" : {
+          "filasLeidas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cargadasHistorico" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descartadasVacias" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sinFechaHeredada" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sinFechaDescartada" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imeiNoEsImei" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "traspasadasA" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "traspasadasB" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "traspasadasC" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "yaPuesto" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "conflicto" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "casadasSinImei" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sinPareja" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "yaVendidoNsys" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ventaAnterior" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "plataformas" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },
@@ -9017,6 +9554,129 @@
             "items" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "Vendido" : {
+        "required" : [ "canal", "fechaImei", "imei", "pedido", "sku" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "canal" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "pedido" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fechaImei" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "FuenteVista" : {
+        "required" : [ "aviso", "filas", "fuente", "motivo", "nivel", "resultado", "skuDesconocidos", "ultimaBuena" ],
+        "type" : "object",
+        "properties" : {
+          "fuente" : {
+            "type" : "string"
+          },
+          "ultimaBuena" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "resultado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "filas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skuDesconocidos" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "nivel" : {
+            "type" : "string"
+          },
+          "aviso" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
+      "ListaFilas" : {
+        "required" : [ "filas", "hayMas" ],
+        "type" : "object",
+        "properties" : {
+          "filas" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FilaVista"
+            }
+          },
+          "hayMas" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "RecomendadorCandidato" : {
+        "required" : [ "caja", "imei", "nivel", "sku" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "sku" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "caja" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "nivel" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "CambioImei" : {
+        "required" : [ "fecha", "imeiAnterior", "imeiNuevo", "tipo", "usuario" ],
+        "type" : "object",
+        "properties" : {
+          "usuario" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "imeiAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "imeiNuevo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "tipo" : {
+            "type" : "string"
           }
         }
       },

@@ -170,7 +170,7 @@ test.afterAll(async () => {
 test.describe('supertécnico: otros pedidos dentro de los bloques', () => {
   test('«Nuevo pedido» con una pieza y un otro al mismo proveedor crea un solo bloque con las dos', async () => {
     const page = sup!
-    await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: 'Pedidos', exact: true }).click()
+    await page.getByRole('navigation', { name: 'Sub-navegación' }).getByRole('link', { name: 'Compras', exact: true }).click()
     await expect(page).toHaveURL(/\/stock\/pedidos$/)
     await expect(page.getByText(/^Actualizado [0-9][0-9]:[0-9][0-9]$/)).toBeVisible()
 

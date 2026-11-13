@@ -9,11 +9,13 @@ import { guardarSesion } from '@/shared/session/storage'
 import { server } from '@/test/server'
 import { SESION_SUPER } from '@/test/render'
 import { useBuscarMoviles } from '@/shared/api/nsys'
+import { onError } from '@/shared/ui/alertas'
 import {
   useComprobarImeis, useDescargarExcel, useDescargarPlantilla, useDescartarAlta, useDeshacerDescarte, useDeshacerHecho, useEstadoNsys, useImportacionesNsys,
-  useMarcarHecho, usePorPasarTarjetas, useRevisarAviso, useStockTelefonos,
+  RECARGA_TRAS_GUARDAR_MS, useFilas, useFuentesPedidos, useMarcarHecho, usePonerImei, usePorPasarTarjetas, useRecomendados, useRevisarAviso, useStockTelefonos,
 } from './api'
-import { estadoNsys, filaGrado, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
+import { imeiValido } from './test/imeiValido'
+import { candidato, estadoNsys, fila, filaGrado, fuente, listaImportaciones, movil, movilComprobado, tarjetas } from './test/fabrica'
 
 function envoltorio() {
   guardarSesion(SESION_SUPER)
@@ -22,6 +24,8 @@ function envoltorio() {
     <QueryClientProvider client={qc}><SessionProvider>{children}</SessionProvider></QueryClientProvider>
   )
 }
+
+const CLAVE_LISTA = ['telefonos', 'pedidos', 'filas', 'lista', { desde: '2026-10-10', hasta: '2026-11-10', buscar: undefined }]
 
 describe('api del stock de teléfonos', () => {
   afterEach(() => { vi.restoreAllMocks() })
@@ -175,5 +179,209 @@ describe('api del stock de teléfonos', () => {
     expect(cuerpos).toEqual([hoja])
     expect(crear).toHaveBeenCalledTimes(1)
     expect((clic.mock.instances[0] as HTMLAnchorElement).download).toBe('Que_revisar_sin_grado_2026-11-04.xlsx')
+  })
+
+  it('«Pedidos como la hoja»: las filas van con el intervalo de fechas y la búsqueda', async () => {
+    const urls: URL[] = []
+    server.use(http.get('*/api/pedidos/filas', ({ request }) => {
+      urls.push(new URL(request.url))
+      return HttpResponse.json({ filas: [fila()], hayMas: true })
+    }))
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '3500' }), { wrapper: envoltorio() })
+    await waitFor(() => expect(filas.result.current.data?.filas).toHaveLength(1))
+    expect(filas.result.current.data?.hayMas).toBe(true)
+    expect(urls[0].searchParams.get('desde')).toBe('2026-10-10')
+    expect(urls[0].searchParams.get('hasta')).toBe('2026-11-10')
+    expect(urls[0].searchParams.get('buscar')).toBe('3500')
+  })
+
+  it('una busqueda vacia o en blanco no se manda', async () => {
+    const urls: URL[] = []
+    server.use(http.get('*/api/pedidos/filas', ({ request }) => { urls.push(new URL(request.url)); return HttpResponse.json({ filas: [], hayMas: false }) }))
+    const wrapper = envoltorio()
+    const a = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '' }), { wrapper })
+    const b = renderHook(() => useFilas({ desde: '2026-10-11', hasta: '2026-11-10', buscar: '  ' }), { wrapper })
+    await waitFor(() => expect(a.result.current.isSuccess && b.result.current.isSuccess).toBe(true))
+    expect(urls).toHaveLength(2)
+    expect(urls.every((u) => !u.searchParams.has('buscar'))).toBe(true)
+  })
+
+  it('los recomendados de una fila: no pregunta sin fila y pide los de su id', async () => {
+    const rutas: string[] = []
+    server.use(http.get('*/api/pedidos/filas/:id/recomendados', ({ params }) => {
+      rutas.push(String(params.id))
+      return HttpResponse.json([candidato()])
+    }))
+    const wrapper = envoltorio()
+    const sin = renderHook(() => useRecomendados(null), { wrapper })
+    expect(sin.result.current.fetchStatus).toBe('idle')
+    const con = renderHook(() => useRecomendados(7), { wrapper })
+    await waitFor(() => expect(con.result.current.data).toHaveLength(1))
+    expect(rutas).toEqual(['7'])
+    expect(con.result.current.data?.[0].imei).toBe('350000000000001')
+  })
+
+  it('poner el IMEI manda {imei, imeiAnterior} a la fila y recarga la lista de filas', async () => {
+    const puestos: unknown[] = []
+    let listas = 0
+    server.use(
+      http.put('*/api/pedidos/filas/:id/imei', async ({ request, params }) => {
+        puestos.push([params.id, await request.json()])
+        return HttpResponse.json(fila({ idFila: 7, imei: '350000000000001' }))
+      }),
+      http.get('*/api/pedidos/filas', () => {
+        listas++
+        return HttpResponse.json({ filas: [fila()], hayMas: false })
+      }),
+    )
+    const wrapper = envoltorio()
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: '' }), { wrapper })
+    await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    const devuelta = await poner.result.current.mutateAsync({ idFila: 7, imei: '350000000000001', imeiAnterior: '', clave: 'k1' })
+    expect(devuelta.imei).toBe('350000000000001')
+    expect(puestos).toEqual([['7', { imei: '350000000000001', imeiAnterior: '' }]])
+    await waitFor(() => expect(listas).toBe(2), { timeout: RECARGA_TRAS_GUARDAR_MS + 2000 })
+    // Al quitar el IMEI también va `imeiAnterior`: el que tenía la fila.
+    await poner.result.current.mutateAsync({ idFila: 7, imei: null, imeiAnterior: '350000000000001', clave: 'k2' })
+    expect(puestos[1]).toEqual(['7', { imei: null, imeiAnterior: '350000000000001' }])
+  })
+
+  it('varios guardados seguidos recargan la lista UNA sola vez, tras la espera del último', async () => {
+    let listas = 0
+    server.use(
+      http.put('*/api/pedidos/filas/:id/imei', ({ params }) => HttpResponse.json(fila({ idFila: Number(params.id), imei: imeiValido(Number(params.id)) }))),
+      http.get('*/api/pedidos/filas', () => { listas++; return HttpResponse.json({ filas: [fila({ idFila: 1 }), fila({ idFila: 2 }), fila({ idFila: 3 })], hayMas: false }) }),
+    )
+    const qc = crearQueryClient({ retry: false })
+    guardarSesion(SESION_SUPER)
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}><SessionProvider>{children}</SessionProvider></QueryClientProvider>
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10' }), { wrapper })
+    await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    const imeisEnCache = () => qc.getQueryData<{ filas: { imei: string | null }[] }>(CLAVE_LISTA)?.filas.map((f) => f.imei)
+    for (const id of [1, 2, 3]) await poner.result.current.mutateAsync({ idFila: id, imei: imeiValido(id), imeiAnterior: '', clave: `k${id}` })
+    // Las tres filas ya están escritas en la caché al momento y todavía no ha habido recarga.
+    expect(imeisEnCache()).toEqual([1, 2, 3].map(imeiValido))
+    expect(listas).toBe(1)
+    await waitFor(() => expect(listas).toBe(2), { timeout: RECARGA_TRAS_GUARDAR_MS + 2000 })
+    await new Promise((r) => setTimeout(r, 400))
+    expect(listas).toBe(2)
+  })
+
+  it('un sondeo que salio antes del guardado y vuelve despues no devuelve la fila a su valor viejo', async () => {
+    const nuevo = imeiValido(1)
+    let listas = 0
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(
+      http.put('*/api/pedidos/filas/:id/imei', () => HttpResponse.json(fila({ idFila: 1, imei: nuevo }))),
+      http.get('*/api/pedidos/filas', async () => {
+        listas++
+        // El segundo GET (el sondeo) sale con los datos de antes y tarda en volver.
+        if (listas === 2) { await espera; return HttpResponse.json({ filas: [fila({ idFila: 1, imei: null })], hayMas: false }) }
+        return HttpResponse.json({ filas: [fila({ idFila: 1, imei: listas > 2 ? nuevo : null })], hayMas: false })
+      }),
+    )
+    const qc = crearQueryClient({ retry: false })
+    guardarSesion(SESION_SUPER)
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}><SessionProvider>{children}</SessionProvider></QueryClientProvider>
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10' }), { wrapper })
+    await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
+    const imeisEnCache = () => qc.getQueryData<{ filas: { imei: string | null }[] }>(CLAVE_LISTA)?.filas.map((f) => f.imei)
+    void qc.invalidateQueries({ queryKey: ['telefonos', 'pedidos', 'filas', 'lista'] })
+    await waitFor(() => expect(listas).toBe(2))
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    await poner.result.current.mutateAsync({ idFila: 1, imei: nuevo, imeiAnterior: '', clave: 'k1' })
+    expect(imeisEnCache()).toEqual([nuevo])
+    soltar()
+    await new Promise((r) => setTimeout(r, 150))
+    expect(imeisEnCache()).toEqual([nuevo])
+  })
+
+  it('un fallo al poner el IMEI no pasa por el diálogo global ni por el de conexión (meta)', async () => {
+    server.use(http.put('*/api/pedidos/filas/:id/imei', () => new HttpResponse(null, { status: 503 })))
+    const wrapper = envoltorio()
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    const dialogos: string[] = []
+    const baja = onError((m) => dialogos.push(m))
+    await expect(poner.result.current.mutateAsync({ idFila: 7, imei: imeiValido(7), imeiAnterior: '', clave: 'k' })).rejects.toBeTruthy()
+    baja()
+    expect(dialogos).toEqual([])
+  })
+
+  it('solo la primera carga de las filas usa la capa de carga: buscar o cambiar de periodo no (sinCapa)', async () => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [fila()], hayMas: false })))
+    const qc = crearQueryClient({ retry: false })
+    guardarSesion(SESION_SUPER)
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}><SessionProvider>{children}</SessionProvider></QueryClientProvider>
+    )
+    const { result, rerender } = renderHook((p: { buscar: string }) => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: p.buscar }), {
+      wrapper, initialProps: { buscar: '' },
+    })
+    // La primera carga, aún sin datos, sí usa la capa.
+    expect(qc.getQueryCache().findAll({ queryKey: ['telefonos', 'pedidos', 'filas', 'lista'] })[0].meta?.sinCapa).toBeUndefined()
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    rerender({ buscar: 'ab' })
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false))
+    const consultas = qc.getQueryCache().findAll({ queryKey: ['telefonos', 'pedidos', 'filas', 'lista'] })
+    expect(consultas).toHaveLength(2)
+    const porBuscar = (q: { queryKey: readonly unknown[] }) => (q.queryKey[4] as { buscar?: string }).buscar
+    expect(consultas.find((q) => porBuscar(q) === 'ab')?.meta?.sinCapa).toBe(true)
+  })
+
+  it('al cambiar la busqueda se ven las filas anteriores (isPlaceholderData) hasta que llegan las nuevas', async () => {
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(http.get('*/api/pedidos/filas', async ({ request }) => {
+      if (new URL(request.url).searchParams.has('buscar')) await espera
+      return HttpResponse.json({ filas: [fila({ idFila: new URL(request.url).searchParams.has('buscar') ? 2 : 1 })], hayMas: false })
+    }))
+    const { result, rerender } = renderHook((p: { buscar: string }) => useFilas({ desde: '2026-10-10', hasta: '2026-11-10', buscar: p.buscar }), {
+      wrapper: envoltorio(), initialProps: { buscar: '' },
+    })
+    await waitFor(() => expect(result.current.data?.filas[0].idFila).toBe(1))
+    rerender({ buscar: 'ab' })
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(true))
+    expect(result.current.data?.filas[0].idFila).toBe(1)
+    soltar()
+    await waitFor(() => expect(result.current.data?.filas[0].idFila).toBe(2))
+    expect(result.current.isPlaceholderData).toBe(false)
+  })
+
+  it('poner el IMEI escribe la fila devuelta en la lista antes de que vuelva el GET y manda la Idempotency-Key', async () => {
+    let claves: (string | null)[] = []
+    let listas = 0
+    let soltar: () => void = () => {}
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(
+      http.put('*/api/pedidos/filas/:id/imei', ({ request }) => {
+        claves.push(request.headers.get('Idempotency-Key'))
+        return HttpResponse.json(fila({ idFila: 7, imei: '350000000000001' }))
+      }),
+      http.get('*/api/pedidos/filas', async () => {
+        listas++
+        if (listas > 1) await espera
+        return HttpResponse.json({ filas: [fila({ idFila: 7 })], hayMas: false })
+      }),
+    )
+    const wrapper = envoltorio()
+    const filas = renderHook(() => useFilas({ desde: '2026-10-10', hasta: '2026-11-10' }), { wrapper })
+    await waitFor(() => expect(filas.result.current.isSuccess).toBe(true))
+    expect(filas.result.current.data?.filas[0].imei).toBeNull()
+    const poner = renderHook(() => usePonerImei(), { wrapper })
+    await poner.result.current.mutateAsync({ idFila: 7, imei: '350000000000001', imeiAnterior: '', clave: 'clave-1' })
+    await waitFor(() => expect(filas.result.current.data?.filas[0].imei).toBe('350000000000001'))
+    await waitFor(() => expect(listas).toBe(2), { timeout: RECARGA_TRAS_GUARDAR_MS + 2000 })
+    expect(claves).toEqual(['clave-1'])
+    soltar()
+    claves = []
+  })
+
+  it('las fuentes de pedidos vienen de /api/pedidos/fuentes', async () => {
+    server.use(http.get('*/api/pedidos/fuentes', () => HttpResponse.json([fuente()])))
+    const fuentes = renderHook(() => useFuentesPedidos(), { wrapper: envoltorio() })
+    await waitFor(() => expect(fuentes.result.current.data).toHaveLength(1))
   })
 })

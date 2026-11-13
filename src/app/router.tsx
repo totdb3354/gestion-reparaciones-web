@@ -17,6 +17,7 @@ import { PendientesPage } from '@/modules/taller/pendientes/PendientesPage'
 import { PulidosPendientesPage } from '@/modules/taller/pendientes/PulidosPendientesPage'
 import { InicioReparaciones, RequiereSupertecnico, RequiereSupertecnicoOAdmin, RequiereTecnico } from '@/modules/taller/rutas'
 import { RequiereAccesoTelefonos } from '@/modules/telefonos/rutas'
+import { PedidosPage as PedidosTelefonosPage } from '@/modules/telefonos/pedidos/PedidosPage'
 import { StockTelefonosPage } from '@/modules/telefonos/stock/StockTelefonosPage'
 import { CambioObligatorioPage } from './cuenta/CambioObligatorioPage'
 import { LoginPage } from './login/LoginPage'
@@ -90,7 +91,10 @@ export const router = createBrowserRouter([
           {
             // 0.9.17: el stock de teléfonos solo para SUPERTECNICO y ADMIN; el TECNICO por URL recibe el aviso y vuelve a /reparaciones.
             element: <RequiereAccesoTelefonos />,
-            children: [{ path: '/telefonos/stock', element: <StockTelefonosPage /> }],
+            children: [
+              { path: '/telefonos/stock', element: <StockTelefonosPage /> },
+              { path: '/telefonos/pedidos', element: <PedidosTelefonosPage /> },
+            ],
           },
           { path: '/estadisticas/*', element: <PendienteDeMigrar nombre="Estadísticas" /> },
           { path: '/clientes', element: <ClientesPage /> },

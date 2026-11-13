@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
       globals: false,
       setupFiles: ['./src/test/setup.ts'],
       css: false,
-      exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+      exclude: [...configDefaults.exclude, 'tests/e2e/**', 'tests/local/**'],
     },
   }
 })

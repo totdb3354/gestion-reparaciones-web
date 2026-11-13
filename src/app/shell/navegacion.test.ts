@@ -19,8 +19,8 @@ describe('grupos de la columna lateral (0.9.14)', () => {
     const grupos = gruposNav(SESION_SUPER)
     expect(grupos.map((g) => g.id)).toEqual(['reparaciones', 'stock', 'telefonos', 'estadisticas', 'clientes'])
     expect(grupos[0].enlaces.map((e) => e.label)).toEqual(['Asignaciones', 'Pendientes', 'Historial', 'IMEIs'])
-    expect(grupos[1].enlaces.map((e) => e.label)).toEqual(['Stock actual', 'Pedidos', 'Proveedores'])
-    expect(grupos[2].enlaces.map((e) => [e.label, e.to])).toEqual([['Stock de teléfonos', '/telefonos/stock']])
+    expect(grupos[1].enlaces.map((e) => e.label)).toEqual(['Stock actual', 'Compras', 'Proveedores'])
+    expect(grupos[2].enlaces.map((e) => [e.label, e.to])).toEqual([['Stock de teléfonos', '/telefonos/stock'], ['Pedidos', '/telefonos/pedidos']])
   })
 
   it('admin: Gestión al final con Técnicos y Logs', () => {

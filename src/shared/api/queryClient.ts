@@ -9,7 +9,8 @@ import { emitirError } from '@/shared/ui/alertas'
 declare module '@tanstack/react-query' {
   interface Register {
     queryMeta: { silenciarError?: boolean; sinCapa?: boolean }
-    mutationMeta: { silenciarError?: boolean }
+    /** `silenciarConexion`: tampoco abre el diálogo ante un corte de conexión (5xx, red, timeout); la vista lo avisa por su cuenta (ver Pedidos). */
+    mutationMeta: { silenciarError?: boolean; silenciarConexion?: boolean }
   }
 }
 
@@ -63,7 +64,7 @@ export function crearQueryClient(opciones: { retry?: boolean } = {}): QueryClien
         // `silenciarError` solo cubre los conflictos propios de la vista (409); una caída del servidor se
         // avisa siempre, porque la acción del usuario no se ha llegado a guardar.
         if (error instanceof ConexionError) {
-          avisarSinConexion(error)
+          if (mutation.meta?.silenciarConexion !== true) avisarSinConexion(error)
           return
         }
         if (mutation.meta?.silenciarError === true) return

@@ -43,9 +43,10 @@ describe('columna lateral por grupos', () => {
     expect(columna().getByRole('link', { name: 'Rendimiento' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('el técnico no tiene Pedidos ni Proveedores: Stock solo con «Stock actual» (0.9.16)', () => {
+  it('el técnico no tiene Compras ni Proveedores, y tampoco «Pedidos»: Stock solo con «Stock actual» (0.9.16)', () => {
     renderConProviders(<SubNav />, { sesion: SESION_TEC, ruta: '/stock' })
     expect(columna().getByRole('link', { name: 'Stock actual' })).toHaveAttribute('aria-current', 'page')
+    expect(columna().queryByRole('link', { name: 'Compras' })).not.toBeInTheDocument()
     expect(columna().queryByRole('link', { name: 'Pedidos' })).not.toBeInTheDocument()
     expect(columna().queryByRole('link', { name: 'Proveedores' })).not.toBeInTheDocument()
   })
@@ -65,13 +66,13 @@ describe('columna lateral por grupos', () => {
 
   it('"Stock actual" solo está activo en /stock exacto (NavLink end), no en /stock/pedidos', () => {
     renderConProviders(<SubNav />, { sesion: SESION_ADMIN, ruta: '/stock/pedidos' })
-    expect(screen.getByRole('link', { name: 'Pedidos' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Compras' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Stock actual' })).not.toHaveAttribute('aria-current')
   })
 
   it('cada enlace lleva su icono delante del nombre, decorativo', () => {
     renderConProviders(<SubNav />, { sesion: SESION_ADMIN, ruta: '/stock' })
-    for (const nombre of ['Stock actual', 'Pedidos', 'Proveedores', 'Rendimiento', 'Listado']) {
+    for (const nombre of ['Stock actual', 'Compras', 'Proveedores', 'Rendimiento', 'Listado']) {
       const enlace = columna().getByRole('link', { name: nombre })
       const icono = enlace.querySelector('svg')
       expect(icono).not.toBeNull()
@@ -232,7 +233,7 @@ describe('plegar la columna lateral', () => {
     expect(boton).toHaveAttribute('title', 'Ocultar menú lateral')
     expect(boton).toHaveAttribute('aria-expanded', 'true')
     expect(boton).toHaveAttribute('aria-controls', nav.id)
-    expect(within(nav).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
+    expect(within(nav).getByRole('link', { name: 'Compras' }).textContent).toBe('Compras')
   })
 
   it('el botón la pliega a la franja de iconos, lo guarda y la vuelve a desplegar', async () => {
@@ -242,7 +243,7 @@ describe('plegar la columna lateral', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
     expect(nav).toHaveClass('w-14')
-    const pedidos = within(nav).getByRole('link', { name: 'Stock · Pedidos' })
+    const pedidos = within(nav).getByRole('link', { name: 'Stock · Compras' })
     expect(pedidos.textContent).toBe('')
     expect(pedidos.querySelector('svg')).not.toBeNull()
     expect(pedidos).toHaveAttribute('aria-current', 'page')
@@ -252,7 +253,7 @@ describe('plegar la columna lateral', () => {
 
     await user.click(boton)
     expect(nav).toHaveClass('w-[200px]')
-    expect(within(nav).getByRole('link', { name: 'Pedidos' }).textContent).toBe('Pedidos')
+    expect(within(nav).getByRole('link', { name: 'Compras' }).textContent).toBe('Compras')
     expect(localStorage.getItem(CLAVE_PLEGADA)).toBe('no')
   })
 
@@ -288,11 +289,11 @@ describe('plegar la columna lateral', () => {
   it('plegar y desplegar no remonta los enlaces', async () => {
     const user = userEvent.setup()
     renderConProviders(<SubNav />, { sesion: SESION_ADMIN, ruta: '/stock' })
-    const antes = screen.getByRole('link', { name: 'Pedidos' })
+    const antes = screen.getByRole('link', { name: 'Compras' })
     await user.click(screen.getByRole('button', { name: 'Ocultar menú lateral' }))
-    expect(screen.getByRole('link', { name: 'Stock · Pedidos' })).toBe(antes)
+    expect(screen.getByRole('link', { name: 'Stock · Compras' })).toBe(antes)
     await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }))
-    expect(screen.getByRole('link', { name: 'Pedidos' })).toBe(antes)
+    expect(screen.getByRole('link', { name: 'Compras' })).toBe(antes)
   })
 
   it('plegar no vuelve a pedir los números', async () => {
@@ -339,8 +340,8 @@ describe('columna lateral plegada: números y nombre de cada icono', () => {
   it('también al llegar con el teclado', async () => {
     localStorage.setItem(CLAVE_PLEGADA, 'si')
     renderConProviders(<SubNav />, { sesion: SESION_ADMIN, ruta: '/stock' })
-    act(() => screen.getByRole('link', { name: 'Stock · Pedidos' }).focus())
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Stock · Pedidos')
+    act(() => screen.getByRole('link', { name: 'Stock · Compras' }).focus())
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Stock · Compras')
   })
 
   it('al quitar el ratón del icono el nombre se va (no tapa el botón de la columna)', async () => {

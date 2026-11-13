@@ -234,7 +234,8 @@ describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
     expect(screen.getByRole('row', { name: /^Glass G20260912_1 / })).toHaveAttribute('aria-selected', 'true')
 
     await user.click(within(panel).getByRole('button', { name: 'Cerrar el rastro' }))
-    expect(screen.queryByRole('dialog', { name: 'Rastro' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Rastro' })).toHaveAttribute('data-saliendo') // sale deslizando
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rastro' })).not.toBeInTheDocument())
   })
 
   it('el admin también la ve', async () => {

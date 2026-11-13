@@ -25,7 +25,7 @@ const pasado = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 describe('AppLayout', () => {
   // SESION_TEC: el layout no pide nada más con ese rol (patrón de ConnectionBanner.test.tsx); el host no mira el rol,
-  // quien abre el formulario sí (campana, Stock y Pedidos solo lo ofrecen al SUPERTECNICO).
+  // quien abre el formulario sí (campana, Stock y Compras solo lo ofrecen al SUPERTECNICO).
   it('monta el host de los formularios de pedido: abrirNuevoPedido pinta el modal sobre la vista (P1)', async () => {
     server.use(
       http.get('*/api/componentes/gestionados', () => HttpResponse.json([])),

@@ -1,5 +1,5 @@
 import type {
-  EstadoNsys, FilaAltaNsys, FilaCajaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  Candidato, EstadoNsys, FilaVista, FuenteVista, FilaAltaNsys, FilaCajaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -147,5 +147,27 @@ export function filaCaja(p: Partial<FilaCajaNsys> = {}): FilaCajaNsys {
   return {
     imeiSn: '350000000000214', modelo: '12', modeloMaestro: '12', capacidad: '64GB', esEsim: false, color: 'Negro', grado: 'F',
     gradoNsys: null, caja: 'CAJA REP. OFICINA', ubicacion: 'Taller · Reparación', cajaQueToca: 'CF021', ...p,
+  }
+}
+
+/** Pedidos como la hoja: una fila sin IMEI de un pedido inventado. */
+export function fila(p: Partial<FilaVista> = {}): FilaVista {
+  return {
+    idFila: 1, fecha: '2026-11-09', plataforma: 'Plataforma A', sku: 'i13128AzulA', imei: null, pedido: '402-0000000-0000001',
+    fechaCompra: '2026-11-08', estado: 'PENDIENTE', editable: true, envioFecha: null, impresaEn: null, tieneEtiqueta: false, transportista: null, seguimiento: null,
+    nivel: null, motivo: null, skuMovil: null, caja: null, canal: 'PARTICULARES', faltaEnviarEn: null, sincronizadaEn: null, ...p,
+  }
+}
+
+/** Un IMEI recomendado para una fila (nivel 1 = el mejor). */
+export function candidato(p: Partial<Candidato> = {}): Candidato {
+  return { imei: '350000000000001', sku: 'i13128AzulA', caja: 'CAJA LISTOS', nivel: 1, ...p }
+}
+
+/** Una fuente de pedidos leída bien hoy a las 09:00. */
+export function fuente(p: Partial<FuenteVista> = {}): FuenteVista {
+  return {
+    fuente: 'Fuente A', ultimaBuena: '2026-11-10T09:00:00', resultado: 'OK', filas: 120, skuDesconocidos: null, motivo: null,
+    nivel: 'OK', aviso: null, ...p,
   }
 }
