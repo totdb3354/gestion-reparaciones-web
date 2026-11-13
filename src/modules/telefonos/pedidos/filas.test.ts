@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila } from '../test/fabrica'
-import { estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, vigente } from './filas'
+import { estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -151,12 +151,9 @@ describe('valores y filtrarColumnas', () => {
     expect(ids(['NO_PENDIENTE'])).toEqual([3])
     expect(ids(['PENDIENTE', 'NO_PENDIENTE'])).toEqual([1, 3])
   })
-  it('un valor elegido que ya no existe se ignora', () => {
-    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta']) })).toEqual(filas)
+  it('un valor elegido que ya no esta entre las filas sigue filtrando (nada oculto)', () => {
+    expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta']) })).toEqual([])
     expect(filtrarColumnas(filas, { ...vacio, plataformas: new Set(['Ya no esta', 'AMAZON']) }).map((f) => f.idFila)).toEqual([2])
-  })
-  it('vigente: la seleccion que sigue existiendo', () => {
-    expect([...vigente(new Set(['a', 'x']), ['a', 'b'])]).toEqual(['a'])
   })
 })
 

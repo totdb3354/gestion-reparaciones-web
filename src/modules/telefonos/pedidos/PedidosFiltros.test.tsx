@@ -322,3 +322,83 @@ describe('Pedidos: estados vacíos y estado de la página', () => {
     expect(ultima().searchParams.get('buscar')).toBe('3500')
   })
 })
+
+describe('Pedidos: un filtro cuyo valor ya no esta en las filas', () => {
+  const sinNegro = () => ({ filas: MIXTAS.filter((f) => f.sku !== 'i14128NegroA'), hayMas: false })
+
+  it('se sigue viendo con su etiqueta y no reaparece por sorpresa cuando un sondeo trae el valor otra vez', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await screen.findByRole('button', { name: '4 filas' })
+    await abrirFiltro(user, 'SKU')
+    await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
+    await user.keyboard('{Escape}')
+    expect(filasPintadas()).toBe(2)
+    // Un sondeo ya no trae ese SKU: el filtro sigue a la vista y sigue aplicado (la tabla explica que no queda nada).
+    respuesta = sinNegro()
+    await queryClient.invalidateQueries()
+    await waitFor(() => expect(screen.getByRole('button', { name: '2 filas' })).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Quitar filtro SKU: i14128NegroA' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar filtros' })).toBeInTheDocument()
+    expect(await screen.findByText(/Ningún pedido cumple los filtros de columna/)).toBeInTheDocument()
+    // Otro sondeo lo trae de nuevo: se aplica lo que se veia, no hay sorpresa.
+    respuesta = { filas: MIXTAS, hayMas: false }
+    await queryClient.invalidateQueries()
+    await waitFor(() => expect(filasPintadas()).toBe(2))
+    expect(screen.getByRole('button', { name: 'Quitar filtro SKU: i14128NegroA' })).toBeInTheDocument()
+  })
+
+  it('en el desplegable sale marcado con recuento 0 y se puede desmarcar', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await screen.findByRole('button', { name: '4 filas' })
+    await abrirFiltro(user, 'SKU')
+    await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
+    await user.keyboard('{Escape}')
+    respuesta = sinNegro()
+    await queryClient.invalidateQueries()
+    await screen.findByText(/Ningún pedido cumple los filtros de columna/)
+    await abrirFiltro(user, 'SKU (filtro activo)')
+    const casilla = screen.getByRole('checkbox', { name: /^i14128NegroA/ })
+    expect(casilla).toBeChecked()
+    expect(casilla.closest('label')).toHaveTextContent('0')
+    await user.click(casilla)
+    expect(screen.queryByRole('button', { name: /^Quitar filtro SKU/ })).not.toBeInTheDocument()
+    expect(filasPintadas()).toBe(2)
+  })
+
+  it('una plataforma que ya no tiene filas tambien se ve, con 0, y se quita con su ✕', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await screen.findByRole('button', { name: '4 filas' })
+    await abrirFiltro(user, 'Plataforma')
+    await user.click(screen.getByRole('checkbox', { name: /^AMZ/ }))
+    await user.keyboard('{Escape}')
+    respuesta = { filas: MIXTAS.filter((f) => f.canal !== 'AMAZON'), hayMas: false }
+    await queryClient.invalidateQueries()
+    await screen.findByText(/Ningún pedido cumple los filtros de columna/)
+    await abrirFiltro(user, 'Plataforma (filtro activo)')
+    expect(screen.getByRole('checkbox', { name: /^AMZ/ }).closest('label')).toHaveTextContent('0')
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Quitar filtro Plataforma: AMZ' }))
+    expect(filasPintadas()).toBe(3)
+  })
+
+  it('«Quitar filtros» limpia tambien el valor que ya no esta entre las filas', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await screen.findByRole('button', { name: '4 filas' })
+    await abrirFiltro(user, 'SKU')
+    await user.click(screen.getByRole('checkbox', { name: 'i14128NegroA' }))
+    await user.keyboard('{Escape}')
+    respuesta = sinNegro()
+    await queryClient.invalidateQueries()
+    await screen.findByText(/Ningún pedido cumple los filtros de columna/)
+    await user.click(screen.getByRole('button', { name: 'Quitar filtros' }))
+    expect(screen.queryByRole('button', { name: /^Quitar filtro SKU/ })).not.toBeInTheDocument()
+    expect(filasPintadas()).toBe(2)
+    respuesta = { filas: MIXTAS, hayMas: false }
+    await queryClient.invalidateQueries()
+    await waitFor(() => expect(filasPintadas()).toBe(4))
+  })
+})

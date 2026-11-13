@@ -211,12 +211,6 @@ export function valores(filas: FilaVista[], columna: 'sku' | 'plataforma'): stri
   return [...new Set(filas.map((f) => f[columna]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b, 'es'))
 }
 
-/** Lo elegido que todavía existe entre los valores recibidos: un valor que ya no está se ignora. */
-export function vigente(elegidos: Set<string>, disponibles: string[]): Set<string> {
-  const hay = new Set(disponibles)
-  return new Set([...elegidos].filter((v) => hay.has(v)))
-}
-
 /** Las opciones del filtro «Enviado»: una por estado de pantalla; el histórico no cuenta como enviado. */
 export const OPCIONES_ENVIADO: { valor: EstadoPantalla; texto: string }[] = [
   { valor: 'PENDIENTE', texto: 'Pendientes' },
@@ -245,13 +239,13 @@ const pasaEnviado = (f: FilaVista, elegidos: Set<string>): boolean => {
   return elegidos.has(e) || (e === 'FALTA_ENVIAR' && elegidos.has('PENDIENTE'))
 }
 
-/** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; «solo sin IMEI» deja las
+/** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; un valor elegido que ya no está
+ *  entre las filas sigue filtrando (la pantalla lo enseña con su etiqueta y la tabla explica que no queda nada); «solo sin IMEI» deja las
  *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
  *  con él, un array nuevo con los mismos objetos. */
-export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, presentes?: { tiendas: string[]; skus: string[] }): FilaVista[] {
-  // La página ya tiene las tiendas y los SKU presentes (los calcula una vez por carga): se los pasa para no recorrer 26.000 filas otra vez.
-  const plataformas = vigente(f.plataformas, presentes?.tiendas ?? tiendasPresentes(filas).map((t) => t.valor))
-  const skus = vigente(f.skus, presentes?.skus ?? valores(filas, 'sku'))
+export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
+  // Se aplica exactamente lo guardado, este o no entre las filas: cada valor se ve como etiqueta y se puede quitar (nada oculto).
+  const { plataformas, skus } = f
   if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || plataformas.has(tiendaDe(x)))

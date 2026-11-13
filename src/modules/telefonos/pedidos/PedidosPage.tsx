@@ -11,7 +11,7 @@ import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, textoTienda, tiendasPresentes, valores, vigente, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -41,14 +41,13 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const numeros = useMemo(() => numerosDePedido(filas), [filas])
   const estados = useMemo(() => recuentoEstados(filas), [filas])
   const filtros = useMemo<FiltrosColumna>(
-    () => ({ plataformas: vigente(e.plataformas, tiendas.map((t) => t.valor)), skus: vigente(e.skus, skus), soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
-    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, tiendas, skus],
+    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado],
   )
   const filtrando = hayFiltros(filtros)
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
-  const presentes = useMemo(() => ({ tiendas: tiendas.map((t) => t.valor), skus }), [tiendas, skus])
-  const vistas = useMemo(() => filtrarColumnas(filas, filtros, presentes), [filas, filtros, presentes])
+  const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
   const ventana = vistas.length > umbralVentana
   // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
   useEffect(() => {
