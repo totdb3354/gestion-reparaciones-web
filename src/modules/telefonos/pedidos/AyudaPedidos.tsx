@@ -54,6 +54,9 @@ export function AyudaPedidos() {
           <Linea muestra={
             <span className="flex items-baseline gap-1.5 text-[12px]">i13128AzulA<span className="font-sans text-[10px] text-azul-gris">1/3</span></span>
           }>El móvil es uno de los de un pedido de varios.</Linea>
+          <Linea muestra={<span className="text-[12px] text-azul-gris italic">sin asociar</span>}>
+            Amazon: el pedido sale cuando lo asocia el libro de ventas. Hasta entonces el móvil se lee y se pone igual, sin número de pedido.
+          </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.NO_PENDIENTE)}>Ya no está pendiente</span>}>El pedido ya no está pendiente en ShippyPro.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.HISTORICO)}>De la hoja</span>}>
             <span className={cn('mr-1.5 rounded-sm px-1.5 py-px text-[11px]', CLASE_TONO.gris)}>Fila en gris</span>

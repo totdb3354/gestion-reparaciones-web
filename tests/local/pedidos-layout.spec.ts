@@ -13,7 +13,7 @@ function filas(n: number) {
     const i = k + 1
     const d = new Date(Date.UTC(2025, 0, 1) + Math.floor(k / 80) * 86_400_000).toISOString().slice(0, 10)
     return {
-      idFila: i, fecha: d, plataforma: i % 2 ? 'Web' : 'Amazon', canal: i % 2 ? null : 'AMAZON', sku: 'i14128NegroA',
+      idFila: i, fecha: d, plataforma: i % 2 ? 'Web' : 'Amazon', canal: i % 2 ? null : 'AMAZON', asociadaEn: i % 2 ? null : '2026-11-12T09:00:00', asociadaOrigen: i % 2 ? null : 'LIBRO', sku: 'i14128NegroA',
       imei: i % 6 === 0 ? null : `3500000${String(i).padStart(8, '0')}`, pedido: pedido(i), fechaCompra: d,
       estado: i % 6 === 0 ? 'PENDIENTE' : 'ENVIADA', editable: true, envioFecha: i % 6 === 0 ? null : `${d}T10:00:00Z`,
       impresaEn: i % 6 === 0 || i % 2 ? null : `${d}T12:00:00Z`, tieneEtiqueta: i % 6 !== 0,

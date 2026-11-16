@@ -11,7 +11,7 @@ import { PedidosPage } from './PedidosPage'
 
 // Pantalla v2 (parte 2): filtro de Plataforma por tienda y panel de la fila. Datos inventados.
 const FILAS = [
-  fila({ idFila: 1, canal: 'AMAZON', plataforma: 'AMZ', pedido: '402-0000000-0000041' }),
+  fila({ idFila: 1, canal: 'AMAZON', plataforma: 'AMZ', pedido: '402-0000000-0000041', asociadaEn: '2026-11-12T09:00:00', asociadaOrigen: 'LIBRO' }),
   fila({ idFila: 2, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web A', pedido: '402-0000000-0000042', imei: '350000000000011', nivel: 'MAL', motivo: 'MODELO', skuMovil: 'i14128NegroA', caja: 'CAJA LISTOS' }),
   fila({ idFila: 3, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web B', pedido: '402-0000000-0000043', estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', impresaEn: '2026-11-10T09:15:00', tieneEtiqueta: true, transportista: 'UPSv2', seguimiento: '1Z0000000000000002' }),
   fila({ idFila: 4, canal: null, estado: 'HISTORICO', editable: false, plataforma: 'Cliente Web C', imei: '350000000000012', pedido: '402-0000000-0000044' }),

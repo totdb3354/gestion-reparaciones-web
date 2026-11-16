@@ -9,9 +9,10 @@ import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './Filtro
 import { AyudaPedidos } from './AyudaPedidos'
 import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
+import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSinAsociar, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -41,9 +42,10 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const numeros = useMemo(() => numerosDePedido(filas), [filas])
   const estados = useMemo(() => recuentoEstados(filas), [filas])
   const conMarca = useMemo(() => recuentoMarcas(filas), [filas])
+  const nSinAsociar = useMemo(() => recuentoSinAsociar(filas), [filas])
   const filtros = useMemo<FiltrosColumna>(
-    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas }),
-    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas],
+    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas, sinAsociar: e.sinAsociar }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas, e.sinAsociar],
   )
   const filtrando = hayFiltros(filtros)
   const buscador = useRef<HTMLInputElement>(null)
@@ -112,7 +114,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         )}
         <AyudaPedidos />
         {ventana && <span className="text-[11.5px] text-azul-gris">Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).</span>}
-        <PildoraFuentes />
+        <div className="ml-auto flex flex-wrap items-center gap-2"><PildoraAsociacion /><PildoraFuentes /></div>
       </div>
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}
@@ -163,7 +165,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
           IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })}
-          marcas={filtros.marcas} onMarcas={(marcas) => poner({ marcas })} recuentoMarcas={conMarca} />,
+          marcas={filtros.marcas} onMarcas={(marcas) => poner({ marcas })} recuentoMarcas={conMarca}
+          sinAsociar={filtros.sinAsociar} onSinAsociar={(sinAsociar) => poner({ sinAsociar })} recuentoSinAsociar={nSinAsociar} />,
         }} />
         {presente.valor && <PanelDeslizante saliendo={presente.saliendo}><PanelFila fila={presente.valor} onCerrar={cerrarPanel} /></PanelDeslizante>}
         </div>
@@ -183,6 +186,7 @@ function etiquetasDe(f: FiltrosColumna): Etiqueta[] {
     ...OPCIONES_ENVIADO.filter((o) => f.enviado.has(o.valor)).map((o) => ({ clave: `e:${o.valor}`, texto: o.texto, quitar: (s: EstadoPedidos) => ({ ...s, enviado: sin(s.enviado, o.valor) }) })),
     ...(f.soloSinImei ? [{ clave: 'sin', texto: 'Sin IMEI', quitar: (s: EstadoPedidos) => ({ ...s, soloSinImei: false }) }] : []),
     ...[...f.marcas].map((v) => ({ clave: `m:${v}`, texto: `Con marca: ${textoMarca(v)}`, quitar: (s: EstadoPedidos) => ({ ...s, marcas: sin(s.marcas, v) }) })),
+    ...(f.sinAsociar ? [{ clave: 'sa', texto: 'Sin asociar', quitar: (s: EstadoPedidos) => ({ ...s, sinAsociar: false }) }] : []),
     ...(f.noCuadran ? [{ clave: 'nc', texto: 'No cuadran', quitar: (s: EstadoPedidos) => ({ ...s, noCuadran: false }) }] : []),
   ]
 }

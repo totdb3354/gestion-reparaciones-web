@@ -14,7 +14,7 @@ import { PedidosPage } from './PedidosPage'
 const ENVIADA = { estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', tieneEtiqueta: true } as const
 const FILAS = [
   fila({ idFila: 1, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web A', pedido: 'W-0001', ...ENVIADA }),
-  fila({ idFila: 2, canal: 'AMAZON', plataforma: 'AMZ', pedido: 'W-0002', ...ENVIADA }),
+  fila({ idFila: 2, canal: 'AMAZON', plataforma: 'AMZ', pedido: 'W-0002', asociadaEn: '2026-11-12T09:00:00', asociadaOrigen: 'LIBRO', ...ENVIADA }),
   fila({ idFila: 3, canal: 'PARTICULARES', plataforma: 'Cliente Web B', pedido: 'W-0003' }),
   fila({ idFila: 4, canal: 'BACKIPHONE', plataforma: 'Cliente Web C', pedido: 'W-0004', ...ENVIADA, faltaEnviarEn: '2026-11-10T09:05:00' }),
   fila({ idFila: 5, canal: 'PARTICULARES', plataforma: 'Cliente Web D', pedido: 'W-0005', estado: 'NO_PENDIENTE', faltaEnviarEn: '2026-11-10T09:05:00' }),

@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type CambioImei, type Candidato, type FilaVista, type FuenteVista, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  api, type CambioImei, type Candidato, type FilaVista, type FuenteVista, type PasadaAsociacion, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
@@ -182,6 +182,7 @@ export function useDescargarExcel() {
 /** Pedidos como la hoja (Teléfonos › Pedidos): todas las filas viven bajo esta clave. */
 export const CLAVE_FILAS = ['telefonos', 'pedidos', 'filas'] as const
 export const CLAVE_FUENTES_PEDIDOS = ['telefonos', 'pedidos', 'fuentes'] as const
+export const CLAVE_ASOCIACIONES_PEDIDOS = ['telefonos', 'pedidos', 'asociaciones'] as const
 
 /** GET /api/pedidos/filas: las filas del intervalo de fechas, filtradas por `buscar` (el servidor dice si hay más). Sondea como
  *  las demás vistas; al cambiar el intervalo o la búsqueda deja la lista anterior hasta que llega la nueva (`isPlaceholderData`,
@@ -383,6 +384,18 @@ export function useFuentesPedidos(): UseQueryResult<FuenteVista[]> {
   return useQuery({
     queryKey: CLAVE_FUENTES_PEDIDOS,
     queryFn: async ({ signal }) => (await api.GET('/api/pedidos/fuentes', { signal })).data ?? [],
+    refetchInterval: intervalo,
+    meta: { sinCapa: true },
+  })
+}
+
+/** GET /api/pedidos/asociaciones: la última pasada de asociación IMEI-pedido de cada plataforma de Amazon (cuándo, recuentos y la lista
+ *  «para revisar»); sin pasadas, lista vacía. Mismo sondeo que las fuentes. */
+export function useAsociaciones(): UseQueryResult<PasadaAsociacion[]> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: CLAVE_ASOCIACIONES_PEDIDOS,
+    queryFn: async ({ signal }) => (await api.GET('/api/pedidos/asociaciones', { signal })).data?.canales ?? [],
     refetchInterval: intervalo,
     meta: { sinCapa: true },
   })

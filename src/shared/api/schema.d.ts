@@ -2308,6 +2308,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/asociaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["asociaciones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pedidos/fuentes": {
         parameters: {
             query?: never;
@@ -2722,6 +2738,9 @@ export interface components {
             /** Format: date-time */
             marcaEn: string | null;
             marcaPor: string | null;
+            /** Format: date-time */
+            asociadaEn: string | null;
+            asociadaOrigen: string | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -4100,6 +4119,34 @@ export interface components {
             pedido: string | null;
             /** Format: date-time */
             fechaImei: string;
+        };
+        ParaRevisar: {
+            pedido: string;
+            imei: string;
+            motivo: string;
+            /** Format: date-time */
+            vistoEn: string;
+        };
+        PasadaAsociacion: {
+            canal: string;
+            /** Format: date-time */
+            cuando: string;
+            /** Format: int32 */
+            confirmadas: number;
+            /** Format: int32 */
+            intercambiadas: number;
+            /** Format: int32 */
+            puestas: number;
+            /** Format: int32 */
+            yaEstaban: number;
+            /** Format: int32 */
+            paraRevisar: number;
+            /** Format: int32 */
+            descartadas: number;
+            revisar: components["schemas"]["ParaRevisar"][];
+        };
+        RespuestaAsociacionesLectura: {
+            canales: components["schemas"]["PasadaAsociacion"][];
         };
         FuenteVista: {
             fuente: string;
@@ -8386,6 +8433,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Vendido"][];
+                };
+            };
+        };
+    };
+    asociaciones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RespuestaAsociacionesLectura"];
                 };
             };
         };

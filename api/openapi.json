@@ -4828,6 +4828,24 @@
         }
       }
     },
+    "/api/pedidos/asociaciones" : {
+      "get" : {
+        "tags" : [ "asociaciones-controller" ],
+        "operationId" : "asociaciones",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RespuestaAsociacionesLectura"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pedidos/fuentes" : {
       "get" : {
         "tags" : [ "filas-controller" ],
@@ -5586,7 +5604,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
+        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5688,6 +5706,15 @@
             "nullable" : true
           },
           "marcaPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "asociadaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "asociadaOrigen" : {
             "type" : "string",
             "nullable" : true
           }
@@ -9659,6 +9686,38 @@
             "type" : "string",
             "format" : "date-time"
           }
+        }
+      },
+      "ParaRevisar" : {
+        "required" : [ "imei", "motivo", "pedido", "vistoEn" ],
+        "type" : "object",
+        "properties" : {
+          "pedido" : { "type" : "string" },
+          "imei" : { "type" : "string" },
+          "motivo" : { "type" : "string" },
+          "vistoEn" : { "type" : "string", "format" : "date-time" }
+        }
+      },
+      "PasadaAsociacion" : {
+        "required" : [ "canal", "confirmadas", "cuando", "descartadas", "intercambiadas", "paraRevisar", "puestas", "revisar", "yaEstaban" ],
+        "type" : "object",
+        "properties" : {
+          "canal" : { "type" : "string" },
+          "cuando" : { "type" : "string", "format" : "date-time" },
+          "confirmadas" : { "type" : "integer", "format" : "int32" },
+          "intercambiadas" : { "type" : "integer", "format" : "int32" },
+          "puestas" : { "type" : "integer", "format" : "int32" },
+          "yaEstaban" : { "type" : "integer", "format" : "int32" },
+          "paraRevisar" : { "type" : "integer", "format" : "int32" },
+          "descartadas" : { "type" : "integer", "format" : "int32" },
+          "revisar" : { "type" : "array", "items" : { "$ref" : "#/components/schemas/ParaRevisar" } }
+        }
+      },
+      "RespuestaAsociacionesLectura" : {
+        "required" : [ "canales" ],
+        "type" : "object",
+        "properties" : {
+          "canales" : { "type" : "array", "items" : { "$ref" : "#/components/schemas/PasadaAsociacion" } }
         }
       },
       "FuenteVista" : {

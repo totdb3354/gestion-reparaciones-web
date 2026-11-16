@@ -30,6 +30,13 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
       const cual = marca ? ` (${textoMarca(marca)})` : ''
       return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `Marca quitada${motivo ? ` ${motivo}` : ''}${cual}`, quien: cambio.usuario ?? '' }
     }
+    // La asociación IMEI-pedido de Amazon la hace una máquina (los libros de ventas, o la carga del histórico): sin usuario.
+    if (cambio.tipo === 'ASOCIADA') {
+      return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `Pedido asociado (${cambio.detalle === 'HISTORICO' ? 'histórico de la hoja' : 'libro de ventas'})`, quien: cambio.usuario ?? '' }
+    }
+    if (cambio.tipo === 'IMEI_INTERCAMBIADO') {
+      return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `IMEI intercambiado ${cambio.detalle ?? ''}`.trim(), quien: cambio.usuario ?? '' }
+    }
     if (cambio.tipo === 'YA_ENVIADO') {
       return cambio.usuario
         ? { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Ya ha salido (marca quitada)', quien: cambio.usuario }

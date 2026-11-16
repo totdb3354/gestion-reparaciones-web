@@ -1,5 +1,5 @@
 import type {
-  Candidato, EstadoNsys, FilaVista, FuenteVista, FilaAltaNsys, FilaCajaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
+  PasadaAsociacion, Candidato, EstadoNsys, FilaVista, FuenteVista, FilaAltaNsys, FilaCajaNsys, FilaDescartadaNsys, FilaColorNsys, FilaGradoNsys, FilaIgnoradaNsys, FilaRevisarNsys, FilaSinGradoNsys, ImportacionNsys, ListaImportaciones, MovilBuscado, MovilComprobado, MovilStock, PorQueTaller, TarjetasPorPasar, TrabajoAbierto,
 } from '@/shared/api/client'
 import { preparar, type Movil } from '../stock/modelo'
 
@@ -156,7 +156,7 @@ export function fila(p: Partial<FilaVista> = {}): FilaVista {
     idFila: 1, fecha: '2026-11-09', plataforma: 'Plataforma A', sku: 'i13128AzulA', imei: null, pedido: '402-0000000-0000001',
     fechaCompra: '2026-11-08', estado: 'PENDIENTE', editable: true, envioFecha: null, impresaEn: null, tieneEtiqueta: false, transportista: null, seguimiento: null,
     nivel: null, motivo: null, skuMovil: null, caja: null, canal: 'PARTICULARES', faltaEnviarEn: null, sincronizadaEn: null,
-    marca: null, marcaNota: null, marcaEn: null, marcaPor: null, ...p,
+    marca: null, marcaNota: null, marcaEn: null, marcaPor: null, asociadaEn: null, asociadaOrigen: null, ...p,
   }
 }
 
@@ -170,5 +170,18 @@ export function fuente(p: Partial<FuenteVista> = {}): FuenteVista {
   return {
     fuente: 'Fuente A', ultimaBuena: '2026-11-10T09:00:00', resultado: 'OK', filas: 120, skuDesconocidos: null, motivo: null,
     nivel: 'OK', aviso: null, ...p,
+  }
+}
+
+/** Una fila de Amazon: sin asociar por defecto (`asociadaEn` nulo); con `asociadaEn` sale con su número de pedido. */
+export function filaAmazon(p: Partial<FilaVista> = {}): FilaVista {
+  return fila({ canal: 'AMAZON', plataforma: 'Plataforma Amz', ...p })
+}
+
+/** La última pasada de asociación de una plataforma de Amazon: hoy a las 09:30, sin nada para revisar. */
+export function pasada(p: Partial<PasadaAsociacion> = {}): PasadaAsociacion {
+  return {
+    canal: 'AMAZON', cuando: '2026-11-13T09:30:00', confirmadas: 0, intercambiadas: 0, puestas: 0, yaEstaban: 0, paraRevisar: 0, descartadas: 0,
+    revisar: [], ...p,
   }
 }

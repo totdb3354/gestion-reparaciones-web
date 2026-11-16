@@ -4,7 +4,7 @@ import { StaleDataError, mensajeDeError } from '@/shared/api/errors'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { usePonerMarca } from '../api'
 import { estadoPedidos } from './estado'
-import { MARCAS } from './filas'
+import { MARCAS, pedidoVisible } from './filas'
 
 /** Lo más largo que admite la nota de una marca (el servidor responde 400 con más). */
 export const MAX_NOTA = 200
@@ -33,8 +33,8 @@ export function EditorMarca({ fila, onHecho }: { fila: FilaVista; onHecho?: () =
       },
       (e: unknown) => {
         const aviso = e instanceof StaleDataError
-          ? `Pedido ${fila.pedido ?? idFila}: ${mensajeDeError(e)}`
-          : `No se guardó la marca del pedido ${fila.pedido ?? idFila}. Vuelve a intentarlo.`
+          ? `Pedido ${pedidoVisible(fila) ?? idFila}: ${mensajeDeError(e)}`
+          : `No se guardó la marca del pedido ${pedidoVisible(fila) ?? idFila}. Vuelve a intentarlo.`
         estadoPedidos.set((s) => ({ ...s, avisoImei: aviso }))
         if (e instanceof StaleDataError) onHecho?.()
       },

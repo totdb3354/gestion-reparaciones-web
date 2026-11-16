@@ -102,15 +102,20 @@ export function FiltroEnviado({ seleccion, onChange, recuentos }: {
 }
 
 /** El filtro de IMEI: «Solo sin IMEI» deja las filas editables sin IMEI (las enviadas también), «No cuadran», las del IMEI en naranja,
- *  y «Con marca», una casilla por marca (En espera de stock, En revisión, Pendiente de color, Cancelado) con su recuento. */
-export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran, marcas, onMarcas, recuentoMarcas }: {
+ *  «Sin asociar» (filas de Amazon que el libro de ventas aún no asocia) y «Con marca», una casilla por marca (En espera de stock, En revisión, Pendiente de color, Cancelado) con su recuento. */
+export function FiltroImei({ sinImei, noCuadran, onSinImei, onNoCuadran, marcas, onMarcas, recuentoMarcas, sinAsociar, onSinAsociar, recuentoSinAsociar }: {
   sinImei: boolean; noCuadran: boolean; onSinImei: (a: boolean) => void; onNoCuadran: (a: boolean) => void
   marcas: Set<string>; onMarcas: (s: Set<string>) => void; recuentoMarcas: Record<string, number>
+  sinAsociar: boolean; onSinAsociar: (a: boolean) => void; recuentoSinAsociar: number
 }) {
   return (
-    <Marco columna="IMEI" activo={sinImei || noCuadran || marcas.size > 0}>
+    <Marco columna="IMEI" activo={sinImei || noCuadran || marcas.size > 0 || sinAsociar}>
       <Casilla marcada={sinImei} onCambio={onSinImei} texto="Solo sin IMEI" />
       <Casilla marcada={noCuadran} onCambio={onNoCuadran} texto="No cuadran" />
+      <div role="group" aria-label="Amazon">
+        <p className="mt-1.5 mb-0.5 border-t border-form-fila-brd px-1.5 pt-1.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Amazon</p>
+        <Casilla marcada={sinAsociar} onCambio={onSinAsociar} texto="Sin asociar" n={recuentoSinAsociar} />
+      </div>
       <div role="group" aria-label="Con marca">
         <p className="mt-1.5 mb-0.5 border-t border-form-fila-brd px-1.5 pt-1.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Con marca</p>
         {MARCAS.map((m) => (

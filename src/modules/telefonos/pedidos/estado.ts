@@ -19,6 +19,8 @@ export type EstadoPedidos = {
   enviado: Set<string>
   /** Las marcas elegidas en «Con marca» (del filtro de IMEI); vacío = todas las filas. */
   marcas: Set<string>
+  /** Solo las filas de Amazon sin asociar (el «Sin asociar» del filtro de IMEI). */
+  sinAsociar: boolean
   /** «La fila en la que estás»: la última que se tocó, abriendo su celda de IMEI (se guarde o no) o su detalle. Lleva el fondo azul suave y la raya azul. Solo en memoria. */
   filaAqui: number | null
   /** La fila cuyo detalle enseña el panel de la derecha (por `idFila`: sobrevive a filtrar). Solo en memoria. */
@@ -33,5 +35,5 @@ export type EstadoPedidos = {
 export type FalloImei = { imei: string | null; clave: string; mensaje: string }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
 })

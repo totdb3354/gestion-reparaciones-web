@@ -6,7 +6,7 @@ import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos, type FalloImei } from './estado'
-import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
+import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -107,7 +107,10 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
       <CeldaImei fila={f} abierta={abierta} marcada={marcada} fallo={fallo} onAbrir={onAbrir} onSaltar={onSaltar} />
       <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
-        <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">{f.pedido}</button>
+        {/* En Amazon sin asociar el número no se enseña (ni aquí ni en el title): «sin asociar», en gris. */}
+        <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">
+          {pedidoVisible(f) ?? <span className="text-azul-gris italic">sin asociar</span>}
+        </button>
       </td>
       <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} /></td>
       <td className={td}>{dia(f.fechaCompra)}</td>

@@ -12,7 +12,7 @@ import { PedidosPage } from './PedidosPage'
 // Pantalla v2 (parte 1): contadores pulsables, filtros como etiquetas, la caja delante y la raya azul.
 // 6 filas: pendientes 4 (1, 2, 4, 5), sin IMEI 2 (1, 4), no cuadran 1 (5), enviada 1 (3) e histórico 1 (6).
 const FILAS = [
-  fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
+  fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021', asociadaEn: '2026-11-12T09:00:00', asociadaOrigen: 'LIBRO' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
   fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', impresaEn: '2026-11-10T09:00:00', tieneEtiqueta: true, imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),

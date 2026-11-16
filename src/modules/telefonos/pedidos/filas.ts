@@ -84,16 +84,45 @@ export function esPendiente(f: FilaVista): boolean {
   return e === 'PENDIENTE' || e === 'FALTA_ENVIAR'
 }
 
+/** Los canales de Amazon: ahi el pedido de una fila solo se ve cuando el libro de ventas lo asocia. */
+const CANALES_AMAZON = new Set(['AMAZON', 'AMAZON_STOCKROOM'])
+export const esAmazon = (f: FilaVista): boolean => f.canal != null && CANALES_AMAZON.has(f.canal)
+
+/** Una fila de Amazon que el libro de ventas aun no ha asociado a su pedido (`asociadaEn` nulo). Las webs y el historico nunca. */
+export const sinAsociar = (f: FilaVista): boolean => esAmazon(f) && !f.asociadaEn
+
+/** El numero de pedido que se enseña: el de la fila, salvo en Amazon sin asociar (el ERP lo sabe, pero aun no vale). */
+export const pedidoVisible = (f: FilaVista): string | null => (sinAsociar(f) ? null : f.pedido)
+
+/** Cuantas filas de Amazon hay sin asociar entre las recibidas (una pasada). */
+export function recuentoSinAsociar(filas: FilaVista[]): number {
+  let n = 0
+  for (const f of filas) if (sinAsociar(f)) n++
+  return n
+}
+
+/** Por que una asociacion del libro de ventas quedo «para revisar», en palabras; un motivo que la web no conoce se enseña tal cual. */
+export function textoRevisar(motivo: string): string {
+  switch (motivo) {
+    case 'SIN_HUECO': return 'el pedido no tiene hueco'
+    case 'YA_SALIO': return 'el móvil ya salió en otro pedido'
+    case 'PEDIDO_AJENO': return 'el pedido no está en el ERP'
+    case 'CANCELADO': return 'solo quedan filas canceladas'
+    default: return motivo
+  }
+}
+
 /** Las tiendas web (el plugin de la web sincroniza sus envíos): solo en ellas se puede marcar «falta por enviar». */
 const CANALES_WEB = new Set(['DISTRIBUIDORES', 'PARTICULARES', 'BACKIPHONE'])
 export const esCanalWeb = (f: FilaVista): boolean => f.canal != null && CANALES_WEB.has(f.canal)
 
 /** El número de cada fila dentro de su pedido de varios móviles: «1/3», «2/3»… en el orden de la lista. Solo cuentan las filas con
- *  `canal` y `pedido` (el histórico no) y los pedidos de más de una fila; las demás no salen en el mapa. Una pasada por cambio de filas. */
+ *  `canal` y `pedido` (el histórico no; en Amazon, solo las asociadas) y los pedidos de más de una fila; las demás no salen en el
+ *  mapa. Una pasada por cambio de filas. */
 export function numerosDePedido(filas: FilaVista[]): Map<number, string> {
   const grupos = new Map<string, number[]>()
   for (const f of filas) {
-    if (estadoDe(f) === 'HISTORICO' || !f.canal || !f.pedido) continue
+    if (estadoDe(f) === 'HISTORICO' || !f.canal || !f.pedido || sinAsociar(f)) continue
     const clave = `${f.canal}|${f.pedido}`
     const g = grupos.get(clave)
     if (g) g.push(f.idFila); else grupos.set(clave, [f.idFila])
@@ -181,9 +210,9 @@ export function rangoDe(p: Periodo, hoy: Date, rango?: { desde: string; hasta: s
   }
 }
 
-export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; enviado: Set<string>; marcas: Set<string> }
+export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; enviado: Set<string>; marcas: Set<string>; sinAsociar: boolean }
 
-export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set() }
+export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false }
 
 /** Los contadores pulsables de la cabecera y el filtro que cada uno aplica (sustituye a los filtros de columna). */
 export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'noCuadran'
@@ -199,7 +228,7 @@ export function filtrosDeContador(c: Contador): FiltrosColumna {
 
 /** El contador que está aplicado: el que deja exactamente sus filtros y ninguno más; null si hay otra combinación. */
 export function contadorAplicado(f: FiltrosColumna): Contador | null {
-  const nada = f.plataformas.size === 0 && f.skus.size === 0 && f.marcas.size === 0
+  const nada = f.plataformas.size === 0 && f.skus.size === 0 && f.marcas.size === 0 && !f.sinAsociar
   if (!nada) return null
   const enviado = f.enviado.size === 1 && f.enviado.has('PENDIENTE')
   if (f.enviado.size === 0 && !f.soloSinImei && !f.noCuadran) return 'filas'
@@ -284,12 +313,13 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVist
   // Se aplica exactamente lo guardado, este o no entre las filas: cada valor se ve como etiqueta y se puede quitar (nada oculto).
   const { plataformas, skus } = f
   const { marcas } = f
-  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0 && marcas.size === 0) return filas
+  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0 && marcas.size === 0 && !f.sinAsociar) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || plataformas.has(tiendaDe(x)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || faltaImei(x))
     && (!f.noCuadran || noCuadra(x))
+    && (!f.sinAsociar || sinAsociar(x))
     && (f.enviado.size === 0 || pasaEnviado(x, f.enviado))
     && (marcas.size === 0 || (x.marca != null && marcas.has(x.marca))))
 }

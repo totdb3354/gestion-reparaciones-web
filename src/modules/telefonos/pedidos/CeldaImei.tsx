@@ -8,7 +8,7 @@ import { usePonerImei, useRecomendados } from '../api'
 import { estadoPedidos, type FalloImei } from './estado'
 import { CIFRAS_IMEI, QUIETO_MS, SUSTITUIR_MS, luhnCuadra } from './imei'
 import { EditorMarca } from './EditorMarca'
-import { CLASE_TONO, TEXTO_NIVEL, claseCelda, colorMarca, textoMarca, textoMotivo, tonoFila } from './filas'
+import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, colorMarca, textoMarca, textoMotivo, tonoFila } from './filas'
 
 export const FONDO: Record<string, string> = {
   aviso: 'bg-form-agotado-bg',
@@ -144,7 +144,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
           // 409: otra persona cambió el IMEI. Reintentar mandaría el mismo `imeiAnterior` y volvería a fallar: no queda estado de fallo
           // (el hook ya recarga las filas en el acto, para ver el IMEI de la otra persona) y solo sale el aviso. La celda se cierra
           // (si se saltó, ya está cerrada): al reabrirla toma el IMEI de ahora.
-          const aviso = `Pedido ${fila.pedido ?? idFila}: ${mensajeDeError(e)}`
+          const aviso = `Pedido ${pedidoVisible(fila) ?? idFila}: ${mensajeDeError(e)}`
           estadoPedidos.set((s) => {
             const resto = { ...s.fallosImei }
             delete resto[idFila]
@@ -153,7 +153,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
           if (!salta) onCerrar()
           return
         }
-        const mensaje = `No se guardó el IMEI del pedido ${fila.pedido ?? idFila}. Vuelve a abrir su celda.`
+        const mensaje = `No se guardó el IMEI del pedido ${pedidoVisible(fila) ?? idFila}. Vuelve a abrir su celda.`
         estadoPedidos.set((s) => ({ ...s, fallosImei: { ...s.fallosImei, [idFila]: { imei, clave, mensaje } }, avisoImei: mensaje }))
       },
     )
