@@ -199,7 +199,38 @@ describe('Pedidos: la píldora «Asociación Amazon»', () => {
     expect(within(await screen.findByRole('dialog', { name: 'Asociación de Amazon' })).getByText('9-9').closest('li')).toHaveTextContent('RARO')
   })
 
-  it('sin nada para revisar lo dice y la lista no tiene filas', async () => {
+  it('sin error, el detalle dice la version del libro que se leyo', async () => {
+    const user = userEvent.setup()
+    pasadas = [
+      pasada({ canal: 'AMAZON', libroModificado: '2026-11-13T08:45:00' }),
+      pasada({ canal: 'AMAZON_STOCKROOM' }),
+    ]
+    abrir()
+    await esperar()
+    await user.click(await screen.findByRole('button', { name: /Asociación Amazon: 09:30/ }))
+    const detalle = within(await screen.findByRole('dialog', { name: 'Asociación de Amazon' }))
+    expect(detalle.getAllByText(/Libro leído/)).toHaveLength(1)
+    expect(detalle.getByText('Libro leído: versión del 13/11 08:45')).toBeInTheDocument()
+  })
+
+  it('con error en un canal, la pildora se pone en ambar y el detalle dice desde cuando y por que', async () => {
+    const user = userEvent.setup()
+    pasadas = [
+      pasada({ canal: 'AMAZON', libroModificado: '2026-11-13T08:45:00' }),
+      pasada({ canal: 'AMAZON_STOCKROOM', error: 'archivo bloqueado', errorEn: '2026-11-13T10:00:00', paraRevisar: 1, revisar: [{ pedido: '333-3', imei: '350000000000002', motivo: 'YA_SALIO', vistoEn: '2026-11-13T09:40:00' }] }),
+    ]
+    abrir()
+    await esperar()
+    const boton = await screen.findByRole('button', { name: 'Libros de Amazon: con errores' })
+    expect(boton.querySelector('.bg-ambar')).not.toBeNull()
+    await user.click(boton)
+    const detalle = within(await screen.findByRole('dialog', { name: 'Asociación de Amazon' }))
+    expect(detalle.getByText('No se pudo leer el libro desde 13/11 10:00: archivo bloqueado')).toBeInTheDocument()
+    expect(detalle.getByText('Libro leído: versión del 13/11 08:45')).toBeInTheDocument()
+    expect(detalle.getByText('333-3')).toBeInTheDocument()
+  })
+
+    it('sin nada para revisar lo dice y la lista no tiene filas', async () => {
     const user = userEvent.setup()
     pasadas = [pasada({ confirmadas: 3 })]
     abrir()

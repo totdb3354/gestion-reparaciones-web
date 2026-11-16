@@ -14,13 +14,15 @@ export function PildoraAsociacion() {
   if (!data || data.length === 0) return null
   const ultima = data.reduce((a, c) => (c.cuando > a ? c.cuando : a), data[0].cuando)
   const total = data.reduce((n, c) => n + c.paraRevisar, 0)
-  const visible = `Asociación Amazon: ${hora(ultima)} · ${total} para revisar`
+  const conError = data.some((c) => c.error)
+  const visible = conError ? 'Libros de Amazon: con errores' : `Asociación Amazon: ${hora(ultima)} · ${total} para revisar`
+  const alerta = conError || total > 0
   return (
     <Popover>
       <PopoverTrigger aria-label={visible} className="cursor-pointer rounded-full">
         <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]',
-          total > 0 ? 'border-ambar bg-form-agotado-bg text-form-agotado-text' : 'border-borde-input bg-superficie text-azul-gris')}>
-          <span aria-hidden className={cn('h-2 w-2 rounded-full', total > 0 ? 'bg-ambar' : 'bg-verde-ok')} />
+          alerta ? 'border-ambar bg-form-agotado-bg text-form-agotado-text' : 'border-borde-input bg-superficie text-azul-gris')}>
+          <span aria-hidden className={cn('h-2 w-2 rounded-full', alerta ? 'bg-ambar' : 'bg-verde-ok')} />
           {visible}
         </span>
       </PopoverTrigger>
@@ -30,6 +32,11 @@ export function PildoraAsociacion() {
           {data.map((c) => (
             <li key={c.canal}>
               <div className="flex gap-2"><b className="w-28 shrink-0">{textoTienda(c.canal)}</b><span>última pasada: {diaHora(c.cuando)}</span></div>
+              {c.error ? (
+                <div className="pl-[120px] text-form-agotado-text">No se pudo leer el libro desde {diaHora(c.errorEn ?? c.cuando)}: {c.error}</div>
+              ) : c.libroModificado ? (
+                <div className="pl-[120px] text-texto-sub">Libro leído: versión del {diaHora(c.libroModificado)}</div>
+              ) : null}
               <div className="pl-[120px] text-texto-sub">
                 {c.confirmadas} confirmadas · {c.intercambiadas} intercambiadas · {c.puestas} puestas · {c.yaEstaban} ya estaban
                 {c.descartadas > 0 && <> · {c.descartadas} descartadas</>}

@@ -181,7 +181,7 @@ export function filaAmazon(p: Partial<FilaVista> = {}): FilaVista {
 /** La última pasada de asociación de una plataforma de Amazon: hoy a las 09:30, sin nada para revisar. */
 export function pasada(p: Partial<PasadaAsociacion> = {}): PasadaAsociacion {
   return {
-    canal: 'AMAZON', cuando: '2026-11-13T09:30:00', confirmadas: 0, intercambiadas: 0, puestas: 0, yaEstaban: 0, paraRevisar: 0, descartadas: 0,
+    canal: 'AMAZON', cuando: '2026-11-13T09:30:00', confirmadas: 0, intercambiadas: 0, puestas: 0, yaEstaban: 0, paraRevisar: 0, descartadas: 0, libroModificado: null, error: null, errorEn: null,
     revisar: [], ...p,
   }
 }

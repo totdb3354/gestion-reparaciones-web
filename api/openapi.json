@@ -9710,6 +9710,9 @@
           "yaEstaban" : { "type" : "integer", "format" : "int32" },
           "paraRevisar" : { "type" : "integer", "format" : "int32" },
           "descartadas" : { "type" : "integer", "format" : "int32" },
+          "libroModificado" : { "type" : "string", "format" : "date-time", "nullable" : true },
+          "error" : { "type" : "string", "nullable" : true },
+          "errorEn" : { "type" : "string", "format" : "date-time", "nullable" : true },
           "revisar" : { "type" : "array", "items" : { "$ref" : "#/components/schemas/ParaRevisar" } }
         }
       },

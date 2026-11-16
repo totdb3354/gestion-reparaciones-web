@@ -4143,6 +4143,11 @@ export interface components {
             paraRevisar: number;
             /** Format: int32 */
             descartadas: number;
+            /** Format: date-time */
+            libroModificado: string | null;
+            error: string | null;
+            /** Format: date-time */
+            errorEn: string | null;
             revisar: components["schemas"]["ParaRevisar"][];
         };
         RespuestaAsociacionesLectura: {
