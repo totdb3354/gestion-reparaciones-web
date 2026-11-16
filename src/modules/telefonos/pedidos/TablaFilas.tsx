@@ -6,7 +6,7 @@ import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos, type FalloImei } from './estado'
-import { CLASE_TONO, COLUMNAS, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
+import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -112,7 +112,11 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
           {pedidoVisible(f) ?? <span className="text-azul-gris italic">sin asociar</span>}
         </button>
       </td>
-      <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} /></td>
+      <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} />{f.marca && estado !== 'CANCELADO' && (
+        // La marca de la fila (su nota en el title) junto al estado; «Cancelado» ya sustituye al estado y no se repite.
+        <span data-marca={f.marca} title={f.marcaNota ? `${textoMarca(f.marca)} — ${f.marcaNota}` : textoMarca(f.marca)}
+          className={cn('ml-1.5 inline-block rounded-lg px-2 py-px font-sans text-[11px] font-bold', colorMarca(f.marca))}>{textoMarca(f.marca)}</span>
+      )}</td>
       <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>
   )

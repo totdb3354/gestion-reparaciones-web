@@ -71,18 +71,25 @@ async function cerrarDesplegable() {
   if (await desplegable().isVisible()) await page.keyboard.press('Escape')
   await expect(desplegable()).toBeHidden()
 }
-/** Pone una marca desde el desplegable de la celda del IMEI (sin tocar el campo del IMEI). */
+/** Pone una marca desde el desplegable de la celda del IMEI (sin tocar el campo del IMEI): elegirla la guarda; la nota, con Enter. */
 async function ponerMarca(e: Elegida, marca: string, nota?: string) {
   await abrirCelda(e)
   await desplegable().getByRole('combobox', { name: 'Marca' }).selectOption(marca)
-  if (nota) await desplegable().getByRole('textbox', { name: 'Nota de la marca' }).fill(nota)
-  await desplegable().getByRole('button', { name: 'Guardar marca' }).click()
-  await expect(desplegable()).toBeHidden()
+  await expect.poll(async () => (await filaPorApi(e.id)).marca).toBe(marca)
+  if (nota) {
+    const campo = desplegable().getByRole('textbox', { name: 'Nota de la marca' })
+    await expect(campo).toBeEnabled()
+    await campo.fill(nota)
+    await campo.press('Enter')
+    await expect.poll(async () => (await filaPorApi(e.id)).marcaNota).toBe(nota)
+  }
+  await cerrarDesplegable()
 }
 async function quitarMarca(e: Elegida) {
   await abrirCelda(e)
-  await desplegable().getByRole('button', { name: 'Quitar la marca' }).click()
-  await expect(desplegable()).toBeHidden()
+  await desplegable().getByRole('combobox', { name: 'Marca' }).selectOption('')
+  await expect.poll(async () => (await filaPorApi(e.id)).marca).toBeNull()
+  await cerrarDesplegable()
 }
 async function sinFiltros() {
   const quitar = page.getByRole('button', { name: 'Quitar filtros', exact: true })
@@ -196,12 +203,13 @@ test('2. con la cifra de control mala no se guarda, Enter no fuerza y sale «Gua
   expect((await filaPorApi(P.id)).imei).toBe(imeiTest1)
 })
 
-test('3. «En espera de stock» con nota: se ve en la celda, el lector la salta y al poner el IMEI la marca se quita sola', async () => {
+test('3. «En espera de stock» con nota: se ve en la celda de envío, el lector la salta y al poner el IMEI la marca se quita sola', async () => {
   test.setTimeout(120_000)
   const nota = 'prueba E2E ' + Date.now()
   await ponerMarca(M, 'ESPERA_STOCK', nota)
-  await expect(celdaImei(M).locator('[data-marca="ESPERA_STOCK"]')).toHaveText('En espera de stock')
-  await expect(celdaImei(M).getByRole('button')).toHaveAttribute('title', new RegExp(`En espera de stock — ${escapar(nota)}`))
+  await expect(celdaEnvio(M).locator('[data-marca="ESPERA_STOCK"]')).toHaveText('En espera de stock')
+  await expect(celdaEnvio(M).locator('[data-marca]')).toHaveAttribute('title', new RegExp(`En espera de stock — ${escapar(nota)}`))
+  await expect(celdaImei(M).locator('[data-marca]')).toHaveCount(0)
   const f = await filaPorApi(M.id)
   expect(f.marca).toBe('ESPERA_STOCK')
   expect(f.marcaNota).toBe(nota)
@@ -221,7 +229,7 @@ test('3. «En espera de stock» con nota: se ve en la celda, el lector la salta 
   await page.keyboard.type(imeiM + '\n', { delay: 0 })
   await expect.poll(async () => (await filaPorApi(M.id)).imei, { timeout: 15_000 }).toBe(imeiM)
   expect((await filaPorApi(M.id)).marca, 'al poner el IMEI la marca se quita sola').toBeNull()
-  await expect(celdaImei(M).locator('[data-marca]')).toHaveCount(0)
+  await expect(celdaEnvio(M).locator('[data-marca]')).toHaveCount(0)
   await cerrarDesplegable()
 })
 

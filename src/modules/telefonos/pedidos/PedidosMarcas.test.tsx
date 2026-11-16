@@ -69,45 +69,57 @@ const desplegable = () => screen.findByRole('dialog', { name: 'Poner el IMEI' })
 const vistos = () => screen.getAllByRole('button', { name: /^M-000\d$/ }).map((e) => e.textContent)
 
 describe('Pedidos: la marca en la celda del IMEI', () => {
-  it('se elige marca y nota en el desplegable y se guarda con marcaAnterior y clave de idempotencia; la celda enseña la etiqueta y la nota en el title', async () => {
+  it('elegir la marca la guarda al momento (con marcaAnterior y clave); la nota, al salir del campo; el badge va en la columna de envio', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
     await user.click(celda('M-0001'))
     const d = within(await desplegable())
+    expect(d.queryByRole('button', { name: /Guardar marca|Quitar la marca/ })).not.toBeInTheDocument()
+    // Sin marca, la nota está desactivada.
+    expect(d.getByRole('textbox', { name: 'Nota de la marca' })).toBeDisabled()
     await user.selectOptions(d.getByRole('combobox', { name: 'Marca' }), 'ESPERA_STOCK')
-    await user.type(d.getByRole('textbox', { name: 'Nota de la marca' }), '  sin stock en B  ')
-    await user.click(d.getByRole('button', { name: 'Guardar marca' }))
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].id).toBe('1')
-    expect(puts[0].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: 'sin stock en B', marcaAnterior: '' })
+    expect(puts[0].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: null, marcaAnterior: '' })
     expect(puts[0].clave).toBeTruthy()
-    // La fila devuelta está en la caché: la celda enseña la etiqueta, sin IMEI ocupa el sitio de «pulsa para poner el IMEI…».
-    await waitFor(() => expect(within(tr('M-0001')).getByText('En espera de stock')).toBeInTheDocument())
-    expect(within(tr('M-0001')).queryByText(/pulsa para poner el IMEI/)).not.toBeInTheDocument()
-    expect(within(tr('M-0001')).getAllByRole('button')[0]).toHaveAttribute('title', expect.stringContaining('En espera de stock — sin stock en B'))
-    // Se cierra al guardar.
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Poner el IMEI' })).not.toBeInTheDocument())
+    const nota = d.getByRole('textbox', { name: 'Nota de la marca' })
+    await waitFor(() => expect(nota).toBeEnabled())
+    await user.type(nota, '  sin stock en B  ')
+    await user.tab() // salir del campo la guarda
+    await waitFor(() => expect(puts).toHaveLength(2))
+    expect(puts[1].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: 'sin stock en B', marcaAnterior: 'ESPERA_STOCK' })
+    // El badge va en la celda de envío (con la nota en el title); la celda del IMEI vuelve a invitar a poner el IMEI.
+    await waitFor(() => expect(within(tr('M-0001')).getByText('En espera de stock')).toHaveAttribute('title', 'En espera de stock — sin stock en B'))
+    expect(within(tr('M-0001')).getByText('En espera de stock').closest('td')).toBe(within(tr('M-0001')).getByText('Pendiente').closest('td'))
+    expect(within(tr('M-0001')).getByText(/pulsa para poner el IMEI/)).toBeInTheDocument()
+    // La nota también se guarda con Enter, y el desplegable sigue abierto.
+    await user.type(nota, ' y C{Enter}')
+    await waitFor(() => expect(puts).toHaveLength(3))
+    expect(puts[2].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: 'sin stock en B y C', marcaAnterior: 'ESPERA_STOCK' })
+    expect(screen.getByRole('dialog', { name: 'Poner el IMEI' })).toBeInTheDocument()
   })
 
-  it('las filas con marca la enseñan en su celda, con la nota en el title; sin nota, solo la marca', async () => {
+  it('las filas con marca la enseñan como badge en la celda de envío, con la nota en el title; sin nota, solo la marca', async () => {
     abrir()
     await esperar()
-    expect(within(tr('M-0002')).getByText('En espera de stock')).toBeInTheDocument()
-    expect(celda('M-0002')).toHaveAttribute('title', expect.stringContaining('En espera de stock — llega el lunes'))
+    expect(within(tr('M-0002')).getByText('En espera de stock')).toHaveAttribute('title', 'En espera de stock — llega el lunes')
+    expect(celda('M-0002')).not.toHaveAttribute('title', expect.stringContaining('En espera'))
     expect(within(tr('M-0003')).getByText('En revisión')).toBeInTheDocument()
     expect(within(tr('M-0004')).getByText('Pendiente de color')).toBeInTheDocument()
-    expect(within(tr('M-0005')).getByText('Cancelado', { selector: '[data-marca]' })).toBeInTheDocument()
-    // Solo la fila sin marca invita a poner el IMEI.
-    expect(screen.getAllByText(/pulsa para poner el IMEI/)).toHaveLength(1)
+    // «Cancelado» sustituye a la píldora de estado: ni badge repetido ni nada en la celda del IMEI.
+    expect(within(tr('M-0005')).getAllByText('Cancelado')).toHaveLength(1)
+    expect(within(tr('M-0005')).queryByText('Cancelado', { selector: '[data-marca]' })).not.toBeInTheDocument()
+    // Sin IMEI, todas invitan a ponerlo, con o sin marca.
+    expect(screen.getAllByText(/pulsa para poner el IMEI/)).toHaveLength(5)
   })
 
-  it('con IMEI, la etiqueta va tras el IMEI', async () => {
+  it('con IMEI, la celda del IMEI solo enseña el IMEI y el badge va en el envío', async () => {
     respuesta = [fila({ idFila: 7, pedido: 'M-0007', imei: imeiValido(7), marca: 'EN_REVISION', ...MARCADA })]
     abrir()
     await esperar(1)
     expect(within(tr('M-0007')).getByText(imeiValido(7))).toBeInTheDocument()
-    expect(within(tr('M-0007')).getByText('En revisión')).toBeInTheDocument()
+    expect(within(tr('M-0007')).getByText('En revisión').closest('td')).not.toBe(within(tr('M-0007')).getByText(imeiValido(7)).closest('td'))
   })
 
   it('el desplegable abre con el foco en el IMEI y escribir un IMEI con el lector sigue guardando igual, también con una marca puesta', async () => {
@@ -123,12 +135,12 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     expect(puts).toEqual([])
   })
 
-  it('«Quitar la marca» manda marca null con marcaAnterior', async () => {
+  it('«Sin marca» la quita al momento: marca null con marcaAnterior', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
     await user.click(celda('M-0002'))
-    await user.click(within(await desplegable()).getByRole('button', { name: 'Quitar la marca' }))
+    await user.selectOptions(within(await desplegable()).getByRole('combobox', { name: 'Marca' }), '')
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].cuerpo).toEqual({ marca: null, nota: null, marcaAnterior: 'ESPERA_STOCK' })
     await waitFor(() => expect(within(tr('M-0002')).queryByText('En espera de stock')).not.toBeInTheDocument())
@@ -147,7 +159,6 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     await user.click(celda('M-0001'))
     const d = within(await desplegable())
     await user.selectOptions(d.getByRole('combobox', { name: 'Marca' }), 'CANCELADO')
-    await user.click(d.getByRole('button', { name: 'Guardar marca' }))
     expect(await screen.findByText(/Pedido M-0001: Otra persona ha cambiado la marca/)).toBeInTheDocument()
     await waitFor(() => expect(cargas).toBeGreaterThan(antes))
     expect(estadoPedidos.get().fallosImei).toEqual({})
@@ -165,12 +176,11 @@ describe('Pedidos: la marca en el panel', () => {
     expect(within(panel).getByText('Puesta por Supertécnico 1 el 12/11/2026 09:30')).toBeInTheDocument()
     // Cambiar la marca.
     await user.selectOptions(within(panel).getByRole('combobox', { name: 'Marca' }), 'EN_REVISION')
-    await user.click(within(panel).getByRole('button', { name: 'Guardar marca' }))
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].cuerpo).toEqual({ marca: 'EN_REVISION', nota: 'llega el lunes', marcaAnterior: 'ESPERA_STOCK' })
     await waitFor(() => expect(within(tr('M-0002')).getByText('En revisión')).toBeInTheDocument())
     // Quitarla.
-    await user.click(within(panel).getByRole('button', { name: 'Quitar la marca' }))
+    await user.selectOptions(within(panel).getByRole('combobox', { name: 'Marca' }), '')
     await waitFor(() => expect(puts).toHaveLength(2))
     expect(puts[1].cuerpo).toMatchObject({ marca: null, marcaAnterior: 'EN_REVISION' })
     expect(puts[1].clave).not.toBe(puts[0].clave)
@@ -184,7 +194,6 @@ describe('Pedidos: la marca en el panel', () => {
     const panel = await abrirPanel(user, 'M-0001')
     expect(within(panel).getByText('Sin marca.')).toBeInTheDocument()
     await user.selectOptions(within(panel).getByRole('combobox', { name: 'Marca' }), 'PENDIENTE_COLOR')
-    await user.click(within(panel).getByRole('button', { name: 'Guardar marca' }))
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].cuerpo).toEqual({ marca: 'PENDIENTE_COLOR', nota: null, marcaAnterior: '' })
   })
@@ -214,7 +223,7 @@ describe('Pedidos: efectos de las marcas en la tabla', () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
-    expect(within(tr('M-0005')).getAllByText('Cancelado')).toHaveLength(2) // la etiqueta de la marca y la del envío
+    expect(within(tr('M-0005')).getAllByText('Cancelado')).toHaveLength(1) // solo la del envío
     expect(within(tr('M-0005')).queryByText('Pendiente')).not.toBeInTheDocument()
     expect(within(tr('M-0002')).getByText('Pendiente')).toBeInTheDocument()
     // 4 pendientes: todas menos la cancelada.
