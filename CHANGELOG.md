@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.36] - 2026-11-16 — Carga de técnicos: «Por cerrar» cuenta como hecho al marcar
+
+- En el panel **Carga de técnicos**, marcar una asignación **«Por cerrar»** ya cuenta como trabajo hecho: ese día, 11/12 de la asignación suman al **✓ hecho** del técnico y el 1/12 que queda (cerrar el móvil) sigue en pendiente hasta que se cierra. Si se marca y se cierra el mismo día, cuenta entera. Antes, lo hecho antes de marcar no salía como hecho ningún día. Las marcas anteriores a esta versión siguen contando como antes.
+- Una reparación normal vuelve a pesar **1/20** de la jornada de 9 h (un 5 %), como se decidió en julio: el servidor contaba 1/25.
+- Solo servidor (columna `POR_CERRAR_AT`, migración `migracion-por-cerrar-at.sql`): la web no cambia, solo sube el número de versión. Sale antes que la versión de Pedidos (Validar SKU), que pasa a la 0.9.37.
+
 ## [0.9.34] - (pendiente) — Marcas de la fila en Pedidos
 
 - En **Pedidos**, una fila puede llevar una **marca** con una **nota** opcional (hasta 200 caracteres): **«En espera de stock»** (no hay ese móvil en el stock de teléfonos), **«En revisión»** (hay algo que aclarar antes de enviarlo), **«Pendiente de color»** y **«Cancelado»** (el cliente anula ese móvil y el resto del pedido sigue). Sustituyen a los textos que se escribían en la celda del IMEI de la hoja.
