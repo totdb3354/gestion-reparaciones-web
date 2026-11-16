@@ -78,6 +78,9 @@ test('poner «En espera de stock» con nota desde la celda del IMEI, ver la etiq
   const badge = fila1.getByRole('cell').nth(5).locator('[data-marca="ESPERA_STOCK"]')
   await expect(badge).toHaveText('En espera de stock')
   await expect(badge).toHaveAttribute('title', 'En espera de stock — llega el lunes')
+  // Debajo de la pildora de estado, no al lado (a la derecha se cortaba con el panel abierto).
+  const [bb, bp] = await Promise.all([badge.boundingBox(), fila1.getByRole('cell').nth(5).locator('span').first().boundingBox()])
+  expect(bb!.y).toBeGreaterThanOrEqual(bp!.y + bp!.height - 1)
   await expect(fila1.getByText('pulsa para poner el IMEI…')).toBeVisible()
   await expect(page.getByRole('button', { name: '2 pendientes' })).toBeVisible()
 

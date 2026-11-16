@@ -31,6 +31,8 @@ type PropsFila = {
   elegida: boolean
   /** Solo en modo ventana: su número de fila para los lectores de pantalla (la tabla dice cuántas hay y solo se pintan unas). */
   indice?: number
+  /** Solo en modo ventana: la mide el virtualizador (las filas con marca son más altas que el resto). */
+  medir?: (el: HTMLElement | null) => void
   onAbrir: (idFila: number, abrir: boolean) => void
   onSaltar: (idFila: number) => boolean
   /** Pulsar la fila (fuera de la celda del IMEI): abre su panel, cambia de fila o lo cierra. */
@@ -82,16 +84,18 @@ function FilaHueco({ alto }: { alto: number }) {
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, marcada, fallo, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
+export const FilaTabla = memo(function FilaTabla({ fila: f, indice, medir, abierta, marcada, fallo, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
-  const td = cn('h-8 overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap last:border-r-0', tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave')
+  const conMarca = !!f.marca && estadoPantalla(f) !== 'CANCELADO'
+  // Las filas con marca crecen lo justo (estado y marca apilados); el resto mide 32 px (h-8).
+  const td = cn(!conMarca && 'h-8', 'overflow-hidden border-r border-b border-form-fila-brd px-2.5 py-1 text-ellipsis whitespace-nowrap last:border-r-0', tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave')
   const servidor = estadoDe(f)
   const estado = estadoPantalla(f)
   return (
     // Un clic en cualquier celda menos la del IMEI elige la fila. Se comprueba en el DOM (el desplegable del IMEI sube por React
     // desde su portal, pero no está dentro de la fila).
-    <tr data-estado={servidor} data-impresa={f.impresaEn ? 'true' : undefined} aria-rowindex={indice} data-aqui={marcada || undefined}
+    <tr data-estado={servidor} data-impresa={f.impresaEn ? 'true' : undefined} aria-rowindex={indice} data-index={medir ? indice! - 2 : undefined} ref={medir} data-con-marca={conMarca || undefined} data-aqui={marcada || undefined}
       onClick={(ev) => {
         const celda = (ev.target as Element).closest('td')
         if (celda && ev.currentTarget.contains(celda) && !celda.hasAttribute('data-imei')) onElegir(f.idFila)
@@ -112,11 +116,15 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, abierta, mar
           {pedidoVisible(f) ?? <span className="text-azul-gris italic">sin asociar</span>}
         </button>
       </td>
-      <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}><EtiquetaEstado fila={f} estado={estado} />{f.marca && estado !== 'CANCELADO' && (
-        // La marca de la fila (su nota en el title) junto al estado; «Cancelado» ya sustituye al estado y no se repite.
-        <span data-marca={f.marca} title={f.marcaNota ? `${textoMarca(f.marca)} — ${f.marcaNota}` : textoMarca(f.marca)}
-          className={cn('ml-1.5 inline-block rounded-lg px-2 py-px font-sans text-[11px] font-bold', colorMarca(f.marca))}>{textoMarca(f.marca)}</span>
-      )}</td>
+      <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}>{conMarca ? (
+        // La marca de la fila (su nota en el title) va debajo del estado, apilada como los badges de Asignaciones: a la derecha se cortaba con el panel abierto.
+        // «Cancelado» ya sustituye al estado y no se repite.
+        <div className="flex flex-col items-start gap-0.5">
+          <span><EtiquetaEstado fila={f} estado={estado} /></span>
+          <span data-marca={f.marca} title={f.marcaNota ? `${textoMarca(f.marca!)} — ${f.marcaNota}` : textoMarca(f.marca!)}
+            className={cn('inline-block rounded-lg px-2 py-px font-sans text-[11px] font-bold', colorMarca(f.marca!))}>{textoMarca(f.marca!)}</span>
+        </div>
+      ) : <EtiquetaEstado fila={f} estado={estado} />}</td>
       <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>
   )
@@ -194,6 +202,11 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
     count: ventana ? filas.length : 0,
     getScrollElement: () => contenedor.current,
     estimateSize: () => alto,
+    // Las filas con marca son más altas: se mide cada una (sin maquetación, jsdom, se queda con la estimada).
+    measureElement: (el, entry) => {
+      const h = entry?.borderBoxSize?.[0]?.blockSize ?? (el as HTMLElement).getBoundingClientRect().height
+      return h > 0 ? Math.round(h) : alto
+    },
     scrollMargin: cabecera,
     overscan: FILAS_DE_MARGEN,
     enabled: ventana,
@@ -216,7 +229,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   const cabeza = useRef<HTMLTableSectionElement>(null)
   useLayoutEffect(() => {
     if (!ventana) return
-    const h = aMedir.current?.querySelector<HTMLElement>('tr[data-estado]')?.offsetHeight ?? 0
+    const h = aMedir.current?.querySelector<HTMLElement>('tr[data-estado]:not([data-con-marca])')?.offsetHeight ?? 0
     const c = cabeza.current?.offsetHeight ?? 0
     const nuevo = { alto: h > 0 && Math.abs(h - alto) >= 0.5 ? h : alto, cabecera: c > 0 && Math.abs(c - cabecera) >= 0.5 ? c : cabecera }
     if (nuevo.alto !== alto || nuevo.cabecera !== cabecera) { setMedidas(nuevo); virtualizador.measure() }
@@ -251,7 +264,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} medir={virtualizador.measureElement} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
