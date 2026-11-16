@@ -9,6 +9,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - En **Pedidos**, las filas de **Amazon y Amazon Stockroom** salen **«sin asociar»** en la columna Pedido: qué móvil va en qué pedido lo decide una persona en los libros de ventas de Amazon. El IMEI se lee como siempre; el número de pedido aparece cuando el libro lo asocia, y las filas de un mismo pedido se juntan con su «1/2, 2/2».
 - El panel de la fila dice si está asociada y desde dónde (libro de ventas o histórico de la hoja); el historial apunta las asociaciones y los IMEI que se intercambian entre filas.
 - Filtro **«Sin asociar»** y una píldora con la última asociación y la lista **«para revisar»** (el pedido no tiene hueco, el móvil ya salió en otro pedido, el pedido no está en el ERP, solo quedan filas canceladas).
+- Las asociaciones salen de la pestaña «Paso 1. Meter IMEI» de los dos libros de ventas de Amazon, que el servidor lee de Google Drive cada 10 minutos cuando cambian (pedidos de los últimos 30 días). La píldora dice qué versión del libro se leyó y se pone en ámbar si no se puede leer.
 - Las webs no cambian. Necesita el servidor de la misma versión y su migración (`migracion-pedidos-asociacion.sql`, que solo añade columnas y tablas).
 
 ## [0.9.34] - 2026-11-13 — Marcas de la fila en Pedidos
