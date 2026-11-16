@@ -29,6 +29,22 @@ export function textoMotivo(f: FilaVista): string | null {
   }
 }
 
+/** Los motivos del aviso naranja que una persona puede dar por buenos («Validar SKU»): solo los de SKU. NO_EN_NSYS y EN_OTRA_FILA son
+ *  errores del IMEI (se arreglan cambiándolo) y el ámbar no se valida. */
+export const MOTIVOS_SKU = ['MODELO', 'COLOR_O_GRADO', 'GRADO_NO_VENDIBLE', 'SKU_DESCONOCIDO']
+
+/** La fila tiene el aviso de SKU dado por bueno (el servidor ya manda el nivel OK). */
+export const estaValidada = (f: FilaVista): boolean => !!f.motivoValidado
+
+/** Sale el botón «Validar SKU»: celda naranja por un motivo de SKU, sin validar. */
+export const puedeValidar = (f: FilaVista): boolean =>
+  f.editable && !!f.imei && f.nivel === 'MAL' && !estaValidada(f) && f.motivo != null && MOTIVOS_SKU.includes(f.motivo)
+
+/** El aviso original de una fila validada («otro color o grado: es …»); null si no lo está. */
+export function textoMotivoValidado(f: FilaVista): string | null {
+  return f.motivoValidado ? textoMotivo({ ...f, motivo: f.motivoValidado }) : null
+}
+
 /** El estado de una fila que calcula el servidor (el contrato lo tipa como texto). */
 export type EstadoFila = 'PENDIENTE' | 'ENVIADA' | 'NO_PENDIENTE' | 'HISTORICO'
 

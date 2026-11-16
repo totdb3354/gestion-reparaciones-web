@@ -7,7 +7,8 @@ import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
 import { construirHistorial, type EntradaHistorial } from './historial'
 import { EditorMarca } from './EditorMarca'
-import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, sinAsociar, esAmazon, textoMarca, textoMotivo, textoTienda, tiendaDe } from './filas'
+import { BotonValidarSku } from './BotonValidarSku'
+import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, sinAsociar, esAmazon, textoMarca, textoMotivo, textoMotivoValidado, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 /** «2026-11-09T10:30:00» → «09/11/2026 10:30» (hora de Madrid, cortada del texto como las demás fechas). */
@@ -159,11 +160,18 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
           <Dato nombre="IMEI"><span className="font-mono text-[12px]">{f.imei}</span></Dato>
           {f.skuMovil && <Dato nombre="Es"><span className="font-mono text-[12px]">{f.skuMovil}</span></Dato>}
           {f.caja && <Dato nombre="Caja">{f.caja}</Dato>}
-          {motivo && <Dato nombre="Aviso">{motivo}</Dato>}
+          {motivo && !f.motivoValidado && <Dato nombre="Aviso">{motivo}</Dato>}
+          {f.motivoValidado && (
+            <Dato nombre="SKU validado">
+              {textoMotivoValidado(f)}
+              {f.validadaEn && <span className="block text-[11px] font-normal text-azul-gris">{`${f.validadaPor ? `por ${f.validadaPor} el ` : 'el '}${diaHora(f.validadaEn)}`}</span>}
+            </Dato>
+          )}
         </dl>
       ) : (
         <p className="text-[12px] text-azul-gris">{f.editable ? 'Sin IMEI todavía.' : 'Sin IMEI.'}</p>
       )}
+      {f.imei && <BotonValidarSku key={`${f.idFila}:${f.motivoValidado}`} fila={f} />}
       <Titulo>Historial</Titulo>
       <Historial fila={f} />
     </section>

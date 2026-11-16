@@ -378,6 +378,34 @@ export function usePonerMarca() {
   })
 }
 
+/** PUT /api/pedidos/filas/{id}/validacion: da por bueno el aviso naranja de SKU del IMEI de la fila (`validar: true`) o quita esa validación.
+ *  `imeiAnterior` es el IMEI que la fila tenía en pantalla (el servidor responde 409 si otra persona lo cambió). Como el IMEI y la marca:
+ *  clave de idempotencia, la fila devuelta se escribe en las cachés, el apunte se adelanta en el historial y las filas se recargan una
+ *  sola vez. Un fallo no abre el diálogo global: lo enseña quien llama. */
+export function useValidarSku() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ idFila, validar, imeiAnterior, clave }: { idFila: number; validar: boolean; imeiAnterior: string | null; clave: string }): Promise<FilaVista> => {
+      const { data } = await api.PUT('/api/pedidos/filas/{id}/validacion', {
+        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { validar, imeiAnterior },
+      })
+      if (!data) throw new Error('El servidor no devolvió la fila')
+      return data
+    },
+    meta: { silenciarError: true, silenciarConexion: true },
+    onSuccess: (fila) => escribirFila(qc, fila, (previa) => {
+      const antes = previa?.motivoValidado ?? null
+      if (antes === fila.motivoValidado) return null
+      const usuario = leerSesion()?.nombreUsuario ?? null
+      if (!fila.motivoValidado) return { usuario, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: 'VALIDACION_QUITADA', detalle: antes }
+      return { usuario, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: 'VALIDADA', detalle: fila.motivoValidado }
+    }),
+    // Un 409 (otra persona cambió el IMEI, o el aviso ya no es de SKU) no se reintenta igual: se recargan las filas en el acto.
+    onError: (e) => { if (e instanceof StaleDataError) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+    onSettled: () => { recargarFilasTrasEspera(qc) },
+  })
+}
+
 /** GET /api/pedidos/fuentes: de dónde vienen los pedidos y cuándo se leyó cada fuente por última vez (la píldora). */
 export function useFuentesPedidos(): UseQueryResult<FuenteVista[]> {
   const intervalo = useIntervaloRefresco(true)

@@ -582,6 +582,50 @@
         }
       }
     },
+    "/api/pedidos/filas/{id}/validacion" : {
+      "put" : {
+        "tags" : [ "filas-controller" ],
+        "operationId" : "ponerValidacion",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PeticionValidacion"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FilaVista"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pedidos/filas/{id}/imei" : {
       "put" : {
         "tags" : [ "filas-controller" ],
@@ -5571,6 +5615,19 @@
           }
         }
       },
+      "PeticionValidacion" : {
+        "required" : [ "validar" ],
+        "type" : "object",
+        "properties" : {
+          "validar" : {
+            "type" : "boolean"
+          },
+          "imeiAnterior" : {
+            "type" : "string",
+            "nullable" : true
+          }
+        }
+      },
       "PeticionMarca" : {
         "required" : [ "marca" ],
         "type" : "object",
@@ -5604,7 +5661,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista" ],
+        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5715,6 +5772,19 @@
             "nullable" : true
           },
           "asociadaOrigen" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "validadaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "validadaPor" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivoValidado" : {
             "type" : "string",
             "nullable" : true
           }

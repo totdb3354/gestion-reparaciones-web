@@ -8,7 +8,8 @@ import { usePonerImei, useRecomendados } from '../api'
 import { estadoPedidos, type FalloImei } from './estado'
 import { CIFRAS_IMEI, QUIETO_MS, SUSTITUIR_MS, luhnCuadra } from './imei'
 import { EditorMarca } from './EditorMarca'
-import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, textoMotivo, tonoFila } from './filas'
+import { BotonValidarSku } from './BotonValidarSku'
+import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, estaValidada, textoMotivo, textoMotivoValidado, tonoFila } from './filas'
 
 export const FONDO: Record<string, string> = {
   aviso: 'bg-form-agotado-bg',
@@ -36,11 +37,14 @@ type Props = {
  *  además devuelve el foco a la celda). */
 export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: Props) {
   const clase = claseCelda(fila)
-  const motivo = textoMotivo(fila)
+  const validada = estaValidada(fila)
+  // Validada: el aviso original ya no se escribe en la celda (sale una marca pequeña «validado») y queda en el title.
+  const motivo = validada ? null : textoMotivo(fila)
+  const avisoValidado = validada ? `SKU validado${fila.validadaPor ? ` por ${fila.validadaPor}` : ''}: ${textoMotivoValidado(fila) ?? 'aviso de SKU'}` : null
   // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
   const textoFallo = fallo ? (fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
   const boton = (
-    <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', motivo ?? fila.caja].filter(Boolean).join(' · ')}
+    <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado ?? motivo ?? fila.caja].filter(Boolean).join(' · ')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
         clase === 'vacia' && 'font-sans italic text-texto-sub')}>
       {fallo
@@ -48,6 +52,9 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
         : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
       {!fallo && motivo && (
         <span className={cn('min-w-0 truncate font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
+      )}
+      {!fallo && validada && (
+        <span data-validado className="shrink-0 rounded-lg bg-fila-reparado-bg px-1.5 py-px font-sans text-[10.5px] font-bold text-[#2f7d3b]">validado</span>
       )}
       {!fallo && !motivo && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
@@ -210,6 +217,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
           className="mt-1 h-6 cursor-pointer rounded-md border border-borde-input bg-superficie px-2 text-[11.5px] font-semibold">Guardar igualmente</button>
       )}
       {/* Debajo del campo y sin enfocarse solo: el foco se queda en el IMEI para el lector de códigos. */}
+      <BotonValidarSku fila={fila} />
       <EditorMarca fila={fila} onHecho={onCerrar} />
       <button type="button" aria-expanded={ver} onClick={() => setVer((v) => !v)}
         className="mt-1 cursor-pointer bg-transparent px-0.5 text-[11.5px] text-azul-medio underline underline-offset-2">{ver ? 'Ocultar recomendados' : 'Ver recomendados'}</button>

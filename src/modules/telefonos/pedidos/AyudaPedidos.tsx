@@ -31,6 +31,9 @@ export function AyudaPedidos() {
           <Linea>Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI.</Linea>
           <Linea muestra={celda(FONDO.aviso, '350000000000001')}>IMEI en ámbar: vale, pero con un aviso.</Linea>
           <Linea muestra={celda(FONDO.mal, '350000000000002')}>IMEI en naranja: no cuadra con el pedido. Mira el motivo.</Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, 'bg-fila-reparado-bg text-[#2f7d3b]')}>validado</span>}>
+            IMEI con el aviso de SKU dado por bueno a mano («Validar SKU», en el desplegable del IMEI o en el panel). Ya no cuenta en «no cuadran» y vale solo para ese IMEI en esa fila.
+          </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Pendiente</span>}>Aún no se ha preparado el envío.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.GENERADA)}>Etiqueta generada</span>}>La etiqueta existe pero no se ha impreso: el móvil sigue en el almacén.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.ENVIADO)}>Enviado</span>}>La etiqueta se imprimió.</Linea>
