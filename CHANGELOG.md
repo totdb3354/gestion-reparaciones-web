@@ -4,7 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.34] - (pendiente) — Marcas de la fila en Pedidos
+## [0.9.35] - (pendiente) — Amazon: el pedido sale cuando lo asocia el libro de ventas
+
+- En **Pedidos**, las filas de **Amazon y Amazon Stockroom** salen **«sin asociar»** en la columna Pedido: qué móvil va en qué pedido lo decide una persona en los libros de ventas de Amazon. El IMEI se lee como siempre; el número de pedido aparece cuando el libro lo asocia, y las filas de un mismo pedido se juntan con su «1/2, 2/2».
+- El panel de la fila dice si está asociada y desde dónde (libro de ventas o histórico de la hoja); el historial apunta las asociaciones y los IMEI que se intercambian entre filas.
+- Filtro **«Sin asociar»** y una píldora con la última asociación y la lista **«para revisar»** (el pedido no tiene hueco, el móvil ya salió en otro pedido, el pedido no está en el ERP, solo quedan filas canceladas).
+- Las webs no cambian. Necesita el servidor de la misma versión y su migración (`migracion-pedidos-asociacion.sql`, que solo añade columnas y tablas).
+
+## [0.9.34] - 2026-11-13 — Marcas de la fila en Pedidos
 
 - En **Pedidos**, una fila puede llevar una **marca** con una **nota** opcional (hasta 200 caracteres): **«En espera de stock»** (no hay ese móvil en el stock de teléfonos), **«En revisión»** (hay algo que aclarar antes de enviarlo), **«Pendiente de color»** y **«Cancelado»** (el cliente anula ese móvil y el resto del pedido sigue). Sustituyen a los textos que se escribían en la celda del IMEI de la hoja.
 - Se ponen desde el desplegable de la **celda del IMEI** (debajo del campo, sin quitarle el foco al lector) o desde el **panel de la fila**, donde se ve también quién la puso y cuándo. La celda enseña la marca como etiqueta, con la nota al pasar el ratón.
