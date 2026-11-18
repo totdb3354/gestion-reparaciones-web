@@ -54,3 +54,31 @@ describe('TablaFilas: no se repinta entera', () => {
     expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([3, 1, 2, 1])
   })
 })
+
+describe('TablaFilas: «falta por enviar» con fecha de salida', () => {
+  const HOY = '2026-11-18'
+  const parcial = (fechaSalida: string) => fila({ idFila: 1, pedido: '0099-0000001', estado: 'ENVIADA', faltaEnviarEn: '2026-11-17T10:00:00', fechaSalida })
+  const etiqueta = (f: ReturnType<typeof fila>) => {
+    renderConProviders(<TablaFilas filas={[f]} hoy={HOY} />, { sesion: SESION_SUPER })
+    return screen.getByText(/^Envío parcial · falta por enviar/)
+  }
+
+  it('que sale hoy lo dice con el color de «Sale hoy»', () => {
+    const e = etiqueta(parcial(HOY))
+    expect(e).toHaveTextContent(/^Envío parcial · falta por enviar · sale hoy$/)
+    expect(e).toHaveClass('bg-[#fde2e1]', 'text-[#b42318]')
+  })
+
+  it('con retraso lo dice con el color de «Con retraso»', () => {
+    const e = etiqueta(parcial('2026-11-17'))
+    expect(e).toHaveTextContent(/^Envío parcial · falta por enviar · con retraso$/)
+    expect(e).toHaveClass('bg-[#b42318]', 'text-white')
+  })
+
+  it('que sale mañana se queda con la etiqueta sin más', () => {
+    const e = etiqueta(parcial('2026-11-19'))
+    expect(e).toHaveTextContent(/^Envío parcial · falta por enviar$/)
+    expect(e).not.toHaveClass('bg-[#fde2e1]')
+    expect(e).not.toHaveClass('bg-[#b42318]')
+  })
+})

@@ -67,12 +67,12 @@ const diaMes = (iso: string | null) => (iso ? ` ${dia(iso).slice(0, 5)}` : '')
  *  transportista y el seguimiento, visibles sin esperar al ratón. «Etiqueta generada» lleva la fecha del envío y «Enviado» (etiqueta
  *  impresa), la de la impresión. */
 export function EtiquetaEstado({ fila: f, estado, conDetalle = true, hoy }: { fila: FilaVista; estado: EstadoPantalla; conDetalle?: boolean; hoy?: string }) {
-  // La fecha de salida (spec 2026-11-18 §3): solo si se da `hoy`. En «falta por enviar» solo cambia el texto cuando va con retraso.
+  // La fecha de salida (spec 2026-11-18 §3): solo si se da `hoy`. En «falta por enviar» el texto añade «con retraso» o «sale hoy».
   const nivel = hoy ? nivelSalida(f, hoy) : null
   const detalle = conDetalle && (estado === 'GENERADA' || estado === 'ENVIADO') ? detalleEnvio(f, ' ') : undefined
   const texto = {
     PENDIENTE: (nivel && textoSalida(f, hoy!)) || 'Pendiente',
-    FALTA_ENVIAR: nivel === 'RETRASO' ? 'Envío parcial · falta por enviar · con retraso' : 'Envío parcial · falta por enviar',
+    FALTA_ENVIAR: `Envío parcial · falta por enviar${nivel === 'RETRASO' ? ' · con retraso' : nivel === 'HOY' ? ' · sale hoy' : ''}`,
     GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
     ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
     NO_PENDIENTE: 'Ya no está pendiente',
@@ -81,7 +81,7 @@ export function EtiquetaEstado({ fila: f, estado, conDetalle = true, hoy }: { fi
   }[estado]
   return (
     <>
-      <span className={cn(ETIQUETA, nivel === 'RETRASO' ? COLOR_RETRASO : nivel === 'HOY' && estado === 'PENDIENTE' ? COLOR_HOY : COLOR_ETIQUETA[estado])}>{texto}</span>
+      <span className={cn(ETIQUETA, nivel === 'RETRASO' ? COLOR_RETRASO : nivel === 'HOY' ? COLOR_HOY : COLOR_ETIQUETA[estado])}>{texto}</span>
       {detalle && <>{' '}<span className="ml-1.5 font-sans text-[11px] text-azul-gris">{detalle}</span></>}
     </>
   )
