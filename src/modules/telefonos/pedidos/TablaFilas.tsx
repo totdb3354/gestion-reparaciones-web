@@ -2,10 +2,12 @@ import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type Rea
 import { defaultRangeExtractor, observeElementRect, useVirtualizer, type Range } from '@tanstack/react-virtual'
 import type { FilaVista } from '@/shared/api/client'
 import { cn } from '@/shared/lib/utils'
+import { hoyMadrid } from '@/shared/lib/fechas'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos, type FalloImei } from './estado'
+import { nivelSalida, textoSalida } from './salida'
 import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
@@ -23,6 +25,8 @@ const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 
 type PropsFila = {
   fila: FilaVista; abierta: boolean; marcada: boolean
+  /** El día de hoy en Madrid (`yyyy-mm-dd`): cambia una vez al día y decide «Sale hoy» o «Con retraso» en la columna Enviado. */
+  hoy: string
   /** El último guardado del IMEI de esta fila falló (la celda se ve en rojo). */
   fallo?: FalloImei
   /** «1/3»: el lugar de la fila en su pedido de varios móviles (nada si el pedido es de uno). */
@@ -52,17 +56,23 @@ export const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
   HISTORICO: 'bg-[#eceef2] text-[#6b7482]',
 }
 
+/** Colores de la fecha de salida: con retraso (rojo fuerte) y sale hoy (rojo suave). */
+const COLOR_RETRASO = 'bg-[#b42318] text-white'
+const COLOR_HOY = 'bg-[#fde2e1] text-[#b42318]'
+
 /** Un espacio y «dd/mm» de una fecha del servidor, o nada. */
 const diaMes = (iso: string | null) => (iso ? ` ${dia(iso).slice(0, 5)}` : '')
 
 /** El estado de la fila como etiqueta con texto (el color nunca es la única señal). Con etiqueta generada o enviada, tras ella van el
  *  transportista y el seguimiento, visibles sin esperar al ratón. «Etiqueta generada» lleva la fecha del envío y «Enviado» (etiqueta
  *  impresa), la de la impresión. */
-export function EtiquetaEstado({ fila: f, estado, conDetalle = true }: { fila: FilaVista; estado: EstadoPantalla; conDetalle?: boolean }) {
+export function EtiquetaEstado({ fila: f, estado, conDetalle = true, hoy }: { fila: FilaVista; estado: EstadoPantalla; conDetalle?: boolean; hoy?: string }) {
+  // La fecha de salida (spec 2026-11-18 §3): solo si se da `hoy`. En «falta por enviar» solo cambia el texto cuando va con retraso.
+  const nivel = hoy ? nivelSalida(f, hoy) : null
   const detalle = conDetalle && (estado === 'GENERADA' || estado === 'ENVIADO') ? detalleEnvio(f, ' ') : undefined
   const texto = {
-    PENDIENTE: 'Pendiente',
-    FALTA_ENVIAR: 'Envío parcial · falta por enviar',
+    PENDIENTE: (nivel && textoSalida(f, hoy!)) || 'Pendiente',
+    FALTA_ENVIAR: nivel === 'RETRASO' ? 'Envío parcial · falta por enviar · con retraso' : 'Envío parcial · falta por enviar',
     GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
     ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
     NO_PENDIENTE: 'Ya no está pendiente',
@@ -71,7 +81,7 @@ export function EtiquetaEstado({ fila: f, estado, conDetalle = true }: { fila: F
   }[estado]
   return (
     <>
-      <span className={cn(ETIQUETA, COLOR_ETIQUETA[estado])}>{texto}</span>
+      <span className={cn(ETIQUETA, nivel === 'RETRASO' ? COLOR_RETRASO : nivel === 'HOY' && estado === 'PENDIENTE' ? COLOR_HOY : COLOR_ETIQUETA[estado])}>{texto}</span>
       {detalle && <>{' '}<span className="ml-1.5 font-sans text-[11px] text-azul-gris">{detalle}</span></>}
     </>
   )
@@ -84,7 +94,7 @@ function FilaHueco({ alto }: { alto: number }) {
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, indice, medir, abierta, marcada, fallo, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
+export const FilaTabla = memo(function FilaTabla({ fila: f, hoy, indice, medir, abierta, marcada, fallo, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
   const conMarca = !!f.marca && estadoPantalla(f) !== 'CANCELADO'
@@ -120,11 +130,11 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, medir, abier
         // La marca de la fila (su nota en el title) va debajo del estado, apilada como los badges de Asignaciones: a la derecha se cortaba con el panel abierto.
         // «Cancelado» ya sustituye al estado y no se repite.
         <div className="flex flex-col items-start gap-0.5">
-          <span><EtiquetaEstado fila={f} estado={estado} /></span>
+          <span><EtiquetaEstado fila={f} estado={estado} hoy={hoy} /></span>
           <span data-marca={f.marca} title={f.marcaNota ? `${textoMarca(f.marca!)} — ${f.marcaNota}` : textoMarca(f.marca!)}
             className={cn('inline-block rounded-lg px-2 py-px font-sans text-[11px] font-bold', colorMarca(f.marca!))}>{textoMarca(f.marca!)}</span>
         </div>
-      ) : <EtiquetaEstado fila={f} estado={estado} />}</td>
+      ) : <EtiquetaEstado fila={f} estado={estado} hoy={hoy} />}</td>
       <td className={td}>{dia(f.fechaCompra)}</td>
     </tr>
   )
@@ -132,8 +142,10 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, indice, medir, abier
 
 /** La hoja de pedidos (spec «Pedidos como la hoja» §3): una fila por pedido en el orden recibido, cabecera fija, el estado como etiqueta
  *  en «Enviado» y solo el histórico en gris. La última fila que se toca (su celda de IMEI o su detalle) queda marcada en azul suave con una raya. Al montar baja al final; al llegar filas nuevas baja solo si el usuario ya estaba abajo. Solo una celda de IMEI abierta. */
-export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ventana = false, numeros: numerosDados }: {
+export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ventana = false, numeros: numerosDados, hoy: hoyDado }: {
   filas: FilaVista[]
+  /** El día de hoy en Madrid; la página lo calcula una vez. Sin él, se calcula aquí. */
+  hoy?: string
   /** Modo «muchas filas»: solo se pintan las filas visibles (más un margen); la barra de scroll abarca todas. Lo decide la página por el umbral. */
   ventana?: boolean
   /** Cuántas filas ha recibido la página (sin filtrar por columna): solo llegar filas nuevas baja al final, no filtrar. */
@@ -144,6 +156,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
   /** «1/3»… por `idFila` (ver `numerosDePedido`). La página lo calcula sobre todas las filas recibidas para que un filtro no cambie los números. */
   numeros?: Map<number, string>
 }) {
+  const hoy = hoyDado ?? hoyMadrid()
   const [abierta, setAbierta] = useState<number | null>(null)
   const numeros = useMemo(() => numerosDados ?? numerosDePedido(filas), [numerosDados, filas])
   // Posición de cada fila por su id (se rehace solo cuando cambian las filas): así «¿sigue la abierta?» y «¿dónde está?» no recorren la lista en cada pintado.
@@ -264,13 +277,13 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} indice={it.index + 2} medir={virtualizador.measureElement} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} indice={it.index + 2} medir={virtualizador.measureElement} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
     if (total - fin > 0.5) cuerpo.push(<FilaHueco key="hf" alto={total - fin} />)
   } else {
-    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
   }
 
   return (

@@ -2420,6 +2420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/buscar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["buscar_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes": {
         parameters: {
             query?: never;
@@ -2762,6 +2778,9 @@ export interface components {
             validadaPor: string | null;
             /** Motivo del aviso de SKU que se dio por bueno (la fila esta validada y el nivel es OK); null si no esta validada. */
             motivoValidado: string | null;
+            /** Último día para enviar la fila (yyyy-mm-dd); null si no se puede calcular. */
+            fechaSalida: string | null;
+            pais: string | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -8636,6 +8655,35 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["CambioImei"][];
                 };
+            };
+        };
+    };
+    buscar_1: {
+        parameters: {
+            query: {
+                plataforma: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

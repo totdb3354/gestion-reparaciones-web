@@ -25,7 +25,7 @@ export function AyudaPedidos() {
     <Popover>
       <PopoverTrigger aria-label="Ayuda de Pedidos" title="Cómo se lee esta tabla"
         className="inline-flex size-6 cursor-pointer items-center justify-center rounded-full border border-borde-input bg-superficie text-[12px] font-bold text-azul-gris hover:border-[#9db8e8] hover:bg-seleccion-suave">?</PopoverTrigger>
-      <PopoverContent align="start" aria-label="Cómo se lee esta tabla" className="w-[540px] max-w-[calc(100vw-16px)] rounded-lg border border-fila-sep bg-superficie p-3 text-[12px] shadow-md">
+      <PopoverContent align="start" aria-label="Cómo se lee esta tabla" className="max-h-[calc(100vh-80px)] w-[540px] max-w-[calc(100vw-16px)] overflow-y-auto rounded-lg border border-fila-sep bg-superficie p-3 text-[12px] shadow-md">
         <h2 className="mb-2 text-[13px] font-bold text-azul-medio">Cómo se lee esta tabla</h2>
         <ul className="flex flex-col gap-1.5">
           <Linea>Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI.</Linea>
@@ -35,6 +35,15 @@ export function AyudaPedidos() {
             IMEI con el aviso de SKU dado por bueno a mano («Validar SKU», en el desplegable del IMEI o en el panel). Ya no cuenta en «no cuadran» y vale solo para ese IMEI en esa fila.
           </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Pendiente</span>}>Aún no se ha preparado el envío.</Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, 'bg-[#fde2e1] text-[#b42318]')}>Sale hoy</span>}>
+            Pendiente que tiene que salir hoy. Es el último día para enviarla: Amazon, el último día que da Amazon; webs, 48 o 72 h laborables según el envío, festivos de Madrid incluidos.
+          </Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Sale mañana</span>}>
+            Pendiente con más plazo: «Sale mañana» o el día, por ejemplo «Sale vie 20/11».
+          </Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, 'bg-[#b42318] text-white')}>Con retraso</span>}>
+            Pendiente (o envío parcial que falta por enviar) que ya pasó su día de salida.
+          </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.GENERADA)}>Etiqueta generada</span>}>La etiqueta existe pero no se ha impreso: el móvil sigue en el almacén.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.ENVIADO)}>Enviado</span>}>La etiqueta se imprimió.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.FALTA_ENVIAR)}>Falta por enviar</span>}>

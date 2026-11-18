@@ -5047,6 +5047,36 @@
         }
       }
     },
+    "/api/pedidos/buscar" : {
+      "get" : {
+        "tags" : [ "buscar-controller" ],
+        "operationId" : "buscar_1",
+        "parameters" : [ {
+          "name" : "plataforma",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        }
+      }
+    },
     "/api/lotes" : {
       "get" : {
         "tags" : [ "lote-controller" ],
@@ -5661,7 +5691,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
+        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "fechaSalida", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pais", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5785,6 +5815,15 @@
             "nullable" : true
           },
           "motivoValidado" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fechaSalida" : {
+            "type" : "string",
+            "format" : "date",
+            "nullable" : true
+          },
+          "pais" : {
             "type" : "string",
             "nullable" : true
           }

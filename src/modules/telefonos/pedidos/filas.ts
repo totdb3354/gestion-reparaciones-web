@@ -1,5 +1,6 @@
 import type { FilaVista } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
+import { nivelSalida } from './salida'
 
 /** Las columnas de la tabla, con los nombres de la hoja (sin letras). */
 export const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'] as const
@@ -231,13 +232,15 @@ export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; solo
 export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false }
 
 /** Los contadores pulsables de la cabecera y el filtro que cada uno aplica (sustituye a los filtros de columna). */
-export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'noCuadran'
+export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'noCuadran' | 'saleHoy' | 'conRetraso'
 
 export function filtrosDeContador(c: Contador): FiltrosColumna {
   switch (c) {
     case 'pendientes': return { ...SIN_FILTROS, enviado: new Set(['PENDIENTE']) }
     case 'sinImei': return { ...SIN_FILTROS, soloSinImei: true }
     case 'noCuadran': return { ...SIN_FILTROS, noCuadran: true }
+    case 'saleHoy': return { ...SIN_FILTROS, enviado: new Set(['SALE_HOY']) }
+    case 'conRetraso': return { ...SIN_FILTROS, enviado: new Set(['CON_RETRASO']) }
     default: return { ...SIN_FILTROS }
   }
 }
@@ -247,6 +250,10 @@ export function contadorAplicado(f: FiltrosColumna): Contador | null {
   const nada = f.plataformas.size === 0 && f.skus.size === 0 && f.marcas.size === 0 && !f.sinAsociar
   if (!nada) return null
   const enviado = f.enviado.size === 1 && f.enviado.has('PENDIENTE')
+  if (f.enviado.size === 1 && !f.soloSinImei && !f.noCuadran) {
+    if (f.enviado.has('SALE_HOY')) return 'saleHoy'
+    if (f.enviado.has('CON_RETRASO')) return 'conRetraso'
+  }
   if (f.enviado.size === 0 && !f.soloSinImei && !f.noCuadran) return 'filas'
   if (enviado && !f.soloSinImei && !f.noCuadran) return 'pendientes'
   if (f.enviado.size === 0 && f.soloSinImei && !f.noCuadran) return 'sinImei'
@@ -286,8 +293,10 @@ export function valores(filas: FilaVista[], columna: 'sku' | 'plataforma'): stri
 }
 
 /** Las opciones del filtro «Enviado»: una por estado de pantalla; el histórico no cuenta como enviado. */
-export const OPCIONES_ENVIADO: { valor: EstadoPantalla; texto: string }[] = [
+export const OPCIONES_ENVIADO: { valor: EstadoPantalla | 'SALE_HOY' | 'CON_RETRASO'; texto: string }[] = [
   { valor: 'PENDIENTE', texto: 'Pendientes' },
+  { valor: 'SALE_HOY', texto: 'Sale hoy' },
+  { valor: 'CON_RETRASO', texto: 'Con retraso' },
   { valor: 'FALTA_ENVIAR', texto: 'Falta por enviar' },
   { valor: 'GENERADA', texto: 'Etiqueta generada' },
   { valor: 'ENVIADO', texto: 'Enviados' },
@@ -315,17 +324,31 @@ export function recuentoMarcas(filas: FilaVista[]): Record<string, number> {
   return r
 }
 
-/** ¿La fila pasa el filtro «Enviado»? «Pendientes» deja también las de «Falta por enviar». */
-const pasaEnviado = (f: FilaVista, elegidos: Set<string>): boolean => {
+/** Cuántas filas salen hoy y cuántas van con retraso (una pasada; ver `nivelSalida`). */
+export function recuentoSalida(filas: FilaVista[], hoy: string): { hoy: number; retraso: number } {
+  const r = { hoy: 0, retraso: 0 }
+  for (const f of filas) {
+    const n = nivelSalida(f, hoy)
+    if (n === 'HOY') r.hoy++
+    else if (n === 'RETRASO') r.retraso++
+  }
+  return r
+}
+
+/** ¿La fila pasa el filtro «Enviado»? «Pendientes» deja también las de «Falta por enviar»; «Sale hoy» y «Con retraso» miran su fecha de salida. */
+const pasaEnviado = (f: FilaVista, elegidos: Set<string>, hoy: string): boolean => {
   const e = estadoPantalla(f)
-  return elegidos.has(e) || (e === 'FALTA_ENVIAR' && elegidos.has('PENDIENTE'))
+  if (elegidos.has(e) || (e === 'FALTA_ENVIAR' && elegidos.has('PENDIENTE'))) return true
+  if (!elegidos.has('SALE_HOY') && !elegidos.has('CON_RETRASO')) return false
+  const n = nivelSalida(f, hoy)
+  return (n === 'HOY' && elegidos.has('SALE_HOY')) || (n === 'RETRASO' && elegidos.has('CON_RETRASO'))
 }
 
 /** Los filtros por columna sobre lo recibido (nunca piden al servidor): una selección vacía no filtra; un valor elegido que ya no está
  *  entre las filas sigue filtrando (la pantalla lo enseña con su etiqueta y la tabla explica que no queda nada); «solo sin IMEI» deja las
  *  filas editables sin IMEI (las enviadas también); «no cuadran», las del IMEI en naranja. Sin filtro devuelve las mismas filas;
  *  con él, un array nuevo con los mismos objetos. */
-export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVista[] {
+export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, hoy: string = hoyMadrid()): FilaVista[] {
   // Se aplica exactamente lo guardado, este o no entre las filas: cada valor se ve como etiqueta y se puede quitar (nada oculto).
   const { plataformas, skus } = f
   const { marcas } = f
@@ -336,7 +359,7 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna): FilaVist
     && (!f.soloSinImei || faltaImei(x))
     && (!f.noCuadran || noCuadra(x))
     && (!f.sinAsociar || sinAsociar(x))
-    && (f.enviado.size === 0 || pasaEnviado(x, f.enviado))
+    && (f.enviado.size === 0 || pasaEnviado(x, f.enviado, hoy))
     && (marcas.size === 0 || (x.marca != null && marcas.has(x.marca))))
 }
 

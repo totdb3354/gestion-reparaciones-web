@@ -268,6 +268,17 @@ describe('Pedidos: filtros por columna', () => {
     await waitFor(() => expect(filasPintadas()).toBe(4))
   })
 
+  it('una pendiente que sale hoy enseña «Sale hoy», el contador «1 salen hoy» y su filtro', async () => {
+    const user = userEvent.setup()
+    respuesta = { filas: [fila({ idFila: 1, fechaSalida: hoyMadrid(), pedido: '402-0000000-0000031' }), fila({ idFila: 2, pedido: '402-0000000-0000032' })], hayMas: false }
+    abrir()
+    await screen.findByRole('button', { name: '2 filas' })
+    expect(screen.getByText('Sale hoy', { selector: 'span' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /con retraso/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '1 salen hoy' }))
+    expect(filasPintadas()).toBe(1)
+  })
+
   it('«Quitar filtros» los quita todos y desaparece', async () => {
     const user = userEvent.setup()
     abrir()

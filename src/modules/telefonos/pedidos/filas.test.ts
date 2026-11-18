@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -382,5 +382,31 @@ describe('asociacion en Amazon', () => {
     expect(['SIN_HUECO', 'YA_SALIO', 'PEDIDO_AJENO', 'CANCELADO', 'OTRO'].map(textoRevisar)).toEqual([
       'el pedido no tiene hueco', 'el móvil ya salió en otro pedido', 'el pedido no está en el ERP', 'solo quedan filas canceladas', 'OTRO',
     ])
+  })
+})
+
+describe('fecha de salida: filtros y contadores', () => {
+  const HOY = '2026-11-18'
+  const FILAS = [
+    fila({ idFila: 1, fechaSalida: '2026-11-18' }),
+    fila({ idFila: 2, fechaSalida: '2026-11-17' }),
+    fila({ idFila: 3, fechaSalida: '2026-11-19' }),
+    fila({ idFila: 4, fechaSalida: null }),
+    fila({ idFila: 5, estado: 'ENVIADA', faltaEnviarEn: '2026-11-16T09:00:00', fechaSalida: '2026-11-17' }),
+  ]
+  const ids = (e: string) => filtrarColumnas(FILAS, { ...SIN_FILTROS, enviado: new Set([e]) }, HOY).map((f) => f.idFila)
+
+  it('«Sale hoy» y «Con retraso» filtran por el nivel de salida', () => {
+    expect(ids('SALE_HOY')).toEqual([1])
+    expect(ids('CON_RETRASO')).toEqual([2, 5])
+    expect(ids('PENDIENTE')).toEqual([1, 2, 3, 4, 5])
+  })
+  it('recuentoSalida cuenta las dos en una pasada', () => {
+    expect(recuentoSalida(FILAS, HOY)).toEqual({ hoy: 1, retraso: 2 })
+  })
+  it('los contadores «salen hoy» y «con retraso» aplican su filtro y se reconocen', () => {
+    expect(contadorAplicado(filtrosDeContador('saleHoy'))).toBe('saleHoy')
+    expect(contadorAplicado(filtrosDeContador('conRetraso'))).toBe('conRetraso')
+    expect(hayFiltros(filtrosDeContador('saleHoy'))).toBe(true)
   })
 })
