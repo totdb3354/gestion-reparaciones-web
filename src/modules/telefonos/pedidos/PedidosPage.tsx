@@ -6,6 +6,7 @@ import { PanelDeslizante, usePresencia } from '@/shared/ui/Deslizante'
 import { useFilas } from '../api'
 import { estadoPedidos, type EstadoPedidos } from './estado'
 import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './FiltroColumna'
+import { DescargarBuscar } from './DescargarBuscar'
 import { AyudaPedidos } from './AyudaPedidos'
 import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
@@ -117,7 +118,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         )}
         <AyudaPedidos />
         {ventana && <span className="text-[11.5px] text-azul-gris">Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).</span>}
-        <div className="ml-auto flex flex-wrap items-center gap-2"><PildoraAsociacion /><PildoraFuentes /></div>
+        <div className="ml-auto flex flex-wrap items-center gap-2"><DescargarBuscar /><PildoraAsociacion /><PildoraFuentes /></div>
       </div>
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}

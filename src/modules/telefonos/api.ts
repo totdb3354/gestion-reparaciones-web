@@ -167,6 +167,21 @@ export function useDescargarPlantilla() {
   })
 }
 
+export type PlataformaBuscar = 'AMZ' | 'FNSK' | 'WEBS'
+
+/** GET /api/pedidos/buscar?plataforma=… («Descargar para buscar»): el Excel de los móviles que hay que buscar en el almacén para esa
+ *  plataforma. Como las plantillas: «Guardar como» antes (`destino`) o descarga clásica con el nombre del Content-Disposition.
+ *  Devuelve con qué nombre se guardó. Un error sale en el diálogo de siempre. */
+export function useDescargarBuscar() {
+  return useMutation({
+    mutationFn: async ({ plataforma, destino = null }: { plataforma: PlataformaBuscar; destino?: FileSystemFileHandle | null }): Promise<string> => {
+      const { data, response } = await api.GET('/api/pedidos/buscar', { params: { query: { plataforma } }, parseAs: 'blob' })
+      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? `Buscar ${plataforma}.xlsx`
+      return data ? guardarEn(destino, { blob: data, nombre }) : nombre
+    },
+  })
+}
+
 /** POST /api/stock-telefonos/que-revisar/excel (spec 0.9.25 «Qué revisar» §10.3): el servidor convierte la hoja en un xlsx para
  *  imprimir; aquí se guarda en `destino`, el fichero elegido en «Guardar como» antes de llamar (elegirDestino), o sin él con
  *  `nombre` en la carpeta de descargas. Devuelve con qué nombre se guardó. Un error sale en el diálogo de siempre. */
@@ -321,7 +336,7 @@ export function usePonerImei() {
     }),
     // Un 409 (otra persona cambió el IMEI) no se reintenta con el mismo `imeiAnterior`: se recargan las filas en el acto para ver
     // el IMEI que puso la otra persona (la espera de `onSettled` sería innecesaria).
-    onError: (e) => { if (e instanceof StaleDataError) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+    onError: (e) => { if (e instanceof StaleDataError && !e.message.startsWith('Este IMEI ya está')) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
     onSettled: () => { recargarFilasTrasEspera(qc) },
   })
 }

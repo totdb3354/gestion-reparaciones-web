@@ -42,7 +42,7 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
   const motivo = validada ? null : textoMotivo(fila)
   const avisoValidado = validada ? `SKU validado${fila.validadaPor ? ` por ${fila.validadaPor}` : ''}: ${textoMotivoValidado(fila) ?? 'aviso de SKU'}` : null
   // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
-  const textoFallo = fallo ? (fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
+  const textoFallo = fallo ? (fallo.duplicado ? fallo.mensaje : fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
   const boton = (
     <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado ?? motivo ?? fila.caja].filter(Boolean).join(' · ')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
@@ -91,6 +91,9 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
   )
 }
 
+/** Con lo que empieza el texto del 409 del servidor cuando el IMEI ya está en otro pedido. */
+const PREFIJO_DUPLICADO = 'Este IMEI ya está'
+
 const MENSAJE_ERROR = {
   mas: `Hay más de ${CIFRAS_IMEI} cifras: lee un solo IMEI`,
   luhn: 'La cifra de control no cuadra: revisa el IMEI',
@@ -100,7 +103,7 @@ type ErrorImei = keyof typeof MENSAJE_ERROR
 
 function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fallo?: FalloImei; onCerrar: () => void; onSaltar?: () => boolean }) {
   // Si esta celda falló antes y se reabre, el campo viene con ese IMEI y Enter reintenta con la misma clave.
-  const [texto, setTexto] = useState(fallo?.imei ?? '')
+  const [texto, setTexto] = useState(fallo && !fallo.duplicado ? fallo.imei ?? '' : '')
   const [error, setError] = useState<ErrorImei | null>(null)
   // Los recomendados no se piden ni se enseñan hasta que se desplieguen; cada vez que se abre una celda empieza plegado.
   const [ver, setVer] = useState(false)
@@ -127,7 +130,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
     enCurso.current = true
     const idFila = fila.idFila
     const operacion = `imei:${idFila}`
-    const clave = fallo && fallo.imei === imei ? fallo.clave : claves.para(operacion, { imei })
+    const clave = fallo && !fallo.duplicado && fallo.imei === imei ? fallo.clave : claves.para(operacion, { imei })
     const salta = salto && !!onSaltar && onSaltar()
     poner.mutateAsync({ idFila, imei, imeiAnterior: anterior, clave }).then(
       () => {
@@ -142,6 +145,13 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
       },
       (e: unknown) => {
         enCurso.current = false
+        if (e instanceof StaleDataError && e.message.startsWith(PREFIJO_DUPLICADO)) {
+          // 409 por IMEI duplicado: el servidor dice en qué pedido (o fila sin asociar) está ya. La celda queda en rojo con ese texto tal
+          // cual; no se reintenta (volvería a fallar) y no hay nada que recargar.
+          const mensaje = e.message
+          estadoPedidos.set((s) => ({ ...s, fallosImei: { ...s.fallosImei, [idFila]: { imei, clave, mensaje, duplicado: true } }, avisoImei: `Pedido ${pedidoVisible(fila) ?? idFila}: ${mensaje}` }))
+          return
+        }
         if (e instanceof StaleDataError) {
           // 409: otra persona cambió el IMEI. Reintentar mandaría el mismo `imeiAnterior` y volvería a fallar: no queda estado de fallo
           // (el hook ya recarga las filas en el acto, para ver el IMEI de la otra persona) y solo sale el aviso. La celda se cierra
@@ -163,7 +173,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
   // Antes de guardar un IMEI de 15 cifras (solo o con Enter) se comprueba su cifra de control. Un IMEI que ya falló al guardar (pasó la
   // comprobación o se guardó igualmente) no se vuelve a comprobar: Enter lo reintenta.
   const comprobarYGuardar = (cifras: string) => {
-    if (!(fallo && fallo.imei === cifras) && !luhnCuadra(cifras)) { setError('luhn'); return }
+    if (!(fallo && !fallo.duplicado && fallo.imei === cifras) && !luhnCuadra(cifras)) { setError('luhn'); return }
     setError(null)
     guardar(cifras, true)
   }

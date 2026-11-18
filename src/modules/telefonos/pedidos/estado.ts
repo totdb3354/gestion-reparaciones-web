@@ -32,7 +32,9 @@ export type EstadoPedidos = {
   avisoImei: string | null
 }
 
-export type FalloImei = { imei: string | null; clave: string; mensaje: string }
+/** `duplicado`: el servidor rechazó el IMEI porque ya está en otro pedido (409 «Este IMEI ya está…»); `mensaje` es su texto tal cual
+ *  y la celda no ofrece reintentar (el mismo IMEI volvería a fallar). */
+export type FalloImei = { imei: string | null; clave: string; mensaje: string; duplicado?: boolean }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
   periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
