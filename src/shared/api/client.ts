@@ -23,8 +23,8 @@ export type FilaVista = components['schemas']['FilaVista']
 export type ListaFilas = components['schemas']['ListaFilas']
 export type FuenteVista = components['schemas']['FuenteVista']
 /** La última pasada de asociación IMEI-pedido de cada plataforma de Amazon, con la lista «para revisar». */
-export type PasadaAsociacion = components['schemas']['PasadaAsociacion']
-export type ParaRevisar = components['schemas']['ParaRevisar']
+export type PasadaAsociacion = components['schemas']['EstadoAsociacionesPasada']
+export type ParaRevisar = components['schemas']['EstadoAsociacionesRevisar']
 export type Candidato = components['schemas']['RecomendadorCandidato']
 /** Un cambio del IMEI de una fila (quién, cuándo, de qué IMEI a cuál); el panel de la fila los enseña del más reciente al más antiguo. */
 export type CambioImei = components['schemas']['CambioImei']
