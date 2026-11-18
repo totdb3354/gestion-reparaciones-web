@@ -10,13 +10,16 @@ import { credenciales } from './credenciales.ts'
 //     que el servidor debe aceptar; `afterAll` lo quita con `PUT /imei {imei:null, imeiAnterior}` y comprueba que la fila queda sin IMEI.
 //   - Los intentos que deben dar 409 no escriben nada (se comprueba que la fila sigue sin IMEI).
 //   - Los tres Excel y lo que debería salir en ellos (calculado aquí desde /api/pedidos/filas) se guardan en E2E_SALIDA_DIR (por defecto
-//     test-results/pedidos-salida) para compararlos fuera con openpyxl.
+//     test-results/pedidos-salida) para compararlos fuera con openpyxl. En WEBS el Excel va por web (DISTRIBUIDORES, PARTICULARES,
+//     BACKIPHONE), cliente + SKU + día de entrada: `esperado.WEBS` lleva canal, cliente (plataforma) y fecha de cada fila y
+//     `esperadoWebs` ya trae los bloques agrupados (cliente + SKU sin mayúsculas + día, uds) en el orden del Excel.
 const LETRERO_PRE = 'PREPRODUCCIÓN · datos de prueba'
 const DIR = process.env.E2E_SALIDA_DIR ?? join('test-results', 'pedidos-salida')
 
 type Fila = {
   idFila: number; canal: string | null; pedido: string | null; imei: string | null; marca: string | null; estado: string; editable: boolean
   fechaSalida: string | null; pais: string | null; sku: string | null; faltaEnviarEn: string | null; origen?: string
+  plataforma: string | null; fecha: string | null // cliente y día de entrada (yyyy-mm-dd) de la fila
 }
 
 test.describe.configure({ mode: 'serial' })
@@ -151,12 +154,28 @@ test('3. el botón «Descargar para buscar» ofrece AMZ, FNSK y Webs, y los tres
   for (const t of ['AMZ', 'FNSK', 'Webs']) await expect(menu.getByRole('button', { name: t, exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   mkdirSync(DIR, { recursive: true })
-  const esperado: Record<string, { sku: string | null; pais: string | null; fechaSalida: string | null }[]> = {}
+  const esperado: Record<string, { canal: string | null; plataforma: string | null; fecha: string | null; sku: string | null; pais: string | null; fechaSalida: string | null }[]> = {}
   for (const p of Object.keys(CANALES)) {
     writeFileSync(join(DIR, `Buscar ${p}.xlsx`), await excel(p))
-    esperado[p] = lista.filter((f) => f.canal != null && CANALES[p].includes(f.canal) && cuentaEnExcel(f)).map((f) => ({ sku: f.sku, pais: f.pais, fechaSalida: f.fechaSalida }))
+    esperado[p] = lista.filter((f) => f.canal != null && CANALES[p].includes(f.canal) && cuentaEnExcel(f))
+      .map((f) => ({ canal: f.canal, plataforma: f.plataforma, fecha: f.fecha, sku: f.sku, pais: f.pais, fechaSalida: f.fechaSalida }))
   }
-  writeFileSync(join(DIR, 'esperado.json'), JSON.stringify({ hoy, esperado }, null, 2))
+  // Excel de WEBS: por web, una fila por cliente + SKU (sin mayúsculas) + día de entrada, ordenadas por día, cliente y SKU.
+  const esperadoWebs = CANALES.WEBS.map((canal) => {
+    const grupos = new Map<string, { cliente: string; sku: string; entro: string; uds: number }>()
+    for (const f of esperado.WEBS.filter((x) => x.canal === canal)) {
+      const cliente = (f.plataforma ?? '').trim() || '(sin cliente)'
+      const sku = f.sku ?? '(sin SKU)'
+      const k = `${cliente}|${sku.toLowerCase()}|${f.fecha ?? ''}`
+      const g = grupos.get(k) ?? { cliente, sku, entro: f.fecha ?? '', uds: 0 }
+      g.uds++
+      grupos.set(k, g)
+    }
+    const cmp = (a: string, b: string) => a.toLowerCase().localeCompare(b.toLowerCase())
+    const filasWeb = [...grupos.values()].sort((a, b) => (a.entro || '9999').localeCompare(b.entro || '9999') || cmp(a.cliente, b.cliente) || cmp(a.sku, b.sku))
+    return { canal, filas: filasWeb, total: filasWeb.reduce((n, g) => n + g.uds, 0) }
+  })
+  writeFileSync(join(DIR, 'esperado.json'), JSON.stringify({ hoy, esperado, esperadoWebs }, null, 2))
   console.log(`Excel y esperado en ${DIR}: ${Object.entries(esperado).map(([p, v]) => `${p} ${v.length}`).join(' · ')}`)
 })
 
