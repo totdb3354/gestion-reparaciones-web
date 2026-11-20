@@ -11,6 +11,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Filtro **«Sin asociar»** y una píldora con la última asociación y la lista **«para revisar»** (el pedido no tiene hueco, el móvil ya salió en otro pedido, el pedido no está en el ERP, solo quedan filas canceladas).
 - Las asociaciones salen de la pestaña «Paso 1. Meter IMEI» de los dos libros de ventas de Amazon, que el servidor lee de Google Drive cada 10 minutos cuando cambian (pedidos de los últimos 30 días). La píldora dice qué versión del libro se leyó y se pone en ámbar si no se puede leer.
 - «Ya no está pendiente» pasa a llamarse **«Ya no está en ShippyPro»** (etiqueta, filtro y ayuda): el pedido ha desaparecido de ShippyPro sin que se viera su envío (juntado con otro en la misma caja, cancelado o con una etiqueta hecha a mano).
+- En la tabla de **Pedidos**, dos botones flotantes abajo a la derecha que solo salen cuando hacen falta: **«↓ Al final»** cuando has subido (con cuántos pedidos nuevos han llegado abajo mientras tanto) y **«↑/↓ Fila seleccionada»** cuando la fila en azul (la última que has tocado) queda fuera de la vista; la deja en el centro. La tabla sigue abriendo al final, como antes. Solo web.
 - Las webs no cambian. Necesita el servidor de la misma versión y su migración (`migracion-pedidos-asociacion.sql`, que solo añade columnas y tablas).
 
 ## [0.9.34] - 2026-11-13 — Marcas de la fila en Pedidos

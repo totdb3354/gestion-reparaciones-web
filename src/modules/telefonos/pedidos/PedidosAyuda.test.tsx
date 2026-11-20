@@ -44,7 +44,7 @@ describe('Pedidos: botón de ayuda', () => {
     expect(within(ayuda).getByText(/Las filas las crea el ERP/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/IMEI en ámbar/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/IMEI en naranja/)).toBeInTheDocument()
-    expect(within(ayuda).getByText('La fila en azul es la última que has tocado: te ayuda a encontrarla al volver.')).toBeInTheDocument()
+    expect(within(ayuda).getByText('La fila seleccionada (en azul) es la última que has tocado. Si te alejas de ella, el botón «Fila seleccionada» te devuelve; «↓ Al final» baja a lo más reciente.')).toBeInTheDocument()
     expect(within(ayuda).getByText('Falta por enviar')).toBeInTheDocument()
     expect(within(ayuda).getByText(/Envío parcial de una web: este móvil sale después que el resto del pedido/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/«Ya ha salido»/)).toBeInTheDocument()

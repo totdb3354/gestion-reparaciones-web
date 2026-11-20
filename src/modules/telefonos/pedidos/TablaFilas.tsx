@@ -5,6 +5,8 @@ import { cn } from '@/shared/lib/utils'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { CeldaImei } from './CeldaImei'
+import { BotonesVolver } from './BotonesVolver'
+import { comoDesplazar, scrollParaCentrar, useVolver, type Posicion } from './volver'
 import { useStore } from '@/shared/lib/store'
 import { estadoPedidos, type FalloImei } from './estado'
 import { nivelSalida, textoSalida } from './salida'
@@ -286,7 +288,32 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
     for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
   }
 
+  // Botones «↓ Al final» y «Fila seleccionada» (la fila en azul): salen al alejarse de ellos. En modo ventana la fila puede no estar
+  // pintada y su posición sale de las medidas del virtualizador; si no, del DOM.
+  const ids = useMemo(() => filas.map((f) => f.idFila), [filas])
+  const posicionAqui = useCallback((): Posicion | null => {
+    const i = filaAqui === null ? undefined : indice.get(filaAqui)
+    const c = contenedor.current
+    if (i === undefined || !c) return null
+    if (ventana) { const m = virtualizador.measurementsCache[i]; return m ? { top: m.start, bottom: m.end } : null }
+    const tr = c.querySelector<HTMLElement>('tr[data-aqui]')
+    if (!tr) return null
+    const r = tr.getBoundingClientRect()
+    const top = r.top - c.getBoundingClientRect().top + c.scrollTop
+    return { top, bottom: top + r.height }
+  }, [filaAqui, indice, ventana, virtualizador])
+  const altoCabecera = useCallback(() => cabeza.current?.offsetHeight ?? 0, [])
+  const volver = useVolver({ contenedor, ids, recibidas, posicionAqui, cabecera: altoCabecera })
+  const ir = (top: number) => { const c = contenedor.current; if (c) c.scrollTo({ top, behavior: comoDesplazar(c.scrollTop, top, c.clientHeight) }) }
+  const irAlFinal = () => { const c = contenedor.current; if (c) ir(c.scrollHeight - c.clientHeight) }
+  const irASeleccionada = () => {
+    const c = contenedor.current
+    const p = posicionAqui()
+    if (c && p) ir(scrollParaCentrar(p, { scrollTop: c.scrollTop, clientHeight: c.clientHeight, scrollHeight: c.scrollHeight, cabecera: altoCabecera() }))
+  }
+
   return (
+    <div className="relative flex min-h-0 min-w-0 flex-1">
     <div ref={contenedor} role="region" aria-label="Tabla de pedidos" className={cn('relative min-h-0 min-w-0 flex-1 overflow-auto rounded-md border border-borde-input bg-superficie', ventana && '[overflow-anchor:none]')}
       onScroll={(ev) => { const c = ev.currentTarget; pegado.current = c.scrollHeight - c.scrollTop - c.clientHeight < 8 }}>
       {/* Anchos en porcentaje: el espacio se reparte entre todas (el SKU y el IMEI, que es lo que se lee, se llevan lo más). Lo
@@ -308,6 +335,8 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, vacio, ve
           {cuerpo}
         </tbody>
       </table>
+    </div>
+    <BotonesVolver enFinal={volver.enFinal} donde={volver.donde} nuevos={volver.nuevos} onFinal={irAlFinal} onSeleccionada={irASeleccionada} />
     </div>
   )
 }
