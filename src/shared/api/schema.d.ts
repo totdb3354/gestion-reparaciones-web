@@ -8891,9 +8891,7 @@ export interface operations {
     };
     buscar_1: {
         parameters: {
-            query: {
-                plataforma: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -8908,13 +8906,6 @@ export interface operations {
                 content: {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

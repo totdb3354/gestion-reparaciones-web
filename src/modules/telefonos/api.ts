@@ -167,16 +167,14 @@ export function useDescargarPlantilla() {
   })
 }
 
-export type PlataformaBuscar = 'AMZ' | 'FNSK' | 'WEBS'
-
-/** GET /api/pedidos/buscar?plataforma=… («Descargar para buscar»): el Excel de los móviles que hay que buscar en el almacén para esa
- *  plataforma. Como las plantillas: «Guardar como» antes (`destino`) o descarga clásica con el nombre del Content-Disposition.
+/** GET /api/pedidos/buscar (el «Listado»): un Excel con una pestaña por plataforma (AMZ, FNSK y Webs) de los móviles que hay que buscar
+ *  en el almacén. Como las plantillas: «Guardar como» antes (`destino`) o descarga clásica con el nombre del Content-Disposition.
  *  Devuelve con qué nombre se guardó. Un error sale en el diálogo de siempre. */
 export function useDescargarBuscar() {
   return useMutation({
-    mutationFn: async ({ plataforma, destino = null }: { plataforma: PlataformaBuscar; destino?: FileSystemFileHandle | null }): Promise<string> => {
-      const { data, response } = await api.GET('/api/pedidos/buscar', { params: { query: { plataforma } }, parseAs: 'blob' })
-      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? `Buscar ${plataforma}.xlsx`
+    mutationFn: async ({ destino = null }: { destino?: FileSystemFileHandle | null } = {}): Promise<string> => {
+      const { data, response } = await api.GET('/api/pedidos/buscar', { parseAs: 'blob' })
+      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? 'Listado.xlsx'
       return data ? guardarEn(destino, { blob: data, nombre }) : nombre
     },
   })

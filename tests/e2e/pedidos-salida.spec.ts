@@ -4,7 +4,7 @@ import { expect, test, type BrowserContext, type Locator, type Page } from '@pla
 import { credenciales } from './credenciales.ts'
 
 // pedidos-salida.spec.ts (0.9.37, spec 2026-11-18 «buscar y salida»): la fecha de salida en «Enviado», el contador «salen hoy», los tres
-// Excel de «Descargar para buscar» y el IMEI duplicado, contra la base real de PREPRODUCCIÓN (lo que los tests unitarios solo vieron por el
+// «Listado» (Excel de lo que hay que buscar) y el IMEI duplicado, contra la base real de PREPRODUCCIÓN (lo que los tests unitarios solo vieron por el
 // texto del SQL). Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero). No crea filas: usa las que hay.
 //   - Lo que escribe: poner en una fila pendiente sin IMEI ni marca el IMEI de una fila ENVIADA (o del histórico, o de una viva cancelada),
 //     que el servidor debe aceptar; `afterAll` lo quita con `PUT /imei {imei:null, imeiAnterior}` y comprueba que la fila queda sin IMEI.
@@ -49,16 +49,16 @@ async function filaPorApi(id: number): Promise<Fila> {
   expect(f, `la fila ${id} sigue en la lista`).toBeTruthy()
   return f as Fila
 }
-async function excel(plataforma: string): Promise<Buffer> {
-  const b64 = await page.evaluate(async ([p, t]) => {
-    const res = await fetch(`/api/pedidos/buscar?plataforma=${p}`, { headers: { Authorization: `Bearer ${t}` } })
+async function excel(): Promise<Buffer> {
+  const b64 = await page.evaluate(async ([t]) => {
+    const res = await fetch('/api/pedidos/buscar', { headers: { Authorization: `Bearer ${t}` } })
     if (!res.ok) return `ERROR ${res.status}`
     const bytes = new Uint8Array(await res.arrayBuffer())
     let s = ''
     for (const b of bytes) s += String.fromCharCode(b)
     return btoa(s)
-  }, [plataforma, token] as const)
-  expect(b64.startsWith('ERROR'), `el Excel de ${plataforma} se descarga (${b64.slice(0, 12)})`).toBe(false)
+  }, [token] as const)
+  expect(b64.startsWith('ERROR'), `el Listado se descarga (${b64.slice(0, 12)})`).toBe(false)
   return Buffer.from(b64, 'base64')
 }
 /** Pendiente (o «falta por enviar»), sin IMEI y sin «Cancelado»: lo que cuenta el Excel. */
@@ -147,16 +147,13 @@ test('2. la columna Enviado enseña «Sale hoy» en una pendiente de hoy y la fe
   }
 })
 
-test('3. el botón «Descargar para buscar» ofrece AMZ, FNSK y Webs, y los tres Excel bajan (se guardan con lo esperado)', async () => {
-  await page.getByRole('button', { name: 'Descargar para buscar' }).click()
-  const menu = page.getByRole('dialog', { name: 'Plataforma que buscar' })
-  await expect(menu).toBeVisible()
-  for (const t of ['AMZ', 'FNSK', 'Webs']) await expect(menu.getByRole('button', { name: t, exact: true })).toBeVisible()
-  await page.keyboard.press('Escape')
+test('3. el botón «Listado» está y baja un solo Excel con las pestañas AMZ, FNSK y Webs (se guarda con lo esperado)', async () => {
+  // No se pulsa: abriría el «Guardar como» del sistema. El fichero se pide por la API, como hace el botón.
+  await expect(page.getByRole('button', { name: 'Listado', exact: true })).toBeVisible()
   mkdirSync(DIR, { recursive: true })
+  writeFileSync(join(DIR, 'Listado.xlsx'), await excel())
   const esperado: Record<string, { canal: string | null; plataforma: string | null; fecha: string | null; sku: string | null; pais: string | null; fechaSalida: string | null }[]> = {}
   for (const p of Object.keys(CANALES)) {
-    writeFileSync(join(DIR, `Buscar ${p}.xlsx`), await excel(p))
     esperado[p] = lista.filter((f) => f.canal != null && CANALES[p].includes(f.canal) && cuentaEnExcel(f))
       .map((f) => ({ canal: f.canal, plataforma: f.plataforma, fecha: f.fecha, sku: f.sku, pais: f.pais, fechaSalida: f.fechaSalida }))
   }

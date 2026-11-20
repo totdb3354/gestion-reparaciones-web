@@ -5159,14 +5159,6 @@
       "get" : {
         "tags" : [ "buscar-controller" ],
         "operationId" : "buscar_1",
-        "parameters" : [ {
-          "name" : "plataforma",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -5178,9 +5170,6 @@
                 }
               }
             }
-          },
-          "400" : {
-            "description" : "Bad Request"
           }
         }
       }
