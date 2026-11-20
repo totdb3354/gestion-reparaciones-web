@@ -1,5 +1,4 @@
 import { act, fireEvent, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,6 +12,8 @@ import { TablaFilas } from './TablaFilas'
 // lugar en el cuerpo; `scrollTo` mueve al instante y avisa del scroll como el navegador.
 const ALTO = 32
 const VISIBLE = 320
+/** Filas de la tabla: 3 pantallas (pocas, para que la prueba vaya rápida). */
+const N = 30
 const region = () => screen.getByRole('region', { name: 'Tabla de pedidos' })
 const filasPintadas = (el: Element) => Array.from(el.querySelectorAll('tr[data-estado]'))
 
@@ -21,7 +22,7 @@ const desde = (n: number, m = 1) => Array.from({ length: n }, (_, k) => f(m + k)
 
 /** Simula el sondeo: «llegan N» añade N filas nuevas al final. */
 function Arnes() {
-  const [n, setN] = useState(60)
+  const [n, setN] = useState(N)
   return (<>
     <button onClick={() => setN((x) => x + 2)}>llegan 2</button><button onClick={() => setN((x) => x + 1)}>llega 1</button>
     <TablaFilas filas={desde(n)} />
@@ -64,36 +65,34 @@ const seleccionada = () => screen.queryByRole('button', { name: /Fila selecciona
 
 describe('TablaFilas: volver al final y a la fila seleccionada', () => {
   it('al abrir está al final y no hay botones; al subir sale «↓ Al final», que baja y desaparece', async () => {
-    const user = userEvent.setup()
-    renderConProviders(<TablaFilas filas={desde(60)} />, { sesion: SESION_SUPER })
-    expect(region().scrollTop).toBe(60 * ALTO - VISIBLE)
+    renderConProviders(<TablaFilas filas={desde(N)} />, { sesion: SESION_SUPER })
+    expect(region().scrollTop).toBe(N * ALTO - VISIBLE)
     expect(alFinal()).not.toBeInTheDocument()
     desplazar(500)
-    await user.click(await screen.findByRole('button', { name: '↓ Al final' }))
-    expect(region().scrollTop).toBe(60 * ALTO - VISIBLE)
+    fireEvent.click(await screen.findByRole('button', { name: '↓ Al final' }))
+    expect(region().scrollTop).toBe(N * ALTO - VISIBLE)
     expect(alFinal()).not.toBeInTheDocument()
   })
 
   it('con la fila seleccionada fuera de la vista sale «Fila seleccionada» con su flecha, y la deja en el centro', async () => {
-    const user = userEvent.setup()
-    renderConProviders(<TablaFilas filas={desde(60)} />, { sesion: SESION_SUPER })
+    renderConProviders(<TablaFilas filas={desde(N)} />, { sesion: SESION_SUPER })
     act(() => estadoPedidos.set((s) => ({ ...s, filaAqui: 20 })))
     // Fila 20: índice 19, de 608 a 640. Desde el final queda arriba.
     expect(await screen.findByRole('button', { name: '↑ Fila seleccionada' })).toBeInTheDocument()
     desplazar(0)
     expect(await screen.findByRole('button', { name: '↓ Fila seleccionada' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '↓ Fila seleccionada' }))
+    fireEvent.click(screen.getByRole('button', { name: '↓ Fila seleccionada' }))
     expect(region().scrollTop).toBe(624 - VISIBLE / 2)
     expect(seleccionada()).not.toBeInTheDocument()
   })
 
   it('a la vista no sale; si un filtro la esconde, tampoco', async () => {
-    const { rerender } = renderConProviders(<TablaFilas filas={desde(60)} />, { sesion: SESION_SUPER })
-    act(() => estadoPedidos.set((s) => ({ ...s, filaAqui: 58 })))
+    const { rerender } = renderConProviders(<TablaFilas filas={desde(N)} />, { sesion: SESION_SUPER })
+    act(() => estadoPedidos.set((s) => ({ ...s, filaAqui: N - 2 })))
     expect(seleccionada()).not.toBeInTheDocument()
     act(() => estadoPedidos.set((s) => ({ ...s, filaAqui: 20 })))
     expect(await screen.findByRole('button', { name: /Fila seleccionada/ })).toBeInTheDocument()
-    rerender(<TablaFilas filas={desde(60).filter((x) => x.idFila !== 20)} recibidas={60} />)
+    rerender(<TablaFilas filas={desde(N).filter((x) => x.idFila !== 20)} recibidas={N} />)
     expect(seleccionada()).not.toBeInTheDocument()
   })
 
@@ -105,7 +104,7 @@ describe('TablaFilas: volver al final y a la fila seleccionada', () => {
     expect(await screen.findByRole('button', { name: '↓ Al final (2 nuevos)' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'llega 1' }))
     expect(await screen.findByRole('button', { name: '↓ Al final (3 nuevos)' })).toBeInTheDocument()
-    desplazar(63 * ALTO - VISIBLE)
+    desplazar((N + 3) * ALTO - VISIBLE)
     expect(alFinal()).not.toBeInTheDocument()
     desplazar(300)
     expect(await screen.findByRole('button', { name: '↓ Al final' })).toBeInTheDocument()
@@ -114,7 +113,7 @@ describe('TablaFilas: volver al final y a la fila seleccionada', () => {
   it('llegan pedidos estando abajo: la tabla sigue al final y no sale ningún botón', async () => {
     renderConProviders(<Arnes />, { sesion: SESION_SUPER })
     fireEvent.click(screen.getByRole('button', { name: 'llegan 2' }))
-    expect(region().scrollTop).toBe(62 * ALTO - VISIBLE)
+    expect(region().scrollTop).toBe((N + 2) * ALTO - VISIBLE)
     expect(alFinal()).not.toBeInTheDocument()
   })
 })
