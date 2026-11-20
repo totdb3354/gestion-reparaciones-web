@@ -69,7 +69,9 @@ export function AyudaPedidos() {
           <Linea muestra={<span className="text-[12px] text-azul-gris italic">sin asociar</span>}>
             Amazon: el pedido sale cuando lo asocia el libro de ventas. Hasta entonces el móvil se lee y se pone igual, sin número de pedido.
           </Linea>
-          <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.NO_PENDIENTE)}>Ya no está pendiente</span>}>El pedido ya no está pendiente en ShippyPro.</Linea>
+          <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.NO_PENDIENTE)}>Ya no está en ShippyPro</span>}>
+            El pedido ha desaparecido de ShippyPro sin que se viera su envío: se juntó con otro pedido en la misma caja, se canceló o salió con una etiqueta hecha a mano.
+          </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.HISTORICO)}>De la hoja</span>}>
             <span className={cn('mr-1.5 rounded-sm px-1.5 py-px text-[11px]', CLASE_TONO.gris)}>Fila en gris</span>
             Histórico de la hoja: no se edita.

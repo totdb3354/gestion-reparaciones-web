@@ -300,7 +300,7 @@ export const OPCIONES_ENVIADO: { valor: EstadoPantalla | 'SALE_HOY' | 'CON_RETRA
   { valor: 'FALTA_ENVIAR', texto: 'Falta por enviar' },
   { valor: 'GENERADA', texto: 'Etiqueta generada' },
   { valor: 'ENVIADO', texto: 'Enviados' },
-  { valor: 'NO_PENDIENTE', texto: 'Ya no pendientes' },
+  { valor: 'NO_PENDIENTE', texto: 'Ya no están en ShippyPro' },
   { valor: 'CANCELADO', texto: 'Cancelado' },
   { valor: 'HISTORICO', texto: 'Histórico de la hoja' },
 ]

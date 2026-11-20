@@ -86,7 +86,7 @@ export function FiltroTienda({ tiendas: presentes, seleccion, onChange }: {
   )
 }
 
-/** El filtro de «Enviado»: Pendientes, Etiqueta generada, Enviados, Ya no pendientes e Histórico de la hoja, cada uno con su
+/** El filtro de «Enviado»: Pendientes, Etiqueta generada, Enviados, Ya no están en ShippyPro e Histórico de la hoja, cada uno con su
  *  recuento (sin ninguna marcada, no filtra). */
 export function FiltroEnviado({ seleccion, onChange, recuentos }: {
   seleccion: Set<string>; onChange: (s: Set<string>) => void; recuentos: Record<string, number>

@@ -121,7 +121,7 @@ describe('Pedidos: el envío parcial en la tabla', () => {
     await esperar()
     expect(within(tr('W-0004')).getByText('Envío parcial · falta por enviar')).toBeInTheDocument()
     expect(within(tr('W-0004')).queryByText(/Etiqueta generada/)).not.toBeInTheDocument()
-    expect(within(tr('W-0005')).getByText('Ya no está pendiente')).toBeInTheDocument()
+    expect(within(tr('W-0005')).getByText('Ya no está en ShippyPro')).toBeInTheDocument()
   })
 
   it('cuenta como pendiente: contador, filtro «Pendientes» y su propia opción «Falta por enviar»', async () => {

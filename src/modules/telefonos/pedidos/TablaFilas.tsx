@@ -75,7 +75,7 @@ export function EtiquetaEstado({ fila: f, estado, conDetalle = true, hoy }: { fi
     FALTA_ENVIAR: `Envío parcial · falta por enviar${nivel === 'RETRASO' ? ' · con retraso' : nivel === 'HOY' ? ' · sale hoy' : ''}`,
     GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
     ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
-    NO_PENDIENTE: 'Ya no está pendiente',
+    NO_PENDIENTE: 'Ya no está en ShippyPro',
     CANCELADO: 'Cancelado',
     HISTORICO: 'De la hoja',
   }[estado]

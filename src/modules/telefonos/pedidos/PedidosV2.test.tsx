@@ -146,7 +146,7 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     abrir()
     await contador('6 filas')
     await abrirFiltro(user, 'Enviado')
-    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Sale hoy0', 'Con retraso0', 'Falta por enviar0', 'Etiqueta generada0', 'Enviados1', 'Ya no pendientes0', 'Cancelado0', 'Histórico de la hoja1'])
+    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Sale hoy0', 'Con retraso0', 'Falta por enviar0', 'Etiqueta generada0', 'Enviados1', 'Ya no están en ShippyPro0', 'Cancelado0', 'Histórico de la hoja1'])
     await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
     await user.click(screen.getByRole('checkbox', { name: /^Histórico de la hoja/ }))

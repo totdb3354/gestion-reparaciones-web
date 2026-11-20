@@ -248,7 +248,7 @@ describe('Pedidos: filtros por columna', () => {
     expect(filasPintadas()).toBe(3)
   })
 
-  it('el filtro de «Enviado» tiene Pendientes, Enviados, Ya no pendientes e Histórico, y se recuerda', async () => {
+  it('el filtro de «Enviado» tiene Pendientes, Enviados, Ya no están en ShippyPro e Histórico, y se recuerda', async () => {
     const user = userEvent.setup()
     respuesta = { filas: [...MIXTAS, fila({ idFila: 5, estado: 'NO_PENDIENTE', pedido: '402-0000000-0000025' }), fila({ idFila: 6, estado: 'HISTORICO', editable: false, pedido: '402-0000000-0000026' })], hayMas: false }
     const primera = abrir()
@@ -256,7 +256,7 @@ describe('Pedidos: filtros por columna', () => {
     await abrirFiltro(user, 'Enviado')
     await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
-    await user.click(screen.getByRole('checkbox', { name: /^Ya no pendientes/ }))
+    await user.click(screen.getByRole('checkbox', { name: /^Ya no están en ShippyPro/ }))
     expect(filasPintadas()).toBe(2)
     await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)

@@ -40,7 +40,7 @@ describe('Pedidos: botón de ayuda', () => {
     expect(boton).toHaveAttribute('aria-expanded', 'true')
     const ayuda = await screen.findByRole('dialog', { name: 'Cómo se lee esta tabla' })
     expect(within(ayuda).getByRole('heading', { name: 'Cómo se lee esta tabla' })).toBeInTheDocument()
-    for (const t of ['Pendiente', 'Etiqueta generada', 'Enviado', 'Ya no está pendiente', 'De la hoja']) expect(within(ayuda).getByText(t)).toBeInTheDocument()
+    for (const t of ['Pendiente', 'Etiqueta generada', 'Enviado', 'Ya no está en ShippyPro', 'De la hoja']) expect(within(ayuda).getByText(t)).toBeInTheDocument()
     expect(within(ayuda).getByText(/Las filas las crea el ERP/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/IMEI en ámbar/)).toBeInTheDocument()
     expect(within(ayuda).getByText(/IMEI en naranja/)).toBeInTheDocument()
