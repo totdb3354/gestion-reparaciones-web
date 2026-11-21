@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
-  api, type CambioImei, type Candidato, type FilaVista, type FuenteVista, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
+  api, type CambioImei, type Candidato, type FilaVista, type FuenteVista, type PasadaAsociacion, type ListaFilas, type ListaImportaciones, type MovilComprobado, type MovilStock, type PeticionDeshacerHecho,
   type PeticionDescarte, type PeticionDeshacerDescarte, type PeticionExcel, type PeticionHecho, type PeticionIgnorado, type TarjetasPorPasar,
 } from '@/shared/api/client'
 import { CLAVE_RASTRO_MOVIL, CLAVE_STOCK_TELEFONOS, CLAVE_TARJETAS_NSYS, MAX_IMEIS } from '@/shared/api/nsys'
@@ -167,6 +167,19 @@ export function useDescargarPlantilla() {
   })
 }
 
+/** GET /api/pedidos/buscar (el «Listado»): un Excel con una pestaña por plataforma (AMZ, FNSK y Webs) de los móviles que hay que buscar
+ *  en el almacén. Como las plantillas: «Guardar como» antes (`destino`) o descarga clásica con el nombre del Content-Disposition.
+ *  Devuelve con qué nombre se guardó. Un error sale en el diálogo de siempre. */
+export function useDescargarBuscar() {
+  return useMutation({
+    mutationFn: async ({ destino = null }: { destino?: FileSystemFileHandle | null } = {}): Promise<string> => {
+      const { data, response } = await api.GET('/api/pedidos/buscar', { parseAs: 'blob' })
+      const nombre = nombreDeDescarga(response.headers.get('Content-Disposition')) ?? 'Listado.xlsx'
+      return data ? guardarEn(destino, { blob: data, nombre }) : nombre
+    },
+  })
+}
+
 /** POST /api/stock-telefonos/que-revisar/excel (spec 0.9.25 «Qué revisar» §10.3): el servidor convierte la hoja en un xlsx para
  *  imprimir; aquí se guarda en `destino`, el fichero elegido en «Guardar como» antes de llamar (elegirDestino), o sin él con
  *  `nombre` en la carpeta de descargas. Devuelve con qué nombre se guardó. Un error sale en el diálogo de siempre. */
@@ -182,6 +195,7 @@ export function useDescargarExcel() {
 /** Pedidos como la hoja (Teléfonos › Pedidos): todas las filas viven bajo esta clave. */
 export const CLAVE_FILAS = ['telefonos', 'pedidos', 'filas'] as const
 export const CLAVE_FUENTES_PEDIDOS = ['telefonos', 'pedidos', 'fuentes'] as const
+export const CLAVE_ASOCIACIONES_PEDIDOS = ['telefonos', 'pedidos', 'asociaciones'] as const
 
 /** GET /api/pedidos/filas: las filas del intervalo de fechas, filtradas por `buscar` (el servidor dice si hay más). Sondea como
  *  las demás vistas; al cambiar el intervalo o la búsqueda deja la lista anterior hasta que llega la nueva (`isPlaceholderData`,
@@ -320,7 +334,7 @@ export function usePonerImei() {
     }),
     // Un 409 (otra persona cambió el IMEI) no se reintenta con el mismo `imeiAnterior`: se recargan las filas en el acto para ver
     // el IMEI que puso la otra persona (la espera de `onSettled` sería innecesaria).
-    onError: (e) => { if (e instanceof StaleDataError) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+    onError: (e) => { if (e instanceof StaleDataError && !e.message.startsWith('Este IMEI ya está')) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
     onSettled: () => { recargarFilasTrasEspera(qc) },
   })
 }
@@ -377,12 +391,52 @@ export function usePonerMarca() {
   })
 }
 
+/** PUT /api/pedidos/filas/{id}/validacion: da por bueno el aviso naranja de SKU del IMEI de la fila (`validar: true`) o quita esa validación.
+ *  `imeiAnterior` es el IMEI que la fila tenía en pantalla (el servidor responde 409 si otra persona lo cambió). Como el IMEI y la marca:
+ *  clave de idempotencia, la fila devuelta se escribe en las cachés, el apunte se adelanta en el historial y las filas se recargan una
+ *  sola vez. Un fallo no abre el diálogo global: lo enseña quien llama. */
+export function useValidarSku() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ idFila, validar, imeiAnterior, clave }: { idFila: number; validar: boolean; imeiAnterior: string | null; clave: string }): Promise<FilaVista> => {
+      const { data } = await api.PUT('/api/pedidos/filas/{id}/validacion', {
+        params: { path: { id: idFila }, header: { 'Idempotency-Key': clave } }, body: { validar, imeiAnterior },
+      })
+      if (!data) throw new Error('El servidor no devolvió la fila')
+      return data
+    },
+    meta: { silenciarError: true, silenciarConexion: true },
+    onSuccess: (fila) => escribirFila(qc, fila, (previa) => {
+      const antes = previa?.motivoValidado ?? null
+      if (antes === fila.motivoValidado) return null
+      const usuario = leerSesion()?.nombreUsuario ?? null
+      if (!fila.motivoValidado) return { usuario, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: 'VALIDACION_QUITADA', detalle: antes }
+      return { usuario, fecha: ahoraLocal(), imeiAnterior: null, imeiNuevo: null, tipo: 'VALIDADA', detalle: fila.motivoValidado }
+    }),
+    // Un 409 (otra persona cambió el IMEI, o el aviso ya no es de SKU) no se reintenta igual: se recargan las filas en el acto.
+    onError: (e) => { if (e instanceof StaleDataError) void qc.invalidateQueries({ queryKey: CLAVE_FILAS }) },
+    onSettled: () => { recargarFilasTrasEspera(qc) },
+  })
+}
+
 /** GET /api/pedidos/fuentes: de dónde vienen los pedidos y cuándo se leyó cada fuente por última vez (la píldora). */
 export function useFuentesPedidos(): UseQueryResult<FuenteVista[]> {
   const intervalo = useIntervaloRefresco(true)
   return useQuery({
     queryKey: CLAVE_FUENTES_PEDIDOS,
     queryFn: async ({ signal }) => (await api.GET('/api/pedidos/fuentes', { signal })).data ?? [],
+    refetchInterval: intervalo,
+    meta: { sinCapa: true },
+  })
+}
+
+/** GET /api/pedidos/asociaciones: la última pasada de asociación IMEI-pedido de cada plataforma de Amazon (cuándo, recuentos y la lista
+ *  «para revisar»); sin pasadas, lista vacía. Mismo sondeo que las fuentes. */
+export function useAsociaciones(): UseQueryResult<PasadaAsociacion[]> {
+  const intervalo = useIntervaloRefresco(true)
+  return useQuery({
+    queryKey: CLAVE_ASOCIACIONES_PEDIDOS,
+    queryFn: async ({ signal }) => (await api.GET('/api/pedidos/asociaciones', { signal })).data?.canales ?? [],
     refetchInterval: intervalo,
     meta: { sinCapa: true },
   })

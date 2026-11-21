@@ -6,12 +6,14 @@ import { PanelDeslizante, usePresencia } from '@/shared/ui/Deslizante'
 import { useFilas } from '../api'
 import { estadoPedidos, type EstadoPedidos } from './estado'
 import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './FiltroColumna'
+import { DescargarBuscar } from './DescargarBuscar'
 import { AyudaPedidos } from './AyudaPedidos'
 import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
+import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -39,16 +41,18 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const tiendas = useMemo(() => tiendasPresentes(filas), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
   const numeros = useMemo(() => numerosDePedido(filas), [filas])
-  const estados = useMemo(() => recuentoEstados(filas), [filas])
+  const salida = useMemo(() => recuentoSalida(filas, hoy), [filas, hoy])
+  const estados = useMemo(() => ({ ...recuentoEstados(filas), SALE_HOY: salida.hoy, CON_RETRASO: salida.retraso }), [filas, salida])
   const conMarca = useMemo(() => recuentoMarcas(filas), [filas])
+  const nSinAsociar = useMemo(() => recuentoSinAsociar(filas), [filas])
   const filtros = useMemo<FiltrosColumna>(
-    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas }),
-    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas],
+    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas, sinAsociar: e.sinAsociar }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas, e.sinAsociar],
   )
   const filtrando = hayFiltros(filtros)
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
-  const vistas = useMemo(() => filtrarColumnas(filas, filtros), [filas, filtros])
+  const vistas = useMemo(() => filtrarColumnas(filas, filtros, hoy), [filas, filtros, hoy])
   const ventana = vistas.length > umbralVentana
   // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
   useEffect(() => {
@@ -94,6 +98,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     { id: 'filas', texto: `${cuenta.total} filas`, ayuda: 'Todas las filas: quita los filtros de columna' },
     { id: 'pendientes', texto: `${cuenta.pendientes} pendientes`, ayuda: 'Solo las pendientes' },
     { id: 'sinImei', texto: `${cuenta.sinImei} sin IMEI`, ayuda: 'Solo las que aún no tienen IMEI' },
+    { id: 'saleHoy', texto: `${salida.hoy} salen hoy`, ayuda: 'Solo las pendientes que tienen que salir hoy' },
+    ...(salida.retraso > 0 ? [{ id: 'conRetraso' as const, texto: `${salida.retraso} con retraso`, ayuda: 'Solo las pendientes que ya deberían haber salido' }] : []),
     { id: 'noCuadran', texto: `${cuenta.noCuadran} no cuadran`, ayuda: 'Solo las que tienen el IMEI en naranja' },
   ]
 
@@ -112,7 +118,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         )}
         <AyudaPedidos />
         {ventana && <span className="text-[11.5px] text-azul-gris">Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).</span>}
-        <PildoraFuentes />
+        <div className="ml-auto flex flex-wrap items-center gap-2"><DescargarBuscar /><PildoraAsociacion /><PildoraFuentes /></div>
       </div>
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}
@@ -158,12 +164,13 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
       )}
       {filas.length > 0 && (
         <div className="flex min-h-0 flex-1">
-        <TablaFilas filas={vistas} numeros={numeros} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
+        <TablaFilas filas={vistas} hoy={hoy} numeros={numeros} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,
           IMEI: <FiltroImei sinImei={filtros.soloSinImei} noCuadran={filtros.noCuadran} onSinImei={(soloSinImei) => poner({ soloSinImei })} onNoCuadran={(noCuadran) => poner({ noCuadran })}
-          marcas={filtros.marcas} onMarcas={(marcas) => poner({ marcas })} recuentoMarcas={conMarca} />,
+          marcas={filtros.marcas} onMarcas={(marcas) => poner({ marcas })} recuentoMarcas={conMarca}
+          sinAsociar={filtros.sinAsociar} onSinAsociar={(sinAsociar) => poner({ sinAsociar })} recuentoSinAsociar={nSinAsociar} />,
         }} />
         {presente.valor && <PanelDeslizante saliendo={presente.saliendo}><PanelFila fila={presente.valor} onCerrar={cerrarPanel} /></PanelDeslizante>}
         </div>
@@ -183,6 +190,7 @@ function etiquetasDe(f: FiltrosColumna): Etiqueta[] {
     ...OPCIONES_ENVIADO.filter((o) => f.enviado.has(o.valor)).map((o) => ({ clave: `e:${o.valor}`, texto: o.texto, quitar: (s: EstadoPedidos) => ({ ...s, enviado: sin(s.enviado, o.valor) }) })),
     ...(f.soloSinImei ? [{ clave: 'sin', texto: 'Sin IMEI', quitar: (s: EstadoPedidos) => ({ ...s, soloSinImei: false }) }] : []),
     ...[...f.marcas].map((v) => ({ clave: `m:${v}`, texto: `Con marca: ${textoMarca(v)}`, quitar: (s: EstadoPedidos) => ({ ...s, marcas: sin(s.marcas, v) }) })),
+    ...(f.sinAsociar ? [{ clave: 'sa', texto: 'Sin asociar', quitar: (s: EstadoPedidos) => ({ ...s, sinAsociar: false }) }] : []),
     ...(f.noCuadran ? [{ clave: 'nc', texto: 'No cuadran', quitar: (s: EstadoPedidos) => ({ ...s, noCuadran: false }) }] : []),
   ]
 }

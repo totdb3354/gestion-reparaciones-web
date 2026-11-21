@@ -8,7 +8,8 @@ import { usePonerImei, useRecomendados } from '../api'
 import { estadoPedidos, type FalloImei } from './estado'
 import { CIFRAS_IMEI, QUIETO_MS, SUSTITUIR_MS, luhnCuadra } from './imei'
 import { EditorMarca } from './EditorMarca'
-import { CLASE_TONO, TEXTO_NIVEL, claseCelda, colorMarca, textoMarca, textoMotivo, tonoFila } from './filas'
+import { BotonValidarSku } from './BotonValidarSku'
+import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, estaValidada, textoMotivo, textoMotivoValidado, tonoFila } from './filas'
 
 export const FONDO: Record<string, string> = {
   aviso: 'bg-form-agotado-bg',
@@ -36,23 +37,24 @@ type Props = {
  *  además devuelve el foco a la celda). */
 export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: Props) {
   const clase = claseCelda(fila)
-  const motivo = textoMotivo(fila)
+  const validada = estaValidada(fila)
+  // Validada: el aviso original ya no se escribe en la celda (sale una marca pequeña «validado») y queda en el title.
+  const motivo = validada ? null : textoMotivo(fila)
+  const avisoValidado = validada ? `SKU validado${fila.validadaPor ? ` por ${fila.validadaPor}` : ''}: ${textoMotivoValidado(fila) ?? 'aviso de SKU'}` : null
   // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
-  const textoFallo = fallo ? (fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
-  // La marca (con su nota al pasar el ratón) ocupa, sin IMEI, el sitio de «pulsa para poner el IMEI…»; con IMEI va tras él.
-  const marca = fila.marca ? (fila.marcaNota ? `${textoMarca(fila.marca)} — ${fila.marcaNota}` : textoMarca(fila.marca)) : null
+  const textoFallo = fallo ? (fallo.duplicado ? fallo.mensaje : fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
   const boton = (
-    <button type="button" title={fallo ? textoFallo : [fila.imei ?? (marca ? null : 'pulsa para poner el IMEI…'), marca, motivo ?? fila.caja].filter(Boolean).join(' · ')}
+    <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado ?? motivo ?? fila.caja].filter(Boolean).join(' · ')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
         clase === 'vacia' && 'font-sans italic text-texto-sub')}>
       {fallo
         ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{textoFallo}</span>
-        : (fila.imei || !fila.marca) && <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
-      {!fallo && fila.marca && (
-        <span data-marca={fila.marca} className={cn('inline-block shrink-0 rounded-lg px-2 py-px font-sans text-[11px] font-bold not-italic', colorMarca(fila.marca))}>{textoMarca(fila.marca)}</span>
-      )}
+        : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
       {!fallo && motivo && (
         <span className={cn('min-w-0 truncate font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
+      )}
+      {!fallo && validada && (
+        <span data-validado className="shrink-0 rounded-lg bg-fila-reparado-bg px-1.5 py-px font-sans text-[10.5px] font-bold text-[#2f7d3b]">validado</span>
       )}
       {!fallo && !motivo && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
@@ -89,6 +91,9 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
   )
 }
 
+/** Con lo que empieza el texto del 409 del servidor cuando el IMEI ya está en otro pedido. */
+const PREFIJO_DUPLICADO = 'Este IMEI ya está'
+
 const MENSAJE_ERROR = {
   mas: `Hay más de ${CIFRAS_IMEI} cifras: lee un solo IMEI`,
   luhn: 'La cifra de control no cuadra: revisa el IMEI',
@@ -98,7 +103,7 @@ type ErrorImei = keyof typeof MENSAJE_ERROR
 
 function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fallo?: FalloImei; onCerrar: () => void; onSaltar?: () => boolean }) {
   // Si esta celda falló antes y se reabre, el campo viene con ese IMEI y Enter reintenta con la misma clave.
-  const [texto, setTexto] = useState(fallo?.imei ?? '')
+  const [texto, setTexto] = useState(fallo && !fallo.duplicado ? fallo.imei ?? '' : '')
   const [error, setError] = useState<ErrorImei | null>(null)
   // Los recomendados no se piden ni se enseñan hasta que se desplieguen; cada vez que se abre una celda empieza plegado.
   const [ver, setVer] = useState(false)
@@ -125,7 +130,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
     enCurso.current = true
     const idFila = fila.idFila
     const operacion = `imei:${idFila}`
-    const clave = fallo && fallo.imei === imei ? fallo.clave : claves.para(operacion, { imei })
+    const clave = fallo && !fallo.duplicado && fallo.imei === imei ? fallo.clave : claves.para(operacion, { imei })
     const salta = salto && !!onSaltar && onSaltar()
     poner.mutateAsync({ idFila, imei, imeiAnterior: anterior, clave }).then(
       () => {
@@ -140,11 +145,18 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
       },
       (e: unknown) => {
         enCurso.current = false
+        if (e instanceof StaleDataError && e.message.startsWith(PREFIJO_DUPLICADO)) {
+          // 409 por IMEI duplicado: el servidor dice en qué pedido (o fila sin asociar) está ya. La celda queda en rojo con ese texto tal
+          // cual; no se reintenta (volvería a fallar) y no hay nada que recargar.
+          const mensaje = e.message
+          estadoPedidos.set((s) => ({ ...s, fallosImei: { ...s.fallosImei, [idFila]: { imei, clave, mensaje, duplicado: true } }, avisoImei: `Pedido ${pedidoVisible(fila) ?? idFila}: ${mensaje}` }))
+          return
+        }
         if (e instanceof StaleDataError) {
           // 409: otra persona cambió el IMEI. Reintentar mandaría el mismo `imeiAnterior` y volvería a fallar: no queda estado de fallo
           // (el hook ya recarga las filas en el acto, para ver el IMEI de la otra persona) y solo sale el aviso. La celda se cierra
           // (si se saltó, ya está cerrada): al reabrirla toma el IMEI de ahora.
-          const aviso = `Pedido ${fila.pedido ?? idFila}: ${mensajeDeError(e)}`
+          const aviso = `Pedido ${pedidoVisible(fila) ?? idFila}: ${mensajeDeError(e)}`
           estadoPedidos.set((s) => {
             const resto = { ...s.fallosImei }
             delete resto[idFila]
@@ -153,7 +165,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
           if (!salta) onCerrar()
           return
         }
-        const mensaje = `No se guardó el IMEI del pedido ${fila.pedido ?? idFila}. Vuelve a abrir su celda.`
+        const mensaje = `No se guardó el IMEI del pedido ${pedidoVisible(fila) ?? idFila}. Vuelve a abrir su celda.`
         estadoPedidos.set((s) => ({ ...s, fallosImei: { ...s.fallosImei, [idFila]: { imei, clave, mensaje } }, avisoImei: mensaje }))
       },
     )
@@ -161,7 +173,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
   // Antes de guardar un IMEI de 15 cifras (solo o con Enter) se comprueba su cifra de control. Un IMEI que ya falló al guardar (pasó la
   // comprobación o se guardó igualmente) no se vuelve a comprobar: Enter lo reintenta.
   const comprobarYGuardar = (cifras: string) => {
-    if (!(fallo && fallo.imei === cifras) && !luhnCuadra(cifras)) { setError('luhn'); return }
+    if (!(fallo && !fallo.duplicado && fallo.imei === cifras) && !luhnCuadra(cifras)) { setError('luhn'); return }
     setError(null)
     guardar(cifras, true)
   }
@@ -215,6 +227,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
           className="mt-1 h-6 cursor-pointer rounded-md border border-borde-input bg-superficie px-2 text-[11.5px] font-semibold">Guardar igualmente</button>
       )}
       {/* Debajo del campo y sin enfocarse solo: el foco se queda en el IMEI para el lector de códigos. */}
+      <BotonValidarSku fila={fila} />
       <EditorMarca fila={fila} onHecho={onCerrar} />
       <button type="button" aria-expanded={ver} onClick={() => setVer((v) => !v)}
         className="mt-1 cursor-pointer bg-transparent px-0.5 text-[11.5px] text-azul-medio underline underline-offset-2">{ver ? 'Ocultar recomendados' : 'Ver recomendados'}</button>

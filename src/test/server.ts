@@ -14,6 +14,8 @@ import { setupServer } from 'msw/node'
  * Y desde la 0.9.23, «Comprobar una lista de IMEIs»: todos en NSYS (el modal de asignación pregunta por cada IMEI que se pica).
  */
 export const server = setupServer(
+  // La píldora «Asociación Amazon» de Pedidos: sin pasadas (no se pinta).
+  http.get('*/api/pedidos/asociaciones', () => HttpResponse.json({ canales: [] })),
   http.get('*/api/reparaciones/asignaciones', () => HttpResponse.json([])),
   http.get('*/api/glass/asignaciones', () => HttpResponse.json([])),
   http.get('*/api/pulidos/asignaciones', () => HttpResponse.json([])),

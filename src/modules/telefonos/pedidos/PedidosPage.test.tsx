@@ -74,7 +74,7 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect(await celdaVacia()).toBeInTheDocument()
   })
 
-  it('«Enviado» es una etiqueta con texto: Pendiente, Etiqueta generada dd/mm, Enviado dd/mm (fecha de la impresión) con transportista y seguimiento, Ya no está pendiente, De la hoja', async () => {
+  it('«Enviado» es una etiqueta con texto: Pendiente, Etiqueta generada dd/mm, Enviado dd/mm (fecha de la impresión) con transportista y seguimiento, Ya no está en ShippyPro, De la hoja', async () => {
     abrir()
     await screen.findByRole('button', { name: '9 filas' })
     const celda = (pedido: string) => screen.getByText(pedido).closest('tr')!.querySelectorAll('td')[5]
@@ -84,7 +84,7 @@ describe('Pedidos como la hoja: la tabla', () => {
     expect(celda('402-0000000-0000011')).toHaveAttribute('title', 'UPS · 1Z0000000000000001')
     expect(celda('402-0000000-0000019').textContent).toBe('Etiqueta generada 09/11')
     expect(celda('402-0000000-0000019')).not.toHaveAttribute('title')
-    expect(celda('402-0000000-0000016').textContent).toBe('Ya no está pendiente')
+    expect(celda('402-0000000-0000016').textContent).toBe('Ya no está en ShippyPro')
     expect(celda('402-0000000-0000013').textContent).toBe('Pendiente')
     // El histórico, aunque tenga fecha de envío, no la enseña.
     expect(celda('402-0000000-0000017').textContent).toBe('De la hoja')

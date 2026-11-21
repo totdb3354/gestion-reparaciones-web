@@ -9,7 +9,7 @@ const FILAS = Array.from({ length: N }, (_, k) => {
   const i = k + 1
   const d = new Date(Date.UTC(2025, 0, 1) + Math.floor(k / 80) * 86_400_000).toISOString().slice(0, 10)
   return {
-    idFila: i, fecha: d, plataforma: i % 2 ? 'Web' : 'Amazon', canal: i % 2 ? null : 'AMAZON', sku: 'i14128NegroA',
+    idFila: i, fecha: d, plataforma: i % 2 ? 'Web' : 'Amazon', canal: i % 2 ? null : 'AMAZON', asociadaEn: i % 2 ? null : '2026-11-12T09:00:00', asociadaOrigen: i % 2 ? null : 'LIBRO', sku: 'i14128NegroA',
     imei: i % 6 === 0 ? null : `3500000${String(i).padStart(8, '0')}`, pedido: pedido(i), fechaCompra: d,
     estado: i % 6 === 0 ? 'PENDIENTE' : 'ENVIADA', editable: true, envioFecha: i % 6 === 0 ? null : `${d}T10:00:00Z`,
     impresaEn: i % 6 === 0 || i % 2 ? null : `${d}T12:00:00Z`, tieneEtiqueta: i % 6 !== 0,
@@ -18,7 +18,7 @@ const FILAS = Array.from({ length: N }, (_, k) => {
 })
 const SIN_IMEI = FILAS.filter((f) => f.imei === null).length
 
-async function preparar(page: Page) {
+async function preparar(page: Page, filas: unknown[] = FILAS) {
   await page.addInitScript(() => {
     localStorage.setItem('fsgr.sesion', JSON.stringify({ idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super', passwordTemporal: false }))
     localStorage.setItem('fsgr.latido', String(Date.now()))
@@ -27,7 +27,7 @@ async function preparar(page: Page) {
   const desconocidas: string[] = []
   await page.route((u) => u.pathname.startsWith('/api/'), async (route) => {
     const ruta = new URL(route.request().url()).pathname
-    if (ruta === '/api/pedidos/filas') return route.fulfill({ json: { filas: FILAS, hayMas: false } })
+    if (ruta === '/api/pedidos/filas') return route.fulfill({ json: { filas, hayMas: false } })
     if (ruta === '/api/pedidos/fuentes') return route.fulfill({ json: [{ fuente: 'SHIPPYPRO', ultimaOk: new Date().toISOString(), ultimoIntento: new Date().toISOString(), ultimoError: null, ok: true }] })
     if (ruta.endsWith('/recomendados')) return route.fulfill({ json: [] })
     if (ruta.endsWith('/imei')) return route.fulfill({ json: {} })
@@ -180,4 +180,42 @@ test('Pedidos con 26.700 filas en Chromium real', async ({ page }) => {
   cifras.erroresPagina = errores
   console.log('CIFRAS ' + JSON.stringify(cifras))
   expect(errores).toEqual([])
+})
+
+test('modo ventana con filas marcadas (mas altas): no se solapan y el scroll cuadra', async ({ page }) => {
+  // Una de cada 5 filas, enviada y con marca: estado y marca apilados, la fila crece. El resto mide 32 px.
+  const marcadas = FILAS.map((f) => (f.idFila % 5 === 0 && f.estado === 'ENVIADA' ? { ...f, marca: 'ESPERA_STOCK', marcaNota: 'llega el lunes', marcaEn: '2026-11-12T09:30:00', marcaPor: 'Supertecnico 1' } : f))
+  await preparar(page, marcadas)
+  await page.goto('/telefonos/pedidos')
+  await expect(contador(page, `${N} filas`)).toBeVisible()
+  await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
+  await expect(contador(page, `${N} filas`)).toBeVisible()
+  await page.waitForTimeout(500)
+  const solapes = () => page.locator('tbody tr[data-estado]').evaluateAll((trs) => {
+    const r = trs.map((t) => t.getBoundingClientRect())
+    const sinSolape = r.every((x, i) => i === 0 || x.top >= r[i - 1].bottom - 1)
+    return { n: trs.length, sinSolape, marcadas: trs.filter((t) => t.hasAttribute('data-con-marca')).length, altas: trs.filter((t) => t.hasAttribute('data-con-marca') && t.getBoundingClientRect().height > 40).length }
+  })
+  let g = await geom(page)
+  expect(Math.abs(g.sh - g.top - g.h)).toBeLessThanOrEqual(2) // abre al final
+  let s = await solapes()
+  expect(s.n).toBeLessThan(200)
+  expect(s.marcadas).toBeGreaterThan(0)
+  expect(s.altas).toBe(s.marcadas)
+  expect(s.sinSolape).toBe(true)
+  // A mitad de la tabla, con varias marcadas a la vista.
+  await region(page).evaluate((c) => { c.scrollTop = c.scrollHeight / 2 })
+  await page.waitForTimeout(500)
+  s = await solapes()
+  expect(s.marcadas).toBeGreaterThan(0)
+  expect(s.altas).toBe(s.marcadas)
+  expect(s.sinSolape).toBe(true)
+  // Arriba del todo y de nuevo abajo: el final sigue cuadrando.
+  await region(page).evaluate((c) => { c.scrollTop = 0 })
+  await page.waitForTimeout(300)
+  await region(page).evaluate((c) => { c.scrollTop = c.scrollHeight })
+  await page.waitForTimeout(500)
+  g = await geom(page)
+  expect(Math.abs(g.sh - g.top - g.h)).toBeLessThanOrEqual(2)
+  expect((await solapes()).sinSolape).toBe(true)
 })

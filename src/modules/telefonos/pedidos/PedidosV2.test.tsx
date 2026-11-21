@@ -12,7 +12,7 @@ import { PedidosPage } from './PedidosPage'
 // Pantalla v2 (parte 1): contadores pulsables, filtros como etiquetas, la caja delante y la raya azul.
 // 6 filas: pendientes 4 (1, 2, 4, 5), sin IMEI 2 (1, 4), no cuadran 1 (5), enviada 1 (3) e histórico 1 (6).
 const FILAS = [
-  fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),
+  fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021', asociadaEn: '2026-11-12T09:00:00', asociadaOrigen: 'LIBRO' }),
   fila({ idFila: 2, plataforma: 'Web', sku: 'i14128NegroA', imei: '350000000000001', pedido: '402-0000000-0000022' }),
   fila({ idFila: 3, plataforma: 'Web', sku: 'i13128AzulA', estado: 'ENVIADA', impresaEn: '2026-11-10T09:00:00', tieneEtiqueta: true, imei: '350000000000002', pedido: '402-0000000-0000023' }),
   fila({ idFila: 4, plataforma: 'Web', sku: 'i14128NegroA', pedido: '402-0000000-0000024' }),
@@ -141,12 +141,12 @@ describe('Pedidos v2: filtros como etiquetas', () => {
     expect(screen.queryByRole('button', { name: /Quitar filtro / })).not.toBeInTheDocument()
   })
 
-  it('el filtro de «Enviado» tiene siete casillas con su recuento y el histórico no cuenta como enviado', async () => {
+  it('el filtro de «Enviado» tiene nueve casillas con su recuento y el histórico no cuenta como enviado', async () => {
     const user = userEvent.setup()
     abrir()
     await contador('6 filas')
     await abrirFiltro(user, 'Enviado')
-    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Falta por enviar0', 'Etiqueta generada0', 'Enviados1', 'Ya no pendientes0', 'Cancelado0', 'Histórico de la hoja1'])
+    expect(screen.getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)).toEqual(['Pendientes4', 'Sale hoy0', 'Con retraso0', 'Falta por enviar0', 'Etiqueta generada0', 'Enviados1', 'Ya no están en ShippyPro0', 'Cancelado0', 'Histórico de la hoja1'])
     await user.click(screen.getByRole('checkbox', { name: /^Enviados/ }))
     expect(filasPintadas()).toBe(1)
     await user.click(screen.getByRole('checkbox', { name: /^Histórico de la hoja/ }))

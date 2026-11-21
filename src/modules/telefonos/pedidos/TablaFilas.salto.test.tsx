@@ -198,6 +198,20 @@ describe('TablaFilas: salto a la siguiente celda vacía', () => {
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
   })
 
+  it('un 409 de IMEI duplicado («Este IMEI ya está…») deja la celda en rojo con ese mensaje tal cual y sin reintento', async () => {
+    const user = userEvent.setup()
+    const texto = 'Este IMEI ya está en el pedido 402-0099999-0000001 (fila del 17/11)'
+    server.use(http.put('*/api/pedidos/filas/:id/imei', () => HttpResponse.json({ message: texto }, { status: 409 })))
+    abrirTabla([f(1), f(2)])
+    await user.click(await vacia(0))
+    await user.keyboard(B)
+    expect(await screen.findByText(texto)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pulsa para reintentar/ })).not.toBeInTheDocument()
+    expect(document.querySelector('td[data-imei][class*="FDE2E2"]')).not.toBeNull()
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(estadoPedidos.get().fallosImei[1]?.mensaje).toBe(texto)
+  })
+
   it('el salto también llega a una fila marcada «falta por enviar» sin IMEI (cuenta como pendiente)', async () => {
     const user = userEvent.setup()
     const marcada = { estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', faltaEnviarEn: '2026-11-10T09:00:00', canal: 'DISTRIBUIDORES' }

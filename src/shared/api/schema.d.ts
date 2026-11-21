@@ -164,7 +164,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pedidos/filas/{id}/falta-enviar": {
+    "/api/pedidos/filas/{id}/validacion": {
         parameters: {
             query?: never;
             header?: never;
@@ -172,7 +172,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["ponerFaltaEnviar"];
+        put: operations["ponerValidacion"];
         post?: never;
         delete?: never;
         options?: never;
@@ -205,6 +205,22 @@ export interface paths {
         };
         get?: never;
         put: operations["ponerImei"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/filas/{id}/falta-enviar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ponerFaltaEnviar"];
         post?: never;
         delete?: never;
         options?: never;
@@ -628,6 +644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/sincronizados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sincronizar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pedidos/historico": {
         parameters: {
             query?: never;
@@ -638,6 +670,22 @@ export interface paths {
         get: operations["estado_1"];
         put?: never;
         post: operations["cargar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pedidos/asociaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["estado_2"];
+        put?: never;
+        post: operations["asociar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2388,6 +2436,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pedidos/buscar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["buscar_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lotes": {
         parameters: {
             query?: never;
@@ -2683,10 +2747,9 @@ export interface components {
             prefijo: string;
             excluidos: string[];
         };
-        PeticionImei: {
-            imei: string | null;
-            /** El IMEI que la fila tenía en pantalla al abrir la celda ("" = sin IMEI). null o ausente = no comprobar. Si no coincide, 409. */
-            imeiAnterior?: string | null;
+        PeticionValidacion: {
+            validar: boolean | null;
+            imeiAnterior: string | null;
         };
         FilaVista: {
             /** Format: int32 */
@@ -2722,6 +2785,28 @@ export interface components {
             /** Format: date-time */
             marcaEn: string | null;
             marcaPor: string | null;
+            /** Format: date-time */
+            asociadaEn: string | null;
+            asociadaOrigen: string | null;
+            /** Format: date-time */
+            validadaEn: string | null;
+            validadaPor: string | null;
+            motivoValidado: string | null;
+            /** Format: date */
+            fechaSalida: string | null;
+            pais: string | null;
+        };
+        PeticionMarca: {
+            marca: string | null;
+            nota: string | null;
+            marcaAnterior: string | null;
+        };
+        PeticionImei: {
+            imei: string | null;
+            imeiAnterior: string | null;
+        };
+        PeticionFaltaEnviar: {
+            falta: boolean | null;
         };
         PesosPrevision: {
             /** Format: int32 */
@@ -2961,6 +3046,22 @@ export interface components {
             divisa: string;
             tipo: string;
         };
+        SincronizadosPedidoImeis: {
+            pedido: string;
+            imeis: string[];
+        };
+        SincronizadosPeticion: {
+            canal: string;
+            pedidos: components["schemas"]["SincronizadosPedidoImeis"][];
+        };
+        SincronizadosRespuesta: {
+            /** Format: int32 */
+            filasSincronizadas: number;
+            /** Format: int32 */
+            marcasQuitadas: number;
+            /** Format: int32 */
+            sinFila: number;
+        };
         CargaHistoricoEstadoCarga: {
             /** @enum {string} */
             estado: "NUNCA" | "EN_CURSO" | "OK" | "ERROR";
@@ -2982,6 +3083,10 @@ export interface components {
             sinFechaHeredada: number;
             /** Format: int32 */
             sinFechaDescartada: number;
+            /** Format: int32 */
+            incidenciasDescartadas: number;
+            /** Format: int32 */
+            pendientesSinImeiNoCargadas: number;
             /** Format: int32 */
             imeiNoEsImei: number;
             /** Format: int32 */
@@ -3005,6 +3110,30 @@ export interface components {
             plataformas: {
                 [key: string]: number;
             };
+        };
+        PeticionAsociaciones: {
+            canal: string;
+            pares: components["schemas"]["PeticionAsociacionesPar"][];
+        };
+        PeticionAsociacionesPar: {
+            pedido: string | null;
+            imei: string | null;
+        };
+        RespuestaAsociaciones: {
+            /** Format: int32 */
+            confirmadas: number;
+            /** Format: int32 */
+            intercambiadas: number;
+            /** Format: int32 */
+            puestas: number;
+            /** Format: int32 */
+            yaEstaban: number;
+            /** Format: int32 */
+            paraRevisar: number;
+            /** Format: int32 */
+            descartadas: number;
+            /** Format: int32 */
+            ajenos: number;
         };
         LoteVerificarRequest: {
             imeis: string[];
@@ -4130,17 +4259,41 @@ export interface components {
             fecha: string;
             imeiAnterior: string | null;
             imeiNuevo: string | null;
-            /** IMEI (cambio de IMEI), FALTA_ENVIAR (alguien puso la marca) o YA_ENVIADO (se quitó: usuario null = el plugin de la web al sincronizar), MARCA o MARCA_QUITADA (detalle lleva la marca y su nota). */
             tipo: string;
             detalle: string | null;
         };
-        PeticionFaltaEnviar: {
-            falta: boolean;
+        EstadoAsociaciones: {
+            canales: components["schemas"]["EstadoAsociacionesPasada"][];
         };
-        PeticionMarca: {
-            marca: string | null;
-            nota?: string | null;
-            marcaAnterior?: string | null;
+        EstadoAsociacionesPasada: {
+            canal: string;
+            /** Format: date-time */
+            cuando: string;
+            /** Format: int32 */
+            confirmadas: number;
+            /** Format: int32 */
+            intercambiadas: number;
+            /** Format: int32 */
+            puestas: number;
+            /** Format: int32 */
+            yaEstaban: number;
+            /** Format: int32 */
+            paraRevisar: number;
+            /** Format: int32 */
+            descartadas: number;
+            /** Format: date-time */
+            libroModificado: string | null;
+            error: string | null;
+            /** Format: date-time */
+            errorEn: string | null;
+            revisar: components["schemas"]["EstadoAsociacionesRevisar"][];
+        };
+        EstadoAsociacionesRevisar: {
+            pedido: string;
+            imei: string;
+            motivo: string;
+            /** Format: date-time */
+            vistoEn: string;
         };
         Lote: {
             /** Format: int32 */
@@ -4751,7 +4904,7 @@ export interface operations {
             };
         };
     };
-    ponerFaltaEnviar: {
+    ponerValidacion: {
         parameters: {
             query?: never;
             header?: {
@@ -4764,7 +4917,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PeticionFaltaEnviar"];
+                "application/json": components["schemas"]["PeticionValidacion"];
             };
         };
         responses: {
@@ -4776,6 +4929,27 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["FilaVista"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4805,6 +4979,27 @@ export interface operations {
                     "*/*": components["schemas"]["FilaVista"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     ponerImei: {
@@ -4832,6 +5027,76 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["FilaVista"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ponerFaltaEnviar: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionFaltaEnviar"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FilaVista"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5710,6 +5975,51 @@ export interface operations {
             };
         };
     };
+    sincronizar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SincronizadosPeticion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SincronizadosRespuesta"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     estado_1: {
         parameters: {
             query?: never;
@@ -5757,6 +6067,71 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    estado_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EstadoAsociaciones"];
+                };
+            };
+        };
+    };
+    asociar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionAsociaciones"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RespuestaAsociaciones"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8510,6 +8885,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CambioImei"][];
+                };
+            };
+        };
+    };
+    buscar_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

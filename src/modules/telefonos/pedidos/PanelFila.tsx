@@ -7,7 +7,8 @@ import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
 import { construirHistorial, type EntradaHistorial } from './historial'
 import { EditorMarca } from './EditorMarca'
-import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, textoMarca, textoMotivo, textoTienda, tiendaDe } from './filas'
+import { BotonValidarSku } from './BotonValidarSku'
+import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, sinAsociar, esAmazon, textoMarca, textoMotivo, textoMotivoValidado, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 /** «2026-11-09T10:30:00» → «09/11/2026 10:30» (hora de Madrid, cortada del texto como las demás fechas). */
@@ -69,6 +70,18 @@ function Historial({ fila }: { fila: FilaVista }) {
   )
 }
 
+/** El pedido de una fila de Amazon: «sin asociar», o su número con desde dónde y cuándo lo asoció el libro de ventas (o el histórico). */
+function DatoPedido({ fila: f }: { fila: FilaVista }) {
+  if (sinAsociar(f)) return <span className="font-normal text-azul-gris italic">sin asociar</span>
+  const desde = f.asociadaOrigen === 'HISTORICO' ? ' desde el histórico de la hoja' : f.asociadaOrigen === 'LIBRO' ? ' desde el libro de ventas' : ''
+  return (
+    <>
+      {f.pedido}
+      {esAmazon(f) && f.asociadaEn && <span className="block text-[11px] font-normal text-azul-gris">{`asociado${desde} el ${diaMesHora(f.asociadaEn)}`}</span>}
+    </>
+  )
+}
+
 /** El envío parcial (una fila de web con la etiqueta generada de un pedido que sale por partes): «Falta por enviar» pone la marca y «Ya ha
  *  salido» la quita. Un 409 o un 404 salen por el diálogo normal de errores con el mensaje del servidor. */
 function MarcaFalta({ fila: f }: { fila: FilaVista }) {
@@ -125,7 +138,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
       </div>
       <h3 className="mb-1.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">El pedido</h3>
       <dl className="m-0 grid grid-cols-[104px_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[12.5px]">
-        <Dato nombre="Pedido">{f.pedido}</Dato>
+        <Dato nombre="Pedido"><DatoPedido fila={f} /></Dato>
         <Dato nombre="Estado"><EtiquetaEstado fila={f} estado={estado} conDetalle={false} /></Dato>
         <Dato nombre="Tienda">{textoTienda(tiendaDe(f))}</Dato>
         <Dato nombre="Plataforma">{f.plataforma}</Dato>
@@ -147,11 +160,18 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
           <Dato nombre="IMEI"><span className="font-mono text-[12px]">{f.imei}</span></Dato>
           {f.skuMovil && <Dato nombre="Es"><span className="font-mono text-[12px]">{f.skuMovil}</span></Dato>}
           {f.caja && <Dato nombre="Caja">{f.caja}</Dato>}
-          {motivo && <Dato nombre="Aviso">{motivo}</Dato>}
+          {motivo && !f.motivoValidado && <Dato nombre="Aviso">{motivo}</Dato>}
+          {f.motivoValidado && (
+            <Dato nombre="SKU validado">
+              {textoMotivoValidado(f)}
+              {f.validadaEn && <span className="block text-[11px] font-normal text-azul-gris">{`${f.validadaPor ? `por ${f.validadaPor} el ` : 'el '}${diaHora(f.validadaEn)}`}</span>}
+            </Dato>
+          )}
         </dl>
       ) : (
         <p className="text-[12px] text-azul-gris">{f.editable ? 'Sin IMEI todavía.' : 'Sin IMEI.'}</p>
       )}
+      {f.imei && <BotonValidarSku key={`${f.idFila}:${f.motivoValidado}`} fila={f} />}
       <Titulo>Historial</Titulo>
       <Historial fila={f} />
     </section>

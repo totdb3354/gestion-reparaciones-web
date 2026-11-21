@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { fila } from '../test/fabrica'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores } from './filas'
+import { fila, filaAmazon } from '../test/fabrica'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -127,7 +127,7 @@ describe('valores y filtrarColumnas', () => {
     fila({ idFila: 3, plataforma: 'Web', sku: 'a1', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
   ]
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>() }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>(), sinAsociar: false }
   it('valores: distintos y ordenados', () => {
     expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
   })
@@ -196,7 +196,7 @@ describe('estadoDe', () => {
 })
 
 describe('filtros combinados', () => {
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>() }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>(), sinAsociar: false }
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', estado: 'ENVIADA' }),
     fila({ idFila: 2, plataforma: 'Web', estado: 'ENVIADA', imei: '350000000000001' }),
@@ -347,5 +347,66 @@ describe('marcas de la fila', () => {
   it('textoMarca: los cuatro textos y, de una desconocida, el valor tal cual', () => {
     expect(['ESPERA_STOCK', 'EN_REVISION', 'PENDIENTE_COLOR', 'CANCELADO'].map(textoMarca)).toEqual(['En espera de stock', 'En revisión', 'Pendiente de color', 'Cancelado'])
     expect(textoMarca('OTRA')).toBe('OTRA')
+  })
+})
+
+describe('asociacion en Amazon', () => {
+  const asociada = { asociadaEn: '2026-11-13T09:30:00', asociadaOrigen: 'LIBRO' }
+  it('sinAsociar: solo Amazon y Amazon Stockroom sin asociadaEn; las webs y el historico nunca', () => {
+    expect(sinAsociar(filaAmazon())).toBe(true)
+    expect(sinAsociar(filaAmazon({ canal: 'AMAZON_STOCKROOM' }))).toBe(true)
+    expect(sinAsociar(filaAmazon(asociada))).toBe(false)
+    expect(sinAsociar(fila({ canal: 'PARTICULARES' }))).toBe(false)
+    expect(sinAsociar(fila({ canal: null, estado: 'HISTORICO' }))).toBe(false)
+  })
+  it('pedidoVisible: el numero, salvo en Amazon sin asociar', () => {
+    expect(pedidoVisible(filaAmazon({ pedido: 'X' }))).toBeNull()
+    expect(pedidoVisible(filaAmazon({ pedido: 'X', ...asociada }))).toBe('X')
+    expect(pedidoVisible(fila({ pedido: 'W' }))).toBe('W')
+  })
+  it('numerosDePedido: en Amazon solo entre las asociadas', () => {
+    const n = numerosDePedido([
+      filaAmazon({ idFila: 1, pedido: 'A', ...asociada }), filaAmazon({ idFila: 2, pedido: 'A' }), filaAmazon({ idFila: 3, pedido: 'A', ...asociada }),
+      filaAmazon({ idFila: 4, pedido: 'B' }), filaAmazon({ idFila: 5, pedido: 'B' }),
+    ])
+    expect([...n]).toEqual([[1, '1/2'], [3, '2/2']])
+  })
+  it('el filtro Sin asociar deja las de Amazon sin asociar, cuenta y cuenta como filtro', () => {
+    const filas = [filaAmazon({ idFila: 1 }), filaAmazon({ idFila: 2, ...asociada }), fila({ idFila: 3 })]
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, sinAsociar: true }).map((f) => f.idFila)).toEqual([1])
+    expect(recuentoSinAsociar(filas)).toBe(1)
+    expect(hayFiltros({ ...SIN_FILTROS, sinAsociar: true })).toBe(true)
+    expect(contadorAplicado({ ...SIN_FILTROS, sinAsociar: true })).toBeNull()
+  })
+  it('textoRevisar: los cuatro motivos en palabras y uno desconocido tal cual', () => {
+    expect(['SIN_HUECO', 'YA_SALIO', 'PEDIDO_AJENO', 'CANCELADO', 'OTRO'].map(textoRevisar)).toEqual([
+      'el pedido no tiene hueco', 'el móvil ya salió en otro pedido', 'el pedido no está en el ERP', 'solo quedan filas canceladas', 'OTRO',
+    ])
+  })
+})
+
+describe('fecha de salida: filtros y contadores', () => {
+  const HOY = '2026-11-18'
+  const FILAS = [
+    fila({ idFila: 1, fechaSalida: '2026-11-18' }),
+    fila({ idFila: 2, fechaSalida: '2026-11-17' }),
+    fila({ idFila: 3, fechaSalida: '2026-11-19' }),
+    fila({ idFila: 4, fechaSalida: null }),
+    fila({ idFila: 5, estado: 'ENVIADA', faltaEnviarEn: '2026-11-16T09:00:00', fechaSalida: '2026-11-17' }),
+  ]
+  const ids = (e: string) => filtrarColumnas(FILAS, { ...SIN_FILTROS, enviado: new Set([e]) }, HOY).map((f) => f.idFila)
+
+  it('«Sale hoy» y «Con retraso» filtran por el nivel de salida', () => {
+    expect(ids('SALE_HOY')).toEqual([1])
+    expect(ids('CON_RETRASO')).toEqual([2, 5])
+    expect(ids('PENDIENTE')).toEqual([1, 2, 3, 4, 5])
+  })
+  it('recuentoSalida cuenta las dos en una pasada', () => {
+    expect(recuentoSalida(FILAS, HOY)).toEqual({ hoy: 1, retraso: 2 })
+  })
+  it('los contadores «salen hoy» y «con retraso» aplican su filtro y se reconocen', () => {
+    expect(contadorAplicado(filtrosDeContador('saleHoy'))).toBe('saleHoy')
+    expect(contadorAplicado(filtrosDeContador('conRetraso'))).toBe('conRetraso')
+    expect(hayFiltros(filtrosDeContador('saleHoy'))).toBe(true)
   })
 })
