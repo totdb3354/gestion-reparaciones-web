@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.35] - (pendiente) — Amazon: el pedido sale cuando lo asocia el libro de ventas
+## [0.9.37] - 2026-11-21 — Pedidos sustituye a la hoja PEDIDOS 2026
 
 - En **Pedidos**, las filas de **Amazon y Amazon Stockroom** salen **«sin asociar»** en la columna Pedido: qué móvil va en qué pedido lo decide una persona en los libros de ventas de Amazon. El IMEI se lee como siempre; el número de pedido aparece cuando el libro lo asocia, y las filas de un mismo pedido se juntan con su «1/2, 2/2».
 - El panel de la fila dice si está asociada y desde dónde (libro de ventas o histórico de la hoja); el historial apunta las asociaciones y los IMEI que se intercambian entre filas.
@@ -13,7 +13,16 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - El botón «Descargar para buscar» pasa a llamarse **«Listado»** y baja **un solo Excel** con una pestaña por plataforma (AMZ, FNSK y Webs), de un clic y sin menú; el fichero se llama «Listado 20-11 13h25.xlsx» (día y hora de Madrid). Cada pestaña sigue igual y se imprime en A4 ajustada al ancho.
 - «Ya no está pendiente» pasa a llamarse **«Ya no está en ShippyPro»** (etiqueta, filtro y ayuda): el pedido ha desaparecido de ShippyPro sin que se viera su envío (juntado con otro en la misma caja, cancelado o con una etiqueta hecha a mano).
 - En la tabla de **Pedidos**, dos botones flotantes abajo a la derecha que solo salen cuando hacen falta: **«↓ Al final»** cuando has subido (con cuántos pedidos nuevos han llegado abajo mientras tanto) y **«↑/↓ Fila seleccionada»** cuando la fila en azul (la última que has tocado) queda fuera de la vista; la deja en el centro. La tabla sigue abriendo al final, como antes. Solo web.
-- Las webs no cambian. Necesita el servidor de la misma versión y su migración (`migracion-pedidos-asociacion.sql`, que solo añade columnas y tablas).
+- Columna **«Enviado»**: lo pendiente dice cuándo tiene que salir: **«Sale hoy»**, **«Sale mañana»**, **«Sale vie 20/11»** o **«Con retraso»**, con su contador y su filtro. Amazon toma la fecha límite de ShippyPro («Latest ship»); las webs, 48 h (72 h en Particulares) laborables, sin contar fines de semana ni los festivos de la Comunidad de Madrid.
+- **IMEI duplicado:** no se puede poner un IMEI que ya está en otro pedido pendiente; sale el aviso «Este IMEI ya está en el pedido X». Sí se puede si la otra fila está cancelada o ya se envió.
+- La ayuda de la tabla tiene su propio scroll y se lee entera en pantallas bajas.
+- Necesita el servidor de la misma versión y sus tres migraciones (`migracion-pedidos-asociacion.sql`, `migracion-pedidos-validacion.sql` y `migracion-pedidos-salida.sql`), que solo añaden columnas y tablas.
+
+## [0.9.36] - 2026-11-16 — Carga de técnicos: «Por cerrar» cuenta como hecho al marcar
+
+- En el panel **Carga de técnicos**, marcar una asignación **«Por cerrar»** ya cuenta como trabajo hecho: ese día, 11/12 de la asignación suman al **✓ hecho** del técnico y el 1/12 que queda (cerrar el móvil) sigue en pendiente hasta que se cierra. Si se marca y se cierra el mismo día, cuenta entera. Antes, lo hecho antes de marcar no salía como hecho ningún día. Las marcas anteriores a esta versión siguen contando como antes.
+- Una reparación normal vuelve a pesar **1/20** de la jornada de 9 h (un 5 %), como se decidió en julio: el servidor contaba 1/25.
+- Solo servidor (columna `POR_CERRAR_AT`, migración `migracion-por-cerrar-at.sql`): la web no cambia, solo sube el número de versión. Sale antes que la versión de Pedidos (Validar SKU), que pasa a la 0.9.37.
 
 ## [0.9.34] - 2026-11-13 — Marcas de la fila en Pedidos
 
