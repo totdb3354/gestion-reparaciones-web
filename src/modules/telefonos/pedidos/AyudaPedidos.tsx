@@ -39,6 +39,7 @@ export function AyudaPedidos() {
             El periodo enseña solo las filas de esas fechas, como un filtro del Excel. Si quedan pendientes de otros días, lo dice el aviso
             amarillo y «Ver» los enseña.
           </Linea>
+          <Linea>«Descargar CSV», en el menú de tu usuario (arriba a la derecha), baja lo que se ve: el periodo o la búsqueda, con los filtros y el orden puestos.</Linea>
           <Linea muestra={celda(FONDO.aviso, '350000000000001')}>IMEI en ámbar: vale, pero con un aviso.</Linea>
           <Linea muestra={celda(FONDO.mal, '350000000000002')}>IMEI en naranja: no cuadra con el pedido. Mira el motivo.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, 'bg-fila-reparado-bg text-[#2f7d3b]')}>validado</span>}>

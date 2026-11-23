@@ -26,6 +26,10 @@ describe('CSV de Pedidos', () => {
     expect(csv[4]).toBe('sin asociar')
   })
 
+  it('fuera de Amazon, un pedido que no llega va vacío, no «sin asociar»', () => {
+    expect(filaPedidoCsv(fila({ plataforma: 'Web', pedido: null }), HOY)[4]).toBe('')
+  })
+
   it('la marca y su nota van en sus columnas; «Cancelado» sale en Enviado y no se repite como marca', () => {
     const enEspera = fila({ marca: 'ESPERA_STOCK', marcaNota: 'llega el jueves' })
     expect(filaPedidoCsv(enEspera, HOY).slice(5)).toEqual(['Pendiente', '08/11/2026', 'En espera de stock', 'llega el jueves'])

@@ -1,7 +1,7 @@
 import type { FilaVista } from '@/shared/api/client'
 import { textoForzado } from '@/shared/lib/csv'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
-import { detalleEnvio, estadoPantalla, pedidoVisible, textoEstado, textoMarca } from './filas'
+import { detalleEnvio, estadoPantalla, sinAsociar, textoEstado, textoMarca } from './filas'
 
 /** «Descargar CSV» del menú de usuario en Pedidos: las filas que se ven (periodo o búsqueda, filtros de columna y orden), con las
  *  columnas de la tabla y la marca aparte. Los textos son los de la pantalla. */
@@ -22,7 +22,8 @@ export function filaPedidoCsv(f: FilaVista, hoy: string): string[] {
     f.plataforma ?? '',
     f.sku ?? '',
     textoForzado(f.imei),
-    pedidoVisible(f) ?? 'sin asociar',
+    // «sin asociar» solo en Amazon sin asociar, como en la tabla; un pedido que no llega va vacío.
+    sinAsociar(f) ? 'sin asociar' : (f.pedido ?? ''),
     detalle ? `${textoEstado(f, estado, hoy)} · ${detalle}` : textoEstado(f, estado, hoy),
     dia(f.fechaCompra),
     conMarca ? textoMarca(f.marca!) : '',
