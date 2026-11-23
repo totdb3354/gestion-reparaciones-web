@@ -13,7 +13,7 @@ import { FiltroFechas } from './FiltroFechas'
 import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -37,10 +37,16 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   // Con una búsqueda en marcha el periodo no cuenta: se piden siempre las mismas fechas, así cambiarlo no pide otra vez.
   const todo = useMemo(() => rangoDe('todo', new Date()), [hoy]) // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useFilas(buscando ? { ...todo, buscar: aplicado.trim() } : { desde, hasta })
-  const filas = useMemo(() => lista.data?.filas ?? [], [lista.data])
+  const recibidas = useMemo(() => lista.data?.filas ?? [], [lista.data])
+  // 0.9.38 (spec «rango estricto»): el servidor manda el periodo y, además, las abiertas de cualquier fecha. Sin búsqueda, la tabla
+  // enseña solo las del periodo (o, con «Ver», solo los pendientes de fuera); contadores y filtros de columna cuentan lo que se ve.
+  const partes = useMemo(() => (buscando ? null : separarPorPeriodo(recibidas, desde, hasta)), [buscando, recibidas, desde, hasta])
+  const viendoFuera = !!partes && e.verFuera
+  const filas = useMemo(() => (partes ? (e.verFuera ? partes.fuera : partes.delPeriodo) : recibidas), [partes, e.verFuera, recibidas])
+  const aviso = useMemo(() => (partes && !e.verFuera ? avisoFuera(partes.fuera, desde, hasta, hoy) : null), [partes, e.verFuera, desde, hasta, hoy])
   const tiendas = useMemo(() => tiendasPresentes(filas), [filas])
   const skus = useMemo(() => valores(filas, 'sku'), [filas])
-  const numeros = useMemo(() => numerosDePedido(filas), [filas])
+  const numeros = useMemo(() => numerosDePedido(recibidas), [recibidas])
   const salida = useMemo(() => recuentoSalida(filas, hoy), [filas, hoy])
   const estados = useMemo(() => ({ ...recuentoEstados(filas), SALE_HOY: salida.hoy, CON_RETRASO: salida.retraso }), [filas, salida])
   const conMarca = useMemo(() => recuentoMarcas(filas), [filas])
@@ -49,7 +55,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas, sinAsociar: e.sinAsociar }),
     [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas, e.sinAsociar],
   )
-  const filtrando = hayFiltros(filtros)
+  const filtrando = hayFiltros(filtros) || viendoFuera
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
   const vistas = useMemo(() => filtrarColumnas(filas, filtros, hoy), [filas, filtros, hoy])
@@ -69,12 +75,12 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     window.addEventListener('keydown', alPulsar)
     return () => window.removeEventListener('keydown', alPulsar)
   }, [ventana])
-  // Los contadores cuentan sobre lo recibido (no sobre lo filtrado), en una sola pasada y solo cuando cambian las filas.
+  // Los contadores cuentan sobre lo que se ve antes de los filtros de columna (el periodo, o los de fuera con «Ver»), en una sola pasada y solo cuando cambian las filas.
   const cuenta = useMemo(() => recuento(filas), [filas])
   const etiquetas = useMemo(() => etiquetasDe(filtros), [filtros])
   const sinCargar = lista.isError && !lista.data
   // El panel enseña la fila elegida (por `idFila`); si ya no está entre las recibidas, se cierra.
-  const elegida = useMemo(() => (e.filaElegida === null ? null : filas.find((f) => f.idFila === e.filaElegida) ?? null), [filas, e.filaElegida])
+  const elegida = useMemo(() => (e.filaElegida === null ? null : recibidas.find((f) => f.idFila === e.filaElegida) ?? null), [recibidas, e.filaElegida])
   // El panel se queda montado mientras sale (desliza hacia la derecha) con la última fila que enseñaba.
   const presente = usePresencia(elegida)
   const cerrarPanel = () => setE((s) => (s.filaElegida === null ? s : { ...s, filaElegida: null }))
@@ -93,7 +99,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     return () => window.removeEventListener('keydown', alPulsar, true)
   })
   const poner = (f: Partial<FiltrosColumna>) => setE((s) => ({ ...s, ...f }))
-  const quitarFiltros = () => setE((s) => ({ ...s, ...SIN_FILTROS, buscar: '' }))
+  const quitarFiltros = () => setE((s) => ({ ...s, ...SIN_FILTROS, buscar: '', verFuera: false }))
   const CONTADORES: { id: Contador; texto: string; ayuda: string }[] = [
     { id: 'filas', texto: `${cuenta.total} filas`, ayuda: 'Todas las filas: quita los filtros de columna' },
     { id: 'pendientes', texto: `${cuenta.pendientes} pendientes`, ayuda: 'Solo las pendientes' },
@@ -123,9 +129,16 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
       <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}
           // Al elegir «Rango…» salen las fechas guardadas, o, si no hay, las del periodo que se aplicaba.
-          onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, rango: p === 'rango' && !rangoValido(s.rango) ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
-          onRango={(rango) => setE((s) => ({ ...s, rango }))} />
+          onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, verFuera: false, rango: p === 'rango' && !rangoValido(s.rango) ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
+          onRango={(rango) => setE((s) => ({ ...s, rango, verFuera: false }))} />
         <div className="flex min-h-8 w-[28rem] max-w-full flex-wrap items-center gap-1.5 rounded-md border border-borde-input bg-superficie px-2 py-[3px]">
+          {viendoFuera && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-[#e0c060] bg-[#fff8e1] py-px pr-1 pl-2 text-[11.5px] font-bold text-[#6b4e00]">
+              Pendientes fuera del periodo
+              <button type="button" aria-label="Quitar filtro Pendientes fuera del periodo" onClick={() => setE((s) => ({ ...s, verFuera: false }))}
+                className="cursor-pointer px-1 text-[13px] leading-none font-bold">✕</button>
+            </span>
+          )}
           {etiquetas.map((t) => (
             <span key={t.clave} className="inline-flex items-center gap-1 rounded-md border border-[#9db8e8] bg-seleccion-suave py-px pr-1 pl-2 text-[11.5px] font-bold text-[#1d3a78]">
               {t.texto}
@@ -156,11 +169,19 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
             className="cursor-pointer px-1 text-[14px] leading-none font-bold">✕</button>
         </div>
       )}
+      {aviso && (
+        // Los pendientes que el periodo deja fuera: no se esconden del todo, se cuentan aquí y «Ver» los enseña.
+        <div role="status" aria-label="Pendientes fuera del periodo" className="mb-2 flex shrink-0 items-center gap-3 rounded-md border border-[#f0d58a] bg-[#fff8e1] px-3 py-1.5 text-[12.5px] text-[#6b4e00]">
+          <span className="min-w-0 flex-1">⚠ {textoAvisoFuera(aviso, desde, hasta)}</span>
+          <button type="button" onClick={() => setE((s) => ({ ...s, verFuera: true }))}
+            className="h-6 cursor-pointer rounded-md border border-[#d9b44a] bg-superficie px-3 text-[12px] font-bold text-[#6b4e00]">Ver</button>
+        </div>
+      )}
       {lista.isPlaceholderData && <p role="status" className="mb-2 shrink-0 text-[12px] text-azul-gris">Buscando…</p>}
       {lista.isPending && <p className="p-4 text-[12px] text-azul-gris">Cargando…</p>}
       {sinCargar && <p className="p-4 text-[12px] text-azul-gris">No se pudieron cargar los pedidos.</p>}
       {lista.data && filas.length === 0 && (
-        <p className="p-4 text-[12px] text-azul-gris">{buscando ? 'Ningún pedido coincide con la búsqueda.' : 'No hay pedidos en este periodo.'}</p>
+        <p className="p-4 text-[12px] text-azul-gris">{buscando ? 'Ningún pedido coincide con la búsqueda.' : viendoFuera ? 'Ya no quedan pendientes fuera del periodo.' : 'No hay pedidos en este periodo.'}</p>
       )}
       {filas.length > 0 && (
         <div className="flex min-h-0 flex-1">

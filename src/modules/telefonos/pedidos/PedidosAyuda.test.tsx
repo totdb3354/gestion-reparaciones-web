@@ -8,6 +8,9 @@ import { maquetarJsdom } from '@/test/layoutJsdom'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 let fuentes = [fuente({ fuente: 'SHIPPYPRO' })]
 

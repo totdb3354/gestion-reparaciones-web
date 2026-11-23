@@ -9,6 +9,9 @@ import { maquetarJsdom } from '@/test/layoutJsdom'
 import { estadoNsys, fila, filaAmazon, fuente, pasada } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Amazon sale «sin asociar» hasta que el libro de ventas asocia el IMEI al pedido: columna, panel, «1/n», filtro, píldora y lista «para revisar».
 const ASOC = { asociadaEn: '2026-11-13T09:30:00', asociadaOrigen: 'LIBRO' } as const

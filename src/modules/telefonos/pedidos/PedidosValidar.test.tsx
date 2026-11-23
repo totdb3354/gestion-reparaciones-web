@@ -12,6 +12,9 @@ import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
 import { construirHistorial } from './historial'
 import { estaValidada, puedeValidar } from './filas'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // «Validar SKU»: el botón único en el desplegable del IMEI y en el panel, la celda «validado», el contador y el historial.
 const naranja = (p: Partial<FilaVista>) => fila({ imei: imeiValido(1), nivel: 'MAL', skuMovil: 'i14128NegroA', ...p })

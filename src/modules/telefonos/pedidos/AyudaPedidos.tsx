@@ -29,6 +29,10 @@ export function AyudaPedidos() {
         <h2 className="mb-2 text-[13px] font-bold text-azul-medio">Cómo se lee esta tabla</h2>
         <ul className="flex flex-col gap-1.5">
           <Linea>Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI.</Linea>
+          <Linea muestra={<span className="rounded-sm border border-[#f0d58a] bg-[#fff8e1] px-1.5 py-px text-[11px] text-[#6b4e00]">⚠ Hay 2 pendientes…</span>}>
+            El periodo enseña solo las filas de esas fechas, como un filtro del Excel. Si quedan pendientes de otros días, lo dice el aviso
+            amarillo y «Ver» los enseña.
+          </Linea>
           <Linea muestra={celda(FONDO.aviso, '350000000000001')}>IMEI en ámbar: vale, pero con un aviso.</Linea>
           <Linea muestra={celda(FONDO.mal, '350000000000002')}>IMEI en naranja: no cuadra con el pedido. Mira el motivo.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, 'bg-fila-reparado-bg text-[#2f7d3b]')}>validado</span>}>

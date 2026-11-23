@@ -9,6 +9,9 @@ import { estadoNsys, fila, fuente } from '../test/fabrica'
 import { imeiValido } from '../test/imeiValido'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Envíos parciales de web: la marca «falta por enviar» desde el panel, su etiqueta en la tabla y el «1/3» de los pedidos de varios móviles.
 const ENVIADA = { estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', tieneEtiqueta: true } as const

@@ -8,6 +8,9 @@ export type EstadoPedidos = {
   periodo: Periodo
   /** Las fechas de «Rango…» (`YYYY-MM-DD`); solo valen con `periodo === 'rango'`. */
   rango: { desde: string; hasta: string }
+  /** 0.9.38: la tabla enseña los pendientes de fuera del periodo (el «Ver» del aviso) en vez de las filas del periodo. Se quita al
+   *  cambiar el periodo o el rango, con su etiqueta o con «Quitar filtros». */
+  verFuera: boolean
   buscar: string
   /** Las tiendas marcadas en el filtro de Plataforma (el `canal` del ERP, u `OTROS`); vacío = todas. */
   plataformas: Set<string>
@@ -37,5 +40,5 @@ export type EstadoPedidos = {
 export type FalloImei = { imei: string | null; clave: string; mensaje: string; duplicado?: boolean }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
 })

@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.38] - 2026-11-23 — Pedidos: el periodo se respeta
+
+- En **Pedidos**, el periodo (Último mes, 3 meses, Este año, Todo o Rango…) enseña **solo las filas de esas fechas**, como un filtro del Excel. Antes salían también los pedidos pendientes de cualquier otro día, y un rango del 20 al 23/11 enseñaba filas del 2/11.
+- Para que no se pierda ningún pendiente, si quedan **pendientes de otras fechas** sale un aviso amarillo encima de la tabla: «Hay 4 pendientes de antes del 20/11 (3 con retraso)». **«Ver»** enseña solo esos, con la etiqueta «Pendientes fuera del periodo» para volver. Los cancelados no cuentan.
+- Los contadores (filas, pendientes, sin IMEI, salen hoy, con retraso, no cuadran) y las listas de los filtros de columna cuentan lo que se ve en la tabla.
+- No cambia: el buscador sigue mirando en todo el historial, y el Listado sigue contando todos los pendientes. Solo web.
+
 ## [0.9.37] - 2026-11-21 — Pedidos sustituye a la hoja PEDIDOS 2026
 
 - En **Pedidos**, las filas de **Amazon y Amazon Stockroom** salen **«sin asociar»** en la columna Pedido: qué móvil va en qué pedido lo decide una persona en los libros de ventas de Amazon. El IMEI se lee como siempre; el número de pedido aparece cuando el libro lo asocia, y las filas de un mismo pedido se juntan con su «1/2, 2/2».

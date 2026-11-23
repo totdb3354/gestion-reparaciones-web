@@ -367,3 +367,42 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, hoy: stri
 export function rangoValido(r?: { desde: string; hasta: string }): r is { desde: string; hasta: string } {
   return !!r && !!r.desde && !!r.hasta && r.desde <= r.hasta
 }
+
+/** El día de una fila (`YYYY-MM-DD`): la columna FECHA es un DATE del día de Madrid; si llegara con hora, cuenta su día. */
+const diaDe = (f: FilaVista): string => f.fecha.slice(0, 10)
+
+/** 0.9.38 (spec «rango estricto»): el servidor manda las filas del periodo y, además, las que siguen abiertas de cualquier fecha. La
+ *  tabla enseña solo las del periodo (`delPeriodo`, extremos incluidos); de las demás, solo cuentan los pendientes (`esPendiente`:
+ *  sin las canceladas), que van a `fuera` para el aviso y para «Ver». Ambas en el orden recibido. */
+export function separarPorPeriodo(filas: FilaVista[], desde: string, hasta: string): { delPeriodo: FilaVista[]; fuera: FilaVista[] } {
+  const delPeriodo: FilaVista[] = []
+  const fuera: FilaVista[] = []
+  for (const f of filas) {
+    const dia = diaDe(f)
+    if (dia >= desde && dia <= hasta) delPeriodo.push(f)
+    else if (esPendiente(f)) fuera.push(f)
+  }
+  return { delPeriodo, fuera }
+}
+
+export type AvisoFuera = { n: number; conRetraso: number; donde: 'antes' | 'despues' | 'ambos' }
+
+/** Lo que dice el aviso de los pendientes de fuera del periodo: cuántos, cuántos van con retraso y de qué lado quedan; null si no hay. */
+export function avisoFuera(fuera: FilaVista[], desde: string, hasta: string, hoy: string): AvisoFuera | null {
+  if (fuera.length === 0) return null
+  let conRetraso = 0, antes = false, despues = false
+  for (const f of fuera) {
+    if (nivelSalida(f, hoy) === 'RETRASO') conRetraso++
+    if (diaDe(f) < desde) antes = true
+    else if (diaDe(f) > hasta) despues = true
+  }
+  return { n: fuera.length, conRetraso, donde: antes && despues ? 'ambos' : despues ? 'despues' : 'antes' }
+}
+
+/** «Hay 3 pendientes de antes del 20/11 (1 con retraso).» */
+export function textoAvisoFuera(a: AvisoFuera, desde: string, hasta: string): string {
+  const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`
+  const donde = a.donde === 'ambos' ? 'fuera de estas fechas' : a.donde === 'antes' ? `de antes del ${dm(desde)}` : `de después del ${dm(hasta)}`
+  const retraso = a.conRetraso > 0 ? ` (${a.conRetraso} con retraso)` : ''
+  return `Hay ${a.n} ${a.n === 1 ? 'pendiente' : 'pendientes'} ${donde}${retraso}.`
+}
