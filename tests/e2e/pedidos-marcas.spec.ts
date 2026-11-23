@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Locator, type Page } from '@pla
 import { credenciales } from './credenciales.ts'
 
 // pedidos-marcas.spec.ts (0.9.35): lo que la hoja de Pedidos hace con un lector de códigos que se equivoca (cifra suelta, cifra de control), las marcas
-// de la fila (En espera de stock, Cancelado, filtro «Con marca», historial) y las filas de Amazon sin asociar con la píldora de los libros.
+// de la fila (En espera de stock, «Cancelar móvil» del panel, filtro «Con marca», historial) y las filas de Amazon sin asociar con la píldora de los libros.
 // Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero). Preprod tiene datos reales, así que la prueba:
 //   - elige al empezar, por la API, tres filas PENDIENTES de ShippyPro sin IMEI y sin marca (no Amazon, consecutivas entre las que el lector
 //     saltaría), y apunta sus ids y su estado inicial;
