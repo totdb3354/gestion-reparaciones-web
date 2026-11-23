@@ -228,7 +228,14 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
       )}
       {/* Debajo del campo y sin enfocarse solo: el foco se queda en el IMEI para el lector de códigos. */}
       <BotonValidarSku fila={fila} />
-      <EditorMarca fila={fila} onHecho={onCerrar} />
+      {fila.marca === 'CANCELADO' ? (
+        <p className="mt-2 border-t border-form-fila-brd pt-2 text-[11.5px] text-azul-gris">Fila cancelada: la marca se cambia desde el panel («Quitar cancelación»).</p>
+      ) : (
+        <>
+          <EditorMarca fila={fila} onHecho={onCerrar} />
+          <p className="mt-1 px-0.5 text-[11px] text-azul-gris">Para cancelar el móvil, abre el panel de la fila.</p>
+        </>
+      )}
       <button type="button" aria-expanded={ver} onClick={() => setVer((v) => !v)}
         className="mt-1 cursor-pointer bg-transparent px-0.5 text-[11.5px] text-azul-medio underline underline-offset-2">{ver ? 'Ocultar recomendados' : 'Ver recomendados'}</button>
       {ver && <>

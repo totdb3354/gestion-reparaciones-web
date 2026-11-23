@@ -161,10 +161,31 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     const antes = cargas
     await user.click(celda('M-0001'))
     const d = within(await desplegable())
-    await user.selectOptions(d.getByRole('combobox', { name: 'Marca' }), 'CANCELADO')
+    await user.selectOptions(d.getByRole('combobox', { name: 'Marca' }), 'EN_REVISION')
     expect(await screen.findByText(/Pedido M-0001: Otra persona ha cambiado la marca/)).toBeInTheDocument()
     await waitFor(() => expect(cargas).toBeGreaterThan(antes))
     expect(estadoPedidos.get().fallosImei).toEqual({})
+  })
+
+  it('el desplegable no ofrece «Cancelado» (se cancela desde el panel) y lo dice debajo', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('M-0001'))
+    const d = within(await desplegable())
+    const opciones = within(d.getByRole('combobox', { name: 'Marca' })).getAllByRole('option').map((o) => o.textContent)
+    expect(opciones).toEqual(['Sin marca', 'En espera de stock', 'En revisión', 'Pendiente de color'])
+    expect(d.getByText('Para cancelar el móvil, abre el panel de la fila.')).toBeInTheDocument()
+  })
+
+  it('en una fila cancelada la celda no ofrece marcas: se cambia desde el panel', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('M-0005'))
+    const d = within(await desplegable())
+    expect(d.queryByRole('combobox', { name: 'Marca' })).not.toBeInTheDocument()
+    expect(d.getByText('Fila cancelada: la marca se cambia desde el panel («Quitar cancelación»).')).toBeInTheDocument()
   })
 })
 
@@ -218,6 +239,24 @@ describe('Pedidos: la marca en el panel', () => {
     expect(await lista.findByText('Marca: En espera de stock — llega el lunes')).toBeInTheDocument()
     expect(lista.getByText('Marca quitada (En revisión)')).toBeInTheDocument()
     expect(lista.getByText('Marca quitada al poner el IMEI (En espera de stock)')).toBeInTheDocument()
+  })
+
+  it('el desplegable del panel tampoco ofrece «Cancelado»', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    const panel = await abrirPanel(user, 'M-0001')
+    const opciones = within(within(panel).getByRole('combobox', { name: 'Marca' })).getAllByRole('option').map((o) => o.textContent)
+    expect(opciones).not.toContain('Cancelado')
+  })
+
+  it('el historial dice «Quitada «Falta por enviar» al cancelar»', async () => {
+    const user = userEvent.setup()
+    cambios = { '5': [{ usuario: 'Supertécnico 1', fecha: '2026-11-12T09:30:00', imeiAnterior: null, imeiNuevo: null, tipo: 'YA_ENVIADO', detalle: 'al cancelar' }] }
+    abrir()
+    await esperar()
+    const panel = await abrirPanel(user, 'M-0005')
+    expect(await within(panel).findByText('Quitada «Falta por enviar» al cancelar')).toBeInTheDocument()
   })
 })
 

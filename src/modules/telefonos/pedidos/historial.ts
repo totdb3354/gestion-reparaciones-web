@@ -46,6 +46,8 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
       return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `IMEI intercambiado ${cambio.detalle ?? ''}`.trim(), quien: cambio.usuario ?? '' }
     }
     if (cambio.tipo === 'YA_ENVIADO') {
+      // La quitó el ERP al cancelar la fila (cancelado y falta por enviar no van juntos).
+      if (cambio.detalle === 'al cancelar') return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Quitada «Falta por enviar» al cancelar', quien: cambio.usuario ?? '' }
       return cambio.usuario
         ? { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Ya ha salido (marca quitada)', quien: cambio.usuario }
         : { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Ya ha salido: sincronizado con la web', quien: 'plugin de la web' }

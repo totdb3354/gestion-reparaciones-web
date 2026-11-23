@@ -4,12 +4,12 @@ import { StaleDataError, mensajeDeError } from '@/shared/api/errors'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { usePonerMarca } from '../api'
 import { estadoPedidos } from './estado'
-import { MARCAS, pedidoVisible } from './filas'
+import { MARCAS, MARCAS_DESPLEGABLE, pedidoVisible } from './filas'
 
 /** Lo más largo que admite la nota de una marca (el servidor responde 400 con más). */
 export const MAX_NOTA = 200
 
-/** El selector de marca de una fila con su nota. Lo usan el desplegable de la celda del IMEI (debajo del campo, sin quitarle el foco:
+/** El selector de marca de una fila con su nota (sin «Cancelado», que va con su botón en el panel). Lo usan el desplegable de la celda del IMEI (debajo del campo, sin quitarle el foco:
  *  nada de aquí se enfoca solo) y el panel de la fila. Sin botones: elegir una marca la guarda al momento («Sin marca» la quita) y la
  *  nota se guarda con Enter o al salir del campo si cambió (sin marca elegida, la nota está desactivada y no se guarda). Mientras se
  *  guarda, selector y nota quedan desactivados. Si falla, vuelven a lo último guardado y el aviso sale arriba de la tabla (el 409 con el
@@ -57,7 +57,7 @@ export function EditorMarca({ fila, onHecho }: { fila: FilaVista; onHecho?: () =
         onChange={(e) => { const nueva = e.target.value; setMarca(nueva); guardar(nueva, nota) }}
         className="h-7 w-full min-w-0 rounded-md border border-borde-input bg-superficie px-1.5 text-[12px] disabled:opacity-60">
         <option value="">Sin marca</option>
-        {MARCAS.map((m) => <option key={m.valor} value={m.valor}>{m.texto}</option>)}
+        {MARCAS_DESPLEGABLE.map((m) => <option key={m.valor} value={m.valor}>{m.texto}</option>)}
         {fila.marca && !MARCAS.some((m) => m.valor === fila.marca) && <option value={fila.marca}>{fila.marca}</option>}
       </select>
       <input aria-label="Nota de la marca" placeholder="Nota (opcional)" autoComplete="off" maxLength={MAX_NOTA} value={nota}
