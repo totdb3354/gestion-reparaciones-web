@@ -12,7 +12,7 @@ const CLASES: Record<string, string> = {
 }
 
 /** Las últimas importaciones del Items actual (0.9.18, spec §4.11), en el popover de la píldora de NSYS: para comprobar
- *  fichero a fichero que llega un Items cada media hora sin entrar por SSH. Con los huecos de más de 45 minutos hábiles y,
+ *  fichero a fichero que llega un Items cada 10 min (desde el 23/11/2026) sin entrar por SSH. Con los huecos de más de 15 minutos y,
  *  al pie, el progreso del histórico. Se monta al abrir el popover y pide la lista una vez. */
 export function ListaImportacionesNsys() {
   const { data, isPending, isError } = useImportacionesNsys()

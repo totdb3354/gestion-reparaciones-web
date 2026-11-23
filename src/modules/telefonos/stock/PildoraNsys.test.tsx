@@ -21,10 +21,11 @@ describe('píldora de NSYS: lista de importaciones (spec 0.9.18 §4.11)', () => 
 
   it('al pulsarla abre las últimas importaciones con su resultado, sus cambios, sus segundos, el motivo y los huecos', async () => {
     server.use(http.get('*/api/stock-telefonos/importaciones', () => HttpResponse.json(listaImportaciones({ importaciones: [
+      // Un Items cada 10 min (0.9.43): entre 12:21 y 13:21 faltan Items.
       importacion({ fechaExportacion: '2026-10-16T13:31:00', resultado: 'EN_CURSO', cambios: 0, segundos: null }),
-      importacion({ fechaExportacion: '2026-10-16T13:01:00', resultado: 'OK', cambios: 1, segundos: 17 }),
-      importacion({ fechaExportacion: '2026-10-16T12:01:00', resultado: 'RECHAZADO', cambios: 0, segundos: 2, motivo: 'Trae 10 filas…' }),
-      importacion({ fechaExportacion: '2026-10-16T11:31:00', resultado: 'ERROR', cambios: 0, segundos: 4, motivo: 'Error al leer de Drive o al guardar; ver el registro del servidor' }),
+      importacion({ fechaExportacion: '2026-10-16T13:21:00', resultado: 'OK', cambios: 1, segundos: 17 }),
+      importacion({ fechaExportacion: '2026-10-16T12:21:00', resultado: 'RECHAZADO', cambios: 0, segundos: 2, motivo: 'Trae 10 filas…' }),
+      importacion({ fechaExportacion: '2026-10-16T12:11:00', resultado: 'ERROR', cambios: 0, segundos: 4, motivo: 'Error al leer de Drive o al guardar; ver el registro del servidor' }),
     ] }))))
     const user = userEvent.setup()
     abrirPildora()
@@ -36,7 +37,7 @@ describe('píldora de NSYS: lista de importaciones (spec 0.9.18 §4.11)', () => 
     expect(filas[1]).toHaveTextContent('1 cambio')
     expect(filas[1]).toHaveTextContent('17 s')
     expect(within(filas[1]).getByText('OK')).toHaveClass('bg-fila-recibido-bg')
-    expect(filas[2].textContent).toMatch(/^⚠ falta un Items entre (16\/10 )?12:01 y (16\/10 )?13:01$/)
+    expect(filas[2].textContent).toMatch(/^⚠ falta un Items entre (16\/10 )?12:21 y (16\/10 )?13:21$/)
     expect(within(filas[3]).getByText('RECHAZADO')).toHaveClass('bg-fila-solicitud-bg')
     expect(filas[3]).toHaveTextContent('Trae 10 filas…')
     expect(within(filas[4]).getByText('ERROR')).toHaveClass('bg-urgente-bg')

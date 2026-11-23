@@ -42,7 +42,10 @@ export function textoPildora(e: EstadoNsys | null | undefined, ahora: Date = new
     const horas = Math.floor(minutos / 60)
     return horas > 0 ? `NSYS: sin datos nuevos desde hace ${horas} h` : `NSYS: sin datos nuevos desde hace ${minutos} min`
   }
-  if (e.nivel === 'RETRASO') return `NSYS: última exportación hace ${Math.floor(minutos / 60)} h ${minutos % 60} min (${hora(iso)})`
+  if (e.nivel === 'RETRASO') {
+    const hace = minutos >= 60 ? `${Math.floor(minutos / 60)} h ${minutos % 60} min` : `${minutos} min`
+    return `NSYS: última exportación hace ${hace} (${hora(iso)})`
+  }
   return esHoy(iso, ahora) ? `NSYS: exportación de hoy ${hora(iso)} · hace ${minutos} min` : `NSYS: exportación del ${diaMes(iso)} ${hora(iso)}`
 }
 
@@ -55,27 +58,18 @@ export function textoBanda(e: EstadoNsys | null | undefined, ahora: Date = new D
   return `No llegan datos nuevos de NSYS desde ${desde}. El PC de producción o Drive pueden estar parados. Se enseñan los últimos datos recibidos.`
 }
 
-const ABRE = 7 * 60
-const CIERRA = 23 * 60
-/** Más de estos minutos hábiles entre dos exportaciones seguidas es un hueco: falta un Items (spec 0.9.18 §4.11). */
-export const HUECO_MINUTOS = 45
+/** Más de estos minutos entre dos exportaciones seguidas es un hueco: falta un Items (spec 0.9.18 §4.11). Desde la 0.9.43,
+ *  con NSYS publicando cada 10 min las 24 h (desde el 23/11/2026), 15 y contando también la noche; antes, 45 de 07:00 a 23:00. */
+export const HUECO_MINUTOS = 15
 
-/** Minutos de 07:00 a 23:00 entre dos horas de Madrid, cuando el bot exporta: la misma cuenta que AvisoNsys del servidor. */
-export function minutosHabiles(desde: string, hasta: string): number {
-  const d = aMinutos(desde)
-  const h = aMinutos(hasta)
-  let total = 0
-  for (let dia = Math.floor(d / 1440) * 1440; dia < h; dia += 1440) {
-    const inicio = Math.max(d, dia + ABRE)
-    const fin = Math.min(h, dia + CIERRA)
-    if (fin > inicio) total += fin - inicio
-  }
-  return total
+/** Minutos entre dos horas de Madrid, de día y de noche: la misma cuenta que AvisoNsys del servidor. 0 si van al revés. */
+export function minutosEntre(desde: string, hasta: string): number {
+  return Math.max(0, aMinutos(hasta) - aMinutos(desde))
 }
 
 export type FilaLista = { tipo: 'importacion'; importacion: ImportacionNsys } | { tipo: 'hueco'; desde: string; hasta: string }
 
-/** Intercala «falta un Items» entre dos exportaciones seguidas separadas por más de 45 minutos hábiles. Todas las filas
+/** Intercala «falta un Items» entre dos exportaciones seguidas separadas por más de 15 minutos. Todas las filas
  *  cuentan como exportación que llegó (el fichero existía, aunque se rechazara o diera error: su resultado ya avisa). La
  *  lista llega de la más reciente a la más antigua. */
 export function conHuecos(importaciones: ImportacionNsys[]): FilaLista[] {
@@ -83,7 +77,7 @@ export function conHuecos(importaciones: ImportacionNsys[]): FilaLista[] {
   importaciones.forEach((imp, i) => {
     filas.push({ tipo: 'importacion', importacion: imp })
     const anterior = importaciones[i + 1]
-    if (anterior && minutosHabiles(anterior.fechaExportacion, imp.fechaExportacion) > HUECO_MINUTOS) {
+    if (anterior && minutosEntre(anterior.fechaExportacion, imp.fechaExportacion) > HUECO_MINUTOS) {
       filas.push({ tipo: 'hueco', desde: anterior.fechaExportacion, hasta: imp.fechaExportacion })
     }
   })

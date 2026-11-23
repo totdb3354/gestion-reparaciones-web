@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.43] - 2026-11-23 — Avisos de NSYS al ritmo del nuevo ciclo (cada 10 min, las 24 h)
+
+- Desde el 23/11, NSYS manda un Items **cada 10 minutos, también de noche y en fin de semana** (antes, cada media hora de 7:00 a 23:00). Los avisos de datos atrasados se ajustan a ese ritmo y **cuentan las 24 horas**: si el ciclo de stock se para de madrugada, por la mañana ya sale el aviso en rojo, en vez de a media mañana.
+- La píldora de NSYS pasa a **«con retraso»** cuando el último Items tiene más de **40 minutos** (antes, 1 hora) y a **«sin datos»**, con la banda roja y el aviso «NSYS sin datos» de la barra, a partir de **1 hora** (antes, 3 horas). Lo mismo para ShippyPro en la píldora de fuentes de **Pedidos**.
+- En la lista de importaciones de la píldora, **«falta un Items»** sale cuando entre dos seguidos hay más de **15 minutos** (antes, 45), también de noche.
+- Con menos de una hora de retraso, la píldora dice «hace 45 min» en vez de «hace 0 h 45 min».
+- Servidor y web.
+
 ## [0.9.42] - 2026-11-23 — Pedidos: cancelar un móvil pide confirmación
 
 - En **Pedidos**, «Cancelado» ya no está en el desplegable de marcas: se cancela con el botón **«Cancelar móvil»** del panel de la fila, que pide confirmación y admite una nota. Así un clic de más ya no cancela un móvil.
