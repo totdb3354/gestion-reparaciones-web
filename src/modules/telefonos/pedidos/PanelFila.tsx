@@ -7,6 +7,7 @@ import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
 import { construirHistorial, type EntradaHistorial } from './historial'
 import { EditorMarca } from './EditorMarca'
+import { BotonCancelarMovil, BotonQuitarCancelacion } from './CancelarMovil'
 import { BotonValidarSku } from './BotonValidarSku'
 import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, sinAsociar, esAmazon, textoMarca, textoMotivo, textoMotivoValidado, textoTienda, tiendaDe } from './filas'
 
@@ -87,6 +88,8 @@ function DatoPedido({ fila: f }: { fila: FilaVista }) {
 function MarcaFalta({ fila: f }: { fila: FilaVista }) {
   const marcar = useFaltaEnviar()
   const [claves] = useState(() => crearClavesIdempotencia())
+  // Una fila cancelada no lleva «Falta por enviar» (cancelar se la come; el servidor da 409).
+  if (f.marca === 'CANCELADO') return null
   const marcada = estadoPantalla(f) === 'FALTA_ENVIAR'
   const puede = f.editable && (marcada || (esCanalWeb(f) && estadoDe(f) === 'ENVIADA'))
   if (!marcada && !puede) return null
@@ -105,10 +108,24 @@ function MarcaFalta({ fila: f }: { fila: FilaVista }) {
   )
 }
 
-/** La marca de la fila (En espera de stock, En revisión, Pendiente de color o Cancelado): cuál es, su nota, quién la puso y cuándo, y el
- *  editor para cambiarla o quitarla. El editor se rehace cuando la fila cambia de marca (guardado propio o recarga con la de otra persona). */
+/** La marca de la fila (En espera de stock, En revisión o Pendiente de color): cuál es, su nota, quién la puso y cuándo, el editor para
+ *  cambiarla o quitarla y «Cancelar móvil». Una fila cancelada enseña la cancelación y solo «Quitar cancelación» (spec 2026-11-23). */
 function SeccionMarca({ fila: f }: { fila: FilaVista }) {
   if (!f.editable && !f.marca) return null
+  if (f.marca === 'CANCELADO') {
+    return (
+      <div className="mt-2 text-[12.5px]">
+        <p className="m-0 flex flex-wrap items-baseline gap-1.5">
+          <span className={`inline-block rounded-lg px-2 py-px text-[11px] font-bold ${colorMarca(f.marca)}`}>{textoMarca(f.marca)}</span>
+          {f.marcaNota && <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{f.marcaNota}</span>}
+        </p>
+        <p className="m-0 mt-0.5 text-[11px] text-azul-gris">
+          {f.marcaEn ? `Cancelado${f.marcaPor ? ` por ${f.marcaPor}` : ''} el ${diaHora(f.marcaEn)}. ` : ''}Este móvil no sale en este pedido y su IMEI está libre.
+        </p>
+        {f.editable && <BotonQuitarCancelacion fila={f} />}
+      </div>
+    )
+  }
   return (
     <div className="mt-2 text-[12.5px]">
       {f.marca ? (
@@ -121,6 +138,7 @@ function SeccionMarca({ fila: f }: { fila: FilaVista }) {
         </>
       ) : <p className="m-0 text-[12px] text-azul-gris">Sin marca.</p>}
       {f.editable && <EditorMarca key={`${f.idFila}:${f.marca}:${f.marcaNota}:${f.marcaEn}`} fila={f} />}
+      {f.editable && <BotonCancelarMovil key={`cancelar${f.idFila}`} fila={f} />}
     </div>
   )
 }
