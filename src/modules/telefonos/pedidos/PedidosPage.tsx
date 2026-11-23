@@ -17,6 +17,8 @@ import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtr
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
+/** 0.9.39: la columna SKU se ordena por modelo (como se organiza el almacén), no por orden alfabético. */
+const TEXTOS_ORDEN_SKU = { asc: 'modelo del más antiguo al más nuevo (6s → 17 Pro Max)', desc: 'modelo del más nuevo al más antiguo (17 Pro Max → 6s)' }
 const MIN_BUSCAR = 2
 
 /** «Pedidos» como la hoja (spec «Pedidos como la hoja» §3): una fila por móvil pedido, que crea el ERP desde ShippyPro; lo único
@@ -186,7 +188,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
       {filas.length > 0 && (
         <div className="flex min-h-0 flex-1">
         <TablaFilas filas={vistas} hoy={hoy}
-          orden={{ SKU: { direccion: e.ordenSku, siguiente: siguienteOrdenSku(e.ordenSku), onClick: () => setE((s) => ({ ...s, ordenSku: siguienteOrdenSku(s.ordenSku) })) } }} numeros={numeros} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
+          orden={{ SKU: { direccion: e.ordenSku, siguiente: siguienteOrdenSku(e.ordenSku), textos: TEXTOS_ORDEN_SKU, onClick: () => setE((s) => ({ ...s, ordenSku: siguienteOrdenSku(s.ordenSku) })) } }} numeros={numeros} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,

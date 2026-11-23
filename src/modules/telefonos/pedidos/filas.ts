@@ -1,5 +1,6 @@
 import type { FilaVista } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
+import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 import { nivelSalida } from './salida'
 
 /** Las columnas de la tabla, con los nombres de la hoja (sin letras). */
@@ -413,13 +414,43 @@ export type OrdenSku = 'asc' | 'desc' | null
 /** El clic en la cabecera SKU: de A a Z, de Z a A y vuelta al orden de siempre. */
 export const siguienteOrdenSku = (o: OrdenSku): OrdenSku => (o === null ? 'asc' : o === 'asc' ? 'desc' : null)
 
-/** Las filas por SKU (sin mayúsculas, como el Excel). A igual SKU se queda el orden de siempre (orden estable) y las filas sin SKU van
- *  al final en los dos sentidos. Sin orden devuelve la misma lista. */
+/** Lo que cuenta de un SKU para ordenar (`i` + modelo + `eSIM`? + capacidad + color y grado): el modelo es el código MÁS LARGO de
+ *  MODELOS_ORDENADOS que va seguido de la capacidad (con «esim» en medio o no), así «i16eSIM128» es un 16 con eSIM y no un 16e. La
+ *  capacidad, como número («1TB» = 1024). null si no se entiende. */
+export function partesSkuPedido(sku: string): { modelo: number; capacidad: number; esim: boolean; resto: string } | null {
+  // Lo escrito a mano en la hoja (histórico) a veces no lleva la «i» o empieza con espacios o «: »: se acepta igual.
+  const t = sku.toLowerCase().replace(/^[^a-z0-9]+/, '')
+  const r = t.startsWith('i') ? t.slice(1) : t
+  let mejor: { modelo: number; largo: number; tras: string } | null = null
+  MODELOS_ORDENADOS.forEach((m, i) => {
+    if (!r.startsWith(m) || (mejor && mejor.largo >= m.length)) return
+    const tras = r.slice(m.length)
+    if (/^(esim)?\d/.test(tras)) mejor = { modelo: i, largo: m.length, tras }
+  })
+  if (!mejor) return null
+  const { modelo, tras } = mejor as { modelo: number; largo: number; tras: string }
+  const esim = tras.startsWith('esim')
+  const c = /^(\d+)(tb)?(.*)$/.exec(esim ? tras.slice(4) : tras)!
+  return { modelo, capacidad: Number(c[1]) * (c[2] ? 1024 : 1), esim, resto: c[3] }
+}
+
+/** Las filas por SKU como se organiza el almacén (0.9.39): por modelo en el orden de la tienda (`asc`: del más antiguo al más nuevo;
+ *  `desc`, al revés) y, dentro de cada modelo, SIEMPRE la capacidad de menor a mayor, sin eSIM antes que con eSIM, y el color y el grado
+ *  por orden alfabético. A igual SKU se queda el orden de siempre (orden estable). Los SKU que no se entienden van detrás (alfabético)
+ *  y las filas sin SKU al final, en los dos sentidos. Sin orden devuelve la misma lista. */
 export function ordenarPorSku(filas: FilaVista[], orden: OrdenSku): FilaVista[] {
   if (orden === null) return filas
   const signo = orden === 'asc' ? 1 : -1
+  const partes = new Map<string, ReturnType<typeof partesSkuPedido>>()
+  const de = (sku: string) => { if (!partes.has(sku)) partes.set(sku, partesSkuPedido(sku)); return partes.get(sku)! }
+  const rango = (f: FilaVista) => (!f.sku ? 2 : de(f.sku) ? 0 : 1)
   return [...filas].sort((a, b) => {
-    if (!a.sku || !b.sku) return Number(!a.sku) - Number(!b.sku)
-    return signo * a.sku.localeCompare(b.sku, 'es', { sensitivity: 'base' })
+    const ra = rango(a), rb = rango(b)
+    if (ra !== rb) return ra - rb
+    if (ra === 2) return 0
+    if (ra === 1) return a.sku!.localeCompare(b.sku!, 'es', { sensitivity: 'base' })
+    const pa = de(a.sku!)!, pb = de(b.sku!)!
+    return signo * (pa.modelo - pb.modelo) || pa.capacidad - pb.capacidad || Number(pa.esim) - Number(pb.esim)
+      || pa.resto.localeCompare(pb.resto, 'es', { sensitivity: 'base' })
   })
 }

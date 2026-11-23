@@ -32,7 +32,7 @@ const tabla = () => screen.getByRole('region', { name: 'Tabla de pedidos' })
 const skus = () => within(tabla()).getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[2].textContent?.trim())
 
 describe('Pedidos: ordenar por SKU', () => {
-  it('la cabecera SKU se ve ordenable y cada clic ordena A-Z, Z-A y vuelve al orden de siempre', async () => {
+  it('la cabecera SKU se ve ordenable y cada clic ordena por modelo creciente, decreciente y vuelve al orden de siempre', async () => {
     const user = userEvent.setup()
     abrir()
     await screen.findByRole('button', { name: '3 filas' })
@@ -40,7 +40,7 @@ describe('Pedidos: ordenar por SKU', () => {
     const icono = () => boton.querySelector('[data-icono-orden]')?.getAttribute('data-icono-orden')
     const cabecera = () => within(tabla()).getByRole('columnheader', { name: /^SKU/ })
     expect(icono()).toBe('ninguno')
-    expect(boton).toHaveAttribute('title', 'Ordenar por SKU: de la A a la Z (de menor a mayor)')
+    expect(boton).toHaveAttribute('title', 'Ordenar por SKU: modelo del más antiguo al más nuevo (6s → 17 Pro Max)')
     expect(skus()).toEqual(['i14128NegroA', 'i12064BlancoB', 'i13128AzulA'])
 
     await user.click(boton)

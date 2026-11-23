@@ -8,7 +8,7 @@ import { CeldaImei } from './CeldaImei'
 import { BotonesVolver } from './BotonesVolver'
 import { comoDesplazar, scrollParaCentrar, useVolver, type Posicion } from './volver'
 import { useStore } from '@/shared/lib/store'
-import { ariaOrden, CabeceraOrden, type DireccionOrden } from '@/shared/ui/CabeceraOrden'
+import { ariaOrden, CabeceraOrden, type DireccionOrden, type TextosOrden } from '@/shared/ui/CabeceraOrden'
 import { estadoPedidos, type FalloImei } from './estado'
 import { nivelSalida, textoSalida } from './salida'
 import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
@@ -155,7 +155,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
   recibidas?: number
   filtros?: Partial<Record<Columna, ReactNode>>
   /** 0.9.39: las columnas que se ordenan con un clic en la cabecera (hoy, SKU): su sentido, el del próximo clic y qué hacer. */
-  orden?: Partial<Record<Columna, { direccion: DireccionOrden; siguiente: DireccionOrden; onClick: () => void }>>
+  orden?: Partial<Record<Columna, { direccion: DireccionOrden; siguiente: DireccionOrden; textos?: TextosOrden; onClick: () => void }>>
   /** Lo que se enseña en el cuerpo si no hay filas que pintar (la cabecera y sus filtros siguen). */
   vacio?: ReactNode
   /** «1/3»… por `idFila` (ver `numerosDePedido`). La página lo calcula sobre todas las filas recibidas para que un filtro no cambie los números. */
@@ -330,7 +330,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
           <tr aria-rowindex={ventana ? 1 : undefined}>
             {COLUMNAS.map((c) => (
               <th key={c} scope="col" aria-sort={ariaOrden(orden?.[c]?.direccion ?? null)} className="sticky top-0 z-[2] border-r border-b border-fila-sep bg-fila-maestro-bg px-2.5 last:border-r-0 py-1.5 text-left text-[12px] font-bold has-[[data-activo]]:bg-[#dbe6fb]">{orden?.[c]
-                ? <CabeceraOrden direccion={orden[c].direccion} siguiente={orden[c].siguiente} nombre={c} onClick={orden[c].onClick}>{c}</CabeceraOrden>
+                ? <CabeceraOrden direccion={orden[c].direccion} siguiente={orden[c].siguiente} nombre={c} textos={orden[c].textos} onClick={orden[c].onClick}>{c}</CabeceraOrden>
                 : c}{filtros?.[c]}</th>
             ))}
           </tr>
