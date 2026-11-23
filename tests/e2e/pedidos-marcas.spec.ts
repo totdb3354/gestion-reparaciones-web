@@ -91,6 +91,26 @@ async function quitarMarca(e: Elegida) {
   await expect.poll(async () => (await filaPorApi(e.id)).marca).toBeNull()
   await cerrarDesplegable()
 }
+async function abrirPanel(e: Elegida) {
+  await celdaDe(e).getByRole('button', { name: e.pedido, exact: true }).click()
+  const panel = page.getByRole('region', { name: 'Detalle del pedido' })
+  await expect(panel).toBeVisible()
+  return panel
+}
+async function cancelarPorElPanel(e: Elegida) {
+  const panel = await abrirPanel(e)
+  await panel.getByRole('button', { name: 'Cancelar móvil' }).click()
+  const d = page.getByRole('dialog', { name: '¿Cancelar este móvil?' })
+  await d.getByRole('button', { name: 'Cancelar el móvil' }).click()
+  await expect.poll(async () => (await filaPorApi(e.id)).marca).toBe('CANCELADO')
+}
+async function quitarCancelacionPorElPanel(e: Elegida) {
+  const panel = await abrirPanel(e)
+  await panel.getByRole('button', { name: 'Quitar cancelación' }).click()
+  const d = page.getByRole('dialog', { name: '¿Quitar la cancelación?' })
+  await d.getByRole('button', { name: 'Quitar cancelación' }).click()
+  await expect.poll(async () => (await filaPorApi(e.id)).marca).toBeNull()
+}
 async function sinFiltros() {
   const quitar = page.getByRole('button', { name: 'Quitar filtros', exact: true })
   if (await quitar.isVisible()) await quitar.click()
@@ -233,15 +253,15 @@ test('3. «En espera de stock» con nota: se ve en la celda de envío, el lector
   await cerrarDesplegable()
 })
 
-test('4. «Cancelado»: la celda de envío lo dice, «N pendientes» baja en uno, y al quitarla vuelve', async () => {
+test('4. «Cancelar móvil» (panel, con confirmación): la celda de envío lo dice, «N pendientes» baja en uno, y al quitarla vuelve', async () => {
   test.setTimeout(120_000)
   const antes = await pendientes()
   expect(antes).toBeGreaterThan(0)
-  await ponerMarca(C, 'CANCELADO')
+  await cancelarPorElPanel(C)
   await expect(celdaEnvio(C)).toContainText('Cancelado')
   await expect.poll(pendientes).toBe(antes - 1)
   expect((await filaPorApi(C.id)).marca).toBe('CANCELADO')
-  await quitarMarca(C)
+  await quitarCancelacionPorElPanel(C)
   // Desde la 0.9.37 una pendiente con fecha de salida dice «Sale hoy», «Sale mié 25/11» o «Con retraso» en vez de «Pendiente».
   await expect(celdaEnvio(C)).toContainText(/Pendiente|Sale |Con retraso/)
   await expect(celdaEnvio(C)).not.toContainText('Cancelado')

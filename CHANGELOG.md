@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.42] - 2026-11-23 — Pedidos: cancelar un móvil pide confirmación
+
+- En **Pedidos**, «Cancelado» ya no está en el desplegable de marcas: se cancela con el botón **«Cancelar móvil»** del panel de la fila, que pide confirmación y admite una nota. Así un clic de más ya no cancela un móvil.
+- Una fila cancelada enseña quién la canceló y cuándo, y el botón **«Quitar cancelación»** (también con confirmación). Mientras está cancelada no se le puede poner otra marca ni «Falta por enviar».
+- Cancelar un móvil marcado **«Falta por enviar»** le quita esa marca: las dos cosas no pueden ir juntas. Al quitar la cancelación no vuelve.
+- Al quitar la cancelación, si su IMEI ya se ha puesto en otro pedido, sale el aviso «Este IMEI ya está en el pedido X» y la fila sigue cancelada.
+- Servidor y web.
+
 ## [0.9.39] - 2026-11-23 — Ordenar por columna sin tener que adivinarlo
 
 - Las columnas que se pueden ordenar llevan siempre unas **flechas grises ↑↓** junto al nombre. Al pasar el ratón la cabecera se resalta y dice qué hará el clic («Ordenar por Días: de la Z a la A»…). Ordenada, el icono pasa a **A-Z** o **Z-A** en azul. Antes no había ninguna pista hasta haber hecho clic. Vale para la tabla de móviles de **Stock de teléfonos** y las dos de **«Qué revisar»**.
