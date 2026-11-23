@@ -1,7 +1,8 @@
 import type { FilaVista } from '@/shared/api/client'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
-import { nivelSalida } from './salida'
+import { diaNsys } from '@/shared/lib/telefonoNsys'
+import { nivelSalida, textoSalida } from './salida'
 
 /** Las columnas de la tabla, con los nombres de la hoja (sin letras). */
 export const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'] as const
@@ -94,6 +95,22 @@ export function estadoPantalla(f: FilaVista): EstadoPantalla {
   if (f.marca === 'CANCELADO' && e !== 'HISTORICO') return 'CANCELADO'
   if (e !== 'ENVIADA') return e
   return f.faltaEnviarEn ? 'FALTA_ENVIAR' : f.impresaEn ? 'ENVIADO' : 'GENERADA'
+}
+
+/** El texto de la etiqueta de «Enviado» (la de la tabla y la del CSV). En «falta por enviar» añade «con retraso» o «sale hoy» si se da
+ *  `hoy`; «Etiqueta generada» lleva la fecha del envío y «Enviado» (etiqueta impresa), la de la impresión. */
+export function textoEstado(f: FilaVista, estado: EstadoPantalla, hoy?: string): string {
+  const nivel = hoy ? nivelSalida(f, hoy) : null
+  const diaMes = (iso: string | null) => (iso ? ` ${diaNsys(iso).slice(0, 5)}` : '')
+  return {
+    PENDIENTE: (nivel && textoSalida(f, hoy!)) || 'Pendiente',
+    FALTA_ENVIAR: `Envío parcial · falta por enviar${nivel === 'RETRASO' ? ' · con retraso' : nivel === 'HOY' ? ' · sale hoy' : ''}`,
+    GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
+    ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
+    NO_PENDIENTE: 'Ya no está en ShippyPro',
+    CANCELADO: 'Cancelado',
+    HISTORICO: 'De la hoja',
+  }[estado]
 }
 
 /** Cuenta como pendiente: lo está en el servidor, o es un envío parcial al que aún le falta un móvil por salir. Una cancelada no. */
