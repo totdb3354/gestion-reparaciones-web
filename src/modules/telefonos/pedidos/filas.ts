@@ -406,3 +406,20 @@ export function textoAvisoFuera(a: AvisoFuera, desde: string, hasta: string): st
   const retraso = a.conRetraso > 0 ? ` (${a.conRetraso} con retraso)` : ''
   return `Hay ${a.n} ${a.n === 1 ? 'pendiente' : 'pendientes'} ${donde}${retraso}.`
 }
+
+/** 0.9.39 (spec «ordenar por cabecera»): el orden de la columna SKU de Pedidos; null = el de siempre (por fecha). */
+export type OrdenSku = 'asc' | 'desc' | null
+
+/** El clic en la cabecera SKU: de A a Z, de Z a A y vuelta al orden de siempre. */
+export const siguienteOrdenSku = (o: OrdenSku): OrdenSku => (o === null ? 'asc' : o === 'asc' ? 'desc' : null)
+
+/** Las filas por SKU (sin mayúsculas, como el Excel). A igual SKU se queda el orden de siempre (orden estable) y las filas sin SKU van
+ *  al final en los dos sentidos. Sin orden devuelve la misma lista. */
+export function ordenarPorSku(filas: FilaVista[], orden: OrdenSku): FilaVista[] {
+  if (orden === null) return filas
+  const signo = orden === 'asc' ? 1 : -1
+  return [...filas].sort((a, b) => {
+    if (!a.sku || !b.sku) return Number(!a.sku) - Number(!b.sku)
+    return signo * a.sku.localeCompare(b.sku, 'es', { sensitivity: 'base' })
+  })
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -446,5 +446,25 @@ describe('periodo estricto (0.9.38): separarPorPeriodo y avisoFuera', () => {
     expect(textoAvisoFuera({ n: 3, conRetraso: 1, donde: 'antes' }, D, H)).toBe('Hay 3 pendientes de antes del 20/11 (1 con retraso).')
     expect(textoAvisoFuera({ n: 1, conRetraso: 0, donde: 'despues' }, D, H)).toBe('Hay 1 pendiente de después del 23/11.')
     expect(textoAvisoFuera({ n: 2, conRetraso: 2, donde: 'ambos' }, D, H)).toBe('Hay 2 pendientes fuera de estas fechas (2 con retraso).')
+  })
+})
+
+describe('ordenarPorSku (0.9.39)', () => {
+  const F = [
+    fila({ idFila: 1, sku: 'i14128NegroA' }), fila({ idFila: 2, sku: 'i13128AzulA' }), fila({ idFila: 3, sku: null }),
+    fila({ idFila: 4, sku: 'i14128NegroA' }), fila({ idFila: 5, sku: 'i12064BlancoB' }),
+  ]
+  const ids = (l: { idFila: number }[]) => l.map((f) => f.idFila)
+  it('sin orden devuelve la misma lista', () => {
+    expect(ordenarPorSku(F, null)).toBe(F)
+  })
+  it('de A a Z; a igual SKU, el orden de siempre; sin SKU al final', () => {
+    expect(ids(ordenarPorSku(F, 'asc'))).toEqual([5, 2, 1, 4, 3])
+  })
+  it('de Z a A; a igual SKU sigue el orden de siempre; sin SKU también al final', () => {
+    expect(ids(ordenarPorSku(F, 'desc'))).toEqual([1, 4, 2, 5, 3])
+  })
+  it('siguienteOrdenSku: A-Z, Z-A y vuelta al orden de siempre', () => {
+    expect([siguienteOrdenSku(null), siguienteOrdenSku('asc'), siguienteOrdenSku('desc')]).toEqual(['asc', 'desc', null])
   })
 })

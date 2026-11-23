@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.39] - 2026-11-23 — Ordenar por columna sin tener que adivinarlo
+
+- Las columnas que se pueden ordenar llevan siempre unas **flechas grises ↑↓** junto al nombre. Al pasar el ratón la cabecera se resalta y dice qué hará el clic («Ordenar por Días: de la Z a la A»…). Ordenada, el icono pasa a **A-Z** o **Z-A** en azul. Antes no había ninguna pista hasta haber hecho clic. Vale para la tabla de móviles de **Stock de teléfonos** y las dos de **«Qué revisar»**.
+- En **Pedidos**, la columna **SKU** se ordena con un clic en su nombre: de la A a la Z, de la Z a la A y vuelta al orden de siempre (por fecha). A igual SKU se mantiene el orden por fecha. Ordenada, el lector salta a la siguiente fila vacía en el orden que se ve, así que los del mismo SKU van seguidos. «Quitar filtros» no quita el orden.
+- Solo web.
+
 ## [0.9.38] - 2026-11-23 — Pedidos: el periodo se respeta
 
 - En **Pedidos**, el periodo (Último mes, 3 meses, Este año, Todo o Rango…) enseña **solo las filas de esas fechas**, como un filtro del Excel. Antes salían también los pedidos pendientes de cualquier otro día, y un rango del 20 al 23/11 enseñaba filas del 2/11.

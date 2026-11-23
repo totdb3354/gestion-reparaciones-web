@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ArrowUpDown } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { FONDO } from './CeldaImei'
@@ -29,6 +30,10 @@ export function AyudaPedidos() {
         <h2 className="mb-2 text-[13px] font-bold text-azul-medio">Cómo se lee esta tabla</h2>
         <ul className="flex flex-col gap-1.5">
           <Linea>Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI.</Linea>
+          <Linea muestra={<span className="inline-flex items-center gap-1 text-[12px] font-bold">SKU<ArrowUpDown aria-hidden className="size-3.5 text-[#8f99a8]" /></span>}>
+            La columna SKU se ordena con un clic en su nombre: de la A a la Z, de la Z a la A y vuelta al orden de siempre. Ordenada, el
+            lector salta a la siguiente fila vacía en el orden que se ve.
+          </Linea>
           <Linea muestra={<span className="rounded-sm border border-[#f0d58a] bg-[#fff8e1] px-1.5 py-px text-[11px] text-[#6b4e00]">⚠ Hay 2 pendientes…</span>}>
             El periodo enseña solo las filas de esas fechas, como un filtro del Excel. Si quedan pendientes de otros días, lo dice el aviso
             amarillo y «Ver» los enseña.

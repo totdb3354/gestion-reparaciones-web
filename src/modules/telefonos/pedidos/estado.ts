@@ -1,5 +1,5 @@
 import { crearStore } from '@/shared/lib/store'
-import type { Periodo } from './filas'
+import type { OrdenSku, Periodo } from './filas'
 
 /** Lo que el usuario ha elegido en «Pedidos»: el periodo (y su rango, si es «Rango…»), lo escrito en el buscador y los filtros por
  *  columna. Vive en un store de módulo, como el de «Stock de teléfonos», para que salir y volver lo deje donde estaba;
@@ -11,6 +11,8 @@ export type EstadoPedidos = {
   /** 0.9.38: la tabla enseña los pendientes de fuera del periodo (el «Ver» del aviso) en vez de las filas del periodo. Se quita al
    *  cambiar el periodo o el rango, con su etiqueta o con «Quitar filtros». */
   verFuera: boolean
+  /** 0.9.39: el orden de la columna SKU (clic en su cabecera); null = el de siempre (por fecha). No lo quita «Quitar filtros». */
+  ordenSku: OrdenSku
   buscar: string
   /** Las tiendas marcadas en el filtro de Plataforma (el `canal` del ERP, u `OTROS`); vacío = todas. */
   plataformas: Set<string>
@@ -40,5 +42,5 @@ export type EstadoPedidos = {
 export type FalloImei = { imei: string | null; clave: string; mensaje: string; duplicado?: boolean }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, ordenSku: null, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
 })

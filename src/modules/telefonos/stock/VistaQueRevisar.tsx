@@ -162,7 +162,8 @@ function Cabecera<G>({ columnas, desdeDerecha, orden, onOrden }: { columnas: rea
           const direccion = orden?.columna === c.nombre ? (orden.desc ? 'desc' : 'asc') : null
           return (
             <th key={c.nombre} scope="col" aria-sort={ariaOrden(direccion)} className={cn('px-2 py-1.5 font-bold whitespace-nowrap', i >= desdeDerecha ? 'text-right' : 'text-left')}>
-              <CabeceraOrden direccion={direccion} onClick={() => onOrden(siguienteOrden(orden, c))}>{c.nombre}</CabeceraOrden>
+              <CabeceraOrden direccion={direccion} nombre={c.nombre} onClick={() => onOrden(siguienteOrden(orden, c))}
+                siguiente={((s) => (s ? (s.desc ? 'desc' : 'asc') : null))(siguienteOrden(orden, c))}>{c.nombre}</CabeceraOrden>
             </th>
           )
         })}
