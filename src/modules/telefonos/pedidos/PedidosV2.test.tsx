@@ -8,6 +8,9 @@ import { maquetarJsdom } from '@/test/layoutJsdom'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Pantalla v2 (parte 1): contadores pulsables, filtros como etiquetas, la caja delante y la raya azul.
 // 6 filas: pendientes 4 (1, 2, 4, 5), sin IMEI 2 (1, 4), no cuadran 1 (5), enviada 1 (3) e histórico 1 (6).

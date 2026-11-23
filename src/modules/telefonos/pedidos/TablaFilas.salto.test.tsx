@@ -10,6 +10,9 @@ import { maquetarJsdom } from '@/test/layoutJsdom'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
 import { TablaFilas } from './TablaFilas'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Al guardar un IMEI tecleado o leído, el foco pasa a la siguiente celda vacía de abajo, sin esperar al servidor.
 const pedido = (i: number) => `402-0000000-${String(i).padStart(7, '0')}`

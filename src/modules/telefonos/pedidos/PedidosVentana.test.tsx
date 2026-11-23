@@ -8,6 +8,9 @@ import { renderConProviders, SESION_SUPER } from '@/test/render'
 import { estadoNsys, fila, fuente } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Spec Pedidos v2 §5: por encima del umbral se pinta solo lo visible. El umbral se baja con la propiedad para no necesitar 5.000 filas.
 const NOTA = 'Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).'

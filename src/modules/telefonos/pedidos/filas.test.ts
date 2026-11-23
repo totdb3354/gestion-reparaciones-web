@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera } from './filas'
 
 describe('textoMotivo', () => {
   it.each([
@@ -408,5 +408,43 @@ describe('fecha de salida: filtros y contadores', () => {
     expect(contadorAplicado(filtrosDeContador('saleHoy'))).toBe('saleHoy')
     expect(contadorAplicado(filtrosDeContador('conRetraso'))).toBe('conRetraso')
     expect(hayFiltros(filtrosDeContador('saleHoy'))).toBe(true)
+  })
+})
+
+describe('periodo estricto (0.9.38): separarPorPeriodo y avisoFuera', () => {
+  const D = '2026-11-20', H = '2026-11-23', HOY = '2026-11-23'
+  const pend = (id: number, fecha: string, p = {}) => fila({ idFila: id, fecha, ...p })
+  const RECIBIDAS = [
+    pend(1, '2026-11-05', { fechaSalida: '2026-11-07' }),                  // fuera antes, con retraso
+    pend(2, '2026-11-14', { marca: 'CANCELADO' }),                          // cancelada abierta de fuera: ni aviso ni «Ver»
+    pend(3, '2026-11-16', { fechaSalida: '2026-11-24' }),                   // fuera antes
+    pend(4, '2026-11-20'),                                                 // primer día: dentro
+    pend(5, '2026-11-21', { estado: 'ENVIADA', envioFecha: '2026-11-21T10:00:00' }),
+    pend(6, '2026-11-23'),                                                 // último día: dentro
+    pend(7, '2026-11-12', { estado: 'ENVIADA', envioFecha: '2026-11-12T10:00:00', faltaEnviarEn: '2026-11-13T09:00:00' }), // falta por enviar de fuera
+  ]
+
+  it('deja en el periodo solo las de esas fechas (los dos extremos incluidos), en el mismo orden', () => {
+    expect(separarPorPeriodo(RECIBIDAS, D, H).delPeriodo.map((f) => f.idFila)).toEqual([4, 5, 6])
+  })
+  it('fuera: los pendientes (y «Falta por enviar») de otras fechas; nunca los cancelados', () => {
+    expect(separarPorPeriodo(RECIBIDAS, D, H).fuera.map((f) => f.idFila)).toEqual([1, 3, 7])
+  })
+  it('una fila con la fecha con hora también cuenta por su día', () => {
+    expect(separarPorPeriodo([pend(1, '2026-11-23T22:30:00')], D, H).delPeriodo).toHaveLength(1)
+  })
+  it('el aviso cuenta los de fuera, los que van con retraso y de qué lado quedan', () => {
+    const { fuera } = separarPorPeriodo(RECIBIDAS, D, H)
+    expect(avisoFuera(fuera, D, H, HOY)).toEqual({ n: 3, conRetraso: 1, donde: 'antes' })
+    expect(avisoFuera([pend(1, '2026-11-25')], D, H, HOY)).toEqual({ n: 1, conRetraso: 0, donde: 'despues' })
+    expect(avisoFuera([pend(1, '2026-11-01'), pend(2, '2026-11-25')], D, H, HOY)?.donde).toBe('ambos')
+  })
+  it('sin pendientes de fuera no hay aviso', () => {
+    expect(avisoFuera([], D, H, HOY)).toBeNull()
+  })
+  it('textoAvisoFuera: singular, plural, lado y retraso', () => {
+    expect(textoAvisoFuera({ n: 3, conRetraso: 1, donde: 'antes' }, D, H)).toBe('Hay 3 pendientes de antes del 20/11 (1 con retraso).')
+    expect(textoAvisoFuera({ n: 1, conRetraso: 0, donde: 'despues' }, D, H)).toBe('Hay 1 pendiente de después del 23/11.')
+    expect(textoAvisoFuera({ n: 2, conRetraso: 2, donde: 'ambos' }, D, H)).toBe('Hay 2 pendientes fuera de estas fechas (2 con retraso).')
   })
 })

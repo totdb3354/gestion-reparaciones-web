@@ -9,6 +9,9 @@ import { imeiConLuhnMalo, imeiValido } from '../test/imeiValido'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
 import { maquetarJsdom } from '@/test/layoutJsdom'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 const FILAS = [
   fila({ idFila: 1, estado: 'ENVIADA', envioFecha: '2026-11-09T10:30:00', impresaEn: '2026-11-10T09:15:00', tieneEtiqueta: true, transportista: 'UPSv2', seguimiento: '1Z0000000000000001', imei: '350000000000010', pedido: '402-0000000-0000011' }),

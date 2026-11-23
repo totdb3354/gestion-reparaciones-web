@@ -8,6 +8,9 @@ import { maquetarJsdom } from '@/test/layoutJsdom'
 import { candidato, estadoNsys, fila, fuente } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Pantalla v2 (parte 2): filtro de Plataforma por tienda y panel de la fila. Datos inventados.
 const FILAS = [

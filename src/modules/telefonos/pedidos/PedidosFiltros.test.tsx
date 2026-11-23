@@ -9,6 +9,9 @@ import { estadoNsys, fila, fuente } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { haceUnMes, rangoDe } from './filas'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 const MIXTAS = [
   fila({ idFila: 1, plataforma: 'Amazon', canal: 'AMAZON', sku: 'i13128AzulA', pedido: '402-0000000-0000021' }),

@@ -8,6 +8,9 @@ import { maquetarJsdom } from '@/test/layoutJsdom'
 import { estadoNsys, fila, fuente } from '../test/fabrica'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // «Previsualizar etiqueta» del panel de la fila (spec v2 §3.2). Datos inventados.
 const FILAS = [

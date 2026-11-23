@@ -10,6 +10,9 @@ import { estadoNsys, fila, fuente } from '../test/fabrica'
 import { imeiValido } from '../test/imeiValido'
 import { estadoPedidos } from './estado'
 import { PedidosPage } from './PedidosPage'
+import { congelarHoy } from '../test/hoy'
+
+congelarHoy()
 
 // Las marcas de la fila (En espera de stock, En revisión, Pendiente de color, Cancelado) con nota: desde la celda del IMEI y desde el panel.
 const MARCADA = { marcaEn: '2026-11-12T09:30:00', marcaPor: 'Supertécnico 1' } as const
