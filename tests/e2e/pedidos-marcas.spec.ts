@@ -92,7 +92,9 @@ async function quitarMarca(e: Elegida) {
   await cerrarDesplegable()
 }
 async function abrirPanel(e: Elegida) {
-  await celdaDe(e).getByRole('button', { name: e.pedido, exact: true }).click()
+  // El botón del pedido abre y cierra el panel: si ya es el de esta fila (aria-pressed), pulsarlo lo cerraría.
+  const boton = celdaDe(e).getByRole('button', { name: e.pedido, exact: true })
+  if ((await boton.getAttribute('aria-pressed')) !== 'true') await boton.click()
   const panel = page.getByRole('region', { name: 'Detalle del pedido' })
   await expect(panel).toBeVisible()
   return panel
