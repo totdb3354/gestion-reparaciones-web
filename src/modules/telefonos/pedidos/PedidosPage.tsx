@@ -13,10 +13,12 @@ import { FiltroFechas } from './FiltroFechas'
 import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, ordenarPorSku, siguienteOrdenSku, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
+/** 0.9.39: la columna SKU se ordena por modelo (como se organiza el almacén), no por orden alfabético. */
+const TEXTOS_ORDEN_SKU = { asc: 'modelo del más antiguo al más nuevo (6s → 17 Pro Max)', desc: 'modelo del más nuevo al más antiguo (17 Pro Max → 6s)' }
 const MIN_BUSCAR = 2
 
 /** «Pedidos» como la hoja (spec «Pedidos como la hoja» §3): una fila por móvil pedido, que crea el ERP desde ShippyPro; lo único
@@ -58,7 +60,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const filtrando = hayFiltros(filtros) || viendoFuera
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
-  const vistas = useMemo(() => filtrarColumnas(filas, filtros, hoy), [filas, filtros, hoy])
+  const vistas = useMemo(() => ordenarPorSku(filtrarColumnas(filas, filtros, hoy), e.ordenSku), [filas, filtros, hoy, e.ordenSku])
   const ventana = vistas.length > umbralVentana
   // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
   useEffect(() => {
@@ -185,7 +187,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
       )}
       {filas.length > 0 && (
         <div className="flex min-h-0 flex-1">
-        <TablaFilas filas={vistas} hoy={hoy} numeros={numeros} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
+        <TablaFilas filas={vistas} hoy={hoy}
+          orden={{ SKU: { direccion: e.ordenSku, siguiente: siguienteOrdenSku(e.ordenSku), textos: TEXTOS_ORDEN_SKU, onClick: () => setE((s) => ({ ...s, ordenSku: siguienteOrdenSku(s.ordenSku) })) } }} numeros={numeros} ventana={ventana} recibidas={filas.length} vacio="Ningún pedido cumple los filtros de columna. Pulsa «Quitar filtros» para verlos todos." filtros={{
           Plataforma: <FiltroTienda tiendas={tiendas} seleccion={filtros.plataformas} onChange={(plataformas) => setE((s) => ({ ...s, plataformas }))} />,
           SKU: <FiltroColumna columna="SKU" valores={skus} seleccion={filtros.skus} onChange={(skus) => setE((s) => ({ ...s, skus }))} />,
           Enviado: <FiltroEnviado recuentos={estados} seleccion={filtros.enviado} onChange={(enviado) => setE((s) => ({ ...s, enviado }))} />,

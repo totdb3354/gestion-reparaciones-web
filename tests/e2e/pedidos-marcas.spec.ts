@@ -242,7 +242,9 @@ test('4. «Cancelado»: la celda de envío lo dice, «N pendientes» baja en uno
   await expect.poll(pendientes).toBe(antes - 1)
   expect((await filaPorApi(C.id)).marca).toBe('CANCELADO')
   await quitarMarca(C)
-  await expect(celdaEnvio(C)).toContainText('Pendiente')
+  // Desde la 0.9.37 una pendiente con fecha de salida dice «Sale hoy», «Sale mié 25/11» o «Con retraso» en vez de «Pendiente».
+  await expect(celdaEnvio(C)).toContainText(/Pendiente|Sale |Con retraso/)
+  await expect(celdaEnvio(C)).not.toContainText('Cancelado')
   await expect.poll(pendientes).toBe(antes)
   expect((await filaPorApi(C.id)).marca).toBeNull()
 })

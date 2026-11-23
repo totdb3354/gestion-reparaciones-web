@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido } from './filas'
+import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 
 describe('textoMotivo', () => {
   it.each([
@@ -446,5 +447,50 @@ describe('periodo estricto (0.9.38): separarPorPeriodo y avisoFuera', () => {
     expect(textoAvisoFuera({ n: 3, conRetraso: 1, donde: 'antes' }, D, H)).toBe('Hay 3 pendientes de antes del 20/11 (1 con retraso).')
     expect(textoAvisoFuera({ n: 1, conRetraso: 0, donde: 'despues' }, D, H)).toBe('Hay 1 pendiente de después del 23/11.')
     expect(textoAvisoFuera({ n: 2, conRetraso: 2, donde: 'ambos' }, D, H)).toBe('Hay 2 pendientes fuera de estas fechas (2 con retraso).')
+  })
+})
+
+describe('ordenarPorSku (0.9.39)', () => {
+  const F = [
+    fila({ idFila: 1, sku: 'i14128NegroA' }), fila({ idFila: 2, sku: 'i13128AzulA' }), fila({ idFila: 3, sku: null }),
+    fila({ idFila: 4, sku: 'i14128NegroA' }), fila({ idFila: 5, sku: 'i12064BlancoB' }),
+  ]
+  const ids = (l: { idFila: number }[]) => l.map((f) => f.idFila)
+  it('sin orden devuelve la misma lista', () => {
+    expect(ordenarPorSku(F, null)).toBe(F)
+  })
+  it('creciente por modelo; a igual SKU, el orden de siempre; sin SKU al final', () => {
+    expect(ids(ordenarPorSku(F, 'asc'))).toEqual([5, 2, 1, 4, 3])
+  })
+  it('decreciente por modelo; a igual SKU sigue el orden de siempre; sin SKU también al final', () => {
+    expect(ids(ordenarPorSku(F, 'desc'))).toEqual([1, 4, 2, 5, 3])
+  })
+  it('por modelo en orden de tienda y, dentro, la capacidad como número (64 antes que 128 y 256)', () => {
+    const G = ['i12Pro256OroA', 'i13128AzulA', 'i12256NegroA', 'i1264NegroA', 'i12128NegroB', 'i12128AzulA', 'i8Plus64RojoA']
+      .map((sku, i) => fila({ idFila: i + 1, sku }))
+    const skus = (l: { sku: string | null }[]) => l.map((f) => f.sku)
+    expect(skus(ordenarPorSku(G, 'asc'))).toEqual(['i8Plus64RojoA', 'i1264NegroA', 'i12128AzulA', 'i12128NegroB', 'i12256NegroA', 'i12Pro256OroA', 'i13128AzulA'])
+    // Decreciente: el modelo al revés; dentro de cada modelo, la capacidad sigue de menor a mayor.
+    expect(skus(ordenarPorSku(G, 'desc'))).toEqual(['i13128AzulA', 'i12Pro256OroA', 'i1264NegroA', 'i12128AzulA', 'i12128NegroB', 'i12256NegroA', 'i8Plus64RojoA'])
+  })
+  it('«eSIM» va entre el modelo y la capacidad: i16eSIM es un iPhone 16 (no un 16e); el 16e va después del 16', () => {
+    const G = ['i16e128NegroA', 'i16eSIM128AzulA', 'i16128AzulA', 'i16plusesim256azula100'].map((sku, i) => fila({ idFila: i + 1, sku }))
+    expect(ordenarPorSku(G, 'asc').map((f) => f.sku)).toEqual(['i16128AzulA', 'i16eSIM128AzulA', 'i16e128NegroA', 'i16plusesim256azula100'])
+  })
+  it('un SKU que no se entiende va después de los que sí (por orden alfabético) y antes de los vacíos', () => {
+    const G = [fila({ idFila: 1, sku: null }), fila({ idFila: 2, sku: 'zRaro' }), fila({ idFila: 3, sku: 'i13128AzulA' })]
+    expect(ids(ordenarPorSku(G, 'asc'))).toEqual([3, 2, 1])
+    expect(ids(ordenarPorSku(G, 'desc'))).toEqual([3, 2, 1])
+  })
+  it('lo escrito a mano en la hoja: sin «i», con espacios o «: » delante, se entiende igual; el texto libre no', () => {
+    expect(partesSkuPedido('13128AzulA100')).toMatchObject({ modelo: MODELOS_ORDENADOS.indexOf('13'), capacidad: 128 })
+    expect(partesSkuPedido(' i13PROMAX128GrafitoA-100')).toMatchObject({ modelo: MODELOS_ORDENADOS.indexOf('13promax'), capacidad: 128 })
+    expect(partesSkuPedido(': i14128BlancoA')).toMatchObject({ modelo: MODELOS_ORDENADOS.indexOf('14'), capacidad: 128 })
+    expect(partesSkuPedido('15PROESIM1024NegroA')).toMatchObject({ modelo: MODELOS_ORDENADOS.indexOf('15pro'), capacidad: 1024, esim: true })
+    expect(partesSkuPedido('MANDAR UN 15 PRO MAX ESIM 512 AZUL')).toBeNull()
+    expect(partesSkuPedido('i15RosaA')).toBeNull()
+  })
+  it('siguienteOrdenSku: A-Z, Z-A y vuelta al orden de siempre', () => {
+    expect([siguienteOrdenSku(null), siguienteOrdenSku('asc'), siguienteOrdenSku('desc')]).toEqual(['asc', 'desc', null])
   })
 })

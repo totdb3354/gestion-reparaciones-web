@@ -573,7 +573,9 @@ export function DataTable<T>({
                     className="text-[12px] font-bold text-azul-medio"
                   >
                     {ordenacion && h.column.getCanSort() ? (
-                      <CabeceraOrden direccion={dir || null} onClick={h.column.getToggleSortingHandler() ?? (() => {})}>{contenido}</CabeceraOrden>
+                      <CabeceraOrden direccion={dir || null} siguiente={h.column.getNextSortingOrder() || null}
+                        nombre={typeof h.column.columnDef.header === 'string' ? h.column.columnDef.header : undefined}
+                        onClick={h.column.getToggleSortingHandler() ?? (() => {})}>{contenido}</CabeceraOrden>
                     ) : (
                       contenido
                     )}
