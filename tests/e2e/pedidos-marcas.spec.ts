@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Locator, type Page } from '@pla
 import { credenciales } from './credenciales.ts'
 
 // pedidos-marcas.spec.ts (0.9.35): lo que la hoja de Pedidos hace con un lector de códigos que se equivoca (cifra suelta, cifra de control), las marcas
-// de la fila (En espera de stock, Cancelado, filtro «Con marca», historial) y las filas de Amazon sin asociar con la píldora de los libros.
+// de la fila (En espera de stock, «Cancelar móvil» del panel, filtro «Con marca», historial) y las filas de Amazon sin asociar con la píldora de los libros.
 // Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero). Preprod tiene datos reales, así que la prueba:
 //   - elige al empezar, por la API, tres filas PENDIENTES de ShippyPro sin IMEI y sin marca (no Amazon, consecutivas entre las que el lector
 //     saltaría), y apunta sus ids y su estado inicial;
@@ -90,6 +90,26 @@ async function quitarMarca(e: Elegida) {
   await desplegable().getByRole('combobox', { name: 'Marca' }).selectOption('')
   await expect.poll(async () => (await filaPorApi(e.id)).marca).toBeNull()
   await cerrarDesplegable()
+}
+async function abrirPanel(e: Elegida) {
+  await celdaDe(e).getByRole('button', { name: e.pedido, exact: true }).click()
+  const panel = page.getByRole('region', { name: 'Detalle del pedido' })
+  await expect(panel).toBeVisible()
+  return panel
+}
+async function cancelarPorElPanel(e: Elegida) {
+  const panel = await abrirPanel(e)
+  await panel.getByRole('button', { name: 'Cancelar móvil' }).click()
+  const d = page.getByRole('dialog', { name: '¿Cancelar este móvil?' })
+  await d.getByRole('button', { name: 'Cancelar el móvil' }).click()
+  await expect.poll(async () => (await filaPorApi(e.id)).marca).toBe('CANCELADO')
+}
+async function quitarCancelacionPorElPanel(e: Elegida) {
+  const panel = await abrirPanel(e)
+  await panel.getByRole('button', { name: 'Quitar cancelación' }).click()
+  const d = page.getByRole('dialog', { name: '¿Quitar la cancelación?' })
+  await d.getByRole('button', { name: 'Quitar cancelación' }).click()
+  await expect.poll(async () => (await filaPorApi(e.id)).marca).toBeNull()
 }
 async function sinFiltros() {
   const quitar = page.getByRole('button', { name: 'Quitar filtros', exact: true })
@@ -233,15 +253,15 @@ test('3. «En espera de stock» con nota: se ve en la celda de envío, el lector
   await cerrarDesplegable()
 })
 
-test('4. «Cancelado»: la celda de envío lo dice, «N pendientes» baja en uno, y al quitarla vuelve', async () => {
+test('4. «Cancelar móvil» (panel, con confirmación): la celda de envío lo dice, «N pendientes» baja en uno, y al quitarla vuelve', async () => {
   test.setTimeout(120_000)
   const antes = await pendientes()
   expect(antes).toBeGreaterThan(0)
-  await ponerMarca(C, 'CANCELADO')
+  await cancelarPorElPanel(C)
   await expect(celdaEnvio(C)).toContainText('Cancelado')
   await expect.poll(pendientes).toBe(antes - 1)
   expect((await filaPorApi(C.id)).marca).toBe('CANCELADO')
-  await quitarMarca(C)
+  await quitarCancelacionPorElPanel(C)
   // Desde la 0.9.37 una pendiente con fecha de salida dice «Sale hoy», «Sale mié 25/11» o «Con retraso» en vez de «Pendiente».
   await expect(celdaEnvio(C)).toContainText(/Pendiente|Sale |Con retraso/)
   await expect(celdaEnvio(C)).not.toContainText('Cancelado')

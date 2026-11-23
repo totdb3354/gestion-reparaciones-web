@@ -54,7 +54,7 @@ describe('Pedidos: botón de ayuda', () => {
     // Las cuatro marcas de la fila, con su etiqueta de muestra y su frase.
     for (const t of ['En espera de stock', 'En revisión', 'Pendiente de color', 'Cancelado']) expect(within(ayuda).getByText(t)).toBeInTheDocument()
     expect(within(ayuda).getByText(/hay algo que aclarar antes de enviarlo/)).toBeInTheDocument()
-    expect(within(ayuda).getByText(/el cliente anula ese móvil/)).toBeInTheDocument()
+    expect(within(ayuda).getByText(/El cliente anula ese móvil/)).toBeInTheDocument()
     expect(within(ayuda).getByText('1/3')).toBeInTheDocument()
     expect(within(ayuda).getByText('El móvil es uno de los de un pedido de varios.')).toBeInTheDocument()
     // La fecha de salida: tres muestras y el aviso de cómo se calcula; el cuadro hace scroll si no cabe en la ventana.

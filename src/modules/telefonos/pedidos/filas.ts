@@ -72,6 +72,10 @@ export const MARCAS: { valor: string; texto: string }[] = [
   { valor: 'PENDIENTE_COLOR', texto: 'Pendiente de color' },
   { valor: 'CANCELADO', texto: 'Cancelado' },
 ]
+
+/** Las marcas que se eligen en el desplegable (celda del IMEI y panel). «Cancelado» no: se pone con «Cancelar móvil» del panel, con confirmación. */
+export const MARCAS_DESPLEGABLE = MARCAS.filter((m) => m.valor !== 'CANCELADO')
+
 /** El texto de una marca; una que la web aún no conoce se enseña tal cual (la marca nunca se esconde). */
 export const textoMarca = (valor: string): string => MARCAS.find((m) => m.valor === valor)?.texto ?? valor
 /** El color de la etiqueta de cada marca (ámbar suave, azul suave y gris). */

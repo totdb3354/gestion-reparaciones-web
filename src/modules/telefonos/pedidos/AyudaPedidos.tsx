@@ -71,9 +71,10 @@ export function AyudaPedidos() {
             Marca: solo enseña su etiqueta y su nota; no cambia los contadores ni el lector.
           </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.CANCELADO)}>Cancelado</span>}>
-            Marca: el cliente anula ese móvil y el resto del pedido sigue. No cuenta como pendiente y el lector no salta a ella.
+            El cliente anula ese móvil y el resto del pedido sigue. Se pone con «Cancelar móvil» en el panel de la fila (pide confirmación) y se
+            quita con «Quitar cancelación». Quita «Falta por enviar». No cuenta como pendiente, el lector no salta a ella y su IMEI queda libre.
           </Linea>
-          <Linea>Las marcas se eligen en la celda del IMEI (debajo del campo) o en el panel de la fila y se guardan al elegirlas; la nota, con Enter o al salir de su campo. Se ven junto al estado de envío. Una fila con marca no va al bot de vendidos.</Linea>
+          <Linea>Las otras marcas se eligen en la celda del IMEI (debajo del campo) o en el panel de la fila y se guardan al elegirlas; la nota, con Enter o al salir de su campo. Se ven junto al estado de envío. Una fila con marca no va al bot de vendidos.</Linea>
           <Linea muestra={
             <span className="flex items-baseline gap-1.5 text-[12px]">i13128AzulA<span className="font-sans text-[10px] text-azul-gris">1/3</span></span>
           }>El móvil es uno de los de un pedido de varios.</Linea>
