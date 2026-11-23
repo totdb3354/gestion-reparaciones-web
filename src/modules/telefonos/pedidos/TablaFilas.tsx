@@ -11,7 +11,7 @@ import { useStore } from '@/shared/lib/store'
 import { ariaOrden, CabeceraOrden, type DireccionOrden, type TextosOrden } from '@/shared/ui/CabeceraOrden'
 import { estadoPedidos, type FalloImei } from './estado'
 import { nivelSalida } from './salida'
-import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, textoEstado, tonoFila, type EstadoPantalla } from './filas'
+import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, saltaElLector, sinAsociar, textoEstado, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -113,9 +113,10 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, hoy, indice, medir, 
       <CeldaImei fila={f} abierta={abierta} marcada={marcada} fallo={fallo} onAbrir={onAbrir} onSaltar={onSaltar} />
       <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
-        {/* En Amazon sin asociar el número no se enseña (ni aquí ni en el title): «sin asociar», en gris. */}
+        {/* En Amazon sin asociar el número no se enseña (ni aquí ni en el title): «sin asociar», en gris. Sin número (el histórico de la
+            hoja casi nunca lo trae), en blanco (0.9.41). */}
         <button type="button" aria-pressed={elegida} title="Ver el detalle del pedido" className="cursor-pointer bg-transparent p-0 text-left">
-          {pedidoVisible(f) ?? <span className="text-azul-gris italic">sin asociar</span>}
+          {sinAsociar(f) ? <span className="text-azul-gris italic">sin asociar</span> : f.pedido}
         </button>
       </td>
       <td className={td} title={servidor === 'ENVIADA' ? detalleEnvio(f) : undefined}>{conMarca ? (

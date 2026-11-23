@@ -68,6 +68,16 @@ describe('Pedidos: la columna «Pedido» en Amazon', () => {
     expect(tr('skuStockroom').innerHTML).not.toContain('333-3333333-3333333')
   })
 
+  it('una fila de la hoja sin número de pedido deja la celda en blanco, no «sin asociar» (0.9.41)', async () => {
+    // El histórico de PEDIDOS 2026 casi nunca trae el número, y sus filas no tienen canal: no es «falta asociar», es que no lo hay.
+    respuesta = [fila({ idFila: 6, pedido: null, sku: 'skuHojaSinNumero', plataforma: 'AMZ', canal: null, estado: 'HISTORICO', editable: false })]
+    abrir()
+    await esperar()
+    const celda = within(tr('skuHojaSinNumero')).getByRole('button', { name: 'Ver el detalle del pedido' })
+    expect(celda).toHaveTextContent(/^$/)
+    expect(screen.queryByText('sin asociar')).not.toBeInTheDocument()
+  })
+
   it('asociada enseña el número; una web, siempre', async () => {
     abrir()
     await esperar()
