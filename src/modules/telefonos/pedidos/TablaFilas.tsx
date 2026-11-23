@@ -10,8 +10,8 @@ import { comoDesplazar, scrollParaCentrar, useVolver, type Posicion } from './vo
 import { useStore } from '@/shared/lib/store'
 import { ariaOrden, CabeceraOrden, type DireccionOrden, type TextosOrden } from '@/shared/ui/CabeceraOrden'
 import { estadoPedidos, type FalloImei } from './estado'
-import { nivelSalida, textoSalida } from './salida'
-import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, tonoFila, type EstadoPantalla } from './filas'
+import { nivelSalida } from './salida'
+import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, pedidoVisible, saltaElLector, textoEstado, tonoFila, type EstadoPantalla } from './filas'
 
 type Columna = (typeof COLUMNAS)[number]
 
@@ -63,9 +63,6 @@ export const COLOR_ETIQUETA: Record<EstadoPantalla, string> = {
 const COLOR_RETRASO = 'bg-[#b42318] text-white'
 const COLOR_HOY = 'bg-[#fde2e1] text-[#b42318]'
 
-/** Un espacio y «dd/mm» de una fecha del servidor, o nada. */
-const diaMes = (iso: string | null) => (iso ? ` ${dia(iso).slice(0, 5)}` : '')
-
 /** El estado de la fila como etiqueta con texto (el color nunca es la única señal). Con etiqueta generada o enviada, tras ella van el
  *  transportista y el seguimiento, visibles sin esperar al ratón. «Etiqueta generada» lleva la fecha del envío y «Enviado» (etiqueta
  *  impresa), la de la impresión. */
@@ -73,15 +70,7 @@ export function EtiquetaEstado({ fila: f, estado, conDetalle = true, hoy }: { fi
   // La fecha de salida (spec 2026-11-18 §3): solo si se da `hoy`. En «falta por enviar» el texto añade «con retraso» o «sale hoy».
   const nivel = hoy ? nivelSalida(f, hoy) : null
   const detalle = conDetalle && (estado === 'GENERADA' || estado === 'ENVIADO') ? detalleEnvio(f, ' ') : undefined
-  const texto = {
-    PENDIENTE: (nivel && textoSalida(f, hoy!)) || 'Pendiente',
-    FALTA_ENVIAR: `Envío parcial · falta por enviar${nivel === 'RETRASO' ? ' · con retraso' : nivel === 'HOY' ? ' · sale hoy' : ''}`,
-    GENERADA: `Etiqueta generada${diaMes(f.envioFecha)}`,
-    ENVIADO: `Enviado${diaMes(f.impresaEn)}`,
-    NO_PENDIENTE: 'Ya no está en ShippyPro',
-    CANCELADO: 'Cancelado',
-    HISTORICO: 'De la hoja',
-  }[estado]
+  const texto = textoEstado(f, estado, hoy)
   return (
     <>
       <span className={cn(ETIQUETA, nivel === 'RETRASO' ? COLOR_RETRASO : nivel === 'HOY' ? COLOR_HOY : COLOR_ETIQUETA[estado])}>{texto}</span>

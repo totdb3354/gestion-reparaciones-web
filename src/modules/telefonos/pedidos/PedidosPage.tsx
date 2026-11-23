@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { hoyMadrid } from '@/shared/lib/fechas'
 import { useStore } from '@/shared/lib/store'
 import { cn } from '@/shared/lib/utils'
+import { descargarCsv } from '@/shared/lib/csv'
+import { useRegistrarExportable } from '@/shared/ui/exportable'
 import { PanelDeslizante, usePresencia } from '@/shared/ui/Deslizante'
 import { useFilas } from '../api'
 import { estadoPedidos, type EstadoPedidos } from './estado'
 import { FiltroColumna, FiltroEnviado, FiltroImei, FiltroTienda } from './FiltroColumna'
 import { DescargarBuscar } from './DescargarBuscar'
+import { CABECERAS_PEDIDOS, NOMBRE_CSV_PEDIDOS, filaPedidoCsv } from './csv'
 import { AyudaPedidos } from './AyudaPedidos'
 import { PanelFila } from './PanelFila'
 import { FiltroFechas } from './FiltroFechas'
@@ -62,6 +65,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const contadorPuesto = contadorAplicado(filtros)
   const vistas = useMemo(() => ordenarPorSku(filtrarColumnas(filas, filtros, hoy), e.ordenSku), [filas, filtros, hoy, e.ordenSku])
   const ventana = vistas.length > umbralVentana
+  // «Descargar CSV» del menú de usuario: lo que se ve (periodo o búsqueda, filtros de columna y orden). Sin filas, la opción sale deshabilitada.
+  useRegistrarExportable(vistas.length > 0 ? () => descargarCsv(NOMBRE_CSV_PEDIDOS, CABECERAS_PEDIDOS, vistas.map((f) => filaPedidoCsv(f, hoy))) : null)
   // Con la tabla a trozos el buscador del navegador solo vería lo pintado: Control+F lleva al buscador de la pantalla. Sin ventana, no se toca.
   useEffect(() => {
     if (!ventana) return
