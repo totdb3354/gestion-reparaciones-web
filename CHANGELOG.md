@@ -9,6 +9,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Pedidos, Amazon: el libro de ventas corrige también el IMEI de los pedidos con la etiqueta hecha (impresa o no), si el móvil
   cuadra con el pedido. En «para revisar» salen tres motivos nuevos: el libro pone el IMEI en dos pedidos, el IMEI no está en NSYS
   o el móvil no cuadra con el pedido (y qué móvil es).
+- Un móvil devuelto y vuelto a vender (el libro lo pone en un pedido viejo ya asociado y en uno nuevo) se asocia al nuevo sin
+  quitárselo al viejo.
+- Arreglo de la 0.9.45: un eSIM en un pedido de SIM física (o al revés) salía en naranja como «modelo: 14 eSIM»; ahora sale como
+  «eSIM» (o «SIM física»), sin contar en «no cuadran».
 
 ## [0.9.45] - 2026-11-24 — Pedidos: la celda del IMEI dice todo en corto; cajas «Caja · …»
 
