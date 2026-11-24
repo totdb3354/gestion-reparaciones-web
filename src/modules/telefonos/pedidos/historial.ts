@@ -63,3 +63,9 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
     .sort((a, b) => (a.e.cuando === b.e.cuando ? RANGO[b.e.tipo] - RANGO[a.e.tipo] || a.i - b.i : a.e.cuando < b.e.cuando ? 1 : -1))
     .map(({ e }) => e)
 }
+
+/** Quién figura como autor de un apunte de IMEI: el usuario; sin usuario, el libro de ventas (detalle «LIBRO») o la carga de la hoja. */
+export function autorImei(c: CambioImei): string {
+  if (c.usuario) return c.usuario
+  return c.tipo === 'IMEI' && c.detalle === 'LIBRO' ? 'Libro de ventas' : 'Carga desde la hoja'
+}

@@ -5,7 +5,7 @@ import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useCambiosImei, useFaltaEnviar } from '../api'
 import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
-import { construirHistorial, type EntradaHistorial } from './historial'
+import { autorImei, construirHistorial, type EntradaHistorial } from './historial'
 import { EditorMarca } from './EditorMarca'
 import { BotonCancelarMovil, BotonQuitarCancelacion } from './CancelarMovil'
 import { BotonValidarSku } from './BotonValidarSku'
@@ -58,7 +58,7 @@ function Historial({ fila }: { fila: FilaVista }) {
         {entradas.map((e) => (
           <li key={e.clave} className="border-b border-dashed border-form-fila-brd py-1.5 text-[12px]">
             {e.tipo === 'imei'
-              ? <><span className="font-bold">{e.cambio.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(e.cambio)}</>
+              ? <><span className="font-bold">{autorImei(e.cambio)}</span> {textoCambio(e.cambio)}</>
               : e.tipo === 'marca'
               ? <><span className="font-bold">{e.texto}</span>{e.quien && <> · {e.quien}</>}</>
               : <><span className="font-bold">{textoHito(e).quien}</span>{textoHito(e).texto}</>}
