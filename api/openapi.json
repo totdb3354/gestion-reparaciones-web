@@ -5747,8 +5747,35 @@
           }
         }
       },
+      "DetalleAviso" : {
+        "required" : [ "dato", "ms", "na", "sim", "trabajos" ],
+        "type" : "object",
+        "properties" : {
+          "sim" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "na" : {
+            "type" : "boolean"
+          },
+          "ms" : {
+            "type" : "boolean"
+          },
+          "dato" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "trabajos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrabajoAbierto"
+            }
+          }
+        },
+        "nullable" : true
+      },
       "FilaVista" : {
-        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "fechaSalida", "idFila", "imei", "imeiReservado", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pais", "pedido", "plataforma", "reservadaEn", "salidaDesde", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
+        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "detalle", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "fechaSalida", "idFila", "imei", "imeiReservado", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pais", "pedido", "plataforma", "reservadaEn", "salidaDesde", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5894,6 +5921,30 @@
             "nullable" : true
           },
           "reservadaEn" : {
+            "type" : "string",
+            "format" : "date-time",
+            "nullable" : true
+          },
+          "detalle" : {
+            "$ref" : "#/components/schemas/DetalleAviso"
+          }
+        }
+      },
+      "TrabajoAbierto" : {
+        "required" : [ "categoria", "desde", "entregado", "tecnico" ],
+        "type" : "object",
+        "properties" : {
+          "categoria" : {
+            "type" : "string"
+          },
+          "tecnico" : {
+            "type" : "string"
+          },
+          "desde" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entregado" : {
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
@@ -6330,27 +6381,6 @@
           },
           "esEsim" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "TrabajoAbierto" : {
-        "required" : [ "categoria", "desde", "entregado", "tecnico" ],
-        "type" : "object",
-        "properties" : {
-          "categoria" : {
-            "type" : "string"
-          },
-          "tecnico" : {
-            "type" : "string"
-          },
-          "desde" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "entregado" : {
-            "type" : "string",
-            "format" : "date-time",
-            "nullable" : true
           }
         }
       },

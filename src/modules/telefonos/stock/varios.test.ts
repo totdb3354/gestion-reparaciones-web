@@ -62,10 +62,10 @@ describe('pegar varios IMEIs (spec 0.9.18 §4.9)', () => {
 
   it('la tabla para Excel: separada por tabuladores, con cabecera y «Quién lo tiene»', () => {
     const { lineas } = analizar('350000000000001\nx')
-    const filas = cruzar(lineas, [movilComprobado({ imei: '350000000000001', ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico 1' })] })])
+    const filas = cruzar(lineas, [movilComprobado({ imei: '350000000000001', ubicacion: 'Caja · Reparación', trabajos: [trabajo({ tecnico: 'Técnico 1' })] })])
     expect(paraExcel(filas, AHORA)).toBe([
       '#\tIMEI\tModelo\tColor\tGrado\tUbicación\tQuién lo tiene\tEstado',
-      '1\t350000000000001\tiPhone 13 128GB\tAzul\tA\tTaller · Reparación\tTécnico 1\tLibre',
+      '1\t350000000000001\tiPhone 13 128GB\tAzul\tA\tCaja · Reparación\tTécnico 1\tLibre',
       '2\tx\t\t\t\t\t\tNo es un IMEI',
     ].join('\n'))
   })

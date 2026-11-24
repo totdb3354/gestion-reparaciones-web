@@ -324,7 +324,7 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
     const user = userEvent.setup()
     server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
       { imeiSn: '353918700112233', modelo: '14', modeloMaestro: '14', capacidad: '256GB', color: 'Negro', estado: 'STOCK',
-        ubicacion: 'Listos', fechaVenta: null, colorNsys: null, esEsim: true },
+        ubicacion: 'Caja · Listos', fechaVenta: null, colorNsys: null, esEsim: true },
     ])))
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })
     await user.type(await screen.findByPlaceholderText('Filtrar por IMEI'), '353918700112233')
@@ -335,7 +335,7 @@ describe('ImeisPage: móviles sin trabajos del taller (0.9.17)', () => {
   it('un IMEI con trabajos no sale en el aviso aunque los filtros de fecha lo escondan', async () => {
     const user = userEvent.setup()
     server.use(http.get('*/api/stock-telefonos/buscar', () => HttpResponse.json([
-      { imeiSn: A, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', estado: 'STOCK', ubicacion: 'Listos', fechaVenta: null },
+      { imeiSn: A, modelo: '16', modeloMaestro: '16', capacidad: '128GB', color: 'Negro', estado: 'STOCK', ubicacion: 'Caja · Listos', fechaVenta: null },
     ])))
     filtrosImeis.set({ ...filtrosImeis.get(), desde: '2030-01-01' })
     renderConProviders(<ImeisPage />, { sesion: SESION_SUPER, ruta: '/reparaciones/imeis' })

@@ -227,7 +227,7 @@ describe('ImeiDetallePage: ficha de NSYS y rastro (0.9.17)', () => {
     expect(ficha).toHaveTextContent('Grado A (antes C) · batería nueva')
     await user.click(await screen.findByRole('button', { name: 'Ver rastro (2)' }))
     const panel = screen.getByRole('dialog', { name: 'Rastro' })
-    expect(within(panel).getByText('Pasa a Listos')).toBeInTheDocument()
+    expect(within(panel).getByText('Pasa a Caja · Listos')).toBeInTheDocument()
     expect(screen.getByText('IMEI: ' + A)).toBeInTheDocument()
 
     await user.click(within(panel).getByRole('button', { name: 'Glass terminado' }))

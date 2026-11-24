@@ -11,13 +11,13 @@ import { StockTelefonosPage } from './StockTelefonosPage'
 // iPhone 13: 128GB con 001 (Listos) y 003 (En revisión), 256GB con 006 y 512GB solo de pedido (007); además 002 de pedido
 // y 004 que no cuenta. iPhone 14: 005. En stock, 4.
 const STOCK = [
-  movil({ imeiSn: '350000000000001', color: 'Azul', grado: 'A', ubicacion: 'Listos', sku: 'i13128AzulA', dias: 2 }),
-  movil({ imeiSn: '350000000000002', color: 'Azul', grado: 'A-', bateriaNueva: true, ubicacion: 'Taller · Glass', estado: 'DE_PEDIDO', sku: 'i13128AzulA-100', dias: 30 }),
+  movil({ imeiSn: '350000000000001', color: 'Azul', grado: 'A', ubicacion: 'Caja · Listos', sku: 'i13128AzulA', dias: 2 }),
+  movil({ imeiSn: '350000000000002', color: 'Azul', grado: 'A-', bateriaNueva: true, ubicacion: 'Caja · Glass', estado: 'DE_PEDIDO', sku: 'i13128AzulA-100', dias: 30 }),
   movil({ imeiSn: '350000000000003', color: 'Rosa', grado: 'n/a', ubicacion: 'En revisión', sku: null, dias: 4 }),
   movil({ imeiSn: '350000000000004', color: 'Azul', grado: 'B', ubicacion: 'Esperando pieza', estado: 'NO_CUENTA', sku: 'i13128AzulB', dias: 9 }),
-  movil({ imeiSn: '350000000000005', modelo: '14', modeloMaestro: '14', ubicacion: 'Listos', sku: 'i14128AzulA', dias: 3 }),
-  movil({ imeiSn: '350000000000006', capacidad: '256GB', color: 'Rosa', grado: 'B', ubicacion: 'Listos', sku: 'i13256RosaB', dias: 1 }),
-  movil({ imeiSn: '350000000000007', capacidad: '512GB', ubicacion: 'Listos', estado: 'DE_PEDIDO', sku: 'i13512AzulA', dias: 50 }),
+  movil({ imeiSn: '350000000000005', modelo: '14', modeloMaestro: '14', ubicacion: 'Caja · Listos', sku: 'i14128AzulA', dias: 3 }),
+  movil({ imeiSn: '350000000000006', capacidad: '256GB', color: 'Rosa', grado: 'B', ubicacion: 'Caja · Listos', sku: 'i13256RosaB', dias: 1 }),
+  movil({ imeiSn: '350000000000007', capacidad: '512GB', ubicacion: 'Caja · Listos', estado: 'DE_PEDIDO', sku: 'i13512AzulA', dias: 50 }),
 ]
 
 beforeEach(() => {
@@ -102,7 +102,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     expect(filas()).toHaveLength(1)
     // El filtro, no la cabecera de la tabla (0.9.28: las cabeceras también son botones).
     await user.click(screen.getAllByRole('button', { name: 'Ubicación' }).find((b) => !b.closest('table')) as HTMLElement)
-    await user.click(screen.getByRole('checkbox', { name: 'Listos (1)' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Caja · Listos (1)' }))
     expect(filas()).toHaveLength(1)
     // La tabla color × grado respeta los demás filtros: en Listos no hay ningún Rosa, así que su fila desaparece.
     expect(within(matriz()).queryByRole('button', { name: 'Color Rosa' })).not.toBeInTheDocument()
@@ -411,10 +411,10 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
   })
 
   const CON_TRABAJOS = [
-    movil({ imeiSn: '350000000000011', ubicacion: 'Taller · Reparación', dias: 3,
+    movil({ imeiSn: '350000000000011', ubicacion: 'Caja · Reparación', dias: 3,
       trabajos: [trabajo({ tecnico: 'Técnico 1' }), trabajo({ categoria: 'GLASS', tecnico: 'Técnico 3' })] }),
-    movil({ imeiSn: '350000000000012', ubicacion: 'Taller · Glass', dias: 5 }),
-    movil({ imeiSn: '350000000000013', ubicacion: 'Listos', dias: 1, trabajos: [trabajo({ tecnico: 'Técnico 2', desde: '2026-01-12T09:00:00' })] }),
+    movil({ imeiSn: '350000000000012', ubicacion: 'Caja · Glass', dias: 5 }),
+    movil({ imeiSn: '350000000000013', ubicacion: 'Caja · Listos', dias: 1, trabajos: [trabajo({ tecnico: 'Técnico 2', desde: '2026-01-12T09:00:00' })] }),
   ]
 
   it('«Quién lo tiene»: el descuadre y la caja sin asignar primero, con sus avisos junto a los filtros', async () => {
@@ -529,7 +529,7 @@ describe('Stock de teléfonos (spec pieza 1 §9.2 y spec 0.9.18 §4)', () => {
     ])))
     abrir()
     await user.type(await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' }), '3539')
-    expect(await screen.findByRole('button', { name: /^353918700112233 · iPhone 13 128GB Rojo taller NSYS: Azul · Listos$/ }))
+    expect(await screen.findByRole('button', { name: /^353918700112233 · iPhone 13 128GB Rojo taller NSYS: Azul · Caja · Listos$/ }))
       .toBeInTheDocument()
   })
 })
@@ -714,6 +714,6 @@ describe('el buscador de IMEI con la eSIM (0.9.24)', () => {
     ])))
     abrir()
     await user.type(await screen.findByRole('searchbox', { name: 'Buscar IMEI en todos los móviles' }), '3500')
-    expect(await screen.findByRole('button', { name: /^350000000000071 · iPhone 14 eSIM 256GB Negro · Listos$/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^350000000000071 · iPhone 14 eSIM 256GB Negro · Caja · Listos$/ })).toBeInTheDocument()
   })
 })

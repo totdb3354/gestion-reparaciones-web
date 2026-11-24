@@ -71,9 +71,9 @@ describe('Pedidos como la hoja: la tabla', () => {
   it('la celda mal lleva su motivo; la que cuadra, su caja; la vacía invita a poner el IMEI', async () => {
     abrir()
     const mal = await screen.findByRole('button', { name: /350000000000999/ })
-    expect(mal).toHaveTextContent('otro color o grado: es i14eSIM128RojoA')
+    expect(mal).toHaveTextContent('otro color o grado')
     expect(screen.getByRole('button', { name: /350000000000001/ })).toHaveTextContent('CAJA LISTOS')
-    expect(screen.getByRole('button', { name: /350000000000002/ })).toHaveTextContent('es un Ms')
+    expect(screen.getByRole('button', { name: /350000000000002/ })).toHaveTextContent('MS')
     expect(await celdaVacia()).toBeInTheDocument()
   })
 
@@ -139,7 +139,7 @@ describe('Pedidos como la hoja: la tabla', () => {
     abrir()
     const vacias = await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ })
     expect(vacias).toHaveLength(2)
-    expect(screen.getByRole('button', { name: /350000000000003/ })).toHaveTextContent('ya está en otro pedido')
+    expect(screen.getByRole('button', { name: /350000000000003/ })).toHaveTextContent('en otro pedido')
   })
 
   it('una fila del histórico es texto: sin botón, y sin invitación si no tiene IMEI', async () => {

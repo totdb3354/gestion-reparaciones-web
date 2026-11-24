@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import type { FilaVista } from '@/shared/api/client'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { cn } from '@/shared/lib/utils'
@@ -9,11 +9,15 @@ import { estadoPedidos, type FalloImei } from './estado'
 import { CIFRAS_IMEI, QUIETO_MS, SUSTITUIR_MS, luhnCuadra } from './imei'
 import { EditorMarca } from './EditorMarca'
 import { BotonValidarSku } from './BotonValidarSku'
-import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, estaValidada, textoMotivo, textoMotivoValidado, tonoFila } from './filas'
+import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, estaValidada, lineasAviso, partesAviso, textoMotivoValidado, tonoFila, type ParteAviso } from './filas'
 
 export const FONDO: Record<string, string> = {
-  aviso: 'bg-form-agotado-bg',
+  na: 'bg-form-agotado-bg',
   mal: 'bg-[#FFE0B2]',
+}
+export const TONO_PARTE: Record<ParteAviso['tono'], string> = {
+  naranja: 'text-[#B45309]',
+  ambar: 'text-form-agotado-text',
 }
 const NIVEL: Record<1 | 2 | 3, string> = {
   1: 'bg-fila-reparado-bg text-[#2f7d3b]',
@@ -38,15 +42,16 @@ type Props = {
 export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: Props) {
   const clase = claseCelda(fila)
   const validada = estaValidada(fila)
-  // Validada: el aviso original ya no se escribe en la celda (sale una marca pequeña «validado») y queda en el title.
-  const motivo = validada ? null : textoMotivo(fila)
+  // Validada: el motivo de SKU ya no se escribe (sale «validado» y queda en el title); la SIM, el N/A y el MS sí.
+  const partes = partesAviso(fila)
+  const lineas = lineasAviso(fila)
   const avisoValidado = validada ? `SKU validado${fila.validadaPor ? ` por ${fila.validadaPor}` : ''}: ${textoMotivoValidado(fila) ?? 'aviso de SKU'}` : null
   // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
   const textoFallo = fallo ? (fallo.duplicado ? fallo.mensaje : fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
   // Reservada: sin IMEI puesto, el ERP ya eligió un teléfono; se ve tenue, sin texto, hasta que se pique para confirmarlo.
   const reservado = !fila.imei && !!fila.imeiReservado
   const boton = (
-    <button type="button" title={fallo ? textoFallo : reservado ? 'Reservado: pica este IMEI para confirmarlo o pon otro' : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado ?? motivo ?? fila.caja].filter(Boolean).join(' · ')}
+    <button type="button" title={fallo ? textoFallo : reservado ? 'Reservado: pica este IMEI para confirmarlo o pon otro' : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado, ...lineas, partes.length === 0 && !avisoValidado ? fila.caja : null].filter(Boolean).join('\n')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
         clase === 'vacia' && !reservado && 'font-sans italic text-texto-sub')}>
       {fallo
@@ -54,13 +59,20 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
         : reservado
           ? <span data-reservado className="shrink-0 opacity-45">{fila.imeiReservado}</span>
           : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
-      {!fallo && motivo && (
-        <span className={cn('min-w-0 truncate font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
+      {!fallo && partes.length > 0 && (
+        <span className="min-w-0 truncate font-sans text-[11px] font-bold">
+          {partes.map((p, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span className="font-normal text-[#b9a27a]"> · </span>}
+              <span className={TONO_PARTE[p.tono]}>{p.texto}</span>
+            </Fragment>
+          ))}
+        </span>
       )}
       {!fallo && validada && (
         <span data-validado className="shrink-0 rounded-lg bg-fila-reparado-bg px-1.5 py-px font-sans text-[10.5px] font-bold text-[#2f7d3b]">validado</span>
       )}
-      {!fallo && !motivo && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
+      {!fallo && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
   )
   const tono = tonoFila(fila)

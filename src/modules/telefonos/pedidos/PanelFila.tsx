@@ -10,7 +10,7 @@ import { construirHistorial, type EntradaHistorial, type TonoReserva } from './h
 import { EditorMarca } from './EditorMarca'
 import { BotonCancelarMovil, BotonQuitarCancelacion } from './CancelarMovil'
 import { BotonValidarSku } from './BotonValidarSku'
-import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, sinAsociar, esAmazon, textoMarca, textoMotivo, textoMotivoValidado, textoTienda, tiendaDe } from './filas'
+import { colorMarca, esCanalWeb, estadoDe, estadoPantalla, nombreTransportista, sinAsociar, esAmazon, textoMarca, lineasAviso, textoMotivoValidado, textoTienda, tiendaDe } from './filas'
 
 const dia = (iso: string | null) => (iso ? diaNsys(iso) : '')
 /** «2026-11-09T10:30:00» → «09/11/2026 10:30» (hora de Madrid, cortada del texto como las demás fechas). */
@@ -70,7 +70,7 @@ function Historial({ fila }: { fila: FilaVista }) {
           <li key={e.clave} data-reserva={e.tipo === 'reserva' ? e.tono : undefined}
             className={cn('border-b border-dashed border-form-fila-brd py-1.5 text-[12px]', e.tipo === 'reserva' && cn('border-l-[3px] pl-2', TONO_RESERVA[e.tono].raya))}>
             {e.tipo === 'reserva'
-              ? <><span data-etiqueta className={cn('mr-1 inline-block rounded-[10px] px-2 text-[11px] font-bold', TONO_RESERVA[e.tono].etiqueta)}>{e.etiqueta}</span>{e.texto}{e.caja && <> <span data-caja className={cn('inline-block rounded-md px-2 py-px text-[11px] font-bold', clasesUbicacion(e.caja))}>Caja · {e.caja}</span></>}</>
+              ? <><span data-etiqueta className={cn('mr-1 inline-block rounded-[10px] px-2 text-[11px] font-bold', TONO_RESERVA[e.tono].etiqueta)}>{e.etiqueta}</span>{e.texto}{e.caja && <> <span data-caja className={cn('inline-block rounded-md px-2 py-px text-[11px] font-bold', clasesUbicacion(e.caja))}>{e.caja}</span></>}</>
               : e.tipo === 'imei'
               ? <><span className="font-bold">{e.cambio.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(e.cambio)}</>
               : e.tipo === 'marca'
@@ -160,7 +160,7 @@ function SeccionMarca({ fila: f }: { fila: FilaVista }) {
 /** El panel de la derecha (spec v2 §3.5): el pedido, el móvil y el historial de la fila. Solo enseña; el IMEI se pone en la celda. */
 export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: () => void }) {
   const estado = estadoPantalla(f)
-  const motivo = textoMotivo(f)
+  const motivo = lineasAviso(f).join(' · ') || null
   const envio = estadoDe(f) === 'ENVIADA'
   return (
     <section aria-label="Detalle del pedido" className="w-[min(380px,40vw)] min-w-0 shrink-0 overflow-x-hidden overflow-y-auto rounded-md border border-borde-input bg-superficie px-3.5 py-3">
@@ -192,7 +192,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
           <Dato nombre="IMEI"><span className="font-mono text-[12px]">{f.imei}</span></Dato>
           {f.skuMovil && <Dato nombre="Es"><span className="font-mono text-[12px]">{f.skuMovil}</span></Dato>}
           {f.caja && <Dato nombre="Caja">{f.caja}</Dato>}
-          {motivo && !f.motivoValidado && <Dato nombre="Aviso">{motivo}</Dato>}
+          {motivo && <Dato nombre="Aviso">{motivo}</Dato>}
           {f.motivoValidado && (
             <Dato nombre="SKU validado">
               {textoMotivoValidado(f)}

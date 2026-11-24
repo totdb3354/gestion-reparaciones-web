@@ -77,6 +77,16 @@ describe('construirHistorial', () => {
       { tipo: 'marca', texto: 'Marca quitada al poner el IMEI (En espera de stock)' },
     ])
   })
+
+  it('una validación vieja (COLOR_O_GRADO) sigue leyéndose «otro color o grado», en corto', () => {
+    const h = construirHistorial(fila(), [cambio('2026-11-16T09:30:00', { tipo: 'VALIDADA', detalle: 'COLOR_O_GRADO', imeiNuevo: null })])
+    expect(h.find((e) => e.tipo === 'marca')).toMatchObject({ texto: 'SKU validado (otro color o grado)' })
+  })
+
+  it('una validación sin detalle se lee «SKU validado», sin «(revisar)»', () => {
+    const h = construirHistorial(fila(), [cambio('2026-11-16T09:30:00', { tipo: 'VALIDADA', detalle: null, imeiNuevo: null })])
+    expect(h.find((e) => e.tipo === 'marca')).toMatchObject({ texto: 'SKU validado' })
+  })
 })
 
 describe('construirHistorial: la reserva de IMEI', () => {
@@ -84,8 +94,8 @@ describe('construirHistorial: la reserva de IMEI', () => {
   const una = (c: Partial<CambioImei>) => construirHistorial(fila({ fecha: '2026-11-09' }), [cambio('2026-11-24T10:00:00', { usuario: null, imeiNuevo: null, ...c })]).filter((e) => e.tipo === 'reserva')
 
   it('RESERVADO: etiqueta azul, el IMEI con el porqué y la caja aparte (aunque la caja lleve « · »)', () => {
-    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 1 · Caja · Listos · A-' })).toMatchObject([{ etiqueta: 'Reservado', tono: 'res', texto: `${A} · Puesto 1 · A-`, caja: 'Listos', quien: 'ERP' }])
-    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 2 · Caja · Taller · Glass · A' })).toMatchObject([{ texto: `${A} · Puesto 2 · A`, caja: 'Taller · Glass' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 1 · Caja · Listos · A-' })).toMatchObject([{ etiqueta: 'Reservado', tono: 'res', texto: `${A} · Puesto 1 · A-`, caja: 'Caja · Listos', quien: 'ERP' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 2 · Caja · Pantalla rota · A' })).toMatchObject([{ texto: `${A} · Puesto 2 · A`, caja: 'Caja · Pantalla rota' }])
     expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3' })).toMatchObject([{ texto: `${A} · Puesto 3`, caja: undefined }])
   })
   it('RESERVA_CONFIRMADA: verde, por quién; sin usuario, por el ERP', () => {

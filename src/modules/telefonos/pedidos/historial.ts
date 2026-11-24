@@ -1,5 +1,5 @@
 import type { CambioImei, FilaVista } from '@/shared/api/client'
-import { textoMarca, textoMotivo } from './filas'
+import { textoMarca, textoMotivoCorto } from './filas'
 
 /** Una entrada del «Historial» del panel: un cambio de IMEI (del servidor) o un hito de la propia fila. `cuando` es el instante
  *  para ordenar («2026-11-09T10:30:00»); `conHora` es false en el hito que solo trae el día (la entrada desde ShippyPro). */
@@ -35,14 +35,14 @@ function entradasDeReserva(c: CambioImei, i: number, cuando: string): EntradaHis
   const imei = c.imeiAnterior ?? c.imeiNuevo ?? ''
   switch (c.tipo) {
     case 'RESERVADO': {
-      // detalle = «Puesto 1 · Caja · Listos · A-»: la caja (que puede llevar « · », como «Taller · Glass») sale aparte, como píldora.
+      // detalle = «Puesto 1 · Caja · Listos · A-»: la caja (el nombre de la ubicación del ERP, «Caja · Listos»; puede llevar más « · ») sale aparte, como píldora.
       const partes = (c.detalle ?? '').split(' · ')
       const k = partes.indexOf('Caja')
       let caja: string | undefined
       let resto = partes
       if (k >= 0 && partes.length > k + 1) {
         const fin = partes.length > k + 2 ? partes.length - 1 : partes.length
-        caja = partes.slice(k + 1, fin).join(' · ')
+        caja = `Caja · ${partes.slice(k + 1, fin).join(' · ')}`
         resto = [...partes.slice(0, k), ...partes.slice(fin)]
       }
       return [{ ...base, clave: `i${i}`, etiqueta: 'Reservado', tono: 'res', texto: [imei, ...resto.filter(Boolean)].join(' · '), caja, quien: erp }]
@@ -85,7 +85,7 @@ function entradaDeCambio(cambio: CambioImei, i: number, cuando: string): Entrada
     }
     if (cambio.tipo === 'VALIDADA') {
       // detalle = el código del motivo de SKU que se dio por bueno.
-      const que = textoMotivo({ motivo: cambio.detalle, skuMovil: null } as FilaVista)
+      const que = cambio.detalle ? textoMotivoCorto({ motivo: cambio.detalle, skuMovil: null, detalle: null } as FilaVista) : null
       return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `SKU validado${que ? ` (${que})` : ''}`, quien: cambio.usuario ?? '' }
     }
     if (cambio.tipo === 'VALIDACION_QUITADA') {

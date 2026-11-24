@@ -9,8 +9,8 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
   })
 
   it('cada tipo de evento', () => {
-    expect(verEvento(eventoRastro())).toMatchObject({ titulo: 'Pasa a Listos', detalle: 'Desde: Taller · Glass', color: 'bg-fila-recibido-brd' })
-    expect(verEvento(eventoRastro({ a: null, aNsys: 'Pedidos realizados', de: 'Listos' })).titulo).toBe('De pedido (vendido, pendiente de envío)')
+    expect(verEvento(eventoRastro())).toMatchObject({ titulo: 'Pasa a Caja · Listos', detalle: 'Desde: Caja · Glass', color: 'bg-fila-recibido-brd' })
+    expect(verEvento(eventoRastro({ a: null, aNsys: 'Pedidos realizados', de: 'Caja · Listos' })).titulo).toBe('De pedido (vendido, pendiente de envío)')
     expect(verEvento(eventoRastro({ a: null, aNsys: 'Desguace' })).titulo).toBe('Pasa a Desguace · sale del stock')
     expect(verEvento(eventoRastro({ tipo: 'ENTRADA', de: null, a: null, aNsys: null, soloDia: true })).titulo).toBe('Entra en el lote BT-9001')
     expect(verEvento(eventoRastro({ tipo: 'REENTRADA', a: 'BT-9002' })).titulo).toBe('Vuelve a entrar (lote BT-9002)')
@@ -34,9 +34,9 @@ describe('textos del rastro (spec pieza 1 §9.3)', () => {
   })
 
   it('el cambio de caja que es la revisión: «Revisado → caja», con su marca (spec 0.9.18 §5.3)', () => {
-    expect(verEvento(eventoRastro({ de: 'En revisión', a: 'Taller · Pulir', aNsys: 'CAJA PULIR', revision: 'ENTRADA' })))
-      .toMatchObject({ titulo: 'Revisado → Taller · Pulir', detalle: 'Desde: En revisión', revision: true })
-    expect(verEvento(eventoRastro({ de: 'Devolución', a: 'Listos', revision: 'DEVOLUCION' })).titulo).toBe('Revisado (devolución) → Listos')
+    expect(verEvento(eventoRastro({ de: 'En revisión', a: 'Caja · Pulir', aNsys: 'CAJA PULIR', revision: 'ENTRADA' })))
+      .toMatchObject({ titulo: 'Revisado → Caja · Pulir', detalle: 'Desde: En revisión', revision: true })
+    expect(verEvento(eventoRastro({ de: 'Devolución', a: 'Caja · Listos', revision: 'DEVOLUCION' })).titulo).toBe('Revisado (devolución) → Caja · Listos')
     expect(verEvento(eventoRastro({ de: 'En revisión', a: null, aNsys: 'Desguace', revision: 'ENTRADA' })).titulo).toBe('Revisado → Desguace')
     expect(verEvento(eventoRastro()).revision).toBeFalsy()
   })

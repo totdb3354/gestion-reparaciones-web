@@ -180,7 +180,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     await user.click(celda('Cliente Web A'))
     const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
     expect(p.querySelector('dl')!.textContent).toMatch(/TiendaFonestockroom.*PlataformaCliente Web A/)
-    for (const t of ['402-0000000-0000042', 'Cliente Web A', 'Fonestockroom', 'i13128AzulA', '09/11/2026', '08/11/2026', 'Pendiente', '350000000000011', 'i14128NegroA', 'CAJA LISTOS', 'otro modelo, capacidad o eSIM']) {
+    for (const t of ['402-0000000-0000042', 'Cliente Web A', 'Fonestockroom', 'i13128AzulA', '09/11/2026', '08/11/2026', 'Pendiente', '350000000000011', 'i14128NegroA', 'CAJA LISTOS', 'otro modelo: es i14128NegroA']) {
       expect(p).toHaveTextContent(t)
     }
     expect(within(p).getByRole('heading', { name: 'Historial' })).toBeInTheDocument()
@@ -200,7 +200,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     const A = '350000000000010', B = '350000000000020'
     cambios['2'] = [
       { usuario: 'Fati', fecha: '2026-11-24T11:00:00', imeiAnterior: A, imeiNuevo: B, tipo: 'RESERVA_SUSTITUIDA', detalle: null },
-      { usuario: null, fecha: '2026-11-24T10:00:00', imeiAnterior: null, imeiNuevo: A, tipo: 'RESERVADO', detalle: 'Puesto 1 · Caja · Taller · Glass · A-' },
+      { usuario: null, fecha: '2026-11-24T10:00:00', imeiAnterior: null, imeiNuevo: A, tipo: 'RESERVADO', detalle: 'Puesto 1 · Caja · Glass · A-' },
     ]
     const user = userEvent.setup()
     abrir()
@@ -216,7 +216,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     expect(lista).toHaveTextContent(`${B} en lugar del reservado ${A}`)
     expect(lista).toHaveTextContent(`${A} · Puesto 1 · A-`)
     const caja = lista.querySelector('[data-caja]')!
-    expect(caja).toHaveTextContent('Caja · Taller · Glass')
+    expect(caja).toHaveTextContent('Caja · Glass')
     expect(caja).toHaveClass('bg-tipo-glass-bg')
     expect(lista).toHaveTextContent('24/11/2026 10:00 · ERP')
     expect(lista).toHaveTextContent('24/11/2026 11:00 · Fati')
@@ -358,5 +358,20 @@ describe('Pedidos v2: el panel de la fila', () => {
     await queryClient.invalidateQueries()
     await waitFor(() => expect(panel()).toBeNull())
     expect(estadoPedidos.get().filaElegida).toBeNull()
+  })
+})
+
+describe('Pedidos v2: panel de una fila validada', () => {
+  it('conserva la SIM junto a «SKU validado»', async () => {
+    const user = userEvent.setup()
+    respuesta = [fila({ idFila: 7, canal: 'DISTRIBUIDORES', plataforma: 'Cliente Web A', pedido: '402-0000000-0000077', imei: '350000000000077', nivel: 'OK', motivo: null,
+      motivoValidado: 'COLOR', validadaPor: 'Supertécnico 1', validadaEn: '2026-11-20T10:00:00', skuMovil: 'i14128NegroA',
+      detalle: { sim: 'ESIM', na: false, ms: false, dato: null, trabajos: [] } })]
+    abrir()
+    await screen.findByText('402-0000000-0000077')
+    await user.click(celda('Cliente Web A'))
+    const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
+    expect(p).toHaveTextContent('SKU validado')
+    expect(p).toHaveTextContent('el pedido es de SIM física y el móvil es eSIM')
   })
 })
