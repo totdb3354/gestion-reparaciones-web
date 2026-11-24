@@ -30,6 +30,17 @@ describe('partesAviso', () => {
     expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'EN_TALLER', detalle: d({ trabajos }) }))).toEqual(['reparándose · Juan · glass Ana|ambar'])
   })
 
+  it('quién lo tiene sale siempre, también con lo que no cuadra (24/11)', () => {
+    const trabajos = [{ categoria: 'REPARACION', tecnico: 'Juan', desde: '2026-11-24T09:00:00', entregado: null }]
+    const color = fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', detalle: d({ dato: 'Rojo', trabajos }) })
+    expect(textos(color)).toEqual(['color: Rojo|naranja', 'reparándose · Juan|ambar'])
+    expect(lineasAviso(color)).toEqual(['otro color (Rojo)', 'se está reparando (Juan)'])
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'MODELO', detalle: d({ dato: '14', trabajos }) })))
+      .toEqual(['modelo: 14|naranja', 'reparándose · Juan|ambar'])
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'EN_TALLER', detalle: d({ na: true, trabajos }) })))
+      .toEqual(['N/A|ambar', 'reparándose · Juan|ambar'])
+  })
+
   it('SIM en naranja y N/A en ámbar', () => {
     expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'ESIM' }) }))).toEqual(['eSIM|naranja'])
     expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'SIM_FISICA' }) }))).toEqual(['SIM física|naranja'])

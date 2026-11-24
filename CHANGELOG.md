@@ -4,7 +4,11 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.46.1] - 2026-11-24 — Pedidos: «para revisar» del libro explica qué pasa
+## [0.9.46.1] - 2026-11-24 — Pedidos: «para revisar» del libro explica qué pasa; la celda dice siempre quién tiene el móvil
+
+- Celda del IMEI: si un técnico tiene el móvil, ahora también se comprueban el color y el grado, y se ve siempre quién lo tiene
+  junto a lo que no cuadra (p. ej. «color: Rojo · reparándose · Juan» o «modelo: 14 · reparándose · Juan»). Antes solo salía
+  «reparándose · Juan» y el color o el grado que no cuadraba no se veía.
 
 - Un pedido de Amazon con unidades distintas (p. ej. una Plata y otra Oro): el móvil del libro va a la unidad con la que cuadra,
   no siempre a la primera.
