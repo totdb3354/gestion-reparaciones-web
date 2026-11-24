@@ -2751,6 +2751,13 @@ export interface components {
             validar: boolean | null;
             imeiAnterior: string | null;
         };
+        DetalleAviso: {
+            sim: string | null;
+            na: boolean;
+            ms: boolean;
+            dato: string | null;
+            trabajos: components["schemas"]["TrabajoAbierto"][];
+        } | null;
         FilaVista: {
             /** Format: int32 */
             idFila: number;
@@ -2797,6 +2804,15 @@ export interface components {
             pais: string | null;
             /** Format: date */
             salidaDesde: string | null;
+            detalle: components["schemas"]["DetalleAviso"];
+        };
+        TrabajoAbierto: {
+            categoria: string;
+            tecnico: string;
+            /** Format: date-time */
+            desde: string;
+            /** Format: date-time */
+            entregado: string | null;
         };
         PeticionMarca: {
             marca: string | null;
@@ -2949,14 +2965,6 @@ export interface components {
             colorNsys: string | null;
             gradoNsys: string | null;
             esEsim: boolean;
-        };
-        TrabajoAbierto: {
-            categoria: string;
-            tecnico: string;
-            /** Format: date-time */
-            desde: string;
-            /** Format: date-time */
-            entregado: string | null;
         };
         SolicitudStockInsertarRequest: {
             /** Format: int32 */

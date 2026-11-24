@@ -47,19 +47,32 @@ function detalle(t: TrabajoAbierto, hoy: string): string {
   return `${t.categoria === 'PULIDO' ? 'Pulido' : 'Reparación'} de ${t.tecnico} ${desde}`
 }
 
+/** Las partes de los trabajos, ordenados (reparación, glass, pulido). Sin `hoy`, sin la entrega de la glass. */
+function partesDe(trabajos: TrabajoAbierto[], hoy: string | null): ParteQuien[] {
+  const hayReparacion = trabajos.some((t) => t.categoria === 'REPARACION')
+  return trabajos.map((t): ParteQuien => {
+    if (t.categoria === 'GLASS') {
+      return { prefijo: hayReparacion ? 'glass' : null, tecnico: t.tecnico, sufijo: hayReparacion ? null : '(glass)', entrega: hoy === null ? null : entrega(t, hoy) }
+    }
+    return { prefijo: null, tecnico: t.tecnico, sufijo: t.categoria === 'PULIDO' ? '(pulido)' : null, entrega: null }
+  })
+}
+
+const ordenados = (trabajos: TrabajoAbierto[]) =>
+  [...trabajos].sort((a, b) => (ORDEN_CATEGORIA[a.categoria] ?? 9) - (ORDEN_CATEGORIA[b.categoria] ?? 9))
+
+/** Quién lo está reparando, como «Quién lo tiene» sin la entrega: lo usa la celda del IMEI de Pedidos («reparándose · …»). */
+export function textoReparandose(trabajos: TrabajoAbierto[]): string {
+  return partesDe(ordenados(trabajos), null).map((p) => [p.prefijo, p.tecnico, p.sufijo].filter(Boolean).join(' ')).join(' · ')
+}
+
 /** «Quién lo tiene» de un móvil. `ahora`: milisegundos de la hora de la carga del stock, para el límite del descuadre. */
 export function quienLoTiene(m: Datos, ahora: number): Quien {
   const fecha = new Date(ahora)
   const hoy = diaDeHoyEnMadrid(fecha)
   // `?? []`: una respuesta sin trabajos (servidor 0.9.17 en una vuelta atrás a medias) no rompe la pantalla.
-  const trabajos = [...(m.trabajos ?? [])].sort((a, b) => (ORDEN_CATEGORIA[a.categoria] ?? 9) - (ORDEN_CATEGORIA[b.categoria] ?? 9))
-  const hayReparacion = trabajos.some((t) => t.categoria === 'REPARACION')
-  const partes = trabajos.map((t): ParteQuien => {
-    if (t.categoria === 'GLASS') {
-      return { prefijo: hayReparacion ? 'glass' : null, tecnico: t.tecnico, sufijo: hayReparacion ? null : '(glass)', entrega: entrega(t, hoy) }
-    }
-    return { prefijo: null, tecnico: t.tecnico, sufijo: t.categoria === 'PULIDO' ? '(pulido)' : null, entrega: null }
-  })
+  const trabajos = ordenados(m.trabajos ?? [])
+  const partes = partesDe(trabajos, hoy)
   const tecnicos = [...new Set(trabajos.map((t) => t.tecnico))]
   // Un móvil de pedido no da «en caja»: al pasar a «Pedidos realizados» su última caja se congela, y ya reparado, esperando
   // el Released, seguiría pareciendo en el taller.

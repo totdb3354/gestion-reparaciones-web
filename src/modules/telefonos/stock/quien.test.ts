@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { MovilStock } from '@/shared/api/client'
 import { AHORA, movil, trabajo } from '../test/fabrica'
-import { CON_DESCUADRE, quienLoTiene, SIN_ASIGNAR } from './quien'
+import { CON_DESCUADRE, quienLoTiene, SIN_ASIGNAR, textoReparandose } from './quien'
 
 const q = (p: Partial<MovilStock>) => quienLoTiene(movil(p), AHORA)
 
@@ -106,4 +106,14 @@ describe('«Quién lo tiene» (spec 0.9.18 §4.7)', () => {
     expect(r.texto).toBe('—')
     expect(r.etiquetas).toEqual([])
   })
+})
+
+describe('textoReparandose', () => {
+  const t = (categoria: string, tecnico: string) => ({ categoria, tecnico, desde: '2026-11-24T09:00:00', entregado: null })
+  it('una reparación', () => expect(textoReparandose([t('REPARACION', 'Juan')])).toBe('Juan'))
+  it('solo glass', () => expect(textoReparandose([t('GLASS', 'Ana')])).toBe('Ana (glass)'))
+  it('reparación y glass, la reparación primero', () =>
+    expect(textoReparandose([t('GLASS', 'Ana'), t('REPARACION', 'Juan')])).toBe('Juan · glass Ana'))
+  it('pulido', () => expect(textoReparandose([t('PULIDO', 'Luis')])).toBe('Luis (pulido)'))
+  it('sin trabajos', () => expect(textoReparandose([])).toBe(''))
 })
