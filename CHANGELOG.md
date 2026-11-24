@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.46.1] - 2026-11-24 — Pedidos: «para revisar» del libro explica qué pasa
+
+- Un pedido de Amazon con unidades distintas (p. ej. una Plata y otra Oro): el móvil del libro va a la unidad con la que cuadra,
+  no siempre a la primera.
+- En «para revisar», «no cuadra» dice qué falla, qué es el móvil y dónde está (p. ej. «grado C100 · … · en Esperando pieza»);
+  «ya salió» y «cancelado» dicen en qué pedido está el IMEI (p. ej. «está en el pedido 306-… (etiqueta impresa)»).
+
 ## [0.9.46] - 2026-11-24 — Pedidos: el libro de ventas manda también con la etiqueta hecha
 
 - Pedidos, Amazon: el libro de ventas corrige también el IMEI de los pedidos con la etiqueta hecha (impresa o no), si el móvil
