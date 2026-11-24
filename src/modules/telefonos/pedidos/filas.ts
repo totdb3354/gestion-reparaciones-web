@@ -15,7 +15,14 @@ export const TEXTO_NIVEL: Record<1 | 2 | 3, string> = {
   3: 'hay que transformarlo',
 }
 
-export type ParteAviso = { texto: string; tono: 'naranja' | 'ambar' }
+export type ParteAviso = { texto: string; tono: 'rojo' | 'naranja' | 'ambar' }
+
+/** Los motivos «otro móvil o no se vende» (0.9.46.2): en rojo; el resto de lo que no cuadra lo arregla el taller (naranja). */
+export const MOTIVOS_ROJOS = ['NO_EN_NSYS', 'EN_OTRA_FILA', 'SKU_DESCONOCIDO', 'MODELO', 'CAPACIDAD', 'GRADO_NO_VENDIBLE']
+const esRoja = (f: FilaVista): boolean => f.nivel === 'MAL' && f.motivo != null && MOTIVOS_ROJOS.includes(f.motivo)
+
+/** Enviada con la etiqueta impresa: el móvil ya salió; su aviso solo informa (no cuenta en «no cuadran» ni se valida). */
+export const esImpresa = (f: FilaVista): boolean => f.impresaEn != null
 
 const PALABRA_SIM: Record<string, string> = { ESIM: 'eSIM', SIM_FISICA: 'SIM física' }
 const FRASE_SIM: Record<string, string> = {
@@ -53,7 +60,7 @@ export function textoMotivoCorto(f: FilaVista): string {
 export function partesAviso(f: FilaVista): ParteAviso[] {
   const d = f.detalle
   const p: ParteAviso[] = []
-  const tonoMotivo = f.nivel === 'MAL' ? 'naranja' : 'ambar'
+  const tonoMotivo = esRoja(f) ? 'rojo' : f.nivel === 'MAL' ? 'naranja' : 'ambar'
   if (d?.sim) p.push({ texto: PALABRA_SIM[d.sim] ?? d.sim, tono: 'naranja' })
   if (f.motivo && DE_MODELO.includes(f.motivo)) p.push({ texto: textoMotivoCorto(f), tono: tonoMotivo })
   if (d?.na) p.push({ texto: 'N/A', tono: 'ambar' })
@@ -109,7 +116,7 @@ export const estaValidada = (f: FilaVista): boolean => !!f.motivoValidado
 
 /** Sale el botón «Validar SKU»: celda naranja por un motivo de SKU, sin validar. */
 export const puedeValidar = (f: FilaVista): boolean =>
-  f.editable && !!f.imei && f.nivel === 'MAL' && !estaValidada(f) && f.motivo != null && MOTIVOS_SKU.includes(f.motivo)
+  f.editable && !!f.imei && !esImpresa(f) && f.nivel === 'MAL' && !estaValidada(f) && f.motivo != null && MOTIVOS_SKU.includes(f.motivo)
 
 /** El aviso original de una fila validada («otro color o grado: es …»); null si no lo está. */
 export function textoMotivoValidado(f: FilaVista): string | null {
@@ -265,16 +272,18 @@ export const CLASE_TONO: Record<'gris', string> = {
   gris: 'bg-[#fafbfc] text-[#8b93a1]',
 }
 
-/** Cómo se pinta la celda del IMEI: vacía; naranja si no cuadra; amarillo claro si es N/A (el único amarillo); si no, sin fondo. */
-export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'na' | 'mal' {
+/** Cómo se pinta la celda del IMEI: vacía; roja si es otro móvil o no se vende; naranja si no cuadra y lo arregla el taller; amarillo
+ *  claro si es N/A (el único amarillo); si no, sin fondo. */
+export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'na' | 'mal' | 'rojo' {
   if (!f.imei) return 'vacia'
+  if (esRoja(f)) return 'rojo'
   if (f.nivel === 'MAL') return 'mal'
   if (f.detalle?.na) return 'na'
   return 'ok'
 }
 
-/** Las filas cuyo IMEI no cuadra con el pedido (la celda en naranja). */
-export const noCuadra = (f: FilaVista): boolean => f.nivel === 'MAL'
+/** Las filas cuyo IMEI no cuadra con el pedido (la celda roja o naranja), sin las impresas: esas ya salieron y solo informan. */
+export const noCuadra = (f: FilaVista): boolean => f.nivel === 'MAL' && !esImpresa(f)
 
 export type Recuento = { total: number; pendientes: number; sinImei: number; noCuadran: number }
 
