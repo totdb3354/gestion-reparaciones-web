@@ -277,11 +277,11 @@ export function faltaImei(f: FilaVista): boolean {
   return f.editable && !f.imei && f.marca !== 'CANCELADO'
 }
 
-/** Sin IMEI pero con un teléfono reservado para ella (el ERP lo eligió; se confirma al picarlo). */
-export const estaReservada = (f: FilaVista): boolean => faltaImei(f) && !!f.imeiReservado
+/** Pendiente, sin IMEI y con un teléfono reservado para ella (el ERP lo eligió; se confirma al picarlo). */
+export const estaReservada = (f: FilaVista): boolean => esPendiente(f) && faltaImei(f) && !!f.imeiReservado
 
-/** Sin IMEI, sin reserva y sin marca: ningún teléfono cumplió los criterios. */
-export const sinStock = (f: FilaVista): boolean => faltaImei(f) && !f.imeiReservado && !f.marca
+/** Pendiente, sin IMEI, sin reserva y sin marca: ningún teléfono cumplió los criterios (el ERP solo reserva para las pendientes). */
+export const sinStock = (f: FilaVista): boolean => esPendiente(f) && faltaImei(f) && !f.imeiReservado && !f.marca
 
 /** Los contadores de la cabecera: todas las filas, las pendientes, las editables que aún no tienen IMEI (enviadas incluidas) y las
  *  que no cuadran. Una sola pasada. */

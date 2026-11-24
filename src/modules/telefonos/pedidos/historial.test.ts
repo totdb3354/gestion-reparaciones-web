@@ -119,6 +119,7 @@ describe('construirHistorial: la reserva de IMEI', () => {
     expect(q('CANCELADA')).toMatchObject({ etiqueta: 'Cancelado', tono: 'mal', texto: `${A}: el pedido ya no está en ShippyPro o se marcó` })
     expect(q('ENVIADA_SIN_IMEI')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: se envió sin picar el IMEI` })
     expect(q('NO_ENCONTRADO')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} está en «Pendiente revisar…» en NSYS` })
+    expect(q('PUESTO_EN_OTRA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} se puso en otra fila` })
     expect(q('NO_DISPONIBLE')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} ya no está disponible` })
   })
   it('SIN_STOCK: naranja', () => {

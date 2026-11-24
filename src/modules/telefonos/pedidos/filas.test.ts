@@ -87,7 +87,7 @@ describe('recuento', () => {
       fila({ idFila: 4, estado: 'NO_PENDIENTE' }), fila({ idFila: 5, estado: 'HISTORICO', editable: false }),
       fila({ idFila: 6, imei: '350000000000002', nivel: 'MAL', motivo: 'MODELO' }), fila({ idFila: 7, imei: '350000000000003', nivel: 'AVISO' }),
     ]
-    expect(recuento(filas)).toEqual({ total: 7, pendientes: 4, sinImei: 3, noCuadran: 1, reservadas: 0, sinStock: 3 })
+    expect(recuento(filas)).toEqual({ total: 7, pendientes: 4, sinImei: 3, noCuadran: 1, reservadas: 0, sinStock: 1 })
   })
   it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0, noCuadran: 0, reservadas: 0, sinStock: 0 }))
   it('un móvil «Cancelado» sin IMEI no cuenta como sin IMEI ni sale con «Solo sin IMEI»; las demás marcas sí', () => {
@@ -544,9 +544,11 @@ describe('reservadas y sin stock', () => {
     fila({ idFila: 4, marca: 'CANCELADO', imeiReservado: '350000000000011' }),
     fila({ idFila: 5, imei: '350000000000012', imeiReservado: '350000000000013' }),
     fila({ idFila: 6, estado: 'HISTORICO', editable: false }),
+    fila({ idFila: 7, estado: 'ENVIADA' }),
+    fila({ idFila: 8, estado: 'ENVIADA', imeiReservado: '350000000000014' }),
   ]
-  it('reservadas: sin IMEI y con reserva; sin stock: sin IMEI, sin reserva y sin marca; las reservadas siguen contando como sin IMEI', () => {
-    expect(recuento(filas)).toMatchObject({ sinImei: 3, reservadas: 1, sinStock: 1 })
+  it('reservadas y sin stock: solo pendientes (las que el ERP intenta reservar); sin IMEI sigue contando las enviadas', () => {
+    expect(recuento(filas)).toMatchObject({ sinImei: 5, reservadas: 1, sinStock: 1 })
   })
   it('sus filtros dejan solo esas filas y cada contador se reconoce', () => {
     expect(filtrarColumnas(filas, { ...SIN_FILTROS, soloReservadas: true }).map((f) => f.idFila)).toEqual([2])

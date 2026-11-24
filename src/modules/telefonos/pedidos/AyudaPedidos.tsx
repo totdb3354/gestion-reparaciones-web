@@ -93,7 +93,7 @@ export function AyudaPedidos() {
           <Linea muestra={<span className="inline-block rounded-sm border border-form-fila-brd px-2 py-px font-mono text-[11.5px] opacity-45">350000000000003</span>}>
             IMEI tenue: reservado. El ERP ya eligió un teléfono para esa fila sin IMEI. Para confirmarlo, pica ese IMEI; si logística coge otro, pon el que cojan y el reservado vuelve a stock. Se quita sola si el pedido se cancela o el teléfono ya no está disponible.
           </Linea>
-          <Linea>«N reservadas» cuenta las filas sin IMEI con teléfono reservado; «N sin stock», las sin IMEI y sin reserva ni marca (ningún teléfono cumplía los criterios: el ERP lo reintenta en cada lectura de ShippyPro). Las reservadas también cuentan en «sin IMEI».</Linea>
+          <Linea>«N reservadas» cuenta las filas sin IMEI con teléfono reservado; «N sin stock», las pendientes sin IMEI y sin reserva ni marca (ningún teléfono cumplía los criterios: el ERP lo reintenta cada 5 minutos). Las dos cuentan solo filas pendientes; las reservadas también cuentan en «sin IMEI».</Linea>
           <Linea muestra={<span aria-hidden className="inline-block h-5 w-full max-w-24 rounded-sm bg-seleccion-suave shadow-[inset_4px_0_0_#2f6fe0]" />}>La fila seleccionada (en azul) es la última que has tocado. Si te alejas de ella, el botón «Fila seleccionada» te devuelve; «↓ Al final» baja a lo más reciente.</Linea>
         </ul>
       </PopoverContent>
