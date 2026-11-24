@@ -2795,6 +2795,8 @@ export interface components {
             /** Format: date */
             fechaSalida: string | null;
             pais: string | null;
+            /** Format: date */
+            salidaDesde: string | null;
         };
         PeticionMarca: {
             marca: string | null;

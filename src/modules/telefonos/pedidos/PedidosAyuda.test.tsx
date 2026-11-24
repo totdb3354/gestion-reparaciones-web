@@ -60,7 +60,7 @@ describe('Pedidos: botón de ayuda', () => {
     // La fecha de salida: tres muestras y el aviso de cómo se calcula; el cuadro hace scroll si no cabe en la ventana.
     for (const t of ['Sale hoy', 'Sale mañana', 'Con retraso']) expect(within(ayuda).getByText(t)).toBeInTheDocument()
     expect(within(ayuda).getByText(/Sale vie 20\/11/)).toBeInTheDocument()
-    expect(within(ayuda).getByText(/48 o 72 h laborables/)).toBeInTheDocument()
+    expect(within(ayuda).getByText(/hasta el laborable siguiente/)).toBeInTheDocument()
     expect(ayuda.className).toContain('max-h-[calc(100vh-80px)]')
     expect(ayuda.className).toContain('overflow-y-auto')
     await userEvent.keyboard('{Escape}')

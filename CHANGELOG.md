@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.44] - 2026-11-23 — Pedidos: los pedidos web salen en 24 h laborables
+
+- En **Pedidos**, un pedido de las webs sale **«Sale hoy»** desde el día en que entra y hasta el día laborable siguiente; después pasa a **«Con retraso»**. Antes tenía 48 o 72 h laborables según el envío y se veía «Sale mié 25/11» hasta el último día.
+- Si entra en **fin de semana o festivo**, cuenta desde el primer laborable: el sábado y el domingo dice «Sale lun», y no sale «Con retraso» hasta el miércoles. En sábado o domingo nunca sale «Sale hoy».
+- Ya no se mira el tipo de envío (24/48 o 24/72): todos los pedidos web igual. Amazon no cambia.
+
 ## [0.9.43] - 2026-11-23 — Avisos de NSYS al ritmo del nuevo ciclo (cada 10 min, las 24 h)
 
 - Desde el 23/11, NSYS manda un Items **cada 10 minutos, también de noche y en fin de semana** (antes, cada media hora de 7:00 a 23:00). Los avisos de datos atrasados se ajustan a ese ritmo y **cuentan las 24 horas**: si el ciclo de stock se para de madrugada, por la mañana ya sale el aviso en rojo, en vez de a media mañana.

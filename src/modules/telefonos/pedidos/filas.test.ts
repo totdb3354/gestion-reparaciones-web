@@ -405,6 +405,13 @@ describe('fecha de salida: filtros y contadores', () => {
   it('recuentoSalida cuenta las dos en una pasada', () => {
     expect(recuentoSalida(FILAS, HOY)).toEqual({ hoy: 1, retraso: 2 })
   })
+  it('una web cuenta en «salen hoy» su primer y su segundo día', () => {
+    const f = fila({ estado: 'PENDIENTE', canal: 'PARTICULARES', salidaDesde: '2026-11-23', fechaSalida: '2026-11-24' })
+    expect(recuentoSalida([f], '2026-11-23')).toEqual({ hoy: 1, retraso: 0 })
+    expect(recuentoSalida([f], '2026-11-24')).toEqual({ hoy: 1, retraso: 0 })
+    expect(recuentoSalida([f], '2026-11-25')).toEqual({ hoy: 0, retraso: 1 })
+    expect(recuentoSalida([f], '2026-11-22')).toEqual({ hoy: 0, retraso: 0 })
+  })
   it('los contadores «salen hoy» y «con retraso» aplican su filtro y se reconocen', () => {
     expect(contadorAplicado(filtrosDeContador('saleHoy'))).toBe('saleHoy')
     expect(contadorAplicado(filtrosDeContador('conRetraso'))).toBe('conRetraso')
