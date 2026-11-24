@@ -1,4 +1,5 @@
 import type { MovilStock, TrabajoAbierto } from '@/shared/api/client'
+import { CAJA_LISTOS, esCajaDeTaller } from '@/shared/lib/telefonoNsys'
 import { diaDeHoyEnMadrid, minutosDesde } from './nsys'
 
 /** «Quién lo tiene» (0.9.18, spec «Columna compacta, SKU, Quién lo tiene y Revisado» §4.7): las asignaciones abiertas del
@@ -76,9 +77,9 @@ export function quienLoTiene(m: Datos, ahora: number): Quien {
   const tecnicos = [...new Set(trabajos.map((t) => t.tecnico))]
   // Un móvil de pedido no da «en caja»: al pasar a «Pedidos realizados» su última caja se congela, y ya reparado, esperando
   // el Released, seguiría pareciendo en el taller.
-  const enCaja = m.estado !== 'DE_PEDIDO' && (m.ubicacion ?? '').startsWith('Taller') && trabajos.length === 0
+  const enCaja = m.estado !== 'DE_PEDIDO' && esCajaDeTaller(m.ubicacion) && trabajos.length === 0
   // Solo un móvil en stock: la ubicación de uno de pedido es su última caja, y puede ser «Listos».
-  const enListos = m.estado !== 'DE_PEDIDO' && m.ubicacion === 'Listos'
+  const enListos = m.estado !== 'DE_PEDIDO' && m.ubicacion === CAJA_LISTOS
   // El texto del descuadre nombra solo a quien lleva el trabajo más de 60 minutos; las etiquetas, a todos.
   const tarde = enListos ? [...new Set(trabajos.filter((t) => minutosDesde(t.desde, fecha) > MINUTOS_DESCUADRE).map((t) => t.tecnico))] : []
   const descuadre = tarde.length > 0
@@ -88,7 +89,7 @@ export function quienLoTiene(m: Datos, ahora: number): Quien {
         : partes.map((p) => [p.prefijo, p.tecnico, p.sufijo, p.entrega?.texto].filter(Boolean).join(' ')).join(' · ')
   const titulo = [
     ...trabajos.map((t) => detalle(t, hoy)),
-    ...(descuadre ? ['NSYS dice "Listos", pero hay un trabajo abierto. ¿Falta cerrarlo o mover la caja?'] : []),
+    ...(descuadre ? ['NSYS dice "Caja · Listos", pero hay un trabajo abierto. ¿Falta cerrarlo o mover la caja?'] : []),
     ...(enCaja ? ['Está en una caja de taller y nadie lo tiene asignado'] : []),
   ].join(' · ')
   const etiquetas = [...tecnicos, ...(enCaja ? [SIN_ASIGNAR] : []), ...(descuadre ? [CON_DESCUADRE] : [])]

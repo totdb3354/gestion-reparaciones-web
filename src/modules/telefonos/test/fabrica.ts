@@ -7,7 +7,7 @@ import { preparar, type Movil } from '../stock/modelo'
 export function movil(p: Partial<MovilStock> = {}): MovilStock {
   return {
     imeiSn: '350000000000001', lote: 'BT-9001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul',
-    grado: 'A', bateriaNueva: false, esEsim: false, sku: 'i13128AzulA', ubicacion: 'Listos', estado: 'STOCK', dias: 6,
+    grado: 'A', bateriaNueva: false, esEsim: false, sku: 'i13128AzulA', ubicacion: 'Caja · Listos', estado: 'STOCK', dias: 6,
     trabajos: [], colorNsys: null, gradoNsys: null, skuNsys: null, ...p,
   }
 }
@@ -32,14 +32,14 @@ export function estadoNsys(p: Partial<EstadoNsys> = {}): EstadoNsys {
 export function movilBuscado(p: Partial<MovilBuscado> = {}): MovilBuscado {
   return {
     imeiSn: '350000000000001', modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul', estado: 'STOCK',
-    ubicacion: 'Listos', fechaVenta: null, colorNsys: null, esEsim: false, ...p,
+    ubicacion: 'Caja · Listos', fechaVenta: null, colorNsys: null, esEsim: false, ...p,
   }
 }
 
 export function movilComprobado(p: Partial<MovilComprobado> = {}): MovilComprobado {
   return {
     imei: '350000000000001', encontrado: true, modelo: '13', modeloMaestro: '13', capacidad: '128GB', color: 'Azul',
-    grado: 'A', bateriaNueva: false, ubicacion: 'Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], colorNsys: null, gradoNsys: null, esEsim: false, ...p,
+    grado: 'A', bateriaNueva: false, ubicacion: 'Caja · Listos', estado: 'STOCK', fechaVenta: null, trabajos: [], colorNsys: null, gradoNsys: null, esEsim: false, ...p,
   }
 }
 
@@ -146,7 +146,7 @@ export function filaIgnorada(p: Partial<FilaIgnoradaNsys> = {}): FilaIgnoradaNsy
 export function filaCaja(p: Partial<FilaCajaNsys> = {}): FilaCajaNsys {
   return {
     imeiSn: '350000000000214', modelo: '12', modeloMaestro: '12', capacidad: '64GB', esEsim: false, color: 'Negro', grado: 'F',
-    gradoNsys: null, caja: 'CAJA REP. OFICINA', ubicacion: 'Taller · Reparación', cajaQueToca: 'CF021', ...p,
+    gradoNsys: null, caja: 'CAJA REP. OFICINA', ubicacion: 'Caja · Reparación', cajaQueToca: 'CF021', ...p,
   }
 }
 

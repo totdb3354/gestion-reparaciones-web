@@ -40,12 +40,16 @@ export function descripcionMovil(nombre: string | null | undefined, capacidad?: 
 const CLASES_UBICACION: Record<string, string> = {
   'En revisión': 'bg-fila-solicitud-bg text-fila-solicitud-brd',
   Devolución: 'bg-fila-solicitud-bg text-notif-urgente-text',
-  'Taller · Pulir': 'bg-tipo-pulido-bg text-tipo-pulido-text',
-  'Taller · Glass': 'bg-tipo-glass-bg text-tipo-glass-text',
-  'Taller · Reparación': 'bg-tipo-reparacion-bg text-tipo-reparacion-text',
-  'Taller · Pantalla rota': 'bg-entrega-bg text-entrega-text',
-  Listos: 'bg-fila-recibido-bg text-fila-recibido-brd',
+  'Caja · Pulir': 'bg-tipo-pulido-bg text-tipo-pulido-text',
+  'Caja · Glass': 'bg-tipo-glass-bg text-tipo-glass-text',
+  'Caja · Reparación': 'bg-tipo-reparacion-bg text-tipo-reparacion-text',
+  'Caja · Pantalla rota': 'bg-entrega-bg text-entrega-text',
+  'Caja · Listos': 'bg-fila-recibido-bg text-fila-recibido-brd',
 }
+
+export const CAJA_LISTOS = 'Caja · Listos'
+/** Una caja de taller de NSYS (Pulir, Glass, Reparación, Pantalla rota): no Listos. */
+export const esCajaDeTaller = (u: string | null | undefined): boolean => !!u && u.startsWith('Caja · ') && u !== CAJA_LISTOS
 
 export function clasesUbicacion(ubicacion: string | null | undefined): string {
   return (ubicacion && CLASES_UBICACION[ubicacion]) || 'bg-badge-neutro-bg text-azul-gris'

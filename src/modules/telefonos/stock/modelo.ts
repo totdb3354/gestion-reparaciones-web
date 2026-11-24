@@ -1,6 +1,6 @@
 import type { MovilBuscado, MovilStock } from '@/shared/api/client'
 import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
-import { diaNsys, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
+import { CAJA_LISTOS, diaNsys, esCajaDeTaller, nombreModeloNsys } from '@/shared/lib/telefonoNsys'
 import { CON_DESCUADRE, quienLoTiene, SIN_ASIGNAR, type Quien } from './quien'
 
 /** Reglas puras de «Stock de teléfonos» (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.2; 0.9.18, spec «Columna
@@ -98,8 +98,8 @@ export function reparto(moviles: MovilStock[]): Reparto {
   for (const m of moviles) {
     if (!cuentaComoStock(m)) continue
     const u = m.ubicacion ?? ''
-    if (u === 'Listos') r.listos++
-    else if (u.startsWith('Taller')) r.taller++
+    if (u === CAJA_LISTOS) r.listos++
+    else if (esCajaDeTaller(u)) r.taller++
     else if (u === 'En revisión' || u === 'Devolución') r.revision++
   }
   return r

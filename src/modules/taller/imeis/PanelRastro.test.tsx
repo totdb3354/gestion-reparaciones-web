@@ -34,9 +34,9 @@ describe('PanelRastro: Escape', () => {
 
 describe('PanelRastro: revisado (spec 0.9.18 §5.3)', () => {
   it('el evento de revisión lleva su marca y la leyenda la explica', () => {
-    render(<PanelRastro imei="351900000000041" eventos={[eventoRastro({ de: 'En revisión', a: 'Listos', revision: 'ENTRADA' }), eventoRastro()]}
+    render(<PanelRastro imei="351900000000041" eventos={[eventoRastro({ de: 'En revisión', a: 'Caja · Listos', revision: 'ENTRADA' }), eventoRastro()]}
       onCerrar={() => {}} onIrATrabajo={() => {}} />)
-    expect(screen.getByText('Revisado → Listos')).toBeInTheDocument()
+    expect(screen.getByText('Revisado → Caja · Listos')).toBeInTheDocument()
     expect(screen.getAllByTestId('marca-revision')).toHaveLength(2)
     expect(screen.getByText('Revisado')).toBeInTheDocument()
   })
