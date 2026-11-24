@@ -32,7 +32,7 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
     }
     if (cambio.tipo === 'VALIDADA') {
       // detalle = el código del motivo de SKU que se dio por bueno.
-      const que = textoMotivoCorto({ motivo: cambio.detalle, skuMovil: null, detalle: null } as FilaVista)
+      const que = cambio.detalle ? textoMotivoCorto({ motivo: cambio.detalle, skuMovil: null, detalle: null } as FilaVista) : null
       return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `SKU validado${que ? ` (${que})` : ''}`, quien: cambio.usuario ?? '' }
     }
     if (cambio.tipo === 'VALIDACION_QUITADA') {

@@ -6,7 +6,7 @@ import { diaDeHoyEnMadrid, minutosDesde } from './nsys'
  *  ERP cruzadas con la caja de NSYS. Los trabajos son del momento; la caja, de la última exportación (hasta ~35 min de
  *  retraso), por eso el descuadre espera 60 minutos. Las horas son de Madrid, sin zona: se cortan del texto.
  *  0.9.18.1 (spec «El descuadre no cuenta los móviles de pedido»): un móvil de pedido tiene dueño, pero se repara ahí hasta
- *  que NSYS lo pone Released, así que solo da descuadre un móvil en stock en «Listos». */
+ *  que NSYS lo pone Released, así que solo da descuadre un móvil en stock en «Caja · Listos». */
 
 export const MINUTOS_DESCUADRE = 60
 export const SIN_ASIGNAR = 'Sin asignar (en caja de taller)'
@@ -78,7 +78,7 @@ export function quienLoTiene(m: Datos, ahora: number): Quien {
   // Un móvil de pedido no da «en caja»: al pasar a «Pedidos realizados» su última caja se congela, y ya reparado, esperando
   // el Released, seguiría pareciendo en el taller.
   const enCaja = m.estado !== 'DE_PEDIDO' && esCajaDeTaller(m.ubicacion) && trabajos.length === 0
-  // Solo un móvil en stock: la ubicación de uno de pedido es su última caja, y puede ser «Listos».
+  // Solo un móvil en stock: la ubicación de uno de pedido es su última caja, y puede ser «Caja · Listos».
   const enListos = m.estado !== 'DE_PEDIDO' && m.ubicacion === CAJA_LISTOS
   // El texto del descuadre nombra solo a quien lleva el trabajo más de 60 minutos; las etiquetas, a todos.
   const tarde = enListos ? [...new Set(trabajos.filter((t) => minutosDesde(t.desde, fecha) > MINUTOS_DESCUADRE).map((t) => t.tecnico))] : []

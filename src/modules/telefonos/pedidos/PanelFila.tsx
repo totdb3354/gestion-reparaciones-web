@@ -178,7 +178,7 @@ export function PanelFila({ fila: f, onCerrar }: { fila: FilaVista; onCerrar: ()
           <Dato nombre="IMEI"><span className="font-mono text-[12px]">{f.imei}</span></Dato>
           {f.skuMovil && <Dato nombre="Es"><span className="font-mono text-[12px]">{f.skuMovil}</span></Dato>}
           {f.caja && <Dato nombre="Caja">{f.caja}</Dato>}
-          {motivo && !f.motivoValidado && <Dato nombre="Aviso">{motivo}</Dato>}
+          {motivo && <Dato nombre="Aviso">{motivo}</Dato>}
           {f.motivoValidado && (
             <Dato nombre="SKU validado">
               {textoMotivoValidado(f)}
