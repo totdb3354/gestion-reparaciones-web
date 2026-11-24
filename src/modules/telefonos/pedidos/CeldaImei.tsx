@@ -57,9 +57,9 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
       {fallo
         ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{textoFallo}</span>
         : reservado
-          ? <span data-reservado className="shrink-0 opacity-45">{fila.imeiReservado}</span>
+          ? <><span className="sr-only">Reservado: </span><span data-reservado className="shrink-0 opacity-45">{fila.imeiReservado}</span></>
           : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
-      {!fallo && partes.length > 0 && (
+      {!fallo && !reservado && partes.length > 0 && (
         <span className="min-w-0 truncate font-sans text-[11px] font-bold">
           {partes.map((p, i) => (
             <Fragment key={i}>
@@ -72,7 +72,7 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
       {!fallo && validada && (
         <span data-validado className="shrink-0 rounded-lg bg-fila-reparado-bg px-1.5 py-px font-sans text-[10.5px] font-bold text-[#2f7d3b]">validado</span>
       )}
-      {!fallo && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
+      {!fallo && !reservado && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
   )
   const tono = tonoFila(fila)

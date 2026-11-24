@@ -445,6 +445,22 @@ describe('Pedidos: reservas y sin stock', () => {
     expect(screen.queryAllByText(/pulsa para poner el IMEI/)).toHaveLength(2)
   })
 
+  it('una fila con IMEI puesto enseña el IMEI normal aunque traiga reserva; la reservada no enseña piezas de aviso y lo dice a los lectores', async () => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [
+      fila({ idFila: 1, pedido: '402-0000000-0000021', imei: '350000000000555', imeiReservado: RES }),
+      fila({ idFila: 2, pedido: '402-0000000-0000022', imeiReservado: RES, motivo: 'MS', nivel: 'AVISO' }),
+    ], hayMas: false })))
+    abrir()
+    const normal = await screen.findByText('350000000000555')
+    expect(normal).not.toHaveAttribute('data-reservado')
+    expect(screen.getAllByText(RES)).toHaveLength(1)
+    const res = screen.getByText(RES).closest('button')!
+    expect(res.querySelector('[data-reservado]')).not.toBeNull()
+    expect(res).toHaveTextContent(`Reservado: ${RES}`)
+    expect(res.title).toBe('Reservado: pica este IMEI para confirmarlo o pon otro')
+    expect(res.querySelectorAll('span')).toHaveLength(2)
+  })
+
   it('los contadores «reservadas» y «sin stock» cuentan y filtran', async () => {
     const user = userEvent.setup()
     abrir()

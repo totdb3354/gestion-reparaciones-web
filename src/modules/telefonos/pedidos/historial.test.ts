@@ -97,6 +97,10 @@ describe('construirHistorial: la reserva de IMEI', () => {
     expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 1 · Caja · Listos · A-' })).toMatchObject([{ etiqueta: 'Reservado', tono: 'res', texto: `${A} · Puesto 1 · A-`, caja: 'Caja · Listos', quien: 'ERP' }])
     expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 2 · Caja · Pantalla rota · A' })).toMatchObject([{ texto: `${A} · Puesto 2 · A`, caja: 'Caja · Pantalla rota' }])
     expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3' })).toMatchObject([{ texto: `${A} · Puesto 3`, caja: undefined }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3 · Devolución · A-' })).toMatchObject([{ texto: `${A} · Puesto 3 · A-`, caja: 'Devolución' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3 · En revisión · A' })).toMatchObject([{ texto: `${A} · Puesto 3 · A`, caja: 'En revisión' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 1 · Caja · Listos · N/A (es A)' })).toMatchObject([{ texto: `${A} · Puesto 1 · N/A (es A)`, caja: 'Caja · Listos' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 2 · CAJA RARA · B' })).toMatchObject([{ texto: `${A} · Puesto 2 · B`, caja: 'CAJA RARA' }])
   })
   it('RESERVA_CONFIRMADA: verde, por quién; sin usuario, por el ERP', () => {
     expect(una({ tipo: 'RESERVA_CONFIRMADA', imeiAnterior: A, imeiNuevo: A, usuario: 'Fati' })).toMatchObject([{ etiqueta: 'Confirmado', tono: 'ok', texto: `por Fati · ${A}`, quien: 'Fati' }])
@@ -105,7 +109,7 @@ describe('construirHistorial: la reserva de IMEI', () => {
   it('RESERVA_SUSTITUIDA: dos entradas, «Picó otro» (gris, con el usuario) y «Vuelve a stock» (morado)', () => {
     const h = una({ tipo: 'RESERVA_SUSTITUIDA', imeiAnterior: A, imeiNuevo: B, usuario: 'Fati' })
     expect(h).toHaveLength(2)
-    expect(h.map((e) => e.etiqueta).sort()).toEqual(['Picó otro', 'Vuelve a stock'])
+    expect(h.map((e) => e.etiqueta)).toEqual(['Picó otro', 'Vuelve a stock'])
     expect(h.find((e) => e.etiqueta === 'Picó otro')).toMatchObject({ tono: 'gris', texto: `${B} en lugar del reservado ${A}`, quien: 'Fati' })
     expect(h.find((e) => e.etiqueta === 'Vuelve a stock')).toMatchObject({ tono: 'dev', texto: A })
     expect(new Set(h.map((e) => e.clave)).size).toBe(2)

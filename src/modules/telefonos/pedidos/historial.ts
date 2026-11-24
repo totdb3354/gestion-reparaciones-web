@@ -35,15 +35,15 @@ function entradasDeReserva(c: CambioImei, i: number, cuando: string): EntradaHis
   const imei = c.imeiAnterior ?? c.imeiNuevo ?? ''
   switch (c.tipo) {
     case 'RESERVADO': {
-      // detalle = «Puesto 1 · Caja · Listos · A-»: la caja (el nombre de la ubicación del ERP, «Caja · Listos»; puede llevar más « · ») sale aparte, como píldora.
+      // detalle = «Puesto N · <caja> · <grado>»: la caja va justo después del puesto y sale aparte, como píldora. Es «Caja · X» (dos
+      // trozos) o uno solo («Devolución», «En revisión» o una caja cruda de NSYS).
       const partes = (c.detalle ?? '').split(' · ')
-      const k = partes.indexOf('Caja')
       let caja: string | undefined
       let resto = partes
-      if (k >= 0 && partes.length > k + 1) {
-        const fin = partes.length > k + 2 ? partes.length - 1 : partes.length
-        caja = `Caja · ${partes.slice(k + 1, fin).join(' · ')}`
-        resto = [...partes.slice(0, k), ...partes.slice(fin)]
+      if (partes.length > 1) {
+        const largo = partes[1] === 'Caja' && partes.length > 2 ? 2 : 1
+        caja = partes.slice(1, 1 + largo).join(' · ')
+        resto = [partes[0], ...partes.slice(1 + largo)]
       }
       return [{ ...base, clave: `i${i}`, etiqueta: 'Reservado', tono: 'res', texto: [imei, ...resto.filter(Boolean)].join(' · '), caja, quien: erp }]
     }
