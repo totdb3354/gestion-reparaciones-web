@@ -90,6 +90,7 @@ export type EventoRastro = components['schemas']['EventoRastro']
  *  importaciones de la píldora (`resultado` OK, RECHAZADO, ERROR o EN_CURSO; `historico.total` = 0 si no hay histórico).
  *  Horas de Madrid, sin zona. */
 export type TrabajoAbierto = components['schemas']['TrabajoAbierto']
+export type DetalleAviso = components['schemas']['DetalleAviso']
 export type MovilComprobado = components['schemas']['StockTelefonosMovilComprobado']
 export type ListaImportaciones = components['schemas']['StockTelefonosListaImportaciones']
 export type ImportacionNsys = components['schemas']['StockTelefonosFilaImportacion']

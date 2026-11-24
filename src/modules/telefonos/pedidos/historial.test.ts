@@ -77,4 +77,14 @@ describe('construirHistorial', () => {
       { tipo: 'marca', texto: 'Marca quitada al poner el IMEI (En espera de stock)' },
     ])
   })
+
+  it('una validación vieja (COLOR_O_GRADO) sigue leyéndose «otro color o grado», en corto', () => {
+    const h = construirHistorial(fila(), [cambio('2026-11-16T09:30:00', { tipo: 'VALIDADA', detalle: 'COLOR_O_GRADO', imeiNuevo: null })])
+    expect(h.find((e) => e.tipo === 'marca')).toMatchObject({ texto: 'SKU validado (otro color o grado)' })
+  })
+
+  it('una validación sin detalle se lee «SKU validado», sin «(revisar)»', () => {
+    const h = construirHistorial(fila(), [cambio('2026-11-16T09:30:00', { tipo: 'VALIDADA', detalle: null, imeiNuevo: null })])
+    expect(h.find((e) => e.tipo === 'marca')).toMatchObject({ texto: 'SKU validado' })
+  })
 })

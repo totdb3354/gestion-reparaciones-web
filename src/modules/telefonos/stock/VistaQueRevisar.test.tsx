@@ -19,9 +19,9 @@ const B11 = { ...N11, color: 'Blanco' }
 // con técnico: en gris). Subir: 11 Blanco (B → A y B100 → A100, ningún A). El 11 Negro tiene un A: no sale en «Revisar sin grado» ni en «Subir B a A».
 const STOCK: Movil[] = [
   visto({ imeiSn: '350000000000101', ...P15, grado: 'n/a', dias: 41, ubicacion: 'En revisión' }),
-  visto({ imeiSn: '350000000000102', ...P15, grado: 'n/a', dias: 23, ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
+  visto({ imeiSn: '350000000000102', ...P15, grado: 'n/a', dias: 23, ubicacion: 'Caja · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
   visto({ imeiSn: '350000000000103', modelo: '12pro', modeloMaestro: '12 PRO', color: 'Grafito', grado: 'n/a',
-    ubicacion: 'Taller · Glass', trabajos: [trabajo({ categoria: 'GLASS', tecnico: 'Técnico B' })] }),
+    ubicacion: 'Caja · Glass', trabajos: [trabajo({ categoria: 'GLASS', tecnico: 'Técnico B' })] }),
   visto({ imeiSn: '350000000000104', grado: 'n/a', ubicacion: 'En revisión' }),
   visto({ imeiSn: '350000000000105', grado: 'F' }),
   visto({ imeiSn: '350000000000106', ...B11, grado: 'B', dias: 25 }),
@@ -141,7 +141,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     expect(cabeceras(moviles)).toEqual(['IMEI', 'Grado', 'Ubicación', 'Días en stock', 'Quién lo tiene'])
     expect(filas(moviles).map(celdas)).toEqual([
       ['350000000000101', 'n/a', 'En revisión', '41', '—'],
-      ['350000000000102', 'n/a', 'Taller · Reparación', '23', 'Técnico A'],
+      ['350000000000102', 'n/a', 'Caja · Reparación', '23', 'Técnico A'],
     ])
     const [primero, segundo] = filas(moviles)
     expect(primero).not.toHaveClass('text-texto-suave')
@@ -191,7 +191,7 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     await user.click(elegir('iPhone 12 Pro 128 GB Grafito'))
     expect(titulo()).toBe('iPhone 12 Pro 128 GB Grafito · 0 sin grado · +1 con técnico')
     const [fila] = filas(within(panel()).getByRole('table', { name: 'Móviles de iPhone 12 Pro 128 GB Grafito' }))
-    expect(celdas(fila)).toEqual(['350000000000103', 'n/a', 'Taller · Glass', '6', 'Técnico B (glass) sin entregar'])
+    expect(celdas(fila)).toEqual(['350000000000103', 'n/a', 'Caja · Glass', '6', 'Técnico B (glass) sin entregar'])
     expect(fila).toHaveClass('text-texto-suave')
   })
 
@@ -279,8 +279,8 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const moviles = within(panel()).getByRole('table', { name: 'Móviles de iPhone 11 64 GB Blanco' })
     expect(cabeceras(moviles)).toEqual(['IMEI', 'Grado', 'Ubicación', 'Días en stock', 'Quién lo tiene'])
     expect(filas(moviles).map(celdas)).toEqual([
-      ['350000000000106', 'B → A', 'Listos', '25', '—'],
-      ['350000000000107', 'B100 → A100', 'Listos', '11', '—'],
+      ['350000000000106', 'B → A', 'Caja · Listos', '25', '—'],
+      ['350000000000107', 'B100 → A100', 'Caja · Listos', '11', '—'],
     ])
     expect(screen.getByRole('button', { name: '⬇ Descargar Excel (1)' })).toBeEnabled()
   })
@@ -289,17 +289,17 @@ describe('«Qué revisar» (spec 0.9.25 §3 y §10)', () => {
     const user = userEvent.setup()
     pintar([...STOCK,
       visto({ imeiSn: '350000000000110', ...B11, grado: 'B', bateriaNueva: true, dias: 3 }),
-      visto({ imeiSn: '350000000000111', ...B11, grado: 'B', dias: 2, ubicacion: 'Taller · Pulir', trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
+      visto({ imeiSn: '350000000000111', ...B11, grado: 'B', dias: 2, ubicacion: 'Caja · Pulir', trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
     ])
     await user.click(screen.getByRole('button', { name: 'Subir B a A' }))
     await user.click(elegir('iPhone 11 64 GB Blanco'))
     expect(titulo()).toBe('iPhone 11 64 GB Blanco · 1 B · 2 B100 · +1 con técnico')
     const moviles = filas(within(panel()).getByRole('table', { name: 'Móviles de iPhone 11 64 GB Blanco' }))
     expect(moviles.map(celdas)).toEqual([
-      ['350000000000106', 'B → A', 'Listos', '25', '—'],
-      ['350000000000107', 'B100 → A100', 'Listos', '11', '—'],
-      ['350000000000110', 'B100 → A100', 'Listos', '3', '—'],
-      ['350000000000111', 'B → A', 'Taller · Pulir', '2', 'Técnico C (pulido)'],
+      ['350000000000106', 'B → A', 'Caja · Listos', '25', '—'],
+      ['350000000000107', 'B100 → A100', 'Caja · Listos', '11', '—'],
+      ['350000000000110', 'B100 → A100', 'Caja · Listos', '3', '—'],
+      ['350000000000111', 'B → A', 'Caja · Pulir', '2', 'Técnico C (pulido)'],
     ])
     expect(moviles.map((f) => f.classList.contains('text-texto-suave'))).toEqual([false, false, false, true])
   })

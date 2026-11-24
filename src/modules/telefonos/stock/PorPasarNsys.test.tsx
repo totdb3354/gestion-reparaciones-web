@@ -652,7 +652,7 @@ describe('«Fuera de su caja»: la quinta tarjeta', () => {
     expect(uno).toHaveTextContent('iPhone 12 64GB')
     expect(uno).toHaveTextContent('Negro')
     expect(uno).toHaveTextContent('CAJA REP. OFICINA')
-    expect(uno).toHaveTextContent('Taller · Reparación')
+    expect(uno).toHaveTextContent('Caja · Reparación')
     expect(dos).toHaveTextContent('en NSYS aún B: también en «Cambio de grado»')
     expect(tres).toHaveTextContent('sin caja')
     expect(tres).toHaveTextContent('En revisión')

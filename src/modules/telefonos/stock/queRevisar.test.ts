@@ -29,16 +29,16 @@ const P13P = { modelo: '13pro', modeloMaestro: '13 PRO', capacidad: '1TB', color
 // Los casos del prototipo aprobado (spec §7).
 const STOCK: Movil[] = [
   m({ ...P15, grado: 'n/a', dias: 12 }), m({ ...P15, grado: 'n/a', dias: 41 }),
-  m({ ...P15, grado: 'n/a', dias: 23, ubicacion: 'Taller · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
+  m({ ...P15, grado: 'n/a', dias: 23, ubicacion: 'Caja · Reparación', trabajos: [trabajo({ tecnico: 'Técnico A' })] }),
   m({ ...P15, grado: 'n/a', dias: 5 }),
   m({ ...E14, grado: 'n/a' }), m({ ...E14, grado: 'n/a' }), m({ ...E14, grado: 'B', bateriaNueva: true }), m({ ...E14, grado: 'ID' }),
   m({ ...F14, grado: 'A' }), m({ ...F14, grado: 'A' }), m({ ...F14, grado: 'A-', bateriaNueva: true }),
   ...[1, 2, 3, 4, 5].map(() => m({ ...A13, grado: 'n/a' })), m({ ...A13, grado: 'A+' }),
   m({ ...A13_512, grado: 'B' }),
-  m({ ...A13_512, grado: 'B', ubicacion: 'Taller · Pulir', trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
+  m({ ...A13_512, grado: 'B', ubicacion: 'Caja · Pulir', trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
   m({ ...B12, grado: 'n/a' }), m({ ...B12, grado: 'MsB' }),
   m({ ...R13M, grado: 'n/a' }), m({ ...R13M, grado: 'n/a' }), m({ ...R13M, grado: 'A' }), m({ ...R13M, grado: 'A' }),
-  m({ ...G12P, grado: 'n/a', ubicacion: 'Taller · Glass', trabajos: [trabajo({ categoria: 'GLASS', tecnico: 'Técnico B' })] }),
+  m({ ...G12P, grado: 'n/a', ubicacion: 'Caja · Glass', trabajos: [trabajo({ categoria: 'GLASS', tecnico: 'Técnico B' })] }),
   m({ ...N11, grado: 'n/a' }), m({ ...N11, grado: 'n/a' }), m({ ...N11, grado: 'A' }), m({ ...N11, grado: 'B' }),
   m({ ...N11, grado: 'B', bateriaNueva: true }),
   m({ ...N16, grado: '' }), m({ ...N16, grado: 'n/a' }), m({ ...N16, grado: 'F' }),
@@ -205,7 +205,7 @@ describe('«Qué revisar»: el Excel (spec 0.9.25 §10.3 y §10.10)', () => {
   it('«Subir B a A»: seis columnas, una fila por modelo-color con sus B y B100 sin los del técnico, y «Hecho» vacía', () => {
     const lista = listaSubir([
       m({ ...N11, grado: 'B', imeiSn: '350000000000301' }),
-      m({ ...N11, grado: 'B', bateriaNueva: true, imeiSn: '350000000000302', ubicacion: 'Taller · Pulir',
+      m({ ...N11, grado: 'B', bateriaNueva: true, imeiSn: '350000000000302', ubicacion: 'Caja · Pulir',
         trabajos: [trabajo({ categoria: 'PULIDO', tecnico: 'Técnico C' })] }),
       m({ ...N11, grado: 'B', bateriaNueva: true, imeiSn: '350000000000303' }),
       m({ ...B12, grado: 'B', imeiSn: '350000000000304', trabajos: [trabajo({ tecnico: 'Técnico C' })] }),

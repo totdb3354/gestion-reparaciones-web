@@ -1,5 +1,5 @@
 import type { CambioImei, FilaVista } from '@/shared/api/client'
-import { textoMarca, textoMotivo } from './filas'
+import { textoMarca, textoMotivoCorto } from './filas'
 
 /** Una entrada del «Historial» del panel: un cambio de IMEI (del servidor) o un hito de la propia fila. `cuando` es el instante
  *  para ordenar («2026-11-09T10:30:00»); `conHora` es false en el hito que solo trae el día (la entrada desde ShippyPro). */
@@ -32,7 +32,7 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
     }
     if (cambio.tipo === 'VALIDADA') {
       // detalle = el código del motivo de SKU que se dio por bueno.
-      const que = textoMotivo({ motivo: cambio.detalle, skuMovil: null } as FilaVista)
+      const que = cambio.detalle ? textoMotivoCorto({ motivo: cambio.detalle, skuMovil: null, detalle: null } as FilaVista) : null
       return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `SKU validado${que ? ` (${que})` : ''}`, quien: cambio.usuario ?? '' }
     }
     if (cambio.tipo === 'VALIDACION_QUITADA') {

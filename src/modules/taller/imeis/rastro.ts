@@ -1,5 +1,5 @@
 import type { EventoRastro, FichaMovil } from '@/shared/api/client'
-import { diaNsys, diasDesdeNsys, ETIQUETA_AVISO, textoAvisoTaller, textoGrado, type AvisoTallerTexto } from '@/shared/lib/telefonoNsys'
+import { CAJA_LISTOS, diaNsys, esCajaDeTaller, diasDesdeNsys, ETIQUETA_AVISO, textoAvisoTaller, textoGrado, type AvisoTallerTexto } from '@/shared/lib/telefonoNsys'
 
 /** Textos y colores del rastro (0.9.17, spec «Pieza 1 del módulo de teléfonos» §9.3). El servidor manda el evento
  *  estructurado y aquí se compone lo que se lee. Las horas son de Madrid, sin zona: se cortan del texto sin convertir. */
@@ -41,8 +41,8 @@ export function fechaRastro(iso: string, soloDia: boolean): string {
 }
 
 function colorUbicacion(u: string): string {
-  if (u === 'Listos') return 'bg-fila-recibido-brd'
-  if (u.startsWith('Taller')) return 'bg-tipo-reparacion-text'
+  if (u === CAJA_LISTOS) return 'bg-fila-recibido-brd'
+  if (esCajaDeTaller(u)) return 'bg-tipo-reparacion-text'
   if (u === 'Devolución') return 'bg-fila-solicitud-brd'
   if (u === 'En revisión') return 'bg-ambar'
   return 'bg-gris-borde'

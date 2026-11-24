@@ -6,7 +6,7 @@ import { cn } from '@/shared/lib/utils'
 import { hayAntesDelHistorico, NOTA_ANTES_DEL_HISTORICO, verEvento } from './rastro'
 
 const LEYENDA: [string, string][] = [
-  ['bg-texto-suave', 'Lote'], ['bg-ambar', 'Revisión'], ['bg-tipo-reparacion-text', 'Taller'], ['bg-fila-recibido-brd', 'Listos'],
+  ['bg-texto-suave', 'Lote'], ['bg-ambar', 'Revisión'], ['bg-tipo-reparacion-text', 'Cajas del taller'], ['bg-fila-recibido-brd', 'Caja · Listos'],
   ['bg-fila-urgente-brd', 'De pedido'], ['bg-azul-noche', 'Vendido'], ['bg-fila-solicitud-brd', 'Devolución'], ['bg-gris-borde', 'No cuenta como stock'], ['bg-taller', 'Lo del taller'],
 ]
 

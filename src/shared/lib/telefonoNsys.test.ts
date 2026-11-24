@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cuandoItems, clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada, conEsim, nombreMovilNsys, SIN_MODELO_MAESTRO } from './telefonoNsys'
+import { cuandoItems, clasesUbicacion, descripcionMovil, diaNsys, diasDesdeNsys, textoGrado, nombreModeloNsys, textoEstadoMovil, textoPoner, COMPRUEBALO, ETIQUETA_AVISO, queHacerAviso, textoAvisoTaller, textoBateriaEnCorregir, textoBateriaRecordada, conEsim, nombreMovilNsys, SIN_MODELO_MAESTRO, esCajaDeTaller } from './telefonoNsys'
 
 describe('piezas compartidas del espejo de NSYS', () => {
   it('nombre del modelo: el código del ERP, si no el del maestro y si no un aviso', () => {
@@ -9,10 +9,15 @@ describe('piezas compartidas del espejo de NSYS', () => {
   })
 
   it('colores de las ubicaciones; las desconocidas en gris', () => {
-    expect(clasesUbicacion('Listos')).toBe('bg-fila-recibido-bg text-fila-recibido-brd')
-    expect(clasesUbicacion('Taller · Glass')).toBe('bg-tipo-glass-bg text-tipo-glass-text')
+    expect(clasesUbicacion('Caja · Listos')).toBe('bg-fila-recibido-bg text-fila-recibido-brd')
+    expect(clasesUbicacion('Caja · Glass')).toBe('bg-tipo-glass-bg text-tipo-glass-text')
     expect(clasesUbicacion('Caja nueva')).toBe('bg-badge-neutro-bg text-azul-gris')
     expect(clasesUbicacion(null)).toBe('bg-badge-neutro-bg text-azul-gris')
+  })
+
+  it('las cajas del taller son las «Caja · …» menos Listos', () => {
+    for (const u of ['Caja · Pulir', 'Caja · Glass', 'Caja · Reparación', 'Caja · Pantalla rota']) expect(esCajaDeTaller(u)).toBe(true)
+    for (const u of ['Caja · Listos', 'En revisión', 'Taller · Pulir', null]) expect(esCajaDeTaller(u)).toBe(false)
   })
 
   it('texto del estado del móvil', () => {

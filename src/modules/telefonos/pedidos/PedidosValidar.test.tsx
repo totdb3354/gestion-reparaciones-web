@@ -146,7 +146,7 @@ describe('Pedidos: la celda validada, el contador y el filtro', () => {
     const c = celda('V-0005')
     expect(c).toHaveTextContent(imeiValido(5))
     expect(within(c).getByText('validado')).toBeInTheDocument()
-    expect(c.getAttribute('title')).toContain('otro color o grado')
+    expect(c.getAttribute('title')).toContain('el color y el grado valen por separado')
     expect(c).not.toHaveTextContent('otro color o grado')
     expect(c.closest('td')!.className).not.toContain('FFE0B2')
     // La naranja sigue con su motivo y sin «validado».
@@ -198,6 +198,6 @@ describe('Pedidos: el historial de la validación', () => {
       { usuario: 'A', fecha: '2026-11-16T09:30:00', imeiAnterior: null, imeiNuevo: null, tipo: 'VALIDADA', detalle: 'SKU_DESCONOCIDO' },
       { usuario: 'A', fecha: '2026-11-16T09:40:00', imeiAnterior: null, imeiNuevo: null, tipo: 'VALIDACION_QUITADA', detalle: null },
     ])
-    expect(e.flatMap((x) => (x.tipo === 'marca' ? [x.texto] : []))).toEqual(['Validación quitada', 'SKU validado (el maestro no conoce este SKU)'])
+    expect(e.flatMap((x) => (x.tipo === 'marca' ? [x.texto] : []))).toEqual(['Validación quitada', 'SKU validado (SKU desconocido)'])
   })
 })

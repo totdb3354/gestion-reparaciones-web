@@ -4,6 +4,18 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.45] - 2026-11-24 — Pedidos: la celda del IMEI dice todo en corto; cajas «Caja · …»
+
+- En **Pedidos**, junto al IMEI salen **todas** las cosas que pasan con el móvil, en corto y separadas por «·»: por ejemplo «eSIM · color: Rosa», «N/A · color: Rosa» o «MS · grado: B». Al pasar el ratón, la explicación larga de cada una.
+- El naranja de «no cuadra» ya dice qué falla: **«color: Rosa»**, **«grado: B»**, **«modelo: 14»**, **«capacidad: 256GB»**, **«no se vende: F»**, «SKU desconocido», «no está en NSYS», «en otro pedido». Solo estos ponen la celda en naranja y cuentan en «no cuadran».
+- **«eSIM»** (el pedido es de SIM física) y **«SIM física»** (el pedido es de eSIM) salen en naranja pero **sin fondo y sin contar en «no cuadran»**. Antes la celda entera iba en naranja.
+- **«N/A»** (sin grado en NSYS) pone la celda en **amarillo claro**; es el único amarillo. Si el pedido acepta n/a, cuadra.
+- **«MS»**, **«B por A»** y **«reparándose · Juan»** (antes «en el taller») van en ámbar, sin fondo. «Reparándose» dice quién lo tiene, como «Quién lo tiene» de Stock: «reparándose · Juan · glass Ana».
+- Ojo: alguna fila validada antes porque solo cambiaba la SIM, o por ser n/a, deja de salir «validado» y enseña «eSIM» o «N/A»; tampoco cuenta en «no cuadran».
+- Entre los recomendados, «en el taller, acabará igual» pasa a **«reparándose, acabará igual»**. Un móvil con otra SIM no se recomienda (como antes).
+- En **Stock de teléfonos** y en el **rastro del IMEI**, las cajas de NSYS se llaman **«Caja · Pulir»**, **«Caja · Glass»**, **«Caja · Reparación»**, **«Caja · Pantalla rota»** y **«Caja · Listos»** (antes «Taller · …» y «Listos»), para no confundir la caja con un técnico que lo está reparando.
+- Servidor, web y migración de datos (`renombrar-cajas-nsys.sql`).
+
 ## [0.9.44] - 2026-11-23 — Pedidos: los pedidos web salen en 24 h laborables
 
 - En **Pedidos**, un pedido de las webs sale **«Sale hoy»** desde el día en que entra y hasta el día laborable siguiente; después pasa a **«Con retraso»**. Antes tenía 48 o 72 h laborables según el envío y se veía «Sale mié 25/11» hasta el último día.
