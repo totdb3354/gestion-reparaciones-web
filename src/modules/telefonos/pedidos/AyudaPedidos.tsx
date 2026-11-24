@@ -47,7 +47,7 @@ export function AyudaPedidos() {
           </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Pendiente</span>}>Aún no se ha preparado el envío.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, 'bg-[#fde2e1] text-[#b42318]')}>Sale hoy</span>}>
-            Pendiente (o envío parcial que falta por enviar, con «· sale hoy») que tiene que salir hoy. Es el último día para enviarla: Amazon, el último día que da Amazon; webs, 48 o 72 h laborables según el envío, festivos de Madrid incluidos.
+            Pendiente (o envío parcial que falta por enviar, con «· sale hoy») que tiene que salir hoy. Amazon: el último día que da Amazon. Webs: desde el día en que entra (o el primer laborable, si entra en fin de semana o festivo) hasta el laborable siguiente, festivos de Madrid incluidos.
           </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Sale mañana</span>}>
             Pendiente con más plazo: «Sale mañana» o el día, por ejemplo «Sale vie 20/11».

@@ -5,7 +5,7 @@ import { credenciales } from './credenciales.ts'
 
 // pedidos-salida.spec.ts (0.9.37, spec 2026-11-18 «buscar y salida»): la fecha de salida en «Enviado», el contador «salen hoy», los tres
 // «Listado» (Excel de lo que hay que buscar) y el IMEI duplicado, contra la base real de PREPRODUCCIÓN (lo que los tests unitarios solo vieron por el
-// texto del SQL). Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero). No crea filas: usa las que hay.
+// texto del SQL); desde la 0.9.44 las webs salen hoy desde su primer laborable (`salidaDesde`). Solo contra PREPRODUCCIÓN (se niega a seguir sin el letrero). No crea filas: usa las que hay.
 //   - Lo que escribe: poner en una fila pendiente sin IMEI ni marca el IMEI de una fila ENVIADA (o del histórico, o de una viva cancelada),
 //     que el servidor debe aceptar; `afterAll` lo quita con `PUT /imei {imei:null, imeiAnterior}` y comprueba que la fila queda sin IMEI.
 //   - Los intentos que deben dar 409 no escriben nada (se comprueba que la fila sigue sin IMEI).
@@ -18,7 +18,7 @@ const DIR = process.env.E2E_SALIDA_DIR ?? join('test-results', 'pedidos-salida')
 
 type Fila = {
   idFila: number; canal: string | null; pedido: string | null; imei: string | null; marca: string | null; estado: string; editable: boolean
-  fechaSalida: string | null; pais: string | null; sku: string | null; faltaEnviarEn: string | null; origen?: string
+  fechaSalida: string | null; salidaDesde?: string | null; pais: string | null; sku: string | null; faltaEnviarEn: string | null; origen?: string
   plataforma: string | null; fecha: string | null // cliente y día de entrada (yyyy-mm-dd) de la fila
 }
 
@@ -63,6 +63,19 @@ async function excel(): Promise<Buffer> {
 }
 /** Pendiente (o «falta por enviar»), sin IMEI y sin «Cancelado»: lo que cuenta el Excel. */
 const cuentaEnExcel = (f: Fila) => !f.imei && f.marca !== 'CANCELADO' && (f.estado === 'PENDIENTE' || (f.estado === 'ENVIADA' && !!f.faltaEnviarEn))
+
+/** La fecha con la que la web calcula «Sale hoy» / «Con retraso» (0.9.44; igual que `fechaReferencia` de salida.ts). */
+function referencia(f: Fila, hoy: string): string | null {
+  if (!f.fechaSalida) return null
+  const desde = f.salidaDesde
+  if (!desde || hoy > f.fechaSalida) return f.fechaSalida
+  if (hoy < desde) return desde
+  const dia = new Date(`${hoy}T12:00:00Z`).getUTCDay()
+  if (dia !== 0 && dia !== 6) return hoy
+  const d = new Date(`${hoy}T12:00:00Z`)
+  do d.setUTCDate(d.getUTCDate() + 1); while (d.getUTCDay() !== 1)
+  return d.toISOString().slice(0, 10)
+}
 const CANALES: Record<string, string[]> = { AMZ: ['AMAZON'], FNSK: ['AMAZON_STOCKROOM'], WEBS: ['DISTRIBUIDORES', 'PARTICULARES', 'BACKIPHONE'] }
 
 test.beforeAll(async ({ browser }, info) => {
@@ -120,15 +133,15 @@ test('1. todas las pendientes tienen fecha de salida y el contador «salen hoy»
   const sinFecha = vivas.filter((f) => !f.fechaSalida)
   console.log(`pendientes ${vivas.length} · sin fecha ${sinFecha.length} · sin país ${vivas.filter((f) => !f.pais).length}`)
   expect(sinFecha.map((f) => f.idFila), 'pendientes de ShippyPro sin fecha de salida').toEqual([])
-  const deHoy = lista.filter((f) => (f.estado === 'PENDIENTE' || (f.estado === 'ENVIADA' && !!f.faltaEnviarEn)) && f.marca !== 'CANCELADO' && f.fechaSalida === hoy).length
+  const deHoy = lista.filter((f) => (f.estado === 'PENDIENTE' || (f.estado === 'ENVIADA' && !!f.faltaEnviarEn)) && f.marca !== 'CANCELADO' && referencia(f, hoy) === hoy).length
   const boton = page.getByRole('group', { name: 'Contadores' }).getByRole('button', { name: /salen hoy$/ })
   await expect(boton).toHaveText(`${deHoy} salen hoy`)
 })
 
 test('2. la columna Enviado enseña «Sale hoy» en una pendiente de hoy y la fecha en una posterior', async () => {
-  const unaDeHoy = lista.find((f) => f.estado === 'PENDIENTE' && f.marca == null && f.fechaSalida === hoy)
+  const unaDeHoy = lista.find((f) => f.estado === 'PENDIENTE' && f.marca == null && referencia(f, hoy) === hoy)
   // Una de web (su número de pedido se ve siempre; en Amazon puede salir «sin asociar»), para buscarla por el pedido.
-  const posterior = lista.find((f) => f.estado === 'PENDIENTE' && f.marca == null && !!f.fechaSalida && f.fechaSalida > hoy && !(f.canal ?? '').startsWith('AMAZON') && !!f.pedido)
+  const posterior = lista.find((f) => f.estado === 'PENDIENTE' && f.marca == null && (referencia(f, hoy) ?? '') > hoy && !(f.canal ?? '').startsWith('AMAZON') && !!f.pedido)
   test.skip(!unaDeHoy && !posterior, 'no hay pendientes con fecha para mirar')
   const boton = page.getByRole('group', { name: 'Contadores' }).getByRole('button', { name: /salen hoy$/ })
   if (unaDeHoy) {
@@ -142,7 +155,7 @@ test('2. la columna Enviado enseña «Sale hoy» en una pendiente de hoy y la fe
     await buscador.fill(posterior.pedido as string)
     const fila = filas.filter({ hasText: posterior.pedido as string }).first()
     await expect(fila).toContainText(/Sale (mañana|[a-zé]{3} \d\d\/\d\d)/)
-    console.log(`fila ${posterior.idFila} (${posterior.fechaSalida}): ${(await fila.innerText()).replace(/\s+/g, ' ').slice(0, 160)}`)
+    console.log(`fila ${posterior.idFila} (${posterior.fechaSalida} ${posterior.salidaDesde ?? ''}): ${(await fila.innerText()).replace(/\s+/g, ' ').slice(0, 160)}`)
     await buscador.fill('')
   }
 })
