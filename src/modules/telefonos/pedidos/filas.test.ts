@@ -1,49 +1,82 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, textoMotivo, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido } from './filas'
+import type { FilaVista } from '@/shared/api/client'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, partesAviso, lineasAviso, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido } from './filas'
 import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 
-describe('textoMotivo', () => {
+const d = (p: Partial<NonNullable<FilaVista['detalle']>>) => ({ sim: null, na: false, ms: false, dato: null, trabajos: [], ...p })
+const IMEI = '350000000000001'
+const textos = (f: FilaVista) => partesAviso(f).map((p) => `${p.texto}|${p.tono}`)
+
+describe('partesAviso', () => {
   it.each([
     ['NO_EN_NSYS', null, 'no está en NSYS'],
-    ['EN_OTRA_FILA', null, 'ya está en otro pedido'],
-    ['MODELO', 'i14128AzulA', 'otro modelo, capacidad o eSIM: es i14128AzulA'],
-    ['MODELO', null, 'otro modelo, capacidad o eSIM'],
-    ['COLOR_O_GRADO', 'i13128RosaA', 'otro color o grado: es i13128RosaA'],
+    ['EN_OTRA_FILA', null, 'en otro pedido'],
+    ['SKU_DESCONOCIDO', null, 'SKU desconocido'],
+    ['MODELO', '14', 'modelo: 14'],
+    ['CAPACIDAD', '256GB', 'capacidad: 256GB'],
+    ['COLOR', 'Rosa', 'color: Rosa'],
+    ['GRADO', 'B', 'grado: B'],
     ['COLOR_O_GRADO', null, 'otro color o grado'],
-    ['GRADO_NO_VENDIBLE', null, 'ese grado no se vende'],
-    ['SKU_DESCONOCIDO', null, 'el maestro no conoce este SKU'],
-    ['EN_TALLER', null, 'en el taller'],
-    ['MS', null, 'es un Ms'],
-    ['B_POR_A', null, 'B por A'],
-  ])('%s (%s) → %s', (motivo, skuMovil, esperado) => {
-    expect(textoMotivo(fila({ motivo, skuMovil }))).toBe(esperado)
+    ['GRADO_NO_VENDIBLE', 'F', 'no se vende: F'],
+  ])('%s en naranja', (motivo, dato, texto) =>
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo, detalle: dato ? d({ dato }) : null }))).toEqual([`${texto}|naranja`]))
+
+  it('ámbar sin fondo: B por A, MS, reparándose', () => {
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'B_POR_A' }))).toEqual(['B por A|ambar'])
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: null, detalle: d({ ms: true }) }))).toEqual(['MS|ambar'])
+    const trabajos = [{ categoria: 'REPARACION', tecnico: 'Juan', desde: '2026-11-24T09:00:00', entregado: null },
+      { categoria: 'GLASS', tecnico: 'Ana', desde: '2026-11-24T09:00:00', entregado: null }]
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'EN_TALLER', detalle: d({ trabajos }) }))).toEqual(['reparándose · Juan · glass Ana|ambar'])
   })
 
-  it('un motivo desconocido dice «revisar»: el color no es la única señal', () => {
-    expect(textoMotivo(fila({ motivo: 'MOTIVO_NUEVO' }))).toBe('revisar')
+  it('SIM en naranja y N/A en ámbar', () => {
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'ESIM' }) }))).toEqual(['eSIM|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'SIM_FISICA' }) }))).toEqual(['SIM física|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ na: true }) }))).toEqual(['N/A|ambar'])
   })
 
-  it('sin motivo, null', () => {
-    expect(textoMotivo(fila())).toBeNull()
+  it('varias a la vez, en su orden', () => {
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', detalle: d({ sim: 'ESIM', dato: 'Rosa' }) }))).toEqual(['eSIM|naranja', 'color: Rosa|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'ESIM', na: true }) }))).toEqual(['eSIM|naranja', 'N/A|ambar'])
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', detalle: d({ na: true, dato: 'Rosa' }) }))).toEqual(['N/A|ambar', 'color: Rosa|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', detalle: d({ ms: true, dato: 'Rojo' }) }))).toEqual(['MS|ambar', 'color: Rojo|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'CAPACIDAD', detalle: d({ sim: 'SIM_FISICA', dato: '128GB' }) }))).toEqual(['SIM física|naranja', 'capacidad: 128GB|naranja'])
   })
+
+  it('sin dato, la palabra sola; motivo desconocido, «revisar»; sin nada, vacío', () => {
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR' }))).toEqual(['otro color|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'MOTIVO_NUEVO' }))).toEqual(['revisar|naranja'])
+    expect(partesAviso(fila({ imei: IMEI, nivel: 'OK' }))).toEqual([])
+  })
+
+  it('validada: solo las señales', () =>
+    expect(textos(fila({ imei: IMEI, nivel: 'OK', motivo: null, motivoValidado: 'COLOR', detalle: d({ sim: 'ESIM' }) }))).toEqual(['eSIM|naranja']))
+})
+
+describe('lineasAviso', () => {
+  it('una frase por pieza, con el SKU del móvil', () =>
+    expect(lineasAviso(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', skuMovil: 'i13128RosaA', detalle: d({ sim: 'ESIM', dato: 'Rosa' }) })))
+      .toEqual(['el pedido es de SIM física y el móvil es eSIM', 'otro color (Rosa): es i13128RosaA']))
 })
 
 describe('claseCelda', () => {
   it('el aviso sale siempre que el servidor mande nivel, también en una no pendiente', () => {
-    expect(claseCelda(fila({ estado: 'NO_PENDIENTE', imei: '350000000000001', nivel: 'MAL' }))).toBe('mal')
+    expect(claseCelda(fila({ estado: 'NO_PENDIENTE', imei: IMEI, nivel: 'MAL' }))).toBe('mal')
   })
   it('una enviada con IMEI y sin nivel es normal, sin aviso ni caja', () => {
-    expect(claseCelda(fila({ estado: 'ENVIADA', imei: '350000000000001' }))).toBe('ok')
+    expect(claseCelda(fila({ estado: 'ENVIADA', imei: IMEI }))).toBe('ok')
     expect(claseCelda(fila({ estado: 'ENVIADA' }))).toBe('vacia')
   })
   it('sin IMEI, vacía', () => expect(claseCelda(fila())).toBe('vacia'))
-  it('por nivel', () => {
-    const imei = '350000000000001'
-    expect(claseCelda(fila({ imei, nivel: 'OK' }))).toBe('ok')
-    expect(claseCelda(fila({ imei, nivel: 'AVISO' }))).toBe('aviso')
-    expect(claseCelda(fila({ imei, nivel: 'MAL' }))).toBe('mal')
-    expect(claseCelda(fila({ imei, nivel: null }))).toBe('ok')
+  it('naranja con MAL, aunque sea N/A', () =>
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'MAL', detalle: d({ na: true }) }))).toBe('mal'))
+  it('amarillo solo con N/A', () => expect(claseCelda(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ na: true }) }))).toBe('na'))
+  it('el resto de avisos, sin fondo', () => {
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'EN_TALLER' }))).toBe('ok')
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'ESIM' }) }))).toBe('ok')
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'OK' }))).toBe('ok')
+    expect(claseCelda(fila({ imei: IMEI, nivel: null }))).toBe('ok')
   })
 })
 
@@ -70,6 +103,7 @@ describe('recuento', () => {
 describe('constantes', () => {
   it('columnas y textos de nivel', () => {
     expect([...COLUMNAS]).toEqual(['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'])
+    expect(TEXTO_NIVEL[2]).toBe('reparándose, acabará igual')
     expect(TEXTO_NIVEL[3]).toBe('hay que transformarlo')
   })
 })

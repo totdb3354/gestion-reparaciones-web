@@ -3,6 +3,7 @@ import { hoyMadrid } from '@/shared/lib/fechas'
 import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 import { diaNsys } from '@/shared/lib/telefonoNsys'
 import { nivelSalida, textoSalida } from './salida'
+import { textoReparandose } from '../stock/quien'
 
 /** Las columnas de la tabla, con los nombres de la hoja (sin letras). */
 export const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviado', 'Fecha compra'] as const
@@ -10,31 +11,95 @@ export const COLUMNAS = ['Fecha', 'Plataforma', 'SKU', 'IMEI', 'Pedido', 'Enviad
 /** Lo que cada recomendado dice de sí mismo respecto al pedido (nivel 1 = el mejor). */
 export const TEXTO_NIVEL: Record<1 | 2 | 3, string> = {
   1: 'igual que el pedido',
-  2: 'en el taller, acabará igual',
+  2: 'reparándose, acabará igual',
   3: 'hay que transformarlo',
 }
 
-/** El motivo del aviso de una fila en palabras; con `skuMovil`, dice qué es el móvil. Sin motivo conocido, null. */
+export type ParteAviso = { texto: string; tono: 'naranja' | 'ambar' }
+
+const PALABRA_SIM: Record<string, string> = { ESIM: 'eSIM', SIM_FISICA: 'SIM física' }
+const FRASE_SIM: Record<string, string> = {
+  ESIM: 'el pedido es de SIM física y el móvil es eSIM',
+  SIM_FISICA: 'el pedido es de eSIM y el móvil es de SIM física',
+}
+const DE_MODELO = ['MODELO', 'CAPACIDAD']
+
+/** El motivo en corto, como se lee en la celda. */
+function corto(f: FilaVista): string {
+  const dato = f.detalle?.dato
+  const con = (nombre: string, otro: string) => (dato ? `${nombre}: ${dato}` : otro)
+  switch (f.motivo) {
+    case 'NO_EN_NSYS': return 'no está en NSYS'
+    case 'EN_OTRA_FILA': return 'en otro pedido'
+    case 'SKU_DESCONOCIDO': return 'SKU desconocido'
+    case 'MODELO': return con('modelo', 'otro modelo')
+    case 'CAPACIDAD': return con('capacidad', 'otra capacidad')
+    case 'COLOR': return con('color', 'otro color')
+    case 'GRADO': return con('grado', 'otro grado')
+    case 'COLOR_O_GRADO': return 'otro color o grado'
+    case 'GRADO_NO_VENDIBLE': return con('no se vende', 'no se vende')
+    case 'EN_TALLER': {
+      const quien = textoReparandose(f.detalle?.trabajos ?? [])
+      return quien ? `reparándose · ${quien}` : 'reparándose'
+    }
+    case 'B_POR_A': return 'B por A'
+    case 'MS': return 'MS' // servidor anterior
+    default: return 'revisar'
+  }
+}
+
+/** Las piezas de la celda del IMEI (spec 2026-11-24 §2): SIM, modelo o capacidad, N/A, MS y el resto. Naranja: la SIM y lo que no
+ *  cuadra; ámbar: lo demás. */
+export function partesAviso(f: FilaVista): ParteAviso[] {
+  const d = f.detalle
+  const p: ParteAviso[] = []
+  const tonoMotivo = f.nivel === 'MAL' ? 'naranja' : 'ambar'
+  if (d?.sim) p.push({ texto: PALABRA_SIM[d.sim] ?? d.sim, tono: 'naranja' })
+  if (f.motivo && DE_MODELO.includes(f.motivo)) p.push({ texto: corto(f), tono: tonoMotivo })
+  if (d?.na) p.push({ texto: 'N/A', tono: 'ambar' })
+  if (d?.ms) p.push({ texto: 'MS', tono: 'ambar' })
+  if (f.motivo && !DE_MODELO.includes(f.motivo)) p.push({ texto: corto(f), tono: tonoMotivo })
+  return p
+}
+
+/** El motivo en una frase, con lo que es el móvil (`skuMovil`). Sin motivo, null. */
 export function textoMotivo(f: FilaVista): string | null {
+  if (!f.motivo) return null
   const es = f.skuMovil ? `: es ${f.skuMovil}` : ''
+  const dato = f.detalle?.dato ? ` (${f.detalle.dato})` : ''
   switch (f.motivo) {
     case 'NO_EN_NSYS': return 'no está en NSYS'
     case 'EN_OTRA_FILA': return 'ya está en otro pedido'
-    case 'MODELO': return `otro modelo, capacidad o eSIM${es}`
-    case 'COLOR_O_GRADO': return `otro color o grado${es}`
-    case 'GRADO_NO_VENDIBLE': return 'ese grado no se vende'
     case 'SKU_DESCONOCIDO': return 'el maestro no conoce este SKU'
-    case 'EN_TALLER': return 'en el taller'
+    case 'MODELO': return `otro modelo${dato}${es}`
+    case 'CAPACIDAD': return `otra capacidad${dato}${es}`
+    case 'COLOR': return `otro color${dato}${es}`
+    case 'GRADO': return `otro grado${dato}${es}`
+    case 'COLOR_O_GRADO': return `el color y el grado valen por separado, pero el pedido no tiene esa combinación${es}`
+    case 'GRADO_NO_VENDIBLE': return `ese grado no se vende${dato}`
+    case 'EN_TALLER': return `se está reparando${f.detalle?.trabajos?.length ? ` (${textoReparandose(f.detalle.trabajos)})` : ''}`
+    case 'B_POR_A': return `B por A${es}`
     case 'MS': return 'es un Ms'
-    case 'B_POR_A': return 'B por A'
-    // Un motivo que la web aún no conoce: el color nunca es la única señal.
-    default: return f.motivo ? 'revisar' : null
+    default: return 'revisar'
   }
+}
+
+/** Una frase por pieza, en el orden de la celda: para el title y el panel. */
+export function lineasAviso(f: FilaVista): string[] {
+  const d = f.detalle
+  const l: string[] = []
+  if (d?.sim) l.push(FRASE_SIM[d.sim] ?? d.sim)
+  const motivo = textoMotivo(f)
+  if (motivo && f.motivo && DE_MODELO.includes(f.motivo)) l.push(motivo)
+  if (d?.na) l.push('grado n/a: NSYS no le da grado')
+  if (d?.ms) l.push('es un Ms')
+  if (motivo && !(f.motivo && DE_MODELO.includes(f.motivo))) l.push(motivo)
+  return l
 }
 
 /** Los motivos del aviso naranja que una persona puede dar por buenos («Validar SKU»): solo los de SKU. NO_EN_NSYS y EN_OTRA_FILA son
  *  errores del IMEI (se arreglan cambiándolo) y el ámbar no se valida. */
-export const MOTIVOS_SKU = ['MODELO', 'COLOR_O_GRADO', 'GRADO_NO_VENDIBLE', 'SKU_DESCONOCIDO']
+export const MOTIVOS_SKU = ['MODELO', 'CAPACIDAD', 'COLOR', 'GRADO', 'COLOR_O_GRADO', 'GRADO_NO_VENDIBLE', 'SKU_DESCONOCIDO']
 
 /** La fila tiene el aviso de SKU dado por bueno (el servidor ya manda el nivel OK). */
 export const estaValidada = (f: FilaVista): boolean => !!f.motivoValidado
@@ -194,11 +259,11 @@ export const CLASE_TONO: Record<'gris', string> = {
   gris: 'bg-[#fafbfc] text-[#8b93a1]',
 }
 
-/** Cómo se pinta la celda del IMEI: vacía, o por el nivel que dice el servidor (solo lo manda en pendientes y no pendientes). */
-export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'aviso' | 'mal' {
+/** Cómo se pinta la celda del IMEI: vacía; naranja si no cuadra; amarillo claro si es N/A (el único amarillo); si no, sin fondo. */
+export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'na' | 'mal' {
   if (!f.imei) return 'vacia'
-  if (f.nivel === 'AVISO') return 'aviso'
   if (f.nivel === 'MAL') return 'mal'
+  if (f.detalle?.na) return 'na'
   return 'ok'
 }
 
