@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import type { CambioImei, FilaVista } from '@/shared/api/client'
-import { diaNsys } from '@/shared/lib/telefonoNsys'
+import { cn } from '@/shared/lib/utils'
+import { clasesUbicacion, diaNsys } from '@/shared/lib/telefonoNsys'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useCambiosImei, useFaltaEnviar } from '../api'
 import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
-import { construirHistorial, type EntradaHistorial } from './historial'
+import { construirHistorial, type EntradaHistorial, type TonoReserva } from './historial'
 import { EditorMarca } from './EditorMarca'
 import { BotonCancelarMovil, BotonQuitarCancelacion } from './CancelarMovil'
 import { BotonValidarSku } from './BotonValidarSku'
@@ -35,8 +36,18 @@ function textoCambio(c: CambioImei): ReactNode {
   return <>sin cambio de IMEI</>
 }
 
+/** Los colores de las etiquetas del historial de la reserva (como el prototipo aprobado): la etiqueta y la raya de la izquierda. */
+export const TONO_RESERVA: Record<TonoReserva, { etiqueta: string; raya: string }> = {
+  res: { etiqueta: 'bg-[#E3F2FD] text-[#1565C0]', raya: 'border-l-[#90CAF9]' },
+  ok: { etiqueta: 'bg-[#E8F5E9] text-[#2E7D32]', raya: 'border-l-[#A5D6A7]' },
+  gris: { etiqueta: 'bg-[#E8EAF0] text-azul-gris', raya: 'border-l-form-fila-brd' },
+  dev: { etiqueta: 'bg-[#F3E5F5] text-[#7B1FA2]', raya: 'border-l-[#CE93D8]' },
+  mal: { etiqueta: 'bg-[#FFE0B2] text-[#B45309]', raya: 'border-l-[#FFB74D]' },
+  aviso: { etiqueta: 'bg-form-agotado-bg text-form-agotado-text', raya: 'border-l-[#FFE082]' },
+}
+
 /** Un hito de la propia fila: lo que pasó, y cuándo (sin hora si solo se sabe el día). */
-function textoHito(e: Exclude<EntradaHistorial, { tipo: 'imei' | 'marca' }>): { quien: string; texto: ReactNode } {
+function textoHito(e: Exclude<EntradaHistorial, { tipo: 'imei' | 'marca' | 'reserva' }>): { quien: string; texto: ReactNode } {
   if (e.tipo === 'sincronizado') return { quien: 'Sincronizado con la web', texto: null }
   if (e.tipo === 'entro') return { quien: 'Entró desde ShippyPro', texto: null }
   if (e.tipo === 'etiqueta') return { quien: 'Etiqueta generada', texto: e.transportista ? <> · {nombreTransportista(e.transportista)}</> : null }
@@ -56,13 +67,16 @@ function Historial({ fila }: { fila: FilaVista }) {
     <>
       <ul aria-label="Historial de la fila" tabIndex={0} className="m-0 max-h-[40vh] list-none overflow-x-hidden overflow-y-auto p-0">
         {entradas.map((e) => (
-          <li key={e.clave} className="border-b border-dashed border-form-fila-brd py-1.5 text-[12px]">
-            {e.tipo === 'imei'
+          <li key={e.clave} data-reserva={e.tipo === 'reserva' ? e.tono : undefined}
+            className={cn('border-b border-dashed border-form-fila-brd py-1.5 text-[12px]', e.tipo === 'reserva' && cn('border-l-[3px] pl-2', TONO_RESERVA[e.tono].raya))}>
+            {e.tipo === 'reserva'
+              ? <><span data-etiqueta className={cn('mr-1 inline-block rounded-[10px] px-2 text-[11px] font-bold', TONO_RESERVA[e.tono].etiqueta)}>{e.etiqueta}</span>{e.texto}{e.caja && <> <span data-caja className={cn('inline-block rounded-md px-2 py-px text-[11px] font-bold', clasesUbicacion(e.caja))}>Caja · {e.caja}</span></>}</>
+              : e.tipo === 'imei'
               ? <><span className="font-bold">{e.cambio.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(e.cambio)}</>
               : e.tipo === 'marca'
               ? <><span className="font-bold">{e.texto}</span>{e.quien && <> · {e.quien}</>}</>
               : <><span className="font-bold">{textoHito(e).quien}</span>{textoHito(e).texto}</>}
-            <div className="text-[11px] text-azul-gris">{e.conHora ? diaHora(e.cuando) : diaNsys(e.cuando)}</div>
+            <div className="text-[11px] text-azul-gris">{e.conHora ? diaHora(e.cuando) : diaNsys(e.cuando)}{e.tipo === 'reserva' && <> · {e.quien}</>}</div>
           </li>
         ))}
       </ul>

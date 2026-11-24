@@ -107,3 +107,14 @@ describe('Pedidos: píldora de fuentes con aviso', () => {
     expect(await screen.findByText(/Falta el transportista en 3 envíos/)).toBeInTheDocument()
   })
 })
+
+describe('Pedidos: la ayuda de la reserva', () => {
+  it('explica qué es una reserva y cómo confirmarla', async () => {
+    abrir()
+    await userEvent.click(await screen.findByRole('button', { name: 'Ayuda de Pedidos' }))
+    const ayuda = await screen.findByRole('dialog', { name: 'Cómo se lee esta tabla' })
+    expect(within(ayuda).getByText(/IMEI tenue: reservado/)).toBeInTheDocument()
+    expect(within(ayuda).getByText(/pica ese IMEI/)).toBeInTheDocument()
+    expect(within(ayuda).getByText(/«N reservadas» cuenta/)).toBeInTheDocument()
+  })
+})
