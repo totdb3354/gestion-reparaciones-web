@@ -25,7 +25,7 @@ const FRASE_SIM: Record<string, string> = {
 const DE_MODELO = ['MODELO', 'CAPACIDAD']
 
 /** El motivo en corto, como se lee en la celda. */
-function corto(f: FilaVista): string {
+export function textoMotivoCorto(f: FilaVista): string {
   const dato = f.detalle?.dato
   const con = (nombre: string, otro: string) => (dato ? `${nombre}: ${dato}` : otro)
   switch (f.motivo) {
@@ -55,10 +55,10 @@ export function partesAviso(f: FilaVista): ParteAviso[] {
   const p: ParteAviso[] = []
   const tonoMotivo = f.nivel === 'MAL' ? 'naranja' : 'ambar'
   if (d?.sim) p.push({ texto: PALABRA_SIM[d.sim] ?? d.sim, tono: 'naranja' })
-  if (f.motivo && DE_MODELO.includes(f.motivo)) p.push({ texto: corto(f), tono: tonoMotivo })
+  if (f.motivo && DE_MODELO.includes(f.motivo)) p.push({ texto: textoMotivoCorto(f), tono: tonoMotivo })
   if (d?.na) p.push({ texto: 'N/A', tono: 'ambar' })
   if (d?.ms) p.push({ texto: 'MS', tono: 'ambar' })
-  if (f.motivo && !DE_MODELO.includes(f.motivo)) p.push({ texto: corto(f), tono: tonoMotivo })
+  if (f.motivo && !DE_MODELO.includes(f.motivo)) p.push({ texto: textoMotivoCorto(f), tono: tonoMotivo })
   return p
 }
 

@@ -82,3 +82,20 @@ describe('TablaFilas: «falta por enviar» con fecha de salida', () => {
     expect(e).not.toHaveClass('bg-[#b42318]')
   })
 })
+
+describe('TablaFilas: la celda del IMEI enseña las piezas del aviso', () => {
+  it('las piezas salen juntas y el fondo sigue al peor: naranja si no cuadra, amarillo claro si solo es N/A', () => {
+    const filas = [
+      fila({ idFila: 1, imei: '350000000000001', nivel: 'MAL', motivo: 'COLOR', skuMovil: 'i13128RosaA',
+        detalle: { sim: 'ESIM', na: false, ms: false, dato: 'Rosa', trabajos: [] } }),
+      fila({ idFila: 2, imei: '350000000000002', nivel: 'AVISO', motivo: null,
+        detalle: { sim: null, na: true, ms: false, dato: null, trabajos: [] } }),
+    ]
+    const { container } = renderConProviders(<TablaFilas filas={filas} />, { sesion: SESION_SUPER })
+    const [c1, c2] = Array.from(container.querySelectorAll('td[data-imei]'))
+    expect(c1).toHaveTextContent('350000000000001eSIM · color: Rosa')
+    expect(c1.className).toContain('bg-[#FFE0B2]')
+    expect(c2).toHaveTextContent('350000000000002N/A')
+    expect(c2.className).toContain('bg-form-agotado-bg')
+  })
+})

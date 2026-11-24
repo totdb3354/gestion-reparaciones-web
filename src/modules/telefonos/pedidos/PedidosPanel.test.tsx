@@ -180,7 +180,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     await user.click(celda('Cliente Web A'))
     const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
     expect(p.querySelector('dl')!.textContent).toMatch(/TiendaFonestockroom.*PlataformaCliente Web A/)
-    for (const t of ['402-0000000-0000042', 'Cliente Web A', 'Fonestockroom', 'i13128AzulA', '09/11/2026', '08/11/2026', 'Pendiente', '350000000000011', 'i14128NegroA', 'CAJA LISTOS', 'otro modelo, capacidad o eSIM']) {
+    for (const t of ['402-0000000-0000042', 'Cliente Web A', 'Fonestockroom', 'i13128AzulA', '09/11/2026', '08/11/2026', 'Pendiente', '350000000000011', 'i14128NegroA', 'CAJA LISTOS', 'otro modelo: es i14128NegroA']) {
       expect(p).toHaveTextContent(t)
     }
     expect(within(p).getByRole('heading', { name: 'Historial' })).toBeInTheDocument()
