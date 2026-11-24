@@ -5748,7 +5748,7 @@
         }
       },
       "FilaVista" : {
-        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "fechaSalida", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pais", "pedido", "plataforma", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
+        "required" : [ "asociadaEn", "asociadaOrigen", "caja", "canal", "editable", "envioFecha", "estado", "faltaEnviarEn", "fecha", "fechaCompra", "fechaSalida", "idFila", "imei", "impresaEn", "marca", "marcaEn", "marcaNota", "marcaPor", "motivo", "motivoValidado", "nivel", "pais", "pedido", "plataforma", "salidaDesde", "seguimiento", "sincronizadaEn", "sku", "skuMovil", "tieneEtiqueta", "transportista", "validadaEn", "validadaPor" ],
         "type" : "object",
         "properties" : {
           "idFila" : {
@@ -5882,6 +5882,11 @@
           },
           "pais" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "salidaDesde" : {
+            "type" : "string",
+            "format" : "date",
             "nullable" : true
           }
         }
