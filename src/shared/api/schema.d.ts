@@ -2797,6 +2797,9 @@ export interface components {
             pais: string | null;
             /** Format: date */
             salidaDesde: string | null;
+            imeiReservado: string | null;
+            /** Format: date-time */
+            reservadaEn: string | null;
         };
         PeticionMarca: {
             marca: string | null;

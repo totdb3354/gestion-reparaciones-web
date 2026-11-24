@@ -205,21 +205,29 @@ export function claseCelda(f: FilaVista): 'vacia' | 'ok' | 'aviso' | 'mal' {
 /** Las filas cuyo IMEI no cuadra con el pedido (la celda en naranja). */
 export const noCuadra = (f: FilaVista): boolean => f.nivel === 'MAL'
 
-export type Recuento = { total: number; pendientes: number; sinImei: number; noCuadran: number }
+export type Recuento = { total: number; pendientes: number; sinImei: number; noCuadran: number; reservadas: number; sinStock: number }
 
 /** ¿Le falta el IMEI? Editable y sin IMEI (enviadas incluidas), salvo «Cancelado»: ese móvil no sale y no necesita IMEI. */
 export function faltaImei(f: FilaVista): boolean {
   return f.editable && !f.imei && f.marca !== 'CANCELADO'
 }
 
+/** Sin IMEI pero con un teléfono reservado para ella (el ERP lo eligió; se confirma al picarlo). */
+export const estaReservada = (f: FilaVista): boolean => faltaImei(f) && !!f.imeiReservado
+
+/** Sin IMEI, sin reserva y sin marca: ningún teléfono cumplió los criterios. */
+export const sinStock = (f: FilaVista): boolean => faltaImei(f) && !f.imeiReservado && !f.marca
+
 /** Los contadores de la cabecera: todas las filas, las pendientes, las editables que aún no tienen IMEI (enviadas incluidas) y las
  *  que no cuadran. Una sola pasada. */
 export function recuento(filas: FilaVista[]): Recuento {
-  const r: Recuento = { total: filas.length, pendientes: 0, sinImei: 0, noCuadran: 0 }
+  const r: Recuento = { total: filas.length, pendientes: 0, sinImei: 0, noCuadran: 0, reservadas: 0, sinStock: 0 }
   for (const f of filas) {
     if (esPendiente(f)) r.pendientes++
     if (faltaImei(f)) r.sinImei++
     if (noCuadra(f)) r.noCuadran++
+    if (estaReservada(f)) r.reservadas++
+    if (sinStock(f)) r.sinStock++
   }
   return r
 }
@@ -249,17 +257,19 @@ export function rangoDe(p: Periodo, hoy: Date, rango?: { desde: string; hasta: s
   }
 }
 
-export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; enviado: Set<string>; marcas: Set<string>; sinAsociar: boolean }
+export type FiltrosColumna = { plataformas: Set<string>; skus: Set<string>; soloSinImei: boolean; noCuadran: boolean; soloReservadas: boolean; soloSinStock: boolean; enviado: Set<string>; marcas: Set<string>; sinAsociar: boolean }
 
-export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false }
+export const SIN_FILTROS: FiltrosColumna = { plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, soloReservadas: false, soloSinStock: false, enviado: new Set(), marcas: new Set(), sinAsociar: false }
 
 /** Los contadores pulsables de la cabecera y el filtro que cada uno aplica (sustituye a los filtros de columna). */
-export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'noCuadran' | 'saleHoy' | 'conRetraso'
+export type Contador = 'filas' | 'pendientes' | 'sinImei' | 'reservadas' | 'sinStock' | 'noCuadran' | 'saleHoy' | 'conRetraso'
 
 export function filtrosDeContador(c: Contador): FiltrosColumna {
   switch (c) {
     case 'pendientes': return { ...SIN_FILTROS, enviado: new Set(['PENDIENTE']) }
     case 'sinImei': return { ...SIN_FILTROS, soloSinImei: true }
+    case 'reservadas': return { ...SIN_FILTROS, soloReservadas: true }
+    case 'sinStock': return { ...SIN_FILTROS, soloSinStock: true }
     case 'noCuadran': return { ...SIN_FILTROS, noCuadran: true }
     case 'saleHoy': return { ...SIN_FILTROS, enviado: new Set(['SALE_HOY']) }
     case 'conRetraso': return { ...SIN_FILTROS, enviado: new Set(['CON_RETRASO']) }
@@ -271,16 +281,18 @@ export function filtrosDeContador(c: Contador): FiltrosColumna {
 export function contadorAplicado(f: FiltrosColumna): Contador | null {
   const nada = f.plataformas.size === 0 && f.skus.size === 0 && f.marcas.size === 0 && !f.sinAsociar
   if (!nada) return null
-  const enviado = f.enviado.size === 1 && f.enviado.has('PENDIENTE')
-  if (f.enviado.size === 1 && !f.soloSinImei && !f.noCuadran) {
+  const banderas = [f.soloSinImei, f.noCuadran, f.soloReservadas, f.soloSinStock].filter(Boolean).length
+  if (banderas > 1) return null
+  if (banderas === 1) {
+    if (f.enviado.size !== 0) return null
+    return f.soloSinImei ? 'sinImei' : f.noCuadran ? 'noCuadran' : f.soloReservadas ? 'reservadas' : 'sinStock'
+  }
+  if (f.enviado.size === 1) {
     if (f.enviado.has('SALE_HOY')) return 'saleHoy'
     if (f.enviado.has('CON_RETRASO')) return 'conRetraso'
+    if (f.enviado.has('PENDIENTE')) return 'pendientes'
   }
-  if (f.enviado.size === 0 && !f.soloSinImei && !f.noCuadran) return 'filas'
-  if (enviado && !f.soloSinImei && !f.noCuadran) return 'pendientes'
-  if (f.enviado.size === 0 && f.soloSinImei && !f.noCuadran) return 'sinImei'
-  if (f.enviado.size === 0 && !f.soloSinImei && f.noCuadran) return 'noCuadran'
-  return null
+  return f.enviado.size === 0 ? 'filas' : null
 }
 
 export const hayFiltros = (f: FiltrosColumna): boolean => contadorAplicado(f) !== 'filas'
@@ -374,12 +386,14 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, hoy: stri
   // Se aplica exactamente lo guardado, este o no entre las filas: cada valor se ve como etiqueta y se puede quitar (nada oculto).
   const { plataformas, skus } = f
   const { marcas } = f
-  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && f.enviado.size === 0 && marcas.size === 0 && !f.sinAsociar) return filas
+  if (plataformas.size === 0 && skus.size === 0 && !f.soloSinImei && !f.noCuadran && !f.soloReservadas && !f.soloSinStock && f.enviado.size === 0 && marcas.size === 0 && !f.sinAsociar) return filas
   return filas.filter((x) =>
     (plataformas.size === 0 || plataformas.has(tiendaDe(x)))
     && (skus.size === 0 || (x.sku != null && skus.has(x.sku)))
     && (!f.soloSinImei || faltaImei(x))
     && (!f.noCuadran || noCuadra(x))
+    && (!f.soloReservadas || estaReservada(x))
+    && (!f.soloSinStock || sinStock(x))
     && (!f.sinAsociar || sinAsociar(x))
     && (f.enviado.size === 0 || pasaEnviado(x, f.enviado, hoy))
     && (marcas.size === 0 || (x.marca != null && marcas.has(x.marca))))

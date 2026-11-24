@@ -54,9 +54,9 @@ describe('recuento', () => {
       fila({ idFila: 4, estado: 'NO_PENDIENTE' }), fila({ idFila: 5, estado: 'HISTORICO', editable: false }),
       fila({ idFila: 6, imei: '350000000000002', nivel: 'MAL', motivo: 'MODELO' }), fila({ idFila: 7, imei: '350000000000003', nivel: 'AVISO' }),
     ]
-    expect(recuento(filas)).toEqual({ total: 7, pendientes: 4, sinImei: 3, noCuadran: 1 })
+    expect(recuento(filas)).toEqual({ total: 7, pendientes: 4, sinImei: 3, noCuadran: 1, reservadas: 0, sinStock: 3 })
   })
-  it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0, noCuadran: 0 }))
+  it('vacío', () => expect(recuento([])).toEqual({ total: 0, pendientes: 0, sinImei: 0, noCuadran: 0, reservadas: 0, sinStock: 0 }))
   it('un móvil «Cancelado» sin IMEI no cuenta como sin IMEI ni sale con «Solo sin IMEI»; las demás marcas sí', () => {
     const filas = [
       fila({ idFila: 1, marca: 'CANCELADO' }), fila({ idFila: 2, marca: 'ESPERA_STOCK' }),
@@ -128,7 +128,7 @@ describe('valores y filtrarColumnas', () => {
     fila({ idFila: 3, plataforma: 'Web', sku: 'a1', estado: 'ENVIADA' }),
     fila({ idFila: 4, plataforma: 'Web', sku: 'c3', imei: '350000000000002' }),
   ]
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>(), sinAsociar: false }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, soloReservadas: false, soloSinStock: false, enviado: new Set<string>(), marcas: new Set<string>(), sinAsociar: false }
   it('valores: distintos y ordenados', () => {
     expect(valores(filas, 'sku')).toEqual(['a1', 'b2', 'c3'])
   })
@@ -197,7 +197,7 @@ describe('estadoDe', () => {
 })
 
 describe('filtros combinados', () => {
-  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, enviado: new Set<string>(), marcas: new Set<string>(), sinAsociar: false }
+  const vacio = { plataformas: new Set<string>(), skus: new Set<string>(), soloSinImei: false, noCuadran: false, soloReservadas: false, soloSinStock: false, enviado: new Set<string>(), marcas: new Set<string>(), sinAsociar: false }
   const filas = [
     fila({ idFila: 1, plataforma: 'Web', estado: 'ENVIADA' }),
     fila({ idFila: 2, plataforma: 'Web', estado: 'ENVIADA', imei: '350000000000001' }),
@@ -499,5 +499,26 @@ describe('ordenarPorSku (0.9.39)', () => {
   })
   it('siguienteOrdenSku: A-Z, Z-A y vuelta al orden de siempre', () => {
     expect([siguienteOrdenSku(null), siguienteOrdenSku('asc'), siguienteOrdenSku('desc')]).toEqual(['asc', 'desc', null])
+  })
+})
+
+describe('reservadas y sin stock', () => {
+  const filas = [
+    fila({ idFila: 1 }),
+    fila({ idFila: 2, imeiReservado: '350000000000010', reservadaEn: '2026-11-24T10:00:00' }),
+    fila({ idFila: 3, marca: 'EN_REVISION' }),
+    fila({ idFila: 4, marca: 'CANCELADO', imeiReservado: '350000000000011' }),
+    fila({ idFila: 5, imei: '350000000000012', imeiReservado: '350000000000013' }),
+    fila({ idFila: 6, estado: 'HISTORICO', editable: false }),
+  ]
+  it('reservadas: sin IMEI y con reserva; sin stock: sin IMEI, sin reserva y sin marca; las reservadas siguen contando como sin IMEI', () => {
+    expect(recuento(filas)).toMatchObject({ sinImei: 3, reservadas: 1, sinStock: 1 })
+  })
+  it('sus filtros dejan solo esas filas y cada contador se reconoce', () => {
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, soloReservadas: true }).map((f) => f.idFila)).toEqual([2])
+    expect(filtrarColumnas(filas, { ...SIN_FILTROS, soloSinStock: true }).map((f) => f.idFila)).toEqual([1])
+    for (const c of ['reservadas', 'sinStock'] as const) expect(contadorAplicado(filtrosDeContador(c))).toBe(c)
+    expect(hayFiltros(filtrosDeContador('sinStock'))).toBe(true)
+    expect(contadorAplicado({ ...SIN_FILTROS, soloReservadas: true, soloSinImei: true })).toBeNull()
   })
 })

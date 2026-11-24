@@ -43,13 +43,17 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
   const avisoValidado = validada ? `SKU validado${fila.validadaPor ? ` por ${fila.validadaPor}` : ''}: ${textoMotivoValidado(fila) ?? 'aviso de SKU'}` : null
   // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
   const textoFallo = fallo ? (fallo.duplicado ? fallo.mensaje : fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
+  // Reservada: sin IMEI puesto, el ERP ya eligió un teléfono; se ve tenue, sin texto, hasta que se pique para confirmarlo.
+  const reservado = !fila.imei && !!fila.imeiReservado
   const boton = (
-    <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado ?? motivo ?? fila.caja].filter(Boolean).join(' · ')}
+    <button type="button" title={fallo ? textoFallo : reservado ? 'Reservado: pica este IMEI para confirmarlo o pon otro' : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado ?? motivo ?? fila.caja].filter(Boolean).join(' · ')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
-        clase === 'vacia' && 'font-sans italic text-texto-sub')}>
+        clase === 'vacia' && !reservado && 'font-sans italic text-texto-sub')}>
       {fallo
         ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{textoFallo}</span>
-        : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
+        : reservado
+          ? <span data-reservado className="shrink-0 opacity-45">{fila.imeiReservado}</span>
+          : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
       {!fallo && motivo && (
         <span className={cn('min-w-0 truncate font-sans text-[11px] font-bold', clase === 'aviso' ? 'text-form-agotado-text' : 'text-[#B45309]')}>{motivo}</span>
       )}

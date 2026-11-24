@@ -424,3 +424,36 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(campo()).toHaveValue('3500000')
   })
 })
+
+describe('Pedidos: reservas y sin stock', () => {
+  const RES = '350000000000777'
+  beforeEach(() => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [
+      fila({ idFila: 1, pedido: '402-0000000-0000021', imeiReservado: RES, reservadaEn: '2026-11-24T10:00:00' }),
+      fila({ idFila: 2, pedido: '402-0000000-0000022' }),
+      fila({ idFila: 3, pedido: '402-0000000-0000023', marca: 'EN_REVISION' }),
+    ], hayMas: false })))
+  })
+
+  it('la celda reservada enseña el IMEI tenue, sin texto de motivo, y su title lo explica', async () => {
+    abrir()
+    const imei = await screen.findByText(RES)
+    expect(imei).toHaveClass('opacity-45')
+    const boton = imei.closest('button')!
+    expect(boton).toHaveAttribute('title', 'Reservado: pica este IMEI para confirmarlo o pon otro')
+    expect(boton).toHaveTextContent(RES)
+    expect(screen.queryAllByText(/pulsa para poner el IMEI/)).toHaveLength(2)
+  })
+
+  it('los contadores «reservadas» y «sin stock» cuentan y filtran', async () => {
+    const user = userEvent.setup()
+    abrir()
+    expect(await screen.findByRole('button', { name: '1 reservadas' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '1 sin stock' }))
+    expect(screen.getByText('402-0000000-0000022')).toBeInTheDocument()
+    expect(screen.queryByText('402-0000000-0000021')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '1 reservadas' }))
+    expect(screen.getByText('402-0000000-0000021')).toBeInTheDocument()
+    expect(screen.queryByText('402-0000000-0000022')).not.toBeInTheDocument()
+  })
+})
