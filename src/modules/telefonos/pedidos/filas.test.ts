@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
 import type { FilaVista } from '@/shared/api/client'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, partesAviso, lineasAviso, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, partesAviso, lineasAviso, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido, puedeValidar } from './filas'
 import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 
 const d = (p: Partial<NonNullable<FilaVista['detalle']>>) => ({ sim: null, na: false, ms: false, dato: null, trabajos: [], ...p })
@@ -10,17 +10,17 @@ const textos = (f: FilaVista) => partesAviso(f).map((p) => `${p.texto}|${p.tono}
 
 describe('partesAviso', () => {
   it.each([
-    ['NO_EN_NSYS', null, 'no está en NSYS'],
-    ['EN_OTRA_FILA', null, 'en otro pedido'],
-    ['SKU_DESCONOCIDO', null, 'SKU desconocido'],
-    ['MODELO', '14', 'modelo: 14'],
-    ['CAPACIDAD', '256GB', 'capacidad: 256GB'],
-    ['COLOR', 'Rosa', 'color: Rosa'],
-    ['GRADO', 'B', 'grado: B'],
-    ['COLOR_O_GRADO', null, 'otro color o grado'],
-    ['GRADO_NO_VENDIBLE', 'F', 'no se vende: F'],
-  ])('%s en naranja', (motivo, dato, texto) =>
-    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo, detalle: dato ? d({ dato }) : null }))).toEqual([`${texto}|naranja`]))
+    ['NO_EN_NSYS', null, 'no está en NSYS', 'rojo'],
+    ['EN_OTRA_FILA', null, 'en otro pedido', 'rojo'],
+    ['SKU_DESCONOCIDO', null, 'SKU desconocido', 'rojo'],
+    ['MODELO', '14', 'modelo: 14', 'rojo'],
+    ['CAPACIDAD', '256GB', 'capacidad: 256GB', 'rojo'],
+    ['COLOR', 'Rosa', 'color: Rosa', 'naranja'],
+    ['GRADO', 'B', 'grado: B', 'naranja'],
+    ['COLOR_O_GRADO', null, 'otro color o grado', 'naranja'],
+    ['GRADO_NO_VENDIBLE', 'F', 'no se vende: F', 'rojo'],
+  ])('%s: rojo si es otro móvil o no se vende, naranja si lo arregla el taller', (motivo, dato, texto, tono) =>
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo, detalle: dato ? d({ dato }) : null }))).toEqual([`${texto}|${tono}`]))
 
   it('ámbar sin fondo: B por A, MS, reparándose', () => {
     expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'B_POR_A' }))).toEqual(['B por A|ambar'])
@@ -36,7 +36,7 @@ describe('partesAviso', () => {
     expect(textos(color)).toEqual(['color: Rojo|naranja', 'reparándose · Juan|ambar'])
     expect(lineasAviso(color)).toEqual(['otro color (Rojo)', 'se está reparando (Juan)'])
     expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'MODELO', detalle: d({ dato: '14', trabajos }) })))
-      .toEqual(['modelo: 14|naranja', 'reparándose · Juan|ambar'])
+      .toEqual(['modelo: 14|rojo', 'reparándose · Juan|ambar'])
     expect(textos(fila({ imei: IMEI, nivel: 'AVISO', motivo: 'EN_TALLER', detalle: d({ na: true, trabajos }) })))
       .toEqual(['N/A|ambar', 'reparándose · Juan|ambar'])
   })
@@ -52,7 +52,7 @@ describe('partesAviso', () => {
     expect(textos(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'ESIM', na: true }) }))).toEqual(['eSIM|naranja', 'N/A|ambar'])
     expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', detalle: d({ na: true, dato: 'Rosa' }) }))).toEqual(['N/A|ambar', 'color: Rosa|naranja'])
     expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'COLOR', detalle: d({ ms: true, dato: 'Rojo' }) }))).toEqual(['MS|ambar', 'color: Rojo|naranja'])
-    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'CAPACIDAD', detalle: d({ sim: 'SIM_FISICA', dato: '128GB' }) }))).toEqual(['SIM física|naranja', 'capacidad: 128GB|naranja'])
+    expect(textos(fila({ imei: IMEI, nivel: 'MAL', motivo: 'CAPACIDAD', detalle: d({ sim: 'SIM_FISICA', dato: '128GB' }) }))).toEqual(['SIM física|naranja', 'capacidad: 128GB|rojo'])
   })
 
   it('sin dato, la palabra sola; motivo desconocido, «revisar»; sin nada, vacío', () => {
@@ -80,6 +80,11 @@ describe('claseCelda', () => {
     expect(claseCelda(fila({ estado: 'ENVIADA' }))).toBe('vacia')
   })
   it('sin IMEI, vacía', () => expect(claseCelda(fila())).toBe('vacia'))
+  it('roja si es otro móvil o no se vende; naranja si lo arregla el taller (0.9.46.2)', () => {
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'MAL', motivo: 'EN_OTRA_FILA' }))).toBe('rojo')
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'MAL', motivo: 'MODELO' }))).toBe('rojo')
+    expect(claseCelda(fila({ imei: IMEI, nivel: 'MAL', motivo: 'GRADO' }))).toBe('mal')
+  })
   it('naranja con MAL, aunque sea N/A', () =>
     expect(claseCelda(fila({ imei: IMEI, nivel: 'MAL', detalle: d({ na: true }) }))).toBe('mal'))
   it('amarillo solo con N/A', () => expect(claseCelda(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ na: true }) }))).toBe('na'))
@@ -88,6 +93,16 @@ describe('claseCelda', () => {
     expect(claseCelda(fila({ imei: IMEI, nivel: 'AVISO', detalle: d({ sim: 'ESIM' }) }))).toBe('ok')
     expect(claseCelda(fila({ imei: IMEI, nivel: 'OK' }))).toBe('ok')
     expect(claseCelda(fila({ imei: IMEI, nivel: null }))).toBe('ok')
+  })
+})
+
+describe('aviso de una enviada impresa (0.9.46.2): solo informa', () => {
+  const impresa = fila({ estado: 'ENVIADA', imei: IMEI, nivel: 'MAL', motivo: 'GRADO', impresaEn: '2026-11-23T10:38:00', envioFecha: '2026-11-23T09:00:00' })
+  it('se pinta, pero no cuenta en «no cuadran» ni se puede validar', () => {
+    expect(claseCelda(impresa)).toBe('mal')
+    expect(recuento([impresa]).noCuadran).toBe(0)
+    expect(puedeValidar(impresa)).toBe(false)
+    expect(recuento([{ ...impresa, impresaEn: null }]).noCuadran).toBe(1)
   })
 })
 

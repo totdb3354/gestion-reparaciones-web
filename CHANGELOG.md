@@ -4,6 +4,17 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.46.2] - 2026-11-24 — Pedidos: el libro de ventas manda siempre; la celda avisa en rojo o naranja
+
+- Amazon: el ERP pone siempre el IMEI que dice el libro de ventas, aunque no cuadre con el pedido, aunque esté en otro pedido o
+  aunque el pedido ya estuviera asociado con otro (si corrigen el libro, el ERP también cambia). Lo que no cuadra se ve en la
+  celda del pedido. En «para revisar» solo queda lo imposible de reflejar: un pedido cancelado o sin fila libre.
+- Celda del IMEI: **rojo** si es otro móvil o no se puede vender (modelo, capacidad, «no se vende», «no está en NSYS», «en otro
+  pedido»); **naranja** si el taller lo puede dejar como pide el pedido (color, grado, C sin reparar). Los dos cuentan en
+  «no cuadran».
+- Los pedidos ya impresos también enseñan el aviso, solo para informar de qué móvil salió: no cuentan en «no cuadran» ni se
+  pueden validar.
+
 ## [0.9.46.1] - 2026-11-24 — Pedidos: «para revisar» del libro explica qué pasa; la celda dice siempre quién tiene el móvil
 
 - Celda del IMEI: si un técnico tiene el móvil, ahora también se comprueban el color y el grado, y se ve siempre quién lo tiene
