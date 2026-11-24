@@ -212,6 +212,9 @@ export function textoRevisar(motivo: string): string {
     case 'YA_SALIO': return 'el móvil ya salió en otro pedido'
     case 'PEDIDO_AJENO': return 'el pedido no está en el ERP'
     case 'CANCELADO': return 'solo quedan filas canceladas'
+    case 'REPETIDO_EN_LIBRO': return 'el libro pone este IMEI en dos pedidos'
+    case 'NO_EN_NSYS': return 'el IMEI del libro no está en NSYS'
+    case 'OTRO_MODELO': return 'el móvil del libro no cuadra con el pedido'
     default: return motivo
   }
 }

@@ -168,10 +168,10 @@ describe('Pedidos: la píldora «Asociación Amazon»', () => {
 
   it('con pasadas dice la hora de la última y cuántas quedaron para revisar', async () => {
     pasadas = [
-      pasada({ canal: 'AMAZON', cuando: '2026-11-13T09:30:00', paraRevisar: 1, revisar: [{ pedido: '111-1', imei: '350000000000001', motivo: 'SIN_HUECO', vistoEn: '2026-11-13T09:30:00' }] }),
+      pasada({ canal: 'AMAZON', cuando: '2026-11-13T09:30:00', paraRevisar: 1, revisar: [{ pedido: '111-1', imei: '350000000000001', motivo: 'SIN_HUECO', vistoEn: '2026-11-13T09:30:00', detalle: null }] }),
       pasada({ canal: 'AMAZON_STOCKROOM', cuando: '2026-11-13T10:15:00', paraRevisar: 2, revisar: [
-        { pedido: '333-3', imei: '350000000000002', motivo: 'YA_SALIO', vistoEn: '2026-11-13T10:15:00' },
-        { pedido: '444-4', imei: '350000000000003', motivo: 'PEDIDO_AJENO', vistoEn: '2026-11-13T10:15:00' },
+        { pedido: '333-3', imei: '350000000000002', motivo: 'YA_SALIO', vistoEn: '2026-11-13T10:15:00', detalle: null },
+        { pedido: '444-4', imei: '350000000000003', motivo: 'PEDIDO_AJENO', vistoEn: '2026-11-13T10:15:00', detalle: null },
       ] }),
     ]
     abrir()
@@ -183,12 +183,12 @@ describe('Pedidos: la píldora «Asociación Amazon»', () => {
     const user = userEvent.setup()
     pasadas = [
       pasada({ canal: 'AMAZON', cuando: '2026-11-13T09:30:00', confirmadas: 4, paraRevisar: 2, revisar: [
-        { pedido: '111-1', imei: '350000000000001', motivo: 'SIN_HUECO', vistoEn: '2026-11-13T09:30:00' },
-        { pedido: '222-2', imei: '350000000000002', motivo: 'CANCELADO', vistoEn: '2026-11-13T09:30:00' },
+        { pedido: '111-1', imei: '350000000000001', motivo: 'SIN_HUECO', vistoEn: '2026-11-13T09:30:00', detalle: null },
+        { pedido: '222-2', imei: '350000000000002', motivo: 'CANCELADO', vistoEn: '2026-11-13T09:30:00', detalle: null },
       ] }),
       pasada({ canal: 'AMAZON_STOCKROOM', cuando: '2026-11-13T09:40:00', paraRevisar: 2, revisar: [
-        { pedido: '333-3', imei: '350000000000003', motivo: 'YA_SALIO', vistoEn: '2026-11-13T09:40:00' },
-        { pedido: '444-4', imei: '350000000000004', motivo: 'PEDIDO_AJENO', vistoEn: '2026-11-13T09:40:00' },
+        { pedido: '333-3', imei: '350000000000003', motivo: 'YA_SALIO', vistoEn: '2026-11-13T09:40:00', detalle: null },
+        { pedido: '444-4', imei: '350000000000004', motivo: 'PEDIDO_AJENO', vistoEn: '2026-11-13T09:40:00', detalle: null },
       ] }),
     ]
     abrir()
@@ -205,11 +205,21 @@ describe('Pedidos: la píldora «Asociación Amazon»', () => {
 
   it('un motivo que la web no conoce se enseña tal cual', async () => {
     const user = userEvent.setup()
-    pasadas = [pasada({ paraRevisar: 1, revisar: [{ pedido: '9-9', imei: '350000000000009', motivo: 'RARO', vistoEn: '2026-11-13T09:30:00' }] }), pasada({ canal: 'AMAZON_STOCKROOM' })]
+    pasadas = [pasada({ paraRevisar: 1, revisar: [{ pedido: '9-9', imei: '350000000000009', motivo: 'RARO', vistoEn: '2026-11-13T09:30:00', detalle: null }] }), pasada({ canal: 'AMAZON_STOCKROOM' })]
     abrir()
     await esperar()
     await user.click(await screen.findByRole('button', { name: /Asociación Amazon: 09:30 · 1 para revisar/ }))
     expect(within(await screen.findByRole('dialog', { name: 'Asociación de Amazon' })).getByText('9-9').closest('li')).toHaveTextContent('RARO')
+  })
+
+  it('un motivo del libro con detalle enseña el texto y el detalle', async () => {
+    const user = userEvent.setup()
+    pasadas = [pasada({ paraRevisar: 1, revisar: [{ pedido: '402-0000000-0000001', imei: '350000000000001', motivo: 'OTRO_MODELO', vistoEn: '2026-11-13T09:30:00', detalle: 'el pedido es A y el móvil es B' }] }), pasada({ canal: 'AMAZON_STOCKROOM' })]
+    abrir()
+    await esperar()
+    await user.click(await screen.findByRole('button', { name: /Asociación Amazon: 09:30 · 1 para revisar/ }))
+    expect(within(await screen.findByRole('dialog', { name: 'Asociación de Amazon' })).getByText('402-0000000-0000001').closest('li'))
+      .toHaveTextContent('el móvil del libro no cuadra con el pedido: el pedido es A y el móvil es B')
   })
 
   it('sin error, el detalle dice la version del libro que se leyo', async () => {
@@ -230,7 +240,7 @@ describe('Pedidos: la píldora «Asociación Amazon»', () => {
     const user = userEvent.setup()
     pasadas = [
       pasada({ canal: 'AMAZON', libroModificado: '2026-11-13T08:45:00' }),
-      pasada({ canal: 'AMAZON_STOCKROOM', error: 'archivo bloqueado', errorEn: '2026-11-13T10:00:00', paraRevisar: 1, revisar: [{ pedido: '333-3', imei: '350000000000002', motivo: 'YA_SALIO', vistoEn: '2026-11-13T09:40:00' }] }),
+      pasada({ canal: 'AMAZON_STOCKROOM', error: 'archivo bloqueado', errorEn: '2026-11-13T10:00:00', paraRevisar: 1, revisar: [{ pedido: '333-3', imei: '350000000000002', motivo: 'YA_SALIO', vistoEn: '2026-11-13T09:40:00', detalle: null }] }),
     ]
     abrir()
     await esperar()
