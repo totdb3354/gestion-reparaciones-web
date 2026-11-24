@@ -59,6 +59,8 @@ export function partesAviso(f: FilaVista): ParteAviso[] {
   if (d?.na) p.push({ texto: 'N/A', tono: 'ambar' })
   if (d?.ms) p.push({ texto: 'MS', tono: 'ambar' })
   if (f.motivo && !DE_MODELO.includes(f.motivo)) p.push({ texto: textoMotivoCorto(f), tono: tonoMotivo })
+  // Quién lo tiene sale siempre (24/11), también con lo que no cuadra; con EN_TALLER ya va en el motivo.
+  if (d?.trabajos?.length && f.motivo !== 'EN_TALLER') p.push({ texto: `reparándose · ${textoReparandose(d.trabajos)}`, tono: 'ambar' })
   return p
 }
 
@@ -94,6 +96,7 @@ export function lineasAviso(f: FilaVista): string[] {
   if (d?.na) l.push('grado n/a: NSYS no le da grado')
   if (d?.ms) l.push('es un Ms')
   if (motivo && !(f.motivo && DE_MODELO.includes(f.motivo))) l.push(motivo)
+  if (d?.trabajos?.length && f.motivo !== 'EN_TALLER') l.push(`se está reparando (${textoReparandose(d.trabajos)})`)
   return l
 }
 
