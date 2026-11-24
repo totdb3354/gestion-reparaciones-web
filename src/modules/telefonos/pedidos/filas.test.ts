@@ -413,6 +413,13 @@ describe('asociacion en Amazon', () => {
     expect(hayFiltros({ ...SIN_FILTROS, sinAsociar: true })).toBe(true)
     expect(contadorAplicado({ ...SIN_FILTROS, sinAsociar: true })).toBeNull()
   })
+  it.each([
+    ['REPETIDO_EN_LIBRO', 'el libro pone este IMEI en dos pedidos'],
+    ['NO_EN_NSYS', 'el IMEI del libro no está en NSYS'],
+    ['OTRO_MODELO', 'el móvil del libro no cuadra con el pedido'],
+  ])('textoRevisar, motivo del libro que manda: %s', (motivo, texto) => {
+    expect(textoRevisar(motivo)).toBe(texto)
+  })
   it('textoRevisar: los cuatro motivos en palabras y uno desconocido tal cual', () => {
     expect(['SIN_HUECO', 'YA_SALIO', 'PEDIDO_AJENO', 'CANCELADO', 'OTRO'].map(textoRevisar)).toEqual([
       'el pedido no tiene hueco', 'el móvil ya salió en otro pedido', 'el pedido no está en el ERP', 'solo quedan filas canceladas', 'OTRO',

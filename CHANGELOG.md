@@ -4,6 +4,19 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.46] - 2026-11-24 — Pedidos: el libro de ventas manda también con la etiqueta hecha
+
+- Pedidos, Amazon: el libro de ventas corrige también el IMEI de los pedidos con la etiqueta hecha (impresa o no), si el móvil
+  cuadra con el pedido. En «para revisar» salen tres motivos nuevos: el libro pone el IMEI en dos pedidos, el IMEI no está en NSYS
+  o el móvil no cuadra con el pedido (y qué móvil es).
+- Si el móvil que dice el libro estaba puesto en otro pedido con la etiqueta **sin imprimir** (aún no empaquetado), ese pedido
+  recibe el móvil que tenía el del libro, con el aviso «comprobar el móvil» en su historial. Así logística ya no busca un móvil
+  que salió en otro pedido.
+- Un móvil devuelto y vuelto a vender (el libro lo pone en un pedido viejo ya asociado y en uno nuevo) se asocia al nuevo sin
+  quitárselo al viejo.
+- Arreglo de la 0.9.45: un eSIM en un pedido de SIM física (o al revés) salía en naranja como «modelo: 14 eSIM»; ahora sale como
+  «eSIM» (o «SIM física»), sin contar en «no cuadran».
+
 ## [0.9.45] - 2026-11-24 — Pedidos: la celda del IMEI dice todo en corto; cajas «Caja · …»
 
 - En **Pedidos**, junto al IMEI salen **todas** las cosas que pasan con el móvil, en corto y separadas por «·»: por ejemplo «eSIM · color: Rosa», «N/A · color: Rosa» o «MS · grado: B». Al pasar el ratón, la explicación larga de cada una.

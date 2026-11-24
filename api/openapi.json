@@ -10222,7 +10222,7 @@
         }
       },
       "EstadoAsociacionesRevisar" : {
-        "required" : [ "imei", "motivo", "pedido", "vistoEn" ],
+        "required" : [ "detalle", "imei", "motivo", "pedido", "vistoEn" ],
         "type" : "object",
         "properties" : {
           "pedido" : {
@@ -10237,6 +10237,10 @@
           "vistoEn" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "detalle" : {
+            "type" : "string",
+            "nullable" : true
           }
         }
       },
