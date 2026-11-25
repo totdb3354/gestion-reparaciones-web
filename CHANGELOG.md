@@ -6,10 +6,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 ## [0.9.47] - 2026-11-25 — El bot de NSYS devuelve a stock los móviles que salieron de un pedido
 
-- Cuando se cambia el IMEI de un pedido (o se cancela con «Cancelar móvil») después de que el bot de NSYS haya pasado el móvil a «Pedidos realizados», el ERP se lo
-  dice al bot y el bot lo devuelve a la caja donde estaba (si esa caja se vende). Queda en el historial de la fila: «Devuelto a
-  stock», «No se pudo devolver» o «No se devuelve solo (lo mueve una persona)» con el motivo (sin caja, caja o grado que no se
-  vende, reparado después, pedido que ya no está en ShippyPro).
+- Cuando se cambia el IMEI de un pedido (o se cancela con «Cancelar móvil») después de que el bot de NSYS haya pasado el móvil
+  a «Pedidos realizados», el ERP se lo dice al bot y el bot lo devuelve a la caja donde estaba (si esa caja se vende). Queda en
+  el historial de la fila: «Devuelto a stock», «No se pudo devolver» o «No se devuelve solo (lo mueve una persona)» con el motivo
+  (sin caja, caja o grado que no se vende, reparado después, pedido que ya no está en ShippyPro).
 - La devolución automática empieza cuando el bot de producción se actualice (plan 3); hasta entonces la lista sale vacía.
 
 ## [0.9.46.3] - 2026-11-25 — Pedidos: el IMEI se pica en la propia celda y la vista filtrada no se mueve
