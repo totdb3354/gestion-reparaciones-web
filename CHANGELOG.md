@@ -4,7 +4,7 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [0.9.48] - sin fecha — Pedidos: el ERP reserva un IMEI para cada pedido al entrar
+## [0.9.48] - 2026-11-25 — Pedidos: el ERP reserva un IMEI para cada pedido al entrar
 
 - En cada lectura de ShippyPro (cada 5 min), el ERP **aparta un teléfono concreto** para cada fila sin IMEI, con los criterios de
   Amazon (abanico del maestro, sustitutos eSIM/SIM física, B/C para el taller, otros colores; un Ms nunca se reserva: lo decide y lo pica una persona)
