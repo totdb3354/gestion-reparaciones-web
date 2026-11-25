@@ -212,7 +212,7 @@ describe('Pedidos v2: la caja delante y la fila marcada', () => {
     await contador('6 filas')
     expect(document.querySelector('tr[data-aqui]')).toBeNull()
     await user.click(await celdaVacia())
-    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
+    await user.keyboard('{Escape}')
     expect(tr('402-0000000-0000021')).toHaveAttribute('data-aqui')
     expect(tr('402-0000000-0000021').querySelector('td')).toHaveClass('shadow-[inset_4px_0_0_#2f6fe0]', 'bg-seleccion-suave')
     // La raya es solo color: la celda del IMEI de esa fila lo dice también con texto, y solo esa.

@@ -19,6 +19,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - El bot de stock **no** descuenta todavía los reservados (ajuste `pedidos.reserva.al-bot`, apagado hasta que haya devoluciones).
 - Servidor, web y migración aditiva (`migracion-pedidos-reserva.sql`).
 
+## [0.9.46.3] - 2026-11-25 — Pedidos: el IMEI se pica en la propia celda y la vista filtrada no se mueve
+
+- El IMEI se lee o se escribe en la propia celda: al pulsarla, la celda es el campo (con el contador y un ▾ para los
+  recomendados). Ya no se abre el desplegable que tapaba las filas de debajo. La marca, la nota, «Validar SKU» y «Cancelar móvil»
+  están solo en el panel de la fila. Para quitar el IMEI: campo vacío y Enter.
+- Una lectura que no es un IMEI válido (cifra de control mala o más de 15 cifras) no se guarda y no frena: la celda queda en rojo
+  «IMEI no válido» y el campo sigue a la siguiente fila. Al revisar, se pulsa la roja: trae la lectura; se lee otra o, si fue la
+  cifra de control, «Guardar igual». El rojo se recuerda en ese navegador (24 h como mucho) hasta poner un IMEI en la fila.
+- Con un filtro puesto (p. ej. «sin IMEI»), las filas que se van picando no desaparecen: la vista se queda como al poner el filtro,
+  como en Excel, hasta cambiar el filtro, el periodo o la búsqueda, o volver a pulsar el contador. Los pedidos nuevos que cumplen
+  el filtro sí entran.
+- Los avisos de Pedidos (IMEI no válido, repetido, no guardado) salen en la barra del buscador y ya no empujan la tabla.
+- Escape: con los recomendados abiertos cierra solo la lista; si no, cierra la celda; con la celda cerrada, el panel.
+
 ## [0.9.46.2] - 2026-11-24 — Pedidos: el libro de ventas manda siempre; la celda avisa en rojo o naranja
 
 - Amazon: el ERP pone siempre el IMEI que dice el libro de ventas, aunque no cuadre con el pedido, aunque esté en otro pedido o

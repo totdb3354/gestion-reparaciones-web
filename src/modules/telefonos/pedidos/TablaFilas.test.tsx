@@ -40,9 +40,10 @@ describe('TablaFilas: no se repinta entera', () => {
     expect(pintadas.get(1)).toBe(2)
     expect([2, 3, 4].map((i) => pintadas.get(i))).toEqual([1, 1, 1])
     await user.click(celdas[1])
-    expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([3, 2, 1, 1])
+    // La fila abierta se repinta una vez más que antes (4 y no 3): el pointerdown fuera de su celda la cierra y, después, el clic abre la otra.
+    expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([4, 2, 1, 1])
     await user.click(screen.getByRole('button', { name: 'sondear' }))
-    expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([3, 3, 2, 1])
+    expect([1, 2, 3, 4].map((i) => pintadas.get(i))).toEqual([4, 3, 2, 1])
   })
 
   it('elegir una fila (para el panel) repinta solo la que deja de estar elegida y la nueva', async () => {

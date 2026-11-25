@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-// Las marcas de la fila: poner «En espera de stock» con nota desde la celda del IMEI y ver que la marca se va al teclear un IMEI.
+// Las marcas de la fila: poner «En espera de stock» con nota desde el panel «Detalle del pedido» y ver que la marca se va al teclear un IMEI.
 // En Chromium real, con la API falsa por `page.route` (datos inventados). Solo local: `npx playwright test -c playwright.local.config.ts pedidos-marca`.
 
 /** IMEI sintético con la cifra de control de Luhn válida (14 cifras + dígito de control). No es de ningún móvil real. */
@@ -22,7 +22,7 @@ const filas = [1, 2].map((k) => ({
   marca: null as string | null, marcaNota: null as string | null, marcaEn: null as string | null, marcaPor: null as string | null,
 }))
 
-test('poner «En espera de stock» con nota desde la celda del IMEI, ver la etiqueta y que teclear un IMEI la quita', async ({ page }) => {
+test('poner «En espera de stock» con nota desde el panel de la fila, ver la etiqueta y que teclear un IMEI la quita', async ({ page }) => {
   const marcas: { id: string; marca: string | null; nota: string | null; marcaAnterior: string | null; clave: string | null }[] = []
   const imeis: { id: string; imei: string | null }[] = []
   await page.addInitScript(() => {
@@ -60,10 +60,10 @@ test('poner «En espera de stock» con nota desde la celda del IMEI, ver la etiq
   const fila1 = page.getByRole('row').nth(1)
   await expect(fila1.getByRole('button', { name: 'W-MARCA-1' })).toBeVisible()
 
-  // Se abre la celda de la fila 1: el foco está en el IMEI (lector) y la marca va debajo.
-  await fila1.getByRole('button', { name: 'pulsa para poner el IMEI…' }).click()
-  const abierto = page.locator('[data-state="open"][data-slot="popover-content"]')
-  await expect(abierto.getByRole('textbox', { name: 'IMEI' })).toBeFocused()
+  // La marca y su nota viven solo en el panel «Detalle del pedido» (se abre pulsando el pedido de la fila), no en la celda del IMEI.
+  await fila1.getByRole('button', { name: 'W-MARCA-1' }).click()
+  const abierto = page.getByRole('region', { name: 'Detalle del pedido' })
+  await expect(abierto).toBeVisible()
   // Elegir la marca la guarda al momento (sin botón); la nota se guarda con Enter.
   await abierto.getByRole('combobox', { name: 'Marca' }).selectOption('ESPERA_STOCK')
   await expect.poll(() => marcas).toEqual([{ id: '1', marca: 'ESPERA_STOCK', nota: null, marcaAnterior: '', clave: expect.any(String) }])
@@ -84,13 +84,12 @@ test('poner «En espera de stock» con nota desde la celda del IMEI, ver la etiq
   await expect(fila1.getByText('pulsa para poner el IMEI…')).toBeVisible()
   await expect(page.getByRole('button', { name: '2 pendientes' })).toBeVisible()
 
-  // El foco sigue en el IMEI del lector y se teclea un IMEI con el teclado: se guarda y la marca se va (el servidor la quita).
-  await expect(abierto.getByRole('textbox', { name: 'IMEI' })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toHaveCount(0)
+  // Se abre la celda del IMEI (el campo en línea) y se teclea un IMEI: se guarda y la marca se va (el servidor la quita).
   await fila1.getByRole('button', { name: 'pulsa para poner el IMEI…' }).click()
-  const campo = page.locator('[data-state="open"] input[aria-label="IMEI"]')
+  const campo = fila1.getByRole('textbox', { name: 'IMEI' })
   await expect(campo).toBeFocused()
+  // La celda en línea no tiene marca ni nota: eso solo está en el panel.
+  await expect(fila1.getByRole('combobox', { name: 'Marca' })).toHaveCount(0)
   const imeiA = imeiValido(31)
   await page.keyboard.type(imeiA)
   await expect.poll(() => imeis).toEqual([{ id: '1', imei: imeiA }])

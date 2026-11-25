@@ -126,12 +126,12 @@ describe('Pedidos como la hoja: la tabla', () => {
   })
 
 
-  it('una fila enviada se edita: abre el desplegable con «Quitar el IMEI» y hace PUT', async () => {
+  it('una fila enviada se edita: abre el campo en la celda y, vacío con Enter, quita el IMEI y hace PUT', async () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await screen.findByRole('button', { name: /350000000000010/ }))
     expect(campo()).toBeInTheDocument()
-    await user.click(await screen.findByRole('button', { name: 'Quitar el IMEI' }))
+    await user.keyboard('{Enter}')
     await waitFor(() => expect(puts).toEqual([{ id: '1', cuerpo: { imei: null, imeiAnterior: '350000000000010' } }]))
   })
 
@@ -162,7 +162,7 @@ describe('Pedidos como la hoja: la tabla', () => {
 })
 
 describe('Pedidos como la hoja: la celda del IMEI', () => {
-  it('abre el desplegable con los recomendados, su caja y su nivel', async () => {
+  it('abre el campo en la celda y, desde el ▾, los recomendados con su caja y su nivel', async () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await celdaVacia())
@@ -175,6 +175,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(c).toHaveTextContent('igual que el pedido')
     expect(screen.getByRole('button', { name: /350000000000103/ })).toHaveTextContent('hay que transformarlo')
     expect(screen.queryByRole('button', { name: 'Quitar el IMEI' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Recomendados' })).toBeInTheDocument()
     // El SKU del título sale tal cual (sin pasarlo a mayúsculas).
     const sku = screen.getByText('i13128AzulA', { selector: 'span.normal-case' })
     expect(sku.parentElement).toHaveTextContent('Recomendados para i13128AzulA')
@@ -208,15 +209,15 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(puts).toEqual([])
   })
 
-  it('«Quitar el IMEI» manda null', async () => {
+  it('con el campo vacío, Enter quita el IMEI y manda null', async () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await screen.findByRole('button', { name: /350000000000999/ }))
-    await user.click(screen.getByRole('button', { name: 'Quitar el IMEI' }))
+    await user.keyboard('{Enter}')
     await waitFor(() => expect(puts).toEqual([{ id: '4', cuerpo: { imei: null, imeiAnterior: '350000000000999' } }]))
   })
 
-  it('Escape, «Cerrar» y el clic fuera cierran; solo hay uno abierto', async () => {
+  it('Escape y el clic fuera cierran; solo hay uno abierto', async () => {
     const user = userEvent.setup()
     abrir()
     await user.click(await celdaVacia())
@@ -224,15 +225,13 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(campo()).not.toBeInTheDocument()
     expect(await celdaVacia()).toHaveFocus()
     await user.click(await celdaVacia())
-    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
-    expect(campo()).not.toBeInTheDocument()
-    await user.click(await celdaVacia())
     await user.click(screen.getByRole('heading', { name: 'Pedidos' }))
     expect(campo()).not.toBeInTheDocument()
     await user.click(await celdaVacia())
     await user.click(screen.getByRole('button', { name: /350000000000001/ }))
     expect(screen.getAllByRole('textbox', { name: 'IMEI' })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: /350000000000001/ })).toHaveAttribute('aria-expanded', 'true')
+    // El campo único es el de la fila que se acaba de pulsar (la celda de la 3 se cerró).
+    expect(campo()!.closest('tr')).toHaveTextContent('402-0000000-0000012')
   })
 
   it('si el PUT falla, el desplegable sigue abierto con lo escrito', async () => {
@@ -281,7 +280,7 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       abrir()
       await user.click(await celdaVacia())
       const c = campo() as HTMLElement
-      expect(c).toHaveAttribute('placeholder', 'Lee o escribe el IMEI (15 cifras)')
+      expect(c).toHaveAttribute('placeholder', 'Lee o escribe el IMEI')
       expect(c).toHaveAttribute('inputmode', 'numeric')
       expect(c).toHaveAttribute('autocomplete', 'off')
       expect(screen.getByText('0/15')).toHaveAttribute('aria-hidden', 'true')
@@ -313,30 +312,35 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
       await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: I55, imeiAnterior: '' } }]))
     })
 
-    it('cifras de más NO se cortan: error «Hay más de 15 cifras», contador en rojo y no se guarda', async () => {
+    it('cifras de más NO se cortan ni se guardan: la celda queda en rojo «19 cifras», avisa arriba y el campo salta a la siguiente', async () => {
       const user = userEvent.setup()
       abrir()
       await user.click(await celdaVacia())
+      expect(screen.getByText('0/15')).toBeInTheDocument()
       await user.paste(`${I55}9999`)
-      expect(screen.getByRole('alert')).toHaveTextContent('Hay más de 15 cifras: lee un solo IMEI')
-      expect(campo()).toHaveValue(`${I55}9999`)
+      // El contador se ve en rojo mientras la lectura sigue en el campo; pasado el momento quieto se marca no válida y salta.
       expect(screen.getByText('19/15')).toHaveClass('text-texto-error')
+      expect(await screen.findByRole('button', { name: /IMEI no válido · 19 cifras/ })).toBeInTheDocument()
+      expect(estadoPedidos.get().avisoImei).toMatch(/IMEI no válido: 19 cifras/)
       await new Promise((r) => setTimeout(r, 300))
       expect(puts).toEqual([])
     })
 
-    it('con la cifra de control mala no guarda, ni solo ni con Enter; «Guardar igualmente» sí y cierra', async () => {
+    it('con la cifra de control mala no guarda: la celda queda en rojo, el aviso de arriba dice «IMEI no válido» y «Guardar igual» solo sale al reabrirla', async () => {
       const user = userEvent.setup()
       sinSalto()
       abrir()
       await user.click(await celdaVacia())
       const malo = imeiConLuhnMalo(55)
       await user.type(campo() as HTMLElement, `${malo}{Enter}`)
-      expect(await screen.findByRole('alert')).toHaveTextContent('La cifra de control no cuadra: revisa el IMEI')
-      await user.keyboard('{Enter}')
+      expect(await screen.findByRole('button', { name: new RegExp(`IMEI no válido · …${malo.slice(-4)}`) })).toBeInTheDocument()
+      expect(await screen.findByText(/Pedido 402-0000000-0000013: IMEI no válido/)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Guardar igual' })).not.toBeInTheDocument()
       await new Promise((r) => setTimeout(r, 300))
       expect(puts).toEqual([])
-      await user.click(screen.getByRole('button', { name: 'Guardar igualmente' }))
+      // Reabierta, «Guardar igual» guarda la lectura y cierra.
+      await user.click(screen.getByRole('button', { name: /IMEI no válido/ }))
+      await user.click(screen.getByRole('button', { name: 'Guardar igual' }))
       await waitFor(() => expect(puts).toEqual([{ id: '3', cuerpo: { imei: malo, imeiAnterior: '' } }]))
       await waitFor(() => expect(campo()).not.toBeInTheDocument())
     })

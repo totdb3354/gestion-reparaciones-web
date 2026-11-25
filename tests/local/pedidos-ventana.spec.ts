@@ -57,12 +57,13 @@ test('Pedidos con 26.700 filas en Chromium real', async ({ page }) => {
   // (g) pintado inicial: de ir a la pagina a tener la ultima fila a la vista.
   const t0 = Date.now()
   await page.goto('/telefonos/pedidos')
+  // El periodo por defecto ya no es «Todo» (0.9.38): las filas de 2025 solo salen eligiendolo.
+  await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
   await expect(contador(page, `${N} filas`)).toBeVisible()
   await expect(page.getByText(NOTA)).toBeVisible()
   await expect(page.getByRole('button', { name: pedido(N), exact: true })).toBeVisible()
   await pintado(page)
   cifras.pintadoInicialMs = Date.now() - t0
-  await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
   await expect(contador(page, `${N} filas`)).toBeVisible()
 
   // (a) abre exactamente al final y la ultima fila se ve entera.
@@ -187,7 +188,6 @@ test('modo ventana con filas marcadas (mas altas): no se solapan y el scroll cua
   const marcadas = FILAS.map((f) => (f.idFila % 5 === 0 && f.estado === 'ENVIADA' ? { ...f, marca: 'ESPERA_STOCK', marcaNota: 'llega el lunes', marcaEn: '2026-11-12T09:30:00', marcaPor: 'Supertecnico 1' } : f))
   await preparar(page, marcadas)
   await page.goto('/telefonos/pedidos')
-  await expect(contador(page, `${N} filas`)).toBeVisible()
   await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
   await expect(contador(page, `${N} filas`)).toBeVisible()
   await page.waitForTimeout(500)
