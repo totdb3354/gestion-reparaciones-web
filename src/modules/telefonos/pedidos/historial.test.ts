@@ -86,13 +86,13 @@ describe('construirHistorial', () => {
   it('las devoluciones del bot salen como hitos con su detalle, a nombre del bot de NSYS', () => {
     const base = { usuario: null, imeiNuevo: null, fecha: '2026-11-25T10:00:00' }
     const h = construirHistorial(fila(), [
-      { ...base, tipo: 'DEVUELTO', imeiAnterior: '350000000000001', detalle: 'de Pedidos realizados a CAJA LISTOS; IMEI cambiado por Lucía el 24/11 18:07' },
+      { ...base, tipo: 'DEVUELTO', imeiAnterior: '350000000000001', detalle: 'de Pedidos realizados a CAJA LISTOS; IMEI cambiado por Ana el 24/11 18:07' },
       { ...base, tipo: 'NO_DEVUELTO', imeiAnterior: '350000000000002', detalle: 'no aparece en NSYS en Pedidos realizados' },
       { ...base, tipo: 'SIN_DESTINO', imeiAnterior: '350000000000003', detalle: 'reparado después (R20261123_47)' },
     ] as CambioImei[])
     const textos = h.filter((e) => e.tipo === 'marca').map((e) => (e.tipo === 'marca' ? [e.texto, e.quien] : null))
     expect(textos).toEqual([
-      ['Devuelto a stock 350000000000001: de Pedidos realizados a CAJA LISTOS; IMEI cambiado por Lucía el 24/11 18:07', 'bot de NSYS'],
+      ['Devuelto a stock 350000000000001: de Pedidos realizados a CAJA LISTOS; IMEI cambiado por Ana el 24/11 18:07', 'bot de NSYS'],
       ['No se pudo devolver 350000000000002: no aparece en NSYS en Pedidos realizados', 'bot de NSYS'],
       ['No se devuelve solo 350000000000003 (lo mueve una persona): reparado después (R20261123_47)', 'bot de NSYS'],
     ])
