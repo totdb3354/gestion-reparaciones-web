@@ -49,8 +49,8 @@ async function prepararPedidos(page: Page) {
   await page.getByLabel('Periodo:').selectOption({ label: 'Todo' })
   await expect(page.getByRole('button', { name: pedido(6), exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'pulsa para poner el IMEI…' }).first().click()
-  // Un desplegable que se cierra sigue un instante en pantalla (animacion de salida): el activo es el abierto.
-  const campo = page.locator('[data-state="open"] input[aria-label="IMEI"]')
+  // La celda abierta es el propio campo en línea (solo hay uno a la vez); el foco salta de una celda a otra con cada lectura.
+  const campo = page.getByRole('textbox', { name: 'IMEI' })
   await expect(campo).toBeFocused()
   return { puts, campo }
 }
@@ -60,11 +60,18 @@ test('dos lecturas seguidas con el teclado (como una pistola) caen cada una en s
   const [a, b, c] = [imeiValido(11), imeiValido(22), imeiValido(44)]
   // Sin plegar en medio ni tocar el raton: lectura, Enter, lectura, Enter, lectura (la fila 3 ya tiene IMEI y se salta). La ultima
   // se guarda sola, sin Enter, tras el momento quieto de 120 ms.
-  await page.keyboard.type(a, { delay: 0 })
+  // Tras cada Enter se espera a que el campo esté en la fila siguiente, y la lectura entra de golpe (`insertText`, como un pegado): con
+  // teclas sueltas por CDP, Chromium headless pierde a veces las de justo después de desmontarse el campo anterior (ni keydown llega a
+  // la página; pasaba igual con el desplegable de antes, 4 de 14 veces).
+  await page.keyboard.insertText(a)
   await page.keyboard.press('Enter')
-  await page.keyboard.type(b, { delay: 0 })
+  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(2))
+  await expect(campo).toBeFocused()
+  await page.keyboard.insertText(b)
   await page.keyboard.press('Enter')
-  await page.keyboard.type(c, { delay: 0 })
+  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(4))
+  await expect(campo).toBeFocused()
+  await page.keyboard.insertText(c)
   await expect.poll(() => puts.length).toBe(3)
   expect(puts).toEqual([
     { id: '1', imei: a, imeiAnterior: '' }, { id: '2', imei: b, imeiAnterior: '' }, { id: '4', imei: c, imeiAnterior: '' },
@@ -75,34 +82,34 @@ test('dos lecturas seguidas con el teclado (como una pistola) caen cada una en s
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
-test('una cifra suelta y luego dos lecturas: nada cae en la fila siguiente y la 2.ª lectura sustituye a la errónea', async ({ page }) => {
+test('una cifra suelta y luego dos lecturas: la 1.ª (16 cifras) queda en rojo sin guardar, salta, y la 2.ª se guarda en la fila 2', async ({ page }) => {
   const { puts, campo } = await prepararPedidos(page)
-  const [a, b] = [imeiValido(11), imeiValido(22)]
+  const b = imeiValido(22)
   await page.keyboard.type('9', { delay: 0 })
-  // La cifra suelta + la 1.ª lectura (y su Enter): más de 15 cifras, error y nada guardado.
-  await page.keyboard.type(a, { delay: 0 })
+  // La cifra suelta + la 1.ª lectura (y su Enter): más de 15 cifras. No se guarda, la celda queda en rojo y el campo salta a la fila 2.
+  await page.keyboard.type(imeiValido(11), { delay: 0 })
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('alert')).toContainText('Hay más de 15 cifras')
-  await page.waitForTimeout(500)
+  await expect(page.getByRole('button', { name: 'IMEI no válido · 16 cifras' })).toHaveCount(1)
+  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(2))
   expect(puts).toEqual([])
-  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(1))
-  // La 2.ª lectura llega tras una pausa: sustituye y se guarda en la fila 1.
-  await page.keyboard.type(b, { delay: 0 })
+  // La 2.ª lectura llega tras una pausa: se guarda en la fila 2.
+  await page.waitForTimeout(500)
+  await page.keyboard.insertText(b)
   await page.keyboard.press('Enter')
   await expect.poll(() => puts.length).toBe(1)
-  expect(puts).toEqual([{ id: '1', imei: b, imeiAnterior: '' }])
-  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(2))
+  expect(puts).toEqual([{ id: '2', imei: b, imeiAnterior: '' }])
+  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(4))
   await expect(campo).toHaveValue('')
 })
 
-test('un código 2D con dos IMEI (A B y Enter) no reparte uno en cada fila', async ({ page }) => {
+test('un código 2D con dos IMEI (A B y Enter) no reparte uno en cada fila: es una lectura no válida de 30 cifras', async ({ page }) => {
   const { puts, campo } = await prepararPedidos(page)
   const [a, b] = [imeiValido(11), imeiValido(22)]
   await page.keyboard.type(`${a} ${b}`, { delay: 0 })
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('alert')).toContainText('Hay más de 15 cifras: lee un solo IMEI')
+  await expect(page.getByRole('button', { name: 'IMEI no válido · 30 cifras' })).toHaveCount(1)
   await page.waitForTimeout(500)
   expect(puts).toEqual([])
-  await expect(campo).toHaveValue(`${a}${b}`)
-  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(1))
+  await expect(campo).toHaveValue('')
+  await expect(page.locator('tr[data-aqui]')).toContainText(pedido(2))
 })

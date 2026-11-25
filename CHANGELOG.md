@@ -6,11 +6,25 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 ## [0.9.47] - 2026-11-25 — El bot de NSYS devuelve a stock los móviles que salieron de un pedido
 
-- Cuando se cambia el IMEI de un pedido después de que el bot de NSYS haya pasado el móvil a «Pedidos realizados», el ERP se lo
+- Cuando se cambia el IMEI de un pedido (o se cancela con «Cancelar móvil») después de que el bot de NSYS haya pasado el móvil a «Pedidos realizados», el ERP se lo
   dice al bot y el bot lo devuelve a la caja donde estaba (si esa caja se vende). Queda en el historial de la fila: «Devuelto a
   stock», «No se pudo devolver» o «No se devuelve solo (lo mueve una persona)» con el motivo (sin caja, caja o grado que no se
-  vende, reparado después).
+  vende, reparado después, pedido que ya no está en ShippyPro).
 - La devolución automática empieza cuando el bot de producción se actualice (plan 3); hasta entonces la lista sale vacía.
+
+## [0.9.46.3] - 2026-11-25 — Pedidos: el IMEI se pica en la propia celda y la vista filtrada no se mueve
+
+- El IMEI se lee o se escribe en la propia celda: al pulsarla, la celda es el campo (con el contador y un ▾ para los
+  recomendados). Ya no se abre el desplegable que tapaba las filas de debajo. La marca, la nota, «Validar SKU» y «Cancelar móvil»
+  están solo en el panel de la fila. Para quitar el IMEI: campo vacío y Enter.
+- Una lectura que no es un IMEI válido (cifra de control mala o más de 15 cifras) no se guarda y no frena: la celda queda en rojo
+  «IMEI no válido» y el campo sigue a la siguiente fila. Al revisar, se pulsa la roja: trae la lectura; se lee otra o, si fue la
+  cifra de control, «Guardar igual». El rojo se recuerda en ese navegador (24 h como mucho) hasta poner un IMEI en la fila.
+- Con un filtro puesto (p. ej. «sin IMEI»), las filas que se van picando no desaparecen: la vista se queda como al poner el filtro,
+  como en Excel, hasta cambiar el filtro, el periodo o la búsqueda, o volver a pulsar el contador. Los pedidos nuevos que cumplen
+  el filtro sí entran.
+- Los avisos de Pedidos (IMEI no válido, repetido, no guardado) salen en la barra del buscador y ya no empujan la tabla.
+- Escape: con los recomendados abiertos cierra solo la lista; si no, cierra la celda; con la celda cerrada, el panel.
 
 ## [0.9.46.2] - 2026-11-24 — Pedidos: el libro de ventas manda siempre; la celda avisa en rojo o naranja
 

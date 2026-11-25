@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // «Validar SKU»: en Chromium real, con la API falsa por `page.route` (datos inventados). Una fila naranja por «otro color o grado» se valida
-// desde el desplegable del IMEI (el foco sigue en el campo), la celda pasa a «validado» y el contador baja; «Quitar validación» la devuelve.
+// desde el panel de la fila, la celda pasa a «validado» y el contador baja; «Quitar validación» la devuelve.
 // Una naranja por «no está en NSYS» no ofrece el botón. Solo local: `npx playwright test -c playwright.local.config.ts pedidos-validar`.
 
 const base = (k: number) => ({
@@ -15,7 +15,7 @@ const filas = [
   { ...base(2), imei: '350000000000029', nivel: 'MAL', motivo: 'NO_EN_NSYS', skuMovil: null },
 ]
 
-test('validar y quitar la validacion desde el desplegable del IMEI, sin quitarle el foco al campo', async ({ page }) => {
+test('validar y quitar la validacion desde el panel de la fila', async ({ page }) => {
   const puts: { id: string; validar: boolean; imeiAnterior: string | null; clave: string | null }[] = []
   await page.addInitScript(() => {
     localStorage.setItem('fsgr.sesion', JSON.stringify({ idUsu: 7, nombreUsuario: 'tecnico_f', rol: 'SUPERTECNICO', idTec: 3, token: 'jwt-super', passwordTemporal: false }))
@@ -33,8 +33,9 @@ test('validar y quitar la validacion desde el desplegable del IMEI, sin quitarle
       puts.push({ id: v[1], ...c, clave: peticion.headers()['idempotency-key'] ?? null })
       const f = filas[Number(v[1]) - 1]
       // Como el servidor: validada = nivel OK con el motivo guardado; quitada = vuelve el naranja.
-      if (c.validar) Object.assign(f, { nivel: 'OK', motivoValidado: f.motivo, validadaPor: 'tecnico_f', validadaEn: '2026-11-16T10:00:00' })
-      else Object.assign(f, { nivel: 'MAL', motivoValidado: null, validadaPor: null, validadaEn: null })
+      // El servidor, al validar, pasa el motivo a `motivoValidado` y deja el motivo en blanco; al quitarla, lo devuelve.
+      if (c.validar) Object.assign(f, { nivel: 'OK', motivoValidado: f.motivo, motivo: null, validadaPor: 'tecnico_f', validadaEn: '2026-11-16T10:00:00' })
+      else Object.assign(f, { nivel: 'MAL', motivo: f.motivoValidado, motivoValidado: null, validadaPor: null, validadaEn: null })
       return route.fulfill({ json: f })
     }
     if (ruta.endsWith('/recomendados')) return route.fulfill({ json: [] })
@@ -46,18 +47,23 @@ test('validar y quitar la validacion desde el desplegable del IMEI, sin quitarle
   await expect(fila1.getByRole('button', { name: 'W-VALIDAR-1' })).toBeVisible()
   await expect(page.getByRole('button', { name: '2 no cuadran' })).toBeVisible()
 
-  // Fila 2 (no está en NSYS): sin botón. Se cierra con Escape.
+  // «Validar SKU» vive solo en el panel «Detalle del pedido», no en la celda del IMEI.
+  const abierto = page.getByRole('region', { name: 'Detalle del pedido' })
+  // Fila 2 (no está en NSYS): sin botón.
   const fila2 = page.getByRole('row').nth(2)
-  await fila2.getByRole('button', { name: /350000000000029/ }).click()
-  const abierto = page.locator('[data-state="open"][data-slot="popover-content"]')
-  await expect(abierto.getByRole('textbox', { name: 'IMEI' })).toBeFocused()
+  await fila2.getByRole('button', { name: 'W-VALIDAR-2' }).click()
+  await expect(abierto).toBeVisible()
   await expect(abierto.getByRole('button', { name: /Validar SKU|Quitar validación/ })).toHaveCount(0)
+  // La celda en línea tampoco lo ofrece.
+  await fila2.getByRole('button', { name: /350000000000029/ }).click()
+  await expect(fila2.getByRole('textbox', { name: 'IMEI' })).toBeFocused()
+  await expect(fila2.getByRole('button', { name: /Validar SKU|Quitar validación/ })).toHaveCount(0)
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toHaveCount(0)
+  await expect(fila2.getByRole('textbox', { name: 'IMEI' })).toHaveCount(0)
 
-  // Fila 1 (otro color o grado): el foco está en el IMEI y el botón va debajo; validar la deja «validado».
-  await fila1.getByRole('button', { name: /350000000000011/ }).click()
-  await expect(abierto.getByRole('textbox', { name: 'IMEI' })).toBeFocused()
+  // Fila 1 (otro color o grado): el botón está en el panel; validar la deja «validado».
+  await fila1.getByRole('button', { name: 'W-VALIDAR-1' }).click()
+  await expect(abierto).toContainText('W-VALIDAR-1')
   await abierto.getByRole('button', { name: 'Validar SKU' }).click()
   await expect.poll(() => puts).toEqual([{ id: '1', validar: true, imeiAnterior: '350000000000011', clave: expect.any(String) }])
   await expect(abierto.getByRole('button', { name: 'Quitar validación' })).toBeVisible()

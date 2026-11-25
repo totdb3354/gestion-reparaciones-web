@@ -30,6 +30,12 @@ export function AyudaPedidos() {
         <h2 className="mb-2 text-[13px] font-bold text-azul-medio">Cómo se lee esta tabla</h2>
         <ul className="flex flex-col gap-1.5">
           <Linea>Las filas las crea el ERP desde ShippyPro. Solo se teclea el IMEI.</Linea>
+          <Linea>El IMEI se lee o se escribe en la propia celda: púlsala y lee. Al guardarlo, pasa sola a la siguiente fila sin IMEI. Para quitarlo, deja el campo vacío y pulsa Enter. El ▾ enseña los recomendados.</Linea>
+          <Linea muestra={<span className="rounded-sm bg-[#FDE2E2] px-1.5 py-px text-[11px] font-bold text-texto-error">IMEI no válido · …6537</span>}>
+            IMEI no válido (cifra de control mala o más de 15 cifras): no se guarda y sigue a la siguiente. Al revisar, pulsa la celda roja:
+            lee otro o, si estás seguro, «Guardar igual». Se queda en rojo en este navegador hasta poner un IMEI en esa fila (24 h como mucho).
+          </Linea>
+          <Linea>Con un filtro puesto, las filas que vas picando no se van: la vista se queda como al poner el filtro hasta que lo cambias o vuelves a pulsar el contador.</Linea>
           <Linea muestra={<span className="inline-flex items-center gap-1 text-[12px] font-bold">SKU<ArrowUpDown aria-hidden className="size-3.5 text-[#8f99a8]" /></span>}>
             La columna SKU se ordena por modelo con un clic en su nombre, como se organiza el almacén: del más antiguo al más nuevo, al revés
             y vuelta al orden de siempre. Dentro de cada modelo, la capacidad de menor a mayor. Ordenada, el lector salta a la siguiente
@@ -46,7 +52,7 @@ export function AyudaPedidos() {
           <Linea muestra={celda(FONDO.na, '350000000000001')}>IMEI en amarillo claro: grado N/A (NSYS no le da grado). Vale, no cuenta en «no cuadran».</Linea>
           <Linea>Sin fondo pero con una palabra al lado: «eSIM» o «SIM física» en naranja (la SIM no es la del pedido) o, en ámbar, «MS», «B por A» o «reparándose · técnico». Ninguna cuenta en «no cuadran». Si pasan varias cosas, salen todas separadas por «·».</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, 'bg-fila-reparado-bg text-[#2f7d3b]')}>validado</span>}>
-            IMEI con el aviso de SKU dado por bueno a mano («Validar SKU», en el desplegable del IMEI o en el panel). Ya no cuenta en «no cuadran» y vale solo para ese IMEI en esa fila.
+            IMEI con el aviso de SKU dado por bueno a mano («Validar SKU», en el panel de la fila). Ya no cuenta en «no cuadran» y vale solo para ese IMEI en esa fila.
           </Linea>
           <Linea muestra={<span className={cn(ETIQUETA, COLOR_ETIQUETA.PENDIENTE)}>Pendiente</span>}>Aún no se ha preparado el envío.</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, 'bg-[#fde2e1] text-[#b42318]')}>Sale hoy</span>}>
@@ -77,7 +83,7 @@ export function AyudaPedidos() {
             El cliente anula ese móvil y el resto del pedido sigue. Se pone con «Cancelar móvil» en el panel de la fila (pide confirmación) y se
             quita con «Quitar cancelación». Quita «Falta por enviar». No cuenta como pendiente, el lector no salta a ella y su IMEI queda libre.
           </Linea>
-          <Linea>Las otras marcas se eligen en la celda del IMEI (debajo del campo) o en el panel de la fila y se guardan al elegirlas; la nota, con Enter o al salir de su campo. Se ven junto al estado de envío. Una fila con marca no va al bot de vendidos.</Linea>
+          <Linea>Las otras marcas se eligen en el panel de la fila y se guardan al elegirlas; la nota, con Enter o al salir de su campo. Se ven junto al estado de envío. Una fila con marca no va al bot de vendidos.</Linea>
           <Linea muestra={
             <span className="flex items-baseline gap-1.5 text-[12px]">i13128AzulA<span className="font-sans text-[10px] text-azul-gris">1/3</span></span>
           }>El móvil es uno de los de un pedido de varios.</Linea>
