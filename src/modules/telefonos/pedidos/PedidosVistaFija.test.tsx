@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -64,4 +64,66 @@ describe('Pedidos: la vista filtrada no se mueve', () => {
     await screen.findByText(pedido(4))
     expect(within(tabla()).getByText(pedido(1))).toBeInTheDocument()
   })
+
+  /** Pone el IMEI a la fila 1 desde la tabla y la deja a la vista (con «sin IMEI» puesto, fija). */
+  const picarLaPrimera = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByRole('button', { name: '2 sin IMEI' }))
+    await user.click(within(tabla()).getAllByRole('button', { name: /pulsa para poner el IMEI/ })[0])
+    await user.keyboard(`${imeiValido(1)}{Enter}`)
+    await screen.findByRole('button', { name: '1 sin IMEI' })
+    await user.keyboard('{Escape}')
+    expect(within(tabla()).getByText(pedido(1))).toBeInTheDocument()
+  }
+
+  it('cambiar el periodo rehace la vista: la fila picada que se quedaba desaparece', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await picarLaPrimera(user)
+    await user.selectOptions(screen.getByLabelText('Periodo:'), 'Últimos 3 meses')
+    await waitFor(() => expect(within(tabla()).queryByText(pedido(1))).not.toBeInTheDocument())
+    expect(within(tabla()).getByText(pedido(2))).toBeInTheDocument()
+  })
+
+  it('cambiar la búsqueda rehace la vista', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await picarLaPrimera(user)
+    fireEvent.change(screen.getByLabelText('Buscar en todo el historial'), { target: { value: '402' } })
+    await waitFor(() => expect(within(tabla()).queryByText(pedido(1))).not.toBeInTheDocument())
+    expect(within(tabla()).getByText(pedido(2))).toBeInTheDocument()
+  })
+
+  it('una fila que el servidor deja de mandar desaparece de la vista', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = abrir()
+    await user.click(await screen.findByRole('button', { name: '2 sin IMEI' }))
+    expect(within(tabla()).getByText(pedido(2))).toBeInTheDocument()
+    filas = [filas[0], filas[2]]
+    await queryClient.invalidateQueries()
+    await waitFor(() => expect(within(tabla()).queryByText(pedido(2))).not.toBeInTheDocument())
+    expect(within(tabla()).getByText(pedido(1))).toBeInTheDocument()
+  })
+
+  it('con datos viejos en pantalla (placeholder) no se fija nada: la fila que cambió mientras llegaban los nuevos se juzga con lo fresco', async () => {
+    const user = userEvent.setup()
+    let soltar: () => void = () => {}
+    let retener = false
+    const espera = new Promise<void>((r) => { soltar = r })
+    server.use(http.get('*/api/pedidos/filas', async () => {
+      if (retener) await espera
+      return HttpResponse.json({ filas, hayMas: false })
+    }))
+    abrir()
+    await user.click(await screen.findByRole('button', { name: '2 sin IMEI' }))
+    expect(within(tabla()).getByText(pedido(1))).toBeInTheDocument()
+    // Cambia el periodo: la segunda petición queda retenida (se ven los datos viejos) y mientras tanto la fila 1 recibe IMEI.
+    retener = true
+    filas = [fila({ idFila: 1, pedido: pedido(1), imei: imeiValido(1) }), filas[1], filas[2]]
+    await user.selectOptions(screen.getByLabelText('Periodo:'), 'Últimos 3 meses')
+    soltar()
+    // Con datos frescos la fila 1 ya no es «sin IMEI»: si se hubiera fijado con los viejos, se quedaría.
+    await waitFor(() => expect(within(tabla()).queryByText(pedido(1))).not.toBeInTheDocument())
+    expect(within(tabla()).getByText(pedido(2))).toBeInTheDocument()
+  })
 })
+

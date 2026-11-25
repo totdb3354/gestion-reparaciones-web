@@ -17,7 +17,7 @@ import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
 import { cargarNoValidos, limpiarNoValidos } from './noValidos'
-import { OPCIONES_ENVIADO, SIN_FILTROS, acumularVista, contadorAplicado, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, ordenarPorSku, siguienteOrdenSku, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, vistaVacia, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, acumularVista, contadorAplicado, filtrosDeContador, filtrarColumnas, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, ordenarPorSku, siguienteOrdenSku, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, vistaVacia, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -27,7 +27,8 @@ const MIN_BUSCAR = 2
 
 /** «Pedidos» como la hoja (spec «Pedidos como la hoja» §3): una fila por móvil pedido, que crea el ERP desde ShippyPro; lo único
  *  que se teclea es el IMEI. Arriba, el filtro de fechas (por defecto, el último mes), el buscador (mira en todo el historial) y,
- *  en las cabeceras, los filtros por columna, que se aplican en el cliente sobre lo recibido. Todo se guarda en `estadoPedidos`. */
+ *  en las cabeceras, los filtros por columna, que se aplican en el cliente sobre lo recibido y dejan la vista fija (como en Excel: la fila que
+ *  deja de cumplir se queda hasta que se cambie el filtro, el periodo, la búsqueda o «Ver», o se pulse un contador). Todo se guarda en `estadoPedidos`. */
 export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la vista por encima de las cuales la tabla pinta solo las visibles (se puede bajar en las pruebas). */ umbralVentana?: number } = {}) {
   const [e, setE] = useStore(estadoPedidos)
   const [aplicado, setAplicado] = useState(e.buscar)
@@ -70,9 +71,21 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const contadorPuesto = contadorAplicado(filtros)
   // La vista fija (spec 2026-11-25 §4): se rehace al cambiar los filtros de columna, el periodo, la búsqueda o «Ver», y al pulsar un
   // contador (aunque sea el puesto: así se quitan las ya picadas). Entre medias, una fila que deja de cumplir el filtro se queda.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const vista = useMemo(() => vistaVacia(), [filtros, desde, hasta, aplicado, buscando, e.verFuera, pulsoVista])
-  const vistas = useMemo(() => ordenarPorSku(acumularVista(vista, filas, filtros, hoy), e.ordenSku), [vista, filas, filtros, hoy, e.ordenSku])
+  // Vive en estado (no en un `useMemo`, que React puede tirar y la vista se vaciaría sola) con la clave que la originó; si la clave
+  // cambia (misma identidad que antes en las dependencias del memo), se descarta y se ajusta el estado durante el render.
+  const clave = [filtros, desde, hasta, aplicado, buscando, e.verFuera, pulsoVista]
+  const [fija, setFija] = useState({ clave, vista: vistaVacia() })
+  const mismaClave = fija.clave.length === clave.length && fija.clave.every((c, i) => Object.is(c, clave[i]))
+  const base = mismaClave ? fija.vista : vistaVacia()
+  // Con `isPlaceholderData` (keepPreviousData) `filas` son las del periodo/búsqueda anterior: darlas por conocidas las fijaría en la
+  // vista nueva con su estado viejo. Mientras llegan las nuevas no se acumula nada: se enseñan las viejas con los filtros, sin fijarlas.
+  const placeholder = lista.isPlaceholderData
+  // `acumularVista` es pura: el memo es solo caché (si React lo tira, se recalcula igual desde `fija`, que es el estado real).
+  const { acumulado, vistas } = useMemo(() => {
+    const acumulado = placeholder ? null : acumularVista(base, filas, filtros, hoy)
+    return { acumulado, vistas: ordenarPorSku(acumulado ? acumulado.filas : filtrarColumnas(filas, filtros, hoy), e.ordenSku) }
+  }, [placeholder, base, filas, filtros, hoy, e.ordenSku])
+  if (!mismaClave || (acumulado && acumulado.vista !== fija.vista)) setFija({ clave, vista: acumulado ? acumulado.vista : base })
   const ventana = vistas.length > umbralVentana
   // «Descargar CSV» del menú de usuario: lo que se ve (periodo o búsqueda, filtros de columna y orden). Sin filas, la opción sale deshabilitada.
   useRegistrarExportable(vistas.length > 0 ? () => descargarCsv(NOMBRE_CSV_PEDIDOS, CABECERAS_PEDIDOS, vistas.map((f) => filaPedidoCsv(f, hoy))) : null)
