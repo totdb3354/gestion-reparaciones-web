@@ -131,7 +131,10 @@ describe('construirHistorial: la reserva de IMEI', () => {
   })
   it('RESERVA_QUITADA: según el motivo', () => {
     const q = (detalle: string) => una({ tipo: 'RESERVA_QUITADA', imeiAnterior: A, detalle })[0]
-    expect(q('CANCELADA')).toMatchObject({ etiqueta: 'Cancelado', tono: 'mal', texto: `${A}: el pedido ya no está en ShippyPro o se marcó` })
+    expect(q('CANCELADA')).toMatchObject({ etiqueta: 'Cancelado', tono: 'mal', texto: `${A}: se canceló el pedido` })
+    expect(q('YA_NO_ESTA')).toMatchObject({ etiqueta: 'Cancelado', tono: 'mal', texto: `${A}: el pedido ya no está en ShippyPro` })
+    expect(q('MARCADA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: la fila se marcó` })
+    expect(q('CON_ETIQUETA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: la etiqueta ya estaba impresa; no vuelve a stock solo` })
     expect(q('ENVIADA_SIN_IMEI')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: se envió sin picar el IMEI` })
     expect(q('NO_ENCONTRADO')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} está en «Pendiente revisar…» en NSYS` })
     expect(q('PUESTO_EN_OTRA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} se puso en otra fila` })

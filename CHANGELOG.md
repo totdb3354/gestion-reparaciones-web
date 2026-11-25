@@ -16,7 +16,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Los IMEI recomendados de la celda ponen los **Ms siempre al final**, detrás de todo lo demás, aunque lleven más tiempo en stock.
 - El **historial** de la fila dice por qué se reservó (puesto, caja y grado), quién lo confirmó, si se picó otro y si la reserva se
   quitó (cancelado, enviado sin IMEI, no encontrado en NSYS, ya no disponible), con etiquetas de color.
-- El bot de stock **no** descuenta todavía los reservados (ajuste `pedidos.reserva.al-bot`, apagado hasta que haya devoluciones).
+- El bot de NSYS **descuenta también los reservados** (los pasa a «Pedidos realizados» para que no se vendan dos veces) y los
+  **devuelve a stock** cuando la reserva se suelta sin que nadie pique ese móvil: se pica otro encima, se cancela el pedido o se le
+  pone una marca, o el móvil deja de valer. Si el pedido ya no está en ShippyPro, o tenía la etiqueta impresa, no se devuelve solo:
+  lo comprueba una persona (como en la 0.9.47). En la lista del bot salen con el motivo `RESERVA_LIBERADA`.
 - Servidor, web y migración aditiva (`migracion-pedidos-reserva.sql`).
 
 ## [0.9.47] - 2026-11-25 — El bot de NSYS devuelve a stock los móviles que salieron de un pedido

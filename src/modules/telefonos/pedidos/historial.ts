@@ -57,7 +57,10 @@ function entradasDeReserva(c: CambioImei, i: number, cuando: string): EntradaHis
     case 'RESERVA_QUITADA': {
       const quitada = (texto: string): EntradaHistorial[] => [{ ...base, clave: `i${i}`, etiqueta: 'Reserva quitada', tono: 'aviso', texto, quien: erp }]
       switch (c.detalle) {
-        case 'CANCELADA': return [{ ...base, clave: `i${i}`, etiqueta: 'Cancelado', tono: 'mal', texto: `${imei}: el pedido ya no está en ShippyPro o se marcó`, quien: erp }]
+        case 'CANCELADA': return [{ ...base, clave: `i${i}`, etiqueta: 'Cancelado', tono: 'mal', texto: `${imei}: se canceló el pedido`, quien: erp }]
+        case 'YA_NO_ESTA': return [{ ...base, clave: `i${i}`, etiqueta: 'Cancelado', tono: 'mal', texto: `${imei}: el pedido ya no está en ShippyPro`, quien: erp }]
+        case 'MARCADA': return quitada(`${imei}: la fila se marcó`)
+        case 'CON_ETIQUETA': return quitada(`${imei}: la etiqueta ya estaba impresa; no vuelve a stock solo`)
         case 'ENVIADA_SIN_IMEI': return quitada(`${imei}: se envió sin picar el IMEI`)
         case 'PUESTO_EN_OTRA': return quitada(`${imei} se puso en otra fila`)
         case 'NO_ENCONTRADO': return quitada(`${imei} está en «Pendiente revisar…» en NSYS`)
