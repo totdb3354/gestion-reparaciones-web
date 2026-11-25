@@ -51,41 +51,37 @@ export function cargarNoValidos(): void {
   estadoPedidos.set((s) => ({ ...s, noValidos: leerNoValidos() }))
 }
 
+/** Lee lo guardado (otras pestañas incluidas), le aplica el cambio, lo escribe y deja el store igual: así dos pestañas no se pisan. */
+function actualizar(cambio: (m: Record<number, NoValido>) => void): void {
+  const m = leerNoValidos()
+  cambio(m)
+  escribir(m)
+  estadoPedidos.set((s) => ({ ...s, noValidos: m }))
+}
+
 export function marcarNoValido(idFila: number, nv: Omit<NoValido, 'en'>, ahora = Date.now()): void {
-  estadoPedidos.set((s) => {
-    const m = { ...s.noValidos, [idFila]: { ...nv, en: ahora } }
-    escribir(m)
-    return { ...s, noValidos: m }
-  })
+  actualizar((m) => { m[idFila] = { ...nv, en: ahora } })
 }
 
 export function quitarNoValido(idFila: number): void {
-  estadoPedidos.set((s) => {
-    if (!(idFila in s.noValidos)) return s
-    const m = { ...s.noValidos }
-    delete m[idFila]
-    escribir(m)
-    return { ...s, noValidos: m }
-  })
+  if (!(idFila in estadoPedidos.get().noValidos) && !(idFila in leerNoValidos())) return
+  actualizar((m) => { delete m[idFila] })
 }
 
-/** Con las filas recibidas: quita las marcas de filas cuyo IMEI ya no es el que tenían al leer (alguien puso uno). Las filas que no
- *  llegan (otro periodo) conservan la marca hasta que caduque. */
-export function limpiarNoValidos(filas: FilaVista[]): void {
+/** Con las filas recibidas: quita las marcas de filas cuyo IMEI ya no es el que tenían al leer (alguien puso uno) y las de más de 24 h
+ *  (la caducidad también corre con la pestaña abierta). Las filas que no llegan (otro periodo) conservan la marca hasta que caduque.
+ *  Solo se quitan las que se decide quitar: lo que otra pestaña haya guardado se respeta. */
+export function limpiarNoValidos(filas: FilaVista[], ahora = Date.now()): void {
   const actuales = estadoPedidos.get().noValidos
   if (Object.keys(actuales).length === 0) return
   const porId = new Map(filas.map((f) => [f.idFila, f]))
   const sobran = Object.keys(actuales).map(Number).filter((id) => {
+    if (ahora - actuales[id].en >= CADUCIDAD_NO_VALIDO_MS) return true
     const f = porId.get(id)
     return f !== undefined && (f.imei ?? null) !== actuales[id].imeiFila
   })
   if (sobran.length === 0) return
-  estadoPedidos.set((s) => {
-    const m = { ...s.noValidos }
-    for (const id of sobran) delete m[id]
-    escribir(m)
-    return { ...s, noValidos: m }
-  })
+  actualizar((m) => { for (const id of sobran) delete m[id] })
 }
 
 export function textoNoValido(nv: NoValido): { corto: string; largo: string } {

@@ -73,7 +73,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   // contador (aunque sea el puesto: así se quitan las ya picadas). Entre medias, una fila que deja de cumplir el filtro se queda.
   // Vive en estado (no en un `useMemo`, que React puede tirar y la vista se vaciaría sola) con la clave que la originó; si la clave
   // cambia (misma identidad que antes en las dependencias del memo), se descarta y se ajusta el estado durante el render.
-  const clave = [filtros, desde, hasta, aplicado, buscando, e.verFuera, pulsoVista]
+  const clave = [filtros, desde, hasta, buscando ? aplicado.trim() : '', e.verFuera, pulsoVista]
   const [fija, setFija] = useState({ clave, vista: vistaVacia() })
   const mismaClave = fija.clave.length === clave.length && fija.clave.every((c, i) => Object.is(c, clave[i]))
   const base = mismaClave ? fija.vista : vistaVacia()
@@ -162,7 +162,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
           // Al elegir «Rango…» salen las fechas guardadas, o, si no hay, las del periodo que se aplicaba.
           onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, verFuera: false, rango: p === 'rango' && !rangoValido(s.rango) ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
           onRango={(rango) => setE((s) => ({ ...s, rango, verFuera: false }))} />
-        <div className="flex min-h-8 w-[28rem] max-w-full flex-wrap items-center gap-1.5 rounded-md border border-borde-input bg-superficie px-2 py-[3px]">
+        <div className="flex min-h-8 min-w-56 max-w-[28rem] flex-[1_1_14rem] flex-wrap items-center gap-1.5 rounded-md border border-borde-input bg-superficie px-2 py-[3px]">
           {viendoFuera && (
             <span className="inline-flex items-center gap-1 rounded-md border border-[#e0c060] bg-[#fff8e1] py-px pr-1 pl-2 text-[11.5px] font-bold text-[#6b4e00]">
               Pendientes fuera del periodo
@@ -189,7 +189,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         {e.avisoImei && (
           // No modal: no roba el foco (se está leyendo la fila de al lado) y dice de qué pedido es. Va en la barra del buscador, en el hueco de
           // la derecha, en una línea: no cambia el alto de la barra y la tabla no se mueve. Texto completo en `title`. Se queda hasta que se cierre.
-          <div role="alert" title={e.avisoImei} className="flex h-8 min-w-0 flex-1 basis-0 items-center gap-2 rounded-md border border-[#e0a0a0] bg-[#FDE2E2] px-2.5 text-[12px] font-bold text-texto-error">
+          <div role="alert" title={e.avisoImei} className="flex h-8 min-w-0 flex-[4_1_0%] items-center gap-2 rounded-md border border-[#e0a0a0] bg-[#FDE2E2] px-2.5 text-[12px] font-bold text-texto-error">
             <span className="min-w-0 flex-1 truncate">{e.avisoImei}</span>
             <button type="button" aria-label="Cerrar el aviso" title="Cerrar" onClick={() => setE((s) => ({ ...s, avisoImei: null }))}
               className="cursor-pointer px-1 text-[14px] leading-none font-bold">✕</button>

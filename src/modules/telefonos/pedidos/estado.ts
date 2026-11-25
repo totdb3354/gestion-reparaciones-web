@@ -37,7 +37,7 @@ export type EstadoPedidos = {
   /** Lecturas que no eran un IMEI válido (cifra de control mala o más de 15 cifras), por `idFila`: no se guardaron y la celda sigue en
    *  rojo hasta poner un IMEI en esa fila. Copia en localStorage por usuario (24 h): ver `noValidos.ts`. */
   noValidos: Record<number, NoValido>
-  /** El aviso no modal de arriba de la tabla («No se guardó el IMEI del pedido X…»), hasta que se cierre. */
+  /** El aviso no modal de la barra del buscador («No se guardó el IMEI del pedido X…»), hasta que se cierre. */
   avisoImei: string | null
 }
 

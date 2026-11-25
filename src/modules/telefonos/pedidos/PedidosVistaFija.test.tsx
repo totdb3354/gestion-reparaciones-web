@@ -84,6 +84,15 @@ describe('Pedidos: la vista filtrada no se mueve', () => {
     expect(within(tabla()).getByText(pedido(2))).toBeInTheDocument()
   })
 
+  it('escribir 1 carácter en el buscador (no es búsqueda) no rehace la vista: la fila picada se queda', async () => {
+    const user = userEvent.setup()
+    abrir()
+    await picarLaPrimera(user)
+    fireEvent.change(screen.getByLabelText('Buscar en todo el historial'), { target: { value: '4' } })
+    await new Promise((r) => setTimeout(r, 450))
+    expect(within(tabla()).getByText(pedido(1))).toBeInTheDocument()
+  })
+
   it('cambiar la búsqueda rehace la vista', async () => {
     const user = userEvent.setup()
     abrir()
