@@ -4,6 +4,27 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.48] - 2026-11-25 — Pedidos: el ERP reserva un IMEI para cada pedido al entrar
+
+- En cada lectura de ShippyPro (cada 5 min), el ERP **aparta un teléfono concreto** para cada fila sin IMEI, con los criterios de
+  Amazon (abanico del maestro, sustitutos eSIM/SIM física, B/C para el taller, otros colores; un Ms nunca se reserva: lo decide y lo pica una persona)
+  y de las webs (SKU exacto; B/C del mismo color y formato solo para pedidos A). Primero Amazon, después Distribuidores, Particulares y
+  BackiPhone; dentro, el pedido más antiguo. Dentro de cada puesto, la caja (Listos primero), el grado y el más antiguo en stock.
+- En la celda, el IMEI reservado sale **tenue**. La fila sigue contando como **sin IMEI**. Al picar ese IMEI queda **confirmado**; si se
+  pica otro, el reservado vuelve a stock.
+- Contadores nuevos **«reservadas»** y **«sin stock»**, pulsables.
+- Los IMEI recomendados de la celda ponen los **Ms siempre al final**, detrás de todo lo demás, aunque lleven más tiempo en stock.
+- En los recomendados (▾), el IMEI reservado para ese pedido sale **el primero**, con «reservado para este pedido»; los reservados
+  para **otros** pedidos ya no se proponen (se pueden seguir picando a mano).
+- El **historial** de la fila dice por qué se reservó (puesto, caja y grado), quién lo confirmó, si se picó otro y si la reserva se
+  quitó (cancelado, enviado sin IMEI, no encontrado en NSYS, ya no disponible), con etiquetas de color.
+- Preparado para que el bot de NSYS **descuente también los reservados** (ajuste `pedidos.reserva.al-bot`, **apagado** hasta que
+  el bot de producción lleve unos días devolviendo; se enciende a mano). Encendido, los pasa a «Pedidos realizados» para que no se
+  vendan dos veces y los **devuelve a stock** cuando la reserva se suelta sin que nadie pique ese móvil: se pica otro encima, se cancela el pedido o se le
+  pone una marca. Si el pedido ya no está en ShippyPro, o tenía la etiqueta impresa, no se devuelve solo:
+  lo comprueba una persona (como en la 0.9.47). En la lista del bot salen con el motivo `RESERVA_LIBERADA`.
+- Servidor, web y migración aditiva (`migracion-pedidos-reserva.sql`).
+
 ## [0.9.47] - 2026-11-25 — El bot de NSYS devuelve a stock los móviles que salieron de un pedido
 
 - Cuando se cambia el IMEI de un pedido (o se cancela con «Cancelar móvil») después de que el bot de NSYS haya pasado el móvil

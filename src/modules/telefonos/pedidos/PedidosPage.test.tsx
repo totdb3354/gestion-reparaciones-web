@@ -181,6 +181,21 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(sku.parentElement).toHaveTextContent('Recomendados para i13128AzulA')
   })
 
+  it('el reservado de la fila sale en los recomendados diciendo «reservado para este pedido» en vez del nivel', async () => {
+    server.use(http.get('*/api/pedidos/filas/:id/recomendados', () => HttpResponse.json([
+      candidato({ imei: '350000000000105', caja: 'CAJA LISTOS', nivel: 1, reservado: true }),
+      candidato({ imei: '350000000000101', caja: 'CAJA LISTOS', nivel: 1 }),
+    ])))
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await celdaVacia())
+    await verRecomendados(user)
+    const reservado = await screen.findByRole('button', { name: /350000000000105/ })
+    expect(reservado).toHaveTextContent('reservado para este pedido')
+    expect(reservado).not.toHaveTextContent('igual que el pedido')
+    expect(screen.getByRole('button', { name: /350000000000101/ })).toHaveTextContent('igual que el pedido')
+  })
+
   it('elegir un candidato hace PUT con ese IMEI y cierra', async () => {
     const user = userEvent.setup()
     abrir()
@@ -426,5 +441,54 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     await queryClient.invalidateQueries()
     await waitFor(() => expect(screen.getAllByText('Plataforma Z').length).toBe(9))
     expect(campo()).toHaveValue('3500000')
+  })
+})
+
+describe('Pedidos: reservas y sin stock', () => {
+  const RES = '350000000000777'
+  beforeEach(() => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [
+      fila({ idFila: 1, pedido: '402-0000000-0000021', imeiReservado: RES, reservadaEn: '2026-11-24T10:00:00' }),
+      fila({ idFila: 2, pedido: '402-0000000-0000022' }),
+      fila({ idFila: 3, pedido: '402-0000000-0000023', marca: 'EN_REVISION' }),
+    ], hayMas: false })))
+  })
+
+  it('la celda reservada enseña el IMEI tenue, sin texto de motivo, y su title lo explica', async () => {
+    abrir()
+    const imei = await screen.findByText(RES)
+    expect(imei).toHaveClass('opacity-45')
+    const boton = imei.closest('button')!
+    expect(boton).toHaveAttribute('title', 'Reservado: pica este IMEI para confirmarlo o pon otro')
+    expect(boton).toHaveTextContent(RES)
+    expect(screen.queryAllByText(/pulsa para poner el IMEI/)).toHaveLength(2)
+  })
+
+  it('una fila con IMEI puesto enseña el IMEI normal aunque traiga reserva; la reservada no enseña piezas de aviso y lo dice a los lectores', async () => {
+    server.use(http.get('*/api/pedidos/filas', () => HttpResponse.json({ filas: [
+      fila({ idFila: 1, pedido: '402-0000000-0000021', imei: '350000000000555', imeiReservado: RES }),
+      fila({ idFila: 2, pedido: '402-0000000-0000022', imeiReservado: RES, motivo: 'MS', nivel: 'AVISO' }),
+    ], hayMas: false })))
+    abrir()
+    const normal = await screen.findByText('350000000000555')
+    expect(normal).not.toHaveAttribute('data-reservado')
+    expect(screen.getAllByText(RES)).toHaveLength(1)
+    const res = screen.getByText(RES).closest('button')!
+    expect(res.querySelector('[data-reservado]')).not.toBeNull()
+    expect(res).toHaveTextContent(`Reservado: ${RES}`)
+    expect(res.title).toBe('Reservado: pica este IMEI para confirmarlo o pon otro')
+    expect(res.querySelectorAll('span')).toHaveLength(2)
+  })
+
+  it('los contadores «reservadas» y «sin stock» cuentan y filtran', async () => {
+    const user = userEvent.setup()
+    abrir()
+    expect(await screen.findByRole('button', { name: '1 reservadas' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '1 sin stock' }))
+    expect(screen.getByText('402-0000000-0000022')).toBeInTheDocument()
+    expect(screen.queryByText('402-0000000-0000021')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '1 reservadas' }))
+    expect(screen.getByText('402-0000000-0000021')).toBeInTheDocument()
+    expect(screen.queryByText('402-0000000-0000022')).not.toBeInTheDocument()
   })
 })

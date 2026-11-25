@@ -156,13 +156,13 @@ export function fila(p: Partial<FilaVista> = {}): FilaVista {
     idFila: 1, fecha: '2026-11-09', plataforma: 'Plataforma A', sku: 'i13128AzulA', imei: null, pedido: '402-0000000-0000001',
     fechaCompra: '2026-11-08', estado: 'PENDIENTE', editable: true, envioFecha: null, impresaEn: null, tieneEtiqueta: false, transportista: null, seguimiento: null,
     nivel: null, motivo: null, skuMovil: null, caja: null, canal: 'PARTICULARES', faltaEnviarEn: null, sincronizadaEn: null,
-    marca: null, marcaNota: null, marcaEn: null, marcaPor: null, asociadaEn: null, asociadaOrigen: null, validadaEn: null, validadaPor: null, motivoValidado: null, fechaSalida: null, pais: null, salidaDesde: null, detalle: null, ...p,
+    marca: null, marcaNota: null, marcaEn: null, marcaPor: null, asociadaEn: null, asociadaOrigen: null, validadaEn: null, validadaPor: null, motivoValidado: null, fechaSalida: null, pais: null, salidaDesde: null, detalle: null, imeiReservado: null, reservadaEn: null, ...p,
   }
 }
 
 /** Un IMEI recomendado para una fila (nivel 1 = el mejor). */
 export function candidato(p: Partial<Candidato> = {}): Candidato {
-  return { imei: '350000000000001', sku: 'i13128AzulA', caja: 'CAJA LISTOS', nivel: 1, ...p }
+  return { imei: '350000000000001', sku: 'i13128AzulA', caja: 'CAJA LISTOS', nivel: 1, reservado: false, ...p }
 }
 
 /** Una fuente de pedidos leída bien hoy a las 09:00. */

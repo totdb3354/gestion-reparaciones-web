@@ -196,6 +196,32 @@ describe('Pedidos v2: el panel de la fila', () => {
     expect(within(p).getByRole('list', { name: 'Historial de la fila' })).toHaveClass('overflow-y-auto', 'max-h-[40vh]')
   })
 
+  it('el historial de la reserva sale con etiquetas de color y la caja como píldora', async () => {
+    const A = '350000000000010', B = '350000000000020'
+    cambios['2'] = [
+      { usuario: 'Fati', fecha: '2026-11-24T11:00:00', imeiAnterior: A, imeiNuevo: B, tipo: 'RESERVA_SUSTITUIDA', detalle: null },
+      { usuario: null, fecha: '2026-11-24T10:00:00', imeiAnterior: null, imeiNuevo: A, tipo: 'RESERVADO', detalle: 'Puesto 1 · Caja · Glass · A-' },
+    ]
+    const user = userEvent.setup()
+    abrir()
+    await esperar()
+    await user.click(celda('Cliente Web A'))
+    const p = await screen.findByRole('region', { name: 'Detalle del pedido' })
+    const lista = await within(p).findByRole('list', { name: 'Historial de la fila' })
+    const etiquetas = Array.from(lista.querySelectorAll('[data-etiqueta]'))
+    expect(etiquetas.map((e) => e.textContent)).toEqual(['Picó otro', 'Vuelve a stock', 'Reservado'])
+    expect(etiquetas[0]).toHaveClass('text-azul-gris')
+    expect(etiquetas[1]).toHaveClass('text-[#7B1FA2]')
+    expect(etiquetas[2]).toHaveClass('text-[#1565C0]')
+    expect(lista).toHaveTextContent(`${B} en lugar del reservado ${A}`)
+    expect(lista).toHaveTextContent(`${A} · Puesto 1 · A-`)
+    const caja = lista.querySelector('[data-caja]')!
+    expect(caja).toHaveTextContent('Caja · Glass')
+    expect(caja).toHaveClass('bg-tipo-glass-bg')
+    expect(lista).toHaveTextContent('24/11/2026 10:00 · ERP')
+    expect(lista).toHaveTextContent('24/11/2026 11:00 · Fati')
+  })
+
   it('una enviada enseña transportista y seguimiento; sin cambios dice que nadie ha puesto IMEI', async () => {
     const user = userEvent.setup()
     abrir()

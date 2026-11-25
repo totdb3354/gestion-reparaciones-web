@@ -104,6 +104,48 @@ describe('construirHistorial', () => {
   })
 })
 
+describe('construirHistorial: la reserva de IMEI', () => {
+  const A = '350000000000010', B = '350000000000020'
+  const una = (c: Partial<CambioImei>) => construirHistorial(fila({ fecha: '2026-11-09' }), [cambio('2026-11-24T10:00:00', { usuario: null, imeiNuevo: null, ...c })]).filter((e) => e.tipo === 'reserva')
+
+  it('RESERVADO: etiqueta azul, el IMEI con el porqué y la caja aparte (aunque la caja lleve « · »)', () => {
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 1 · Caja · Listos · A-' })).toMatchObject([{ etiqueta: 'Reservado', tono: 'res', texto: `${A} · Puesto 1 · A-`, caja: 'Caja · Listos', quien: 'ERP' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 2 · Caja · Pantalla rota · A' })).toMatchObject([{ texto: `${A} · Puesto 2 · A`, caja: 'Caja · Pantalla rota' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3' })).toMatchObject([{ texto: `${A} · Puesto 3`, caja: undefined }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3 · Devolución · A-' })).toMatchObject([{ texto: `${A} · Puesto 3 · A-`, caja: 'Devolución' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 3 · En revisión · A' })).toMatchObject([{ texto: `${A} · Puesto 3 · A`, caja: 'En revisión' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 1 · Caja · Listos · N/A (es A)' })).toMatchObject([{ texto: `${A} · Puesto 1 · N/A (es A)`, caja: 'Caja · Listos' }])
+    expect(una({ tipo: 'RESERVADO', imeiNuevo: A, detalle: 'Puesto 2 · CAJA RARA · B' })).toMatchObject([{ texto: `${A} · Puesto 2 · B`, caja: 'CAJA RARA' }])
+  })
+  it('RESERVA_CONFIRMADA: verde, por quién; sin usuario, por el ERP', () => {
+    expect(una({ tipo: 'RESERVA_CONFIRMADA', imeiAnterior: A, imeiNuevo: A, usuario: 'Fati' })).toMatchObject([{ etiqueta: 'Confirmado', tono: 'ok', texto: `por Fati · ${A}`, quien: 'Fati' }])
+    expect(una({ tipo: 'RESERVA_CONFIRMADA', imeiAnterior: A, imeiNuevo: A })).toMatchObject([{ texto: `por el ERP · ${A}`, quien: 'ERP' }])
+  })
+  it('RESERVA_SUSTITUIDA: dos entradas, «Picó otro» (gris, con el usuario) y «Vuelve a stock» (morado)', () => {
+    const h = una({ tipo: 'RESERVA_SUSTITUIDA', imeiAnterior: A, imeiNuevo: B, usuario: 'Fati' })
+    expect(h).toHaveLength(2)
+    expect(h.map((e) => e.etiqueta)).toEqual(['Picó otro', 'Vuelve a stock'])
+    expect(h.find((e) => e.etiqueta === 'Picó otro')).toMatchObject({ tono: 'gris', texto: `${B} en lugar del reservado ${A}`, quien: 'Fati' })
+    expect(h.find((e) => e.etiqueta === 'Vuelve a stock')).toMatchObject({ tono: 'dev', texto: A })
+    expect(new Set(h.map((e) => e.clave)).size).toBe(2)
+  })
+  it('RESERVA_QUITADA: según el motivo', () => {
+    const q = (detalle: string) => una({ tipo: 'RESERVA_QUITADA', imeiAnterior: A, detalle })[0]
+    expect(q('CANCELADA')).toMatchObject({ etiqueta: 'Cancelado', tono: 'mal', texto: `${A}: se canceló el pedido` })
+    expect(q('YA_NO_ESTA')).toMatchObject({ etiqueta: 'Cancelado', tono: 'mal', texto: `${A}: el pedido ya no está en ShippyPro` })
+    expect(q('MARCADA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: la fila se marcó` })
+    expect(q('CON_ETIQUETA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: la etiqueta ya estaba impresa; no vuelve a stock solo` })
+    expect(q('ENVIADA_SIN_IMEI')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A}: se envió sin picar el IMEI` })
+    expect(q('NO_ENCONTRADO')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} está en «Pendiente revisar…» en NSYS` })
+    expect(q('PUESTO_EN_OTRA')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} se puso en otra fila` })
+    expect(q('EN_PEDIDOS_REALIZADOS')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} ya está en «Pedidos realizados» en NSYS (¿vendido por otro lado?)` })
+    expect(q('NO_DISPONIBLE')).toMatchObject({ etiqueta: 'Reserva quitada', tono: 'aviso', texto: `${A} ya no está disponible` })
+  })
+  it('SIN_STOCK: naranja', () => {
+    expect(una({ tipo: 'SIN_STOCK' })).toMatchObject([{ etiqueta: 'Sin stock', tono: 'mal', texto: 'Ningún teléfono cumple los criterios' }])
+  })
+})
+
 describe('autorImei', () => {
   it('un apunte de IMEI sin usuario y con detalle LIBRO lo firma el libro de ventas', () => {
     expect(autorImei(cambio('2026-11-09T12:00:00', { usuario: null, detalle: 'LIBRO' }))).toBe('Libro de ventas')

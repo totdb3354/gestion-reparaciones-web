@@ -63,8 +63,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const conMarca = useMemo(() => recuentoMarcas(filas), [filas])
   const nSinAsociar = useMemo(() => recuentoSinAsociar(filas), [filas])
   const filtros = useMemo<FiltrosColumna>(
-    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, enviado: e.enviado, marcas: e.marcas, sinAsociar: e.sinAsociar }),
-    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.enviado, e.marcas, e.sinAsociar],
+    () => ({ plataformas: e.plataformas, skus: e.skus, soloSinImei: e.soloSinImei, noCuadran: e.noCuadran, soloReservadas: e.soloReservadas, soloSinStock: e.soloSinStock, enviado: e.enviado, marcas: e.marcas, sinAsociar: e.sinAsociar }),
+    [e.plataformas, e.skus, e.soloSinImei, e.noCuadran, e.soloReservadas, e.soloSinStock, e.enviado, e.marcas, e.sinAsociar],
   )
   const filtrando = hayFiltros(filtros) || viendoFuera
   const buscador = useRef<HTMLInputElement>(null)
@@ -135,6 +135,8 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     { id: 'filas', texto: `${cuenta.total} filas`, ayuda: 'Todas las filas: quita los filtros de columna' },
     { id: 'pendientes', texto: `${cuenta.pendientes} pendientes`, ayuda: 'Solo las pendientes' },
     { id: 'sinImei', texto: `${cuenta.sinImei} sin IMEI`, ayuda: 'Solo las que aún no tienen IMEI' },
+    { id: 'reservadas', texto: `${cuenta.reservadas} reservadas`, ayuda: 'Solo las sin IMEI que ya tienen un teléfono reservado' },
+    { id: 'sinStock', texto: `${cuenta.sinStock} sin stock`, ayuda: 'Solo las sin IMEI a las que ningún teléfono cumple los criterios' },
     { id: 'saleHoy', texto: `${salida.hoy} salen hoy`, ayuda: 'Solo las pendientes que tienen que salir hoy' },
     ...(salida.retraso > 0 ? [{ id: 'conRetraso' as const, texto: `${salida.retraso} con retraso`, ayuda: 'Solo las pendientes que ya deberían haber salido' }] : []),
     { id: 'noCuadran', texto: `${cuenta.noCuadran} no cuadran`, ayuda: 'Solo las que tienen el IMEI en naranja' },
@@ -245,6 +247,8 @@ function etiquetasDe(f: FiltrosColumna): Etiqueta[] {
     ...(f.soloSinImei ? [{ clave: 'sin', texto: 'Sin IMEI', quitar: (s: EstadoPedidos) => ({ ...s, soloSinImei: false }) }] : []),
     ...[...f.marcas].map((v) => ({ clave: `m:${v}`, texto: `Con marca: ${textoMarca(v)}`, quitar: (s: EstadoPedidos) => ({ ...s, marcas: sin(s.marcas, v) }) })),
     ...(f.sinAsociar ? [{ clave: 'sa', texto: 'Sin asociar', quitar: (s: EstadoPedidos) => ({ ...s, sinAsociar: false }) }] : []),
+    ...(f.soloReservadas ? [{ clave: 'res', texto: 'Reservadas', quitar: (s: EstadoPedidos) => ({ ...s, soloReservadas: false }) }] : []),
+    ...(f.soloSinStock ? [{ clave: 'ss', texto: 'Sin stock', quitar: (s: EstadoPedidos) => ({ ...s, soloSinStock: false }) }] : []),
     ...(f.noCuadran ? [{ clave: 'nc', texto: 'No cuadran', quitar: (s: EstadoPedidos) => ({ ...s, noCuadran: false }) }] : []),
   ]
 }

@@ -52,6 +52,8 @@ export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, on
   const textosNoValido = noValido ? textoNoValido(noValido) : null
   const rojo = textoFallo ?? textosNoValido?.corto ?? null
   const tituloRojo = textoFallo ?? (textosNoValido ? `${textosNoValido.largo} Pulsa para revisarlo.` : null)
+  // Reservada: sin IMEI puesto, el ERP ya eligió un teléfono; se ve tenue, sin texto, hasta que se pique para confirmarlo.
+  const reservado = !fila.imei && !!fila.imeiReservado
   const botonRef = useRef<HTMLButtonElement>(null)
   // Al cerrar el campo, el foco vuelve a la celda si se quedó en el aire (no si ya está en el campo de otra celda, tras un salto).
   const estabaAbierta = useRef(abierta)
@@ -65,13 +67,15 @@ export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, on
 
   const boton = (
     <button ref={botonRef} type="button" onClick={() => onAbrir(fila.idFila, true)}
-      title={tituloRojo ?? [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado, ...lineas, partes.length === 0 && !avisoValidado ? fila.caja : null].filter(Boolean).join('\n')}
+      title={tituloRojo ?? (reservado ? 'Reservado: pica este IMEI para confirmarlo o pon otro' : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado, ...lineas, partes.length === 0 && !avisoValidado ? fila.caja : null].filter(Boolean).join('\n'))}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
-        clase === 'vacia' && !rojo && 'font-sans italic text-texto-sub')}>
+        clase === 'vacia' && !rojo && !reservado && 'font-sans italic text-texto-sub')}>
       {rojo
         ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{rojo}</span>
-        : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
-      {!rojo && partes.length > 0 && (
+        : reservado
+          ? <><span className="sr-only">Reservado: </span><span data-reservado className="shrink-0 opacity-45">{fila.imeiReservado}</span></>
+          : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
+      {!rojo && !reservado && partes.length > 0 && (
         <span className="min-w-0 truncate font-sans text-[11px] font-bold">
           {partes.map((p: ParteAviso, i) => (
             <Fragment key={i}>
@@ -84,7 +88,7 @@ export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, on
       {!rojo && validada && (
         <span data-validado className="shrink-0 rounded-lg bg-fila-reparado-bg px-1.5 py-px font-sans text-[10.5px] font-bold text-[#2f7d3b]">validado</span>
       )}
-      {!rojo && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
+      {!rojo && !reservado && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
   )
   const tono = tonoFila(fila)
@@ -275,7 +279,8 @@ function CampoImei({ fila, fallo, noValido, onCerrar, onSaltar }: { fila: FilaVi
   )
 }
 
-/** Los recomendados de la fila (los de hoy, sin cambios): la caja delante, el IMEI, «es …» en nivel 3 y el nivel. Elegir uno lo guarda. */
+/** Los recomendados de la fila: la caja delante, el IMEI, «es …» en nivel 3 y el nivel. El reservado de la fila llega el primero y
+ *  dice «reservado para este pedido» en vez del nivel; los reservados para otras filas no llegan (Imad 25/11). Elegir uno lo guarda. */
 function ListaRecomendados({ fila, recomendados, ocupado, onElegir }: {
   fila: FilaVista; recomendados: ReturnType<typeof useRecomendados>; ocupado: boolean; onElegir: (imei: string) => void
 }) {
@@ -291,7 +296,9 @@ function ListaRecomendados({ fila, recomendados, ocupado, onElegir }: {
           <span className="justify-self-start rounded-md bg-[#eef0f3] px-2 py-px font-bold [overflow-wrap:anywhere]">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
           <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && (c.sku ? <>es {c.sku}</> : <span className="font-sans italic">SKU sin identificar</span>)}</span>
-          <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
+          {c.reservado
+            ? <span data-reservado className="rounded-lg bg-[#E3F2FD] px-2 py-px text-[11px] font-bold whitespace-nowrap text-[#1565C0]">reservado para este pedido</span>
+            : <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>}
         </button>
       ))}
     </>

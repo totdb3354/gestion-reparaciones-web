@@ -852,6 +852,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bot/movimientos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["movimientos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bloques-compra/{idBloque}/separar": {
         parameters: {
             query?: never;
@@ -2596,6 +2612,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bot/devoluciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["devoluciones_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/usuarios/tecnicos/{idTec}": {
         parameters: {
             query?: never;
@@ -2805,6 +2837,9 @@ export interface components {
             /** Format: date */
             salidaDesde: string | null;
             detalle: components["schemas"]["DetalleAviso"];
+            imeiReservado: string | null;
+            /** Format: date-time */
+            reservadaEn: string | null;
         };
         TrabajoAbierto: {
             categoria: string;
@@ -3309,6 +3344,26 @@ export interface components {
         };
         ClienteNombreRequest: {
             nombre: string;
+        };
+        MovimientoBot: {
+            imei: string;
+            accion: string;
+            resultado: string;
+            origen: string | null;
+            destino: string | null;
+            motivo: string | null;
+            /** Format: date-time */
+            fecha: string;
+        };
+        MovimientosBot: {
+            run: string;
+            movimientos: components["schemas"]["MovimientoBot"][];
+        };
+        InformeMovimientos: {
+            /** Format: int32 */
+            guardados: number;
+            /** Format: int32 */
+            repetidos: number;
         };
         BloqueCompraLineasRequest: {
             lineas: components["schemas"]["LineaVista"][];
@@ -4262,6 +4317,7 @@ export interface components {
             caja: string | null;
             /** Format: int32 */
             nivel: number;
+            reservado: boolean;
         };
         CambioImei: {
             usuario: string | null;
@@ -4437,6 +4493,17 @@ export interface components {
         };
         ValorBooleano: {
             value: boolean;
+        };
+        ListaDevoluciones: {
+            grupos: components["schemas"]["ListaDevolucionesGrupo"][];
+        };
+        ListaDevolucionesGrupo: {
+            destino: string;
+            imeis: components["schemas"]["ListaDevolucionesImeiADevolver"][];
+        };
+        ListaDevolucionesImeiADevolver: {
+            imei: string;
+            motivo: string;
         };
         StockTelefonosPeticionVolver: {
             motivo: string | null;
@@ -6471,6 +6538,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    movimientos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MovimientosBot"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InformeMovimientos"];
+                };
             };
         };
     };
@@ -9110,6 +9201,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Cliente"][];
+                };
+            };
+        };
+    };
+    devoluciones_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ListaDevoluciones"];
                 };
             };
         };

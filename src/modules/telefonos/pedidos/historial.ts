@@ -3,20 +3,78 @@ import { textoMarca, textoMotivoCorto } from './filas'
 
 /** Una entrada del «Historial» del panel: un cambio de IMEI (del servidor) o un hito de la propia fila. `cuando` es el instante
  *  para ordenar («2026-11-09T10:30:00»); `conHora` es false en el hito que solo trae el día (la entrada desde ShippyPro). */
+export type TonoReserva = 'res' | 'ok' | 'gris' | 'dev' | 'mal' | 'aviso'
+
 export type EntradaHistorial =
+  | { tipo: 'reserva'; clave: string; cuando: string; conHora: true; etiqueta: string; tono: TonoReserva; texto: string; caja?: string; quien: string }
   | { tipo: 'imei'; clave: string; cuando: string; conHora: true; cambio: CambioImei }
   | { tipo: 'marca'; clave: string; cuando: string; conHora: true; texto: string; quien: string }
   | { tipo: 'entro' | 'etiqueta' | 'enviado' | 'sincronizado'; clave: string; cuando: string; conHora: boolean; transportista?: string }
 
 // Entre hitos de la propia fila con el mismo instante, el más avanzado va arriba.
-const RANGO = { imei: 3, marca: 3, enviado: 2, sincronizado: 2, etiqueta: 1, entro: 0 } as const
+const RANGO = { imei: 3, marca: 3, reserva: 3, enviado: 2, sincronizado: 2, etiqueta: 1, entro: 0 } as const
 
 /** El historial de una fila, del más reciente al más antiguo, con lo que la web ya tiene: los cambios de IMEI y tres hitos que salen de
  *  la fila (entró desde ShippyPro con `fecha`, que es solo un día y cuenta como su inicio; etiqueta generada con `envioFecha`;
  *  enviado con `impresaEn`, y sincronizada con la web con `sincronizadaEn`). Con el mismo instante, el cambio de IMEI va por encima del hito. */
 export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): EntradaHistorial[] {
-  const entradas: EntradaHistorial[] = cambios.map((cambio, i): EntradaHistorial => {
+  const entradas: EntradaHistorial[] = cambios.flatMap((cambio, i): EntradaHistorial[] => {
     const cuando = cambio.fecha.slice(0, 19)
+    const reserva = entradasDeReserva(cambio, i, cuando)
+    if (reserva) return reserva
+    return [entradaDeCambio(cambio, i, cuando)]
+  })
+  return ordenar(fila, entradas)
+}
+
+/** Los apuntes de la reserva de IMEI (etiqueta de color + texto); null si el cambio no es de la reserva. La sustitución son dos
+ *  entradas: el que picó otro y el reservado que vuelve a stock. */
+function entradasDeReserva(c: CambioImei, i: number, cuando: string): EntradaHistorial[] | null {
+  const base = { tipo: 'reserva' as const, cuando, conHora: true as const }
+  const erp = (c.usuario ?? 'ERP')
+  const imei = c.imeiAnterior ?? c.imeiNuevo ?? ''
+  switch (c.tipo) {
+    case 'RESERVADO': {
+      // detalle = «Puesto N · <caja> · <grado>»: la caja va justo después del puesto y sale aparte, como píldora. Es «Caja · X» (dos
+      // trozos) o uno solo («Devolución», «En revisión» o una caja cruda de NSYS).
+      const partes = (c.detalle ?? '').split(' · ')
+      let caja: string | undefined
+      let resto = partes
+      if (partes.length > 1) {
+        const largo = partes[1] === 'Caja' && partes.length > 2 ? 2 : 1
+        caja = partes.slice(1, 1 + largo).join(' · ')
+        resto = [partes[0], ...partes.slice(1 + largo)]
+      }
+      return [{ ...base, clave: `i${i}`, etiqueta: 'Reservado', tono: 'res', texto: [imei, ...resto.filter(Boolean)].join(' · '), caja, quien: erp }]
+    }
+    case 'RESERVA_CONFIRMADA':
+      return [{ ...base, clave: `i${i}`, etiqueta: 'Confirmado', tono: 'ok', texto: `por ${c.usuario ?? 'el ERP'} · ${imei}`, quien: erp }]
+    case 'RESERVA_SUSTITUIDA':
+      return [
+        { ...base, clave: `i${i}a`, etiqueta: 'Picó otro', tono: 'gris', texto: `${c.imeiNuevo ?? ''} en lugar del reservado ${c.imeiAnterior ?? ''}`, quien: erp },
+        { ...base, clave: `i${i}b`, etiqueta: 'Vuelve a stock', tono: 'dev', texto: c.imeiAnterior ?? '', quien: erp },
+      ]
+    case 'RESERVA_QUITADA': {
+      const quitada = (texto: string): EntradaHistorial[] => [{ ...base, clave: `i${i}`, etiqueta: 'Reserva quitada', tono: 'aviso', texto, quien: erp }]
+      switch (c.detalle) {
+        case 'CANCELADA': return [{ ...base, clave: `i${i}`, etiqueta: 'Cancelado', tono: 'mal', texto: `${imei}: se canceló el pedido`, quien: erp }]
+        case 'YA_NO_ESTA': return [{ ...base, clave: `i${i}`, etiqueta: 'Cancelado', tono: 'mal', texto: `${imei}: el pedido ya no está en ShippyPro`, quien: erp }]
+        case 'MARCADA': return quitada(`${imei}: la fila se marcó`)
+        case 'CON_ETIQUETA': return quitada(`${imei}: la etiqueta ya estaba impresa; no vuelve a stock solo`)
+        case 'ENVIADA_SIN_IMEI': return quitada(`${imei}: se envió sin picar el IMEI`)
+        case 'PUESTO_EN_OTRA': return quitada(`${imei} se puso en otra fila`)
+        case 'NO_ENCONTRADO': return quitada(`${imei} está en «Pendiente revisar…» en NSYS`)
+        case 'EN_PEDIDOS_REALIZADOS': return quitada(`${imei} ya está en «Pedidos realizados» en NSYS (¿vendido por otro lado?)`)
+        default: return quitada(`${imei} ya no está disponible`)
+      }
+    }
+    case 'SIN_STOCK':
+      return [{ ...base, clave: `i${i}`, etiqueta: 'Sin stock', tono: 'mal', texto: 'Ningún teléfono cumple los criterios', quien: erp }]
+    default: return null
+  }
+}
+
+function entradaDeCambio(cambio: CambioImei, i: number, cuando: string): EntradaHistorial {
     // Las marcas de «falta por enviar» (envío parcial de web) no son cambios de IMEI; un apunte de IMEI sin usuario es el traspaso de la hoja.
     if (cambio.tipo === 'FALTA_ENVIAR') return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Marcada: falta por enviar', quien: cambio.usuario ?? '' }
     if (cambio.tipo === 'MARCA') {
@@ -61,7 +119,9 @@ export function construirHistorial(fila: FilaVista, cambios: CambioImei[]): Entr
       return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `${texto}${cambio.detalle ? `: ${cambio.detalle}` : ''}`, quien: 'bot de NSYS' }
     }
     return { tipo: 'imei', clave: `i${i}`, cuando, conHora: true, cambio }
-  })
+}
+
+function ordenar(fila: FilaVista, entradas: EntradaHistorial[]): EntradaHistorial[] {
   if (fila.fecha) entradas.push({ tipo: 'entro', clave: 'entro', cuando: `${fila.fecha.slice(0, 10)}T00:00:00`, conHora: false })
   if (fila.envioFecha) entradas.push({ tipo: 'etiqueta', clave: 'etiqueta', cuando: fila.envioFecha.slice(0, 19), conHora: true, transportista: fila.transportista ?? undefined })
   if (fila.impresaEn) entradas.push({ tipo: 'enviado', clave: 'enviado', cuando: fila.impresaEn.slice(0, 19), conHora: true })

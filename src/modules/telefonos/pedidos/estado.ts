@@ -21,6 +21,10 @@ export type EstadoPedidos = {
   soloSinImei: boolean
   /** Solo las filas con el IMEI en naranja (nivel MAL). */
   noCuadran: boolean
+  /** Solo las filas sin IMEI con un teléfono reservado. */
+  soloReservadas: boolean
+  /** Solo las filas sin IMEI, sin reserva y sin marca (ningún teléfono cumplió los criterios). */
+  soloSinStock: boolean
   /** Los estados marcados en el filtro de «Enviado» (`PENDIENTE`, `GENERADA`, `ENVIADO`, `NO_PENDIENTE`, `HISTORICO`); vacío = todos. */
   enviado: Set<string>
   /** Las marcas elegidas en «Con marca» (del filtro de IMEI); vacío = todas las filas. */
@@ -46,5 +50,5 @@ export type EstadoPedidos = {
 export type FalloImei = { imei: string | null; clave: string; mensaje: string; duplicado?: boolean }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, ordenSku: null, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, noValidos: {}, avisoImei: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, ordenSku: null, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, soloReservadas: false, soloSinStock: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, noValidos: {}, avisoImei: null,
 })
