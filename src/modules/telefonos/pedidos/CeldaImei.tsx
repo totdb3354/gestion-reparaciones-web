@@ -14,8 +14,10 @@ import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, estaValidada, linea
 export const FONDO: Record<string, string> = {
   na: 'bg-form-agotado-bg',
   mal: 'bg-[#FFE0B2]',
+  rojo: 'bg-[#FFD9D9]',
 }
 export const TONO_PARTE: Record<ParteAviso['tono'], string> = {
+  rojo: 'text-[#B42318]',
   naranja: 'text-[#B45309]',
   ambar: 'text-form-agotado-text',
 }

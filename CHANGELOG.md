@@ -18,6 +18,41 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - El bot de stock **no** descuenta todavía los reservados (ajuste `pedidos.reserva.al-bot`, apagado hasta que haya devoluciones).
 - Servidor, web y migración aditiva (`migracion-pedidos-reserva.sql`).
 
+## [0.9.46.2] - 2026-11-24 — Pedidos: el libro de ventas manda siempre; la celda avisa en rojo o naranja
+
+- Amazon: el ERP pone siempre el IMEI que dice el libro de ventas, aunque no cuadre con el pedido, aunque esté en otro pedido o
+  aunque el pedido ya estuviera asociado con otro (si corrigen el libro, el ERP también cambia). Lo que no cuadra se ve en la
+  celda del pedido. En «para revisar» solo queda lo imposible de reflejar: un pedido cancelado o sin fila libre.
+- Celda del IMEI: **rojo** si es otro móvil o no se puede vender (modelo, capacidad, «no se vende», «no está en NSYS», «en otro
+  pedido»); **naranja** si el taller lo puede dejar como pide el pedido (color, grado, C sin reparar). Los dos cuentan en
+  «no cuadran».
+- Los pedidos ya impresos también enseñan el aviso, solo para informar de qué móvil salió: no cuentan en «no cuadran» ni se
+  pueden validar.
+
+## [0.9.46.1] - 2026-11-24 — Pedidos: «para revisar» del libro explica qué pasa; la celda dice siempre quién tiene el móvil
+
+- Celda del IMEI: si un técnico tiene el móvil, ahora también se comprueban el color y el grado, y se ve siempre quién lo tiene
+  junto a lo que no cuadra (p. ej. «color: Rojo · reparándose · Juan» o «modelo: 14 · reparándose · Juan»). Antes solo salía
+  «reparándose · Juan» y el color o el grado que no cuadraba no se veía.
+
+- Un pedido de Amazon con unidades distintas (p. ej. una Plata y otra Oro): el móvil del libro va a la unidad con la que cuadra,
+  no siempre a la primera.
+- En «para revisar», «no cuadra» dice qué falla, qué es el móvil y dónde está (p. ej. «grado C100 · … · en Esperando pieza»);
+  «ya salió» y «cancelado» dicen en qué pedido está el IMEI (p. ej. «está en el pedido 306-… (etiqueta impresa)»).
+
+## [0.9.46] - 2026-11-24 — Pedidos: el libro de ventas manda también con la etiqueta hecha
+
+- Pedidos, Amazon: el libro de ventas corrige también el IMEI de los pedidos con la etiqueta hecha (impresa o no), si el móvil
+  cuadra con el pedido. En «para revisar» salen tres motivos nuevos: el libro pone el IMEI en dos pedidos, el IMEI no está en NSYS
+  o el móvil no cuadra con el pedido (y qué móvil es).
+- Si el móvil que dice el libro estaba puesto en otro pedido con la etiqueta **sin imprimir** (aún no empaquetado), ese pedido
+  recibe el móvil que tenía el del libro, con el aviso «comprobar el móvil» en su historial. Así logística ya no busca un móvil
+  que salió en otro pedido.
+- Un móvil devuelto y vuelto a vender (el libro lo pone en un pedido viejo ya asociado y en uno nuevo) se asocia al nuevo sin
+  quitárselo al viejo.
+- Arreglo de la 0.9.45: un eSIM en un pedido de SIM física (o al revés) salía en naranja como «modelo: 14 eSIM»; ahora sale como
+  «eSIM» (o «SIM física»), sin contar en «no cuadran».
+
 ## [0.9.45] - 2026-11-24 — Pedidos: la celda del IMEI dice todo en corto; cajas «Caja · …»
 
 - En **Pedidos**, junto al IMEI salen **todas** las cosas que pasan con el móvil, en corto y separadas por «·»: por ejemplo «eSIM · color: Rosa», «N/A · color: Rosa» o «MS · grado: B». Al pasar el ratón, la explicación larga de cada una.

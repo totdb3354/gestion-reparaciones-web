@@ -6,7 +6,7 @@ import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { useCambiosImei, useFaltaEnviar } from '../api'
 import { PrevisualizarEtiqueta } from './PrevisualizarEtiqueta'
 import { EtiquetaEstado } from './TablaFilas'
-import { construirHistorial, type EntradaHistorial, type TonoReserva } from './historial'
+import { autorImei, construirHistorial, type EntradaHistorial, type TonoReserva } from './historial'
 import { EditorMarca } from './EditorMarca'
 import { BotonCancelarMovil, BotonQuitarCancelacion } from './CancelarMovil'
 import { BotonValidarSku } from './BotonValidarSku'
@@ -72,7 +72,7 @@ function Historial({ fila }: { fila: FilaVista }) {
             {e.tipo === 'reserva'
               ? <><span data-etiqueta className={cn('mr-1 inline-block rounded-[10px] px-2 text-[11px] font-bold', TONO_RESERVA[e.tono].etiqueta)}>{e.etiqueta}</span>{e.texto}{e.caja && <> <span data-caja className={cn('inline-block rounded-md px-2 py-px text-[11px] font-bold', clasesUbicacion(e.caja))}>{e.caja}</span></>}</>
               : e.tipo === 'imei'
-              ? <><span className="font-bold">{e.cambio.usuario ?? 'Carga desde la hoja'}</span> {textoCambio(e.cambio)}</>
+              ? <><span className="font-bold">{autorImei(e.cambio)}</span> {textoCambio(e.cambio)}</>
               : e.tipo === 'marca'
               ? <><span className="font-bold">{e.texto}</span>{e.quien && <> · {e.quien}</>}</>
               : <><span className="font-bold">{textoHito(e).quien}</span>{textoHito(e).texto}</>}

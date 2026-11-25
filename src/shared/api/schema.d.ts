@@ -4307,6 +4307,7 @@ export interface components {
             motivo: string;
             /** Format: date-time */
             vistoEn: string;
+            detalle: string | null;
         };
         Lote: {
             /** Format: int32 */

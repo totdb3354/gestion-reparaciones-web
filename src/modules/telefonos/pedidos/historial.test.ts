@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CambioImei } from '@/shared/api/client'
 import { fila } from '../test/fabrica'
-import { construirHistorial } from './historial'
+import { autorImei, construirHistorial } from './historial'
 
 const cambio = (fecha: string, p: Partial<CambioImei> = {}): CambioImei => ({ usuario: 'Supertécnico 1', fecha, imeiAnterior: null, imeiNuevo: '350000000000010', tipo: 'IMEI', detalle: null, ...p })
 const claves = (f: ReturnType<typeof fila>, c: CambioImei[]) => construirHistorial(f, c).map((e) => e.tipo)
@@ -124,5 +124,16 @@ describe('construirHistorial: la reserva de IMEI', () => {
   })
   it('SIN_STOCK: naranja', () => {
     expect(una({ tipo: 'SIN_STOCK' })).toMatchObject([{ etiqueta: 'Sin stock', tono: 'mal', texto: 'Ningún teléfono cumple los criterios' }])
+  })
+})
+
+describe('autorImei', () => {
+  it('un apunte de IMEI sin usuario y con detalle LIBRO lo firma el libro de ventas', () => {
+    expect(autorImei(cambio('2026-11-09T12:00:00', { usuario: null, detalle: 'LIBRO' }))).toBe('Libro de ventas')
+  })
+  it('sin usuario y sin detalle LIBRO es la carga de la hoja; con usuario, el usuario', () => {
+    expect(autorImei(cambio('2026-11-09T12:00:00', { usuario: null }))).toBe('Carga desde la hoja')
+    expect(autorImei(cambio('2026-11-09T12:00:00', { usuario: null, tipo: 'ASOCIADA', detalle: 'LIBRO' }))).toBe('Carga desde la hoja')
+    expect(autorImei(cambio('2026-11-09T12:00:00', { detalle: 'LIBRO' }))).toBe('Supertécnico 1')
   })
 })

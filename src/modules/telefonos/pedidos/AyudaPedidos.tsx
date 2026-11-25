@@ -40,7 +40,9 @@ export function AyudaPedidos() {
             amarillo y «Ver» los enseña.
           </Linea>
           <Linea>«Descargar CSV», en el menú de tu usuario (arriba a la derecha), baja lo que se ve: el periodo o la búsqueda, con los filtros y el orden puestos.</Linea>
-          <Linea muestra={celda(FONDO.mal, '350000000000002')}>IMEI en naranja: no cuadra con el pedido (cuenta en «no cuadran»). Al lado, en corto, qué no cuadra: «color: Rosa», «grado: B», «modelo: 14»…</Linea>
+          <Linea muestra={celda(FONDO.rojo, '350000000000003')}>IMEI en rojo: es otro móvil o no se puede vender («modelo: 14», «capacidad: 256GB», «no se vende: F», «no está en NSYS», «en otro pedido»). Cuenta en «no cuadran».</Linea>
+          <Linea muestra={celda(FONDO.mal, '350000000000002')}>IMEI en naranja: no cuadra, pero el taller lo puede dejar como pide el pedido («color: Rosa», «grado: B», «grado: C»). Cuenta en «no cuadran».</Linea>
+          <Linea>En un pedido ya impreso el color solo informa de qué móvil salió: no cuenta en «no cuadran» ni se puede validar. El IMEI de los pedidos de Amazon lo pone el libro de ventas, aunque no cuadre.</Linea>
           <Linea muestra={celda(FONDO.na, '350000000000001')}>IMEI en amarillo claro: grado N/A (NSYS no le da grado). Vale, no cuenta en «no cuadran».</Linea>
           <Linea>Sin fondo pero con una palabra al lado: «eSIM» o «SIM física» en naranja (la SIM no es la del pedido) o, en ámbar, «MS», «B por A» o «reparándose · técnico». Ninguna cuenta en «no cuadran». Si pasan varias cosas, salen todas separadas por «·».</Linea>
           <Linea muestra={<span className={cn(ETIQUETA, 'bg-fila-reparado-bg text-[#2f7d3b]')}>validado</span>}>

@@ -46,7 +46,7 @@ export function PildoraAsociacion() {
                   {c.revisar.map((r, i) => (
                     <li key={`${r.pedido}|${r.imei}|${i}`} className="border-b border-dashed border-form-fila-brd py-1">
                       <span className="font-semibold">{r.pedido}</span> · <code className="font-mono text-[11.5px]">{r.imei}</code>
-                      <div className="text-[11px] text-azul-gris">{textoRevisar(r.motivo)}</div>
+                      <div className="text-[11px] text-azul-gris">{textoRevisar(r.motivo)}{r.detalle ? `: ${r.detalle}` : ''}</div>
                     </li>
                   ))}
                 </ul>
