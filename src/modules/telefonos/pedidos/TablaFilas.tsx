@@ -10,6 +10,7 @@ import { comoDesplazar, scrollParaCentrar, useVolver, type Posicion } from './vo
 import { useStore } from '@/shared/lib/store'
 import { ariaOrden, CabeceraOrden, type DireccionOrden, type TextosOrden } from '@/shared/ui/CabeceraOrden'
 import { estadoPedidos, type FalloImei } from './estado'
+import type { NoValido } from './noValidos'
 import { nivelSalida } from './salida'
 import { CLASE_TONO, COLUMNAS, colorMarca, textoMarca, detalleEnvio, estadoDe, estadoPantalla, numerosDePedido, saltaElLector, sinAsociar, textoEstado, tonoFila, type EstadoPantalla } from './filas'
 
@@ -32,6 +33,8 @@ type PropsFila = {
   hoy: string
   /** El último guardado del IMEI de esta fila falló (la celda se ve en rojo). */
   fallo?: FalloImei
+  /** La última lectura de esta fila no era un IMEI válido. */
+  noValido?: NoValido
   /** «1/3»: el lugar de la fila en su pedido de varios móviles (nada si el pedido es de uno). */
   numero?: string
   /** Su detalle está abierto en el panel (solo se dice con `aria-pressed`; la marca visual es `marcada`). */
@@ -86,7 +89,7 @@ function FilaHueco({ alto }: { alto: number }) {
 
 /** Una fila de la hoja. Con ~1.500 filas, abrir una celda o recibir un sondeo no debe repintarlas todas: `memo` la deja quieta si
  *  su `fila` (TanStack conserva los objetos que no cambian), su `abierta`, su `marcada` y su `elegida` son los mismos. Las fechas se dan formato aquí dentro. */
-export const FilaTabla = memo(function FilaTabla({ fila: f, hoy, indice, medir, abierta, marcada, fallo, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
+export const FilaTabla = memo(function FilaTabla({ fila: f, hoy, indice, medir, abierta, marcada, fallo, noValido, numero, elegida, onAbrir, onSaltar, onElegir }: PropsFila) {
   const tono = tonoFila(f)
   // «La fila en la que estás»: azul suave en todas sus celdas (el tono gris del histórico cede el fondo, no el texto) y la raya en la primera.
   const conMarca = !!f.marca && estadoPantalla(f) !== 'CANCELADO'
@@ -95,8 +98,8 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, hoy, indice, medir, 
   const servidor = estadoDe(f)
   const estado = estadoPantalla(f)
   return (
-    // Un clic en cualquier celda menos la del IMEI elige la fila. Se comprueba en el DOM (el desplegable del IMEI sube por React
-    // desde su portal, pero no está dentro de la fila).
+    // Un clic en cualquier celda menos la del IMEI elige la fila. Se comprueba en el DOM (la lista de recomendados sube por React
+    // desde su portal, pero no está dentro de la fila; el campo del IMEI sí está dentro de su celda).
     <tr data-estado={servidor} data-impresa={f.impresaEn ? 'true' : undefined} aria-rowindex={indice} data-index={medir ? indice! - 2 : undefined} ref={medir} data-con-marca={conMarca || undefined} data-aqui={marcada || undefined}
       onClick={(ev) => {
         const celda = (ev.target as Element).closest('td')
@@ -110,7 +113,7 @@ export const FilaTabla = memo(function FilaTabla({ fila: f, hoy, indice, medir, 
           ? <div className="flex items-baseline gap-1.5"><span className="min-w-0 truncate">{f.sku}</span><span data-numero-pedido title="Móviles de este pedido" className="shrink-0 font-sans text-[10px] text-azul-gris">{numero}</span></div>
           : f.sku}
       </td>
-      <CeldaImei fila={f} abierta={abierta} marcada={marcada} fallo={fallo} onAbrir={onAbrir} onSaltar={onSaltar} />
+      <CeldaImei fila={f} abierta={abierta} marcada={marcada} fallo={fallo} noValido={noValido} onAbrir={onAbrir} onSaltar={onSaltar} />
       <td className={td}>
         {/* El botón es la forma de elegir la fila con teclado. */}
         {/* En Amazon sin asociar el número no se enseña (ni aquí ni en el title): «sin asociar», en gris. Sin número (el histórico de la
@@ -164,7 +167,8 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
     setAbierta((a) => (abrir ? id : a === id ? null : a))
     if (abrir) estadoPedidos.set((s) => (s.filaAqui === id ? s : { ...s, filaAqui: id }))
   }, [])
-  // Guardar un IMEI tecleado o leído abre al instante la celda de la siguiente fila editable y sin IMEI de las que se ven (en su orden).
+  // Guardar un IMEI tecleado o leído (o una lectura no válida) abre al instante la celda de la siguiente fila editable, sin IMEI y sin rojo
+  // de lectura no válida, de las que se ven (en su orden).
   // Va por referencias para que la función sea estable (la `memo` de las filas) y use siempre las filas de ahora.
   const filasAhora = useRef(filas)
   filasAhora.current = filas
@@ -173,7 +177,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
     const lista = filasAhora.current
     const i = lista.findIndex((f) => f.idFila === desde)
     if (i < 0) return false
-    const j = lista.findIndex((f, k) => k > i && saltaElLector(f))
+    const j = lista.findIndex((f, k) => k > i && saltaElLector(f) && !(f.idFila in estadoPedidos.get().noValidos))
     if (j < 0) return false
     const id = lista[j].idFila
     aEnseñar.current = j
@@ -183,7 +187,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
   }, [])
   // Abrir un detalle (no cerrarlo) también deja ahí «la fila en la que estás».
   const elegir = useCallback((id: number) => estadoPedidos.set((s) => (s.filaElegida === id ? { ...s, filaElegida: null } : { ...s, filaElegida: id, filaAqui: id })), [])
-  const [{ filaAqui, filaElegida, fallosImei }] = useStore(estadoPedidos)
+  const [{ filaAqui, filaElegida, fallosImei, noValidos }] = useStore(estadoPedidos)
   const contenedor = useRef<HTMLDivElement>(null)
   // La altura que tenía el contenido tras el último pintado. Añadir filas no cambia `scrollTop` pero sí la altura, así que
   // «estaba abajo» se calcula justo antes de decidir con la altura de entonces, no con un valor guardado en un scroll antiguo.
@@ -198,7 +202,7 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
   const { alto, cabecera } = medidas
   const claveFila = useCallback((i: number) => filas[i]?.idFila ?? i, [filas])
   // Las filas con la celda del IMEI abierta y la elegida para el panel se pintan siempre, aunque salgan de la ventana: si no, el
-  // desplegable se desmontaría con lo tecleado dentro (o con un guardado en vuelo).
+  // campo de la celda se desmontaría con lo tecleado dentro (o con un guardado en vuelo).
   const fijas = [abierta, filaElegida].map((id) => (id === null ? undefined : indice.get(id))).filter((n): n is number => n !== undefined)
   const rangoConFijas = useCallback((r: Range) => {
     const base = defaultRangeExtractor(r)
@@ -272,13 +276,13 @@ export function TablaFilas({ filas, recibidas = filas.length, filtros, orden, va
       if (!f) continue
       const inicio = it.start - cabecera
       if (inicio > fin + 0.5) cuerpo.push(<FilaHueco key={`h${it.index}`} alto={inicio - fin} />)
-      cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} indice={it.index + 2} medir={virtualizador.measureElement} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+      cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} indice={it.index + 2} medir={virtualizador.measureElement} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} noValido={noValidos[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
       fin = it.end - cabecera
     }
     const total = virtualizador.getTotalSize()
     if (total - fin > 0.5) cuerpo.push(<FilaHueco key="hf" alto={total - fin} />)
   } else {
-    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
+    for (const f of filas) cuerpo.push(<FilaTabla key={f.idFila} fila={f} hoy={hoy} abierta={abierta === f.idFila} marcada={filaAqui === f.idFila} fallo={fallosImei[f.idFila]} noValido={noValidos[f.idFila]} numero={numeros.get(f.idFila)} elegida={filaElegida === f.idFila} onAbrir={cambiar} onSaltar={saltar} onElegir={elegir} />)
   }
 
   // Botones «↓ Al final» y «Fila seleccionada» (la fila en azul): salen al alejarse de ellos. En modo ventana la fila puede no estar

@@ -14,7 +14,7 @@ import { congelarHoy } from '../test/hoy'
 
 congelarHoy()
 
-// Las marcas de la fila (En espera de stock, En revisión, Pendiente de color, Cancelado) con nota: desde la celda del IMEI y desde el panel.
+// Las marcas de la fila (En espera de stock, En revisión, Pendiente de color, Cancelado) con nota: desde el panel (la celda del IMEI solo lleva el IMEI).
 const MARCADA = { marcaEn: '2026-11-12T09:30:00', marcaPor: 'Supertécnico 1' } as const
 const FILAS = [
   fila({ idFila: 1, pedido: 'M-0001' }),
@@ -68,16 +68,15 @@ const abrirPanel = async (user: ReturnType<typeof userEvent.setup>, pedido: stri
     return paneles[0]
   })
 }
-const desplegable = () => screen.findByRole('dialog', { name: 'Poner el IMEI' })
 const vistos = () => screen.getAllByRole('button', { name: /^M-000\d$/ }).map((e) => e.textContent)
 
-describe('Pedidos: la marca en la celda del IMEI', () => {
+describe('Pedidos: la marca desde el panel (la celda del IMEI ya no la lleva)', () => {
   it('elegir la marca la guarda al momento (con marcaAnterior y clave); la nota, al salir del campo; el badge va en la columna de envio', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
-    await user.click(celda('M-0001'))
-    const d = within(await desplegable())
+    const panel = await abrirPanel(user, 'M-0001')
+    const d = within(panel)
     expect(d.queryByRole('button', { name: /Guardar marca|Quitar la marca/ })).not.toBeInTheDocument()
     // Sin marca, la nota está desactivada.
     expect(d.getByRole('textbox', { name: 'Nota de la marca' })).toBeDisabled()
@@ -86,9 +85,9 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     expect(puts[0].id).toBe('1')
     expect(puts[0].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: null, marcaAnterior: '' })
     expect(puts[0].clave).toBeTruthy()
-    const nota = d.getByRole('textbox', { name: 'Nota de la marca' })
-    await waitFor(() => expect(nota).toBeEnabled())
-    await user.type(nota, '  sin stock en B  ')
+    // El editor del panel se vuelve a montar al cambiar la marca: se busca la nota de nuevo.
+    await waitFor(() => expect(d.getByRole('textbox', { name: 'Nota de la marca' })).toBeEnabled())
+    await user.type(d.getByRole('textbox', { name: 'Nota de la marca' }), '  sin stock en B  ')
     await user.tab() // salir del campo la guarda
     await waitFor(() => expect(puts).toHaveLength(2))
     expect(puts[1].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: 'sin stock en B', marcaAnterior: 'ESPERA_STOCK' })
@@ -96,11 +95,12 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     await waitFor(() => expect(within(tr('M-0001')).getByText('En espera de stock')).toHaveAttribute('title', 'En espera de stock — sin stock en B'))
     expect(within(tr('M-0001')).getByText('En espera de stock').closest('td')).toBe(within(tr('M-0001')).getByText('Pendiente').closest('td'))
     expect(within(tr('M-0001')).getByText(/pulsa para poner el IMEI/)).toBeInTheDocument()
-    // La nota también se guarda con Enter, y el desplegable sigue abierto.
-    await user.type(nota, ' y C{Enter}')
+    // La nota también se guarda con Enter, y el panel sigue abierto.
+    await waitFor(() => expect(d.getByRole('textbox', { name: 'Nota de la marca' })).toBeEnabled())
+    await user.type(d.getByRole('textbox', { name: 'Nota de la marca' }), ' y C{Enter}')
     await waitFor(() => expect(puts).toHaveLength(3))
     expect(puts[2].cuerpo).toEqual({ marca: 'ESPERA_STOCK', nota: 'sin stock en B y C', marcaAnterior: 'ESPERA_STOCK' })
-    expect(screen.getByRole('dialog', { name: 'Poner el IMEI' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Detalle del pedido' })).toBeInTheDocument()
   })
 
   it('las filas con marca la enseñan como badge en la celda de envío, con la nota en el title; sin nota, solo la marca', async () => {
@@ -125,14 +125,16 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     expect(within(tr('M-0007')).getByText('En revisión').closest('td')).not.toBe(within(tr('M-0007')).getByText(imeiValido(7)).closest('td'))
   })
 
-  it('el desplegable abre con el foco en el IMEI y escribir un IMEI con el lector sigue guardando igual, también con una marca puesta', async () => {
+  it('la celda abre con el foco en el IMEI, sin marca ni nota dentro, y escribir un IMEI con el lector sigue guardando igual, también con una marca puesta', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
     await user.click(celda('M-0002'))
-    const d = within(await desplegable())
-    expect(d.getByRole('textbox', { name: 'IMEI' })).toHaveFocus()
-    expect(d.getByRole('combobox', { name: 'Marca' })).toHaveValue('ESPERA_STOCK')
+    const campo = await screen.findByRole('textbox', { name: 'IMEI' })
+    expect(campo).toHaveFocus()
+    // La marca y la nota viven solo en el panel; «Cancelado» tampoco se ofrece aquí.
+    expect(screen.queryByRole('combobox', { name: 'Marca' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Nota de la marca' })).not.toBeInTheDocument()
     await user.keyboard(imeiValido(5))
     await waitFor(() => expect(putsImei).toEqual([{ id: '2', imei: imeiValido(5) }]))
     expect(puts).toEqual([])
@@ -142,8 +144,8 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
-    await user.click(celda('M-0002'))
-    await user.selectOptions(within(await desplegable()).getByRole('combobox', { name: 'Marca' }), '')
+    const panel = await abrirPanel(user, 'M-0002')
+    await user.selectOptions(within(panel).getByRole('combobox', { name: 'Marca' }), '')
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].cuerpo).toEqual({ marca: null, nota: null, marcaAnterior: 'ESPERA_STOCK' })
     await waitFor(() => expect(within(tr('M-0002')).queryByText('En espera de stock')).not.toBeInTheDocument())
@@ -159,33 +161,20 @@ describe('Pedidos: la marca en la celda del IMEI', () => {
     abrir()
     await esperar()
     const antes = cargas
-    await user.click(celda('M-0001'))
-    const d = within(await desplegable())
-    await user.selectOptions(d.getByRole('combobox', { name: 'Marca' }), 'EN_REVISION')
+    const panel = await abrirPanel(user, 'M-0001')
+    await user.selectOptions(within(panel).getByRole('combobox', { name: 'Marca' }), 'EN_REVISION')
     expect(await screen.findByText(/Pedido M-0001: Otra persona ha cambiado la marca/)).toBeInTheDocument()
     await waitFor(() => expect(cargas).toBeGreaterThan(antes))
     expect(estadoPedidos.get().fallosImei).toEqual({})
   })
 
-  it('el desplegable no ofrece «Cancelado» (se cancela desde el panel) y lo dice debajo', async () => {
+  it('en una fila cancelada el panel no ofrece marcas, solo «Quitar cancelación»', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
-    await user.click(celda('M-0001'))
-    const d = within(await desplegable())
-    const opciones = within(d.getByRole('combobox', { name: 'Marca' })).getAllByRole('option').map((o) => o.textContent)
-    expect(opciones).toEqual(['Sin marca', 'En espera de stock', 'En revisión', 'Pendiente de color'])
-    expect(d.getByText('Para cancelar el móvil, abre el panel de la fila.')).toBeInTheDocument()
-  })
-
-  it('en una fila cancelada la celda no ofrece marcas: se cambia desde el panel', async () => {
-    const user = userEvent.setup()
-    abrir()
-    await esperar()
-    await user.click(celda('M-0005'))
-    const d = within(await desplegable())
-    expect(d.queryByRole('combobox', { name: 'Marca' })).not.toBeInTheDocument()
-    expect(d.getByText('Fila cancelada: la marca se cambia desde el panel («Quitar cancelación»).')).toBeInTheDocument()
+    const panel = await abrirPanel(user, 'M-0005')
+    expect(within(panel).queryByRole('combobox', { name: 'Marca' })).not.toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Quitar cancelación' })).toBeInTheDocument()
   })
 })
 

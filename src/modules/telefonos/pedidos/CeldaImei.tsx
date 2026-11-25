@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import type { FilaVista } from '@/shared/api/client'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { cn } from '@/shared/lib/utils'
@@ -6,9 +6,8 @@ import { StaleDataError, mensajeDeError } from '@/shared/api/errors'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover'
 import { usePonerImei, useRecomendados } from '../api'
 import { estadoPedidos, type FalloImei } from './estado'
+import { marcarNoValido, quitarNoValido, textoNoValido, type MotivoNoValido, type NoValido } from './noValidos'
 import { CIFRAS_IMEI, QUIETO_MS, SUSTITUIR_MS, luhnCuadra } from './imei'
-import { EditorMarca } from './EditorMarca'
-import { BotonValidarSku } from './BotonValidarSku'
 import { CLASE_TONO, pedidoVisible, TEXTO_NIVEL, claseCelda, estaValidada, lineasAviso, partesAviso, textoMotivoValidado, tonoFila, type ParteAviso } from './filas'
 
 export const FONDO: Record<string, string> = {
@@ -27,39 +26,54 @@ const NIVEL: Record<1 | 2 | 3, string> = {
   3: 'bg-[#FFE0B2] text-[#B45309]',
 }
 
+const ROJO = 'bg-[#FDE2E2]'
+const MENSAJE_CORTO = `Un IMEI son ${CIFRAS_IMEI} cifras`
+
 type Props = {
   fila: FilaVista; abierta: boolean; marcada?: boolean
   /** El último guardado de esta celda falló: se ve en rojo hasta que se guarde bien. */
   fallo?: FalloImei
+  /** La última lectura no era un IMEI válido (no se guardó): rojo hasta poner un IMEI en la fila. */
+  noValido?: NoValido
   onAbrir: (idFila: number, abrir: boolean) => void
-  /** Al guardar un IMEI tecleado o leído: abre la celda vacía siguiente y dice si la hay (si no, la celda actual se cierra al guardar). */
+  /** Tras guardar un IMEI leído (o una lectura no válida): abre la celda vacía siguiente y dice si la hay. */
   onSaltar?: (idFila: number) => boolean
 }
 
-/** La única celda editable de la tabla (spec «Pedidos como la hoja» §3.1 y 6 bis): el IMEI de la fila, con su motivo o su caja.
- *  Al pulsarla (si la fila es editable: todas menos el histórico, enviadas incluidas) se abre el desplegable con el campo, los recomendados y «Quitar el IMEI». El
- *  desplegable es el Popover del proyecto (portal anclado a la celda): no lo recorta el scroll de la tabla, se coloca arriba
- *  si abajo no cabe y acompaña a su celda cuando la tabla se desplaza. Escape y el clic fuera lo cierran (lo hace Radix, que
- *  además devuelve el foco a la celda). */
-export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: Props) {
+/** La única celda editable de la tabla (spec 2026-11-25 §1): en reposo, el IMEI con su aviso o su caja; al pulsarla (si la fila es
+ *  editable), la propia celda es el campo, con el contador y el ▾ de los recomendados. Nada flota salvo la lista de recomendados. */
+export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, onSaltar }: Props) {
   const clase = claseCelda(fila)
   const validada = estaValidada(fila)
-  // Validada: el motivo de SKU ya no se escribe (sale «validado» y queda en el title); la SIM, el N/A y el MS sí.
   const partes = partesAviso(fila)
   const lineas = lineasAviso(fila)
   const avisoValidado = validada ? `SKU validado${fila.validadaPor ? ` por ${fila.validadaPor}` : ''}: ${textoMotivoValidado(fila) ?? 'aviso de SKU'}` : null
-  // Un guardado fallido deja la celda en rojo (con el texto, que no depende del color) hasta que se guarde bien o se recargue la página.
-  const textoFallo = fallo ? (fallo.duplicado ? fallo.mensaje : fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : ''
+  const textoFallo = fallo ? (fallo.duplicado ? fallo.mensaje : fallo.imei ? `No se guardó …${fallo.imei.slice(-4)} · pulsa para reintentar` : 'No se quitó el IMEI · pulsa para reintentar') : null
+  const textosNoValido = noValido ? textoNoValido(noValido) : null
+  const rojo = textoFallo ?? textosNoValido?.corto ?? null
+  const tituloRojo = textoFallo ?? (textosNoValido ? `${textosNoValido.largo} Pulsa para revisarlo.` : null)
+  const botonRef = useRef<HTMLButtonElement>(null)
+  // Al cerrar el campo, el foco vuelve a la celda si se quedó en el aire (no si ya está en el campo de otra celda, tras un salto).
+  const estabaAbierta = useRef(abierta)
+  useEffect(() => {
+    if (estabaAbierta.current && !abierta && (!document.activeElement || document.activeElement === document.body)) botonRef.current?.focus()
+    estabaAbierta.current = abierta
+  }, [abierta])
+
+  // Estable entre pintados: el efecto del clic fuera de CampoImei depende de él.
+  const cerrar = useCallback(() => onAbrir(fila.idFila, false), [onAbrir, fila.idFila])
+
   const boton = (
-    <button type="button" title={fallo ? textoFallo : [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado, ...lineas, partes.length === 0 && !avisoValidado ? fila.caja : null].filter(Boolean).join('\n')}
+    <button ref={botonRef} type="button" onClick={() => onAbrir(fila.idFila, true)}
+      title={tituloRojo ?? [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado, ...lineas, partes.length === 0 && !avisoValidado ? fila.caja : null].filter(Boolean).join('\n')}
       className={cn('flex min-h-8 w-full cursor-pointer items-center gap-2 px-2.5 py-1 text-left font-mono text-[12.5px] hover:outline-2 hover:-outline-offset-2 hover:outline-[#9db8e8]',
-        clase === 'vacia' && 'font-sans italic text-texto-sub')}>
-      {fallo
-        ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{textoFallo}</span>
+        clase === 'vacia' && !rojo && 'font-sans italic text-texto-sub')}>
+      {rojo
+        ? <span className="min-w-0 truncate font-sans text-[12px] font-bold text-texto-error">{rojo}</span>
         : <span className="shrink-0">{fila.imei ?? 'pulsa para poner el IMEI…'}</span>}
-      {!fallo && partes.length > 0 && (
+      {!rojo && partes.length > 0 && (
         <span className="min-w-0 truncate font-sans text-[11px] font-bold">
-          {partes.map((p, i) => (
+          {partes.map((p: ParteAviso, i) => (
             <Fragment key={i}>
               {i > 0 && <span className="font-normal text-[#b9a27a]"> · </span>}
               <span className={TONO_PARTE[p.tono]}>{p.texto}</span>
@@ -67,40 +81,28 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
           ))}
         </span>
       )}
-      {!fallo && validada && (
+      {!rojo && validada && (
         <span data-validado className="shrink-0 rounded-lg bg-fila-reparado-bg px-1.5 py-px font-sans text-[10.5px] font-bold text-[#2f7d3b]">validado</span>
       )}
-      {!fallo && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
+      {!rojo && partes.length === 0 && !validada && fila.caja && <span className="min-w-0 truncate font-sans text-[11px] text-azul-gris">{fila.caja}</span>}
     </button>
   )
   const tono = tonoFila(fila)
   return (
-    // Mismos bordes (derecho e inferior) que el resto de celdas: la cuadrícula no se interrumpe en ningún estado. Dentro de la fila
-    // marcada, el fondo de aviso de esta celda gana al azul suave.
-    <td data-imei className={cn('relative overflow-hidden border-r border-b border-form-fila-brd p-0 last:border-r-0',
-      fallo ? 'bg-[#FDE2E2]' : FONDO[clase] ?? cn(tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave'))}>
+    <td data-imei data-editando={abierta || undefined} className={cn('relative overflow-hidden border-r border-b border-form-fila-brd p-0 last:border-r-0',
+      rojo ? ROJO : FONDO[clase] ?? cn(tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave'),
+      // Abierta, el rojo lo pinta el campo solo mientras la lectura mala siga en él.
+      abierta && cn('bg-superficie', 'outline-2 -outline-offset-2 outline-[#2f6fe0]'))}>
       {/* La raya azul es solo color: este texto la dice a quien no la ve. Es `absolute` (sr-only): la celda es `relative` para que
-          se quede dentro de ella; si no, cuelga del documento y lo alarga tanto como la tabla (se podia desplazar la pagina entera). */}
+          se quede dentro de ella; si no, cuelga del documento y lo alarga tanto como la tabla. */}
       {marcada && <span className="sr-only">Fila en la que estás</span>}
       {!fila.editable ? (
         // Sin edición (el histórico): solo el texto; sin IMEI, la celda queda vacía, sin invitar a ponerlo.
         fila.imei && <span className="flex min-h-8 items-center px-2.5 py-1 font-mono text-[12.5px]">{fila.imei}</span>
-      ) : (
-        <Popover open={abierta} onOpenChange={(o) => onAbrir(fila.idFila, o)}>
-          <PopoverTrigger asChild>{boton}</PopoverTrigger>
-          <PopoverContent align="start" sideOffset={2} collisionPadding={8} hideWhenDetached aria-label="Poner el IMEI"
-            // Pasar el foco a otro sitio no lo cierra (si falla el PUT, el diálogo de error roba el foco; y al pulsar otra celda, la
-            // que se cierra devolvía el foco a la suya y cerraba la nueva). Lo cierran Escape, el clic fuera y «Cerrar»; el
-            // diálogo de error tampoco cuenta como «fuera».
-            onFocusOutside={(e) => e.preventDefault()}
-            onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.('[role="dialog"],[role="alertdialog"]')) e.preventDefault() }}
-            // Al cerrar, el foco vuelve a la celda, salvo que ya esté en el desplegable de otra celda recién abierta.
-            onCloseAutoFocus={(e) => { if (document.activeElement?.closest('[data-slot="popover-content"]')) e.preventDefault() }}
-            className="w-auto max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
-            <Desplegable fila={fila} fallo={fallo} onCerrar={() => onAbrir(fila.idFila, false)} onSaltar={onSaltar ? () => onSaltar(fila.idFila) : undefined} />
-          </PopoverContent>
-        </Popover>
-      )}
+      ) : abierta ? (
+        <CampoImei fila={fila} fallo={fallo} noValido={noValido} onCerrar={cerrar}
+          onSaltar={onSaltar ? () => onSaltar(fila.idFila) : undefined} />
+      ) : boton}
     </td>
   )
 }
@@ -108,37 +110,42 @@ export function CeldaImei({ fila, abierta, marcada, fallo, onAbrir, onSaltar }: 
 /** Con lo que empieza el texto del 409 del servidor cuando el IMEI ya está en otro pedido. */
 const PREFIJO_DUPLICADO = 'Este IMEI ya está'
 
-const MENSAJE_ERROR = {
-  mas: `Hay más de ${CIFRAS_IMEI} cifras: lee un solo IMEI`,
-  luhn: 'La cifra de control no cuadra: revisa el IMEI',
-  corto: `Un IMEI son ${CIFRAS_IMEI} cifras`,
-} as const
-type ErrorImei = keyof typeof MENSAJE_ERROR
-
-function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fallo?: FalloImei; onCerrar: () => void; onSaltar?: () => boolean }) {
-  // Si esta celda falló antes y se reabre, el campo viene con ese IMEI y Enter reintenta con la misma clave.
-  const [texto, setTexto] = useState(fallo && !fallo.duplicado ? fallo.imei ?? '' : '')
-  const [error, setError] = useState<ErrorImei | null>(null)
-  // Los recomendados no se piden ni se enseñan hasta que se desplieguen; cada vez que se abre una celda empieza plegado.
+function CampoImei({ fila, fallo, noValido, onCerrar, onSaltar }: { fila: FilaVista; fallo?: FalloImei; noValido?: NoValido; onCerrar: () => void; onSaltar?: () => boolean }) {
+  // Reabrir una celda en rojo trae lo que falló: la lectura no válida (para sustituirla o «Guardar igual») o el IMEI cuyo guardado
+  // falló (Enter reintenta con la misma clave).
+  const [texto, setTexto] = useState(noValido?.imei ?? (fallo && !fallo.duplicado ? fallo.imei ?? '' : ''))
+  const [corto, setCorto] = useState(false)
   const [ver, setVer] = useState(false)
   const recomendados = useRecomendados(fila.idFila, ver)
   const poner = usePonerImei()
   const [claves] = useState(() => crearClavesIdempotencia())
-  // Lo que la fila tenía en pantalla al abrir la celda: el servidor lo compara con lo que hay (409 si otra persona lo cambió).
   const [anterior] = useState(() => fila.imei ?? '')
-  // Hay un guardado en vuelo. Es una referencia y no `poner.isPending` porque un lector de códigos teclea las cifras y su Enter de
-  // golpe: ese Enter llega antes de que React haya pintado el estado «pendiente» y no debe mandar un segundo guardado.
+  // Abierta sobre una lectura no válida: es revisión; otra lectura no válida aquí no salta.
+  const [revision] = useState(() => !!noValido)
+  // Guardado en vuelo (referencia y no `poner.isPending`: el Enter del lector llega antes de que React pinte «pendiente»).
   const enCurso = useRef(false)
-  // Instante de la última entrada (para distinguir una lectura nueva de la continuación de la anterior) y temporizador del momento quieto.
   const ultimaEntrada = useRef(0)
   const quieto = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const caja = useRef<HTMLDivElement>(null)
   useEffect(() => () => clearTimeout(quieto.current), [])
+  // Pulsar fuera de la celda la cierra; no la lista de recomendados ni un diálogo. Perder el foco sin pulsar (otra ventana) no.
+  useEffect(() => {
+    const alPulsar = (ev: PointerEvent) => {
+      const t = ev.target as Element | null
+      if (!t || caja.current?.closest('td')?.contains(t)) return
+      if (t.closest?.('[data-slot="popover-content"],[role="dialog"],[role="alertdialog"]')) return
+      onCerrar()
+    }
+    document.addEventListener('pointerdown', alPulsar, true)
+    return () => document.removeEventListener('pointerdown', alPulsar, true)
+  }, [onCerrar])
 
   // Si falla, NO sale el diálogo global (es modal, roba el foco en mitad de una lectura y no dice de qué pedido es): el fallo se apunta en
   // `estadoPedidos` (celda en rojo + aviso con el pedido) con la clave de idempotencia, para reintentar con la misma. Con `salto` (IMEI
   // tecleado o leído) la celda siguiente vacía se abre al momento, sin esperar al servidor, y esta se desmonta con el guardado en vuelo:
   // por eso todo va en la promesa (`mutateAsync`) y no en los callbacks de `mutate`, que un componente desmontado no recibe. Sin celda a
-  // la que saltar (o si se eligió un recomendado, o «Quitar»), se cierra al guardar y, si falla, se queda abierta para reintentar con Enter.
+  // la que saltar (o si se eligió un recomendado, «Guardar igual» o quitar), se cierra al guardar y, si falla, se queda abierta para
+  // reintentar con Enter. Guardar bien quita también la marca de lectura no válida de la fila.
   const guardar = (imei: string | null, salto = false) => {
     if (enCurso.current || poner.isPending) return
     enCurso.current = true
@@ -149,6 +156,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
     poner.mutateAsync({ idFila, imei, imeiAnterior: anterior, clave }).then(
       () => {
         claves.hecha(operacion); enCurso.current = false
+        quitarNoValido(idFila)
         estadoPedidos.set((s) => {
           if (!(idFila in s.fallosImei)) return s
           const resto = { ...s.fallosImei }
@@ -168,8 +176,7 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
         }
         if (e instanceof StaleDataError) {
           // 409: otra persona cambió el IMEI. Reintentar mandaría el mismo `imeiAnterior` y volvería a fallar: no queda estado de fallo
-          // (el hook ya recarga las filas en el acto, para ver el IMEI de la otra persona) y solo sale el aviso. La celda se cierra
-          // (si se saltó, ya está cerrada): al reabrirla toma el IMEI de ahora.
+          // (el hook ya recarga las filas en el acto) y solo sale el aviso. La celda se cierra; al reabrirla toma el IMEI de ahora.
           const aviso = `Pedido ${pedidoVisible(fila) ?? idFila}: ${mensajeDeError(e)}`
           estadoPedidos.set((s) => {
             const resto = { ...s.fallosImei }
@@ -184,27 +191,35 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
       },
     )
   }
-  // Antes de guardar un IMEI de 15 cifras (solo o con Enter) se comprueba su cifra de control. Un IMEI que ya falló al guardar (pasó la
-  // comprobación o se guardó igualmente) no se vuelve a comprobar: Enter lo reintenta.
-  const comprobarYGuardar = (cifras: string) => {
-    if (!(fallo && !fallo.duplicado && fallo.imei === cifras) && !luhnCuadra(cifras)) { setError('luhn'); return }
-    setError(null)
+  // Una lectura que no es un IMEI válido no se guarda ni frena: rojo, aviso arriba y a la siguiente (spec §2). En revisión, se cierra.
+  const noValida = (cifras: string, motivo: MotivoNoValido) => {
+    const nv = { imei: cifras, motivo, imeiFila: fila.imei ?? null }
+    marcarNoValido(fila.idFila, nv)
+    const { largo } = textoNoValido({ ...nv, en: 0 })
+    estadoPedidos.set((s) => ({ ...s, avisoImei: `Pedido ${pedidoVisible(fila) ?? fila.idFila}: ${largo}` }))
+    const salta = !revision && !!onSaltar && onSaltar()
+    if (!salta) onCerrar()
+  }
+  const comprobar = (cifras: string) => {
+    if (enCurso.current) return
+    // La lectura no válida que se está revisando: se decide con «Guardar igual» o leyendo otra.
+    if (noValido && cifras === noValido.imei) return
+    if (cifras.length > CIFRAS_IMEI) { noValida(cifras, 'mas'); return }
+    // Un IMEI cuyo guardado falló ya pasó la comprobación (o se guardó igual): Enter lo reintenta sin volver a mirarla.
+    const reintento = !!fallo && !fallo.duplicado && fallo.imei === cifras
+    if (!reintento && !luhnCuadra(cifras)) { noValida(cifras, 'luhn'); return }
     guardar(cifras, true)
   }
   const enviar = () => {
     if (enCurso.current) return
     clearTimeout(quieto.current)
-    // El Enter que manda el lector llega a la celda recién abierta, vacía: no es un error.
-    if (texto.length === 0) return
-    if (texto.length > CIFRAS_IMEI) { setError('mas'); return }
-    if (texto.length < CIFRAS_IMEI) { setError('corto'); return }
-    // El Enter NO fuerza un IMEI con la cifra de control mala: el lector manda su Enter solo y anularía la comprobación.
-    comprobarYGuardar(texto)
+    // Vacío: quita el IMEI si lo hay; sin IMEI es el Enter del lector en la celda recién abierta y no hace nada.
+    if (texto.length === 0) { if (fila.imei) guardar(null); return }
+    if (texto.length < CIFRAS_IMEI) { setCorto(true); return }
+    comprobar(texto)
   }
-  // Solo cifras (también al pegar, y sin los espacios o saltos que pueda mandar el lector). NO se corta: con más de 15 es un error (dos
-  // IMEI en un código, o cifras de más) y no se guarda. Con exactamente 15 se espera un momento quieto (QUIETO_MS) antes de guardar, para
-  // que toda la ráfaga del lector, y su Enter, caiga en esta celda; si llega más entrada, el temporizador se anula.
-  // En error, una entrada que llega tras una pausa (SUSTITUIR_MS) es otra lectura: sustituye a lo que había.
+  // Solo cifras (también al pegar). Con 15 o más se espera un momento quieto (QUIETO_MS) y se comprueba, para que toda la ráfaga del
+  // lector (y su Enter) caiga aquí. Con la lectura no válida en el campo, lo que llega tras una pausa (SUSTITUIR_MS) es otra lectura.
   const cambiar = (valor: string) => {
     if (enCurso.current) return
     const ahora = Date.now()
@@ -212,72 +227,73 @@ function Desplegable({ fila, fallo, onCerrar, onSaltar }: { fila: FilaVista; fal
     ultimaEntrada.current = ahora
     clearTimeout(quieto.current)
     let cifras = valor.replace(/\D/g, '')
-    if ((error === 'mas' || error === 'luhn') && pausa >= SUSTITUIR_MS && valor.startsWith(texto)) {
+    if (noValido && texto === noValido.imei && pausa >= SUSTITUIR_MS && valor.startsWith(texto)) {
       const nuevas = valor.slice(texto.length).replace(/\D/g, '')
       if (nuevas !== '') cifras = nuevas
     }
     setTexto(cifras)
-    if (cifras.length > CIFRAS_IMEI) { setError('mas'); return }
-    setError(null)
-    if (cifras.length === CIFRAS_IMEI) quieto.current = setTimeout(() => comprobarYGuardar(cifras), QUIETO_MS)
+    setCorto(false)
+    if (cifras.length >= CIFRAS_IMEI) quieto.current = setTimeout(() => comprobar(cifras), QUIETO_MS)
   }
-  const roja = error === 'mas' || error === 'luhn'
+  const lecturaMala = !!noValido && texto === noValido.imei
+  const enRojo = corto || lecturaMala || texto.length > CIFRAS_IMEI
 
   return (
-    <div className={ver ? 'w-[680px] max-w-full' : 'w-[360px] max-w-full'}>
-      <div className="relative">
-        <input autoFocus aria-label="IMEI" inputMode="numeric" pattern="[0-9]*" autoComplete="off"
-          placeholder="Lee o escribe el IMEI (15 cifras)" value={texto}
-          readOnly={poner.isPending}
-          onChange={(e) => cambiar(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); enviar() } }}
-          className="h-8 w-full rounded-md border border-borde-input pr-14 pl-2 font-mono text-[13px]" />
-        {/* El contador es solo una ayuda a la vista: oculto al lector de pantalla para que no lea cada cifra. */}
-        <span aria-hidden="true" data-contador className={cn('pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 font-mono text-[11px]', roja ? 'font-bold text-texto-error' : 'text-azul-gris')}>{texto.length}/{CIFRAS_IMEI}</span>
-      </div>
-      {error && <p role="alert" className="mt-1 text-[12px] font-bold text-texto-error">{MENSAJE_ERROR[error]}</p>}
-      {error === 'luhn' && (
-        <button type="button" onClick={() => guardar(texto)}
-          className="mt-1 h-6 cursor-pointer rounded-md border border-borde-input bg-superficie px-2 text-[11.5px] font-semibold">Guardar igualmente</button>
+    <div ref={caja} className={cn('flex h-8 items-center gap-1.5 pr-1 pl-2.5', enRojo && ROJO)}
+      title={corto ? MENSAJE_CORTO : lecturaMala && noValido ? textoNoValido(noValido).largo : undefined}>
+      <input autoFocus aria-label="IMEI" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={texto} readOnly={poner.isPending}
+        placeholder={fila.imei ? 'Lee otro, o vacía y Enter para quitar' : 'Lee o escribe el IMEI'}
+        onChange={(e) => cambiar(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); enviar() }
+          // Radix cierra la lista en `document` (captura) con preventDefault, y React ya ha repintado antes de este manejador (`ver` es
+          // false): si el Escape ya está tomado, era de la lista y no cierra la celda.
+          else if (e.key === 'Escape') { if (e.defaultPrevented) return; e.preventDefault(); onCerrar() }
+        }}
+        className="h-7 min-w-0 flex-1 bg-transparent font-mono text-[13px] outline-none placeholder:font-sans placeholder:text-[12px] placeholder:text-texto-sub placeholder:italic" />
+      {corto && <span role="alert" className="sr-only">{MENSAJE_CORTO}</span>}
+      {poner.isPending && <span className="shrink-0 text-[11px] text-azul-gris italic">guardando…</span>}
+      {lecturaMala && noValido?.motivo === 'luhn' && (
+        <button type="button" disabled={poner.isPending} onClick={() => guardar(texto)} title="Guardar este IMEI aunque la cifra de control no cuadre"
+          className="h-6 shrink-0 cursor-pointer rounded-md border border-[#e0a0a0] bg-superficie px-1.5 text-[11px] font-bold text-texto-error">Guardar igual</button>
       )}
-      {/* Debajo del campo y sin enfocarse solo: el foco se queda en el IMEI para el lector de códigos. */}
-      <BotonValidarSku fila={fila} />
-      {fila.marca === 'CANCELADO' ? (
-        <p className="mt-2 border-t border-form-fila-brd pt-2 text-[11.5px] text-azul-gris">Fila cancelada: la marca se cambia desde el panel («Quitar cancelación»).</p>
-      ) : (
-        <>
-          <EditorMarca fila={fila} onHecho={onCerrar} />
-          <p className="mt-1 px-0.5 text-[11px] text-azul-gris">Para cancelar el móvil, abre el panel de la fila.</p>
-        </>
-      )}
-      <button type="button" aria-expanded={ver} onClick={() => setVer((v) => !v)}
-        className="mt-1 cursor-pointer bg-transparent px-0.5 text-[11.5px] text-azul-medio underline underline-offset-2">{ver ? 'Ocultar recomendados' : 'Ver recomendados'}</button>
-      {ver && <>
-      <div className="mt-1 mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>} · dónde buscarlo</div>
+      {/* El contador es una ayuda a la vista: oculto al lector de pantalla para que no lea cada cifra. */}
+      <span aria-hidden="true" data-contador className={cn('shrink-0 font-mono text-[11px]', enRojo ? 'font-bold text-texto-error' : 'text-azul-gris')}>{texto.length}/{CIFRAS_IMEI}</span>
+      <Popover open={ver} onOpenChange={setVer}>
+        <PopoverTrigger asChild>
+          {/* Sin robar el foco al campo: el lector puede seguir leyendo con la lista abierta. */}
+          <button type="button" aria-label="Ver recomendados" title="Ver recomendados" onMouseDown={(e) => e.preventDefault()}
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border border-borde-input bg-superficie text-[11px] text-azul-medio aria-expanded:bg-azul-medio aria-expanded:text-superficie">▾</button>
+        </PopoverTrigger>
+        <PopoverContent align="end" sideOffset={2} collisionPadding={8} aria-label="Recomendados"
+          onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}
+          className="w-[680px] max-w-[calc(100vw-16px)] rounded-lg border-azul-medio bg-superficie p-2 whitespace-normal shadow-[0_8px_24px_rgba(0,18,50,.25)]">
+          <ListaRecomendados fila={fila} recomendados={recomendados} ocupado={poner.isPending} onElegir={(imei) => guardar(imei)} />
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+/** Los recomendados de la fila (los de hoy, sin cambios): la caja delante, el IMEI, «es …» en nivel 3 y el nivel. Elegir uno lo guarda. */
+function ListaRecomendados({ fila, recomendados, ocupado, onElegir }: {
+  fila: FilaVista; recomendados: ReturnType<typeof useRecomendados>; ocupado: boolean; onElegir: (imei: string) => void
+}) {
+  return (
+    <>
+      <div className="mb-1 px-0.5 text-[11px] font-bold tracking-wide text-azul-gris uppercase">Recomendados{fila.sku && <> para <span className="font-mono normal-case">{fila.sku}</span></>} · dónde buscarlo</div>
       {recomendados.isPending && <p className="px-2 py-1.5 text-[12px] text-azul-gris">Cargando…</p>}
       {recomendados.isError && <p className="px-2 py-1.5 text-[12px] text-azul-gris">No se pudieron cargar los recomendados.</p>}
-      {recomendados.data?.length === 0 && (
-        <p className="px-2 py-1.5 text-[12px] text-azul-gris">No hay ningún móvil de ese modelo y capacidad libre en stock.</p>
-      )}
+      {recomendados.data?.length === 0 && <p className="px-2 py-1.5 text-[12px] text-azul-gris">No hay ningún móvil de ese modelo y capacidad libre en stock.</p>}
       {recomendados.data?.map((c) => (
-        <button key={c.imei} type="button" disabled={poner.isPending} onClick={() => guardar(c.imei)}
+        <button key={c.imei} type="button" disabled={ocupado} onClick={() => onElegir(c.imei)}
           className="grid w-full cursor-pointer grid-cols-[150px_118px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-seleccion-suave">
-          {/* Lo que la persona se lleva al almacén es la caja: va delante y resaltada. */}
           <span className="justify-self-start rounded-md bg-[#eef0f3] px-2 py-px font-bold [overflow-wrap:anywhere]">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
           <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && (c.sku ? <>es {c.sku}</> : <span className="font-sans italic">SKU sin identificar</span>)}</span>
           <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
         </button>
       ))}
-      </>}
-      <div className="mt-1.5 flex gap-2">
-        {fila.imei && (
-          <button type="button" disabled={poner.isPending} onClick={() => guardar(null)}
-            className="h-7 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold">Quitar el IMEI</button>
-        )}
-        <button type="button" onClick={onCerrar}
-          className="h-7 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold">Cerrar</button>
-      </div>
-    </div>
+    </>
   )
 }

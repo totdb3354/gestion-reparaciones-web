@@ -304,7 +304,7 @@ describe('Pedidos v2: el panel de la fila', () => {
     )
     server.use(http.put('*/api/pedidos/filas/:id/imei', ({ params }) => HttpResponse.json(fila({ idFila: Number(params.id), pedido: '402-0000000-0000042', plataforma: 'Cliente Web A', canal: 'DISTRIBUIDORES', imei: null }))))
     await user.click(screen.getByRole('button', { name: /350000000000011/ }))
-    await user.click(screen.getByRole('button', { name: 'Quitar el IMEI' }))
+    await user.keyboard('{Enter}') // campo vacío + Enter quita el IMEI
     await waitFor(() => expect(within(p).getAllByRole('listitem')).toHaveLength(5))
     expect(within(p).getAllByRole('listitem')[0].textContent).toMatch(/^tecnico_f quitó 350000000000011/)
   })
