@@ -106,6 +106,14 @@ function entradaDeCambio(cambio: CambioImei, i: number, cuando: string): Entrada
         ? { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Ya ha salido (marca quitada)', quien: cambio.usuario }
         : { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: 'Ya ha salido: sincronizado con la web', quien: 'plugin de la web' }
     }
+    // Devoluciones del bot de NSYS (0.9.47): sin usuario; imeiAnterior = el IMEI que salió de la fila.
+    if (cambio.tipo === 'DEVUELTO' || cambio.tipo === 'NO_DEVUELTO' || cambio.tipo === 'SIN_DESTINO') {
+      const imei = cambio.imeiAnterior ?? ''
+      const texto = cambio.tipo === 'DEVUELTO'
+        ? `Devuelto a stock ${imei}`
+        : cambio.tipo === 'NO_DEVUELTO' ? `No se pudo devolver ${imei}` : `No se devuelve solo ${imei} (lo mueve una persona)`
+      return { tipo: 'marca', clave: `i${i}`, cuando, conHora: true, texto: `${texto}${cambio.detalle ? `: ${cambio.detalle}` : ''}`, quien: 'bot de NSYS' }
+    }
     return { tipo: 'imei', clave: `i${i}`, cuando, conHora: true, cambio }
 }
 
