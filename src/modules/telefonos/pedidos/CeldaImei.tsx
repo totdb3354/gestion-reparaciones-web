@@ -279,7 +279,8 @@ function CampoImei({ fila, fallo, noValido, onCerrar, onSaltar }: { fila: FilaVi
   )
 }
 
-/** Los recomendados de la fila (los de hoy, sin cambios): la caja delante, el IMEI, «es …» en nivel 3 y el nivel. Elegir uno lo guarda. */
+/** Los recomendados de la fila: la caja delante, el IMEI, «es …» en nivel 3 y el nivel. El reservado de la fila llega el primero y
+ *  dice «reservado para este pedido» en vez del nivel; los reservados para otras filas no llegan (Imad 25/11). Elegir uno lo guarda. */
 function ListaRecomendados({ fila, recomendados, ocupado, onElegir }: {
   fila: FilaVista; recomendados: ReturnType<typeof useRecomendados>; ocupado: boolean; onElegir: (imei: string) => void
 }) {
@@ -295,7 +296,9 @@ function ListaRecomendados({ fila, recomendados, ocupado, onElegir }: {
           <span className="justify-self-start rounded-md bg-[#eef0f3] px-2 py-px font-bold [overflow-wrap:anywhere]">{c.caja}</span>
           <span className="font-mono text-[12.5px] font-bold">{c.imei}</span>
           <span className="font-mono text-[11.5px] [overflow-wrap:anywhere] text-azul-gris">{c.nivel === 3 && (c.sku ? <>es {c.sku}</> : <span className="font-sans italic">SKU sin identificar</span>)}</span>
-          <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>
+          {c.reservado
+            ? <span data-reservado className="rounded-lg bg-[#E3F2FD] px-2 py-px text-[11px] font-bold whitespace-nowrap text-[#1565C0]">reservado para este pedido</span>
+            : <span className={cn('rounded-lg px-2 py-px text-[11px] font-bold whitespace-nowrap', NIVEL[c.nivel as 1 | 2 | 3])}>{TEXTO_NIVEL[c.nivel as 1 | 2 | 3]}</span>}
         </button>
       ))}
     </>

@@ -2213,6 +2213,34 @@
         }
       }
     },
+    "/api/bot/movimientos" : {
+      "post" : {
+        "tags" : [ "bot-controller" ],
+        "operationId" : "movimientos",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MovimientosBot"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InformeMovimientos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bloques-compra/{idBloque}/separar" : {
       "post" : {
         "tags" : [ "bloque-compra-controller" ],
@@ -5426,6 +5454,24 @@
         }
       }
     },
+    "/api/bot/devoluciones" : {
+      "get" : {
+        "tags" : [ "bot-controller" ],
+        "operationId" : "devoluciones_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ListaDevoluciones"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/usuarios/tecnicos/{idTec}" : {
       "delete" : {
         "tags" : [ "usuario-controller" ],
@@ -5916,6 +5962,9 @@
             "format" : "date",
             "nullable" : true
           },
+          "detalle" : {
+            "$ref" : "#/components/schemas/DetalleAviso"
+          },
           "imeiReservado" : {
             "type" : "string",
             "nullable" : true
@@ -5924,9 +5973,6 @@
             "type" : "string",
             "format" : "date-time",
             "nullable" : true
-          },
-          "detalle" : {
-            "$ref" : "#/components/schemas/DetalleAviso"
           }
         }
       },
@@ -7355,6 +7401,66 @@
         "properties" : {
           "nombre" : {
             "type" : "string"
+          }
+        }
+      },
+      "MovimientoBot" : {
+        "required" : [ "accion", "destino", "fecha", "imei", "motivo", "origen", "resultado" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "accion" : {
+            "type" : "string"
+          },
+          "resultado" : {
+            "type" : "string"
+          },
+          "origen" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "destino" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "motivo" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fecha" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "MovimientosBot" : {
+        "required" : [ "movimientos", "run" ],
+        "type" : "object",
+        "properties" : {
+          "run" : {
+            "type" : "string"
+          },
+          "movimientos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MovimientoBot"
+            }
+          }
+        }
+      },
+      "InformeMovimientos" : {
+        "required" : [ "guardados", "repetidos" ],
+        "type" : "object",
+        "properties" : {
+          "guardados" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "repetidos" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -10112,7 +10218,7 @@
         }
       },
       "RecomendadorCandidato" : {
-        "required" : [ "caja", "imei", "nivel", "sku" ],
+        "required" : [ "caja", "imei", "nivel", "reservado", "sku" ],
         "type" : "object",
         "properties" : {
           "imei" : {
@@ -10129,6 +10235,9 @@
           "nivel" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "reservado" : {
+            "type" : "boolean"
           }
         }
       },
@@ -10581,6 +10690,45 @@
         "properties" : {
           "value" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ListaDevoluciones" : {
+        "required" : [ "grupos" ],
+        "type" : "object",
+        "properties" : {
+          "grupos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ListaDevolucionesGrupo"
+            }
+          }
+        }
+      },
+      "ListaDevolucionesGrupo" : {
+        "required" : [ "destino", "imeis" ],
+        "type" : "object",
+        "properties" : {
+          "destino" : {
+            "type" : "string"
+          },
+          "imeis" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ListaDevolucionesImeiADevolver"
+            }
+          }
+        }
+      },
+      "ListaDevolucionesImeiADevolver" : {
+        "required" : [ "imei", "motivo" ],
+        "type" : "object",
+        "properties" : {
+          "imei" : {
+            "type" : "string"
+          },
+          "motivo" : {
+            "type" : "string"
           }
         }
       },

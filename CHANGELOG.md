@@ -14,6 +14,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
   pica otro, el reservado vuelve a stock.
 - Contadores nuevos **«reservadas»** y **«sin stock»**, pulsables.
 - Los IMEI recomendados de la celda ponen los **Ms siempre al final**, detrás de todo lo demás, aunque lleven más tiempo en stock.
+- En los recomendados (▾), el IMEI reservado para ese pedido sale **el primero**, con «reservado para este pedido»; los reservados
+  para **otros** pedidos ya no se proponen (se pueden seguir picando a mano).
 - El **historial** de la fila dice por qué se reservó (puesto, caja y grado), quién lo confirmó, si se picó otro y si la reserva se
   quitó (cancelado, enviado sin IMEI, no encontrado en NSYS, ya no disponible), con etiquetas de color.
 - Preparado para que el bot de NSYS **descuente también los reservados** (ajuste `pedidos.reserva.al-bot`, **apagado** hasta que

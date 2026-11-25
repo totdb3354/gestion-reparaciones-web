@@ -162,7 +162,7 @@ export function fila(p: Partial<FilaVista> = {}): FilaVista {
 
 /** Un IMEI recomendado para una fila (nivel 1 = el mejor). */
 export function candidato(p: Partial<Candidato> = {}): Candidato {
-  return { imei: '350000000000001', sku: 'i13128AzulA', caja: 'CAJA LISTOS', nivel: 1, ...p }
+  return { imei: '350000000000001', sku: 'i13128AzulA', caja: 'CAJA LISTOS', nivel: 1, reservado: false, ...p }
 }
 
 /** Una fuente de pedidos leída bien hoy a las 09:00. */

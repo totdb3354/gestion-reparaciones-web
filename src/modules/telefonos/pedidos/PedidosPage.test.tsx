@@ -181,6 +181,21 @@ describe('Pedidos como la hoja: la celda del IMEI', () => {
     expect(sku.parentElement).toHaveTextContent('Recomendados para i13128AzulA')
   })
 
+  it('el reservado de la fila sale en los recomendados diciendo «reservado para este pedido» en vez del nivel', async () => {
+    server.use(http.get('*/api/pedidos/filas/:id/recomendados', () => HttpResponse.json([
+      candidato({ imei: '350000000000105', caja: 'CAJA LISTOS', nivel: 1, reservado: true }),
+      candidato({ imei: '350000000000101', caja: 'CAJA LISTOS', nivel: 1 }),
+    ])))
+    const user = userEvent.setup()
+    abrir()
+    await user.click(await celdaVacia())
+    await verRecomendados(user)
+    const reservado = await screen.findByRole('button', { name: /350000000000105/ })
+    expect(reservado).toHaveTextContent('reservado para este pedido')
+    expect(reservado).not.toHaveTextContent('igual que el pedido')
+    expect(screen.getByRole('button', { name: /350000000000101/ })).toHaveTextContent('igual que el pedido')
+  })
+
   it('elegir un candidato hace PUT con ese IMEI y cierra', async () => {
     const user = userEvent.setup()
     abrir()
