@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.47] - 2026-11-25 — El bot de NSYS devuelve a stock los móviles que salieron de un pedido
+
+- Cuando se cambia el IMEI de un pedido después de que el bot de NSYS haya pasado el móvil a «Pedidos realizados», el ERP se lo
+  dice al bot y el bot lo devuelve a la caja donde estaba (si esa caja se vende). Queda en el historial de la fila: «Devuelto a
+  stock», «No se pudo devolver» o «No se devuelve solo (lo mueve una persona)» con el motivo (sin caja, caja o grado que no se
+  vende, reparado después).
+- La devolución automática empieza cuando el bot de producción se actualice (plan 3); hasta entonces la lista sale vacía.
+
 ## [0.9.46.2] - 2026-11-24 — Pedidos: el libro de ventas manda siempre; la celda avisa en rojo o naranja
 
 - Amazon: el ERP pone siempre el IMEI que dice el libro de ventas, aunque no cuadre con el pedido, aunque esté en otro pedido o
