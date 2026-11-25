@@ -100,9 +100,9 @@ for (const [n, nombre] of [[2_000, 'normal'], [26_700, 'ventana']] as const) {
       // Se abre y se cierra una celda de IMEI del final: la fila queda marcada («Fila en la que estás», texto oculto). Ese texto
       // llego a alargar el documento tanto como la tabla; las medidas de abajo lo vigilan.
       await page.locator('[aria-label="Tabla de pedidos"] td[data-imei] button').last().click()
-      await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
+      await expect(page.getByRole('textbox', { name: 'IMEI' })).toBeVisible()
       await page.keyboard.press('Escape')
-      await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeHidden()
+      await expect(page.getByRole('textbox', { name: 'IMEI' })).toBeHidden()
 
       for (const abierto of [false, true]) {
         if (abierto) {
@@ -230,9 +230,9 @@ test('la cuadricula no se interrumpe en la celda del IMEI (vacia, con aviso, his
   const marcadas = () => page.locator('tr[data-aqui]')
   await expect(marcadas()).toHaveCount(0)
   await fila(6).locator('td[data-imei] button').click()
-  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'IMEI' })).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeHidden()
+  await expect(page.getByRole('textbox', { name: 'IMEI' })).toBeHidden()
   await expect(marcadas()).toHaveCount(1)
   await expect(marcadas()).toContainText(pedido(6))
   await page.getByRole('button', { name: pedido(58), exact: true }).click()
@@ -240,7 +240,7 @@ test('la cuadricula no se interrumpe en la celda del IMEI (vacia, con aviso, his
   await expect(marcadas()).toHaveCount(1)
   await expect(marcadas()).toContainText(pedido(58))
   await fila(6).locator('td[data-imei] button').click()
-  await expect(page.getByRole('dialog', { name: 'Poner el IMEI' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'IMEI' })).toBeVisible()
   await expect(marcadas()).toHaveCount(1)
   await expect(marcadas()).toContainText(pedido(6))
   await expect(panel(page)).toContainText(pedido(58))
