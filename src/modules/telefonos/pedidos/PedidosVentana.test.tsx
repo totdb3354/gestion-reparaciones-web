@@ -94,7 +94,7 @@ describe('Pedidos: tabla con muchas filas', () => {
     expect(document.querySelector('tr[data-aqui]')?.textContent).toContain('402-0000000-0000007')
   })
 
-  it('la fila con la celda del IMEI abierta sigue pintada (y con lo tecleado) aunque salga de la ventana; con el desplegable abierto Control+F no se intercepta', async () => {
+  it('la fila con la celda del IMEI abierta sigue pintada (y con lo tecleado) aunque salga de la ventana; con el campo del IMEI abierto Control+F no se intercepta', async () => {
     maquetarJsdom()
     const user = userEvent.setup()
     filas = crear(300)

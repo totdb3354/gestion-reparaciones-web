@@ -16,7 +16,7 @@ import { congelarHoy } from '../test/hoy'
 
 congelarHoy()
 
-// «Validar SKU»: el botón único en el desplegable del IMEI y en el panel, la celda «validado», el contador y el historial.
+// «Validar SKU»: el botón único, solo en el panel de la fila, la celda «validado», el contador y el historial.
 const naranja = (p: Partial<FilaVista>) => fila({ imei: imeiValido(1), nivel: 'MAL', skuMovil: 'i14128NegroA', ...p })
 const FILAS = [
   naranja({ idFila: 1, pedido: 'V-0001', motivo: 'COLOR_O_GRADO' }),
@@ -58,7 +58,7 @@ const abrir = () => renderConProviders(<PedidosPage />, { sesion: SESION_SUPER, 
 const tr = (pedido: string) => screen.getAllByText(pedido)[0].closest('tr')!
 const esperar = (n = FILAS.length) => screen.findByRole('button', { name: `${n} filas` })
 const celda = (pedido: string) => within(tr(pedido)).getAllByRole('button')[0]
-const desplegable = () => screen.findByRole('dialog', { name: 'Poner el IMEI' })
+const campo = () => screen.findByRole('textbox', { name: 'IMEI' })
 const abrirPanel = async (user: ReturnType<typeof userEvent.setup>, pedido: string) => {
   await user.click(within(tr(pedido)).getByRole('button', { name: pedido }))
   return waitFor(() => {
@@ -80,31 +80,33 @@ describe('Pedidos: Validar SKU (el botón según estado y motivo)', () => {
     expect(estaValidada(fila())).toBe(false)
   })
 
-  it('el desplegable de una celda naranja de SKU enseña «Validar SKU» (con imeiAnterior y clave) y no roba el foco al campo', async () => {
+  it('la celda naranja de SKU no lleva «Validar SKU» y deja el foco en el campo; el panel sí, con imeiAnterior y clave', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
     await user.click(celda('V-0001'))
-    const d = within(await desplegable())
-    expect(d.getByRole('textbox', { name: 'IMEI' })).toHaveFocus()
-    expect(d.queryByRole('button', { name: 'Quitar validación' })).not.toBeInTheDocument()
-    await user.click(d.getByRole('button', { name: 'Validar SKU' }))
+    expect(await campo()).toHaveFocus()
+    expect(screen.queryByRole('button', { name: /Validar SKU|Quitar validación/ })).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    const panel = await abrirPanel(user, 'V-0001')
+    expect(within(panel).queryByRole('button', { name: 'Quitar validación' })).not.toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: 'Validar SKU' }))
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].id).toBe('1')
     expect(puts[0].cuerpo).toEqual({ validar: true, imeiAnterior: imeiValido(1) })
     expect(puts[0].clave).toBeTruthy()
   })
 
-  it('no sale con NO_EN_NSYS, EN_OTRA_FILA, ámbar ni sin aviso, ni en el desplegable ni en el panel', async () => {
+  it('no sale con NO_EN_NSYS, EN_OTRA_FILA, ámbar ni sin aviso, ni en la celda ni en el panel', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
     for (const p of ['V-0002', 'V-0003', 'V-0004', 'V-0006']) {
       await user.click(celda(p))
-      const d = within(await desplegable())
-      expect(d.queryByRole('button', { name: /Validar SKU|Quitar validación/ })).not.toBeInTheDocument()
+      const td = (await campo()).closest('td')!
+      expect(within(td).queryByRole('button', { name: /Validar SKU|Quitar validación/ })).not.toBeInTheDocument()
       await user.keyboard('{Escape}')
-      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Poner el IMEI' })).not.toBeInTheDocument())
+      await waitFor(() => expect(screen.queryByRole('textbox', { name: 'IMEI' })).not.toBeInTheDocument())
       const panel = await abrirPanel(user, p)
       expect(within(panel).queryByRole('button', { name: /Validar SKU|Quitar validación/ })).not.toBeInTheDocument()
     }
@@ -126,14 +128,17 @@ describe('Pedidos: Validar SKU (el botón según estado y motivo)', () => {
     expect(puts[1].cuerpo).toEqual({ validar: false, imeiAnterior: imeiValido(5) })
   })
 
-  it('el desplegable de una fila validada enseña «Quitar validación»', async () => {
+  it('la celda de una fila validada no lleva «Quitar validación»: se quita desde el panel', async () => {
     const user = userEvent.setup()
     abrir()
     await esperar()
     await user.click(celda('V-0005'))
-    const d = within(await desplegable())
-    expect(d.queryByRole('button', { name: 'Validar SKU' })).not.toBeInTheDocument()
-    await user.click(d.getByRole('button', { name: 'Quitar validación' }))
+    expect(await campo()).toHaveFocus()
+    expect(screen.queryByRole('button', { name: /Validar SKU|Quitar validación/ })).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    const panel = await abrirPanel(user, 'V-0005')
+    expect(within(panel).queryByRole('button', { name: 'Validar SKU' })).not.toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: 'Quitar validación' }))
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].cuerpo.validar).toBe(false)
   })

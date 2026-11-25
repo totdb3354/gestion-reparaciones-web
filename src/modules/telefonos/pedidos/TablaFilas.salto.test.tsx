@@ -183,8 +183,10 @@ describe('TablaFilas: salto a la siguiente celda vacía', () => {
     await user.keyboard(B)
     await waitFor(() => expect(estadoPedidos.get().avisoImei).toBe(`No se guardó el IMEI del pedido ${pedido(2)}. Vuelve a abrir su celda.`))
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-    // Sin salto, el desplegable se queda abierto con lo escrito.
+    // Sin salto, la celda se queda abierta con lo escrito y el fallo apuntado; cerrada, queda en rojo para reintentar.
     expect(campo()).toHaveValue(B)
+    expect(estadoPedidos.get().fallosImei[2]?.imei).toBe(B)
+    await user.keyboard('{Escape}')
     expect(screen.getByRole('button', { name: /pulsa para reintentar/ })).toBeInTheDocument()
   })
 
@@ -233,16 +235,16 @@ describe('TablaFilas: salto a la siguiente celda vacía', () => {
     await user.keyboard(`${A}{Enter}`)
     await waitFor(() => expect(puts).toEqual([pulsar('1', A, '')]))
     await user.click(await screen.findByRole('button', { name: /350000000000002/ }))
-    await user.click(screen.getByRole('button', { name: 'Quitar el IMEI' }))
+    await user.keyboard('{Enter}') // campo vacío + Enter quita el IMEI
     await waitFor(() => expect(puts).toHaveLength(2))
     expect(puts[1]).toEqual(pulsar('2', null, '350000000000002'))
   })
 
-  it('«Quitar el IMEI» no salta: se cierra', async () => {
+  it('quitar el IMEI (campo vacío y Enter) no salta: se cierra', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1, { imei: '350000000000001' }), f(2)])
     await user.click(await screen.findByRole('button', { name: /350000000000001/ }))
-    await user.click(screen.getByRole('button', { name: 'Quitar el IMEI' }))
+    await user.keyboard('{Enter}')
     await waitFor(() => expect(puts).toEqual([pulsar('1', null, '350000000000001')]))
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
   })
@@ -250,49 +252,50 @@ describe('TablaFilas: salto a la siguiente celda vacía', () => {
 
 // Las lecturas del lector de códigos que antes se derramaban a la fila siguiente: ahora nada cae en otra fila.
 describe('TablaFilas: lecturas que no deben derramarse', () => {
-  it('una cifra suelta y luego dos lecturas: no se guarda nada desplazado y la lectura nueva sustituye a la errónea', async () => {
+  it('una cifra suelta y luego dos lecturas: no se guarda nada desplazado; la errónea queda en rojo y la lectura nueva va a la fila siguiente', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1), f(2), f(3)])
     await user.click(await vacia())
     await user.keyboard('9')
-    // La cifra suelta + la 1.ª lectura entera pasan de 15: error, sin guardar, y el Enter no hace nada más.
+    // La cifra suelta + la 1.ª lectura entera pasan de 15: no válida, sin guardar; la fila 1 queda en rojo y el campo salta a la 2.
     await user.keyboard(`${A}{Enter}`)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Hay más de 15 cifras: lee un solo IMEI')
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    expect(screen.getByRole('button', { name: /IMEI no válido · 16 cifras/ })).toBeInTheDocument()
     await pausa(250)
     expect(puts).toEqual([])
-    expect(aqui()).toHaveTextContent(pedido(1))
     expect(screen.getAllByRole('textbox', { name: 'IMEI' })).toHaveLength(1)
-    // Pasa un rato y llega la 2.ª lectura: sustituye a lo erróneo y se guarda en ESTA fila, la 1.
+    expect(campo()).toHaveValue('')
+    // Pasa un rato y llega la 2.ª lectura: se guarda en ESTA fila, la 2, y salta a la 3; la 1 sigue en rojo.
     await pausa(350)
     await user.keyboard(`${B}{Enter}`)
-    await waitFor(() => expect(puts).toEqual([pulsar('1', B)]))
-    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    await waitFor(() => expect(puts).toEqual([pulsar('2', B)]))
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(3)))
     expect(campo()).toHaveValue('')
     expect(puts).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /IMEI no válido · 16 cifras/ })).toBeInTheDocument()
   })
 
-  it('un código 2D con dos IMEI (A B y Enter) no reparte uno en cada fila: error y nada guardado', async () => {
+  it('un código 2D con dos IMEI (A B y Enter) no reparte uno en cada fila: rojo «30 cifras» y nada guardado', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1), f(2)])
     await user.click(await vacia())
     await user.keyboard(`${A} ${B}{Enter}`)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Hay más de 15 cifras: lee un solo IMEI')
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    expect(screen.getByRole('button', { name: /IMEI no válido · 30 cifras/ })).toBeInTheDocument()
     await pausa(300)
     expect(puts).toEqual([])
-    expect(aqui()).toHaveTextContent(pedido(1))
-    expect(campo()).toHaveValue(`${A}${B}`)
-    expect(screen.getByText('30/15')).toHaveClass('text-texto-error')
+    expect(campo()).toHaveValue('')
   })
 
-  it('con 16 cifras o más (prefijo o cifras de sobra) no se corta ni se guarda', async () => {
+  it('con 16 cifras o más (prefijo o cifras de sobra) no se corta ni se guarda: rojo «16 cifras» y salta', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1), f(2)])
     await user.click(await vacia())
     await user.keyboard(`${A}7{Enter}`)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Hay más de 15 cifras')
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    expect(screen.getByRole('button', { name: /IMEI no válido · 16 cifras/ })).toBeInTheDocument()
     await pausa(300)
     expect(puts).toEqual([])
-    expect(campo()).toHaveValue(`${A}7`)
   })
 
   it('la ráfaga que llega con pausas cortas (menos de 120 ms) entre cifras no se guarda a medias', async () => {
@@ -303,33 +306,33 @@ describe('TablaFilas: lecturas que no deben derramarse', () => {
     await waitFor(() => expect(puts).toEqual([pulsar('1', A)]))
   })
 
-  it('con la cifra de control mala no guarda ni salta, ni solo ni con Enter; «Guardar igualmente» guarda y cierra SIN saltar', async () => {
+  it('con la cifra de control mala no guarda, ni solo ni con Enter: queda en rojo y salta; «Guardar igual» al reabrirla guarda y cierra SIN saltar', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1), f(2)])
     await user.click(await vacia())
     const malo = imeiConLuhnMalo(11)
     await user.keyboard(`${malo}{Enter}`)
-    expect(await screen.findByRole('alert')).toHaveTextContent('La cifra de control no cuadra: revisa el IMEI')
-    await user.keyboard('{Enter}')
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
     await pausa(300)
     expect(puts).toEqual([])
+    await user.click(screen.getByRole('button', { name: /IMEI no válido/ }))
     expect(aqui()).toHaveTextContent(pedido(1))
-    await user.click(screen.getByRole('button', { name: 'Guardar igualmente' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar igual' }))
     await waitFor(() => expect(puts).toEqual([pulsar('1', malo)]))
     await waitFor(() => expect(campo()).not.toBeInTheDocument())
     // Cerró sin saltar a la fila 2.
     expect(aqui()).toHaveTextContent(pedido(1))
   })
 
-  it('tras un error de cifra de control, una lectura nueva (tras una pausa) sustituye a la errónea', async () => {
+  it('tras una lectura con cifra de control mala, la lectura nueva (tras una pausa) se guarda en la fila siguiente, no en la errónea', async () => {
     const user = userEvent.setup()
     abrirTabla([f(1), f(2)])
     await user.click(await vacia())
     await user.keyboard(imeiConLuhnMalo(11))
-    await screen.findByRole('alert')
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
     await pausa(350)
     await user.keyboard(C)
-    await waitFor(() => expect(puts).toEqual([pulsar('1', C)]))
+    await waitFor(() => expect(puts).toEqual([pulsar('2', C)]))
   })
 
   it('sin error, lo tecleado tras una pausa se añade como siempre', async () => {
@@ -367,11 +370,15 @@ describe('TablaFilas: recomendados plegados', () => {
     expect(screen.queryByText(/dónde buscarlo/)).not.toBeInTheDocument()
     expect(recomendados).toBe(0)
     await user.click(ver)
-    expect(screen.getByRole('button', { name: 'Ocultar recomendados' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Ver recomendados' })).toHaveAttribute('aria-expanded', 'true')
+    expect(await screen.findByRole('dialog', { name: 'Recomendados' })).toBeInTheDocument()
     expect(await screen.findByText(/No hay ningún móvil de ese modelo/)).toBeInTheDocument()
     expect(recomendados).toBe(1)
-    await user.click(await screen.findByRole('button', { name: 'Cerrar' }))
-    await user.click((await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ }))[1])
+    await user.keyboard('{Escape}') // cierra solo la lista
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Recomendados' })).not.toBeInTheDocument())
+    expect(campo()).toBeInTheDocument()
+    // Con la fila 1 abierta solo la 2 tiene botón: al pulsarla se cierra la 1 y la 2 empieza plegada.
+    await user.click((await screen.findAllByRole('button', { name: /pulsa para poner el IMEI/ }))[0])
     expect(await screen.findByRole('button', { name: 'Ver recomendados' })).toHaveAttribute('aria-expanded', 'false')
   })
 })
