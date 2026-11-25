@@ -66,6 +66,7 @@ describe('Celda del IMEI en su sitio', () => {
     await user.click(await vacia())
     await user.keyboard(`${imeiConLuhnMalo(5)}{Enter}`)
     await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    await pausa(200)
     expect(puts).toEqual([])
     const roja = screen.getByRole('button', { name: new RegExp(`IMEI no válido · …${imeiConLuhnMalo(5).slice(-4)}`) })
     expect(roja.closest('td')).toHaveClass('bg-[#FDE2E2]')
@@ -122,12 +123,61 @@ describe('Celda del IMEI en su sitio', () => {
     await user.click(await vacia())
     await user.keyboard(`${A}7{Enter}`)
     await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
-    await user.keyboard('{Escape}')
+    await user.keyboard('{Escape}') // cierra la celda 2, que se abrió con el salto
     await user.click(screen.getByRole('button', { name: /IMEI no válido/ }))
     expect(screen.queryByRole('button', { name: 'Guardar igual' })).not.toBeInTheDocument()
+    expect(campo()).toHaveValue(`${A}7`)
+    expect(campo()!.closest('td')).toHaveAttribute('data-editando')
+    // Escape sobre la propia celda roja reabierta.
+    await user.keyboard('{Escape}')
+    expect(campo()).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /IMEI no válido · 16 cifras/ })).toBeInTheDocument()
+    expect(puts).toEqual([])
+    // Y, aparte, reabrir y pulsar fuera.
+    await user.click(screen.getByRole('button', { name: /IMEI no válido/ }))
+    expect(campo()).toBeInTheDocument()
     await user.click(document.body)
     expect(campo()).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /IMEI no válido · 16 cifras/ })).toBeInTheDocument()
+    expect(puts).toEqual([])
+  })
+
+  it('reabierta en rojo, la celda pinta el rojo por dentro y no por fuera cuando se teclea un IMEI bueno', async () => {
+    const user = userEvent.setup()
+    abrirTabla([f(1), f(2)])
+    await user.click(await vacia())
+    await user.keyboard(`${imeiConLuhnMalo(5)}{Enter}`)
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: /IMEI no válido/ }))
+    const td = campo()!.closest('td')!
+    expect(td).not.toHaveClass('bg-[#FDE2E2]')
+    expect(campo()!.parentElement).toHaveClass('bg-[#FDE2E2]') // la lectura mala sigue a la vista en rojo
+    await user.clear(campo()!)
+    await user.type(campo()!, '35')
+    expect(campo()!.parentElement).not.toHaveClass('bg-[#FDE2E2]')
+  })
+
+  it('un lector que manda 15 cifras con cifra de control mala SIN Enter: pasado QUIETO_MS queda en rojo, no guarda y salta', async () => {
+    const user = userEvent.setup()
+    abrirTabla([f(1), f(2)])
+    await user.click(await vacia())
+    await user.keyboard(imeiConLuhnMalo(5))
+    await waitFor(() => expect(aqui()).toHaveTextContent(pedido(2)))
+    expect(screen.getByRole('button', { name: new RegExp(`IMEI no válido · …${imeiConLuhnMalo(5).slice(-4)}`) }).closest('td')).toHaveClass('bg-[#FDE2E2]')
+    await pausa(200)
+    expect(puts).toEqual([])
+  })
+
+  it('con la lista de recomendados abierta, el Escape ya tomado por Radix (defaultPrevented) no cierra la celda', async () => {
+    const user = userEvent.setup()
+    abrirTabla([f(1), f(2)])
+    await user.click(await vacia())
+    const entrada = campo()!
+    // Radix cierra la lista en `document` (captura) con preventDefault y React ya ha repintado: `ver` llega a false al manejador.
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') ev.preventDefault() }, { capture: true, once: true })
+    await user.keyboard('{Escape}')
+    expect(entrada).toBeInTheDocument()
   })
 
   it('quitar: en una celda con IMEI, campo vacío y Enter manda null; sin IMEI, Enter vacío no hace nada', async () => {

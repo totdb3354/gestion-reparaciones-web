@@ -110,7 +110,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
     if (!elegida) return
     const alPulsar = (ev: KeyboardEvent) => {
       if (ev.key === 'Escape' && !document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')
-        && !(document.activeElement as Element | null)?.closest?.('td[data-imei]')) cerrarPanel()
+        && !(document.activeElement as Element | null)?.closest?.('td[data-editando]')) cerrarPanel()
     }
     window.addEventListener('keydown', alPulsar, true)
     return () => window.removeEventListener('keydown', alPulsar, true)

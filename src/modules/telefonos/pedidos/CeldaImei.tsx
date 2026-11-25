@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import type { FilaVista } from '@/shared/api/client'
 import { crearClavesIdempotencia } from '@/shared/lib/clavesIdempotencia'
 import { cn } from '@/shared/lib/utils'
@@ -60,6 +60,9 @@ export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, on
     estabaAbierta.current = abierta
   }, [abierta])
 
+  // Estable entre pintados: el efecto del clic fuera de CampoImei depende de él.
+  const cerrar = useCallback(() => onAbrir(fila.idFila, false), [onAbrir, fila.idFila])
+
   const boton = (
     <button ref={botonRef} type="button" onClick={() => onAbrir(fila.idFila, true)}
       title={tituloRojo ?? [fila.imei ?? 'pulsa para poner el IMEI…', avisoValidado, ...lineas, partes.length === 0 && !avisoValidado ? fila.caja : null].filter(Boolean).join('\n')}
@@ -88,7 +91,8 @@ export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, on
   return (
     <td data-imei data-editando={abierta || undefined} className={cn('relative overflow-hidden border-r border-b border-form-fila-brd p-0 last:border-r-0',
       rojo ? ROJO : FONDO[clase] ?? cn(tono && CLASE_TONO[tono], marcada && 'bg-seleccion-suave'),
-      abierta && cn(rojo ? ROJO : 'bg-superficie', 'outline-2 -outline-offset-2 outline-[#2f6fe0]'))}>
+      // Abierta, el rojo lo pinta el campo solo mientras la lectura mala siga en él.
+      abierta && cn('bg-superficie', 'outline-2 -outline-offset-2 outline-[#2f6fe0]'))}>
       {/* La raya azul es solo color: este texto la dice a quien no la ve. Es `absolute` (sr-only): la celda es `relative` para que
           se quede dentro de ella; si no, cuelga del documento y lo alarga tanto como la tabla. */}
       {marcada && <span className="sr-only">Fila en la que estás</span>}
@@ -96,7 +100,7 @@ export function CeldaImei({ fila, abierta, marcada, fallo, noValido, onAbrir, on
         // Sin edición (el histórico): solo el texto; sin IMEI, la celda queda vacía, sin invitar a ponerlo.
         fila.imei && <span className="flex min-h-8 items-center px-2.5 py-1 font-mono text-[12.5px]">{fila.imei}</span>
       ) : abierta ? (
-        <CampoImei fila={fila} fallo={fallo} noValido={noValido} onCerrar={() => onAbrir(fila.idFila, false)}
+        <CampoImei fila={fila} fallo={fallo} noValido={noValido} onCerrar={cerrar}
           onSaltar={onSaltar ? () => onSaltar(fila.idFila) : undefined} />
       ) : boton}
     </td>
@@ -242,8 +246,9 @@ function CampoImei({ fila, fallo, noValido, onCerrar, onSaltar }: { fila: FilaVi
         onChange={(e) => cambiar(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') { e.preventDefault(); enviar() }
-          // Con la lista abierta, Escape cierra solo la lista (Radix); si no, cierra la celda.
-          else if (e.key === 'Escape') { e.preventDefault(); if (ver) setVer(false); else onCerrar() }
+          // Radix cierra la lista en `document` (captura) con preventDefault, y React ya ha repintado antes de este manejador (`ver` es
+          // false): si el Escape ya está tomado, era de la lista y no cierra la celda.
+          else if (e.key === 'Escape') { if (e.defaultPrevented) return; e.preventDefault(); onCerrar() }
         }}
         className="h-7 min-w-0 flex-1 bg-transparent font-mono text-[13px] outline-none placeholder:font-sans placeholder:text-[12px] placeholder:text-texto-sub placeholder:italic" />
       {corto && <span role="alert" className="sr-only">{MENSAJE_CORTO}</span>}
