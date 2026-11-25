@@ -64,6 +64,7 @@ function entradasDeReserva(c: CambioImei, i: number, cuando: string): EntradaHis
         case 'ENVIADA_SIN_IMEI': return quitada(`${imei}: se envió sin picar el IMEI`)
         case 'PUESTO_EN_OTRA': return quitada(`${imei} se puso en otra fila`)
         case 'NO_ENCONTRADO': return quitada(`${imei} está en «Pendiente revisar…» en NSYS`)
+        case 'EN_PEDIDOS_REALIZADOS': return quitada(`${imei} ya está en «Pedidos realizados» en NSYS (¿vendido por otro lado?)`)
         default: return quitada(`${imei} ya no está disponible`)
       }
     }
