@@ -16,7 +16,7 @@ import { FiltroFechas } from './FiltroFechas'
 import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
-import { OPCIONES_ENVIADO, SIN_FILTROS, contadorAplicado, filtrarColumnas, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, ordenarPorSku, siguienteOrdenSku, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, type Contador, type FiltrosColumna } from './filas'
+import { OPCIONES_ENVIADO, SIN_FILTROS, acumularVista, contadorAplicado, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, ordenarPorSku, siguienteOrdenSku, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, vistaVacia, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
 const ESPERA_BUSCAR_MS = 300
@@ -30,6 +30,7 @@ const MIN_BUSCAR = 2
 export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la vista por encima de las cuales la tabla pinta solo las visibles (se puede bajar en las pruebas). */ umbralVentana?: number } = {}) {
   const [e, setE] = useStore(estadoPedidos)
   const [aplicado, setAplicado] = useState(e.buscar)
+  const [pulsoVista, setPulsoVista] = useState(0)
   useEffect(() => {
     const t = setTimeout(() => setAplicado(e.buscar), ESPERA_BUSCAR_MS)
     return () => clearTimeout(t)
@@ -63,7 +64,11 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const filtrando = hayFiltros(filtros) || viendoFuera
   const buscador = useRef<HTMLInputElement>(null)
   const contadorPuesto = contadorAplicado(filtros)
-  const vistas = useMemo(() => ordenarPorSku(filtrarColumnas(filas, filtros, hoy), e.ordenSku), [filas, filtros, hoy, e.ordenSku])
+  // La vista fija (spec 2026-11-25 §4): se rehace al cambiar los filtros de columna, el periodo, la búsqueda o «Ver», y al pulsar un
+  // contador (aunque sea el puesto: así se quitan las ya picadas). Entre medias, una fila que deja de cumplir el filtro se queda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vista = useMemo(() => vistaVacia(), [filtros, desde, hasta, aplicado, buscando, e.verFuera, pulsoVista])
+  const vistas = useMemo(() => ordenarPorSku(acumularVista(vista, filas, filtros, hoy), e.ordenSku), [vista, filas, filtros, hoy, e.ordenSku])
   const ventana = vistas.length > umbralVentana
   // «Descargar CSV» del menú de usuario: lo que se ve (periodo o búsqueda, filtros de columna y orden). Sin filas, la opción sale deshabilitada.
   useRegistrarExportable(vistas.length > 0 ? () => descargarCsv(NOMBRE_CSV_PEDIDOS, CABECERAS_PEDIDOS, vistas.map((f) => filaPedidoCsv(f, hoy))) : null)
@@ -123,7 +128,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         {lista.data && (
           <div role="group" aria-label="Contadores" className="flex flex-wrap items-center gap-1.5">
             {CONTADORES.map((c) => (
-              <button key={c.id} type="button" title={c.ayuda} aria-pressed={contadorPuesto === c.id} onClick={() => setE((s) => ({ ...s, ...filtrosDeContador(c.id) }))}
+              <button key={c.id} type="button" title={c.ayuda} aria-pressed={contadorPuesto === c.id} onClick={() => { setE((s) => ({ ...s, ...filtrosDeContador(c.id) })); setPulsoVista((n) => n + 1) }}
                 className={cn('cursor-pointer rounded-xl border px-2.5 py-[3px] text-[12px] font-bold hover:border-[#9db8e8] hover:bg-seleccion-suave',
                   contadorPuesto === c.id ? 'border-azul-noche bg-azul-noche text-superficie hover:border-azul-noche hover:bg-azul-noche' : 'border-borde-input bg-badge-neutro-bg text-azul-gris')}>{c.texto}</button>
             ))}

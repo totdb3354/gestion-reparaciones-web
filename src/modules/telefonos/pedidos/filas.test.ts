@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fila, filaAmazon } from '../test/fabrica'
 import type { FilaVista } from '@/shared/api/client'
-import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, partesAviso, lineasAviso, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido, puedeValidar } from './filas'
+import { recuentoMarcas, saltaElLector, textoMarca, estadoPantalla, recuentoEstados, tiendasPresentes, COLUMNAS, contadorAplicado, filtrosDeContador, hayFiltros, SIN_FILTROS, estadoDe, TEXTO_NIVEL, claseCelda, detalleEnvio, filtrarColumnas, nombreTransportista, tonoFila, haceUnMes, rangoDe, recuento, esPendiente, numerosDePedido, partesAviso, lineasAviso, valores, pedidoVisible, sinAsociar, recuentoSinAsociar, textoRevisar, recuentoSalida, separarPorPeriodo, avisoFuera, textoAvisoFuera, ordenarPorSku, siguienteOrdenSku, partesSkuPedido, puedeValidar, acumularVista, vistaVacia } from './filas'
 import { MODELOS_ORDENADOS } from '@/shared/lib/modelos'
 
 const d = (p: Partial<NonNullable<FilaVista['detalle']>>) => ({ sim: null, na: false, ms: false, dato: null, trabajos: [], ...p })
@@ -566,5 +566,26 @@ describe('ordenarPorSku (0.9.39)', () => {
   })
   it('siguienteOrdenSku: A-Z, Z-A y vuelta al orden de siempre', () => {
     expect([siguienteOrdenSku(null), siguienteOrdenSku('asc'), siguienteOrdenSku('desc')]).toEqual(['asc', 'desc', null])
+  })
+})
+
+describe('acumularVista (vista fija como en Excel)', () => {
+  const sin = { ...SIN_FILTROS, soloSinImei: true }
+  const HOY = '2026-11-25'
+  it('la que deja de cumplir se queda; la nueva que cumple entra; la nueva que no cumple no; la que deja de llegar sale', () => {
+    const v = vistaVacia()
+    expect(acumularVista(v, [fila({ idFila: 1 }), fila({ idFila: 2, imei: '350000000000017' })], sin, HOY).map((f) => f.idFila)).toEqual([1])
+    const ahora = [fila({ idFila: 1, imei: '350000000000025' }), fila({ idFila: 2 }), fila({ idFila: 3 }), fila({ idFila: 4, imei: '350000000000033' })]
+    // 1 ya tiene IMEI pero se queda; 2 ya no tiene IMEI pero era conocida: no entra; 3 es nueva y cumple; 4 es nueva y no cumple.
+    expect(acumularVista(v, ahora, sin, HOY).map((f) => f.idFila)).toEqual([1, 3])
+    expect(acumularVista(v, [fila({ idFila: 3 })], sin, HOY).map((f) => f.idFila)).toEqual([3])
+  })
+  it('sin filtros de columna es todo lo recibido', () => {
+    expect(acumularVista(vistaVacia(), [fila({ idFila: 1 }), fila({ idFila: 2, imei: '350000000000017' })], SIN_FILTROS, HOY)).toHaveLength(2)
+  })
+  it('respeta el orden de las filas recibidas', () => {
+    const v = vistaVacia()
+    acumularVista(v, [fila({ idFila: 1 }), fila({ idFila: 2 })], sin, HOY)
+    expect(acumularVista(v, [fila({ idFila: 2 }), fila({ idFila: 1 })], sin, HOY).map((f) => f.idFila)).toEqual([2, 1])
   })
 })

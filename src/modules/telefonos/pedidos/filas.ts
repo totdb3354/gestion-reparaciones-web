@@ -465,6 +465,19 @@ export function filtrarColumnas(filas: FilaVista[], f: FiltrosColumna, hoy: stri
     && (marcas.size === 0 || (x.marca != null && marcas.has(x.marca))))
 }
 
+/** La vista de la tabla con filtros (spec 2026-11-25 §4, como en Excel): las filas que cumplían al fijarla se quedan aunque dejen de
+ *  cumplir (por un IMEI puesto aquí o por el sondeo); de las que llegan después (un `idFila` que no se conocía) entran las que cumplen.
+ *  `VistaFija` es un acumulador: `PedidosPage` crea uno vacío (`vistaVacia`) al cambiar filtros, periodo, búsqueda o «Ver», o al pulsar
+ *  un contador. Devuelve las filas recibidas que están en la vista, en su orden; la que deja de llegar no sale (no hay qué pintar). */
+export type VistaFija = { ids: Set<number>; conocidas: Set<number> }
+export const vistaVacia = (): VistaFija => ({ ids: new Set(), conocidas: new Set() })
+export function acumularVista(v: VistaFija, filas: FilaVista[], filtros: FiltrosColumna, hoy: string): FilaVista[] {
+  const nuevas = filas.filter((f) => !v.conocidas.has(f.idFila))
+  for (const f of filtrarColumnas(nuevas, filtros, hoy)) v.ids.add(f.idFila)
+  for (const f of nuevas) v.conocidas.add(f.idFila)
+  return filas.filter((f) => v.ids.has(f.idFila))
+}
+
 /** Un rango con las dos fechas puestas y en orden. */
 export function rangoValido(r?: { desde: string; hasta: string }): r is { desde: string; hasta: string } {
   return !!r && !!r.desde && !!r.hasta && r.desde <= r.hasta
