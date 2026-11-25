@@ -1,5 +1,6 @@
 import { crearStore } from '@/shared/lib/store'
 import type { OrdenSku, Periodo } from './filas'
+import type { NoValido } from './noValidos'
 
 /** Lo que el usuario ha elegido en «Pedidos»: el periodo (y su rango, si es «Rango…»), lo escrito en el buscador y los filtros por
  *  columna. Vive en un store de módulo, como el de «Stock de teléfonos», para que salir y volver lo deje donde estaba;
@@ -33,6 +34,9 @@ export type EstadoPedidos = {
   /** Los guardados de IMEI que han fallado, por `idFila`: la celda sigue en rojo hasta que se guarde bien (o se recargue la página). Guarda lo que se
    *  intentó y la clave de idempotencia, para que reabrir la celda y reintentar mande la MISMA petición. Solo en memoria. */
   fallosImei: Record<number, FalloImei>
+  /** Lecturas que no eran un IMEI válido (cifra de control mala o más de 15 cifras), por `idFila`: no se guardaron y la celda sigue en
+   *  rojo hasta poner un IMEI en esa fila. Copia en localStorage por usuario (24 h): ver `noValidos.ts`. */
+  noValidos: Record<number, NoValido>
   /** El aviso no modal de arriba de la tabla («No se guardó el IMEI del pedido X…»), hasta que se cierre. */
   avisoImei: string | null
 }
@@ -42,5 +46,5 @@ export type EstadoPedidos = {
 export type FalloImei = { imei: string | null; clave: string; mensaje: string; duplicado?: boolean }
 
 export const estadoPedidos = crearStore<EstadoPedidos>({
-  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, ordenSku: null, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, avisoImei: null,
+  periodo: 'mes', rango: { desde: '', hasta: '' }, verFuera: false, ordenSku: null, buscar: '', plataformas: new Set(), skus: new Set(), soloSinImei: false, noCuadran: false, enviado: new Set(), marcas: new Set(), sinAsociar: false, filaAqui: null, filaElegida: null, fallosImei: {}, noValidos: {}, avisoImei: null,
 })
