@@ -7,12 +7,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 ## [0.9.48] - sin fecha — Pedidos: el ERP reserva un IMEI para cada pedido al entrar
 
 - En cada lectura de ShippyPro (cada 5 min), el ERP **aparta un teléfono concreto** para cada fila sin IMEI, con los criterios de
-  Amazon (abanico del maestro, sustitutos eSIM/SIM física, B/C para el taller, otros colores; Ms solo a España y como último recurso)
+  Amazon (abanico del maestro, sustitutos eSIM/SIM física, B/C para el taller, otros colores; un Ms nunca se reserva: lo decide y lo pica una persona)
   y de las webs (SKU exacto; B/C del mismo color y formato solo para pedidos A). Primero Amazon, después Distribuidores, Particulares y
   BackiPhone; dentro, el pedido más antiguo. Dentro de cada puesto, la caja (Listos primero), el grado y el más antiguo en stock.
 - En la celda, el IMEI reservado sale **tenue**. La fila sigue contando como **sin IMEI**. Al picar ese IMEI queda **confirmado**; si se
   pica otro, el reservado vuelve a stock.
 - Contadores nuevos **«reservadas»** y **«sin stock»**, pulsables.
+- Los IMEI recomendados de la celda ponen los **Ms siempre al final**, detrás de todo lo demás, aunque lleven más tiempo en stock.
 - El **historial** de la fila dice por qué se reservó (puesto, caja y grado), quién lo confirmó, si se picó otro y si la reserva se
   quitó (cancelado, enviado sin IMEI, no encontrado en NSYS, ya no disponible), con etiquetas de color.
 - El bot de stock **no** descuenta todavía los reservados (ajuste `pedidos.reserva.al-bot`, apagado hasta que haya devoluciones).
