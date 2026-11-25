@@ -157,7 +157,7 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
         {ventana && <span className="text-[11.5px] text-azul-gris">Tabla grande: se pinta solo lo que se ve. Para buscar usa el buscador (Control+F).</span>}
         <div className="ml-auto flex flex-wrap items-center gap-2"><DescargarBuscar /><PildoraAsociacion /><PildoraFuentes /></div>
       </div>
-      <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="mb-2.5 flex min-h-8 shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <FiltroFechas periodo={e.periodo} rango={e.rango} atenuado={buscando}
           // Al elegir «Rango…» salen las fechas guardadas, o, si no hay, las del periodo que se aplicaba.
           onPeriodo={(p) => setE((s) => ({ ...s, periodo: p, verFuera: false, rango: p === 'rango' && !rangoValido(s.rango) ? rangoDe(s.periodo, new Date(), s.rango) : s.rango }))}
@@ -186,19 +186,20 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
             className="h-8 cursor-pointer rounded-md border border-borde-input bg-superficie px-2.5 text-[12px] font-semibold text-azul-medio">Quitar filtros</button>
         )}
         {buscando && <p className="text-[12px] text-azul-gris">La búsqueda mira en todo el historial; el periodo no se aplica.</p>}
+        {e.avisoImei && (
+          // No modal: no roba el foco (se está leyendo la fila de al lado) y dice de qué pedido es. Va en la barra del buscador, en el hueco de
+          // la derecha, en una línea: no cambia el alto de la barra y la tabla no se mueve. Texto completo en `title`. Se queda hasta que se cierre.
+          <div role="alert" title={e.avisoImei} className="flex h-8 min-w-0 flex-1 basis-0 items-center gap-2 rounded-md border border-[#e0a0a0] bg-[#FDE2E2] px-2.5 text-[12px] font-bold text-texto-error">
+            <span className="min-w-0 flex-1 truncate">{e.avisoImei}</span>
+            <button type="button" aria-label="Cerrar el aviso" title="Cerrar" onClick={() => setE((s) => ({ ...s, avisoImei: null }))}
+              className="cursor-pointer px-1 text-[14px] leading-none font-bold">✕</button>
+          </div>
+        )}
       </div>
       {buscando && e.buscar.trim().length >= MIN_BUSCAR && lista.data?.hayMas && (
         <p role="status" className="mb-2 shrink-0 text-[12px] font-bold text-form-agotado-text">
           Hay más de 500 resultados: se enseñan los 500 más recientes. Afina la búsqueda.
         </p>
-      )}
-      {e.avisoImei && (
-        // No modal: no roba el foco (se está leyendo la fila de al lado) y dice de qué pedido es. Se queda hasta que se cierre.
-        <div role="alert" className="mb-2 flex shrink-0 items-start gap-2 rounded-md border border-[#e0a0a0] bg-[#FDE2E2] px-3 py-1.5 text-[12.5px] font-bold text-texto-error">
-          <span className="min-w-0 flex-1">{e.avisoImei}</span>
-          <button type="button" aria-label="Cerrar el aviso" title="Cerrar" onClick={() => setE((s) => ({ ...s, avisoImei: null }))}
-            className="cursor-pointer px-1 text-[14px] leading-none font-bold">✕</button>
-        </div>
       )}
       {aviso && (
         // Los pendientes que el periodo deja fuera: no se esconden del todo, se cuentan aquí y «Ver» los enseña.

@@ -84,11 +84,11 @@ test('con «sin IMEI» puesto, picar 3 filas seguidas (una con Luhn malo): las f
   await campo(page).press('Enter')
   await expect(page.locator('tr[data-aqui]')).toContainText(pedido(3))
   await expect(campo(page)).toBeFocused()
-  // La lectura mala saca el aviso no modal de encima de la tabla (spec §2): la primera vez empuja la tabla entera hacia abajo, una sola vez.
-  // Es lo único que mueve las filas; se anota como línea base nueva y las lecturas siguientes ya no las mueven.
+  // La lectura mala saca el aviso no modal en la barra del buscador (spec §2): no mueve la tabla, la línea base sigue siendo y0.
   await expect(page.getByRole('alert')).toContainText('IMEI no válido')
-  const y1 = await yDe(page, 6)
-  expect(y1, 'el aviso solo empuja hacia abajo').toBeGreaterThanOrEqual(y0)
+  expect(await yDe(page, 6), 'al salir el aviso, la fila 6 no se mueve').toBeCloseTo(y0, 0)
+  const y1 = y0
+  if (CAPTURAS) { try { await page.getByRole('alert').locator('..').screenshot({ path: `${CAPTURAS}/c-aviso-barra.png` }) } catch { /* la captura no rompe la prueba */ } }
 
   await campo(page).fill(c)
   await campo(page).press('Enter')
@@ -96,6 +96,10 @@ test('con «sin IMEI» puesto, picar 3 filas seguidas (una con Luhn malo): las f
   await expect(campo(page)).toBeFocused()
   await expect(campo(page)).toHaveValue('')
   expect(await yDe(page, 6), 'tras la 3.ª, la fila 6 no se mueve').toBeCloseTo(y1, 0)
+  // Y al cerrar el aviso tampoco.
+  await page.getByRole('button', { name: 'Cerrar el aviso' }).click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  expect(await yDe(page, 6), 'al cerrar el aviso, la fila 6 no se mueve').toBeCloseTo(y0, 0)
 
   // Las 3 siguen en la tabla (vista fija): la buena con su IMEI, la mala en rojo y sin guardar.
   await expect(fila(page, 1).getByText(a)).toBeVisible()
