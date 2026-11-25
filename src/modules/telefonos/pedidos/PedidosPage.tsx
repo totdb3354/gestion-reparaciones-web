@@ -16,6 +16,7 @@ import { FiltroFechas } from './FiltroFechas'
 import { PildoraAsociacion } from './PildoraAsociacion'
 import { PildoraFuentes } from './PildoraFuentes'
 import { TablaFilas, UMBRAL_VENTANA } from './TablaFilas'
+import { cargarNoValidos, limpiarNoValidos } from './noValidos'
 import { OPCIONES_ENVIADO, SIN_FILTROS, acumularVista, contadorAplicado, filtrosDeContador, hayFiltros, rangoDe, rangoValido, numerosDePedido, recuento, recuentoEstados, recuentoMarcas, recuentoSalida, recuentoSinAsociar, separarPorPeriodo, avisoFuera, ordenarPorSku, siguienteOrdenSku, textoAvisoFuera, textoMarca, textoTienda, tiendasPresentes, valores, vistaVacia, type Contador, type FiltrosColumna } from './filas'
 
 /** Lo que se espera tras la última tecla antes de pedir la búsqueda, y los caracteres mínimos para que cuente como búsqueda. */
@@ -44,6 +45,9 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   const todo = useMemo(() => rangoDe('todo', new Date()), [hoy]) // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useFilas(buscando ? { ...todo, buscar: aplicado.trim() } : { desde, hasta })
   const recibidas = useMemo(() => lista.data?.filas ?? [], [lista.data])
+  // Lecturas no válidas (spec 2026-11-25 §2): las de este navegador al entrar; y se quitan las de filas que ya tienen otro IMEI.
+  useEffect(() => { cargarNoValidos() }, [])
+  useEffect(() => { limpiarNoValidos(recibidas) }, [recibidas])
   // 0.9.38 (spec «rango estricto»): el servidor manda el periodo y, además, las abiertas de cualquier fecha. Sin búsqueda, la tabla
   // enseña solo las del periodo (o, con «Ver», solo los pendientes de fuera); contadores y filtros de columna cuentan lo que se ve.
   const partes = useMemo(() => (buscando ? null : separarPorPeriodo(recibidas, desde, hasta)), [buscando, recibidas, desde, hasta])
@@ -101,11 +105,12 @@ export function PedidosPage({ umbralVentana = UMBRAL_VENTANA }: { /** Filas a la
   }, [e.filaElegida, lista.data, lista.isPlaceholderData, elegida, setE])
   // Escape cierra el panel, pero un solo Escape cierra solo lo que esté encima (un desplegable o un diálogo de Radix). Se escucha en
   // captura en `window`, que corre antes que el Escape de Radix (en `document`, también en captura): así se mira si hay algo encima
-  // antes de que Radix lo desmonte.
+  // antes de que Radix lo desmonte. Con el foco en la celda del IMEI, el Escape es de la celda (cierra el campo), no del panel.
   useEffect(() => {
     if (!elegida) return
     const alPulsar = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape' && !document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')) cerrarPanel()
+      if (ev.key === 'Escape' && !document.querySelector('[role="dialog"],[role="alertdialog"],[data-slot="popover-content"]')
+        && !(document.activeElement as Element | null)?.closest?.('td[data-imei]')) cerrarPanel()
     }
     window.addEventListener('keydown', alPulsar, true)
     return () => window.removeEventListener('keydown', alPulsar, true)
