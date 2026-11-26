@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.48.4] - 2026-11-26 — Reserva: el eSIM entra para un pedido de SIM física, y al revés (solo servidor)
+
+- La reserva nunca cogía un eSIM para un pedido de SIM física (ni un físico para un pedido eSIM), porque el maestro escribe
+  «eSIM» en el modelo («15 PRO eSIM») y el reparto lo comparaba tal cual. Ahora el modelo se compara sin «eSIM» y en Amazon
+  entran los puestos del otro formato: 3 (mismo color y grado), 4 (B/C), 6 (N/A de otro color) y 8 (A/A- de otro color).
+- En las webs no cambia nada: siguen sin aceptar el otro formato.
+- Las reservas ya hechas no cambian: una fila que reservó otro móvil lo mantiene hasta que se suelte.
+
 ## [0.9.48.3] - 2026-11-26 — El bot devuelve también lo que estaba «En revisión» (solo servidor)
 
 - Un móvil que estaba sin caja en NSYS («En revisión») y hay que devolver (se picó otro IMEI, se soltó la reserva o se corrigió
