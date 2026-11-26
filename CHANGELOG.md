@@ -4,6 +4,13 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.48.3] - 2026-11-26 — El bot devuelve también lo que estaba «En revisión» (solo servidor)
+
+- Un móvil que estaba sin caja en NSYS («En revisión») y hay que devolver (se picó otro IMEI, se soltó la reserva o se corrigió
+  el IMEI) vuelve a la localización de NSYS «--------------», que el ERP trata igual que «sin localización». Antes quedaba
+  como «no se devuelve solo · sin caja» y había que moverlo a mano.
+- Con el descuento de reservados encendido, el bot vuelve a descontar todos los reservados, también los «En revisión».
+
 ## [0.9.48.2] - 2026-11-26 — Reserva: al bot solo van los reservados que tienen caja en NSYS (solo servidor)
 
 - Cuando se encienda que el bot descuente los IMEI reservados, solo descontará los que en NSYS están en una caja. Los que están
