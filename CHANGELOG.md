@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.48.2] - 2026-11-26 — Reserva: al bot solo van los reservados que tienen caja en NSYS (solo servidor)
+
+- Cuando se encienda que el bot descuente los IMEI reservados, solo descontará los que en NSYS están en una caja. Los que están
+  «En revisión» (sin caja) se quedan apartados solo en el ERP, como hasta ahora: NSYS no deja devolver un móvil a «sin
+  localización», así que si se picara otro no se podrían devolver solos. Mientras ese ajuste siga apagado, no cambia nada.
+
 ## [0.9.48.1] - 2026-11-25 — Reserva: todos los reservados de pedidos vivos llegan al bot (solo servidor)
 
 - Cuando se encienda que el bot descuente los IMEI reservados, entrarán todos los de pedidos que siguen pendientes, aunque la
