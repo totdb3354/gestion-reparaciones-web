@@ -12,6 +12,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 - Es lo que vende la regla «n/a como A» del ciclo de stock: sin esto, esos pedidos se quedarían sin reserva.
 - Para A- y A-100, nunca. Con un trabajo del taller abierto, solo el SKU exacto, como antes.
 
+## [0.9.48.5] - 2026-11-26 — El buscador de Pedidos encuentra también el IMEI reservado (solo servidor; sale a producción con la 0.9.49)
+
+- Al buscar un IMEI sale también la fila que lo tiene reservado, no solo las filas donde está puesto. Antes, buscando el IMEI
+  de un móvil reservado que se había vendido antes y volvió a stock, solo salía la venta antigua.
+
 ## [0.9.48.4] - 2026-11-26 — Reserva: el eSIM entra para un pedido de SIM física, y al revés (solo servidor)
 
 - La reserva nunca cogía un eSIM para un pedido de SIM física (ni un físico para un pedido eSIM), porque el maestro escribe
