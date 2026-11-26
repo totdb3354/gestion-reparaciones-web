@@ -4,6 +4,12 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.48.1] - 2026-11-25 — Reserva: todos los reservados de pedidos vivos llegan al bot (solo servidor)
+
+- Cuando se encienda que el bot descuente los IMEI reservados, entrarán todos los de pedidos que siguen pendientes, aunque la
+  reserva tenga más de 7 días (antes se quedaban fuera y el móvil seguía vendible en NSYS). Mientras ese ajuste siga apagado,
+  no cambia nada.
+
 ## [0.9.48] - 2026-11-25 — Pedidos: el ERP reserva un IMEI para cada pedido al entrar
 
 - En cada lectura de ShippyPro (cada 5 min), el ERP **aparta un teléfono concreto** para cada fila sin IMEI, con los criterios de
