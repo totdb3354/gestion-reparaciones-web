@@ -4,6 +4,14 @@ Todos los cambios notables de este proyecto se documentan en este fichero.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.9.49] - 2026-11-26 — Reserva web: un móvil sin revisar (N/A) vale para un pedido A o A100 (solo servidor)
+
+- En los pedidos de las webs (Distribuidores, Particulares, BackiPhone) de grado A o A100, la reserva coge ahora un móvil sin
+  revisar (n/a, sin caja o en Devolución) del mismo modelo, capacidad, formato y color si no hay el SKU exacto. Va delante del
+  B o C: al revisarlo puede salir A y ahorrarse la reparación.
+- Es lo que vende la regla «n/a como A» del ciclo de stock: sin esto, esos pedidos se quedarían sin reserva.
+- Para A- y A-100, nunca. Con un trabajo del taller abierto, solo el SKU exacto, como antes.
+
 ## [0.9.48.4] - 2026-11-26 — Reserva: el eSIM entra para un pedido de SIM física, y al revés (solo servidor)
 
 - La reserva nunca cogía un eSIM para un pedido de SIM física (ni un físico para un pedido eSIM), porque el maestro escribe
