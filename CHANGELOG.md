@@ -11,6 +11,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
   B o C: al revisarlo puede salir A y ahorrarse la reparación.
 - Es lo que vende la regla «n/a como A» del ciclo de stock: sin esto, esos pedidos se quedarían sin reserva.
 - Para A- y A-100, nunca. Con un trabajo del taller abierto, solo el SKU exacto, como antes.
+- Arreglo: un pedido web cuyo SKU A100 agrupa en el maestro A+100, A100 y C100 no contaba como «A o A100» (se miraba el primer
+  producto, el A+100), así que no aceptaba ni el N/A ni el B o C. Ahora cuenta lo que acepta el SKU.
 
 ## [0.9.48.5] - 2026-11-26 — El buscador de Pedidos encuentra también el IMEI reservado (solo servidor; sale a producción con la 0.9.49)
 
